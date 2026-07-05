@@ -1,3 +1,4 @@
+import { vi } from 'vitest'
 import ForgeCompilationError from '../../../errors/ForgeCompilationError'
 import ForgeRuntimeEvaluationError, {
   getForgeRuntimeEvaluationDiagnostics,
@@ -86,6 +87,48 @@ describe('GeneratedFunctionCompiler', () => {
 
       // Assert
       expect(result).toBe('red')
+    })
+
+    it('should emit a process warning per occurrence when a generated function calls diagnostics.warn', () => {
+      // Arrange
+      const emitWarning = vi.spyOn(process, 'emitWarning').mockImplementation(() => {})
+      const expr = new ExpressionDispatcher(dependencies)
+      const fn = compileGeneratedFunction<GeneratedFunction>(
+        expr,
+        ['ctx'],
+        () => "_forgeRuntimeDiagnostics.warn('FORGE_TEST', 'dropped value', { code: 'name' });",
+        { phase: 'answer-preparation' },
+      )
+
+      // Act
+      Reflect.apply(fn, undefined, [{}])
+      Reflect.apply(fn, undefined, [{}])
+
+      // Assert
+      expect(emitWarning).toHaveBeenCalledTimes(2)
+      expect(emitWarning).toHaveBeenNthCalledWith(1, 'dropped value {"code":"name"}', { code: 'FORGE_TEST' })
+
+      emitWarning.mockRestore()
+    })
+
+    it('should emit the message alone when diagnostics.warn is called without details', () => {
+      // Arrange
+      const emitWarning = vi.spyOn(process, 'emitWarning').mockImplementation(() => {})
+      const expr = new ExpressionDispatcher(dependencies)
+      const fn = compileGeneratedFunction<GeneratedFunction>(
+        expr,
+        ['ctx'],
+        () => "_forgeRuntimeDiagnostics.warn('FORGE_TEST', 'dropped value');",
+        { phase: 'answer-preparation' },
+      )
+
+      // Act
+      Reflect.apply(fn, undefined, [{}])
+
+      // Assert
+      expect(emitWarning).toHaveBeenCalledWith('dropped value', { code: 'FORGE_TEST' })
+
+      emitWarning.mockRestore()
     })
 
     it('should record a completed codegen.function span when the tracer is enabled', () => {

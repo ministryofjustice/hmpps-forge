@@ -1,4 +1,5 @@
 export { buildComponent } from './utils/buildComponent'
+export type { BuildComponentOptions } from './utils/buildComponent'
 export { coreComponents, HtmlBlock, CollectionBlock, TemplateWrapper } from './builtins'
 export type { EvaluatedCollectionBlock } from './builtins'
 export type { ComponentRegistryEntry, ComponentRenderer } from './types/components.type'

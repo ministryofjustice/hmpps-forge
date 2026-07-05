@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import {
   ResolvableBoolean,
   ResolvableNumber,
@@ -257,6 +258,7 @@ export const govukCharacterCount = buildNunjucksComponent<GovUKCharacterCount>(
       params,
     })
   },
+  { inputSchema: z.string() },
 )
 
 /**

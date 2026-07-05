@@ -1,34 +1,31 @@
 # HMPPS Forge
 
-HMPPS Forge is a declarative, stateless framework for building multi-page 
-journeys, handling routing, rendering, validation, and navigation.
+[![Ministry of Justice Repository Compliance Badge](https://github-community.service.justice.gov.uk/repository-standards/api/hmpps-forge/badge)](https://github-community.service.justice.gov.uk/repository-standards/hmpps-forge)
+[![npm](https://img.shields.io/npm/v/@ministryofjustice/hmpps-forge?style=for-the-badge)](https://www.npmjs.com/package/@ministryofjustice/hmpps-forge)
+[![build](https://img.shields.io/github/actions/workflow/status/ministryofjustice/hmpps-forge/pipeline.yml?style=for-the-badge&branch=main)](https://github.com/ministryofjustice/hmpps-forge/actions/workflows/pipeline.yml)
+[![licence](https://img.shields.io/npm/l/@ministryofjustice/hmpps-forge?style=for-the-badge)](LICENSE.md)
 
-Define your journeys as plain data structures. Forge compiles them into routes, 
-renders GOV.UK-styled pages, validates submissions, builds a route tree, and 
-manages page flow - so you focus on what to ask, not how to wire it up.
+Forge is a declarative framework for building server-rendered web
+applications.
 
-## What it does
+- **Declarative** - pages, content, validation, and navigation are plain data
+  structures. Forge derives the routing, rendering, and page flow from them -
+  there are no request handlers to write.
+- **Compiled** - definitions compile to plain JavaScript functions once at
+  startup. Requests execute compiled functions; nothing is parsed or
+  interpreted per request.
+- **Stateless** - every request is evaluated fresh from a snapshot. Same
+  definitions, same snapshot, same outcome - deterministic, and testable
+  without ever touching HTTP.
+- **Bring your own stack** - the engine returns outcomes (render, navigate,
+  error); adapters own the framework. An Express + Nunjucks adapter and
+  GOV.UK/MOJ component packages ship out of the box, and any design system or
+  framework can sit in their place.
 
-- **Declarative journeys** - describe pages, fields, validation rules, and 
-  navigation as data. No imperative request handlers.
-- **GOV.UK and MOJ components** - built-in blocks for text inputs, radios, 
-  checkboxes, date inputs, summary lists, task lists, and more. All render 
-  through the GOV.UK Design System and MOJ Frontend.
-- **Validation pipeline** - field-level and step-level rules with formatters, 
-  conditional validation, cross-field checks, and error summaries wired to the 
-  right fields automatically.
-- **Hooks and lifecycle** - `onAccess` and `onSubmission` let you load data,
-  handle POST intents, and control what happens on form submission.
-- **Reachability** - prevents users skipping ahead, clears stale answers when 
-  the path changes, and supports resuming partially-completed journeys.
-- **Route tree** - automatically built from mounted route paths and 
-  available in templates for sidebars, breadcrumbs, and menus.
-- **Expression language** - references (`Answer()`, `Data()`, `Params()`, 
-  `Session()`), conditionals, iterators, combinators, and pluggable functions 
-  (conditions, transformers, generators, effects) let you express dynamic 
-  behaviour without leaving the declarative model.
-- **Framework agnostic core** - the engine is decoupled from any web framework. 
-  An Express + Nunjucks adapter is provided out of the box.
+The interactive [Forge Developer Guide](https://forge-developer-guide-dev.hmpps.service.justice.gov.uk)
+covers the full API surface - building journeys, the authoring language,
+components, and patterns. It's itself built with Forge, so every pattern page
+includes a runnable demo.
 
 ## What a journey looks like
 
@@ -66,31 +63,32 @@ export const feedbackJourney = journey({
 Forge compiles this into `GET /feedback` and `GET /feedback/confirmation` routes, 
 renders the GOV.UK components, validates on submission, and redirects on success.
 
-## Packages
+## Features
 
-| Package                  | Import path | Purpose |
-|--------------------------|--|--|
-| Core                     | `@ministryofjustice/hmpps-forge/core/authoring` | Authoring API, expression language, engine |
-| Components               | `@ministryofjustice/hmpps-forge/core/components` | Built-in block primitives (`HtmlBlock`, `CollectionBlock`, `TemplateWrapper`) |
-| Framework                | `@ministryofjustice/hmpps-forge/core/framework` | Framework adapter interface |
-| Express-Nunjucks Adapter | `@ministryofjustice/hmpps-forge/express-nunjucks` | Express adapter with Nunjucks rendering |
-| GOV.UK Components        | `@ministryofjustice/hmpps-forge/govuk-components` | GOV.UK Design System blocks and fields |
-| MOJ Components           | `@ministryofjustice/hmpps-forge/moj-components` | MOJ Frontend blocks |
-
-## Requirements
-
-- Node.js 20, 22, or 24
-- [GOV.UK Frontend](https://github.com/alphagov/govuk-frontend) 6.x
-- [Express](https://expressjs.com/) 4.x or 5.x
-- [Nunjucks](https://mozilla.github.io/nunjucks/) 3.x
+- **Validation pipeline** - field and step rules with formatters, conditional
+  validation, cross-field checks, and error summaries wired to the right fields
+- **Reachability** - prevents users skipping ahead, clears stale answers when
+  the path changes, and supports resuming partially-completed journeys
+- **Route tree** - built from mounted route paths, available in templates for
+  sidebars, breadcrumbs, and menus
+- **Expression language** - references (`Answer()`, `Data()`, `Params()`,
+  `Session()`), conditionals, iterators, combinators, and pluggable functions
+- **Hooks** - `onAccess` and `onSubmission` for loading data, handling POST
+  intents, and controlling what happens on form submission
+- **GOV.UK and MOJ components** - text inputs, radios, checkboxes, date inputs,
+  summary lists, task lists, and more
 
 ## Getting started
 
-Install the package and peer dependencies:
+Forge runs on Node.js 20, 22, or 24. Install the package and peer dependencies:
 
 ```bash
 npm install @ministryofjustice/hmpps-forge express nunjucks express-session govuk-frontend
 ```
+
+The bundled adapter and components work with [Express](https://expressjs.com/)
+4.x or 5.x, [Nunjucks](https://mozilla.github.io/nunjucks/) 3.x, and
+[GOV.UK Frontend](https://github.com/alphagov/govuk-frontend) 6.x.
 
 Create the engine, register your journeys, and mount the Express router:
 
@@ -106,63 +104,44 @@ const forge = new Forge({ logger })
 app.use(createExpressRouter(forge, { nunjucksEnv }))
 ```
 
-## Developer guide
+## Packages
 
-We have an interactive [Forge Developer Guide](https://forge-developer-guide-dev.hmpps.service.justice.gov.uk) 
-which covers the full API surface:
-
-- **Building journeys** - defining journeys, steps, blocks, fields, validation, 
-  routing, hooks, and navigation
-- **Authoring language** - references, expressions, conditionals, iterators, and 
-  combinators
-- **Functions** - conditions, transformers, generators, and effects (built-in 
-  and custom)
-- **Custom components** - building your own blocks and fields with the component 
-  system
-- **Patterns** - single question per page, branching, reveal fields, composite 
-  fields, and resuming partially-completed journeys etc.
-- **Packages** - using the built-in GOVUK and MOJ components packages, how the 
-  express-nunjucks adapter shapes existing Express/Nunjucks approaches to Forge etc.
-
-The guide lives in [`examples-app/server/journeys/forge-developer-guide/`](examples-app/server/journeys/forge-developer-guide/)  and is itself built with Forge, so each pattern page includes a runnable demo.
+| Package                  | Import path | Purpose                                                                       |
+|--------------------------|--|-------------------------------------------------------------------------------|
+| Authoring                | `@ministryofjustice/hmpps-forge/core/authoring` | Authoring API, expression language, engine                                    |
+| Components               | `@ministryofjustice/hmpps-forge/core/components` | Built-in block primitives (`HtmlBlock`, `CollectionBlock`, `TemplateWrapper`) |
+| Framework                | `@ministryofjustice/hmpps-forge/core/framework` | Framework adapter interface                                                   |
+| Express-Nunjucks Adapter | `@ministryofjustice/hmpps-forge/express-nunjucks` | Express adapter with Nunjucks rendering                                       |
+| GOV.UK Components        | `@ministryofjustice/hmpps-forge/govuk-components` | GOV.UK Design System blocks and fields                                        |
+| MOJ Components           | `@ministryofjustice/hmpps-forge/moj-components` | MOJ Frontend blocks and fields                                                |
 
 ## Development
 
 The repository contains the framework packages and an examples app:
 
-```
-packages/              Framework source
-  forge-core/          Engine, authoring API, expression language
-  forge-express-nunjucks/  Express + Nunjucks adapter
-  forge-govuk-components/  GOV.UK Design System components
-  forge-moj-components/    MOJ Frontend components
-examples-app/          Interactive examples and developer guide
+```bash
+packages/                   # Framework source
+  forge-core/               # Engine, authoring API, expression language
+  forge-express-nunjucks/   # Express + Nunjucks adapter
+  forge-govuk-components/   # GOV.UK Design System components
+  forge-moj-components/     # MOJ Frontend components
+examples-app/               # Interactive examples and developer guide
 ```
 
-Build the packages and install into the examples app:
+The engine internals are documented layer by layer - start at the
+[engine README](packages/forge-core/src/engine/README.md), which covers the
+compilation pipeline and runtime, and links down into each layer.
 
 ```bash
-make build
+make build      # build the packages and install them into the examples app
+make dev-up     # run the examples app in development mode
+make test       # run tests
+make lint-fix   # run linting
 ```
 
-Run the examples app in development mode:
+## Contributing & Licence
 
-```bash
-make dev-up
-```
+Issues and pull requests are welcome. Branch off `development` (PRs target it,
+not `main`), and run linting, typechecking and test suites before opening!
 
-Run tests:
-
-```bash
-make test
-```
-
-Run linting:
-
-```bash
-make lint-fix
-```
-
-## Licence
-
-[MIT](LICENCE)
+Licence is [MIT](LICENSE.md).

@@ -59,7 +59,9 @@ Compilation got a lot stricter - misplaced definitions and unregistered function
 fail at `registerPackage()` instead of silently vanishing or half-working. Function
 registration moves onto registry classes with central schema validation, deprecated APIs
 now warn at runtime, and request traces carry a lot more detail for the upcoming 
-devtools. Compilation now emits trace events of its own, too!
+devtools. Compilation now emits trace events of its own, too! Components also now declare
+the shape of value they can legitimately submit - a tampered POST body gets dropped
+before it ever reaches answer history.
 
 ### For journey authors
 
@@ -90,6 +92,12 @@ _Definitions, expressions, hooks, navigation, reachability_
   instead of at render time - `validateRegisteredComponents` walks iterator templates too.
   ([#131])
 
+#### Notes
+
+- **Binned the dead `sanitize` flag.** The DSL schema accepted a `sanitize` boolean on
+  field definitions that nothing ever read. Setting it never did anything, and still
+  doesn't - the key is now just ignored like any other unknown property. ([#141])
+
 ---
 
 ### For function and component authors
@@ -112,6 +120,28 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   unanswered field, the wrong shape) returns `false` rather than throwing, since that's a
   normal "not valid yet" outcome. Everything else throws - bad arguments on any function
   kind, or a transformer fed a value it can't take, is an author mistake. ([#132])
+
+- **Components can declare an input schema.** A component registry entry can carry a Zod
+  `inputSchema` describing the submitted value the rendered component can legitimately
+  produce (a text input submits a string, a date input submits date parts), plus an
+  optional `multiple` flag. Answer preparation validates the normalized POST value against
+  the schema: a value that fails is not from the rendered form, so it is dropped as
+  unanswered - `undefined`, or `[]` when multiple - and a `FORGE_INPUT_SCHEMA_REJECTED`
+  runtime warning is emitted via `process.emitWarning`. Unanswered fields and variants
+  without a schema are untouched. ([#141])
+
+- **Built-in GOV.UK and MOJ field components declare their input schemas.** Text,
+  textarea, character count, select, radio and password inputs declare `z.string()`,
+  checkbox declares `z.array(z.string())`, and the date inputs declare their per-variant
+  date-parts object. Third-party components are unaffected until they opt in. ([#141])
+
+#### Improvements
+
+- **Checkbox `multiple` moves to the component registry entry.** The checkbox component
+  now declares `multiple: true` on its registry entry rather than forcing it onto the
+  field definition. Effective multiple is `entry.multiple ?? field.multiple ?? false`, so
+  fixed-shape components own the flag while dual-mode components keep the field-level DSL
+  option. ([#141])
 
 #### Deprecated
 
@@ -204,6 +234,7 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
 [#136]: https://github.com/ministryofjustice/hmpps-forge/pull/136
 [#137]: https://github.com/ministryofjustice/hmpps-forge/pull/137
 [#138]: https://github.com/ministryofjustice/hmpps-forge/pull/138
+[#141]: https://github.com/ministryofjustice/hmpps-forge/pull/141
 [#142]: https://github.com/ministryofjustice/hmpps-forge/pull/142
 
 ---

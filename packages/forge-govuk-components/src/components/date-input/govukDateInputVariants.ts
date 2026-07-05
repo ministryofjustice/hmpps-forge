@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import {
   ResolvableBoolean,
   ResolvableString,
@@ -281,6 +282,7 @@ export const govukDateInputFull = buildNunjucksComponent<GovUKDateInputFull>(
 
     return nunjucksEnv.render('govuk/components/date-input/template.njk', { params })
   },
+  { inputSchema: z.object({ year: z.string(), month: z.string(), day: z.string() }).partial() },
 )
 
 /**
@@ -307,6 +309,7 @@ export const govukDateInputYearMonth = buildNunjucksComponent<GovUKDateInputYear
 
     return nunjucksEnv.render('govuk/components/date-input/template.njk', { params })
   },
+  { inputSchema: z.object({ year: z.string(), month: z.string() }).partial() },
 )
 
 /**
@@ -333,6 +336,7 @@ export const govukDateInputMonthDay = buildNunjucksComponent<GovUKDateInputMonth
 
     return nunjucksEnv.render('govuk/components/date-input/template.njk', { params })
   },
+  { inputSchema: z.object({ month: z.string(), day: z.string() }).partial() },
 )
 
 const fullDatePaths = { year: 'year', month: 'month', day: 'day' }

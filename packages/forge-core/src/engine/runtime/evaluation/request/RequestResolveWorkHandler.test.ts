@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { NO_OP_RESPONSE_BINDINGS } from '../../../../framework/types/responseBindings.type'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
+import ComponentRegistry from '../../../registries/ComponentRegistry'
 import WorkTaskFactory from '../work/WorkTaskFactory'
 import { REQUEST_RESOLVE_WORK_HANDLER } from './RequestResolveWorkHandler'
 import type { CompiledResolveContext } from '../../../contracts/compiled/compiledContexts.type'
@@ -42,6 +43,7 @@ function createRequestContext(
     },
     responseBindings: NO_OP_RESPONSE_BINDINGS,
     functionRegistry: new FunctionRegistry(),
+    componentRegistry: new ComponentRegistry(),
     hasRenderer: false,
     showValidationFailures: true,
     validation: {

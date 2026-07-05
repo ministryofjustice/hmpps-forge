@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { RequestTraceEvent } from '../../src/testing'
 import { createClient, createTracedClient, answerOf, answersFromTrace, type ContractSession } from './contractHelpers'
 import {
@@ -24,6 +24,7 @@ import {
   dependentWhenWithDefaultJourney,
   parserTypeErrorJourney,
   arrayNonMultipleJourney,
+  dateInputJourney,
 } from './answerPreparation.fixtures'
 
 describe('answer preparation contracts', () => {
@@ -556,5 +557,73 @@ describe('answer preparation contracts', () => {
 
     // Assert
     expect(session.answers?.['array-non-multiple']?.fieldCode).toBe('selected')
+  })
+
+  it('should drop an object submitted to a text field and emit a schema warning', async () => {
+    // Arrange
+    const emitWarning = vi.spyOn(process, 'emitWarning').mockImplementation(() => {})
+    const client = createClient(storeValuesJourney)
+    const session: ContractSession = {}
+
+    // Act
+    await client.post('/store-values/name', { session, body: { fullName: { unexpected: 'object' } } })
+
+    // Assert
+    expect(session.answers?.['store-values']?.fullName).toBeUndefined()
+    expect(emitWarning).toHaveBeenCalledWith(expect.stringContaining('fullName'), {
+      code: 'FORGE_INPUT_SCHEMA_REJECTED',
+    })
+
+    emitWarning.mockRestore()
+  })
+
+  it('should skip the schema check and emit no warning when a field with a schema is unanswered', async () => {
+    // Arrange
+    const emitWarning = vi.spyOn(process, 'emitWarning').mockImplementation(() => {})
+    const client = createClient(storeValuesJourney)
+    const session: ContractSession = {}
+
+    // Act
+    await client.post('/store-values/name', { session, body: {} })
+
+    // Assert
+    expect(session.answers?.['store-values']?.fullName).toBeUndefined()
+    expect(emitWarning).not.toHaveBeenCalledWith(expect.anything(), { code: 'FORGE_INPUT_SCHEMA_REJECTED' })
+
+    emitWarning.mockRestore()
+  })
+
+  it('should accept a date-parts object submitted to a date input field', async () => {
+    // Arrange
+    const emitWarning = vi.spyOn(process, 'emitWarning').mockImplementation(() => {})
+    const client = createClient(dateInputJourney)
+    const session: ContractSession = {}
+
+    // Act
+    await client.post('/date-input/dob', { session, body: { dob: { day: '31', month: '3', year: '1980' } } })
+
+    // Assert
+    expect(session.answers?.['date-input']?.dob).toBe('1980-03-31')
+    expect(emitWarning).not.toHaveBeenCalledWith(expect.anything(), { code: 'FORGE_INPUT_SCHEMA_REJECTED' })
+
+    emitWarning.mockRestore()
+  })
+
+  it('should drop a string submitted to a date input field and emit a schema warning', async () => {
+    // Arrange
+    const emitWarning = vi.spyOn(process, 'emitWarning').mockImplementation(() => {})
+    const client = createClient(dateInputJourney)
+    const session: ContractSession = {}
+
+    // Act
+    await client.post('/date-input/dob', { session, body: { dob: 'not-a-date' } })
+
+    // Assert
+    expect(session.answers?.['date-input']?.dob).toBeUndefined()
+    expect(emitWarning).toHaveBeenCalledWith(expect.stringContaining('dob'), {
+      code: 'FORGE_INPUT_SCHEMA_REJECTED',
+    })
+
+    emitWarning.mockRestore()
   })
 })

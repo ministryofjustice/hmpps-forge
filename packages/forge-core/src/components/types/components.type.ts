@@ -1,3 +1,4 @@
+import type { ZodType } from 'zod'
 import type { BlockDefinition, EvaluatedBlock } from './structures.type'
 
 type MaybePromise<T> = T | Promise<T>
@@ -41,4 +42,17 @@ export type ComponentRenderer<T extends BlockDefinition, TRenderOutput = unknown
 export interface ComponentRegistryEntry<T extends BlockDefinition, TRenderOutput = unknown> {
   variant: string
   render(block: EvaluatedBlock<T>, renderer?: unknown): MaybePromise<TRenderOutput>
+
+  /**
+   * Describes the shape of the submitted (post-normalise) value this component can
+   * legitimately produce. A rendered text input can only ever submit a string, so
+   * anything failing this schema did not come from the rendered form.
+   */
+  inputSchema?: ZodType
+
+  /**
+   * Component-level (fixed-shape) override of the field-level `multiple` flag. Fixed-shape
+   * components such as checkboxes declare it here rather than leaving it an author decision.
+   */
+  multiple?: boolean
 }
