@@ -46,8 +46,8 @@ The live demo works end-to-end. Following the flow shows:
 - **Conditional redirects** in a submit hook's `next` array, using
   first-match semantics to pick the right branch.
 - **Three branch steps** that each collect different information.
-- **A summary** whose key, value, and change link adapt to the branch
-  the user took.
+- **A summary** with `visibleWhen` rows, so only the branch the user
+  took appears.
 - **Confirmation** on a final panel, with a reset that clears the
   session-stored answers.
 
@@ -57,7 +57,7 @@ The live demo works end-to-end. Following the flow shows:
 
 ```
 /forge-developer-guide/patterns/demos/branching/
-├── /                  → Overview and "Start" button
+├── /overview          → Overview and "Start" button
 ├── /visit-type        → Radio: in-person | video | phone
 ├── /location          → Office picker (in-person branch)
 ├── /video-email       → Email for calendar invite (video branch)
@@ -83,7 +83,7 @@ condition, followed by an unconditional fallback:
 submit({
   validate: true,
   onValid: {
-    effects: [PatternEffects.SaveAnswers('branching')],
+    effects: [PatternEffects.SaveDraftAnswers('branching')],
     next: [
       redirect({
         when: Answer('visitType').match(Condition.Equals('in-person')),
@@ -112,27 +112,29 @@ from:
 
 ```typescript
 onValid: {
-  effects: [PatternEffects.SaveAnswers('branching')],
+  effects: [PatternEffects.SaveDraftAnswers('branching')],
   next: [redirect({ goto: 'check-answers' })],
 }
 ```
 
 ### A summary that follows the branch
 
-The summary list uses `match()` to pick the key, value, change link,
-and hidden text for the branch-specific row:
+The summary list defines a row per branch, each guarded by a
+`visibleWhen` condition on `visitType`, so only the branch the user
+took appears. The always-visible visit-type row uses `match()` to
+turn the stored value into a friendly label:
 
 ```typescript
-const detailsValue = match(Answer('visitType'))
-  .branch(Condition.Equals('in-person'), Answer('location'))
-  .branch(Condition.Equals('video'), Answer('videoEmail'))
-  .branch(Condition.Equals('phone'), Answer('phoneNumber'))
+const visitTypeLabel = match(Answer('visitType'))
+  .branch(Condition.Equals('in-person'), 'In person')
+  .branch(Condition.Equals('video'), 'Video call')
+  .branch(Condition.Equals('phone'), 'Phone call')
   .otherwise('')
 ```
 
-The row itself is defined once. The dynamic values are resolved at
-render time, so the summary always reflects the user's current
-branch.
+The conditions are resolved at render time, so the summary always
+reflects the user's current branch. Answers from other branches stay
+in the session but are not displayed.
 
 ---
 

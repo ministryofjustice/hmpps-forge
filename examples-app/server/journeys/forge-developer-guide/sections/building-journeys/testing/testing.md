@@ -67,8 +67,9 @@ object to each request and the effects will mutate it as they run.
 
 ## Reading results
 
-Every request returns a `TestResult`, which is either a render or a
-redirect.
+Every request returns a `TestResult`, which is a render, a redirect,
+or an error. Error results (`type: 'error'`) carry the `status` and
+`message` from a `throwError` outcome.
 
 ### Render results
 
@@ -106,7 +107,7 @@ if (result.type === 'redirect') {
 }
 ```
 
-Both result types also include `headers` and `cookies` maps if you
+Every result type also includes `headers` and `cookies` maps if you
 need to assert on response metadata.
 
 ---

@@ -60,7 +60,7 @@ The live demo works end-to-end. Following the flow shows:
 
 ```
 /forge-developer-guide/patterns/demos/single-question-per-page/
-├── /                 → Overview and "Start" button
+├── /overview         → Overview and "Start" button
 ├── /your-name        → Field: fullName
 ├── /your-role        → Field: role
 ├── /check-answers    → Summary list with change links
@@ -68,9 +68,10 @@ The live demo works end-to-end. Following the flow shows:
 ```
 
 Each question step redirects to the next on valid submission. The
-check-answers step saves once more and redirects to the confirmation.
-The confirmation step clears the saved answers on access so "Restart
-pattern" always starts from a blank slate.
+check-answers step commits the answers and redirects to the
+confirmation. The confirmation step clears the saved answers when
+the user presses "Restart pattern", so restarting always begins
+from a blank slate.
 
 ---
 
@@ -84,20 +85,20 @@ level:
 ```typescript
 onAccess: [
   access({
-    effects: [PatternEffects.LoadAnswers('single-question-per-page')],
+    effects: [PatternEffects.LoadDraftAnswers('single-question-per-page')],
   }),
 ]
 ```
 
-That effect copies any answers stored under the pattern's key in the
-session into the form context. Each question step saves on valid
-submission:
+That effect copies any draft answers stored under the pattern's key
+in the session into the form context. Each question step saves on
+valid submission:
 
 ```typescript
 submit({
   validate: true,
   onValid: {
-    effects: [PatternEffects.SaveAnswers('single-question-per-page')],
+    effects: [PatternEffects.SaveDraftAnswers('single-question-per-page')],
     next: [redirect({ goto: 'your-role' })],
   },
 })
@@ -129,13 +130,22 @@ GovUKSummaryList({
 
 ### Confirmation and reset
 
-The confirmation step owns a `ClearAnswers` access hook so reloading
-it (or following the restart button) always starts fresh:
+The confirmation step's "Restart pattern" button triggers a submit
+hook that clears the stored answers and the submitted flag, then
+redirects back to the overview:
 
 ```typescript
-onAccess: [
-  access({
-    effects: [PatternEffects.ClearAnswers('single-question-per-page')],
+onSubmission: [
+  submit({
+    validate: false,
+    onAlways: {
+      effects: [
+        PatternEffects.ClearAnswers('single-question-per-page'),
+        PatternEffects.ClearDraftAnswers('single-question-per-page'),
+        PatternEffects.SaveSubmitStateToSession('single-question-per-page', false),
+      ],
+      next: [redirect({ goto: 'overview' })],
+    },
   }),
 ]
 ```

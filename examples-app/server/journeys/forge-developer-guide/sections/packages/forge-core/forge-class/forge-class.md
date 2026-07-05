@@ -36,6 +36,7 @@ const forge = new Forge({ logger })
 | `disableBuiltInFunctions` | `boolean` | `false` | Skip registering built-in conditions, transformers, and effects. |
 | `disableBuiltInComponents` | `boolean` | `false` | Skip registering built-in components (HtmlBlock, CollectionBlock, TemplateWrapper). |
 | `debug` | `boolean` | `false` | Enable debug logging for compilation and evaluation. |
+| `instrumentation` | `ForgeInstrumentationOptions` | `{}` | Trace sinks for request and compilation diagnostics, plus an opt-in flag to capture generated source on compilation traces. |
 
 ---
 
@@ -103,7 +104,7 @@ import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components
 import { nunjucksFunctions } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 forge
-  .registerGlobalComponents(govukComponents(nunjucksEnv))
+  .registerGlobalComponents(govukComponents)
   .registerGlobalFunctions(nunjucksFunctions)
 ```
 

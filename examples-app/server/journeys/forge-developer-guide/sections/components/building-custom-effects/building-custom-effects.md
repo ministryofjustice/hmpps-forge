@@ -106,6 +106,13 @@ access({
 When the hook runs, Forge resolves `Params('caseId')` to the
 actual value from the URL and passes it to the effect function.
 
+The handle's signature is inferred from the factory, so a factory
+that declares `caseId: string` produces a handle that only accepts
+a string at the type level. To accept expressions too, widen the
+parameter to `string | ResolvableValue` (exported from
+`@ministryofjustice/hmpps-forge/core/authoring`). Forge resolves
+the expression before the effect runs.
+
 ---
 
 ## Author-time preparation
@@ -256,12 +263,11 @@ Set response headers and cookies through the framework adapter:
 
 ```typescript
 context.setResponseHeader('cache-control', 'no-store')
-context.getResponseHeader('cache-control')
-context.getAllResponseHeaders()
 context.setResponseCookie('preference', 'compact', { httpOnly: true })
-context.getResponseCookie('preference')
-context.getAllResponseCookies()
 ```
+
+These are write-only. There are no matching getters for response
+headers or cookies, the values go straight to the framework adapter.
 
 ### Reachability
 
@@ -307,7 +313,7 @@ Then use the type on your effect factories:
 SaveAnswers: myEffects.register('SaveAnswers', (deps) => async (context: MyContext) => {
   const name = context.getAnswer('fullName')        // typed as string
   const method = context.getAnswer('contactMethod')  // typed as 'email' | 'phone' | 'text'
-  const session = context.getSession()               // typed as MySession
+  const session = context.getSession()               // typed as MySession | undefined
 }),
 ```
 

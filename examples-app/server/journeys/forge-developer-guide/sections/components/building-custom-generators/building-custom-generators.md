@@ -73,6 +73,13 @@ defaultValue: MyGenerators.NewReferenceNumber('REF')
 defaultValue: MyGenerators.NewReferenceNumber(Data('referencePrefix'))
 ```
 
+The handle's signature is inferred from the factory, so a factory
+that declares `prefix: string` produces a handle that only accepts
+a string at the type level. To accept expressions too, widen the
+parameter to `string | ResolvableValue` (exported from
+`@ministryofjustice/hmpps-forge/core/authoring`). Forge resolves
+the expression before the evaluator runs.
+
 ### How generators differ from transformers
 
 Generators and transformers follow a similar pattern, but with one
@@ -205,10 +212,9 @@ resolved value inside the evaluator instead.
 
 ## Chainable output
 
-Generator expressions support the same chaining methods as
-references: `.path()`, `.match()`, `.pipe()`, and `.each()`. This
-means you can transform, test, and navigate generator output the
-same way you would any other value in a definition.
+Generator expressions support `.pipe()`, `.match()`, and
+`.not.match()`. This means you can transform and test generator
+output the same way you would any other value in a definition.
 
 ### Piping
 

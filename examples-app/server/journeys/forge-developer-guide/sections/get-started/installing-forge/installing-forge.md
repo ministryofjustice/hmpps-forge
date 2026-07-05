@@ -42,11 +42,12 @@ Forge ships its own TypeScript types. You do not need a separate
 
 ---
 
-## Install peer dependencies
+## Install framework dependencies
 
 Forge connects to your web framework through a **framework adapter**.
-This guide uses the provided Express and Nunjucks adapter. Install
-these alongside Forge if your project does not already include them:
+This guide uses the provided Express and Nunjucks adapter. Your
+application code imports these packages directly, so install them
+alongside Forge if your project does not already include them:
 
 ```bash
 npm install express nunjucks express-session

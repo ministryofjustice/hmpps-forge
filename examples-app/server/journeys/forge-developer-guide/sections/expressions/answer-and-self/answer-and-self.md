@@ -84,13 +84,13 @@ submission and restoring them on access:
 ```typescript
 // In a submit hook effect
 SaveAnswers: (deps) => async (context) => {
-  const answers = context.getAnswers()
-  await deps.store.save(context.sessionId, answers)
+  const answers = context.getAllAnswers()
+  await deps.store.save(context.getSession()?.id, answers)
 }
 
 // In an access hook effect
 LoadAnswers: (deps) => async (context) => {
-  const answers = await deps.store.load(context.sessionId)
+  const answers = await deps.store.load(context.getSession()?.id)
   for (const [code, value] of Object.entries(answers)) {
     context.setAnswer(code, value)
   }

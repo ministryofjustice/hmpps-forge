@@ -76,7 +76,7 @@ Expressions build on references. They describe *what to do*
 with a value once it exists, without doing it yet:
 
 ```typescript
-Answer('dateOfBirth').pipe(Transformer.Date.Format('d MMMM yyyy'))
+Answer('dateOfBirth').pipe(Transformer.Date.Format('D MMMM YYYY'))
 ```
 
 This does not format a date. It creates a definition that says:

@@ -24,8 +24,8 @@ behaviour, and validation.
 ## How to use it
 
 Import `GovUKCheckboxInput` from the GOV.UK components package. Every
-checkbox group needs a `code`, a `fieldset` with a legend, and an
-`items` array.
+checkbox group needs a `code`, an `items` array, and a legend - set
+through `fieldset.legend`, or the `label` property as a shorthand.
 
 The field value is always an array of the selected items' values.
 
@@ -50,8 +50,9 @@ GovUKCheckboxInput({
 
 ## Fieldset and legend
 
-Checkboxes are always wrapped in a fieldset with a legend. When the
-checkbox group is the only question on the page, set
+Checkboxes render inside a fieldset with a legend. The legend comes
+from `fieldset.legend`, or from `label` when no fieldset is given.
+When the checkbox group is the only question on the page, set
 `isPageHeading: true` to wrap the legend in an `<h1>`.
 
 ```typescript

@@ -165,7 +165,7 @@ step({
       classes: 'govuk-button--secondary',
     }),
 
-    GovUKSelect({
+    GovUKSelectInput({
       code: 'address',
       label: 'Select an address',
       items: Data('addresses'),
@@ -338,7 +338,9 @@ submit({
 
 The execution order is: `onAlways` effects, then `onValid` effects,
 then `onValid.next` outcomes. If `onAlways` also has a `next` array,
-those outcomes are only evaluated when `validate` is `false`.
+those outcomes are evaluated before validation runs - a matching
+redirect or error there ends the hook, so validation and the
+valid/invalid branches never run.
 
 ### Using effects to build dynamic redirects
 

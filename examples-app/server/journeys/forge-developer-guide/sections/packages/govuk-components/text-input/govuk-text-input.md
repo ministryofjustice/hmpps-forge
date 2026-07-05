@@ -256,7 +256,8 @@ GovUKTextInput({
 ## Conditional visibility
 
 Control when the input appears using `visibleWhen`. The field is hidden
-from the page and excluded from validation when the condition is false.
+from the page when the condition is false. To also skip validation and
+clear the stored answer, add a matching `dependentWhen` condition.
 
 ```typescript
 import { Answer } from '@ministryofjustice/hmpps-forge/core/authoring'
@@ -358,8 +359,8 @@ GovUKTextInput({
       message: 'Enter your annual income',
     }),
     validation({
-      condition: Self().match(Condition.Number.IsPositive()),
-      message: 'Annual income must be a positive number',
+      condition: Self().match(Condition.String.DigitsOnly()),
+      message: 'Annual income must be a whole number, like 25000',
     }),
   ],
 })

@@ -340,9 +340,10 @@ step({
 
 `SaveSubmitStateToSession` writes to the session before
 `ClearDraftAnswers` runs, so the session value survives the clearing.
-The `tieBreaker` with a high priority ensures the confirmation step
-wins over check-answers when both entry conditions are satisfied
-(the user has submitted, and the answers are complete).
+The `tieBreaker` gives the confirmation step a higher priority than
+the always-true `tasks` and `overview` entry points, so a user who
+reopens the journey after submitting lands on the confirmation page
+rather than the hub.
 
 ---
 

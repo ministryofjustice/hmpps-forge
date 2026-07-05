@@ -74,14 +74,16 @@ provide. Create a file at `server/views/partials/form-step.njk`:
 
 ```nunjucks
 {% extends "partials/layout.njk" %}
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
 
 {% block content %}
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-two-thirds">
-      {% if fieldValidationErrors | length %}
+      {% set errorList = toErrorList(fieldValidationErrors) %}
+      {% if errorList.length %}
         {{ govukErrorSummary({
           titleText: "There is a problem",
-          errorList: fieldValidationErrors
+          errorList: errorList
         }) }}
       {% endif %}
 
@@ -96,12 +98,29 @@ provide. Create a file at `server/views/partials/form-step.njk`:
 {% endblock %}
 ```
 
-The adapter passes three things to this template:
+The template uses three values:
 
 - **blocks**: the rendered HTML for each block in the step
-- **fieldValidationErrors**: any validation errors to display in the
-  error summary
-- **csrfToken**: a CSRF token for form security
+- **fieldValidationErrors**: failed validation results, each with a
+  `message` and the failing field's `blockCode`
+- **csrfToken**: not set by Forge itself - the adapter copies
+  `res.locals` into the template context, so it is available when
+  your CSRF middleware sets `res.locals.csrfToken`
+
+Validation errors arrive as `{ message, blockCode }` objects, but
+`govukErrorSummary` wants `{ text, href }` entries. Register a small
+Nunjucks global to convert them:
+
+```typescript
+nunjucksEnv.addGlobal(
+  'toErrorList',
+  (errors: { message: string; blockCode?: string }[] = []) =>
+    errors.map(error => ({
+      text: error.message,
+      href: error.blockCode ? `#${error.blockCode}` : undefined,
+    })),
+)
+```
 
 This template extends your base layout. If you do not already have a
 `layout.njk`, see the

@@ -180,7 +180,8 @@ multi-page journey that:
 
 - renders pages with GOV.UK Design System components
 - handles form submission and redirects between steps
-- manages field state across requests
+- repopulates submitted values when a step re-renders after a
+  failed validation
 - produces accessible, standards-compliant HTML
 
 ---

@@ -207,12 +207,10 @@ important points:
   itself.
 
 ```typescript
-import { isRenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
+import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
 
-const renderChildren = (children: unknown): string => {
-  if (!Array.isArray(children)) return ''
-
-  return children.map(child => (isRenderedBlock(child) ? child.html : '')).join('')
+const renderChildren = (children: RenderedBlock[] | undefined): string => {
+  return (children ?? []).map(child => child.html).join('')
 }
 ```
 
@@ -379,14 +377,21 @@ components are on the hook themselves: any value you interpolate
 into HTML could have come from user input or external data, and
 must be escaped before it reaches the markup.
 
-Forge exposes `escapeHtmlEntities` for this, and authors can also
-apply `Transformer.String.EscapeHtml()` in the definition.
+Forge does not export an escaping helper, so define a small one
+alongside your component. Authors can also apply
+`Transformer.String.EscapeHtml()` in the definition.
 
 ```typescript
-import { escapeHtmlEntities } from '@ministryofjustice/hmpps-forge/core/components'
+const escapeHtml = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 
 export const myBadge = buildComponent<MyBadge>('myBadge', block => {
-  const label = escapeHtmlEntities(block.label ?? '')
+  const label = escapeHtml(String(block.label ?? ''))
 
   return `<span class="my-badge">${label}</span>`
 })
@@ -514,8 +519,8 @@ block to exercise populated and error states separately.
   string. Move logic that belongs in the authoring layer
   (conditions, formatting) into the definition instead.
 - **Escape all dynamic values in pure-function components.** Nunjucks
-  templates autoescape; raw strings do not. Use `escapeHtmlEntities`
-  for both attribute values and text interpolated into markup.
+  templates autoescape; raw strings do not. Escape both attribute
+  values and text interpolated into markup.
 - **Default `id` to `code` on field components.** The code is the
   canonical identity. Authors can override the id for edge cases
   but should not need to in the common case.

@@ -232,14 +232,15 @@ Throws on invalid dates.
 Answer('startDate').pipe(Transformer.String.ToDate())
 // "15/03/2024" -> Date(2024-03-15)
 // "2024-03-15" -> Date(2024-03-15)
-// "2026-04-27t23:05:36.647z " -> Date(2026-04-27T23:05:36.647Z)
+// "2024-03-15T14:30:00Z" -> Date(2024-03-15T14:30:00Z)
 ```
 
 ### FormatDate
 
 Formats a date string using native `Intl.DateTimeFormat` options.
-The locale defaults to `en-GB`; when no options are supplied, the
-output defaults to a UK long date.
+The locale defaults to `en-GB` and the time zone to
+`Europe/London`; when no options are supplied, the output defaults
+to a UK long date.
 
 ```typescript
 Answer('dob').pipe(Transformer.String.FormatDate())
@@ -251,26 +252,7 @@ Answer('dob').pipe(Transformer.String.FormatDate({ dateStyle: 'short' }))
 Answer('createdAt').pipe(
   Transformer.String.FormatDate({ dateStyle: 'long', timeZone: 'UTC' }),
 )
-// "2026-04-27t23:05:36.647z " -> "27 April 2026"
-
-Answer('dob').pipe(
-  Transformer.String.FormatDate({ locale: 'en-US', dateStyle: 'long' }),
-)
-// "2024-03-15" -> "March 15, 2024"
-```
-
-### FormatDate
-
-Formats a date string using native `Intl.DateTimeFormat` options.
-The locale defaults to `en-GB`; when no options are supplied, the
-output defaults to a UK long date.
-
-```typescript
-Answer('dob').pipe(Transformer.String.FormatDate())
-// "2024-03-15" -> "15 March 2024"
-
-Answer('dob').pipe(Transformer.String.FormatDate({ dateStyle: 'short' }))
-// "2024-03-15" -> "15/03/2024"
+// "2026-04-27T23:05:36.647Z" -> "27 April 2026"
 
 Answer('dob').pipe(
   Transformer.String.FormatDate({ locale: 'en-US', dateStyle: 'long' }),

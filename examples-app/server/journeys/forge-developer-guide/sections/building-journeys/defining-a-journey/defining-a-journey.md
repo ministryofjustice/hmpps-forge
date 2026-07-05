@@ -169,12 +169,14 @@ view: {
 | `template` | Template to use for rendering steps in this journey |
 | `locals`   | Arbitrary properties passed to the template         |
 
-### `entryPath` (Optional)
+### `reachability` (Optional)
 
-The path users land on when they navigate to the journey's root URL. If not
-set, Forge uses the tiebreaker-winning active entry point. If no active entry
-point exists, it falls back to the first declared step. See
-[Routing and entry points](routing-and-entry-points).
+Journey-level reachability configuration, with three properties:
+`resumeWhen`, `unreachableRedirect`, and `disableReachabilityChecks`.
+When a user navigates to the journey's root URL, Forge redirects to the
+tiebreaker-winning active entry point, falling back to the first
+declared step. See [Routing and entry points](routing-and-entry-points)
+and [Reachability](reachability).
 
 ### `onAccess` (Optional)
 

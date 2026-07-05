@@ -42,8 +42,8 @@ GovUKBreadcrumbs({
 
 ## Collapse on mobile
 
-Set `collapseOnMobile: true` to show only the parent link on small
-screens, saving vertical space.
+Set `collapseOnMobile: true` to show only the first and last items
+on small screens, saving vertical space.
 
 {{slot:collapsed-example}}
 
