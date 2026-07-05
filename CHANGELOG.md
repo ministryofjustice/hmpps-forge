@@ -107,6 +107,28 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   normal "not valid yet" outcome. Everything else throws - bad arguments on any function
   kind, or a transformer fed a value it can't take, is an author mistake. ([#132])
 
+- **Components can declare an input schema.** A component registry entry can carry a Zod
+  `inputSchema` describing the submitted value the rendered component can legitimately
+  produce (a text input submits a string, a date input submits date parts), plus an
+  optional `multiple` flag. Answer preparation validates the normalized POST value against
+  the schema: a value that fails is not from the rendered form, so it is dropped as
+  unanswered - `undefined`, or `[]` when multiple - and a `FORGE_INPUT_SCHEMA_REJECTED`
+  runtime warning is emitted via `process.emitWarning`. Unanswered fields and variants
+  without a schema are untouched.
+
+- **Built-in GOV.UK and MOJ field components declare their input schemas.** Text,
+  textarea, character count, select, radio and password inputs declare `z.string()`,
+  checkbox declares `z.array(z.string())`, and the date inputs declare their per-variant
+  date-parts object. Third-party components are unaffected until they opt in.
+
+#### Improvements
+
+- **Checkbox `multiple` moves to the component registry entry.** The checkbox component
+  now declares `multiple: true` on its registry entry rather than forcing it onto the
+  field definition. Effective multiple is `entry.multiple ?? field.multiple ?? false`, so
+  fixed-shape components own the flag while dual-mode components keep the field-level DSL
+  option.
+
 #### Deprecated
 
 - **`defineFunction`, the `define*Functions` utilities and `createFunctionScope`.**
