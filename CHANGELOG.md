@@ -82,6 +82,12 @@ _Definitions, expressions, hooks, navigation, reachability_
   that wasn't in the registry could compile a call to a function literally named
   `unknown`, or cause the outcome to be skipped silently. Now compilation throws. ([#136])
 
+- **Wrong argument counts fail compilation.** Calls to functions registered with a tuple
+  `argumentsSchema` now have their argument counts checked at `registerPackage()` -
+  too few or too many fails with a `FunctionArityError` naming the function, the expected
+  count and the source location, instead of a `TypeError` mid-request. Iterator templates
+  are walked too. ([#142])
+
 - **Unknown component variants inside iterator templates now fail at compile time**
   instead of at render time - `validateRegisteredComponents` walks iterator templates too.
   ([#131])
@@ -229,6 +235,7 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
 [#137]: https://github.com/ministryofjustice/hmpps-forge/pull/137
 [#138]: https://github.com/ministryofjustice/hmpps-forge/pull/138
 [#141]: https://github.com/ministryofjustice/hmpps-forge/pull/141
+[#142]: https://github.com/ministryofjustice/hmpps-forge/pull/142
 
 ---
 <br>

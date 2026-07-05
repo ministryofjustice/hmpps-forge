@@ -135,6 +135,7 @@ flowchart TD
   It uses ancestor iterator depth for registered nodes and explicit template depth for iterator templates.
 - [rules/validateEffectScope.ts](rules/validateEffectScope.ts), [rules/validateOutcomeScope.ts](rules/validateOutcomeScope.ts), [rules/validateHookScope.ts](rules/validateHookScope.ts), [rules/validateTieBreakerScope.ts](rules/validateTieBreakerScope.ts), [rules/validateValidationScope.ts](rules/validateValidationScope.ts), [rules/validateStructureScope.ts](rules/validateStructureScope.ts), [rules/validateBlockScope.ts](rules/validateBlockScope.ts), and [rules/validateFunctionArguments.ts](rules/validateFunctionArguments.ts) validate where AST node families are allowed to appear.
 - [rules/validateRegisteredFunctions.ts](rules/validateRegisteredFunctions.ts) checks all `FunctionType` expression nodes and function template nodes against `FunctionRegistry`.
+- [rules/validateFunctionArity.ts](rules/validateFunctionArity.ts) checks each function expression's authored argument count against the arity of its registered `argumentsSchema` tuple.
 - [rules/validateRegisteredComponents.ts](rules/validateRegisteredComponents.ts) checks all block variants against `ComponentRegistry`.
 - [rules/validateContainerTypes.ts](rules/validateContainerTypes.ts) checks arrays such as `onAccess`, `onSubmission`, `blocks`, `effects`, and `next` for the node types later phases expect.
 - [rules/templateWalker.ts](rules/templateWalker.ts) walks AST-shaped template payloads.
@@ -216,6 +217,7 @@ flowchart TD
 - [rules/types.ts](rules/types.ts) defines `ASTValidationContext` and `ASTValidationRule`.
 - [rules/validateReferenceScopes.ts](rules/validateReferenceScopes.ts) answers whether `Item()` and `Loop` references are valid in the current iterator depth.
 - [rules/validateRegisteredFunctions.ts](rules/validateRegisteredFunctions.ts) answers whether every referenced function name exists.
+- [rules/validateFunctionArity.ts](rules/validateFunctionArity.ts) answers whether each function call supplies an argument count the function's tuple schema accepts.
 - [rules/validateRegisteredComponents.ts](rules/validateRegisteredComponents.ts) answers whether every block variant exists.
 - [rules/validateEffectScope.ts](rules/validateEffectScope.ts) answers whether effect functions appear inside hooks.
 - [rules/validateOutcomeScope.ts](rules/validateOutcomeScope.ts) answers whether outcomes appear inside hooks.

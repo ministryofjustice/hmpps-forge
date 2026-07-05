@@ -160,6 +160,8 @@ arguments without reshaping them — note it runs at request time,
 each time the effect is evaluated, whereas `prepare` runs once at
 module load.
 
+Argument-count mismatches against a tuple schema are additionally caught at `registerPackage()` by semantic analysis, so a call with the wrong number of arguments fails compilation instead of waiting for request time.
+
 If an argument is itself an expression like `Params('caseId')`, its
 resolved value is not available at author time. Validate the
 resolved value inside the evaluator instead.
