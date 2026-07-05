@@ -124,7 +124,7 @@ nunjucksEnv.addGlobal(
 
 This template extends your base layout. If you do not already have a
 `layout.njk`, see the
-[GOV.UK Frontend documentation](https://frontend.design-system.service.gov.uk/installing-with-npm/#get-the-template-working)
+[GOV.UK Design System page template](https://design-system.service.gov.uk/styles/page-template/)
 for setting up a page template.
 
 ---
