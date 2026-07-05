@@ -1,4 +1,5 @@
-import type { NodeId } from '../../../contracts/ast/ast.type'
+import type { ASTNode } from '../../../contracts/ast/ast.type'
+import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
 import type {
   ReachabilityStateTable,
@@ -7,27 +8,19 @@ import type {
 } from '../../../contracts/plans/runtimePlans.type'
 import type { FieldInventoryStepSource } from '../../../contracts/plans/compilationPlan.type'
 import FieldInventoryAnalyzer from '../shared/FieldInventoryAnalyzer'
-import RuntimePlanAnalyzer from '../shared/RuntimePlanAnalyzer'
 import ForwardNavigationAnalyzer from './ForwardNavigationAnalyzer'
-
-type JourneyIndex = Map<NodeId, JourneyASTNode>
 
 export default class ReachabilityPlanAnalyzer {
   constructor(
     private readonly fieldInventoryAnalyzer: FieldInventoryAnalyzer,
-    private readonly runtimePlanAnalyzer: RuntimePlanAnalyzer,
     private readonly forwardNavigationAnalyzer = new ForwardNavigationAnalyzer(),
   ) {}
 
-  buildReachabilityPlan(
-    journeySteps: StepASTNode[],
-    journeyNode: JourneyASTNode,
-    journeyIndex: JourneyIndex,
-  ): ReachabilityCompilationPlan {
+  buildReachabilityPlan(journeySteps: StepASTNode[], journeyNode: JourneyASTNode): ReachabilityCompilationPlan {
     const entries = journeySteps.map(stepNode => this.buildReachabilityEntry(stepNode))
     const resumeWhen = journeyNode.properties.reachability?.resumeWhen
     const resumeAlways = resumeWhen === true
-    const resumeWhenNodeId = resumeWhen !== undefined && resumeWhen !== true ? resumeWhen.id : undefined
+    const resumeWhenNode = resumeWhen !== undefined && resumeWhen !== true ? resumeWhen : undefined
     const stateTable: ReachabilityStateTable = {
       entries: entries.map(entry => ({
         stepId: entry.stepId,
@@ -35,16 +28,16 @@ export default class ReachabilityPlanAnalyzer {
         isEntryPoint: entry.isEntryPoint,
         forwardOutcomeEvaluation: entry.forwardOutcomeEvaluation,
       })),
-      resumeConfigured: resumeAlways || resumeWhenNodeId !== undefined,
+      resumeConfigured: resumeAlways || resumeWhenNode !== undefined,
       unreachableRedirect: journeyNode.properties.reachability?.unreachableRedirect ?? 'entry',
-      reachabilityDisabled: this.resolveReachabilityDisabled(journeyNode, journeyIndex),
+      reachabilityDisabled: this.resolveReachabilityDisabled(journeyNode),
     }
 
     return {
       stateTable,
       entries,
       resumeAlways,
-      resumeWhenNodeId,
+      resumeWhen: resumeWhenNode,
     }
   }
 
@@ -63,30 +56,40 @@ export default class ReachabilityPlanAnalyzer {
       stepId,
       code: stepNode.properties.code,
       isEntryPoint: entryWhen === true,
-      entryWhenNodeId: entryWhen !== undefined && entryWhen !== true ? entryWhen.id : undefined,
+      entryWhen: entryWhen !== undefined && entryWhen !== true ? entryWhen : undefined,
       forwardOutcomeEvaluation,
       forwardOutcomeGroups,
       cleardownFieldCodes: stepNode.properties.cleardownFieldCodes ?? [],
       reachabilityTieBreakers: (reachability?.tieBreakers ?? []).map(entry => ({
         priority: entry.properties.priority,
-        whenNodeId: entry.properties.when?.id,
+        when: entry.properties.when,
       })),
     }
   }
 
-  private resolveReachabilityDisabled(journeyNode: JourneyASTNode, journeyIndex: JourneyIndex): boolean {
+  // Walks ancestor journeys inner-first, inheriting the disable flag from the
+  // nearest ancestor that sets one.
+  private resolveReachabilityDisabled(journeyNode: JourneyASTNode): boolean {
     const ownSetting = journeyNode.properties.reachability?.disableReachabilityChecks
 
     if (ownSetting !== undefined) {
       return ownSetting
     }
 
-    const ancestorJourney = this.runtimePlanAnalyzer.resolveAncestorIds(journeyNode.id)
-      .slice(0, -1)
-      .reverse()
-      .map(ancestorId => journeyIndex.get(ancestorId))
-      .find(ancestor => ancestor?.properties.reachability?.disableReachabilityChecks !== undefined)
+    let current: ASTNode | undefined = journeyNode.parent
 
-    return ancestorJourney?.properties.reachability?.disableReachabilityChecks ?? false
+    while (current !== undefined) {
+      if (current.type === ASTNodeType.JOURNEY) {
+        const ancestorSetting = (current as JourneyASTNode).properties.reachability?.disableReachabilityChecks
+
+        if (ancestorSetting !== undefined) {
+          return ancestorSetting
+        }
+      }
+
+      current = current.parent
+    }
+
+    return false
   }
 }

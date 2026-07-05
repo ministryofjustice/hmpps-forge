@@ -3,7 +3,6 @@ import type { ASTNode } from '../../../contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import type { TemplateValue } from '../../../contracts/ast/template.type'
 import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
-import ASTNodeTree from '../../ast/ast-state/ASTNodeTree'
 import { NodeIDGenerator } from '../../ast/ast-state/NodeIDGenerator'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import TemplateFactory from '../../ast/nodes/template/TemplateFactory'
@@ -26,7 +25,6 @@ function buildContext(nodes: ASTNode[], registeredVariants: string[]): ASTValida
 
   return {
     nodeIndex,
-    nodeTree: new ASTNodeTree(),
     functionRegistry: new FunctionRegistry(),
     componentRegistry,
   }

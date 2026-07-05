@@ -15,10 +15,10 @@ This document does not cover runtime navigation evaluation or generated navigati
 It contains:
 - `stateTable`, the smaller runtime reachability table.
 - `entries`, the richer compile-time reachability entries.
-- `resumeAlways` and `resumeWhenNodeId`, which describe resume behavior.
+- `resumeAlways` and `resumeWhen`, which describe resume behavior.
 
 Each reachability entry can include:
-- `entryWhenNodeId`, for step entry predicates.
+- `entryWhen`, for step entry predicates.
 - `forwardOutcomeGroups`, one group per submit hook with redirect outcomes.
 - `cleardownFieldCodes`, copied from the step.
 - `reachabilityTieBreakers`, copied from step reachability config.
@@ -31,7 +31,7 @@ Each reachability entry can include:
 ```mermaid
 flowchart TD
   journeySteps["Journey steps"] -->|per step in journey order| entries["Build reachability entries"]
-  entries -->|for each entry| stepMetadata["Attach entryWhen, validation, cleardown, and tie-breakers"]
+  entries -->|for each entry| stepMetadata["Attach entryWhen, cleardown, and tie-breakers"]
   entries -->|analyze submit hooks| forwardAnalyzer["ForwardNavigationAnalyzer"]
   forwardAnalyzer -->|onAlways + onValid redirects| redirectGroups["Collect redirect outcomes per submit hook"]
   redirectGroups -->|check each predicate| requestTimeCheck{"Predicate reads post, params, query, or request?"}
@@ -70,4 +70,4 @@ flowchart TD
 - [ReachabilityPlanAnalyzer.ts](ReachabilityPlanAnalyzer.ts) builds the navigation and reachability plans.
 - [ForwardNavigationAnalyzer.ts](ForwardNavigationAnalyzer.ts) extracts redirect outcomes from submit hooks.
 - [RequestTimeReferenceAnalyzer.ts](RequestTimeReferenceAnalyzer.ts) detects request-time references.
-- [../shared/FieldInventoryAnalyzer.ts](../shared/FieldInventoryAnalyzer.ts) provides validation and field inventory facts.
+- [../shared/FieldInventoryAnalyzer.ts](../shared/FieldInventoryAnalyzer.ts) builds the field inventory sources for each reachability entry.

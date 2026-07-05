@@ -11,7 +11,7 @@ describe('ASTNodeIndex', () => {
   })
 
   describe('register()', () => {
-    it('should register a node by ID', () => {
+    it('should register a node retrievable by type', () => {
       // Arrange
       const node = ASTTestFactory.block('TextField', BlockType.FIELD).withId('compile_ast:1').build()
 
@@ -19,8 +19,7 @@ describe('ASTNodeIndex', () => {
       registry.register('compile_ast:1', node)
 
       // Assert
-      expect(registry.has('compile_ast:1')).toBe(true)
-      expect(registry.get('compile_ast:1')).toBe(node)
+      expect(registry.findByType(ASTNodeType.BLOCK)).toEqual([node])
     })
 
     it('should throw when registering duplicate ID', () => {
@@ -34,54 +33,6 @@ describe('ASTNodeIndex', () => {
 
       // Assert
       expect(registerDuplicate).toThrow('Node with ID "compile_ast:1" is already registered')
-    })
-  })
-
-  describe('get()', () => {
-    it('should retrieve a registered node by ID', () => {
-      // Arrange
-      const node = ASTTestFactory.block('TextField', BlockType.FIELD).build()
-      registry.register('compile_ast:1', node)
-
-      // Act
-      const retrieved = registry.get('compile_ast:1')
-
-      // Assert
-      expect(retrieved).toBe(node)
-    })
-
-    it('should return undefined when ID is unknown', () => {
-      // Arrange
-
-      // Act
-      const retrieved = registry.get('compile_ast:999')
-
-      // Assert
-      expect(retrieved).toBeUndefined()
-    })
-  })
-
-  describe('has()', () => {
-    it('should return true when ID is registered', () => {
-      // Arrange
-      const node = ASTTestFactory.block('TextField', BlockType.FIELD).build()
-      registry.register('compile_ast:1', node)
-
-      // Act
-      const result = registry.has('compile_ast:1')
-
-      // Assert
-      expect(result).toBe(true)
-    })
-
-    it('should return false when ID is unknown', () => {
-      // Arrange
-
-      // Act
-      const result = registry.has('compile_ast:999')
-
-      // Assert
-      expect(result).toBe(false)
     })
   })
 

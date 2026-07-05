@@ -18,7 +18,7 @@ Forge has four broad stages:
 flowchart TD
   dsl["DSL: authored journey definition"] -->|"JSON + Zod checks"| schema["Schema Validation"]
   schema -->|"validated JourneyDefinition"| compilation["Compilation"]
-  compilation -->|"JourneyCompilationResult"| mounting["Mounting"]
+  compilation -->|"CompiledPackage"| mounting["Mounting"]
   mounting -->|"MountedNode"| runtime["Runtime"]
   request["RequestSnapshot"] --> runtime
   runtime -->|"ForgeOutcome"| outcome["render, navigate, or error"]
@@ -64,9 +64,9 @@ This stage builds the AST, validates semantic rules, gathers dependency inputs, 
 It pays that cost when a package is registered.
 Request handling should not run any of this work.
 
-The important output is `JourneyCompilationResult`.
+The important output is `CompiledPackage`.
 It contains route indexes plus compiled step and journey maps.
-AST nodes, AST indexes, AST trees, and compilation plans should not leave compilation.
+AST nodes, AST indexes, and compilation plans should not leave compilation.
 
 ```mermaid
 flowchart TD
@@ -75,7 +75,7 @@ flowchart TD
   semantics -->|"collect phase inputs"| dependencies["Dependency Analysis"]
   dependencies -->|"build CompilationPlan"| plan["CompilationPlan"]
   plan -->|"emit compiled functions"| lowering["Lowering"]
-  lowering -->|"compiled maps + route indexes"| result["JourneyCompilationResult"]
+  lowering -->|"compiled maps + route indexes"| result["CompiledPackage"]
 ```
 
 Read [compilation/README.md](compilation/README.md) for details.
@@ -95,7 +95,7 @@ It keeps compiler cost and compiler failures out of request handling.
 
 ```mermaid
 flowchart TD
-  compiled["JourneyCompilationResult"] -->|"MountRegistry.register()"| mounted["MountedNode"]
+  compiled["CompiledPackage"] -->|"MountRegistry.register()"| mounted["MountedNode"]
   mounted --> evaluator["RequestEvaluator.evaluate()"]
   snapshot["RequestSnapshot"] --> evaluator
   evaluator -->|"request.pipeline WorkTask"| work["WorkExecutor"]

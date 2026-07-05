@@ -3,8 +3,7 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { FunctionASTNode, IterateASTNode } from '../../../contracts/ast/expressions.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
 import type { DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
-import type { AstNodeId } from '../../../contracts/ast/ast.type'
-import getAncestorChain from '../../ast/ast-state/getAncestorChain'
+import type { ASTNode } from '../../../contracts/ast/engine.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 
@@ -17,18 +16,18 @@ function buildError(name: string, source: DSLSourceLocation | undefined): ForgeC
   })
 }
 
-function hasHookAncestor(context: ASTValidationContext, nodeId: AstNodeId): boolean {
-  const ancestors = getAncestorChain(nodeId, context.nodeTree)
+function hasHookAncestor(node: ASTNode): boolean {
+  let current = node.parent
 
-  return ancestors.some(ancestorId => {
-    const ancestor = context.nodeIndex.get(ancestorId)
+  while (current !== undefined) {
+    if (current.type === ASTNodeType.HOOK) {
+      return true
+    }
 
-    return ancestor?.type === ASTNodeType.HOOK
-  })
-}
+    current = current.parent
+  }
 
-function hasHookAncestorViaIterateChain(context: ASTValidationContext, iterateNodeId: AstNodeId): boolean {
-  return hasHookAncestor(context, iterateNodeId)
+  return false
 }
 
 export const validateEffectScope: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
@@ -38,7 +37,7 @@ export const validateEffectScope: ASTValidationRule = (context: ASTValidationCon
   const effectNodes = nodeIndex.findByType<FunctionASTNode>(FunctionType.EFFECT)
 
   effectNodes.forEach(node => {
-    if (!hasHookAncestor(context, node.id)) {
+    if (!hasHookAncestor(node)) {
       errors.push(buildError(node.properties.name, node.diagnostics?.source))
     }
   })
@@ -46,7 +45,7 @@ export const validateEffectScope: ASTValidationRule = (context: ASTValidationCon
   const iterateNodes = nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE)
 
   iterateNodes.forEach(iterateNode => {
-    const iterateInsideHook = hasHookAncestorViaIterateChain(context, iterateNode.id)
+    const iterateInsideHook = hasHookAncestor(iterateNode)
     const { iterator } = iterateNode.properties
 
     const templates = [iterator.yieldTemplate, iterator.predicateTemplate].filter(

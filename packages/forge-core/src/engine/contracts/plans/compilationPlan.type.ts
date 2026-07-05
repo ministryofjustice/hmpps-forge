@@ -1,4 +1,4 @@
-import type { NodeId } from '../ast/ast.type'
+import type { ASTNode, NodeId } from '../ast/ast.type'
 import type { AccessHookASTNode, IterateASTNode, SubmitHookASTNode } from '../ast/expressions.type'
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../ast/structures.type'
 import type {
@@ -12,14 +12,13 @@ import type { ResolvableString } from '../../../components/types/structures.type
 
 export interface ReachabilityTieBreakerEntry {
   priority: number
-  whenNodeId?: NodeId
+  when?: ASTNode
 }
 
 export interface StepCoreInputs {
   readonly stepNode: StepASTNode
   readonly runtimePlan: StepRuntimePlan
   readonly staticData: Record<string, unknown>
-  readonly reachabilityId: NodeId
 }
 
 export interface AnswerPreparationInputs {

@@ -16,17 +16,17 @@ This document does not cover phase-specific input assembly.
 - validating field blocks under a step.
 - map iterate nodes under a step.
 - all iterate nodes under a step.
-- field inventory sources for navigation entries.
+- field inventory sources for reachability entries.
 
 `RuntimePlanAnalyzer` builds runtime metadata:
-- `StepRuntimePlan`, with normalized step path and merged static data.
-- `JourneyRuntimePlan`, with normalized journey path and merged static data.
-- ancestor IDs, using `getAncestorChain()`.
+- `StepRuntimePlan`, with the step ID and normalized step path.
+- `JourneyRuntimePlan`, with the journey ID and normalized journey path.
+- merged static data, via `resolveStaticData()`, which walks the node's `parent` chain root-first.
 
 ## Rules
 
-- Use `ASTNodeTree.isDescendantOf()` for ownership.
-  A node belongs to a step because of the AST tree, not because of where its source path looks like it came from.
+- Ownership is a `parent` pointer walk.
+  A node belongs to a step when the step appears in its `parent` chain, not because of where its source path looks like it came from.
 - `hasConfiguredValue()` treats `undefined` and empty arrays as absent.
   Any other value counts as configured.
 - Static data merges from ancestor to descendant.

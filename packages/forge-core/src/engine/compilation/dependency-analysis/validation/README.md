@@ -13,8 +13,11 @@ This document does not cover validation rule semantics, validation runtime execu
 
 `ValidationInputAnalyzer.buildInputs()` returns `ValidationInputs` for one step:
 - `stepNode`, the step being compiled.
+- `hasValidation`, true when the step has validating field blocks or a step-level `validWhen`.
 - `validatingFieldBlocks`, field blocks under the step with configured `validWhen`.
 - `mapIterateNodes`, map iterate nodes under the step.
+
+`hasValidation` owns the answer to "which steps does the eager validities phase validate".
 
 Step-level `validWhen` stays on `stepNode`.
 Field-level validation is filtered into `validatingFieldBlocks`.

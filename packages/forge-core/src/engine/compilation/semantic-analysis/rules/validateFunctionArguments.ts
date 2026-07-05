@@ -5,8 +5,7 @@ import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigur
 import type { DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
 import { isTemplateNode } from '../../../contracts/ast/nodes'
 import type { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
-import type { AstNodeId } from '../../../contracts/ast/ast.type'
-import getAncestorChain from '../../ast/ast-state/getAncestorChain'
+import type { ASTNode } from '../../../contracts/ast/engine.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 
 const FUNCTION_TYPES: readonly string[] = Object.values(FunctionType)
@@ -20,22 +19,21 @@ function buildError(source: DSLSourceLocation | undefined): ForgeConfigurationRe
   })
 }
 
-function hasFunctionAncestor(context: ASTValidationContext, nodeId: AstNodeId): boolean {
-  const ancestors = getAncestorChain(nodeId, context.nodeTree)
+function hasFunctionAncestor(node: ASTNode): boolean {
+  let current = node.parent
 
-  return ancestors.some(ancestorId => {
-    if (ancestorId === nodeId) {
-      return false
+  while (current !== undefined) {
+    if (
+      'expressionType' in current &&
+      FUNCTION_TYPES.includes((current as { expressionType: string }).expressionType)
+    ) {
+      return true
     }
 
-    const ancestor = context.nodeIndex.get(ancestorId)
+    current = current.parent
+  }
 
-    if (!ancestor || !('expressionType' in ancestor)) {
-      return false
-    }
-
-    return FUNCTION_TYPES.includes((ancestor as { expressionType: string }).expressionType)
-  })
+  return false
 }
 
 function isFunctionTemplateNode(node: TemplateNode): boolean {
@@ -93,7 +91,7 @@ export const validateFunctionArguments: ASTValidationRule = (context: ASTValidat
   const errors: Error[] = []
 
   nodeIndex.findByType(ASTNodeType.BLOCK).forEach(node => {
-    if (hasFunctionAncestor(context, node.id)) {
+    if (hasFunctionAncestor(node)) {
       errors.push(buildError(node.diagnostics?.source))
     }
   })
