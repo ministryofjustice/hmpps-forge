@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { ChainableExpr, field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
 import {
   BlockDefinition,
@@ -337,6 +338,7 @@ export const govukCheckboxInput = buildNunjucksComponent<GovUKCheckboxInput>(
       params,
     })
   },
+  { inputSchema: z.array(z.string()), multiple: true },
 )
 
 const getConditionalContent = (block: GovukRenderedBlockContent) => {
@@ -396,9 +398,6 @@ function isCheckboxDivider(option: any): option is GovUKCheckboxInputDivider {
 export interface GovUKCheckboxInput extends FieldBlockDefinition, GovUKCheckboxInputProps {
   /** Component variant identifier */
   variant: 'govukCheckboxInput'
-
-  /** Required to be set to `true` to make sure array of answers is retrieved from POST */
-  multiple: true
 }
 
 /**
@@ -421,5 +420,5 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition, GovUKCheckboxI
  * ```
  */
 export function GovUKCheckboxInput(props: GovUKCheckboxInputProps): GovUKCheckboxInput {
-  return buildField<GovUKCheckboxInput>({ ...props, variant: 'govukCheckboxInput', multiple: true })
+  return buildField<GovUKCheckboxInput>({ ...props, variant: 'govukCheckboxInput' })
 }

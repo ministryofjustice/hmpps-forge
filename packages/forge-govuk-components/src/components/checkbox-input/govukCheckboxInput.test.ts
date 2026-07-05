@@ -1,6 +1,6 @@
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukCheckboxInput } from './govukCheckboxInput'
+import { GovUKCheckboxInput, govukCheckboxInput } from './govukCheckboxInput'
 
 vi.mock('nunjucks')
 
@@ -315,6 +315,33 @@ describe('govukCheckboxInput', () => {
       expect(context.params).toHaveProperty('idPrefix')
       expect(context.params).toHaveProperty('name')
       expect(context.params).toHaveProperty('items')
+    })
+  })
+
+  describe('Registration entry', () => {
+    it('should declare an array input schema and force multiple on the entry', () => {
+      // Arrange & Act
+      const result = govukCheckboxInput.inputSchema?.safeParse(['email', 'phone'])
+
+      // Assert
+      expect(govukCheckboxInput.multiple).toBe(true)
+      expect(result?.success).toBe(true)
+    })
+
+    it('should reject a scalar string against the array input schema', () => {
+      // Arrange & Act
+      const result = govukCheckboxInput.inputSchema?.safeParse('email')
+
+      // Assert
+      expect(result?.success).toBe(false)
+    })
+
+    it('should not set a field-level multiple flag when building the field', () => {
+      // Arrange & Act
+      const field = GovUKCheckboxInput({ code: 'contact', label: 'Contact', items: [] })
+
+      // Assert
+      expect(field).not.toHaveProperty('multiple')
     })
   })
 

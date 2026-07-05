@@ -1,5 +1,11 @@
+import type { ZodType } from 'zod'
 import { ComponentRegistryEntry, ComponentRenderer } from '../types/components.type'
 import type { BlockDefinition } from '../types/structures.type'
+
+export interface BuildComponentOptions {
+  inputSchema?: ZodType
+  multiple?: boolean
+}
 
 /**
  * Creates a component for the registry.
@@ -10,6 +16,7 @@ import type { BlockDefinition } from '../types/structures.type'
  *
  * @param variant - The block variant identifier (e.g., 'html', 'collection-block')
  * @param renderer - Function that takes a block and returns HTML string
+ * @param options - Optional input schema and fixed-shape `multiple` override for the entry
  * @returns A registerable component
  *
  * @example
@@ -22,7 +29,10 @@ import type { BlockDefinition } from '../types/structures.type'
 export const buildComponent = <T extends BlockDefinition, TRenderOutput = string>(
   variant: string,
   renderer: ComponentRenderer<T, TRenderOutput>,
+  options: BuildComponentOptions = {},
 ): ComponentRegistryEntry<T, TRenderOutput> => ({
   variant,
   render: renderer,
+  ...(options.inputSchema !== undefined && { inputSchema: options.inputSchema }),
+  ...(options.multiple !== undefined && { multiple: options.multiple }),
 })

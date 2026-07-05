@@ -73,6 +73,7 @@ function createRequestContext(): RequestExecutionContext {
       setCookie: vi.fn(),
     },
     functionRegistry: { get: vi.fn() } as unknown as RequestExecutionContext['functionRegistry'],
+    componentRegistry: new ComponentRegistry(),
     hasRenderer: true,
     buildStepValidation: () => undefined,
     recordStepValidation: () => {},

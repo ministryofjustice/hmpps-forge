@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import {
   ResolvableArray,
   ResolvableBoolean,
@@ -155,26 +156,30 @@ export interface GovUKSelectInputProps extends FieldBlockProps {
   attributes?: Record<string, any>
 }
 
-export const govukSelectInput = buildNunjucksComponent<GovUKSelectInput>('govukSelectInput', (block, nunjucksEnv) => {
-  const params = {
-    id: block.id ?? block.code,
-    name: block.code,
-    items: block.items.filter(item => item.visibleWhen !== false),
-    label: normaliseGovukTextParam(block.label),
-    hint: normaliseGovukTextParam(block.hint),
-    value: block.value,
-    disabled: block.disabled,
-    describedBy: block.describedBy,
-    formGroup: block.formGroup,
-    classes: block.classes,
-    attributes: block.attributes,
-    errorMessage: normaliseGovukErrorMessage(block.errors),
-  }
+export const govukSelectInput = buildNunjucksComponent<GovUKSelectInput>(
+  'govukSelectInput',
+  (block, nunjucksEnv) => {
+    const params = {
+      id: block.id ?? block.code,
+      name: block.code,
+      items: block.items.filter(item => item.visibleWhen !== false),
+      label: normaliseGovukTextParam(block.label),
+      hint: normaliseGovukTextParam(block.hint),
+      value: block.value,
+      disabled: block.disabled,
+      describedBy: block.describedBy,
+      formGroup: block.formGroup,
+      classes: block.classes,
+      attributes: block.attributes,
+      errorMessage: normaliseGovukErrorMessage(block.errors),
+    }
 
-  return nunjucksEnv.render('govuk/components/select/template.njk', {
-    params,
-  })
-})
+    return nunjucksEnv.render('govuk/components/select/template.njk', {
+      params,
+    })
+  },
+  { inputSchema: z.string() },
+)
 
 /**
  * GOV.UK Select Input Component

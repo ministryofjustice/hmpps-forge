@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import {
   ResolvableBoolean,
   ResolvableString,
@@ -228,6 +229,7 @@ export const govukPasswordInput = buildNunjucksComponent<GovUKPasswordInput>(
       params,
     })
   },
+  { inputSchema: z.string() },
 )
 
 /**

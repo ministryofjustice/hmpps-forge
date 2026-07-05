@@ -1,4 +1,5 @@
 import type FunctionRegistry from '../../registries/FunctionRegistry'
+import type { ComponentRegistry } from '../../../framework/types/adapter.type'
 import type { ValidationResult } from '../runtime/validationResult.type'
 
 /**
@@ -68,6 +69,7 @@ export interface CompiledResolveContext extends CompiledBaseContext {
 export interface CompiledAnswerPreparationContext extends CompiledBaseContext {
   answers: Record<string, CompiledPreparedAnswer>
   post: Record<string, unknown>
+  components: ComponentRegistry
 }
 
 /**

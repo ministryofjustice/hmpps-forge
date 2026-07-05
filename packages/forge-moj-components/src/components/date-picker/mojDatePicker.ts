@@ -1,5 +1,6 @@
 import type nunjucks from 'nunjucks'
 
+import { z } from 'zod'
 import {
   FieldBlockDefinition,
   FieldBlockProps,
@@ -197,7 +198,9 @@ function datePickerRenderer(block: EvaluatedBlock<MOJDatePicker>, nunjucksEnv: n
   return nunjucksEnv.render('moj/components/date-picker/template.njk', { params })
 }
 
-export const mojDatePicker = buildNunjucksComponent<MOJDatePicker>('mojDatePicker', datePickerRenderer)
+export const mojDatePicker = buildNunjucksComponent<MOJDatePicker>('mojDatePicker', datePickerRenderer, {
+  inputSchema: z.string(),
+})
 
 /**
  * Creates an MOJ Date Picker field.

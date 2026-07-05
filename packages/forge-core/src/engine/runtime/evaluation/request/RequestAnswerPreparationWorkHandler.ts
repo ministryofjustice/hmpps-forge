@@ -32,6 +32,7 @@ export const REQUEST_ANSWER_PREPARATION_WORK_HANDLER: WorkHandler<
     const answerPreparationContext = buildCompiledAnswerPreparationContext(
       ctx.request.context,
       ctx.request.functionRegistry,
+      ctx.request.componentRegistry,
     )
 
     return runTaskPhase(

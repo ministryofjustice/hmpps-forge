@@ -297,14 +297,14 @@ field({
 ### `multiple` (Optional)
 
 When `true`, the field captures all submitted values as an array
-rather than a single value. Used for inputs like checkboxes where
-multiple selections are possible.
+rather than a single value. Components with a fixed value shape
+declare this on their registry entry instead — `govukCheckboxInput`
+always captures an array, so you never set it per field:
 
 ```typescript
 field({
   variant: 'govukCheckboxInput',
   code: 'contactMethods',
-  multiple: true,
   items: [
     { value: 'email', text: 'Email' },
     { value: 'phone', text: 'Phone' },
@@ -312,6 +312,9 @@ field({
   ],
 })
 ```
+
+Reach for the field-level flag only with components that can be
+either single- or multi-value, where the choice is genuinely yours.
 
 ---
 
