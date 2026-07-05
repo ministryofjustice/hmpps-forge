@@ -58,8 +58,10 @@ It contains:
 - `currentStepId`, present for step requests.
 - `hasRenderer`, which decides whether resolve is terminal.
 - `reachabilityEvaluation`, written by `request.reachability`.
+- `routeTree`, written by `request.route-tree` and read by resolve.
 - `validation` and `showValidationFailures`, written by submit or entry validation and read by resolve.
 - `renderContext`, written by resolve when a renderer is present and read by render.
+- `renderedBlocks`, written by the render-blocks work and read by page assembly.
 - `pipelineResult`, written by `request.pipeline` for `RequestEvaluator`.
 - `buildStepValidation()` and `recordStepValidation()`, shared validation hooks used by validities and submit validation.
 
@@ -76,7 +78,8 @@ It contains:
 
 The phase props live in `RequestPipelineWork.type.ts`.
 Most phase props follow `PhaseWorkProps<TCompiled>`, which means they carry a compiled function and a path.
-Reachability, validities, answer cleardown, route-tree, resolve, render, and context preparation have extra runtime inputs.
+Reachability, validities, route-tree, render, and context preparation have extra runtime inputs.
+Answer cleardown carries no props at all - it reads everything from the request context.
 
 Special cases:
 - Journey requests do not run submit, entry validation, answer cleardown, route-tree, resolve, or render.
@@ -216,8 +219,8 @@ flowchart TD
   Field code is answer identity and metadata. It is not render block identity.
 - `request.resolve` and `request.render` split terminal rendering.
   Without a renderer, resolve returns `RenderContext`; with a renderer, resolve stores it and render produces output.
-- Every request phase uses `phaseInstrumentation()`.
-  The trace records a context snapshot after each completed phase, not just after the full request.
+- Every request phase records a context snapshot when it completes, not just after the full request.
+  Most phases use the shared `phaseInstrumentation()` - reachability has its own instrumentation that adds evaluation metadata on top of the snapshot.
 
 ## Constraints
 

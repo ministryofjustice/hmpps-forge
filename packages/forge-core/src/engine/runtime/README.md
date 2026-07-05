@@ -123,8 +123,9 @@ flowchart TD
   cleardown --> method{"Request method"}
   method -->|"GET"| entryValidation["request.entry-validation"]
   method -->|"POST"| submit["request.submit"]
-  entryValidation --> resolve["request.resolve"]
-  submit --> resolve
+  entryValidation --> routeTree["request.route-tree"]
+  submit --> routeTree
+  routeTree --> resolve["request.resolve"]
   resolve --> renderer{"Renderer supplied"}
   renderer -->|"no"| renderContext["RenderContext result"]
   renderer -->|"yes"| render["request.render"]
@@ -193,7 +194,7 @@ Runtime executes that work against one request.
 
 - Do not run compilation during runtime execution.
   Request handling must consume mounted compiled functions, route data, registries, and plans.
-- Do not expose AST nodes, `ASTNodeIndex`, `ASTNodeTree`, `CompilationPlan`, or lowering details to runtime.
+- Do not expose AST nodes, `ASTNodeIndex`, `CompilationPlan`, or lowering details to runtime.
   Runtime state should only carry compiled artifacts and request-time values.
 - Keep `RequestPipelineBootstrap` as the source of request phase order.
   Splitting order decisions across handlers makes `GET`, `POST`, and journey behavior hard to reason about.

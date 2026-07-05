@@ -31,7 +31,7 @@ Each reachability entry can include:
 ```mermaid
 flowchart TD
   journeySteps["Journey steps"] -->|per step in journey order| entries["Build reachability entries"]
-  entries -->|for each entry| stepMetadata["Attach entryWhen, validation, cleardown, and tie-breakers"]
+  entries -->|for each entry| stepMetadata["Attach entryWhen, cleardown, and tie-breakers"]
   entries -->|analyze submit hooks| forwardAnalyzer["ForwardNavigationAnalyzer"]
   forwardAnalyzer -->|onAlways + onValid redirects| redirectGroups["Collect redirect outcomes per submit hook"]
   redirectGroups -->|check each predicate| requestTimeCheck{"Predicate reads post, params, query, or request?"}
@@ -70,4 +70,4 @@ flowchart TD
 - [ReachabilityPlanAnalyzer.ts](ReachabilityPlanAnalyzer.ts) builds the navigation and reachability plans.
 - [ForwardNavigationAnalyzer.ts](ForwardNavigationAnalyzer.ts) extracts redirect outcomes from submit hooks.
 - [RequestTimeReferenceAnalyzer.ts](RequestTimeReferenceAnalyzer.ts) detects request-time references.
-- [../shared/FieldInventoryAnalyzer.ts](../shared/FieldInventoryAnalyzer.ts) provides validation and field inventory facts.
+- [../shared/FieldInventoryAnalyzer.ts](../shared/FieldInventoryAnalyzer.ts) builds the field inventory sources for each reachability entry.

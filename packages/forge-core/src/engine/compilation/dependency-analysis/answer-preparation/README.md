@@ -16,8 +16,8 @@ This document does not cover answer preparation runtime behavior or generated co
 - `mapIterateNodes`, all `IteratorType.MAP` iterate nodes that descend from the step.
 
 `AnswerPreparationInputAnalyzer.buildJourneyInputs()` returns the journey-level field inventory:
-- `stepFieldBlocks`, all field blocks from the journey's navigation steps.
-- `stepMapIterateNodes`, all map iterate nodes from the journey's navigation steps.
+- `stepFieldBlocks`, all field blocks from the steps in the journey's reachability state table.
+- `stepMapIterateNodes`, all map iterate nodes from those same steps.
 
 Both methods delegate field and iterate lookup to `FieldInventoryAnalyzer`.
 
@@ -27,7 +27,7 @@ Both methods delegate field and iterate lookup to `FieldInventoryAnalyzer`.
   Source paths are diagnostics, not ownership data.
 - Include only map iterates.
   Answer preparation cares about produced answer shapes, not every iterator kind.
-- Build journey inputs from the step IDs in the navigation plan.
+- Build journey inputs from the step IDs in the reachability state table.
   That keeps the journey inventory aligned with the steps navigation can visit.
 
 ## Editing Notes
