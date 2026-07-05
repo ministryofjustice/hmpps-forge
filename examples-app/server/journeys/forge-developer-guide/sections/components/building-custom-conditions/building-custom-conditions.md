@@ -98,6 +98,14 @@ Answer('score').match(MyConditions.IsEligible(50))
 Answer('score').match(MyConditions.IsEligible(Data('minimumScore')))
 ```
 
+The handle's signature is inferred from the factory, so a factory
+that declares `minScore: number` produces a handle that only
+accepts a number at the type level. To accept expressions too,
+widen the parameter to `number | ResolvableValue` (exported from
+`@ministryofjustice/hmpps-forge/core/authoring`) - the built-in
+conditions do the same. Forge resolves the expression before the
+evaluator runs.
+
 ### The value parameter
 
 The first parameter of every condition factory is the resolved

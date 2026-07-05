@@ -127,16 +127,20 @@ import { GovUKSummaryList } from '@ministryofjustice/hmpps-forge/govuk-component
 import { inlineTransformers } from '../../functions'
 
 export const caseSummary = GovUKSummaryList({
-  rows: Data('caseDetails').pipe(
-    inlineTransformers.register((deps) => (value: unknown) => {
-      const details = value as CaseDetails
+  rows: [
+    {
+      key: { text: 'Status' },
+      value: {
+        text: Data('caseDetails').pipe(
+          inlineTransformers.register((deps) => (value: unknown) => {
+            const details = value as CaseDetails
 
-      return [
-        { key: { text: 'Name' }, value: { text: details.person.fullName } },
-        { key: { text: 'Status' }, value: { text: details.status } },
-      ]
-    })(),
-  ),
+            return details.status === 'closed' ? 'Closed' : `Open - ${details.priority}`
+          })(),
+        ),
+      },
+    },
+  ],
 })
 ```
 

@@ -23,10 +23,10 @@ and produces accessible, standards-compliant HTML.
 import {
   GovUKTextInput,
   GovUKTextareaInput,
-  GovUKRadios,
-  GovUKCheckboxes,
-  GovUKSelect,
-  GovUKDateInput,
+  GovUKRadioInput,
+  GovUKCheckboxInput,
+  GovUKSelectInput,
+  GovUKDateInputFull,
   GovUKButton,
   GovUKLinkButton,
   GovUKPanel,
@@ -51,14 +51,20 @@ import {
 The package covers form inputs, content blocks, and layout
 components from the GOV.UK Design System:
 
-- **Form inputs** - text input, textarea, radios, checkboxes,
-  select, date input
+- **Form inputs** - text input, password input, textarea, character
+  count, radios, checkboxes, select, date input (full, year-month,
+  and month-day variants)
 - **Buttons** - standard button, link-styled button
+- **Navigation** - back link, breadcrumbs, pagination, exit this
+  page
 - **Content** - heading, body text, list, inset text, warning text,
-  details (disclosure), notification banner, panel
-- **Data display** - summary list, table, tag
+  details (disclosure), notification banner, panel, accordion, tabs
+- **Data display** - summary list, table, tag, task list
+- **Layout** - button group, grid row, section break
 - **Utilities** - `GovUKUtilityClasses` provides common class
-  constants for sizing and spacing
+  constants for sizing and spacing, `GovUKValidations` provides
+  pre-built validation rule sets such as
+  `GovUKValidations.DateInputFull()`
 
 Each component accepts the same properties as the corresponding
 GOV.UK Nunjucks macro, translated into Forge's declarative block

@@ -63,14 +63,14 @@ onSubmission: [
     validate: true,
     onValid: {
       effects: [SaveAnswers()],
-      next: [{ path: '/next-step' }],
+      next: [redirect({ goto: '/next-step' })],
     },
   }),
 ],
 ```
 
 `LoadAnswers` reads from your store and calls
-`context.setAnswers()`. `SaveAnswers` takes the validated
+`context.setAnswer()` for each value. `SaveAnswers` takes the validated
 submission and writes it back. Both are effects you define.
 
 ---
@@ -94,7 +94,7 @@ FormatFullName: () => (value: unknown) => {
 You use transformers with `.pipe()` on a reference:
 
 ```typescript
-Answer('name').pipe(Transformer.FormatFullName())
+Answer('name').pipe(MyTransformers.FormatFullName())
 ```
 
 A **generator** produces a value from nothing. It has no input
@@ -110,7 +110,7 @@ You use generators anywhere a value is expected, without needing
 a reference to pipe from:
 
 ```typescript
-GovUKBody({ text: Generator.Today().pipe(Transformer.Date.Format('d MMMM yyyy')) })
+GovUKBody({ text: MyGenerators.Today().pipe(Transformer.Date.Format('D MMMM YYYY')) })
 ```
 
 In short: transformers convert an existing value, generators
@@ -154,7 +154,7 @@ produce values.
 Both are references that resolve to values at runtime. The
 difference is where the value comes from.
 
-**Answer()** references a value stored via `context.setAnswers()`
+**Answer()** references a value stored via `context.setAnswer()`
 or submitted by the user in a form field. Answers are keyed by
 field code:
 
@@ -181,7 +181,7 @@ data, computed values set in effects.
 
 **Answer()** references a stored answer - a value that was
 submitted on a previous (or current) step and loaded into
-context via `context.setAnswers()`. It works on both GET and
+context via `context.setAnswer()`. It works on both GET and
 POST requests because it reads from the evaluation context, not
 the request body:
 
@@ -205,7 +205,7 @@ submit({
   when: Post('action').match(Condition.Equals('delete')),
   onAlways: {
     effects: [DeleteItem()],
-    next: [{ path: '/items' }],
+    next: [redirect({ goto: '/items' })],
   },
 })
 ```
@@ -233,7 +233,11 @@ LoadCase: (deps) => async (context, caseId: string) => {
 2. **Call the effect in onAccess** so it runs when the page loads:
 
 ```typescript
-onAccess: [MyCaseEffects.LoadCase(Params('caseId'))],
+onAccess: [
+  access({
+    effects: [MyCaseEffects.LoadCase(Params('caseId'))],
+  }),
+],
 ```
 
 3. **Reference the data in your blocks** using `Data()`:
@@ -256,7 +260,9 @@ for more patterns.
 Forge evaluates a reachability graph on every request. A step
 is reachable only if there is a path to it from an entry point
 through evaluated forward edges. If no path exists, Forge
-redirects to the frontier (the furthest reachable step).
+redirects to the journey's entry point - or to the frontier
+(the furthest reachable step) if the journey sets
+`reachability: { unreachableRedirect: 'frontier' }`.
 
 Common causes:
 
@@ -279,8 +285,9 @@ full explanation of how the graph is built and evaluated.
 
 ## What is the difference between entryWhen and resumeWhen?
 
-Both control how users enter a step, but at different points in
-the flow.
+Both control how users enter a step, but they live at different
+levels: `entryWhen` sits on a step's `reachability`, `resumeWhen`
+sits on the journey's.
 
 **entryWhen** marks a step as a starting point for the
 reachability graph. When it evaluates to true, Forge includes
@@ -293,7 +300,8 @@ Most journeys have a single entry point - the first step:
 reachability: { entryWhen: true }
 ```
 
-**resumeWhen** adds redirect-to-frontier behaviour. When its
+**resumeWhen** is set on the journey's `reachability` and adds
+redirect-to-frontier behaviour. When its
 condition is active, Forge redirects the user to the frontier -
 the furthest incomplete step on the reachable path - instead of
 letting them stay on their current step. This is useful for
@@ -301,7 +309,7 @@ task list patterns where a link should take the user back to
 where they left off.
 
 A typical use is a conditional resume triggered by a query
-parameter:
+parameter, set on the journey definition:
 
 ```typescript
 reachability: {
@@ -331,7 +339,8 @@ those design systems. If you do not register them, Forge will
 not use them.
 
 You can build your own components using `buildComponent()` from
-the core authoring API and register them with your own variants.
+`@ministryofjustice/hmpps-forge/core/components` and register
+them with your own variants.
 The framework adapter handles rendering - if you write a custom
 adapter, you can target any templating system.
 
@@ -343,13 +352,14 @@ for the full component authoring guide.
 ## How do I add custom middleware that runs before Forge?
 
 Forge mounts its routes through a framework adapter. In the
-Express adapter, `forge.createRouter()` returns a standard
-Express router. You mount it like any other router:
+Express adapter, `createExpressRouter(forge, { nunjucksEnv })`
+returns a standard Express router. You mount it like any other
+router:
 
 ```typescript
-const forgeRouter = forge.createRouter()
+const forgeRouter = createExpressRouter(forge, { nunjucksEnv })
 
-app.use('/journeys', myMiddleware, forgeRouter)
+app.use(myMiddleware, forgeRouter)
 ```
 
 Any middleware you place before the Forge router in the Express
@@ -368,7 +378,7 @@ Forge evaluation context, which middleware does not.
 Store data in `res.locals` or `req.state` in your middleware.
 The express-nunjucks adapter copies these into the evaluation
 context, making them available to your journey through the
-`Request` reference.
+`Request.State()` reference.
 
 ---
 
@@ -401,7 +411,7 @@ MyTransformer: () => (value: unknown) => {
 }
 
 // Wire it up in the definition:
-Answer('name').pipe(Transformer.MyTransformer())
+Answer('name').pipe(MyTransformers.MyTransformer())
 ```
 
 ```typescript
@@ -411,7 +421,7 @@ Greeting: () => (name: string) => {
 }
 
 // Pass the reference as an argument in the definition:
-Generator.Greeting(Answer('name'))
+MyGenerators.Greeting(Answer('name'))
 ```
 
 See [Definitions and runtime](../building-journeys/definitions-and-runtime)

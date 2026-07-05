@@ -58,7 +58,7 @@ The live demo works end-to-end. Following the flow shows:
 
 ```
 /forge-developer-guide/patterns/demos/reveal-fields/
-├── /                → Overview and "Start" button
+├── /overview        → Overview and "Start" button
 ├── /heard-from      → Radio with 2 revealed follow-ups
 ├── /check-answers   → Summary with conditional rows
 └── /confirmation    → Panel and restart

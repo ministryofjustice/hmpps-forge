@@ -78,7 +78,12 @@ GovUKSummaryList({
     },
     {
       key: { text: 'Next appointment' },
-      value: { text: Data('case.nextAppointment').pipe(Transformer.Date.Format('d MMMM yyyy, h:mma')) },
+      value: {
+        text: Data('case.nextAppointment').pipe(
+          Transformer.String.ToDate(),
+          Transformer.Date.Format('Do MMMM YYYY, HH:mm'),
+        ),
+      },
     },
   ],
 })

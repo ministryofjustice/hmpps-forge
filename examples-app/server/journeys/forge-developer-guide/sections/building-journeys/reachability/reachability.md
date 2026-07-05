@@ -150,8 +150,9 @@ frontier:
 
 **Terminal step after progress.** If every step on the path is valid,
 the frontier is the last step - but only when real progress exists
-earlier (at least one step with fields has been completed). This
-covers check-your-answers pages:
+earlier (at least one step with fields has been completed) and the
+last step is not itself a completed form step. This covers
+check-your-answers pages:
 
 ```
 [entry, form-1, form-2, check-answers]
@@ -160,9 +161,10 @@ covers check-your-answers pages:
                          frontier
 ```
 
-**No frontier.** If no step with validation exists or none are valid
-yet, there is no frontier. The journey is either fresh or fully
-complete.
+**No frontier.** If every step on the path is valid and neither case
+above applies - no step has validation requirements at all, or the
+path ends on a completed form step - there is no frontier. The
+journey is either all content or fully complete.
 
 ---
 
@@ -209,7 +211,7 @@ Request arrives
     v
 Is resumeWhen condition true?
     |
-    +-- No --> Normal reachability (render if reachable, else redirect to entry)
+    +-- No --> Normal reachability (render if reachable, else redirect to the configured unreachable target)
     |
     v Yes
 Does progress exist?
@@ -361,13 +363,17 @@ When a user requests a specific step URL:
 | No-op | Yes | Render the step |
 | No-op | No | Redirect to the configured unreachable target |
 
+Resume redirects on step requests only apply to `GET`. On a `POST`,
+the resume outcome is ignored and only the unreachable check applies.
+
 ---
 
 ## Field cleardown
 
 When a user changes an earlier answer and a branch becomes
-unreachable, answers from that branch become stale. Forge tracks
-which fields belong to which steps so you can clear them.
+unreachable, answers from that branch become stale. Forge clears
+those answers from its own answer record and reports the cleared
+field codes so you can keep your own store in sync.
 
 ### Automatic field tracking
 
@@ -410,8 +416,9 @@ cleardownFieldCodes: ['tripCountry', 'tripDepartureDate', '^trip.*$']
 ### Using `getFieldsToClear()` in effects
 
 The resolved list of stale field codes is available on the effect
-function context. Call it in your save effect to clear abandoned
-answers before persisting:
+function context. Forge has already cleared these answers from its
+own record - use the list in your save effect to drop them from your
+own store before persisting:
 
 ```typescript
 SaveAnswers: deps => async (context, formCode) => {

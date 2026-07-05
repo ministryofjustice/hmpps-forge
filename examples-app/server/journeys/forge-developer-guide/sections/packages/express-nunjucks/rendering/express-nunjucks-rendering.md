@@ -2,7 +2,7 @@
 title: Rendering
 section: packages
 path: packages/express-nunjucks/rendering
-teaches: [template-resolution, view-locals, template-context, TemplateRenderer]
+teaches: [template-resolution, view-locals, template-context, NunjucksRenderer]
 prerequisites: [express-nunjucks]
 ---
 
@@ -97,7 +97,8 @@ available in the Nunjucks context:
 | `blocks` | `string[]` | Each visible block, already rendered to HTML. Use `{{ block \| safe }}` in your template. |
 | `step` | object | The current step's metadata (`title`, `path`, `view`, etc.). |
 | `ancestors` | object[] | The chain of parent journeys from root to immediate parent. |
-| `routeTree` | object | Route hierarchy with resolved paths and active state. |
+| `routeTree` | object[] | Route hierarchy with resolved paths and active state. |
+| `navigation` | object[] | The route tree reshaped into navigation items (`type`, `title`, `path`, `active`, `metadata`, `children`). |
 | `answers` | object | The user's answers for this journey. |
 | `data` | object | Data set by effects (e.g. loaded content, API responses). |
 | `fieldValidationErrors` | object[] | Field-level validation errors (after a POST). |
@@ -105,8 +106,10 @@ available in the Nunjucks context:
 
 ### Express locals in the context
 
-In addition to the variables above, `app.locals`, `res.locals`,
-and merged `view.locals` are all spread into the template context.
+In addition to the variables above, the merged request state
+(`app.locals`, `res.locals`, and `req.state` - see
+[Request & State](request-state)) and merged `view.locals`
+are all spread into the template context.
 This means values like CSRF tokens, service name, or environment
 flags set by your Express middleware are available directly in the
 template without any extra wiring:

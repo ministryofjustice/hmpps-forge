@@ -139,7 +139,7 @@ validation({
 ```
 
 Conditions can be composed with `and`, `or`, `not`, and `xor` for
-more complex rules. See [Conditions and combinators](#conditions-and-combinators).
+more complex rules. See [Complex conditions](#complex-conditions).
 
 ### message (Required)
 

@@ -19,7 +19,7 @@ making it the foundation that all other packages build on.
 
 ## Entry points
 
-Forge Core exposes four entry points, each targeting a different
+Forge Core exposes five entry points, each targeting a different
 concern:
 
 ### `@ministryofjustice/hmpps-forge/core`
@@ -63,5 +63,15 @@ Framework adapter interfaces. Used when building a custom adapter
 for a framework other than Express and Nunjucks.
 
 ```typescript
-import type { FrameworkAdapter, StepHandler } from '@ministryofjustice/hmpps-forge/core/framework'
+import type { ForgeRenderer, ForgeTopology, RequestSnapshot } from '@ministryofjustice/hmpps-forge/core/framework'
+```
+
+### `@ministryofjustice/hmpps-forge/core/testing`
+
+The in-memory test harness for exercising journeys without a real
+web framework: `ForgeTestHarness`, `ForgeTestClient`, and
+`createTestPackage`.
+
+```typescript
+import { ForgeTestHarness, createTestPackage } from '@ministryofjustice/hmpps-forge/core/testing'
 ```

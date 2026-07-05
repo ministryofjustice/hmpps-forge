@@ -6,7 +6,7 @@ teaches: [inline-function-pattern, scoped-transformer, scoped-condition, data-sh
 prerequisites: [TransformerRegistry, Data, pipe, match-method]
 ---
 
-<p class="govuk-caption-xl">Data and integrations</p>
+<p class="govuk-caption-xl">Patterns</p>
 
 # Shaping data inline
 

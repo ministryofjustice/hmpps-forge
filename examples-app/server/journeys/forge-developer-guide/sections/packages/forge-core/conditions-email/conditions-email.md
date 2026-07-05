@@ -39,7 +39,7 @@ validation({
 GovUKTextInput({
   code: 'email',
   label: { text: 'Email address' },
-  type: 'email',
+  inputType: 'email',
   autocomplete: 'email',
   formatters: [Transformer.String.Trim(), Transformer.String.ToLowerCase()],
   validWhen: [

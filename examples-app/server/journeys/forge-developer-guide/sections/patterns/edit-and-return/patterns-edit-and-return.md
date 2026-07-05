@@ -64,7 +64,7 @@ The live demo works end-to-end. Following the flow shows:
 
 ```
 /forge-developer-guide/patterns/demos/edit-and-return/
-├── /                      → Overview and "Start" button
+├── /overview              → Overview and "Start" button
 ├── /full-name             → Field: fullName
 ├── /email-address         → Field: emailAddress
 ├── /contact-preference    → Radio: email | phone | post

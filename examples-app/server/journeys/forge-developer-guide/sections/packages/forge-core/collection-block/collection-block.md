@@ -57,7 +57,9 @@ a `Data()` or `Answer()` reference chained with `.each()` and an
    the combined output.
 3. **Fallback** - if the array is empty (or the expression evaluates
    to nothing), the component renders the `fallback` blocks instead.
-   If no fallback is provided, nothing is rendered.
+   If no fallback is provided, the content is empty - though an empty
+   wrapper element still renders if `tag`, `classes`, or `attributes`
+   are set.
 4. **Wrapper element** - if you provide `tag`, `classes`, or
    `attributes`, the component wraps the output in an element. The
    `tag` property sets the element type (defaults to `<div>`). If

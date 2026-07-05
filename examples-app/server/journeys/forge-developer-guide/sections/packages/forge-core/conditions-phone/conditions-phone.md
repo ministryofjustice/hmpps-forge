@@ -22,7 +22,7 @@ Phone conditions validate phone number formats.
 Returns true if the string is a valid phone number format. Accepts
 international format with an optional `+` prefix and common
 separators (spaces, dashes, dots, parentheses). Requires 7 to 20
-digits.
+characters of digits and separators.
 
 ```typescript
 validation({
@@ -60,7 +60,7 @@ validation({
 GovUKTextInput({
   code: 'phone',
   label: { text: 'Phone number' },
-  type: 'tel',
+  inputType: 'tel',
   autocomplete: 'tel',
   formatters: [Transformer.String.Trim()],
   validWhen: [

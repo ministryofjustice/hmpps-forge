@@ -84,12 +84,14 @@ GovUKTextInput({
 })
 ```
 
-Conditional back links:
+Dynamic hint text:
 
 ```typescript
-backlink: when(Query('type').match(Condition.IsRequired()))
-  .then(Format('overview?type=%1', Query('type')))
-  .else('overview')
+hint: {
+  text: when(Answer('country').match(Condition.Equals('UK')))
+    .then('For example, SW1A 1AA')
+    .else('For example, 90210'),
+}
 ```
 
 ---
@@ -229,8 +231,8 @@ Branches are evaluated in order. The first match wins.
   A single if/else is clearer with `when()`. Multiple branches are
   clearer with `match()`.
 - **Always provide a fallback.** Use `.else()` on `when()` and
-  `.otherwise()` on `match()` to handle unexpected values rather
-  than leaving the result undefined.
+  `.otherwise()` on `match()` to handle unexpected values. Without
+  them, `when()` falls back to `false` and `match()` to `undefined`.
 - **Avoid deeply nested `when()` calls.** If you find yourself
   nesting more than two levels, `match()` or restructuring the data
   in an effect is usually clearer.

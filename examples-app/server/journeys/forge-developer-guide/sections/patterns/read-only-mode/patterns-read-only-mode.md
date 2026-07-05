@@ -58,13 +58,15 @@ The live demo shows a contact record page. Following the flow shows:
 
 ```
 /forge-developer-guide/patterns/demos/read-only-mode/
-├── /overview     → Pattern description and "Start" button
-├── /login        → Pick a role: Admin or Viewer (seeds record data)
-└── /record       → Contact record (conditional view based on role)
+├── /overview        → Pattern description and "Start" button
+├── /login           → Pick a role: Admin or Viewer (seeds contact data)
+├── /contacts        → List of contacts with "View" links
+└── /record/:index   → Contact record (conditional view based on role)
 ```
 
-The login page seeds default record data and sets the user's role.
-The record page renders different blocks depending on that role.
+The login page seeds a small collection of contacts and sets the
+user's role. The contacts page lists them, and the record page
+renders different blocks depending on that role.
 
 ---
 
@@ -112,7 +114,8 @@ GovUKTextInput({
 ```
 
 Because the fields use the same `code` as the data loaded by the
-journey's access hook, they are pre-filled with the current values
+step's access hook (`LoadItemForEdit` copies the selected contact
+into the field answers), they are pre-filled with the current values
 automatically.
 
 ### One step, two views
@@ -132,7 +135,7 @@ blocks: [
   emailField,        // visibleWhen: isAdmin
   departmentField,   // visibleWhen: isAdmin
   saveButton,        // visibleWhen: isAdmin
-  logoutButton,      // always visible
+  backButton,        // always visible
 ]
 ```
 

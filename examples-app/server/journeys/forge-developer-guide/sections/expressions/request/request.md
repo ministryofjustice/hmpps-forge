@@ -81,8 +81,9 @@ Request.State('user.name')
 ```
 
 What appears in request state depends on the framework adapter.
-The Express adapter populates it from `res.locals`, making it
-useful for values set by upstream middleware.
+The Express adapter merges `app.locals`, `res.locals`, and
+`req.state`, making it useful for values set by upstream
+middleware.
 
 All methods return a chainable reference that supports `.path()`,
 `.match()`, `.pipe()`, and `.each()`.

@@ -1,7 +1,7 @@
 ---
 title: Building journeys
 section: building-journeys
-path: building-journeys
+path: building-journeys/overview
 teaches: []
 prerequisites: []
 ---
@@ -34,5 +34,5 @@ navigation, hooks, and validation.
 These guides focus on the declarative authoring side of Forge: how to
 define what your journey looks like and how users move through it.
 Custom server-side logic, such as calling APIs, transforming data, or
-managing session state, is covered separately in the Functions and
-effects section.
+managing session state, is covered separately in the Building
+functions & components section.

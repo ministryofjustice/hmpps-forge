@@ -23,8 +23,8 @@ element and supports plain text, HTML, and child blocks as content.
 ## How to use it
 
 Import `GovUKDetails` from the GOV.UK components package. Every
-details component needs a `summaryText` (the clickable label) and
-content to reveal.
+details component needs a clickable label - `summaryText`, or
+`summaryHtml` for markup - and content to reveal.
 
 ```typescript
 import { GovUKDetails } from '@ministryofjustice/hmpps-forge/govuk-components'

@@ -96,6 +96,14 @@ Answer('bio').pipe(MyTransformers.Truncate(100, '...'))
 Answer('bio').pipe(MyTransformers.Truncate(Data('maxBioLength'), '...'))
 ```
 
+The handle's signature is inferred from the factory, so a factory
+that declares `maxLength: number` produces a handle that only
+accepts a number at the type level. To accept expressions too,
+widen the parameter to `number | ResolvableValue` (exported from
+`@ministryofjustice/hmpps-forge/core/authoring`) - the built-in
+transformers do the same. Forge resolves the expression before the
+evaluator runs.
+
 ### The outer function: dependencies
 
 The outer function `(deps) => ...` receives whatever dependencies

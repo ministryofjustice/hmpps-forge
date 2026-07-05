@@ -11,8 +11,8 @@ prerequisites: [journey, step, block]
 # Packages
 Forge ships as a single npm package with multiple entry points. Each
 entry point targets a different layer of the framework: the core
-engine, the GOV.UK Design System components, and the Ministry of
-Justice components.
+engine, the Express-Nunjucks adapter, the GOV.UK Design System
+components, and the Ministry of Justice components.
 
 {{slot:toc}}
 

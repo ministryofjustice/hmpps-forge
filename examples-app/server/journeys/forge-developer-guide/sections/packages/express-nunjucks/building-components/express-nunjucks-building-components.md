@@ -32,8 +32,8 @@ export const myInput = buildNunjucksComponent<MyInputDefinition>(
   (block, nunjucksEnv) => {
     return nunjucksEnv.render('components/my-input.njk', {
       params: {
-        id: block.id,
-        name: block.name,
+        id: block.id ?? block.code,
+        name: block.code,
         label: { text: block.label },
         value: block.value,
         errorMessage: block.errors?.[0]
@@ -62,28 +62,38 @@ The function must return an HTML string.
 ## Registering components
 
 Register your component with Forge so it can render blocks
-that use the matching variant:
+that use the matching variant. To make it available to every
+journey, pass it to `registerGlobalComponents`:
+
+```typescript
+import { myInput } from './components/myInput'
+
+forge.registerGlobalComponents([myInput])
+```
+
+Alternatively, bundle it with a journey package via the
+`components` field of `createForgePackage`:
 
 ```typescript
 import { createForgePackage } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { myInput } from './components/myInput'
 
-export const myComponentPackage = createForgePackage({
+export const myPackage = createForgePackage({
+  journey: myJourney,
   components: [myInput],
 })
 
-// Then register the package with Forge
-forge.registerGlobalComponents(myComponentPackage)
+forge.registerPackage(myPackage)
 ```
 
 ---
 
 ## Validation errors
 
-When a form is submitted and validation fails, the adapter
-extracts failed validation results from the block's
-`validWhen` property and passes them as an `errors` array on
-the evaluated block:
+When a form is submitted and validation fails, the engine
+collects the failed results from each field's `validWhen`
+validations and attaches them as an `errors` array on the
+evaluated block:
 
 ```typescript
 // Each error has a message and optional details
@@ -92,12 +102,14 @@ block.errors
 ```
 
 Components check this array to render inline error messages
-alongside form fields. The `errors` array is empty when there
-are no validation failures, or when the step has not been
-submitted yet.
+alongside form fields. When any field on the step has failed,
+every field carries `errors` - its own failures, or an empty
+array if it passed. When nothing failed, or the step has not
+been submitted yet, the `errors` property is absent, so read
+it defensively (`block.errors?.[0]`).
 
-Only errors where the validation's `passed` property is
-`false` are included - passing validations are filtered out.
+Only failed validations are included - passing validations
+are filtered out.
 
 ---
 
