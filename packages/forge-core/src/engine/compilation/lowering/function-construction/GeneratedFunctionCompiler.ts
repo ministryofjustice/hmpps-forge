@@ -34,7 +34,7 @@ interface RuntimeEvaluationDiagnostics {
   warn: (code: string, message: string, details?: Record<string, unknown>) => void
 }
 
-const RUNTIME_DIAGNOSTICS_PARAM = '_forgeRuntimeDiagnostics'
+export const RUNTIME_DIAGNOSTICS_PARAM = '_forgeRuntimeDiagnostics'
 export const GENERATED_FUNCTION_HELPERS_PARAM = '_forgeHelpers'
 
 /**

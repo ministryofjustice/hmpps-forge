@@ -1,5 +1,6 @@
 /* eslint-disable no-new-func */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { z, type ZodType } from 'zod'
 import { ASTTestFactory } from '../../../ast/testing-helpers/ASTTestFactory'
 import { ASTNodeType } from '../../../../contracts/ast/enums'
 import {
@@ -52,8 +53,33 @@ function createSyncCompiler(...funcNames: string[]): StepAnswerPreparationCompil
   })
 }
 
-function createFieldBlock(code: unknown, props: Record<string, unknown> = {}): FieldBlockASTNode {
-  const builder = ASTTestFactory.block('text-input', BlockType.FIELD)
+interface TestComponentEntry {
+  readonly variant: string
+  readonly inputSchema?: ZodType
+  readonly multiple?: boolean
+}
+
+function createComponentRegistry(...entries: TestComponentEntry[]): ComponentRegistry {
+  const registry = new ComponentRegistry()
+
+  registry.registerMany(entries.map(entry => ({ ...entry, render: () => '' })))
+
+  return registry
+}
+
+function createComponentCompiler(componentRegistry: ComponentRegistry): StepAnswerPreparationCompiler {
+  return new StepAnswerPreparationCompiler({
+    functionRegistry: new FunctionRegistry(),
+    componentRegistry,
+  })
+}
+
+function createFieldBlock(
+  code: unknown,
+  props: Record<string, unknown> = {},
+  variant = 'text-input',
+): FieldBlockASTNode {
+  const builder = ASTTestFactory.block(variant, BlockType.FIELD)
     .withProperty('code', code)
 
   Object.entries(props).forEach(([key, value]) => {
@@ -173,9 +199,13 @@ function createIterateNode(input: unknown, yieldTemplate: TemplateValue): Iterat
   } as unknown as IterateASTNode
 }
 
-async function runGeneratedSource(source: string, ctx: CompiledAnswerPreparationContext): Promise<void> {
+async function runGeneratedSource(
+  source: string,
+  ctx: CompiledAnswerPreparationContext,
+  diagnostics: unknown = undefined,
+): Promise<void> {
   const fn = new Function('ctx', '_forgeHelpers', '_forgeRuntimeDiagnostics', source)
-  const task = fn(ctx, generatedFunctionHelpers, undefined) as unknown
+  const task = fn(ctx, generatedFunctionHelpers, diagnostics) as unknown
 
   await executeAnswerPreparationTask(task, ctx)
 }
@@ -489,6 +519,132 @@ describe('StepAnswerPreparationCompiler', () => {
       // Assert
       expect(ctx.answers.missing.current).toBeUndefined()
       expect(ctx.answers.missing.mutations[0]).toEqual({ value: undefined, source: 'post' })
+    })
+  })
+
+  describe('component input schema', () => {
+    it('should keep the full array when the component entry declares multiple with no field flag', async () => {
+      // Arrange
+      const componentRegistry = createComponentRegistry({ variant: 'checkbox', multiple: true })
+      const localCompiler = createComponentCompiler(componentRegistry)
+      const block = createFieldBlock('tags', {}, 'checkbox')
+      const ctx = createCtx({ post: { tags: ['a', 'b', 'c'] as unknown as string }, components: componentRegistry })
+
+      // Act
+      const source = localCompiler.generateSource([block])
+      await runGeneratedSource(source, ctx)
+
+      // Assert
+      expect(ctx.answers.tags.current).toEqual(['a', 'b', 'c'])
+    })
+
+    it('should honour the field-level multiple flag when the entry does not declare multiple', async () => {
+      // Arrange
+      const componentRegistry = createComponentRegistry({
+        variant: 'select',
+        inputSchema: z.union([z.string(), z.array(z.string())]),
+      })
+      const localCompiler = createComponentCompiler(componentRegistry)
+      const block = createFieldBlock('tags', { multiple: true }, 'select')
+      const ctx = createCtx({ post: { tags: ['a', 'b'] as unknown as string }, components: componentRegistry })
+
+      // Act
+      const source = localCompiler.generateSource([block])
+      await runGeneratedSource(source, ctx)
+
+      // Assert
+      expect(ctx.answers.tags.current).toEqual(['a', 'b'])
+    })
+
+    it('should emit a checkComponentInputValue call for a variant that declares an input schema', () => {
+      // Arrange
+      const componentRegistry = createComponentRegistry({ variant: 'text-input', inputSchema: z.string() })
+      const localCompiler = createComponentCompiler(componentRegistry)
+      const block = createFieldBlock('name', {}, 'text-input')
+
+      // Act
+      const source = localCompiler.generateSource([block])
+
+      // Assert
+      expect(source).toContain('checkComponentInputValue(ctx, _forgeRuntimeDiagnostics, "text-input"')
+    })
+
+    it('should not emit a checkComponentInputValue call for a variant without an input schema', () => {
+      // Arrange
+      const componentRegistry = createComponentRegistry({ variant: 'text-input' })
+      const localCompiler = createComponentCompiler(componentRegistry)
+      const block = createFieldBlock('name', {}, 'text-input')
+
+      // Act
+      const source = localCompiler.generateSource([block])
+
+      // Assert
+      expect(source).not.toContain('checkComponentInputValue')
+    })
+
+    it('should drop a value that fails the input schema to undefined before the post mutation', async () => {
+      // Arrange
+      const componentRegistry = createComponentRegistry({ variant: 'text-input', inputSchema: z.string() })
+      const localCompiler = createComponentCompiler(componentRegistry)
+      const block = createFieldBlock('name', {}, 'text-input')
+      const diagnostics = { warn: vi.fn() }
+      const ctx = createCtx({
+        post: { name: { nested: 'object' } as unknown as string },
+        components: componentRegistry,
+      })
+
+      // Act
+      const source = localCompiler.generateSource([block])
+      await runGeneratedSource(source, ctx, diagnostics)
+
+      // Assert
+      expect(ctx.answers.name.current).toBeUndefined()
+      expect(ctx.answers.name.mutations[0]).toEqual({ value: undefined, source: 'post' })
+      expect(diagnostics.warn).toHaveBeenCalledWith(
+        'FORGE_INPUT_SCHEMA_REJECTED',
+        expect.stringContaining('text-input'),
+        expect.objectContaining({ issues: expect.any(Array) }),
+      )
+    })
+
+    it('should drop a bad shape to an empty array when the entry declares multiple', async () => {
+      // Arrange
+      const componentRegistry = createComponentRegistry({
+        variant: 'checkbox',
+        inputSchema: z.array(z.string()),
+        multiple: true,
+      })
+      const localCompiler = createComponentCompiler(componentRegistry)
+      const block = createFieldBlock('tags', {}, 'checkbox')
+      const ctx = createCtx({
+        post: { tags: { nested: 'object' } as unknown as string },
+        components: componentRegistry,
+      })
+
+      // Act
+      const source = localCompiler.generateSource([block])
+      await runGeneratedSource(source, ctx)
+
+      // Assert
+      expect(ctx.answers.tags.current).toEqual([])
+      expect(ctx.answers.tags.mutations[0]).toEqual({ value: [], source: 'post' })
+    })
+
+    it('should keep a value that passes the input schema unchanged', async () => {
+      // Arrange
+      const componentRegistry = createComponentRegistry({ variant: 'text-input', inputSchema: z.string() })
+      const localCompiler = createComponentCompiler(componentRegistry)
+      const block = createFieldBlock('name', {}, 'text-input')
+      const diagnostics = { warn: vi.fn() }
+      const ctx = createCtx({ post: { name: 'Ada' }, components: componentRegistry })
+
+      // Act
+      const source = localCompiler.generateSource([block])
+      await runGeneratedSource(source, ctx, diagnostics)
+
+      // Assert
+      expect(ctx.answers.name.current).toBe('Ada')
+      expect(diagnostics.warn).not.toHaveBeenCalled()
     })
   })
 
