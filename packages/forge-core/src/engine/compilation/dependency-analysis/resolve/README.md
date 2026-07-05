@@ -21,10 +21,10 @@ Filter and find iterators can also affect what resolution needs to compile.
 
 ## Rules
 
-- Ancestor journeys are resolved from `ASTNodeTree`.
+- Ancestor journeys are resolved by walking the `parent` pointers on the AST nodes.
   Do not infer them from route paths.
 - The current step is not included in `ancestorJourneys`.
-  `resolveAncestorJourneys()` slices the ancestor chain before filtering journeys.
+  `resolveAncestorJourneys()` starts the walk from the step's parent, so the step itself never appears.
 - Include every iterator kind.
   Resolve needs a broader iterator inventory than answer preparation or validation.
 

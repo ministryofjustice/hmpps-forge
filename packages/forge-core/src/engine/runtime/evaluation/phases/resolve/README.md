@@ -98,7 +98,7 @@ flowchart TD
 
 - [ResolveBlocksWorkHandler.ts](ResolveBlocksWorkHandler.ts) runs block tasks concurrently and folds `RenderBlock` outputs.
 - [ResolveBlockWorkHandler.ts](ResolveBlockWorkHandler.ts) collects nested work from properties, replaces completed output, and brands the block.
-- [typeguards.ts](typeguards.ts) contains render-block type guards used by resolve helpers.
+- [typeguards.ts](typeguards.ts) contains the `isRenderBlock` type guard, exported through the public and framework APIs.
 
 ## Boundaries
 
@@ -149,4 +149,4 @@ flowchart TD
 
 - [ResolveBlocksWorkHandler.ts](ResolveBlocksWorkHandler.ts) answers how block tasks are collected into resolve output.
 - [ResolveBlockWorkHandler.ts](ResolveBlockWorkHandler.ts) answers how one compiled block becomes `RenderBlock`.
-- [typeguards.ts](typeguards.ts) answers how resolve identifies branded render blocks.
+- [typeguards.ts](typeguards.ts) answers how callers identify branded render blocks.

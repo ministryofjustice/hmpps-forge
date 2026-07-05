@@ -16,7 +16,6 @@ It also does not cover runtime redirect handling.
 `ReachabilityCompiler.compileFacts()` receives:
 - a `ReachabilityCompilationPlan`, whose `entries` are the journey's steps in declaration order.
 - field inventory sources, one per step.
-- an `ASTNodeIndex` to resolve the node IDs the plan references.
 
 Dependency analysis provides those inputs.
 
@@ -43,7 +42,7 @@ The facts function emits one declaration block, then each algorithm in turn, the
 
 ```mermaid
 flowchart TD
-  start["compileFacts(plan, sources, registry)"] --> arrays["declare entryResults, outcomeValues, declaredOutcomeValues, tieBreakerPriorities"]
+  start["compileFacts(plan, sources)"] --> arrays["declare entryResults, outcomeValues, declaredOutcomeValues, tieBreakerPriorities"]
   arrays --> entry["compileEntryPredicates"]
   entry --> forward["compileForwardOutcomes"]
   forward --> tie["compileTieBreakers"]

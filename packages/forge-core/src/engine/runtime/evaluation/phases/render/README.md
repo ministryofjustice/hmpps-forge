@@ -82,7 +82,7 @@ is passed to the renderer as:
 flowchart TD
   render["request.render"] --> blocks["render.render-blocks"]
   render --> assemble["render.assemble-page"]
-  blocks -->|"concurrent visible blocks"| block["render.render-blocks.block"]
+  blocks -->|"concurrent blocks"| block["render.render-blocks.block"]
   block --> nested{"Nested RenderBlock?"}
   nested -->|yes| nestedChildren["child render.render-blocks.block tasks"]
   nestedChildren --> block
@@ -135,7 +135,7 @@ flowchart TD
 ## Editing Notes
 
 - To change top-level block rendering, start in `RenderBlocksWorkHandler`.
-- To change one block's renderer input, start in `RenderBlockWorkHandler.toEvaluatedBlock()`.
+- To change one block's renderer input, start in `toEvaluatedBlock()` in `RenderBlockWorkHandler.ts`.
 - To change nested block replacement, start in `RenderBlockWorkHandler`.
 - To change page assembly, start in `RenderAssemblePageWorkHandler`.
 - To change unknown component handling, update `RenderBlocksWorkHandler`, `RenderBlockWorkHandler`, and missing-entry tests.

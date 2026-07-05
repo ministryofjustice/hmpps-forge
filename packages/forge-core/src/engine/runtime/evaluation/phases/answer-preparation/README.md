@@ -57,8 +57,8 @@ Compiled answer preparation returns a task like this:
 ctx.workTasks.answerPreparation([
   ctx.workTasks.fieldAnswerPreparation('field:name', {
     code: 'name',
-    mode: 'post',
-    run: async () => ({ code: 'name', mode: 'post', mutations: [], parsed: 'Ada' }),
+    mode: 'POST',
+    run: async () => ({ code: 'name', mode: 'POST', current: 'Ada', mutations: [], parsed: 'Ada' }),
   }),
 ])
 ```
@@ -68,7 +68,7 @@ Runtime runs the field task and folds the output:
 ```ts
 {
   fields: [
-    { code: 'name', mode: 'post', mutations: [], parsed: 'Ada' },
+    { code: 'name', mode: 'POST', current: 'Ada', mutations: [], parsed: 'Ada' },
   ],
 }
 ```

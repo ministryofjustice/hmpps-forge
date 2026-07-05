@@ -123,7 +123,7 @@ flowchart TD
 
 ## Editing Notes
 
-- To change which paths are retained, start in `resolveCurrentForwardStepPaths()`.
+- To change which paths are retained, start in `resolveCleardownRetentionRouteTemplatePaths()` in `compilation/lowering/function-construction/reachability`; the exclusion itself lives in `resolveFieldsToClear()`.
 - To change which fields are cleared, start in `resolveFieldsToClear()`.
 - To change answer mutation shape, start in `clearStaleAnswers()`.
 - To change when cleardown runs, edit `RequestAnswerCleardownWorkHandler`, not this helper.

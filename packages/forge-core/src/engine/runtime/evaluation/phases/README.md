@@ -5,7 +5,7 @@
 This document covers `packages/forge-core/src/engine/runtime/evaluation/phases`.
 
 This code contains the runtime work handlers and helper functions that do phase-specific request work.
-It validates answers, prepares answers, evaluates hooks, computes reachability, hydrates the route tree, resolves render blocks, renders blocks, and clears stale answers.
+It validates answers, prepares answers, evaluates hooks, decides reachability redirects, hydrates the route tree, resolves render blocks, renders blocks, and clears stale answers.
 
 This document does not cover request phase ordering, work executor mechanics, compiled source generation, or framework adapter routing.
 
@@ -33,7 +33,7 @@ They consume compiled functions and runtime data. They must not build AST, plans
 - Execute validation work and fold field and domain failures.
 - Execute access and submit hook lifecycles.
 - Run submit validation as a hook stage.
-- Build reachability evaluation from compiled navigation output and stored step validities.
+- Decide reachability redirects and backlinks from the stored reachability evaluation.
 - Hydrate the route tree from resolved route metadata.
 - Resolve compiled block tasks into branded `RenderBlock` values.
 - Render visible blocks and assemble page output.
@@ -59,7 +59,6 @@ The main work families are:
 - `validation.step`, `validation.field`, and `validation.domain`.
 - `access.lifecycle`, `access.hook`, `access.hook.when`, `access.hook.next`, and `hook.effect`.
 - `submit.lifecycle`, `submit.hook`, `submit.predicate`, `submit.branch`, `submit.validation`, and `hook.effect`.
-- `reachability.evaluation`.
 - `resolve.blocks` and `resolve.block`.
 - `render.render-blocks`, `render.render-blocks.block`, and `render.assemble-page`.
 
@@ -74,7 +73,7 @@ Handlers use it for:
 - `renderedBlocks`.
 
 Some folders are full work-handler families.
-`answer-cleardown` and `route-tree` are the exceptions: they are helper folders called by their request-level handlers.
+`answer-cleardown`, `reachability`, and `route-tree` are the exceptions: they are helper folders called by their request-level handlers.
 
 ### Example
 
@@ -136,8 +135,8 @@ flowchart TD
   See its README for group filtering, `StepValidityResult`, and `blockId` rules.
 - [hooks](hooks) owns access and submit lifecycle work.
   See its README for lifecycle stage order and first-match behavior.
-- [reachability](reachability) owns navigation evaluation.
-  See its README for graph building, resume, redirects, and projection.
+- [reachability](reachability) owns the redirect decision after reachability evaluation.
+  See its README for redirect resolution, backlinks, and target URLs.
 - [answer-cleardown](answer-cleardown) owns stale-answer clearing.
   See its README for retained paths and `cleardown` mutations.
 - [route-tree](route-tree) owns hydrating the route tree from resolved route metadata.
@@ -168,7 +167,7 @@ flowchart TD
   This keeps execution policy in the work executor and domain folding in the handler.
 - Handler instrumentation is colocated with the handler.
   Trace fields should describe the runtime work, not duplicate large request state.
-- `answer-cleardown` and `route-tree` are helper-only phase folders.
+- `answer-cleardown`, `reachability`, and `route-tree` are helper-only phase folders.
   They still live here because they own phase-specific runtime behavior.
 
 ## Constraints
@@ -195,7 +194,7 @@ flowchart TD
 - [answer-preparation/README.md](answer-preparation/README.md) explains answer preparation work.
 - [validation/README.md](validation/README.md) explains validation work and stored validity projection.
 - [hooks/README.md](hooks/README.md) explains access and submit hook lifecycles.
-- [reachability/README.md](reachability/README.md) explains runtime navigation reachability.
+- [reachability/README.md](reachability/README.md) explains reachability redirect decisions and target resolution.
 - [answer-cleardown/README.md](answer-cleardown/README.md) explains stale answer clearing.
 - [route-tree/README.md](route-tree/README.md) explains route tree hydration from resolved metadata.
 - [resolve/README.md](resolve/README.md) explains resolve-block work and render block creation.
