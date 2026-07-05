@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import {
   ResolvableBoolean,
   ResolvableString,
@@ -237,34 +238,38 @@ export interface GovUKTextInputProps extends FieldBlockProps {
   attributes?: Record<string, any>
 }
 
-export const govukTextInput = buildNunjucksComponent<GovUKTextInput>('govukTextInput', (block, nunjucksEnv) => {
-  const params = {
-    id: block.id ?? block.code,
-    name: block.code,
-    label: normaliseGovukTextParam(block.label),
-    hint: normaliseGovukTextParam(block.hint),
-    value: block.value,
-    type: block.inputType ?? 'text',
-    inputmode: block.inputMode,
-    disabled: block.disabled,
-    autocomplete: block.autocomplete,
-    describedBy: block.describedBy,
-    pattern: block.pattern,
-    spellcheck: block.spellcheck,
-    autocapitalize: block.autocapitalize,
-    prefix: block.prefix,
-    suffix: block.suffix,
-    formGroup: block.formGroup,
-    inputWrapper: block.inputWrapper,
-    classes: block.classes,
-    attributes: block.attributes,
-    errorMessage: normaliseGovukErrorMessage(block.errors),
-  }
+export const govukTextInput = buildNunjucksComponent<GovUKTextInput>(
+  'govukTextInput',
+  (block, nunjucksEnv) => {
+    const params = {
+      id: block.id ?? block.code,
+      name: block.code,
+      label: normaliseGovukTextParam(block.label),
+      hint: normaliseGovukTextParam(block.hint),
+      value: block.value,
+      type: block.inputType ?? 'text',
+      inputmode: block.inputMode,
+      disabled: block.disabled,
+      autocomplete: block.autocomplete,
+      describedBy: block.describedBy,
+      pattern: block.pattern,
+      spellcheck: block.spellcheck,
+      autocapitalize: block.autocapitalize,
+      prefix: block.prefix,
+      suffix: block.suffix,
+      formGroup: block.formGroup,
+      inputWrapper: block.inputWrapper,
+      classes: block.classes,
+      attributes: block.attributes,
+      errorMessage: normaliseGovukErrorMessage(block.errors),
+    }
 
-  return nunjucksEnv.render('govuk/components/input/template.njk', {
-    params,
-  })
-})
+    return nunjucksEnv.render('govuk/components/input/template.njk', {
+      params,
+    })
+  },
+  { inputSchema: z.string() },
+)
 
 /**
  * GOV.UK Text Input Component

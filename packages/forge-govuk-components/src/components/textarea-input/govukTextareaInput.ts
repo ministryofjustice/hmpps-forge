@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import {
   ResolvableBoolean,
   ResolvableNumber,
@@ -159,28 +160,32 @@ export interface GovUKTextareaInputProps extends FieldBlockProps {
   attributes?: Record<string, any>
 }
 
-export const govukTextareaInput = buildNunjucksComponent<GovUKTextareaInput>('govukTextarea', (block, nunjucksEnv) => {
-  const params = {
-    id: block.id ?? block.code,
-    name: block.code,
-    spellcheck: block.spellcheck,
-    rows: block.rows || '5',
-    value: block.value,
-    disabled: block.disabled,
-    label: normaliseGovukTextParam(block.label),
-    hint: normaliseGovukTextParam(block.hint),
-    errorMessage: normaliseGovukErrorMessage(block.errors),
-    formGroup: block.formGroup,
-    classes: block.classes,
-    autocomplete: block.autocomplete,
-    describedBy: block.describedBy,
-    attributes: block.attributes,
-  }
+export const govukTextareaInput = buildNunjucksComponent<GovUKTextareaInput>(
+  'govukTextarea',
+  (block, nunjucksEnv) => {
+    const params = {
+      id: block.id ?? block.code,
+      name: block.code,
+      spellcheck: block.spellcheck,
+      rows: block.rows || '5',
+      value: block.value,
+      disabled: block.disabled,
+      label: normaliseGovukTextParam(block.label),
+      hint: normaliseGovukTextParam(block.hint),
+      errorMessage: normaliseGovukErrorMessage(block.errors),
+      formGroup: block.formGroup,
+      classes: block.classes,
+      autocomplete: block.autocomplete,
+      describedBy: block.describedBy,
+      attributes: block.attributes,
+    }
 
-  return nunjucksEnv.render('govuk/components/textarea/template.njk', {
-    params,
-  })
-})
+    return nunjucksEnv.render('govuk/components/textarea/template.njk', {
+      params,
+    })
+  },
+  { inputSchema: z.string() },
+)
 
 /**
  * GOV.UK Textarea Component

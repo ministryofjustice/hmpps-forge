@@ -9,6 +9,18 @@ describe('mojDatePicker', () => {
 
   const helper = new MojComponentTestHelper(mojDatePicker)
 
+  describe('Registration entry', () => {
+    it('should accept a scalar string and reject an array against the input schema', () => {
+      // Arrange & Act
+      const scalar = mojDatePicker.inputSchema?.safeParse('17/05/2024')
+      const array = mojDatePicker.inputSchema?.safeParse(['17/05/2024'])
+
+      // Assert
+      expect(scalar?.success).toBe(true)
+      expect(array?.success).toBe(false)
+    })
+  })
+
   describe('Data transformation', () => {
     it('should set default id and name from code', async () => {
       // Arrange & Act
