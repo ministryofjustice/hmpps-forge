@@ -59,7 +59,9 @@ Compilation got a lot stricter - misplaced definitions and unregistered function
 fail at `registerPackage()` instead of silently vanishing or half-working. Function
 registration moves onto registry classes with central schema validation, deprecated APIs
 now warn at runtime, and request traces carry a lot more detail for the upcoming 
-devtools. Compilation now emits trace events of its own, too!
+devtools. Compilation now emits trace events of its own, too! Components also now declare
+the shape of value they can legitimately submit - a tampered POST body gets dropped
+before it ever reaches answer history.
 
 ### For journey authors
 
@@ -83,6 +85,12 @@ _Definitions, expressions, hooks, navigation, reachability_
 - **Unknown component variants inside iterator templates now fail at compile time**
   instead of at render time - `validateRegisteredComponents` walks iterator templates too.
   ([#131])
+
+#### Notes
+
+- **Binned the dead `sanitize` flag.** The DSL schema accepted a `sanitize` boolean on
+  field definitions that nothing ever read. Setting it never did anything, and still
+  doesn't - the key is now just ignored like any other unknown property.
 
 ---
 
