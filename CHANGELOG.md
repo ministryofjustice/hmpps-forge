@@ -90,7 +90,7 @@ _Definitions, expressions, hooks, navigation, reachability_
 
 - **Binned the dead `sanitize` flag.** The DSL schema accepted a `sanitize` boolean on
   field definitions that nothing ever read. Setting it never did anything, and still
-  doesn't - the key is now just ignored like any other unknown property.
+  doesn't - the key is now just ignored like any other unknown property. ([#141])
 
 ---
 
@@ -122,12 +122,12 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   the schema: a value that fails is not from the rendered form, so it is dropped as
   unanswered - `undefined`, or `[]` when multiple - and a `FORGE_INPUT_SCHEMA_REJECTED`
   runtime warning is emitted via `process.emitWarning`. Unanswered fields and variants
-  without a schema are untouched.
+  without a schema are untouched. ([#141])
 
 - **Built-in GOV.UK and MOJ field components declare their input schemas.** Text,
   textarea, character count, select, radio and password inputs declare `z.string()`,
   checkbox declares `z.array(z.string())`, and the date inputs declare their per-variant
-  date-parts object. Third-party components are unaffected until they opt in.
+  date-parts object. Third-party components are unaffected until they opt in. ([#141])
 
 #### Improvements
 
@@ -135,7 +135,7 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   now declares `multiple: true` on its registry entry rather than forcing it onto the
   field definition. Effective multiple is `entry.multiple ?? field.multiple ?? false`, so
   fixed-shape components own the flag while dual-mode components keep the field-level DSL
-  option.
+  option. ([#141])
 
 #### Deprecated
 
@@ -228,6 +228,7 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
 [#136]: https://github.com/ministryofjustice/hmpps-forge/pull/136
 [#137]: https://github.com/ministryofjustice/hmpps-forge/pull/137
 [#138]: https://github.com/ministryofjustice/hmpps-forge/pull/138
+[#141]: https://github.com/ministryofjustice/hmpps-forge/pull/141
 
 ---
 <br>
