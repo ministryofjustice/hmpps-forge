@@ -40,6 +40,16 @@ interface FunctionEvaluationContext {
   }
 }
 
+interface ComponentRegistryLookupEntry {
+  inputSchema?: ZodType
+}
+
+interface ComponentInputContext {
+  components: {
+    get(variant: string): ComponentRegistryLookupEntry | undefined
+  }
+}
+
 interface RuntimeDiagnosticState {
   readonly nodeId?: string
   readonly path?: readonly (string | number)[]
@@ -68,6 +78,14 @@ export interface GeneratedFunctionHelpers {
   ensureAnswerHistory(ctx: AnswerHistoryContext, code: string): AnswerHistory
   pushAnswerMutation(answerHistory: AnswerHistory, value: unknown, source: string): void
   normalizePostValue(rawValue: unknown, multiple: boolean): unknown
+  checkComponentInputValue(
+    ctx: ComponentInputContext,
+    diagnostics: RuntimeEvaluationDiagnostics | undefined,
+    variant: string,
+    code: string,
+    value: unknown,
+    multiple: boolean,
+  ): unknown
   resolveFieldValue(ctx: RenderFieldValueContext, blockProps: Record<string, unknown>): void
   resolveFieldFailures(ctx: RenderFieldFailureContext, blockId: unknown, blockProps: Record<string, unknown>): void
   evaluateFunction(
@@ -133,6 +151,41 @@ export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
     return rawValue.find(
       value => value !== undefined && value !== null && (typeof value !== 'string' || value.trim() !== ''),
     )
+  },
+
+  /**
+   * Checks a submitted value against the component variant's `inputSchema` after
+   * normalisation. A value failing the schema is by definition not from the
+   * rendered form, so it fails soft to absent — `[]` when multiple, else
+   * `undefined` — with a per-occurrence runtime warning rather than a thrown
+   * error, since no legitimate user action can produce it. A passing value is
+   * returned unchanged (no Zod coercion in v1). An unanswered value, an unknown
+   * variant, or a variant without a schema is left untouched.
+   */
+  checkComponentInputValue(ctx, diagnostics, variant, code, value, multiple) {
+    if (value === undefined) {
+      return value
+    }
+
+    const entry = ctx.components.get(variant)
+
+    if (entry === undefined || entry.inputSchema === undefined) {
+      return value
+    }
+
+    const parsed = entry.inputSchema.safeParse(value)
+
+    if (parsed.success) {
+      return value
+    }
+
+    diagnostics?.warn(
+      'FORGE_INPUT_SCHEMA_REJECTED',
+      `${code}: value failed schema validation for component variant '${variant}' — dropped as unanswered`,
+      { issues: parsed.error.issues },
+    )
+
+    return multiple ? [] : undefined
   },
 
   resolveFieldValue(ctx, blockProps) {
