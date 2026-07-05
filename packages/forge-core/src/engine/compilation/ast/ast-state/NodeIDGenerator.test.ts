@@ -29,36 +29,4 @@ describe('NodeIDGenerator', () => {
       expect(generator.nextTemplateNodeId()).toBe('template:2')
     })
   })
-
-  describe('clone', () => {
-    it('should create a new generator with the same counter state', () => {
-      generator.nextAstNodeId()
-      generator.nextAstNodeId()
-      generator.nextTemplateNodeId()
-
-      const cloned = generator.clone()
-
-      expect(cloned).not.toBe(generator)
-      expect(cloned.nextAstNodeId()).toBe('compile_ast:3')
-      expect(cloned.nextTemplateNodeId()).toBe('template:2')
-    })
-
-    it('should allow independent counter increments after cloning', () => {
-      generator.nextAstNodeId()
-
-      const cloned = generator.clone()
-
-      expect(generator.nextAstNodeId()).toBe('compile_ast:2')
-      expect(cloned.nextAstNodeId()).toBe('compile_ast:2')
-      expect(generator.nextAstNodeId()).toBe('compile_ast:3')
-      expect(cloned.nextAstNodeId()).toBe('compile_ast:3')
-    })
-
-    it('should clone generator with zero counters', () => {
-      const cloned = generator.clone()
-
-      expect(cloned.nextAstNodeId()).toBe('compile_ast:1')
-      expect(generator.nextAstNodeId()).toBe('compile_ast:1')
-    })
-  })
 })

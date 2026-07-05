@@ -18,19 +18,11 @@ function containsNode(container: unknown, nodeId: NodeId): boolean {
 }
 
 export const validateBlockScope: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
-  const { nodeIndex, nodeTree } = context
+  const { nodeIndex } = context
   const errors: Error[] = []
 
   nodeIndex.findByType(ASTNodeType.BLOCK).forEach(node => {
-    const parentId = nodeTree.getParent(node.id)
-
-    if (!parentId) {
-      errors.push(buildError(node.diagnostics?.source))
-
-      return
-    }
-
-    const parent = nodeIndex.get(parentId)
+    const parent = node.parent
 
     // Composite component wrappers legitimately hold child blocks in arbitrary
     // properties (slots, content, rows, columns); those child blocks parent to

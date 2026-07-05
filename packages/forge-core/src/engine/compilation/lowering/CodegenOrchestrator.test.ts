@@ -1,7 +1,5 @@
 import { BlockType } from '../../../authoring/types/enums'
-import ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../ast/testing-helpers/ASTTestFactory'
-import type { NodeId } from '../../contracts/ast/engine.type'
 import type { CompilationPlan, StepCompilationInputs } from '../../contracts/plans/compilationPlan.type'
 import type { ReachabilityStateTable, ReachabilityCompilationPlan } from '../../contracts/plans/runtimePlans.type'
 import type { FieldBlockASTNode, StepASTNode } from '../../contracts/ast/structures.type'
@@ -66,7 +64,6 @@ describe('CodegenOrchestrator', () => {
             stepNode.id,
             createStepInputs({
               stepNode,
-              journeyId: journeyNode.id,
               staticData: { shared: 'step' },
             }),
           ],
@@ -74,7 +71,6 @@ describe('CodegenOrchestrator', () => {
             validatingStepNode.id,
             createStepInputs({
               stepNode: validatingStepNode,
-              journeyId: journeyNode.id,
               staticData: { shared: 'validating-step' },
               validatingFieldBlocks: [validatingFieldBlock],
             }),
@@ -114,7 +110,7 @@ describe('CodegenOrchestrator', () => {
       })
 
       // Act
-      const result = orchestrator.compileAll(plan, new ASTNodeIndex())
+      const result = orchestrator.compileAll(plan)
 
       // Assert
       const compiledStep = result.steps.get(stepNode.id)
@@ -198,7 +194,6 @@ describe('CodegenOrchestrator', () => {
             stepNode.id,
             createStepInputs({
               stepNode,
-              journeyId: journeyNode.id,
               staticData: { shared: 'step' },
             }),
           ],
@@ -206,7 +201,6 @@ describe('CodegenOrchestrator', () => {
             validatingStepNode.id,
             createStepInputs({
               stepNode: validatingStepNode,
-              journeyId: journeyNode.id,
               staticData: { shared: 'validating-step' },
               validatingFieldBlocks: [validatingFieldBlock],
             }),
@@ -246,7 +240,7 @@ describe('CodegenOrchestrator', () => {
       })
 
       // Act
-      const result = orchestrator.compileAll(plan, new ASTNodeIndex())
+      const result = orchestrator.compileAll(plan)
 
       // Assert
       const compiledStep = result.steps.get(stepNode.id)
@@ -283,9 +277,7 @@ describe('CodegenOrchestrator', () => {
         resumeAlways: false,
       }
       const plan: CompilationPlan = {
-        stepInputs: new Map([
-          [stepNode.id, createStepInputs({ stepNode, journeyId: journeyNode.id, staticData: { shared: 'step' } })],
-        ]),
+        stepInputs: new Map([[stepNode.id, createStepInputs({ stepNode, staticData: { shared: 'step' } })]]),
         journeyInputs: new Map([
           [
             journeyNode.id,
@@ -311,7 +303,7 @@ describe('CodegenOrchestrator', () => {
       })
 
       // Act
-      orchestrator.compileAll(plan, new ASTNodeIndex())
+      orchestrator.compileAll(plan)
 
       // Assert
       const root = tracer.root
@@ -332,12 +324,10 @@ describe('CodegenOrchestrator', () => {
 
 function createStepInputs({
   stepNode,
-  journeyId,
   staticData,
   validatingFieldBlocks = [],
 }: {
   readonly stepNode: StepASTNode
-  readonly journeyId: NodeId
   readonly staticData: Record<string, unknown>
   readonly validatingFieldBlocks?: FieldBlockASTNode[]
 }): StepCompilationInputs {
@@ -349,7 +339,6 @@ function createStepInputs({
         path: stepNode.properties.path,
       },
       staticData,
-      reachabilityId: journeyId,
     },
     answerPreparation: {
       fieldBlocks: [],

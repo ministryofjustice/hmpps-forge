@@ -1,5 +1,4 @@
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
-import type ASTNodeTree from '../ast/ast-state/ASTNodeTree'
 import type FunctionRegistry from '../../registries/FunctionRegistry'
 import type ComponentRegistry from '../../registries/ComponentRegistry'
 import type { ASTValidationContext, ASTValidationRule } from './rules/types'
@@ -34,13 +33,8 @@ const RULES: readonly ASTValidationRule[] = [
 export default class ASTSemanticValidator {
   private readonly context: ASTValidationContext
 
-  constructor(
-    nodeIndex: ASTNodeIndex,
-    nodeTree: ASTNodeTree,
-    functionRegistry: FunctionRegistry,
-    componentRegistry: ComponentRegistry,
-  ) {
-    this.context = { nodeIndex, nodeTree, functionRegistry, componentRegistry }
+  constructor(nodeIndex: ASTNodeIndex, functionRegistry: FunctionRegistry, componentRegistry: ComponentRegistry) {
+    this.context = { nodeIndex, functionRegistry, componentRegistry }
   }
 
   validate(): void {

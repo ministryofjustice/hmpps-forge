@@ -1,9 +1,8 @@
 import { ASTNodeType } from '../../../../contracts/ast/enums'
 import { ASTNode } from '../../../../contracts/ast/engine.type'
 import { TemplateNode, TemplateValue } from '../../../../contracts/ast/template.type'
-import { isASTNode, isTemplateNode } from '../../../../contracts/ast/nodes'
+import { isASTNode } from '../../../../contracts/ast/nodes'
 import { NodeIDGenerator } from '../../ast-state/NodeIDGenerator'
-import { ExpressionType } from '../../../../../authoring/types/enums'
 import { isObjectValue } from '../../../../../shared/typeguards/primitives'
 
 /**
@@ -76,103 +75,5 @@ export default class TemplateFactory {
     })
 
     return compiled
-  }
-
-  /**
-   * Recreate an AST value tree from a compiled template.
-   *
-   * Template nodes are turned back into AST nodes (without IDs).
-   * Nested iterate templates (yieldTemplate/predicateTemplate) are preserved as
-   * template nodes — they get instantiated later when the nested iterate evaluates.
-   */
-  static instantiate(template: TemplateValue): unknown {
-    if (Array.isArray(template)) {
-      return template.map(entry => TemplateFactory.instantiate(entry))
-    }
-
-    if (!isObjectValue(template)) {
-      return template
-    }
-
-    if (isTemplateNode(template)) {
-      return TemplateFactory.instantiateNode(template)
-    }
-
-    const result: Record<string, unknown> = {}
-
-    Object.entries(template as Record<string, TemplateValue>).forEach(([key, entry]) => {
-      result[key] = TemplateFactory.instantiate(entry)
-    })
-
-    return result
-  }
-
-  private static instantiateNode(template: TemplateNode): Record<string, unknown> {
-    const node: Record<string, unknown> = { type: template.originalType, diagnostics: template.diagnostics }
-    const isIterate =
-      template.originalType === ASTNodeType.EXPRESSION && template.expressionType === ExpressionType.ITERATE
-
-    Object.entries(template).forEach(([key, value]) => {
-      if (key === 'type' || key === 'originalType' || key === 'id' || key === 'diagnostics') {
-        return
-      }
-
-      if (key === 'properties') {
-        node.properties = TemplateFactory.instantiateProperties(template.properties, isIterate)
-
-        return
-      }
-
-      node[key] = TemplateFactory.instantiate(value as TemplateValue)
-    })
-
-    return node
-  }
-
-  private static instantiateProperties(
-    properties: Record<string, TemplateValue> | undefined,
-    isIterate: boolean,
-  ): Record<string, unknown> {
-    if (!properties) {
-      return {}
-    }
-
-    const result: Record<string, unknown> = {}
-
-    Object.entries(properties).forEach(([key, value]) => {
-      if (isIterate && key === 'iterator') {
-        result[key] = TemplateFactory.instantiateIterator(value)
-
-        return
-      }
-
-      result[key] = TemplateFactory.instantiate(value)
-    })
-
-    return result
-  }
-
-  /**
-   * Nested iterate's yieldTemplate/predicateTemplate are preserved as templates —
-   * they get instantiated per-item when the nested iterate evaluates.
-   */
-  private static instantiateIterator(template: TemplateValue): Record<string, unknown> {
-    if (!isObjectValue(template) || Array.isArray(template) || isTemplateNode(template)) {
-      return {}
-    }
-
-    const iterator: Record<string, unknown> = {}
-
-    Object.entries(template as Record<string, TemplateValue>).forEach(([key, value]) => {
-      if (key === 'yieldTemplate' || key === 'predicateTemplate') {
-        iterator[key] = structuredClone(value)
-
-        return
-      }
-
-      iterator[key] = TemplateFactory.instantiate(value)
-    })
-
-    return iterator
   }
 }

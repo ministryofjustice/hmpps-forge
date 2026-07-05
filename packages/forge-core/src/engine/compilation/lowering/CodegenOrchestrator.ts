@@ -19,7 +19,6 @@ import type {
   RouteMetadataCompilationInputs,
   StepCompilationInputs,
 } from '../../contracts/plans/compilationPlan.type'
-import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import StepValidationCompiler from './phase-compilers/validation/StepValidationCompiler'
 import ReachabilityCompiler from './phase-compilers/reachability/ReachabilityCompiler'
 import { evaluateReachabilityState } from './function-construction/reachability/evaluateReachabilityState'
@@ -36,10 +35,7 @@ export default class CodegenOrchestrator {
     this.tracer = dependencies.tracer ?? CompilationTracer.disabled
   }
 
-  compileAll(
-    plan: CompilationPlan,
-    nodeRegistry: ASTNodeIndex,
-  ): { steps: Map<NodeId, CompiledStep>; journeys: Map<NodeId, CompiledJourney> } {
+  compileAll(plan: CompilationPlan): { steps: Map<NodeId, CompiledStep>; journeys: Map<NodeId, CompiledJourney> } {
     const packageFunctions = this.tracer.span('package-functions', 'codegen.package-functions', () =>
       this.compilePackageFunctions(plan.routeMetadataInputs),
     )
@@ -52,7 +48,7 @@ export default class CodegenOrchestrator {
         'codegen.journey',
         () => {
           const reachabilityInputs = this.resolveReachabilityInputs(plan, journeyId)
-          const journeyFunctions = this.compileJourneyFunctions(plan, nodeRegistry, journeyInputs, reachabilityInputs)
+          const journeyFunctions = this.compileJourneyFunctions(plan, journeyInputs, reachabilityInputs)
           const journeyStepIds = this.resolveJourneyStepIds(reachabilityInputs.stateTable)
 
           journeys.set(journeyId, {
@@ -132,7 +128,6 @@ export default class CodegenOrchestrator {
 
   private compileJourneyFunctions(
     plan: CompilationPlan,
-    nodeRegistry: ASTNodeIndex,
     inputs: JourneyCompilationInputs,
     reachabilityInputs: ReachabilityCompilationInputs,
   ): CompiledJourneyFunctions {
@@ -145,7 +140,6 @@ export default class CodegenOrchestrator {
       compiledReachabilityFacts: reachabilityCompiler.compileFacts(
         reachabilityInputs.reachabilityPlan,
         reachabilityInputs.fieldInventorySources,
-        nodeRegistry,
       ),
       compiledReachabilityState: input => evaluateReachabilityState(stateTable, input),
       compiledStaticData: this.compileStaticData(inputs.staticData),

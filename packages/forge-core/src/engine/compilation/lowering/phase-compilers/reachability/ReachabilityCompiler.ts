@@ -11,12 +11,10 @@ import type {
   ReachabilityCompilationEntry,
   ReachabilityCompilationPlan,
 } from '../../../../contracts/plans/runtimePlans.type'
-import ASTNodeIndex from '../../../ast/ast-state/ASTNodeIndex'
 import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
 import CodeEmitter from '../../emitters/CodeEmitter'
 import type { CompiledReachabilityFactsFunction } from '../../../../contracts/compiled/compiledFunctions.type'
 import { buildGeneratedSource, compileGeneratedFunction } from '../../function-construction/GeneratedFunctionCompiler'
-import { isRedirectOutcomeNode } from '../../../../contracts/ast/outcome-nodes'
 import type { FieldInventoryStepSource } from '../../../../contracts/plans/compilationPlan.type'
 import StepFieldInventoryCompiler from './StepFieldInventoryCompiler'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
@@ -45,12 +43,11 @@ export default class ReachabilityCompiler {
   compileFacts(
     plan: ReachabilityCompilationPlan,
     fieldInventorySources: FieldInventoryStepSource[],
-    nodeRegistry: ASTNodeIndex,
   ): CompiledReachabilityFactsFunction {
     return compileGeneratedFunction<CompiledReachabilityFactsFunction>(
       this.expr,
       ['ctx', 'factsInput'],
-      () => this.buildFactsSource(plan, fieldInventorySources, nodeRegistry),
+      () => this.buildFactsSource(plan, fieldInventorySources),
       { phase: 'reachability' },
     )
   }
@@ -60,12 +57,8 @@ export default class ReachabilityCompiler {
    *
    * Function metadata determines whether emitted calls need `await`.
    */
-  generateFactsSource(
-    plan: ReachabilityCompilationPlan,
-    fieldInventorySources: FieldInventoryStepSource[],
-    nodeRegistry: ASTNodeIndex,
-  ): string {
-    return buildGeneratedSource(this.expr, () => this.buildFactsSource(plan, fieldInventorySources, nodeRegistry))
+  generateFactsSource(plan: ReachabilityCompilationPlan, fieldInventorySources: FieldInventoryStepSource[]): string {
+    return buildGeneratedSource(this.expr, () => this.buildFactsSource(plan, fieldInventorySources))
   }
 
   /**
@@ -75,7 +68,6 @@ export default class ReachabilityCompiler {
   private buildFactsSource(
     plan: ReachabilityCompilationPlan,
     fieldInventorySources: FieldInventoryStepSource[],
-    nodeRegistry: ASTNodeIndex,
   ): string {
     const emitter = new CodeEmitter()
     const stepCount = plan.entries.length
@@ -83,7 +75,7 @@ export default class ReachabilityCompiler {
     emitter.code('"use strict";')
 
     emitter.comment('ReachabilityCompiler.buildFactsSource')
-    this.compileReachabilityResult(plan, nodeRegistry, emitter, stepCount)
+    this.compileReachabilityResult(plan, emitter, stepCount)
     this.compileFieldInventory(fieldInventorySources, emitter)
 
     emitter.return(this.buildReachabilityResultExpression())
@@ -94,21 +86,16 @@ export default class ReachabilityCompiler {
   /**
    * Emits reachability arrays aligned to `plan.entries`.
    */
-  private compileReachabilityResult(
-    plan: ReachabilityCompilationPlan,
-    nodeRegistry: ASTNodeIndex,
-    emitter: CodeEmitter,
-    stepCount: number,
-  ): void {
+  private compileReachabilityResult(plan: ReachabilityCompilationPlan, emitter: CodeEmitter, stepCount: number): void {
     emitter.declareConst('entryResults', `new Array(${stepCount})`)
     emitter.declareConst('outcomeValues', `[${plan.entries.map(() => '[]').join(', ')}]`)
     emitter.declareConst('declaredOutcomeValues', `[${plan.entries.map(() => '[]').join(', ')}]`)
     emitter.declareConst('tieBreakerPriorities', `new Array(${stepCount})`)
 
-    this.compileEntryPredicates(plan.entries, nodeRegistry, emitter)
-    this.compileForwardOutcomes(plan.entries, nodeRegistry, emitter)
-    this.compileTieBreakers(plan.entries, nodeRegistry, emitter)
-    this.compileResumeCondition(plan, nodeRegistry, emitter)
+    this.compileEntryPredicates(plan.entries, emitter)
+    this.compileForwardOutcomes(plan.entries, emitter)
+    this.compileTieBreakers(plan.entries, emitter)
+    this.compileResumeCondition(plan, emitter)
   }
 
   /**
@@ -134,22 +121,14 @@ export default class ReachabilityCompiler {
   /**
    * Emits the optional per-step entryWhen predicates used to seed extra entry points.
    */
-  private compileEntryPredicates(
-    entries: ReachabilityCompilationEntry[],
-    nodeRegistry: ASTNodeIndex,
-    emitter: CodeEmitter,
-  ): void {
+  private compileEntryPredicates(entries: ReachabilityCompilationEntry[], emitter: CodeEmitter): void {
     emitter.comment('ReachabilityCompiler.compileEntryPredicates')
 
     entries.forEach((entry, index) => {
-      if (entry.entryWhenNodeId === undefined) {
+      const node = entry.entryWhen
+
+      if (node === undefined) {
         return
-      }
-
-      const node = nodeRegistry.get(entry.entryWhenNodeId)
-
-      if (!node) {
-        throw new Error(`Entry predicate node "${entry.entryWhenNodeId}" missing from registry`)
       }
 
       emitter.scope(() => {
@@ -175,40 +154,21 @@ export default class ReachabilityCompiler {
    *
    * Only REDIRECT outcomes contribute path candidates.
    */
-  private compileForwardOutcomes(
-    entries: ReachabilityCompilationEntry[],
-    nodeRegistry: ASTNodeIndex,
-    emitter: CodeEmitter,
-  ): void {
+  private compileForwardOutcomes(entries: ReachabilityCompilationEntry[], emitter: CodeEmitter): void {
     emitter.comment('ReachabilityCompiler.compileForwardOutcomes')
 
     entries.forEach((entry, stepIndex) => {
       entry.forwardOutcomeGroups.forEach(group => {
-        this.compileForwardOutcomeGroup(group, stepIndex, nodeRegistry, emitter)
+        this.compileForwardOutcomeGroup(group, stepIndex, emitter)
       })
     })
   }
 
-  private compileForwardOutcomeGroup(
-    group: ForwardOutcomeGroup,
-    stepIndex: number,
-    nodeRegistry: ASTNodeIndex,
-    emitter: CodeEmitter,
-  ): void {
-    const redirectOutcomes = group.outcomeIds.map(outcomeId => {
-      const node = nodeRegistry.get(outcomeId)
-
-      if (!node || !isRedirectOutcomeNode(node)) {
-        throw new Error(`Forward outcome node "${outcomeId}" missing from registry or not a redirect outcome`)
-      }
-
-      return node
-    })
-
-    const overApproximateOutcomeIds = new Set(group.overApproximateOutcomeIds ?? [])
+  private compileForwardOutcomeGroup(group: ForwardOutcomeGroup, stepIndex: number, emitter: CodeEmitter): void {
+    const { redirectOutcomes } = group
 
     redirectOutcomes.forEach(outcome => {
-      this.compileDeclaredGotoResolution(outcome.properties.goto, stepIndex, emitter)
+      this.compileDeclaredGotoResolution(outcome.node.properties.goto, stepIndex, emitter)
     })
 
     const emitCascade = () => {
@@ -217,19 +177,19 @@ export default class ReachabilityCompiler {
 
         redirectOutcomes.forEach(outcome => {
           this.compileForwardOutcomeCascade(
-            outcome.properties,
+            outcome.node.properties,
             stepIndex,
             outcomeMatchedVar,
-            overApproximateOutcomeIds.has(outcome.id),
+            outcome.overApproximatesWhen,
             emitter,
           )
         })
       })
     }
 
-    const hookWhenNode = group.hookWhenNodeId !== undefined ? nodeRegistry.get(group.hookWhenNodeId) : undefined
+    const hookWhenNode = group.hookWhen
 
-    if (hookWhenNode !== undefined && this.expr.isCompilableNode(hookWhenNode)) {
+    if (hookWhenNode !== undefined) {
       emitter.scope(() => {
         const whenExpr = this.expr.compileExpression(hookWhenNode)
         const whenVar = emitter.const('hookWhen', `Boolean(${whenExpr})`)
@@ -327,11 +287,7 @@ export default class ReachabilityCompiler {
    * priority. The generated code guards each rule with `priority === undefined`
    * so later predicates are not evaluated after a winner has been chosen.
    */
-  private compileTieBreakers(
-    entries: ReachabilityCompilationEntry[],
-    nodeRegistry: ASTNodeIndex,
-    emitter: CodeEmitter,
-  ): void {
+  private compileTieBreakers(entries: ReachabilityCompilationEntry[], emitter: CodeEmitter): void {
     emitter.comment('ReachabilityCompiler.compileTieBreakers')
 
     entries.forEach((entry, index) => {
@@ -343,18 +299,14 @@ export default class ReachabilityCompiler {
         const priorityVar = emitter.let('tieBreakerPriority')
 
         entry.reachabilityTieBreakers.forEach(tieBreaker => {
-          if (tieBreaker.whenNodeId === undefined) {
+          const node = tieBreaker.when
+
+          if (node === undefined) {
             emitter.if(`${priorityVar} === undefined`, () => {
               emitter.assign(priorityVar, JSON.stringify(tieBreaker.priority))
             })
 
             return
-          }
-
-          const node = nodeRegistry.get(tieBreaker.whenNodeId)
-
-          if (!node) {
-            throw new Error(`Tie-breaker predicate node "${tieBreaker.whenNodeId}" missing from registry`)
           }
 
           emitter.if(`${priorityVar} === undefined`, () => {
@@ -374,11 +326,7 @@ export default class ReachabilityCompiler {
   /**
    * Emits the journey resume condition, defaulting to inactive when no predicate is configured.
    */
-  private compileResumeCondition(
-    plan: ReachabilityCompilationPlan,
-    nodeRegistry: ASTNodeIndex,
-    emitter: CodeEmitter,
-  ): void {
+  private compileResumeCondition(plan: ReachabilityCompilationPlan, emitter: CodeEmitter): void {
     emitter.comment('ReachabilityCompiler.compileResumeCondition')
 
     if (plan.resumeAlways) {
@@ -387,16 +335,12 @@ export default class ReachabilityCompiler {
       return
     }
 
-    if (plan.resumeWhenNodeId === undefined) {
+    const node = plan.resumeWhen
+
+    if (node === undefined) {
       emitter.declareConst('resumeActive', 'false')
 
       return
-    }
-
-    const node = nodeRegistry.get(plan.resumeWhenNodeId)
-
-    if (!node) {
-      throw new Error(`Resume predicate node "${plan.resumeWhenNodeId}" missing from registry`)
     }
 
     const conditionExpr = this.expr.compileExpression(node)

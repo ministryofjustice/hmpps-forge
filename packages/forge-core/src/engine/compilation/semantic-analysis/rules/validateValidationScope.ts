@@ -6,8 +6,7 @@ import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigur
 import type { DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
 import { isTemplateNode } from '../../../contracts/ast/nodes'
 import type { TemplateValue } from '../../../contracts/ast/template.type'
-import type { AstNodeId } from '../../../contracts/ast/ast.type'
-import getAncestorChain from '../../ast/ast-state/getAncestorChain'
+import type { ASTNode } from '../../../contracts/ast/engine.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 
 function buildError(source: DSLSourceLocation | undefined): ForgeConfigurationReferenceScopeError {
@@ -88,14 +87,18 @@ function walkTemplateForValidationScope(value: TemplateValue, insideValidWhen: b
   })
 }
 
-function hasValidWhenAncestor(
-  context: ASTValidationContext,
-  nodeId: AstNodeId,
-  validWhenEntryIds: Set<string>,
-): boolean {
-  const ancestors = getAncestorChain(nodeId, context.nodeTree)
+function hasValidWhenAncestor(node: ASTNode, validWhenEntryIds: Set<string>): boolean {
+  let current: ASTNode | undefined = node
 
-  return ancestors.some(ancestorId => validWhenEntryIds.has(ancestorId))
+  while (current !== undefined) {
+    if (validWhenEntryIds.has(current.id)) {
+      return true
+    }
+
+    current = current.parent
+  }
+
+  return false
 }
 
 export const validateValidationScope: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
@@ -125,7 +128,7 @@ export const validateValidationScope: ASTValidationRule = (context: ASTValidatio
   const iterateNodes = nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE)
 
   iterateNodes.forEach(iterateNode => {
-    const insideValidWhen = hasValidWhenAncestor(context, iterateNode.id, validWhenEntryIds)
+    const insideValidWhen = hasValidWhenAncestor(iterateNode, validWhenEntryIds)
     const { iterator } = iterateNode.properties
 
     const templates = [iterator.yieldTemplate, iterator.predicateTemplate].filter(

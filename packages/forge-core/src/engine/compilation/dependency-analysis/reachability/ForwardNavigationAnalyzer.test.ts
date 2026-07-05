@@ -86,8 +86,8 @@ describe('ForwardNavigationAnalyzer', () => {
 
       // Assert
       expect(result.forwardOutcomeGroups).toEqual([
-        { outcomeIds: [firstRedirect.id], hookWhenNodeId: undefined },
-        { outcomeIds: [secondRedirect.id], hookWhenNodeId: undefined },
+        { hookWhen: undefined, redirectOutcomes: [{ node: firstRedirect, overApproximatesWhen: false }] },
+        { hookWhen: undefined, redirectOutcomes: [{ node: secondRedirect, overApproximatesWhen: false }] },
       ])
       expect(result.forwardOutcomeEvaluation).toBe('exact')
     })
@@ -102,7 +102,9 @@ describe('ForwardNavigationAnalyzer', () => {
       const result = analyzer.analyze(stepNode)
 
       // Assert
-      expect(result.forwardOutcomeGroups).toEqual([{ outcomeIds: [redirect.id], hookWhenNodeId: hookWhen.id }])
+      expect(result.forwardOutcomeGroups).toEqual([
+        { hookWhen, redirectOutcomes: [{ node: redirect, overApproximatesWhen: false }] },
+      ])
       expect(result.forwardOutcomeEvaluation).toBe('exact')
     })
 
@@ -116,7 +118,9 @@ describe('ForwardNavigationAnalyzer', () => {
       const result = analyzer.analyze(stepNode)
 
       // Assert
-      expect(result.forwardOutcomeGroups).toEqual([{ outcomeIds: [redirect.id], hookWhenNodeId: undefined }])
+      expect(result.forwardOutcomeGroups).toEqual([
+        { hookWhen: undefined, redirectOutcomes: [{ node: redirect, overApproximatesWhen: false }] },
+      ])
       expect(result.forwardOutcomeEvaluation).toBe('over-approximate')
     })
 
@@ -131,11 +135,7 @@ describe('ForwardNavigationAnalyzer', () => {
 
       // Assert
       expect(result.forwardOutcomeGroups).toEqual([
-        {
-          outcomeIds: [redirect.id],
-          hookWhenNodeId: undefined,
-          overApproximateOutcomeIds: [redirect.id],
-        },
+        { hookWhen: undefined, redirectOutcomes: [{ node: redirect, overApproximatesWhen: true }] },
       ])
       expect(result.forwardOutcomeEvaluation).toBe('over-approximate')
     })
@@ -154,7 +154,13 @@ describe('ForwardNavigationAnalyzer', () => {
 
       // Assert
       expect(result.forwardOutcomeGroups).toEqual([
-        { outcomeIds: [redirect.id, validRedirect?.id], hookWhenNodeId: undefined },
+        {
+          hookWhen: undefined,
+          redirectOutcomes: [
+            { node: redirect, overApproximatesWhen: false },
+            { node: validRedirect, overApproximatesWhen: false },
+          ],
+        },
       ])
       expect(result.forwardOutcomeEvaluation).toBe('exact')
     })

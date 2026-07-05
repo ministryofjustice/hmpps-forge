@@ -37,16 +37,4 @@ export class NodeIDGenerator {
 
     return `${counterName}:${next}`
   }
-
-  /**
-   * Clones keep branch-local compilation deterministic while allowing each clone
-   * to continue assigning IDs independently.
-   */
-  clone(): NodeIDGenerator {
-    const cloned = Object.create(Object.getPrototypeOf(this)) as NodeIDGenerator
-
-    return Object.assign(cloned, {
-      counters: new Map(this.counters),
-    })
-  }
 }

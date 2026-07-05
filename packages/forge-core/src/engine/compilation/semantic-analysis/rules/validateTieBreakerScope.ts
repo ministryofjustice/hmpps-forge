@@ -21,19 +21,11 @@ function containsNode(container: unknown, nodeId: NodeId): boolean {
 }
 
 export const validateTieBreakerScope: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
-  const { nodeIndex, nodeTree } = context
+  const { nodeIndex } = context
   const errors: Error[] = []
 
   nodeIndex.findByType<TieBreakerASTNode>(ExpressionType.TIE_BREAKER).forEach(node => {
-    const parentId = nodeTree.getParent(node.id)
-
-    if (!parentId) {
-      errors.push(buildError(node.diagnostics?.source))
-
-      return
-    }
-
-    const parent = nodeIndex.get(parentId)
+    const parent = node.parent
 
     if (!parent || parent.type !== ASTNodeType.STEP) {
       errors.push(buildError(node.diagnostics?.source))
