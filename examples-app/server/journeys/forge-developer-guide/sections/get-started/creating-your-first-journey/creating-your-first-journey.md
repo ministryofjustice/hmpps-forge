@@ -199,4 +199,4 @@ on what you have:
   shows common patterns for persisting data.
 
 For a complete guide to everything Forge offers, continue to
-[Building journeys](../building-journeys).
+[Building journeys](../building-journeys/overview).

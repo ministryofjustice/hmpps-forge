@@ -1,7 +1,7 @@
 ---
 title: Patterns
 section: patterns
-path: patterns
+path: patterns/overview
 teaches: [patterns]
 prerequisites: [journey, step]
 ---

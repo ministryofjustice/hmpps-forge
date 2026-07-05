@@ -1,7 +1,7 @@
 ---
 title: Building journeys
 section: building-journeys
-path: building-journeys
+path: building-journeys/overview
 teaches: []
 prerequisites: []
 ---

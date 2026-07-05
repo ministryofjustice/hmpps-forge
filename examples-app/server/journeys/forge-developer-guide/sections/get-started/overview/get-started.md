@@ -1,7 +1,7 @@
 ---
 title: Get started
 section: get-started
-path: get-started
+path: get-started/overview
 teaches: []
 prerequisites: []
 ---
@@ -79,5 +79,5 @@ previous.
    working journey from scratch.
 
 Once you have a running application, continue to
-[Building journeys](../building-journeys) for a full guide to
+[Building journeys](../building-journeys/overview) for a full guide to
 defining steps, fields, routing, validation, and more.
