@@ -1,5 +1,6 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import * as sass from 'sass'
 import { dts } from 'rolldown-plugin-dts'
 
 const subpaths = {
@@ -11,6 +12,14 @@ const subpaths = {
   'express-nunjucks': 'forge-express-nunjucks/src/index.ts',
   'govuk-components': 'forge-govuk-components/src/index.ts',
   'moj-components': 'forge-moj-components/src/index.ts',
+  devtools: 'forge-devtools/src/index.ts',
+}
+
+const pluginFiles = {
+  background: 'forge-devtools/src/plugin/background.ts',
+  content: 'forge-devtools/src/plugin/content.ts',
+  devtools: 'forge-devtools/src/plugin/devtools.ts',
+  panel: 'forge-devtools/src/plugin/panel.tsx',
 }
 
 const packageName = '@ministryofjustice/hmpps-forge'
@@ -20,9 +29,18 @@ const jsFormats = [
   { extension: 'cjs', format: 'cjs' },
 ]
 
-const external = ['express', 'express-session', '@ministryofjustice/hmpps-forge/core', 'http-errors', 'nunjucks', 'zod']
+const external = [
+  'express',
+  'express-session',
+  '@ministryofjustice/hmpps-forge/core',
+  'http-errors',
+  'nunjucks',
+  'ws',
+  'zod',
+]
 const externalPrefixes = [
   '@ministryofjustice/hmpps-forge/core/',
+  '@ministryofjustice/hmpps-forge/devtools',
   '@ministryofjustice/hmpps-forge/express-nunjucks',
   '@ministryofjustice/hmpps-forge/govuk-components',
   '@ministryofjustice/hmpps-forge/moj-components',
@@ -41,11 +59,16 @@ const dtsOwnershipRules = [
   { match: '/forge-core/src/instrumentation/', entrypoint: 'core' },
   { match: '/forge-core/src/index.ts', entrypoint: 'core' },
   { match: '/forge-core/src/engine/', entrypoint: 'core' },
+  { match: '/forge-devtools/src/', entrypoint: 'devtools' },
 ]
 
 const normalizeId = id => id.replaceAll('\\', '/')
 
 const isExternal = id => {
+  if (id.startsWith('node:')) {
+    return true
+  }
+
   if (external.includes(id)) {
     return true
   }
@@ -146,4 +169,37 @@ const createJsConfig = ([name, input], { extension, format }) => ({
   ],
 })
 
-export default [...entries.flatMap(entry => jsFormats.map(format => createJsConfig(entry, format))), createDtsConfig()]
+const createPluginConfig = ([name, input]) => ({
+  input: { [name]: input },
+  output: {
+    dir: 'dist/plugin',
+    format: 'iife',
+    entryFileNames: '[name].js',
+  },
+  resolve: {
+    tsconfigFilename: './tsconfig.json',
+    alias: { 'react/jsx-runtime': 'preact/jsx-runtime', 'react/jsx-dev-runtime': 'preact/jsx-runtime' },
+  },
+  jsx: { mode: 'automatic', importSource: 'preact' },
+  plugins: name === 'background'
+    ? [copyAssets('forge-devtools/src/plugin', 'dist/plugin', ['.html']), {
+        name: 'compile-plugin-sass',
+        writeBundle() {
+          const result = sass.compile('forge-devtools/src/plugin/panel.scss')
+          fs.mkdirSync('dist/plugin', { recursive: true })
+          fs.writeFileSync('dist/plugin/panel.css', result.css)
+        },
+      }, {
+        name: 'copy-plugin-manifest',
+        writeBundle() {
+          fs.copyFileSync('forge-devtools/src/plugin/manifest.json', 'dist/plugin/manifest.json')
+        },
+      }]
+    : [],
+})
+
+export default [
+  ...entries.flatMap(entry => jsFormats.map(format => createJsConfig(entry, format))),
+  createDtsConfig(),
+  ...Object.entries(pluginFiles).map(createPluginConfig),
+]

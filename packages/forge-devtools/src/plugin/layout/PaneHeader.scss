@@ -1,0 +1,56 @@
+@use '../styles/tokens' as *;
+
+.pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+  flex-shrink: 0;
+
+  &__tabs {
+    display: flex;
+  }
+
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: $spacing-8;
+    padding-right: $spacing-8;
+  }
+
+  &__checkbox {
+    display: flex;
+    align-items: center;
+    gap: $spacing-4;
+    font-size: $font-size-xs;
+    color: var(--fg-muted);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+
+    input {
+      margin: 0;
+    }
+  }
+}
+
+.tab {
+  padding: $spacing-6 $spacing-16;
+  border: none;
+  background: none;
+  font-size: $font-size-base;
+  color: var(--fg-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+
+  &:hover {
+    color: var(--fg);
+    background: var(--bg-hover);
+  }
+
+  &--active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+}

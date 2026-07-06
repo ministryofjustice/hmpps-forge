@@ -1,0 +1,62 @@
+@use '../styles/tokens' as *;
+
+.trace-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-8;
+  min-height: 38px;
+  padding: $spacing-8 $spacing-12;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--bg-hover);
+  }
+
+  &--selected {
+    background: var(--bg-selected);
+  }
+
+  &__method {
+    font-family: monospace;
+    font-size: $font-size-xs;
+    font-weight: 600;
+    padding: 1px 5px;
+    margin-top: 1px;
+    border-radius: $radius-sm;
+    background: var(--badge-default);
+    flex-shrink: 0;
+
+    &--get {
+      background: var(--badge-get-bg);
+      color: var(--badge-get-fg);
+    }
+
+    &--post {
+      background: var(--badge-post-bg);
+      color: var(--badge-post-fg);
+    }
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__pathname {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    direction: rtl;
+    text-align: left;
+  }
+
+  &__meta {
+    color: var(--text-muted);
+    font-size: $font-size-xs;
+    line-height: 1.2;
+  }
+}
