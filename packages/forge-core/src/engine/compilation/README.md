@@ -45,12 +45,14 @@ It accepts a `JourneyDefinition` and returns a `CompiledPackage`.
 `CompilationDependencies` carries the registries needed during semantic analysis and lowering:
 - `functionRegistry`, used to validate function names and decide generated async behavior.
 - `componentRegistry`, used to validate block variants and component metadata.
+- `tracer`, an optional `CompilationTracer` used to record phase spans during compilation.
 
 `AstContext` is local to `CompilationPipeline`.
 It contains:
 - `rootNode`, the root `JourneyASTNode`.
-- `nodeRegistry`, an `ASTNodeIndex` for lookup by ID, broad type, and indexed subtype.
-- `astNodeTree`, an `ASTNodeTree` for parent and ancestor lookup.
+- `nodeRegistry`, an `ASTNodeIndex` for lookup by broad type and indexed subtype.
+
+Parent and ancestor lookup happens through the `parent` link on each registered node, not through a separate tree structure.
 
 `CompilationPlan` is produced by dependency analysis.
 It contains `stepInputs`, `journeyInputs`, and `reachabilityInputs`.
@@ -67,7 +69,7 @@ It contains:
 Route indexes and compiled maps are siblings in the final result.
 Route indexes are built from AST structure.
 Compiled maps are built from dependency analysis and lowering.
-AST nodes, `ASTNodeIndex`, and `ASTNodeTree` do not leave compilation.
+AST nodes and `ASTNodeIndex` do not leave compilation.
 The only AST-derived value that crosses the boundary is `NodeId`, because route descriptors and compiled artifacts need the same stable key.
 
 ## Flow
@@ -79,7 +81,7 @@ The pipeline then runs the child phases in a fixed order.
 flowchart TD
   journeyDefinition["JourneyDefinition"] -->|enter compiler| pipeline["CompilationPipeline.compile()"]
   pipeline -->|create and register nodes| ast["buildAstTree()"]
-  ast -->|return compiler state| astContext["AstContext: rootNode, ASTNodeIndex, ASTNodeTree"]
+  ast -->|return compiler state| astContext["AstContext: rootNode, ASTNodeIndex"]
   astContext -->|check semantic rules| semantics["validateSemantics()"]
   semantics -->|gather phase inputs| dependency["CompilationPlanBuilder.buildPlan()"]
   dependency -->|produce lowering input| plan["CompilationPlan"]
@@ -126,7 +128,7 @@ The names are intentionally close, but they do not mean the same thing:
 - [CompilationPipeline.ts](CompilationPipeline.ts) owns phase order.
   `compile()` runs AST building, semantic analysis, dependency analysis, lowering, and route index construction.
 - [ast/README.md](ast/README.md) covers AST creation and registration.
-  This phase builds `rootNode`, `ASTNodeIndex`, and `ASTNodeTree`.
+  This phase builds `rootNode` and `ASTNodeIndex`, and wires the `parent` link on each node.
 - [semantic-analysis/README.md](semantic-analysis/README.md) covers semantic checks.
   This phase reads the registered AST and registries, then rejects legal-looking nodes that are illegal in their current compiler context.
 - [dependency-analysis/README.md](dependency-analysis/README.md) covers plan building.
@@ -134,14 +136,14 @@ The names are intentionally close, but they do not mean the same thing:
 - [lowering/README.md](lowering/README.md) covers code generation.
   This phase turns the `CompilationPlan` into `CompiledStep` and `CompiledJourney` maps.
 - `CompilationPipeline.buildRouteIndexes()` builds route descriptors from `JourneyASTNode` and `StepASTNode`.
-  It uses `getAncestorChain()` so route consumers can see the journey ancestry for each route.
+  It walks `parent` links so route consumers can see the journey ancestry for each route.
 
 ## Boundaries
 
 - `CompilationPipeline` owns compile order and final result assembly.
   It should not contain AST factory rules, semantic rule logic, dependency queries, or source emission details.
 - `CompilationPipeline` owns the boundary between compiler mechanics and runtime artifacts.
-  It should return route descriptors and compiled artifacts, not AST nodes, AST indexes, or AST trees.
+  It should return route descriptors and compiled artifacts, not AST nodes or AST indexes.
 - `ast/` owns AST creation, registration, node IDs, `Self()` resolution, and AST lookup structures.
   It should not validate semantic placement rules or emit runtime functions.
 - `semantic-analysis/` owns compiler semantic checks.
@@ -167,7 +169,7 @@ The names are intentionally close, but they do not mean the same thing:
 - Pass only schema-valid `JourneyDefinition` values into `CompilationPipeline.compile()`.
   The compiler assumes the broad authoring shape has already been checked.
 - Keep AST registration before semantic analysis.
-  Semantic rules need `ASTNodeIndex`, `ASTNodeTree`, and registered template-aware context.
+  Semantic rules need `ASTNodeIndex` and the `parent` links that registration wires onto each node.
 - Keep semantic analysis before dependency analysis.
   Dependency analyzers assume placement rules and registry references are already valid.
 - Keep dependency analysis before lowering.
@@ -177,11 +179,11 @@ The names are intentionally close, but they do not mean the same thing:
 - Do not run any compilation phase at request time.
   AST creation, semantic analysis, dependency analysis, lowering, and route index construction are package-load work.
   Running them during a request would move compiler cost and compiler failures into the runtime path.
-- Keep route descriptor ancestry based on `ASTNodeTree`.
+- Keep route descriptor ancestry based on AST `parent` links.
   Rebuilding it from paths would lose the actual nested journey structure.
 - Preserve `NodeId` as the join key between route indexes, compilation plans, compiled steps, and compiled journeys.
   Mixing in route paths or authored codes can break lookup when values collide or change.
-- Do not expose AST nodes, `ASTNodeIndex`, or `ASTNodeTree` outside compilation.
+- Do not expose AST nodes or `ASTNodeIndex` outside compilation.
   Runtime code should consume `CompiledPackage`, not compiler inspection structures.
 
 ## Editing Notes

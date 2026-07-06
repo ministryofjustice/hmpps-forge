@@ -1,5 +1,5 @@
-import WorkUnit from './WorkUnit'
-import type { WorkUnitReference } from '../../../contracts/runtime/workUnit.type'
+import TraceSpan from '../../../diagnostics/tracing/TraceSpan'
+import type { TraceSpanReference } from '../../../diagnostics/tracing/traceSpan.type'
 import type { WorkContextContract } from '../../../contracts/runtime/work.type'
 
 export default class WorkContext<TRequestContext = unknown, TProps = unknown> implements WorkContextContract<
@@ -10,11 +10,11 @@ export default class WorkContext<TRequestContext = unknown, TProps = unknown> im
 
   private readonly workProps?: TProps
 
-  private readonly workUnit?: WorkUnitReference
+  private readonly traceSpan?: TraceSpanReference
 
-  constructor(request: TRequestContext, work?: WorkUnitReference, props?: TProps) {
+  constructor(request: TRequestContext, work?: TraceSpanReference, props?: TProps) {
     this.requestContext = request
-    this.workUnit = work
+    this.traceSpan = work
     this.workProps = props
   }
 
@@ -28,17 +28,17 @@ export default class WorkContext<TRequestContext = unknown, TProps = unknown> im
     return this.workProps as TProps
   }
 
-  get work(): WorkUnitReference | undefined {
-    return this.workUnit
+  get work(): TraceSpanReference | undefined {
+    return this.traceSpan
   }
 
-  withWork(work: WorkUnitReference, props: TProps): WorkContext<TRequestContext, TProps> {
+  withWork(work: TraceSpanReference, props: TProps): WorkContext<TRequestContext, TProps> {
     return new WorkContext<TRequestContext, TProps>(this.requestContext, work, props)
   }
 
   omitFromTrace(): void {
-    if (this.workUnit instanceof WorkUnit) {
-      this.workUnit.markOmitFromTrace()
+    if (this.traceSpan instanceof TraceSpan) {
+      this.traceSpan.markOmitFromTrace()
     }
   }
 }

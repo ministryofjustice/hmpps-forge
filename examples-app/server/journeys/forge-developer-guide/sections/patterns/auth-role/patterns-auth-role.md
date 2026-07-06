@@ -48,7 +48,7 @@ the flow shows:
 - **An admin panel** with a step-level access hook that composes the
   auth guard with a role check, returning a 403 error for non-admin
   users.
-- **A logout button** that clears the session and redirects to login.
+- **A logout button** that clears the session user and redirects to login.
 
 ---
 

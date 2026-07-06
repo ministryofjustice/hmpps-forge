@@ -1,4 +1,4 @@
-import type { ASTNode, NodeId } from '../../../contracts/ast/ast.type'
+import type { ASTNode } from '../../../contracts/ast/ast.type'
 import type { RedirectOutcomeASTNode, SubmitHookASTNode } from '../../../contracts/ast/expressions.type'
 import type { StepASTNode } from '../../../contracts/ast/structures.type'
 import { isASTNode } from '../../../contracts/ast/nodes'
@@ -19,32 +19,35 @@ export default class ForwardNavigationAnalyzer {
     const forwardNavigation = submitHooks
       .map(hook => ({
         forwardOutcomeGroup: this.buildForwardOutcomeGroup(hook),
-        overApproximatesForwardNavigation: this.overApproximatesForwardNavigation(hook),
+        overApproximatesHookWhen: this.overApproximatesHookWhen(hook.properties.when),
       }))
-      .filter(entry => entry.forwardOutcomeGroup.outcomeIds.length > 0)
+      .filter(entry => entry.forwardOutcomeGroup.redirectOutcomes.length > 0)
+
+    const overApproximate = forwardNavigation.some(
+      entry =>
+        entry.overApproximatesHookWhen ||
+        entry.forwardOutcomeGroup.redirectOutcomes.some(outcome => outcome.overApproximatesWhen),
+    )
 
     return {
-      forwardOutcomeEvaluation: forwardNavigation.some(entry => entry.overApproximatesForwardNavigation)
-        ? 'over-approximate'
-        : 'exact',
+      forwardOutcomeEvaluation: overApproximate ? 'over-approximate' : 'exact',
       forwardOutcomeGroups: forwardNavigation.map(entry => entry.forwardOutcomeGroup),
     }
   }
 
   private buildForwardOutcomeGroup(hook: SubmitHookASTNode): ForwardOutcomeGroup {
-    const forwardRedirectOutcomes = this.forwardRedirectOutcomes(hook)
-    const overApproximateOutcomeIds = forwardRedirectOutcomes
-      .filter(outcome => this.overApproximatesOutcomeWhen(outcome.properties.when))
-      .map(outcome => outcome.id)
+    const redirectOutcomes = this.forwardRedirectOutcomes(hook).map(node => ({
+      node,
+      overApproximatesWhen: this.overApproximatesOutcomeWhen(node.properties.when),
+    }))
 
     return {
-      hookWhenNodeId: this.resolveReachabilityCompilableHookWhen(hook.properties.when),
-      overApproximateOutcomeIds: overApproximateOutcomeIds.length > 0 ? overApproximateOutcomeIds : undefined,
-      outcomeIds: forwardRedirectOutcomes.map(node => node.id),
+      hookWhen: this.resolveReachabilityCompilableHookWhen(hook.properties.when),
+      redirectOutcomes,
     }
   }
 
-  private resolveReachabilityCompilableHookWhen(when: ASTNode | undefined): NodeId | undefined {
+  private resolveReachabilityCompilableHookWhen(when: ASTNode | undefined): ASTNode | undefined {
     if (when === undefined || !isASTNode(when)) {
       return undefined
     }
@@ -53,19 +56,11 @@ export default class ForwardNavigationAnalyzer {
       return undefined
     }
 
-    return when.id
+    return when
   }
 
   private overApproximatesHookWhen(when: ASTNode | undefined): boolean {
     return when !== undefined && isASTNode(when) && this.requestTimeReferenceAnalyzer.containsRequestTimeReference(when)
-  }
-
-  private overApproximatesForwardNavigation(hook: SubmitHookASTNode): boolean {
-    if (this.overApproximatesHookWhen(hook.properties.when)) {
-      return true
-    }
-
-    return this.forwardRedirectOutcomes(hook).some(outcome => this.overApproximatesOutcomeWhen(outcome.properties.when))
   }
 
   private forwardRedirectOutcomes(hook: SubmitHookASTNode): RedirectOutcomeASTNode[] {

@@ -30,6 +30,7 @@ so lowering receives explicit inputs instead of searching the AST repeatedly.
 - Build `StepCompilationInputs` for every step in a journey.
 - Build `JourneyCompilationInputs` for every journey with steps.
 - Build `ReachabilityCompilationInputs` for every journey with steps.
+- Build `RouteMetadataCompilationInputs` for every step and every journey.
 - Group steps under their parent journey.
 - Build runtime plans for steps and journeys.
 - Resolve field inventories, hook inheritance, validation inputs, resolve inputs, and reachability facts.
@@ -38,27 +39,30 @@ so lowering receives explicit inputs instead of searching the AST repeatedly.
 ## Data Model
 
 `CompilationPlan` is the main output.
-It contains three maps:
+It contains four maps:
 - `stepInputs`, keyed by step node ID.
 - `journeyInputs`, keyed by journey node ID.
 - `reachabilityInputs`, keyed by journey node ID.
+- `routeMetadataInputs`, keyed by step or journey node ID.
 
 `StepCompilationInputs` contains:
-- `core`, with the `stepNode`, the `runtimePlan` (a `StepRuntimePlan`), and parent `reachabilityId`.
+- `core`, with the `stepNode`, the `runtimePlan` (a `StepRuntimePlan`), and the merged `staticData`.
 - `answerPreparation`, with field blocks and map iterate nodes for the step.
 - `hooks`, with inherited access hooks and submit hooks for the step.
-- `validation`, with the step node, validating field blocks, and map iterate nodes.
+- `validation`, with the step node, a `hasValidation` flag, validating field blocks, and map iterate nodes.
 - `resolve`, with the step node, ancestor journeys, and all iterate nodes.
 
-`JourneyCompilationInputs` contains the journey runtime plan, field blocks from the journey's steps,
-map iterate nodes from those steps, and journey access hooks.
+`JourneyCompilationInputs` contains the journey runtime plan, the merged `staticData`, field blocks from
+the journey's steps, map iterate nodes from those steps, and journey access hooks.
 
 `ReachabilityCompilationInputs` contains the parent `reachabilityId`, the reachability state table, the richer reachability
 compilation plan, and field inventory sources for each reachable entry.
 
-The analyzers share two core structures:
-- `ASTNodeIndex` answers lookup questions by broad type or subtype.
-- `ASTNodeTree` answers ancestry and descendant questions.
+`RouteMetadataCompilationInputs` contains the node ID plus the authored `title`, `description`, and `metadata`
+from that step or journey.
+
+The analyzers share one core structure, `ASTNodeIndex`, which answers lookup questions by broad type or subtype.
+Ancestry questions are answered by walking the `parent` pointer carried on every AST node.
 
 `FieldInventoryAnalyzer` is shared by several analyzers because field and iterate lookup is needed by answer
 preparation, validation, resolve, and navigation inventory.
@@ -100,9 +104,8 @@ A journey with two steps starts as registered AST nodes:
         runtimePlan: {
           stepId: 'compile_ast:2',
           path: 'personal-details',
-          staticData: {},
         },
-        reachabilityId: 'compile_ast:1',
+        staticData: {},
       },
       answerPreparation: { fieldBlocks: [...], mapIterateNodes: [...] },
       hooks: { accessHooks: [...], submitHooks: [...] },
@@ -112,7 +115,8 @@ A journey with two steps starts as registered AST nodes:
   },
   journeyInputs: Map {
     'compile_ast:1' => {
-      runtimePlan: { journeyId: 'compile_ast:1', path: 'travel-declaration', staticData: {} },
+      runtimePlan: { journeyId: 'compile_ast:1', path: 'travel-declaration' },
+      staticData: {},
       stepFieldBlocks: [...],
       stepMapIterateNodes: [...],
       accessHooks: [...],
@@ -126,6 +130,11 @@ A journey with two steps starts as registered AST nodes:
       fieldInventorySources: [...],
     },
   },
+  routeMetadataInputs: Map {
+    'compile_ast:1' => { nodeId: 'compile_ast:1', title: 'Travel declaration' },
+    'compile_ast:2' => { nodeId: 'compile_ast:2', title: 'Personal details' },
+    'compile_ast:3' => { nodeId: 'compile_ast:3', title: 'Summary' },
+  },
 }
 ```
 
@@ -135,7 +144,8 @@ It is turning one tree into the exact dependency bundles each lowering compiler 
 ## Flow
 
 Dependency analysis starts when `CompilationPlanBuilder.buildPlan()` receives a step index and a journey index.
-It groups steps by parent journey, builds step inputs, builds journey inputs, and builds reachability inputs.
+It groups steps by parent journey, builds step inputs, builds journey inputs, builds reachability inputs,
+and builds route metadata inputs for every step and journey.
 
 ```mermaid
 flowchart TD
@@ -148,9 +158,11 @@ flowchart TD
   groupSteps -->|per journey| reachability["ReachabilityPlanAnalyzer"]
   reachability -->|reachability facts| reachabilityInputs["ReachabilityCompilationInputs"]
   reachability -->|journey fields| journeyInputs["JourneyCompilationInputs"]
+  planBuilder -->|per step and journey| routeMetadataInputs["RouteMetadataCompilationInputs"]
   stepInputs -->|collect entries| compilationPlan["CompilationPlan"]
   journeyInputs -->|collect entries| compilationPlan
   reachabilityInputs -->|collect entries| compilationPlan
+  routeMetadataInputs -->|collect entries| compilationPlan
 ```
 
 - [CompilationPlanBuilder.ts](CompilationPlanBuilder.ts) owns the pass orchestration.
@@ -168,6 +180,7 @@ flowchart TD
 - [reachability/ForwardNavigationAnalyzer.ts](reachability/ForwardNavigationAnalyzer.ts) extracts forward redirect outcomes from submit hooks.
   It preserves one outcome group per submit hook.
 - [reachability/RequestTimeReferenceAnalyzer.ts](reachability/RequestTimeReferenceAnalyzer.ts) detects `post`, `params`, `query`, and `request` references that cannot be evaluated at compile time.
+- [route-metadata/RouteMetadataInputAnalyzer.ts](route-metadata/RouteMetadataInputAnalyzer.ts) collects the authored `title`, `description`, and `metadata` from each step and journey node.
 
 ## Boundaries
 
@@ -184,9 +197,9 @@ flowchart TD
 - The name is a bit broader than the code.
   This phase collects inputs for later compilers. It does not build a general graph of which AST nodes
   depend on which other AST nodes.
-- `getAncestorChain()` includes the node itself.
-  `CompilationPlanBuilder.buildPlan()` uses the second-to-last ancestor ID to find a step's parent journey,
-  which is easy to misread as an off-by-one mistake.
+- Ancestry is not indexed anywhere.
+  Every analyzer that needs ancestors walks the `parent` pointer on the node itself,
+  so the same while-loop shape appears in several analyzers by design.
 - The plan is shaped around lowering phases, not around the smallest possible data structure.
   That means some analyzers may select overlapping AST facts. The duplication keeps each lowering compiler's inputs explicit.
 
@@ -228,3 +241,4 @@ flowchart TD
 - [reachability/ReachabilityPlanAnalyzer.ts](reachability/ReachabilityPlanAnalyzer.ts) answers what navigation and reachability facts belong to a journey.
 - [reachability/ForwardNavigationAnalyzer.ts](reachability/ForwardNavigationAnalyzer.ts) answers which submit outcomes can move the user forward.
 - [reachability/RequestTimeReferenceAnalyzer.ts](reachability/RequestTimeReferenceAnalyzer.ts) answers whether a predicate depends on request-time state.
+- [route-metadata/RouteMetadataInputAnalyzer.ts](route-metadata/RouteMetadataInputAnalyzer.ts) answers what route metadata a step or journey carries.

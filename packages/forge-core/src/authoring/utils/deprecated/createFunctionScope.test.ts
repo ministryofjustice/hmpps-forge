@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { FunctionType } from '../types/enums'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { FunctionType } from '../../types/enums'
 import { createFunctionsRegistry } from './createFunctionsRegistry'
 import { createFunctionScope } from './createFunctionScope'
 
@@ -7,6 +7,15 @@ interface TestDeps {
   readonly prefix: string
   readonly values: readonly string[]
 }
+
+// These utilities now emit runtime deprecation warnings; silence them so the suite output stays clean.
+beforeEach(() => {
+  vi.spyOn(process, 'emitWarning').mockImplementation(() => {})
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe('createFunctionScope()', () => {
   describe('transformer()', () => {

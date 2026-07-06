@@ -9,8 +9,7 @@ import type {
   ReachabilityCompilationEntry,
   ReachabilityCompilationPlan,
 } from '../../../../contracts/plans/runtimePlans.type'
-import ASTNodeIndex from '../../../ast/ast-state/ASTNodeIndex'
-import { NodeId } from '../../../../contracts/ast/ast.type'
+import type { ASTNode, NodeId } from '../../../../contracts/ast/ast.type'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
@@ -81,11 +80,17 @@ function createEntry(overrides: Partial<ReachabilityCompilationEntry> = {}): Rea
 }
 
 function createGroup(
-  outcomeIds: NodeId[],
-  hookWhenNodeId?: NodeId,
-  overApproximateOutcomeIds?: NodeId[],
+  outcomes: RedirectOutcomeASTNode[],
+  hookWhen?: ASTNode,
+  overApproximateOutcomes: RedirectOutcomeASTNode[] = [],
 ): ForwardOutcomeGroup {
-  return { outcomeIds, hookWhenNodeId, overApproximateOutcomeIds }
+  return {
+    hookWhen,
+    redirectOutcomes: outcomes.map(node => ({
+      node,
+      overApproximatesWhen: overApproximateOutcomes.includes(node),
+    })),
+  }
 }
 
 function createPlan(overrides: Partial<ReachabilityCompilationPlan> = {}): ReachabilityCompilationPlan {
@@ -146,16 +151,19 @@ function createCtx(overrides: Partial<CompiledReachabilityContext> = {}): Compil
 
 describe('ReachabilityCompiler', () => {
   let compiler: ReachabilityCompiler
-  let registry: ASTNodeIndex
   const dependencies: CompilationDependencies = {
     functionRegistry: new FunctionRegistry(),
     componentRegistry: new ComponentRegistry(),
   }
 
+  dependencies.functionRegistry.register({
+    equals: { name: 'equals', isAsync: true, evaluate: () => undefined },
+    throwingCondition: { name: 'throwingCondition', isAsync: true, evaluate: () => undefined },
+  })
+
   beforeEach(() => {
     ASTTestFactory.resetIds()
     compiler = new ReachabilityCompiler(dependencies)
-    registry = new ASTNodeIndex()
   })
 
   describe('compile()', () => {
@@ -166,11 +174,10 @@ describe('ReachabilityCompiler', () => {
         createConditionFunction('equals', [true]),
       )
       const plan = createPlan({
-        entries: [createEntry({ entryWhenNodeId: predicate.id })],
+        entries: [createEntry({ entryWhen: predicate })],
       })
       const functionRegistry = new FunctionRegistry()
 
-      registry.register(predicate.id, predicate)
       functionRegistry.register({
         equals: {
           name: 'equals',
@@ -182,8 +189,8 @@ describe('ReachabilityCompiler', () => {
       const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = localCompiler.generateFactsSource(plan, [], registry)
-      const fn = localCompiler.compileFacts(plan, [], registry)
+      const source = localCompiler.generateFactsSource(plan, [])
+      const fn = localCompiler.compileFacts(plan, [])
       const result = await fn!(
         createCtx({
           data: { isAdmin: true },
@@ -203,11 +210,10 @@ describe('ReachabilityCompiler', () => {
         createConditionFunction('equals', [true]),
       )
       const plan = createPlan({
-        entries: [createEntry({ entryWhenNodeId: predicate.id })],
+        entries: [createEntry({ entryWhen: predicate })],
       })
       const functionRegistry = new FunctionRegistry()
 
-      registry.register(predicate.id, predicate)
       functionRegistry.register({
         equals: {
           name: 'equals',
@@ -219,8 +225,8 @@ describe('ReachabilityCompiler', () => {
       const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = localCompiler.generateFactsSource(plan, [], registry)
-      const fn = localCompiler.compileFacts(plan, [], registry)
+      const source = localCompiler.generateFactsSource(plan, [])
+      const fn = localCompiler.compileFacts(plan, [])
       const result = await fn!(
         createCtx({
           data: { isAdmin: true },
@@ -237,11 +243,10 @@ describe('ReachabilityCompiler', () => {
       // Arrange
       const outcome = createRedirectOutcome(createGeneratorFunction('nextPath'))
       const plan = createPlan({
-        entries: [createEntry({ isEntryPoint: true, forwardOutcomeGroups: [createGroup([outcome.id])] })],
+        entries: [createEntry({ isEntryPoint: true, forwardOutcomeGroups: [createGroup([outcome])] })],
       })
       const functionRegistry = new FunctionRegistry()
 
-      registry.register(outcome.id, outcome)
       functionRegistry.register({
         nextPath: {
           name: 'nextPath',
@@ -253,8 +258,8 @@ describe('ReachabilityCompiler', () => {
       const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = localCompiler.generateFactsSource(plan, [], registry)
-      const fn = localCompiler.compileFacts(plan, [], registry)
+      const source = localCompiler.generateFactsSource(plan, [])
+      const fn = localCompiler.compileFacts(plan, [])
       const result = await fn!(createCtx({ conditions: functionRegistry }))
 
       // Assert
@@ -269,7 +274,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
 
       // Assert
       expect(fn).toBeDefined()
@@ -288,16 +293,14 @@ describe('ReachabilityCompiler', () => {
         createConditionFunction('equals', [true]),
       )
 
-      registry.register(predicate.id, predicate)
-
       const plan = createPlan({
-        entries: [createEntry({ entryWhenNodeId: predicate.id })],
+        entries: [createEntry({ entryWhen: predicate })],
       })
 
       const ctx = createCtx({ data: { isAdmin: true } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(ctx)
 
       // Assert
@@ -311,16 +314,14 @@ describe('ReachabilityCompiler', () => {
         createConditionFunction('equals', [true]),
       )
 
-      registry.register(predicate.id, predicate)
-
       const plan = createPlan({
-        entries: [createEntry({ entryWhenNodeId: predicate.id })],
+        entries: [createEntry({ entryWhen: predicate })],
       })
 
       const ctx = createCtx({ data: { isAdmin: false } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(ctx)
 
       // Assert
@@ -333,14 +334,12 @@ describe('ReachabilityCompiler', () => {
       // Arrange
       const outcome = createRedirectOutcome('/step-2')
 
-      registry.register(outcome.id, outcome)
-
       const plan = createPlan({
-        entries: [createEntry({ forwardOutcomeGroups: [createGroup([outcome.id])] })],
+        entries: [createEntry({ forwardOutcomeGroups: [createGroup([outcome])] })],
       })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(createCtx())
 
       // Assert
@@ -356,16 +355,14 @@ describe('ReachabilityCompiler', () => {
       )
       const outcome = createRedirectOutcome('/step-2', whenPred)
 
-      registry.register(outcome.id, outcome)
-
       const plan = createPlan({
-        entries: [createEntry({ forwardOutcomeGroups: [createGroup([outcome.id])] })],
+        entries: [createEntry({ forwardOutcomeGroups: [createGroup([outcome])] })],
       })
 
       const ctx = createCtx({ answers: { choice: { current: 'yes' } } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(ctx)
 
       // Assert
@@ -380,16 +377,14 @@ describe('ReachabilityCompiler', () => {
       )
       const outcome = createRedirectOutcome('/step-2', whenPred)
 
-      registry.register(outcome.id, outcome)
-
       const plan = createPlan({
-        entries: [createEntry({ forwardOutcomeGroups: [createGroup([outcome.id])] })],
+        entries: [createEntry({ forwardOutcomeGroups: [createGroup([outcome])] })],
       })
 
       const ctx = createCtx({ answers: { choice: { current: 'no' } } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(ctx)
 
       // Assert
@@ -401,15 +396,12 @@ describe('ReachabilityCompiler', () => {
       const outcome1 = createRedirectOutcome('/step-2')
       const outcome2 = createRedirectOutcome('/step-3')
 
-      registry.register(outcome1.id, outcome1)
-      registry.register(outcome2.id, outcome2)
-
       const plan = createPlan({
-        entries: [createEntry({ forwardOutcomeGroups: [createGroup([outcome1.id, outcome2.id])] })],
+        entries: [createEntry({ forwardOutcomeGroups: [createGroup([outcome1, outcome2])] })],
       })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(createCtx())
 
       // Assert
@@ -426,17 +418,14 @@ describe('ReachabilityCompiler', () => {
       const guardedOutcome = createRedirectOutcome('/step-yes', whenPred)
       const fallbackOutcome = createRedirectOutcome('/step-fallback')
 
-      registry.register(guardedOutcome.id, guardedOutcome)
-      registry.register(fallbackOutcome.id, fallbackOutcome)
-
       const plan = createPlan({
-        entries: [createEntry({ forwardOutcomeGroups: [createGroup([guardedOutcome.id, fallbackOutcome.id])] })],
+        entries: [createEntry({ forwardOutcomeGroups: [createGroup([guardedOutcome, fallbackOutcome])] })],
       })
 
       const ctx = createCtx({ answers: { choice: { current: 'yes' } } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(ctx)
 
       // Assert
@@ -453,17 +442,14 @@ describe('ReachabilityCompiler', () => {
       const guardedOutcome = createRedirectOutcome('/step-yes', whenPred)
       const fallbackOutcome = createRedirectOutcome('/step-fallback')
 
-      registry.register(guardedOutcome.id, guardedOutcome)
-      registry.register(fallbackOutcome.id, fallbackOutcome)
-
       const plan = createPlan({
-        entries: [createEntry({ forwardOutcomeGroups: [createGroup([guardedOutcome.id, fallbackOutcome.id])] })],
+        entries: [createEntry({ forwardOutcomeGroups: [createGroup([guardedOutcome, fallbackOutcome])] })],
       })
 
       const ctx = createCtx({ answers: { choice: { current: 'no' } } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(ctx)
 
       // Assert
@@ -480,21 +466,16 @@ describe('ReachabilityCompiler', () => {
       const guardedOutcome = createRedirectOutcome('/step-guarded', whenPred)
       const fallbackOutcome = createRedirectOutcome('/step-fallback')
 
-      registry.register(guardedOutcome.id, guardedOutcome)
-      registry.register(fallbackOutcome.id, fallbackOutcome)
-
       const plan = createPlan({
         entries: [
           createEntry({
-            forwardOutcomeGroups: [
-              createGroup([guardedOutcome.id, fallbackOutcome.id], undefined, [guardedOutcome.id]),
-            ],
+            forwardOutcomeGroups: [createGroup([guardedOutcome, fallbackOutcome], undefined, [guardedOutcome])],
           }),
         ],
       })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(createCtx())
 
       // Assert
@@ -524,16 +505,14 @@ describe('ReachabilityCompiler', () => {
         properties: { goto: gotoMatch },
       } as RedirectOutcomeASTNode
 
-      registry.register(outcome.id, outcome)
-
       const plan = createPlan({
-        entries: [createEntry({ forwardOutcomeGroups: [createGroup([outcome.id])] })],
+        entries: [createEntry({ forwardOutcomeGroups: [createGroup([outcome])] })],
       })
 
       const ctx = createCtx({ answers: { choice: { current: 'yes' } } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(ctx)
 
       // Assert
@@ -545,19 +524,16 @@ describe('ReachabilityCompiler', () => {
       const outcomeA = createRedirectOutcome('/step-a')
       const outcomeB = createRedirectOutcome('/step-b')
 
-      registry.register(outcomeA.id, outcomeA)
-      registry.register(outcomeB.id, outcomeB)
-
       const plan = createPlan({
         entries: [
           createEntry({
-            forwardOutcomeGroups: [createGroup([outcomeA.id]), createGroup([outcomeB.id])],
+            forwardOutcomeGroups: [createGroup([outcomeA]), createGroup([outcomeB])],
           }),
         ],
       })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(createCtx())
 
       // Assert
@@ -578,15 +554,10 @@ describe('ReachabilityCompiler', () => {
       const outcomeA = createRedirectOutcome('/route-a')
       const outcomeB = createRedirectOutcome('/route-b')
 
-      registry.register(hookWhenA.id, hookWhenA)
-      registry.register(hookWhenB.id, hookWhenB)
-      registry.register(outcomeA.id, outcomeA)
-      registry.register(outcomeB.id, outcomeB)
-
       const plan = createPlan({
         entries: [
           createEntry({
-            forwardOutcomeGroups: [createGroup([outcomeA.id], hookWhenA.id), createGroup([outcomeB.id], hookWhenB.id)],
+            forwardOutcomeGroups: [createGroup([outcomeA], hookWhenA), createGroup([outcomeB], hookWhenB)],
           }),
         ],
       })
@@ -594,7 +565,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ answers: { route: { current: 'a' } } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(ctx)
 
       // Assert
@@ -611,17 +582,10 @@ describe('ReachabilityCompiler', () => {
       const guardedA = createRedirectOutcome('/a-yes', guardA)
       const guardedB = createRedirectOutcome('/b-yes', guardB)
 
-      registry.register(guardA.id, guardA)
-      registry.register(guardB.id, guardB)
-      registry.register(fallbackA.id, fallbackA)
-      registry.register(fallbackB.id, fallbackB)
-      registry.register(guardedA.id, guardedA)
-      registry.register(guardedB.id, guardedB)
-
       const plan = createPlan({
         entries: [
           createEntry({
-            forwardOutcomeGroups: [createGroup([guardedA.id, fallbackA.id]), createGroup([guardedB.id, fallbackB.id])],
+            forwardOutcomeGroups: [createGroup([guardedA, fallbackA]), createGroup([guardedB, fallbackB])],
           }),
         ],
       })
@@ -629,7 +593,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ answers: { a: { current: 'no' }, b: { current: 'yes' } } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(ctx)
 
       // Assert
@@ -649,7 +613,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(createCtx())
 
       // Assert
@@ -663,12 +627,10 @@ describe('ReachabilityCompiler', () => {
         createConditionFunction('equals', ['high']),
       )
 
-      registry.register(pred.id, pred)
-
       const plan = createPlan({
         entries: [
           createEntry({
-            reachabilityTieBreakers: [{ priority: 10, whenNodeId: pred.id }, { priority: 5 }],
+            reachabilityTieBreakers: [{ priority: 10, when: pred }, { priority: 5 }],
           }),
         ],
       })
@@ -676,7 +638,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { priority: 'high' } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(ctx)
 
       // Assert
@@ -690,12 +652,10 @@ describe('ReachabilityCompiler', () => {
         createConditionFunction('equals', ['high']),
       )
 
-      registry.register(pred.id, pred)
-
       const plan = createPlan({
         entries: [
           createEntry({
-            reachabilityTieBreakers: [{ priority: 10, whenNodeId: pred.id }, { priority: 5 }],
+            reachabilityTieBreakers: [{ priority: 10, when: pred }, { priority: 5 }],
           }),
         ],
       })
@@ -703,7 +663,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { priority: 'low' } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(ctx)
 
       // Assert
@@ -717,7 +677,7 @@ describe('ReachabilityCompiler', () => {
       const plan = createPlan({ resumeAlways: true })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(createCtx())
 
       // Assert
@@ -731,14 +691,12 @@ describe('ReachabilityCompiler', () => {
         createConditionFunction('equals', [true]),
       )
 
-      registry.register(pred.id, pred)
-
-      const plan = createPlan({ resumeWhenNodeId: pred.id })
+      const plan = createPlan({ resumeWhen: pred })
 
       const ctx = createCtx({ data: { hasProgress: true } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(ctx)
 
       // Assert
@@ -752,14 +710,12 @@ describe('ReachabilityCompiler', () => {
         createConditionFunction('equals', [true]),
       )
 
-      registry.register(pred.id, pred)
-
-      const plan = createPlan({ resumeWhenNodeId: pred.id })
+      const plan = createPlan({ resumeWhen: pred })
 
       const ctx = createCtx({ data: { hasProgress: false } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(ctx)
 
       // Assert
@@ -772,10 +728,8 @@ describe('ReachabilityCompiler', () => {
       // Arrange
       const pred = createTestPredicate(createReference(['data', 'value']), createConditionFunction('throwingCondition'))
 
-      registry.register(pred.id, pred)
-
       const plan = createPlan({
-        entries: [createEntry({ entryWhenNodeId: pred.id })],
+        entries: [createEntry({ entryWhen: pred })],
       })
 
       const ctx = createCtx({
@@ -789,7 +743,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
 
       // Assert
       await expect(fn!(ctx)).rejects.toThrow('boom')
@@ -816,20 +770,17 @@ describe('ReachabilityCompiler', () => {
       const pred = createTestPredicate(createReference(['data', 'isAdmin']), createConditionFunction('equals', [true]))
       const outcome = createRedirectOutcome('/step-2')
 
-      registry.register(pred.id, pred)
-      registry.register(outcome.id, outcome)
-
       const plan = createPlan({
         entries: [
           createEntry({
-            entryWhenNodeId: pred.id,
-            forwardOutcomeGroups: [createGroup([outcome.id])],
+            entryWhen: pred,
+            forwardOutcomeGroups: [createGroup([outcome])],
           }),
         ],
       })
 
       // Act
-      const source = compiler.generateFactsSource(plan, [], registry)
+      const source = compiler.generateFactsSource(plan, [])
 
       // Assert
       expect(source).toContain('"use strict"')
@@ -852,19 +803,15 @@ describe('ReachabilityCompiler', () => {
       const outcome1 = createRedirectOutcome('/step-2')
       const outcome2 = createRedirectOutcome('/step-3')
 
-      registry.register(entryPred.id, entryPred)
-      registry.register(outcome1.id, outcome1)
-      registry.register(outcome2.id, outcome2)
-
       const plan = createPlan({
         entries: [
           createEntry({
             isEntryPoint: true,
-            forwardOutcomeGroups: [createGroup([outcome1.id])],
+            forwardOutcomeGroups: [createGroup([outcome1])],
           }),
           createEntry({
-            entryWhenNodeId: entryPred.id,
-            forwardOutcomeGroups: [createGroup([outcome2.id])],
+            entryWhen: entryPred,
+            forwardOutcomeGroups: [createGroup([outcome2])],
             reachabilityTieBreakers: [{ priority: 10 }],
           }),
           createEntry(),
@@ -874,7 +821,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { skipIntro: true } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [], registry)
+      const fn = compiler.compileFacts(plan, [])
       const result = await fn!(ctx)
 
       // Assert

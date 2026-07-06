@@ -40,6 +40,7 @@ under heavy-load - so Forge remains performant!
 - Compile every `StepCompilationInputs` entry into a `CompiledStep`.
 - Compile every `JourneyCompilationInputs` entry into a `CompiledJourney`.
 - Compile every `ReachabilityCompilationInputs` entry into a `CompiledReachabilityFactsFunction`.
+- Compile the `RouteMetadataCompilationInputs` entries into one package-level `compiledRouteMetadata` function.
 - Emit inspectable JavaScript source for phase compilers.
 - Construct sync or async functions based on discovered `await` usage.
 - Build generated functions that return `WorkTask`s instead of running child work directly.
@@ -52,17 +53,19 @@ under heavy-load - so Forge remains performant!
 `CompilationDependencies` contains the registries lowering needs while generating source:
 - `functionRegistry`, used by `ExpressionDispatcher` to decide whether generated function calls need `await`.
 - `componentRegistry`, carried with the lowering dependencies for compilers that need component metadata.
+- `tracer`, an optional `CompilationTracer` that records codegen spans; it defaults to a disabled tracer.
 
 `CompilationPlan` is the input from dependency analysis.
 `CodegenOrchestrator.compileAll()` consumes it and returns:
 - `steps`, a `Map<NodeId, CompiledStep>`.
 - `journeys`, a `Map<NodeId, CompiledJourney>`.
 
-`CompiledStep` contains the step runtime plan, the step-owned compiled functions, and the journey-scoped compiled functions/indexes it needs at runtime.
+`CompiledStep` contains the step runtime plan, the step-owned compiled functions, and the journey-scoped and package-scoped compiled functions/indexes it needs at runtime.
 Step-owned functions include step access lifecycle, submit hooks, answer preparation, submit validation, entry validation, and resolve.
 Journey-scoped fields include reachability facts, reachability state, and `compiledStepValidations`.
+The package-scoped field is `compiledRouteMetadata`, shared by every step and journey in the package.
 
-`CompiledJourney` contains the journey runtime plan and journey-owned compiled functions/indexes.
+`CompiledJourney` contains the journey runtime plan and journey-owned compiled functions/indexes, plus the package-scoped `compiledRouteMetadata`.
 Journey-owned functions include reachability facts, reachability state, static data, access lifecycle, and answer preparation.
 `compiledStepValidations` is a journey-scoped index of validating step ids to step-specific validation functions.
 
@@ -72,7 +75,11 @@ For example, validation returns a step validation task that contains field and d
 Resolve returns a resolve-blocks task that contains resolve-block tasks.
 
 Generated functions are created by `compileGeneratedFunction()`.
-It wraps source with runtime diagnostics, passes `_forgeHelpers` and `_forgeRuntimeDiagnostics` as extra parameters that the runtime supplies on each call, and calls `createCompiledFunction()` with either `Function` or `AsyncFunction`.
+It wraps source with runtime diagnostics, passes `_forgeHelpers` and `_forgeRuntimeDiagnostics` as extra parameters that the compiled wrapper supplies on each call, and calls `createCompiledFunction()` with either `Function` or `AsyncFunction`.
+
+Every compiled function is also recorded as a `codegen.function` span on the compilation trace.
+When `ForgeInstrumentationOptions.captureGeneratedSource` is set, the wrapped generated source is attached to the span's begin fields.
+The source is captured before the `Function` construction, so a failed compile still carries the source that produced it.
 
 The main source-building helpers are:
 - `CodeEmitter`, which owns indentation and variable names.
@@ -137,7 +144,8 @@ The generated function builds the work description; it does not execute the answ
 
 ## Flow
 
-Lowering starts when `CodegenOrchestrator.compileAll()` receives a `CompilationPlan` and `ASTNodeIndex`.
+Lowering starts when `CodegenOrchestrator.compileAll()` receives a `CompilationPlan`.
+The orchestrator is constructed with `CompilationDependencies` (the registries and optional tracer).
 It compiles package functions first, then loops over journeys.
 For each journey, it compiles journey functions and the journey validation index from plan inputs, then loops over that journey's steps and compiles step functions.
 The final step artifacts receive their step-owned functions plus the journey-scoped functions/indexes they need at runtime.
@@ -145,7 +153,7 @@ The final step artifacts receive their step-owned functions plus the journey-sco
 ```mermaid
 flowchart TD
   compilationPlan["CompilationPlan"] --> orchestrator["CodegenOrchestrator.compileAll()"]
-  nodeRegistry["ASTNodeIndex"] --> orchestrator
+  dependencies["CompilationDependencies"] --> orchestrator
   orchestrator --> packageFunctions["compilePackageFunctions()"]
   packageFunctions --> journeyLoop["for each JourneyCompilationInputs"]
   journeyLoop --> journeyFunctions["compileJourneyFunctions()"]

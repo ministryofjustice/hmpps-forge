@@ -6,8 +6,8 @@ import type {
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-  WorkUnitFields,
 } from '../../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
 import { childOutputs } from '../../work/workTask'
 import { FIELD_VALIDATION_KIND } from './FieldValidationWorkHandler'
 import { DOMAIN_VALIDATION_KIND } from './DomainValidationWorkHandler'
@@ -62,14 +62,14 @@ function collectDomainFailures(children: readonly CompletedWork[]): DomainValida
   return childOutputs(children, DOMAIN_VALIDATION_KIND).flatMap(failures => failures)
 }
 
-function traceBegin(props: StepValidationWorkProps): WorkUnitFields {
+function traceBegin(props: StepValidationWorkProps): TraceSpanFields {
   return {
     fieldValidations: props.fields.length,
     domainValidations: props.domains.length,
   }
 }
 
-function traceComplete(output: StepValidityResult): WorkUnitFields {
+function traceComplete(output: StepValidityResult): TraceSpanFields {
   return {
     fieldFailures: output.fieldFailures.length,
     domainFailures: output.domainFailures.length,

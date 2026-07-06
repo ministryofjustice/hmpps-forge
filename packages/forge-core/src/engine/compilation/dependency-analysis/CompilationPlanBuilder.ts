@@ -1,4 +1,5 @@
-import type { NodeId } from '../../contracts/ast/ast.type'
+import type { ASTNode, NodeId } from '../../contracts/ast/ast.type'
+import { ASTNodeType } from '../../contracts/ast/enums'
 import type { JourneyASTNode, StepASTNode } from '../../contracts/ast/structures.type'
 import type {
   CompilationPlan,
@@ -8,7 +9,6 @@ import type {
   StepCompilationInputs,
 } from '../../contracts/plans/compilationPlan.type'
 import type { ReachabilityStateTable } from '../../contracts/plans/runtimePlans.type'
-import type ASTNodeTree from '../ast/ast-state/ASTNodeTree'
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import FieldInventoryAnalyzer from './shared/FieldInventoryAnalyzer'
 import RuntimePlanAnalyzer from './shared/RuntimePlanAnalyzer'
@@ -37,48 +37,47 @@ export default class CompilationPlanBuilder {
 
   private readonly routeMetadataInputAnalyzer: RouteMetadataInputAnalyzer
 
-  constructor(nodeRegistry: ASTNodeIndex, astNodeTree: ASTNodeTree) {
-    const fieldInventoryAnalyzer = new FieldInventoryAnalyzer(nodeRegistry, astNodeTree)
+  constructor(nodeRegistry: ASTNodeIndex) {
+    const fieldInventoryAnalyzer = new FieldInventoryAnalyzer(nodeRegistry)
 
-    this.runtimePlanAnalyzer = new RuntimePlanAnalyzer(nodeRegistry, astNodeTree)
-    this.reachabilityPlanAnalyzer = new ReachabilityPlanAnalyzer(fieldInventoryAnalyzer, this.runtimePlanAnalyzer)
+    this.runtimePlanAnalyzer = new RuntimePlanAnalyzer()
+    this.reachabilityPlanAnalyzer = new ReachabilityPlanAnalyzer(fieldInventoryAnalyzer)
     this.answerPreparationInputAnalyzer = new AnswerPreparationInputAnalyzer(fieldInventoryAnalyzer)
-    this.hookInputAnalyzer = new HookInputAnalyzer(nodeRegistry, astNodeTree)
+    this.hookInputAnalyzer = new HookInputAnalyzer()
     this.validationInputAnalyzer = new ValidationInputAnalyzer(fieldInventoryAnalyzer)
-    this.resolveInputAnalyzer = new ResolveInputAnalyzer(nodeRegistry, astNodeTree, fieldInventoryAnalyzer)
+    this.resolveInputAnalyzer = new ResolveInputAnalyzer(fieldInventoryAnalyzer)
     this.routeMetadataInputAnalyzer = new RouteMetadataInputAnalyzer()
   }
 
   buildPlan(stepIndex: StepIndex, journeyIndex: JourneyIndex): CompilationPlan {
-    const journeyStepMap = new Map<NodeId, StepASTNode[]>()
+    const journeyStepMap = new Map<NodeId, { journeyNode: JourneyASTNode; steps: StepASTNode[] }>()
     const stepInputs = new Map<NodeId, StepCompilationInputs>()
     const journeyInputs = new Map<NodeId, JourneyCompilationInputs>()
     const reachabilityInputs = new Map<NodeId, ReachabilityCompilationInputs>()
     const routeMetadataInputs = new Map<NodeId, RouteMetadataCompilationInputs>()
 
     stepIndex.forEach((stepNode, stepId) => {
-      const ancestors = this.runtimePlanAnalyzer.resolveAncestorIds(stepId)
-      const parentJourneyId = ancestors[ancestors.length - 2]
+      const parentJourney = stepNode.parent
 
-      if (!parentJourneyId) {
-        return
+      if (!this.isJourneyNode(parentJourney)) {
+        throw new Error(`Step "${stepId}" was not registered under a journey`)
       }
 
-      stepInputs.set(stepId, this.buildStepInputs(stepNode, parentJourneyId))
+      const parentJourneyId = parentJourney.id
 
-      const existingJourneySteps = journeyStepMap.get(parentJourneyId) ?? []
+      stepInputs.set(stepId, this.buildStepInputs(stepNode))
 
-      existingJourneySteps.push(stepNode)
-      journeyStepMap.set(parentJourneyId, existingJourneySteps)
+      const existingEntry = journeyStepMap.get(parentJourneyId) ?? {
+        journeyNode: parentJourney,
+        steps: [],
+      }
+
+      existingEntry.steps.push(stepNode)
+      journeyStepMap.set(parentJourneyId, existingEntry)
     })
 
-    journeyStepMap.forEach((journeySteps, journeyId) => {
-      const journeyNode = journeyIndex.get(journeyId)
-      const reachabilityPlan = this.reachabilityPlanAnalyzer.buildReachabilityPlan(
-        journeySteps,
-        journeyNode,
-        journeyIndex,
-      )
+    journeyStepMap.forEach(({ journeyNode, steps }, journeyId) => {
+      const reachabilityPlan = this.reachabilityPlanAnalyzer.buildReachabilityPlan(steps, journeyNode)
 
       reachabilityInputs.set(journeyId, {
         reachabilityId: journeyId,
@@ -87,9 +86,7 @@ export default class CompilationPlanBuilder {
         fieldInventorySources: this.reachabilityPlanAnalyzer.buildFieldInventorySources(reachabilityPlan),
       })
 
-      if (journeyNode) {
-        journeyInputs.set(journeyId, this.buildJourneyInputs(journeyNode, reachabilityPlan.stateTable))
-      }
+      journeyInputs.set(journeyId, this.buildJourneyInputs(journeyNode, reachabilityPlan.stateTable))
     })
 
     // Route metadata is a per-node concern, collected for every step and journey — including
@@ -110,13 +107,12 @@ export default class CompilationPlanBuilder {
     }
   }
 
-  private buildStepInputs(stepNode: StepASTNode, reachabilityId: NodeId): StepCompilationInputs {
+  private buildStepInputs(stepNode: StepASTNode): StepCompilationInputs {
     return {
       core: {
         stepNode,
         runtimePlan: this.runtimePlanAnalyzer.buildStepRuntimePlan(stepNode),
-        staticData: this.runtimePlanAnalyzer.resolveStaticData(stepNode.id),
-        reachabilityId,
+        staticData: this.runtimePlanAnalyzer.resolveStaticData(stepNode),
       },
       answerPreparation: this.answerPreparationInputAnalyzer.buildInputs(stepNode),
       hooks: this.hookInputAnalyzer.buildInputs(stepNode),
@@ -133,9 +129,13 @@ export default class CompilationPlanBuilder {
 
     return {
       runtimePlan: this.runtimePlanAnalyzer.buildJourneyRuntimePlan(journeyNode),
-      staticData: this.runtimePlanAnalyzer.resolveStaticData(journeyNode.id),
+      staticData: this.runtimePlanAnalyzer.resolveStaticData(journeyNode),
       ...this.answerPreparationInputAnalyzer.buildJourneyInputs(stepIds),
-      accessHooks: this.hookInputAnalyzer.resolveAccessHooks(journeyNode.id),
+      accessHooks: this.hookInputAnalyzer.resolveAccessHooks(journeyNode),
     }
+  }
+
+  private isJourneyNode(node: ASTNode | undefined): node is JourneyASTNode {
+    return node?.type === ASTNodeType.JOURNEY
   }
 }

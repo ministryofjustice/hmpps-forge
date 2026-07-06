@@ -45,7 +45,8 @@ values. In that case, a plain `validation()` with `Self()` or
 
 ## What the pattern covers
 
-The live demo loads a list of sentence plan goals from an API.
+The live demo loads a list of sentence plan goals from the session,
+seeding a default set on first visit.
 Submitting the "agree plan" page runs two layers of validation:
 
 - **Aggregate check** — at least one goal must have an `ACTIVE`

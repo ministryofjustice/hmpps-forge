@@ -1,15 +1,44 @@
-import { GeneralConditions, GeneralConditionsRegistry } from './generalConditions'
-import { StringConditions, StringConditionsRegistry } from './stringConditions'
-import { AddressConditions, AddressConditionsRegistry } from './addressConditions'
-import { EmailConditions, EmailConditionsRegistry } from './emailConditions'
-import { DateConditions, DateConditionsRegistry } from './dateConditions'
-import { NumberConditions, NumberConditionsRegistry } from './numberConditions'
-import { PhoneConditions, PhoneConditionsRegistry } from './phoneConditions'
-import { ArrayConditions, ArrayConditionsRegistry } from './arrayConditions'
-import { ObjectConditions, ObjectConditionsRegistry } from './objectConditions'
-import { createFunctionsRegistry } from '../utils/createFunctionsRegistry'
+import { GeneralConditions, generalConditionsRegistry } from './generalConditions'
+import { StringConditions, stringConditionsRegistry } from './stringConditions'
+import { AddressConditions, addressConditionsRegistry } from './addressConditions'
+import { EmailConditions, emailConditionsRegistry } from './emailConditions'
+import { DateConditions, dateConditionsRegistry } from './dateConditions'
+import { NumberConditions, numberConditionsRegistry } from './numberConditions'
+import { PhoneConditions, phoneConditionsRegistry } from './phoneConditions'
+import { ArrayConditions, arrayConditionsRegistry } from './arrayConditions'
+import { ObjectConditions, objectConditionsRegistry } from './objectConditions'
 
-export const Condition = {
+// TypeScript declaration emit drops JSDoc when it structurally expands a type
+// imported from another file, so the built .d.ts would lose every per-function
+// doc comment. Annotating with `typeof` references makes the emitter print a
+// reference instead of expanding, keeping the docs on each group's own declaration.
+interface ConditionGroups {
+  /** Conditions for handling strings */
+  String: typeof StringConditions
+
+  /** Conditions for handling emails */
+  Email: typeof EmailConditions
+
+  /** Conditions for handling phone/mobile numbers */
+  Phone: typeof PhoneConditions
+
+  /** Conditions for handling addresses */
+  Address: typeof AddressConditions
+
+  /** Conditions for handling dates */
+  Date: typeof DateConditions
+
+  /** Conditions for handling numbers */
+  Number: typeof NumberConditions
+
+  /** Conditions for handling arrays */
+  Array: typeof ArrayConditions
+
+  /** Conditions for handling objects */
+  Object: typeof ObjectConditions
+}
+
+export const Condition: typeof GeneralConditions & ConditionGroups = {
   ...GeneralConditions,
 
   /** Conditions for handling strings */
@@ -37,14 +66,14 @@ export const Condition = {
   Object: ObjectConditions,
 }
 
-export const ConditionsRegistry = createFunctionsRegistry({
-  ...GeneralConditionsRegistry,
-  ...StringConditionsRegistry,
-  ...EmailConditionsRegistry,
-  ...PhoneConditionsRegistry,
-  ...AddressConditionsRegistry,
-  ...DateConditionsRegistry,
-  ...NumberConditionsRegistry,
-  ...ArrayConditionsRegistry,
-  ...ObjectConditionsRegistry,
-})
+export const ConditionsRegistry = {
+  ...generalConditionsRegistry.build(),
+  ...stringConditionsRegistry.build(),
+  ...emailConditionsRegistry.build(),
+  ...phoneConditionsRegistry.build(),
+  ...addressConditionsRegistry.build(),
+  ...dateConditionsRegistry.build(),
+  ...numberConditionsRegistry.build(),
+  ...arrayConditionsRegistry.build(),
+  ...objectConditionsRegistry.build(),
+}

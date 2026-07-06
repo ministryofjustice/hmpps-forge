@@ -1,14 +1,14 @@
-import WorkUnit from '../WorkUnit'
-import WorkUnitTraceSerializer from './WorkUnitTraceSerializer'
+import TraceSpan from './TraceSpan'
+import TraceSpanSerializer from './TraceSpanSerializer'
 
-describe('WorkUnitTraceSerializer', () => {
+describe('TraceSpanSerializer', () => {
   describe('serialize()', () => {
-    it('should serialize nested work units with trace fields', () => {
+    it('should serialize nested trace spans with trace fields', () => {
       // Arrange
-      const root = new WorkUnit('root', 'render.root')
-      const child = new WorkUnit('child', 'resolve.block', root)
-      const grandchild = new WorkUnit('grandchild', 'resolve.block', child)
-      const serializer = new WorkUnitTraceSerializer()
+      const root = new TraceSpan('root', 'render.root')
+      const child = new TraceSpan('child', 'resolve.block', root)
+      const grandchild = new TraceSpan('grandchild', 'resolve.block', child)
+      const serializer = new TraceSpanSerializer()
 
       root.addChild(child)
       child.addChild(grandchild)
@@ -38,6 +38,7 @@ describe('WorkUnitTraceSerializer', () => {
             startedAtMs: expect.any(Number),
             completedAtMs: expect.any(Number),
             durationMs: expect.any(Number),
+            selfDurationMs: expect.any(Number),
             children: [
               {
                 key: 'grandchild',
@@ -48,6 +49,7 @@ describe('WorkUnitTraceSerializer', () => {
                 startedAtMs: expect.any(Number),
                 completedAtMs: expect.any(Number),
                 durationMs: expect.any(Number),
+                selfDurationMs: expect.any(Number),
                 children: [],
               },
             ],
@@ -56,12 +58,45 @@ describe('WorkUnitTraceSerializer', () => {
       })
     })
 
+    it('should serialize the recorded execution slices', () => {
+      // Arrange
+      const span = new TraceSpan('unit', 'render.block')
+      const serializer = new TraceSpanSerializer()
+
+      span.recordExecutionSlice(1, 3)
+      span.recordExecutionSlice(8, 9)
+      span.complete('output')
+
+      // Act
+      const result = serializer.serialize(span)
+
+      // Assert
+      expect(result.executionSlices).toEqual([
+        { startedAtMs: 1, completedAtMs: 3 },
+        { startedAtMs: 8, completedAtMs: 9 },
+      ])
+    })
+
+    it('should omit execution slices when none were recorded', () => {
+      // Arrange
+      const span = new TraceSpan('unit', 'render.block')
+      const serializer = new TraceSpanSerializer()
+
+      span.complete('output')
+
+      // Act
+      const result = serializer.serialize(span)
+
+      // Assert
+      expect(result).not.toHaveProperty('executionSlices')
+    })
+
     it('should drop children marked omit-from-trace', () => {
       // Arrange
-      const root = new WorkUnit('root', 'submit.hook')
-      const selected = new WorkUnit('onValid', 'submit.branch', root)
-      const unselected = new WorkUnit('onInvalid', 'submit.branch', root)
-      const serializer = new WorkUnitTraceSerializer()
+      const root = new TraceSpan('root', 'submit.hook')
+      const selected = new TraceSpan('onValid', 'submit.branch', root)
+      const unselected = new TraceSpan('onInvalid', 'submit.branch', root)
+      const serializer = new TraceSpanSerializer()
 
       root.addChild(selected)
       root.addChild(unselected)

@@ -2,7 +2,7 @@
 title: Request & State
 section: packages
 path: packages/express-nunjucks/request-state
-teaches: [StepRequest, StepResponse, req.state, res.locals, Request.State, state-merging, routing, mergeParams]
+teaches: [RequestSnapshot, ResponseBindings, req.state, res.locals, Request.State, state-merging, routing, mergeParams]
 prerequisites: [express-nunjucks]
 ---
 
@@ -10,10 +10,11 @@ prerequisites: [express-nunjucks]
 
 # Request & State
 When a request arrives, the adapter converts the Express
-`req`/`res` pair into framework-agnostic `StepRequest` and
-`StepResponse` objects. This page covers how routing works,
-how the request is mapped, and how `res.locals` and `req.state`
-merge into the state your journeys can read.
+`req`/`res` pair into a framework-agnostic `RequestSnapshot`
+plus a set of response bindings, and passes both to
+`forge.execute()`. This page covers how routing works, how the
+request is mapped, and how `res.locals` and `req.state` merge
+into the state your journeys can read.
 
 {{slot:toc}}
 
@@ -21,11 +22,12 @@ merge into the state your journeys can read.
 
 ## Routing
 
-When you register a journey with Forge, the adapter creates an
-Express Router for each journey and step. Routers are created with
-`mergeParams: true`, so route parameters from parent routers
-(such as `:uuid` in `/goal/:uuid/create-goal`) are available in
-child handlers.
+`createExpressRouter` creates a single Express router and
+registers a GET or POST handler on it for every route in the
+Forge topology. The router is created with `mergeParams: true`,
+so route parameters from the path the router is mounted under
+(such as `:uuid` in `/goal/:uuid`) are available to the
+handlers.
 
 GET and POST handlers are wrapped with async error handling:
 any rejected promise is forwarded to Express's `next(error)`
@@ -35,26 +37,28 @@ so your error middleware can handle it.
 
 ## Request mapping
 
-The `StepRequest` exposes data from the Express request
-through a set of typed accessors:
+Each field of the `RequestSnapshot` is filled from the Express
+request. Effects read the same data through the typed accessors
+on `EffectFunctionContext`:
 
-| Accessor | Source |
-|----------|--------|
-| `getHeader(name)` / `getAllHeaders()` | `req.headers` |
-| `getCookie(name)` / `getAllCookies()` | `req.cookies` |
-| `getParam(name)` / `getParams()` | `req.params` (route parameters) |
-| `getQuery(name)` / `getAllQuery()` | `req.query` (query string) |
-| `getPost(name)` / `getAllPost()` | `req.body` (POST body) |
-| `getSession()` | `req.session` |
-| `getState(key)` / `getAllState()` | `req.state` (see State merging below) |
-| `location` | Derived from `req.protocol`, `req.host`, and `req.originalUrl` |
+| Snapshot field | Express source | Effect context accessor |
+|----------------|----------------|-------------------------|
+| `headers` | `req.headers` | `getRequestHeader(name)` / `getAllRequestHeaders()` |
+| `cookies` | `req.cookies` | `getRequestCookie(name)` / `getAllRequestCookies()` |
+| `params` | `req.params` (route parameters) | `getRequestParam(key)` / `getAllRequestParams()` |
+| `query` | `req.query` (query string) | `getQueryParam(key)` / `getAllQueryParams()` |
+| `post` | `req.body` (POST body) | `getPostData(key)` / `getAllPostData()` |
+| `session` | `req.session` | `getSession()` |
+| `state` | Merged state (see State merging below) | `getState(key)` / `getAllState()` |
+| `location` | Derived from `req.protocol`, `req.hostname`, and `req.originalUrl` | `getRequestUrl()` |
 
-### Base URL resolution
+### Base path resolution
 
-The `baseUrl` is resolved from the actual URL, not from Express's
-route pattern. For example, a route mounted at `/goal/:uuid` with
-a request to `/goal/89e9a810-.../create-goal` produces
-`/goal/89e9a810-...` as the base URL, not `/goal/:uuid`.
+The snapshot's `location.basePath` is resolved from the actual
+URL, not from Express's route pattern. For example, a route
+mounted at `/goal/:uuid` with a request to
+`/goal/89e9a810-.../create-goal` produces `/goal/89e9a810-...`
+as the base path, not `/goal/:uuid`.
 
 This means expressions like `Request.Path()` and authoring
 helpers that depend on the current URL always see the resolved
@@ -64,20 +68,22 @@ path with real parameter values.
 
 ## State merging
 
-Before any step handler runs, the adapter merges two sources
-into `req.state`:
+When the adapter builds the snapshot, it merges three sources
+into the snapshot's `state`:
 
 ```
-req.state = { ...res.locals, ...req.state }
+state = { ...req.app.locals, ...res.locals, ...req.state }
 ```
 
 This means:
 
-1. **`res.locals`** - values set by upstream Express middleware
+1. **`req.app.locals`** - application-level values (minus
+   Express's own `settings`) form the base layer.
+2. **`res.locals`** - values set by upstream Express middleware
    (e.g. CSRF tokens, user details, feature flags) become part
-   of the request state automatically.
-2. **`req.state`** - values set explicitly on `req.state` by
-   earlier middleware take priority over `res.locals` when keys
+   of the request state automatically, overriding `app.locals`.
+3. **`req.state`** - values set explicitly on `req.state` by
+   earlier middleware take priority over both when keys
    overlap.
 
 ### Accessing state in journeys
@@ -195,17 +201,15 @@ adapter-supported path for making those values available to Forge.
 
 ## Response mapping
 
-The adapter also wraps the Express response as a `StepResponse`,
-giving effects a framework-agnostic way to set headers and
-cookies:
+The adapter also wraps the Express response as a set of
+`ResponseBindings`, giving effects a framework-agnostic way to
+set headers and cookies via the effect context:
 
-| Method | Behaviour |
-|--------|-----------|
-| `setHeader(name, value)` | Calls `res.setHeader()` |
-| `getHeader(name)` | Reads a header already set on the response |
-| `setCookie(name, value, options?)` | Calls `res.cookie()` with optional settings (httpOnly, secure, sameSite, maxAge, path, domain, expires) |
-| `getCookie(name)` | Parses the `Set-Cookie` header to read back cookies set during the current request |
+| Effect context method | Behaviour |
+|-----------------------|-----------|
+| `setResponseHeader(name, value)` | Calls `res.setHeader()` |
+| `setResponseCookie(name, value, options?)` | Calls `res.cookie()` with optional settings (httpOnly, secure, sameSite, maxAge, path, domain, expires) |
 
-The `getCookie` method is useful when one effect needs to read
-a cookie that another effect set earlier in the same request,
-before the response has been sent.
+The bindings are write-only - effects cannot read back headers
+or cookies set earlier in the same request. To clear a cookie,
+set it with `maxAge: 0`.

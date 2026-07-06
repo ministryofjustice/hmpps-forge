@@ -74,8 +74,8 @@ enough.
 ```
 /forge-developer-guide/patterns/demos/resuming/
 ├── /                         → Journey root: evaluates resumeWhen, redirects
-├── /overview                 → Landing page with seed/clear buttons (entry point, demo aid)
-├── /your-name                → First question (entry point, tie-breaker priority 100)
+├── /overview                 → Landing page with seed/clear buttons (entry point, tie-breaker priority 100)
+├── /your-name                → First question (entry point)
 ├── /your-role                → Second question
 ├── /check-answers            → Summary with change links
 └── /confirmation             → Submission panel (conditional entry, reachable after submit)
@@ -103,27 +103,31 @@ the pattern - a real service would never seed answers directly.
 ### Load answers on every access
 
 The journey carries a single `onAccess` effect that copies any stored
-answers back into the form context before any step - including the
-resume handler - evaluates:
+draft answers back into the form context before any step - including
+the resume handler - evaluates:
 
 ```typescript
 journey({
   code: 'resuming-demo',
   path: '/resuming',
-  reachability: { resumeWhen: true },
+  reachability: {
+    resumeWhen: Query('resume').match(Condition.Equals('true')),
+  },
   onAccess: [
     access({
-      effects: [PatternEffects.LoadAnswers('resuming')],
+      effects: [PatternEffects.LoadDraftAnswers('resuming')],
     }),
   ],
   steps: [overviewStep, yourNameStep, yourRoleStep, checkAnswersStep, confirmationStep],
 })
 ```
 
-`resumeWhen: true` means every request to this journey triggers the
-resume check. For journeys where users need to go back and change
-answers (for example, via change links on a check-answers page), use a
-conditional `resumeWhen` instead.
+The demo gates resume behind a `?resume=true` query parameter, so the
+resume check only runs when the user follows the "Continue where you
+left off" link. Setting `resumeWhen: true` instead makes every request
+to the journey trigger the resume check, which can get in the way when
+users need to go back and change answers (for example, via change
+links on a check-answers page).
 
 The resolver evaluates step validity against this context, so missing
 answers mark their step invalid and become the resume target.
@@ -143,7 +147,7 @@ step({
     submit({
       validate: true,
       onValid: {
-        effects: [PatternEffects.SaveAnswers('resuming')],
+        effects: [PatternEffects.SaveDraftAnswers('resuming')],
         next: [redirect({ goto: 'your-role' })],
       },
     }),
@@ -151,7 +155,7 @@ step({
 })
 ```
 
-`SaveAnswers` on each valid submission keeps the session in step with
+`SaveDraftAnswers` on each valid submission keeps the session in step with
 the user's progress, so the next visit to the journey root resumes
 from the right place.
 
@@ -221,9 +225,9 @@ resumes from the first incomplete question as usual.
   branches, add `tieBreakers` to each candidate step so the resolver
   can pick a winner. The same tie-breaker also disambiguates backlink
   and redirect resolution.
-- **Durable storage.** Swap the session-backed `LoadAnswers` /
-  `SaveAnswers` effects for ones that read and write to a per-user
-  store. `Forge` does not care where the answers come from -
+- **Durable storage.** Swap the session-backed `LoadDraftAnswers` /
+  `SaveDraftAnswers` effects for ones that read and write to a per-user
+  store. Forge does not care where the answers come from -
   it just evaluates the context that the access hooks populate.
 - **Per-step save.** The demo saves on every question submission,
   which is what gives the resolver accurate validity state for each

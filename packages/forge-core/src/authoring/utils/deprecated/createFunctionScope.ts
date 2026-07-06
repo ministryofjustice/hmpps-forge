@@ -1,11 +1,12 @@
-import { GeneratorBuilder } from '../builders/GeneratorBuilder'
-import { FunctionType } from '../types/enums'
+import { GeneratorBuilder } from '../../builders/GeneratorBuilder'
+import { ForgeDeprecations } from '../../../shared/utils/ForgeDeprecations'
+import { FunctionType } from '../../types/enums'
 import type {
   ConditionFunctionExpr,
   EffectFunctionExpr,
   TransformerFunctionExpr,
   ResolvableValue,
-} from '../types/expressions.type'
+} from '../../types/expressions.type'
 import type { FunctionImplementations, FunctionShapeMap, NoDeps } from './defineFunction.type'
 
 type ScopedFunctionFactory<TDeps> = (deps: TDeps) => (...args: never[]) => unknown
@@ -25,6 +26,8 @@ type ScopedGeneratorFactory<TDeps, TArgs extends ResolvableValue[]> = (deps: TDe
  *
  * Each method stores the dependency-injected factory in `implementations` and
  * returns the normal Forge expression used by journeys, steps, blocks, and hooks.
+ *
+ * @deprecated Use ConditionRegistry/TransformerRegistry/EffectRegistry/GeneratorRegistry inline instead.
  */
 export interface FunctionScope<TDeps = NoDeps> {
   readonly implementations: FunctionImplementations<FunctionShapeMap, TDeps>
@@ -77,8 +80,15 @@ const isSameFactory = <TDeps>(
  * Pass `scope.implementations` into `createForgePackage({ functions })` so the
  * collected factories receive the same runtime dependencies as regular
  * `defineEffectFunctions` and `defineTransformerFunctions` implementations.
+ *
+ * @deprecated Use ConditionRegistry/TransformerRegistry/EffectRegistry/GeneratorRegistry inline instead.
  */
 export function createFunctionScope<TDeps = NoDeps>(): FunctionScope<TDeps> {
+  ForgeDeprecations.warn(
+    'FORGE_DEP_createFunctionScope',
+    'createFunctionScope is deprecated - use ConditionRegistry/TransformerRegistry/EffectRegistry/GeneratorRegistry inline instead.',
+  )
+
   const implementations: FunctionImplementations<FunctionShapeMap, TDeps> = {}
 
   const register = (name: string, factory: ScopedFunctionFactory<TDeps>): void => {

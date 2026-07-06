@@ -1,10 +1,10 @@
 import WorkContext from './WorkContext'
-import WorkUnit from './WorkUnit'
+import TraceSpan from '../../../diagnostics/tracing/TraceSpan'
 import WorkExecutor from './WorkExecutor'
 import WorkExecutionError from './WorkExecutionError'
 import type { CompletedWork, WorkTask, WorkHandler, WorkInstrumentation } from '../../../contracts/runtime/work.type'
 import { createWorkTask } from './workTask'
-import type { WorkUnitReference } from '../../../contracts/runtime/workUnit.type'
+import type { TraceSpanReference } from '../../../diagnostics/tracing/traceSpan.type'
 
 interface TestCompiledContext {
   readonly phase: string
@@ -32,7 +32,7 @@ function createDeferred<TValue>(): Deferred<TValue> {
   }
 }
 
-function createContext(work?: WorkUnit): WorkContext<TestCompiledContext> {
+function createContext(work?: TraceSpan): WorkContext<TestCompiledContext> {
   return new WorkContext({ phase: 'test' }, work)
 }
 
@@ -64,6 +64,14 @@ function createParentElement(children: readonly WorkTask[], group: TestWorkGroup
   }
 
   return createWorkTask('parent', type, {})
+}
+
+function busyWaitMs(durationMs: number): void {
+  const start = performance.now()
+
+  while (performance.now() - start < durationMs) {
+    // Spin to burn real synchronous CPU time while holding the event loop.
+  }
 }
 
 describe('WorkExecutor', () => {
@@ -100,9 +108,9 @@ describe('WorkExecutor', () => {
         output: 'done',
         children: [],
       })
-      expect(result.workUnit.key).toBe('child-1')
-      expect(result.workUnit.kind).toBe('test.child')
-      expect(result.workUnit.completed).toBe(true)
+      expect(result.traceSpan.key).toBe('child-1')
+      expect(result.traceSpan.kind).toBe('test.child')
+      expect(result.traceSpan.completed).toBe(true)
     })
 
     it('should run sequential reduce-all children in declaration order', async () => {
@@ -225,7 +233,7 @@ describe('WorkExecutor', () => {
     it('should reject when begin throws and leave the work unit incomplete', async () => {
       // Arrange
       const executor = new WorkExecutor()
-      const parent = new WorkUnit('root', 'test.root')
+      const parent = new TraceSpan('root', 'test.root')
       const error = new Error('begin failed')
       const type: WorkHandler = {
         kind: 'test.failure',
@@ -250,7 +258,7 @@ describe('WorkExecutor', () => {
     it('should reject when start instrumentation throws and leave the work unit incomplete', async () => {
       // Arrange
       const executor = new WorkExecutor()
-      const parent = new WorkUnit('root', 'test.root')
+      const parent = new TraceSpan('root', 'test.root')
       const error = new Error('start instrumentation failed')
       const type: WorkHandler = {
         kind: 'test.trace-begin-failure',
@@ -275,7 +283,7 @@ describe('WorkExecutor', () => {
     it('should reject when a child throws and leave parent and child work units incomplete', async () => {
       // Arrange
       const executor = new WorkExecutor()
-      const root = new WorkUnit('root', 'test.root')
+      const root = new TraceSpan('root', 'test.root')
       const error = new Error('child failed')
       const childType: WorkHandler = {
         kind: 'test.child',
@@ -308,7 +316,7 @@ describe('WorkExecutor', () => {
     it('should reject when complete throws and leave the work unit incomplete', async () => {
       // Arrange
       const executor = new WorkExecutor()
-      const parent = new WorkUnit('root', 'test.root')
+      const parent = new TraceSpan('root', 'test.root')
       const error = new Error('complete failed')
       const type: WorkHandler = {
         kind: 'test.failure',
@@ -333,7 +341,7 @@ describe('WorkExecutor', () => {
     it('should reject when finish instrumentation throws and leave the work unit incomplete', async () => {
       // Arrange
       const executor = new WorkExecutor()
-      const parent = new WorkUnit('root', 'test.root')
+      const parent = new TraceSpan('root', 'test.root')
       const error = new Error('finish instrumentation failed')
       const type: WorkHandler = {
         kind: 'test.trace-failure',
@@ -358,7 +366,7 @@ describe('WorkExecutor', () => {
     it('should attach trace fields and nest runtime work units', async () => {
       // Arrange
       const executor = new WorkExecutor()
-      const parent = new WorkUnit('root', 'test.root')
+      const parent = new TraceSpan('root', 'test.root')
       const childType: WorkHandler = {
         kind: 'test.child',
         begin: () => ({ output: 'child-output' }),
@@ -404,7 +412,7 @@ describe('WorkExecutor', () => {
     it('should skip instrumentation when tracing is disabled', async () => {
       // Arrange
       const executor = new WorkExecutor(false)
-      const parent = new WorkUnit('root', 'test.root')
+      const parent = new TraceSpan('root', 'test.root')
       let startCalls = 0
       let finishCalls = 0
       const type: WorkHandler = {
@@ -438,7 +446,7 @@ describe('WorkExecutor', () => {
     it('should record empty fields when one instrumentation side returns undefined', async () => {
       // Arrange
       const executor = new WorkExecutor()
-      const parent = new WorkUnit('root', 'test.root')
+      const parent = new TraceSpan('root', 'test.root')
       const type: WorkHandler = {
         kind: 'test.instrumented',
         begin: () => ({ output: 'done' }),
@@ -457,10 +465,10 @@ describe('WorkExecutor', () => {
       expect(parent.children[0].completeFields).toEqual({})
     })
 
-    it('should reject when the work context parent is not a WorkUnit', async () => {
+    it('should reject when the work context parent is not a TraceSpan', async () => {
       // Arrange
       const executor = new WorkExecutor()
-      const foreignParent: WorkUnitReference = {
+      const foreignParent: TraceSpanReference = {
         key: 'foreign',
         kind: 'foreign.parent',
         children: [],
@@ -473,7 +481,7 @@ describe('WorkExecutor', () => {
       const element = createOutputElement('child', 'child-output')
 
       // Act & Assert
-      await expect(executor.execute(element, ctx)).rejects.toThrow('must be a WorkUnit')
+      await expect(executor.execute(element, ctx)).rejects.toThrow('must be a TraceSpan')
     })
 
     it('should wrap an executeWithUnit failure in a WorkExecutionError carrying the partial unit', async () => {
@@ -516,10 +524,141 @@ describe('WorkExecutor', () => {
       }
 
       expect(rejection.original).toBe(error)
-      expect(rejection.workUnit.key).toBe('parent')
-      expect(rejection.workUnit.completed).toBe(false)
-      expect(rejection.workUnit.children).toHaveLength(1)
-      expect(rejection.workUnit.children[0].completed).toBe(false)
+      expect(rejection.traceSpan.key).toBe('parent')
+      expect(rejection.traceSpan.completed).toBe(false)
+      expect(rejection.traceSpan.children).toHaveLength(1)
+      expect(rejection.traceSpan.children[0].completed).toBe(false)
+    })
+
+    it('should charge self time to the busy sibling only when concurrent siblings interleave', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const busyType: WorkHandler = {
+        kind: 'test.child',
+        begin: () => ({ output: 'begin' }),
+        complete: () => {
+          busyWaitMs(20)
+
+          return 'busy'
+        },
+      }
+      const idleType: WorkHandler = {
+        kind: 'test.child',
+        begin: () => ({ output: 'idle' }),
+      }
+      const element = createParentElement(
+        [createWorkTask('busy', busyType, {}), createWorkTask('idle', idleType, {})],
+        { mode: 'concurrent' },
+      )
+
+      // Act
+      const { traceSpan } = await executor.executeWithUnit(element, createContext())
+
+      // Assert
+      const [busyUnit, idleUnit] = traceSpan.children
+      expect(busyUnit.selfDurationMs).toBeGreaterThanOrEqual(20)
+      expect(idleUnit.selfDurationMs).toBeLessThan(10)
+      expect(busyUnit.durationMs).toBeGreaterThanOrEqual(20)
+      expect(idleUnit.durationMs).toBeGreaterThanOrEqual(20)
+    })
+
+    it('should exclude child execution time from a parent self time', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const slowChildType: WorkHandler = {
+        kind: 'test.child',
+        begin: () => {
+          busyWaitMs(20)
+
+          return { output: 'slow' }
+        },
+      }
+      const parentType: WorkHandler = {
+        kind: 'test.parent',
+        begin: () => ({
+          groups: [{ mode: 'sequential', children: [createWorkTask('slow-child', slowChildType, {})] }],
+        }),
+        complete: (_ctx, children) => children.map(child => child.output),
+      }
+      const element = createWorkTask('parent', parentType, {})
+
+      // Act
+      const { traceSpan } = await executor.executeWithUnit(element, createContext())
+
+      // Assert
+      const [childUnit] = traceSpan.children
+      expect(childUnit.selfDurationMs).toBeGreaterThanOrEqual(20)
+      expect(traceSpan.selfDurationMs).toBeLessThan(10)
+      expect(traceSpan.durationMs).toBeGreaterThanOrEqual(20)
+    })
+
+    it('should record a begin and a complete execution slice for a completed unit', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const element = createOutputElement('child-1', 'done')
+
+      // Act
+      const { traceSpan } = await executor.executeWithUnit(element, createContext())
+
+      // Assert
+      expect(traceSpan.executionSlices).toHaveLength(2)
+      traceSpan.executionSlices.forEach(slice => {
+        expect(slice.completedAtMs).toBeGreaterThanOrEqual(slice.startedAtMs)
+      })
+    })
+
+    it('should record disjoint execution slices for serially-executed concurrent siblings', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const firstBusyType: WorkHandler = {
+        kind: 'test.child',
+        begin: () => {
+          busyWaitMs(10)
+
+          return { output: 'first' }
+        },
+      }
+      const secondBusyType: WorkHandler = {
+        kind: 'test.child',
+        begin: () => {
+          busyWaitMs(10)
+
+          return { output: 'second' }
+        },
+      }
+      const element = createParentElement(
+        [createWorkTask('first', firstBusyType, {}), createWorkTask('second', secondBusyType, {})],
+        { mode: 'concurrent' },
+      )
+
+      // Act
+      const { traceSpan } = await executor.executeWithUnit(element, createContext())
+
+      // Assert
+      const slices = traceSpan.children
+        .flatMap(child => child.executionSlices)
+        .sort((a, b) => a.startedAtMs - b.startedAtMs)
+      slices.forEach((slice, index) => {
+        if (index > 0) {
+          expect(slice.startedAtMs).toBeGreaterThanOrEqual(slices[index - 1].completedAtMs)
+        }
+      })
+    })
+
+    it('should report selfDurationMs as the sum of its execution slice widths', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const element = createOutputElement('child-1', 'done')
+
+      // Act
+      const { traceSpan } = await executor.executeWithUnit(element, createContext())
+
+      // Assert
+      const summedSliceWidths = traceSpan.executionSlices.reduce(
+        (total, slice) => total + (slice.completedAtMs - slice.startedAtMs),
+        0,
+      )
+      expect(traceSpan.selfDurationMs).toBe(summedSliceWidths)
     })
   })
 })

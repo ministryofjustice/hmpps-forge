@@ -19,7 +19,7 @@ component libraries, and register your journey packages.
 ## Create a Forge instance
 
 Create a Forge instance and register your component libraries and
-journey packages. Forge itself is framework-agnostic — connecting
+journey packages. Forge itself is framework-agnostic - connecting
 it to Express happens separately via `createExpressRouter`.
 
 ```typescript

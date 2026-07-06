@@ -6,8 +6,8 @@ import type {
   WorkTask,
   WorkHandler,
   WorkInstrumentation,
-  WorkUnitFields,
 } from '../../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
 import { findChildByTask, findTerminalStage, isTerminalStage } from '../../work/workTask'
 import { isStepValid } from '../validation/stepValidity'
 import { getStepValidity } from '../validation/stepValidityState'
@@ -75,7 +75,7 @@ export const SUBMIT_HOOK_WORK_HANDLER: WorkHandler<'submit.hook', SubmitHookWork
   },
 }
 
-function traceComplete(output: CompiledSubmitHookResult): WorkUnitFields {
+function traceComplete(output: CompiledSubmitHookResult): TraceSpanFields {
   return {
     executed: output.executed,
     validated: output.validated,

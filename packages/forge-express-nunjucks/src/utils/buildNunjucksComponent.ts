@@ -1,6 +1,11 @@
 import nunjucks from 'nunjucks'
 
-import { BlockDefinition, EvaluatedBlock, ComponentRegistryEntry } from '@ministryofjustice/hmpps-forge/core/components'
+import {
+  BlockDefinition,
+  EvaluatedBlock,
+  ComponentRegistryEntry,
+  BuildComponentOptions,
+} from '@ministryofjustice/hmpps-forge/core/components'
 
 /**
  * Render function for Nunjucks components.
@@ -16,6 +21,7 @@ export type NunjucksComponentRenderer<T extends BlockDefinition> = (
  *
  * @param variant - The block variant identifier
  * @param render - Render function that receives (block, nunjucksEnv)
+ * @param options - Optional input schema and fixed-shape `multiple` override for the entry
  * @returns A component ready for registration with Forge
  *
  * @example
@@ -31,7 +37,10 @@ export type NunjucksComponentRenderer<T extends BlockDefinition> = (
 export const buildNunjucksComponent = <T extends BlockDefinition>(
   variant: string,
   render: NunjucksComponentRenderer<T>,
+  options: BuildComponentOptions = {},
 ): ComponentRegistryEntry<T, string> => ({
   variant,
   render: (block, renderer) => render(block, renderer as nunjucks.Environment),
+  ...(options.inputSchema !== undefined && { inputSchema: options.inputSchema }),
+  ...(options.multiple !== undefined && { multiple: options.multiple }),
 })

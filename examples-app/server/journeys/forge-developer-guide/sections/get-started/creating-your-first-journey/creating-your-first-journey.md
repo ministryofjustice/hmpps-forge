@@ -180,7 +180,8 @@ multi-page journey that:
 
 - renders pages with GOV.UK Design System components
 - handles form submission and redirects between steps
-- manages field state across requests
+- repopulates submitted values when a step re-renders after a
+  failed validation
 - produces accessible, standards-compliant HTML
 
 ---
@@ -198,4 +199,4 @@ on what you have:
   shows common patterns for persisting data.
 
 For a complete guide to everything Forge offers, continue to
-[Building journeys](../building-journeys).
+[Building journeys](../building-journeys/overview).

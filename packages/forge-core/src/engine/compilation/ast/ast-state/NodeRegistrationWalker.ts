@@ -7,21 +7,19 @@ import { isFieldBlockStructNode } from '../../../contracts/ast/structure-nodes'
 import { isReferenceExprNode } from '../../../contracts/ast/expression-nodes'
 import { cloneASTValue } from '../nodes/astValueCloning'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
-import ASTNodeTree from './ASTNodeTree'
 
 /**
  * Normalises and indexes an AST subtree in one recursive descent.
  *
  * The walker assigns any missing compile IDs, resolves `Self()` references in
- * ordinary AST nodes, registers nodes by ID, and records parent edges in
- * ASTNodeTree. Template nodes are not registered because generated functions
+ * ordinary AST nodes, registers nodes by ID, and wires each node's direct
+ * `parent`. Template nodes are not registered because generated functions
  * evaluate iterator templates inline instead of materialising runtime AST nodes.
  */
 export default class NodeRegistrationWalker {
   constructor(
     private readonly nodeIdGenerator: NodeIDGenerator,
     private readonly nodeRegistry: ASTNodeIndex,
-    private readonly astNodeTree: ASTNodeTree,
   ) {}
 
   /**
@@ -33,7 +31,7 @@ export default class NodeRegistrationWalker {
 
   private walk(
     value: unknown,
-    parentNodeId: NodeId | undefined,
+    parentNode: ASTNode | undefined,
     fieldStack: FieldBlockASTNode[],
     codeOwnerFieldId: NodeId | undefined,
   ): void {
@@ -42,7 +40,7 @@ export default class NodeRegistrationWalker {
     }
 
     if (Array.isArray(value)) {
-      value.forEach(item => this.walk(item, parentNodeId, fieldStack, codeOwnerFieldId))
+      value.forEach(item => this.walk(item, parentNode, fieldStack, codeOwnerFieldId))
 
       return
     }
@@ -52,7 +50,7 @@ export default class NodeRegistrationWalker {
     }
 
     if (!isASTNode(value)) {
-      Object.values(value).forEach(v => this.walk(v, parentNodeId, fieldStack, codeOwnerFieldId))
+      Object.values(value).forEach(v => this.walk(v, parentNode, fieldStack, codeOwnerFieldId))
 
       return
     }
@@ -73,8 +71,13 @@ export default class NodeRegistrationWalker {
       this.resolveSelfReference(node, fieldStack, codeOwnerFieldId)
     }
 
+    // Non-enumerable so blind property walkers (cloning, template compilation)
+    // never recurse back up the tree. Assigned before register() freezes the node.
+    if (parentNode !== undefined) {
+      Object.defineProperty(node, 'parent', { value: parentNode, enumerable: false })
+    }
+
     this.nodeRegistry.register(node.id, node)
-    this.astNodeTree.addNode(node.id, parentNodeId)
 
     // Field blocks push onto the stack only while their descendants are scanned.
     if (isField) {
@@ -85,7 +88,7 @@ export default class NodeRegistrationWalker {
       Object.entries(node.properties).forEach(([key, propValue]) => {
         const codeId = isField && key === 'code' ? node.id : codeOwnerFieldId
 
-        this.walk(propValue, node.id, fieldStack, codeId)
+        this.walk(propValue, node, fieldStack, codeId)
       })
     }
 

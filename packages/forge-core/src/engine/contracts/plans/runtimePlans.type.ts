@@ -1,4 +1,5 @@
-import type { NodeId } from '../ast/ast.type'
+import type { ASTNode, NodeId } from '../ast/ast.type'
+import type { RedirectOutcomeASTNode } from '../ast/expressions.type'
 import type { ReachabilityTieBreakerEntry } from './compilationPlan.type'
 import type { UnreachableRedirectTarget } from '../../../authoring/types/structures.type'
 
@@ -33,11 +34,11 @@ export interface ReachabilityCompilationPlan {
   stateTable: ReachabilityStateTable
   entries: ReachabilityCompilationEntry[]
   resumeAlways: boolean
-  resumeWhenNodeId?: NodeId
+  resumeWhen?: ASTNode
 }
 
 export interface ReachabilityCompilationEntry extends ReachabilityStateTableEntry {
-  entryWhenNodeId?: NodeId
+  entryWhen?: ASTNode
   forwardOutcomeGroups: ForwardOutcomeGroup[]
   cleardownFieldCodes: string[]
   reachabilityTieBreakers: ReachabilityTieBreakerEntry[]
@@ -48,16 +49,25 @@ export interface ReachabilityCompilationEntry extends ReachabilityStateTableEntr
  * submit hook on the source step; the cascade short-circuit applies within a
  * group but never across groups.
  *
- * `hookWhenNodeId` is set only when the hook's `when:` is reachability-compilable
+ * `hookWhen` is set only when the hook's `when:` is reachability-compilable
  * (does not reference request-time namespaces like post/params/query/request).
  * When set, the compiler wraps the group in `if (Boolean(whenExpr))`. When
  * unset, the group contributes its outcomes unguarded — an intentional
  * over-approximation for non-evaluable guards.
  */
 export interface ForwardOutcomeGroup {
-  hookWhenNodeId?: NodeId
-  overApproximateOutcomeIds?: NodeId[]
-  outcomeIds: NodeId[]
+  hookWhen?: ASTNode
+  redirectOutcomes: ForwardRedirectOutcome[]
+}
+
+/**
+ * A single redirect outcome within a group. `overApproximatesWhen` is true when
+ * the outcome's own `when:` references request-time namespaces, so the compiler
+ * records its goto unconditionally instead of gating the cascade on the guard.
+ */
+export interface ForwardRedirectOutcome {
+  node: RedirectOutcomeASTNode
+  overApproximatesWhen: boolean
 }
 
 export interface JourneyRuntimePlan {

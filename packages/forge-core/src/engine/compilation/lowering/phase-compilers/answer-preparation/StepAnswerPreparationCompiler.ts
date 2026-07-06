@@ -14,6 +14,7 @@ import {
   GENERATED_FUNCTION_HELPERS_PARAM,
 } from '../../function-construction/GeneratedFunctionCompiler'
 import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
+import type ComponentRegistry from '../../../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 
 import type { CompiledAnswerPreparationFunction } from '../../../../contracts/compiled/compiledFunctions.type'
@@ -51,7 +52,10 @@ export default class StepAnswerPreparationCompiler {
 
   private readonly templates: ScopedTemplateCompiler
 
+  private readonly componentRegistry: ComponentRegistry
+
   constructor(dependencies: CompilationDependencies) {
+    this.componentRegistry = dependencies.componentRegistry
     this.expr = new ExpressionDispatcher(dependencies)
     this.fieldCodes = new FieldCodeEmitter(this.expr)
     this.values = new RuntimeValueCompiler(this.expr, {
@@ -148,7 +152,7 @@ export default class StepAnswerPreparationCompiler {
         return
       }
 
-      this.compileFieldPreparationSlot(block.properties, emitter, codeExpr, mode, fieldPreparationsVar)
+      this.compileFieldPreparationSlot(block.properties, emitter, codeExpr, mode, fieldPreparationsVar, block.variant)
     })
   }
 
@@ -160,9 +164,10 @@ export default class StepAnswerPreparationCompiler {
     emitter: CodeEmitter,
     codeExpr: string,
     mode: AnswerPreparationMode,
+    variant: string,
   ): void {
     if (mode === 'POST') {
-      this.compilePostPath(properties, emitter, codeExpr)
+      this.compilePostPath(properties, emitter, codeExpr, variant)
 
       return
     }
@@ -171,18 +176,33 @@ export default class StepAnswerPreparationCompiler {
   }
 
   /**
-   * Emits POST answer preparation: read submitted value, normalize it, run formatters, then dependentWhen.
+   * Emits POST answer preparation: read submitted value, normalize it, check it against the
+   * component's input schema, run formatters, then dependentWhen.
    */
-  private compilePostPath(properties: Record<string, unknown>, emitter: CodeEmitter, codeExpr: string): void {
+  private compilePostPath(
+    properties: Record<string, unknown>,
+    emitter: CodeEmitter,
+    codeExpr: string,
+    variant: string,
+  ): void {
     emitter.comment('StepAnswerPreparationCompiler.compilePostPath')
     const historyVar = emitter.const(
       'answerHistory',
       `${GENERATED_FUNCTION_HELPERS_PARAM}.ensureAnswerHistory(ctx, ${codeExpr})`,
     )
+    const entry = this.componentRegistry.get(variant)
+    const multipleLiteral = String(entry?.multiple ?? properties.multiple === true)
     const rawVar = emitter.let(
       'rawValue',
-      `${GENERATED_FUNCTION_HELPERS_PARAM}.normalizePostValue(ctx.post[${codeExpr}], ${String(properties.multiple === true)})`,
+      `${GENERATED_FUNCTION_HELPERS_PARAM}.normalizePostValue(ctx.post[${codeExpr}], ${multipleLiteral})`,
     )
+
+    if (entry?.inputSchema !== undefined) {
+      emitter.assign(
+        rawVar,
+        `${GENERATED_FUNCTION_HELPERS_PARAM}.checkComponentInputValue(ctx, ${JSON.stringify(variant)}, ${rawVar}, ${multipleLiteral})`,
+      )
+    }
 
     this.emitPushMutationCall(emitter, historyVar, rawVar, 'post')
 
@@ -417,10 +437,11 @@ export default class StepAnswerPreparationCompiler {
   ): void {
     const resolvedCodeExpr = codeExpr ?? 'undefined'
     const properties = field.properties ?? {}
+    const variant = typeof field.variant === 'string' ? field.variant : ''
 
     emitter.comment('StepAnswerPreparationCompiler.compileTemplateField')
     emitter.scope(() => {
-      this.compileFieldPreparationSlot(properties, emitter, resolvedCodeExpr, mode, fieldPreparationsVar)
+      this.compileFieldPreparationSlot(properties, emitter, resolvedCodeExpr, mode, fieldPreparationsVar, variant)
     })
   }
 
@@ -430,6 +451,7 @@ export default class StepAnswerPreparationCompiler {
     codeExpr: string,
     mode: AnswerPreparationMode,
     fieldPreparationsVar: string,
+    variant: string,
   ): void {
     const codeVar = emitter.const('answerPreparationCode', codeExpr)
     const propsVar = emitter.const(
@@ -437,7 +459,7 @@ export default class StepAnswerPreparationCompiler {
       `{
         code: ${codeVar},
         mode: ${JSON.stringify(mode)},
-        run: ${this.compileFieldPreparationRunFunction(properties, codeVar, mode)}
+        run: ${this.compileFieldPreparationRunFunction(properties, codeVar, mode, variant)}
       }`,
     )
 
@@ -450,9 +472,10 @@ export default class StepAnswerPreparationCompiler {
     properties: Record<string, unknown>,
     codeVar: string,
     mode: AnswerPreparationMode,
+    variant: string,
   ): string {
     return this.compileAsyncFunctionExpression(emitter => {
-      this.compileFieldPath(properties, emitter, codeVar, mode)
+      this.compileFieldPath(properties, emitter, codeVar, mode, variant)
       this.compileFieldResult(emitter, codeVar, mode)
     })
   }
@@ -479,11 +502,11 @@ export default class StepAnswerPreparationCompiler {
   private compileTransformerCall(transformerNode: unknown, valueVar: string): string {
     const transformerCall = readTransformerCall(transformerNode)
 
-    if (transformerCall !== undefined) {
-      return this.compileTransformerFunctionCall(transformerCall, valueVar, transformerNode)
+    if (transformerCall === undefined) {
+      throw new Error('Formatter entry is not a transformer function call')
     }
 
-    return this.expr.compileFunctionCall('unknown', [valueVar])
+    return this.compileTransformerFunctionCall(transformerCall, valueVar, transformerNode)
   }
 
   /**

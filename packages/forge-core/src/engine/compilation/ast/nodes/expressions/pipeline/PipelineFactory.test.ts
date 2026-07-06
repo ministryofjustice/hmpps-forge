@@ -36,7 +36,6 @@ describe('PipelineFactory', () => {
       expect(result.id).toBeDefined()
       expect(result.type).toBe(ASTNodeType.EXPRESSION)
       expect(result.expressionType).toBe(ExpressionType.PIPELINE)
-      expect(result).not.toHaveProperty('raw')
 
       expect(result.properties.input).toBeDefined()
       expect(result.properties.steps).toBeDefined()

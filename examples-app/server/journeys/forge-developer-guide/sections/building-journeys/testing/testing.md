@@ -67,8 +67,9 @@ object to each request and the effects will mutate it as they run.
 
 ## Reading results
 
-Every request returns a `TestResult`, which is either a render or a
-redirect.
+Every request returns a `TestResult`, which is a render, a redirect,
+or an error. Error results (`type: 'error'`) carry the `status` and
+`message` from a `throwError` outcome.
 
 ### Render results
 
@@ -106,7 +107,7 @@ if (result.type === 'redirect') {
 }
 ```
 
-Both result types also include `headers` and `cookies` maps if you
+Every result type also includes `headers` and `cookies` maps if you
 need to assert on response metadata.
 
 ---
@@ -156,36 +157,56 @@ is active.
 
 ---
 
-## Overriding effects with `createTestPackage`
+## Substituting services in tests
 
-When your journey uses effects that call external services, you can
-replace specific implementations with spies or stubs using
-`createTestPackage`. Functions not listed in the overrides keep their
-real implementation.
+When your journey uses effects that call external services, inject
+mock dependencies through the `deps` argument to `registerPackage`.
+Effects receive their services through `deps`, so stubbing a
+dependency controls what an effect does without replacing the effect
+itself.
 
 ```typescript
-import { ForgeTestHarness, createTestPackage } from '@ministryofjustice/hmpps-forge/core/testing'
+import { ForgeTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 
-const mockSaveRecord = vi.fn()
-
-const testPkg = createTestPackage(
-  { journey: myJourney, functions: myEffects },
-  { overrides: { SaveRecord: mockSaveRecord } },
-)
+const mockApi = { saveRecord: vi.fn() }
 
 const client = new ForgeTestHarness()
   .registerGlobalComponents(govukComponents)
-  .registerPackage(testPkg)
+  .registerPackage({ journey: myJourney, functions: myEffects }, { api: mockApi })
   .createClient()
+
+await client.post('/my-journey/step-one', {
+  session: {},
+  body: { firstName: 'Sam' },
+})
+
+expect(mockApi.saveRecord).toHaveBeenCalledWith(expect.objectContaining({ firstName: 'Sam' }))
 ```
 
-Overrides are evaluator functions  - the same shape as what your
-effect implementation returns. `createTestPackage` wraps each
-override in a factory so it integrates with the function registry.
+This keeps the effect's real logic under test while the service it
+calls is a spy you can assert on. It is useful when some effects only
+touch the session (and can run against their real dependencies) while
+others call APIs or databases that you want to stub out.
 
-This is useful when some effects only touch the session (and can run
-with their real implementation) while others call APIs or databases
-that you want to stub out.
+### `createTestPackage` and the deprecated map form
+
+`createTestPackage` replaces named function implementations with
+spies or stubs, but its `overrides` apply only to the deprecated
+implementations-map form of `functions`. A package whose `functions`
+is a registry (or an array of registries) is returned unchanged, so
+reach for dependency injection above instead.
+
+```typescript
+import { createTestPackage } from '@ministryofjustice/hmpps-forge/core/testing'
+
+const mockSaveRecord = vi.fn()
+
+// Only takes effect when `functions` is an implementations map
+const testPkg = createTestPackage(
+  { journey: myJourney, functions: myEffectImplementations },
+  { overrides: { SaveRecord: mockSaveRecord } },
+)
+```
 
 ---
 

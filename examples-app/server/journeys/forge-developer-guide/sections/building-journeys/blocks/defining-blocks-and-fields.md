@@ -150,7 +150,7 @@ knows what to render.
 ```typescript
 variant: 'html'              // Core: raw HTML renderer
 variant: 'templateWrapper'   // Core: slot-based layout composition
-variant: 'collectionBlock'   // Core: iterate and render a collection
+variant: 'collection-block'  // Core: iterate and render a collection
 variant: 'govukTextInput'    // GOV.UK: text input component
 variant: 'myCustomCard'      // Your own: whatever you register
 ```
@@ -297,14 +297,14 @@ field({
 ### `multiple` (Optional)
 
 When `true`, the field captures all submitted values as an array
-rather than a single value. Used for inputs like checkboxes where
-multiple selections are possible.
+rather than a single value. Components with a fixed value shape
+declare this on their registry entry instead — `govukCheckboxInput`
+always captures an array, so you never set it per field:
 
 ```typescript
 field({
   variant: 'govukCheckboxInput',
   code: 'contactMethods',
-  multiple: true,
   items: [
     { value: 'email', text: 'Email' },
     { value: 'phone', text: 'Phone' },
@@ -312,6 +312,9 @@ field({
   ],
 })
 ```
+
+Reach for the field-level flag only with components that can be
+either single- or multi-value, where the choice is genuinely yours.
 
 ---
 
@@ -374,7 +377,7 @@ const myCustomCard = buildComponent('myCustomCard', (block) => {
 ```
 
 If a block references a variant that isn't registered, Forge will throw an error
-during validation - before the journey is even compiled. This surfaces missing
+during startup validation - before any routes are mounted. This surfaces missing
 components at startup, not when a user happens to visit the page.
 
 See the [Components](../building-functions-and-components/custom-components) section for full details on building

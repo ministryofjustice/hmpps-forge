@@ -3,6 +3,7 @@ import {
   GovUKTextInput,
   GovUKButton,
   GovUKRadioInput,
+  GovUKDateInputFull,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 import {
@@ -805,6 +806,35 @@ export const arrayNonMultipleJourney = journey({
           validate: false,
           onAlways: {
             effects: [Effects.SaveAnswers('array-non-multiple')],
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({
+      code: 'done',
+      path: '/done',
+      title: 'Done',
+      blocks: [],
+    }),
+  ],
+})
+
+export const dateInputJourney = journey({
+  code: 'date-input',
+  path: '/date-input',
+  title: 'Date input',
+  steps: [
+    step({
+      path: '/dob',
+      title: 'Date of birth',
+      reachability: { entryWhen: true },
+      blocks: [GovUKDateInputFull({ code: 'dob', label: 'Date of birth' }), GovUKButton({ text: 'Continue' })],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            effects: [Effects.SaveAnswers('date-input')],
             next: [redirect({ goto: 'done' })],
           },
         }),

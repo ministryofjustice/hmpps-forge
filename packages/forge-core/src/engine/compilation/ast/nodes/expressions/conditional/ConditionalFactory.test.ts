@@ -45,7 +45,6 @@ describe('ConditionalFactory', () => {
       expect(result.id).toBeDefined()
       expect(result.type).toBe(ASTNodeType.EXPRESSION)
       expect(result.expressionType).toBe(ExpressionType.CONDITIONAL)
-      expect(result).not.toHaveProperty('raw')
       expect(result.properties.predicate).toBeDefined()
       expect(result.properties.thenValue).toBeDefined()
       expect(result.properties.elseValue).toBeDefined()

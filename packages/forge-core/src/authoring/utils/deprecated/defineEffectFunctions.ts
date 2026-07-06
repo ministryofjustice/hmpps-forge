@@ -1,5 +1,6 @@
-import { FunctionType } from '../types/enums'
-import { buildExpressionFunctions, extractFactories } from './defineFunction'
+import { FunctionType } from '../../types/enums'
+import { ForgeDeprecations } from '../../../shared/utils/ForgeDeprecations'
+import { buildExpressionFunctions, tagFunctionType } from './defineFunction'
 import type {
   EffectFunctionGroup,
   EffectFunctions,
@@ -21,6 +22,8 @@ import type {
  * The evaluator's first parameter (`context: EffectFunctionContext`) is injected
  * by the engine at runtime - the returned `effects` builders only expose the
  * remaining configuration arguments.
+ *
+ * @deprecated Use EffectRegistry instead.
  *
  * @param factories - Effect factories keyed by function name
  *
@@ -58,8 +61,16 @@ export function defineEffectFunctions<TShapes extends FunctionShapeMap, TDeps = 
   effects: EffectFunctions<TShapes>
   implementations: FunctionImplementations<TShapes, TDeps>
 } {
+  ForgeDeprecations.warn(
+    'FORGE_DEP_defineEffectFunctions',
+    'defineEffectFunctions is deprecated - use EffectRegistry instead.',
+  )
+
   return {
     effects: buildExpressionFunctions(factories, FunctionType.EFFECT) as EffectFunctions<TShapes>,
-    implementations: extractFactories(factories) as unknown as FunctionImplementations<TShapes, TDeps>,
+    implementations: tagFunctionType(factories, FunctionType.EFFECT) as unknown as FunctionImplementations<
+      TShapes,
+      TDeps
+    >,
   }
 }

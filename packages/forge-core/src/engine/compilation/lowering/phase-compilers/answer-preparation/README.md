@@ -16,7 +16,7 @@ This document does not cover validation, rendering, or answer preparation work-h
 - map iterate nodes whose yield templates may contain field blocks.
 
 `CodegenOrchestrator` uses the same compiler for step answer preparation and journey answer preparation.
-Journey calls pass the fields and map iterates from all steps in that journey's navigation plan.
+Journey calls pass the fields and map iterates from all steps in that journey's reachability state table.
 
 ## Work Returned
 
@@ -32,7 +32,10 @@ The runtime work executor runs the answer-preparation handler and field handlers
 ## Rules
 
 - POST mode reads submitted values from `ctx.post`.
-  It normalizes multiple fields, records a `post` mutation, runs formatters, and can record a `processed` mutation.
+  It normalizes multiple fields, checks the component input schema, records a `post` mutation, runs formatters, and can record a `processed` mutation.
+- The component input schema check runs between normalization and the `post` mutation.
+  Variants that declare an `inputSchema` on their registry entry validate the normalized value; a value that fails the schema is dropped to absent (`undefined`, or `[]` when multiple).
+  An unanswered value and variants without a schema are left untouched.
 - GET mode does not run formatters.
   It keeps the current answer or seeds `defaultValue` when no answer exists.
 - Parser output is display-only.
@@ -47,7 +50,7 @@ The runtime work executor runs the answer-preparation handler and field handlers
 - To change POST behavior, start in `StepAnswerPreparationCompiler.compilePostPath()`.
 - To change GET/default behavior, start in `StepAnswerPreparationCompiler.compileGetPath()`.
 - To change formatter sequencing, start in `compileFormatterPipeline()`.
-- To change iterator field preparation, start around `compileIterateBlock()` and `compileTemplateFieldPreparation()`.
+- To change iterator field preparation, start around `compileIterateBlock()` and `compileTemplateAnswerPreparation()`.
 - To inspect generated source, use `generateSource()` in the tests.
 
 ## Entry Points

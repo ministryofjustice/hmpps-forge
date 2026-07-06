@@ -12,6 +12,11 @@ describe('ExpressionDispatcher', () => {
     componentRegistry: new ComponentRegistry(),
   }
 
+  dependencies.functionRegistry.register({
+    buildCode: { name: 'buildCode', isAsync: true, evaluate: () => undefined },
+    isRequired: { name: 'isRequired', isAsync: true, evaluate: () => undefined },
+  })
+
   beforeEach(() => {
     ASTTestFactory.resetIds()
     compiler = new ExpressionDispatcher(dependencies)

@@ -1,7 +1,7 @@
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import type { JourneyASTNode, StepASTNode } from '../contracts/ast/structures.type'
 import { ASTNodeType } from '../contracts/ast/enums'
-import type { NodeId } from '../contracts/ast/engine.type'
+import type { ASTNode, NodeId } from '../contracts/ast/engine.type'
 import type { CompiledJourney, CompiledStep, CompiledPackage } from '../contracts/plans/compilationArtefacts.type'
 import type { CompilationPlan } from '../contracts/plans/compilationPlan.type'
 import type { JourneyRouteIndex, StepRouteIndex } from '../contracts/routing/routeDescriptors.type'
@@ -9,30 +9,38 @@ import type { CompilationDependencies } from './lowering/compilationDependencies
 import { NodeIDGenerator } from './ast/ast-state/NodeIDGenerator'
 import { NodeFactory } from './ast/nodes/NodeFactory'
 import ASTNodeIndex from './ast/ast-state/ASTNodeIndex'
-import ASTNodeTree from './ast/ast-state/ASTNodeTree'
 import NodeRegistrationWalker from './ast/ast-state/NodeRegistrationWalker'
 import CompilationPlanBuilder from './dependency-analysis/CompilationPlanBuilder'
 import CodegenOrchestrator from './lowering/CodegenOrchestrator'
 import ASTSemanticValidator from './semantic-analysis/ASTSemanticValidator'
-import getAncestorChain from './ast/ast-state/getAncestorChain'
+import CompilationTracer from '../diagnostics/tracing/CompilationTracer'
 
 type AstContext = {
   rootNode: JourneyASTNode
   nodeRegistry: ASTNodeIndex
-  astNodeTree: ASTNodeTree
 }
 
 export default class CompilationPipeline {
-  constructor(private readonly dependencies: CompilationDependencies) {}
+  private readonly tracer: CompilationTracer
+
+  constructor(private readonly dependencies: CompilationDependencies) {
+    this.tracer = dependencies.tracer ?? CompilationTracer.disabled
+  }
 
   compile(journeyDef: JourneyDefinition): CompiledPackage {
-    const ast = this.buildAstTree(journeyDef)
+    const ast = this.tracer.span('build-ast-tree', 'compilation.ast', () => this.buildAstTree(journeyDef))
 
-    this.validateSemantics(ast)
+    this.tracer.recordJourneyCode(ast.rootNode.properties.code)
 
-    const plan = this.buildCompilationPlan(ast)
-    const compiledArtifacts = this.lowerCompilationPlan(plan, ast.nodeRegistry)
-    const routes = this.buildRouteIndexes(ast)
+    this.tracer.span('validate-semantics', 'compilation.semantic-analysis', () => this.validateSemantics(ast))
+
+    const plan = this.tracer.span('build-compilation-plan', 'compilation.dependency-analysis', () =>
+      this.buildCompilationPlan(ast),
+    )
+    const compiledArtifacts = this.tracer.span('lower-compilation-plan', 'compilation.lowering', () =>
+      this.lowerCompilationPlan(plan),
+    )
+    const routes = this.tracer.span('build-route-indexes', 'compilation.routes', () => this.buildRouteIndexes(ast))
 
     return {
       journeyCode: ast.rootNode.properties.code,
@@ -45,21 +53,19 @@ export default class CompilationPipeline {
     const nodeIdGenerator = new NodeIDGenerator()
     const nodeFactory = new NodeFactory(nodeIdGenerator, journeyDef)
     const nodeRegistry = new ASTNodeIndex()
-    const astNodeTree = new ASTNodeTree()
 
     const rootNode = nodeFactory.createNode(journeyDef) as JourneyASTNode
 
-    const walker = new NodeRegistrationWalker(nodeIdGenerator, nodeRegistry, astNodeTree)
+    const walker = new NodeRegistrationWalker(nodeIdGenerator, nodeRegistry)
 
     walker.register(rootNode)
 
-    return { rootNode, nodeRegistry, astNodeTree }
+    return { rootNode, nodeRegistry }
   }
 
-  private validateSemantics({ nodeRegistry, astNodeTree }: AstContext): void {
+  private validateSemantics({ nodeRegistry }: AstContext): void {
     const validator = new ASTSemanticValidator(
       nodeRegistry,
-      astNodeTree,
       this.dependencies.functionRegistry,
       this.dependencies.componentRegistry,
     )
@@ -67,31 +73,28 @@ export default class CompilationPipeline {
     validator.validate()
   }
 
-  private buildCompilationPlan({ nodeRegistry, astNodeTree }: AstContext): CompilationPlan {
+  private buildCompilationPlan({ nodeRegistry }: AstContext): CompilationPlan {
     const stepNodes = nodeRegistry.findByType<StepASTNode>(ASTNodeType.STEP)
     const journeyNodes = nodeRegistry.findByType<JourneyASTNode>(ASTNodeType.JOURNEY)
 
     const stepIndex = new Map(stepNodes.map(stepNode => [stepNode.id, stepNode]))
     const journeyIndex = new Map(journeyNodes.map(journeyNode => [journeyNode.id, journeyNode]))
 
-    const planBuilder = new CompilationPlanBuilder(nodeRegistry, astNodeTree)
+    const planBuilder = new CompilationPlanBuilder(nodeRegistry)
 
     return planBuilder.buildPlan(stepIndex, journeyIndex)
   }
 
-  private lowerCompilationPlan(
-    plan: CompilationPlan,
-    nodeRegistry: ASTNodeIndex,
-  ): {
+  private lowerCompilationPlan(plan: CompilationPlan): {
     steps: Map<NodeId, CompiledStep>
     journeys: Map<NodeId, CompiledJourney>
   } {
     const codegen = new CodegenOrchestrator(this.dependencies)
 
-    return codegen.compileAll(plan, nodeRegistry)
+    return codegen.compileAll(plan)
   }
 
-  private buildRouteIndexes({ nodeRegistry, astNodeTree }: AstContext): {
+  private buildRouteIndexes({ nodeRegistry }: AstContext): {
     stepRouteIndex: StepRouteIndex
     journeyRouteIndex: JourneyRouteIndex
   } {
@@ -99,54 +102,49 @@ export default class CompilationPipeline {
     const journeyNodes = nodeRegistry.findByType<JourneyASTNode>(ASTNodeType.JOURNEY)
 
     return {
-      stepRouteIndex: this.buildStepRouteIndex(stepNodes, nodeRegistry, astNodeTree),
-      journeyRouteIndex: this.buildJourneyRouteIndex(journeyNodes, nodeRegistry, astNodeTree),
+      stepRouteIndex: this.buildStepRouteIndex(stepNodes),
+      journeyRouteIndex: this.buildJourneyRouteIndex(journeyNodes),
     }
   }
 
-  private buildJourneyRouteIndex(
-    journeyNodes: JourneyASTNode[],
-    nodeRegistry: ASTNodeIndex,
-    astNodeTree: ASTNodeTree,
-  ): JourneyRouteIndex {
+  private buildJourneyRouteIndex(journeyNodes: JourneyASTNode[]): JourneyRouteIndex {
     return new Map(
-      journeyNodes.map(node => {
-        const ancestorJourneyIds = getAncestorChain(node.id, astNodeTree).filter(
-          id => nodeRegistry.get(id)?.type === ASTNodeType.JOURNEY,
-        )
-
-        return [
-          node.id,
-          {
-            nodeId: node.id,
-            path: node.properties.path,
-            ancestorJourneyIds,
-          },
-        ]
-      }),
+      journeyNodes.map(node => [
+        node.id,
+        {
+          nodeId: node.id,
+          path: node.properties.path,
+          ancestorJourneyIds: this.ancestorJourneyIds(node),
+        },
+      ]),
     )
   }
 
-  private buildStepRouteIndex(
-    stepNodes: StepASTNode[],
-    nodeRegistry: ASTNodeIndex,
-    astNodeTree: ASTNodeTree,
-  ): StepRouteIndex {
+  private buildStepRouteIndex(stepNodes: StepASTNode[]): StepRouteIndex {
     return new Map(
-      stepNodes.map(node => {
-        const ancestorJourneyIds = getAncestorChain(node.id, astNodeTree)
-          .filter(id => id !== node.id)
-          .filter(id => nodeRegistry.get(id)?.type === ASTNodeType.JOURNEY)
-
-        return [
-          node.id,
-          {
-            nodeId: node.id,
-            path: node.properties.path,
-            ancestorJourneyIds,
-          },
-        ]
-      }),
+      stepNodes.map(node => [
+        node.id,
+        {
+          nodeId: node.id,
+          path: node.properties.path,
+          ancestorJourneyIds: this.ancestorJourneyIds(node.parent),
+        },
+      ]),
     )
+  }
+
+  /** Journey NodeIds from the outermost ancestor down, walking `parent` from `start`. */
+  private ancestorJourneyIds(start: ASTNode | undefined): NodeId[] {
+    const ids: NodeId[] = []
+    let current = start
+
+    while (current !== undefined) {
+      ids.push(current.id)
+      current = current.parent
+    }
+
+    ids.reverse()
+
+    return ids
   }
 }

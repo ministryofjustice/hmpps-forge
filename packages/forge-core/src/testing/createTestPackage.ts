@@ -1,5 +1,6 @@
 import type { FunctionEvaluator } from '../authoring/types/functions.type'
 import type { ForgePackageRegistration } from '../engine/contracts/ast/engine.type'
+import { isFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
 
 export interface TestPackageOptions {
   /** Function evaluators to replace in the package, keyed by function name. */
@@ -29,11 +30,15 @@ export function createTestPackage<TDeps>(
   pkg: ForgePackageRegistration<TDeps>,
   options: TestPackageOptions = {},
 ): ForgePackageRegistration<TDeps> {
-  if (!options.overrides) {
+  const { functions } = pkg
+
+  // Overrides replace functions by name, which only applies to the deprecated
+  // implementations-map form. Registry-based packages are returned unchanged.
+  if (!options.overrides || Array.isArray(functions) || isFunctionRegistry(functions)) {
     return { ...pkg }
   }
 
-  const merged = { ...pkg.functions }
+  const merged = { ...functions } as Record<string, (deps: TDeps) => FunctionEvaluator>
 
   Object.entries(options.overrides).forEach(([name, evaluator]) => {
     merged[name] = () => evaluator

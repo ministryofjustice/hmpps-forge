@@ -15,6 +15,7 @@ export interface RequestPipelineConfig {
   readonly node: MountedNode
   readonly snapshot: RequestSnapshot
   readonly renderer?: ForgeRenderer<unknown>
+  readonly traceEnabled: boolean
 }
 
 export default class RequestPipelineBootstrap {
@@ -28,7 +29,7 @@ export default class RequestPipelineBootstrap {
 
   buildExecutionContext(state: PipelineState): RequestExecutionContext {
     const { node } = this.config
-    const { functionRegistry, compiledStepValidations } = node
+    const { functionRegistry, componentRegistry, compiledStepValidations } = node
     const compiledValidation = node.kind === 'step' ? node.compiledValidation : undefined
 
     const buildStepValidation = (stepId: NodeId, isSubmission: boolean) =>
@@ -47,8 +48,10 @@ export default class RequestPipelineBootstrap {
       context: state.context,
       responseBindings: state.responseBindings,
       functionRegistry,
+      componentRegistry,
       currentStepId: node.kind === 'step' ? node.nodeId : undefined,
       hasRenderer: this.config.renderer !== undefined,
+      traceEnabled: this.config.traceEnabled,
       buildStepValidation,
       recordStepValidation,
     }

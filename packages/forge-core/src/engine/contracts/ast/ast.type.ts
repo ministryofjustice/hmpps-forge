@@ -26,4 +26,11 @@ export interface ASTNode {
   id: AstNodeId
   diagnostics?: ASTNodeDiagnostics
   properties?: Record<string, any>
+  /**
+   * Direct parent in the registered AST. Assigned top-down by
+   * NodeRegistrationWalker as a non-enumerable field so property walkers never
+   * recurse back up the tree. Undefined on the root and on unregistered template
+   * innards.
+   */
+  readonly parent?: ASTNode
 }

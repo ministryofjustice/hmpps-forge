@@ -68,7 +68,7 @@ points and redirects:
    (unconditional and conditional whose condition is true) and redirects
    to the winner after tie-breaker selection.
 3. If no entry points exist, Forge redirects to the first step.
-4. If the journey has no steps, the request returns a 404.
+4. If the journey has no steps, Forge raises an error.
 
 If a step claims `path: '/'`, it handles the journey root directly and
 this resolution does not apply.
@@ -79,36 +79,39 @@ a user can access, and redirects users who try to skip ahead.
 
 ### Redirect targets in hooks
 
-Hooks can redirect users to other steps or external URLs. Forge
-supports three types of redirect target:
+Hooks can redirect users to other steps or external URLs through
+`redirect()` outcomes in their `next` arrays. Forge supports three
+types of redirect target:
 
 **Absolute paths** start with `/`. Resolved from the application root.
 
 ```typescript
-submit({
-  redirectTo: '/travel-declaration/check-answers',
+redirect({
+  goto: '/travel-declaration/check-answers',
 })
 ```
 
 **Relative paths** do not start with `/`. To redirect to another step in
-the same journey, use the step's path without a leading `/`.
+the same journey, use the step's path without a leading `/`. Plain
+relative paths resolve against the journey's base path.
 
 ```typescript
-submit({
-  redirectTo: 'check-answers',
+redirect({
+  goto: 'check-answers',
 })
 ```
 
 If the current step is at `/travel-declaration/add-trip`, this resolves
 to `/travel-declaration/check-answers`.
 
-Relative paths follow browser URL resolution, so `../` traversal also
+Paths starting with `./` or `../` resolve against the current step's
+URL instead, following browser URL resolution, so `../` traversal
 works for reaching steps in parent or sibling journeys:
 
 ```typescript
 // Current step: /parent/child/details
-submit({
-  redirectTo: '../../other-child/summary',
+redirect({
+  goto: '../other-child/summary',
 })
 // Resolves to: /parent/other-child/summary
 ```
@@ -116,8 +119,8 @@ submit({
 **External URLs** start with `http://` or `https://`. Used as-is.
 
 ```typescript
-submit({
-  redirectTo: 'https://example.com/confirmation',
+redirect({
+  goto: 'https://example.com/confirmation',
 })
 ```
 
@@ -127,10 +130,10 @@ submit({
 
 ### `reachability` on journeys (Optional)
 
-Journey-level reachability configuration. Has two properties:
+Journey-level reachability configuration. Has three properties:
 
 **`resumeWhen`** controls whether Forge's resume behaviour is active
-for this journey. When `true`, every request to the journey - whether
+for this journey. When `true`, every GET request to the journey - whether
 to the root or to a specific step - redirects the user to their
 furthest incomplete step. When omitted, users can access any reachable
 step freely.
@@ -151,6 +154,12 @@ journey({
 (resume only when the condition evaluates to true). A common pattern
 is to use a query parameter so that task list links can include
 `?resume=true` while change links do not.
+
+**`unreachableRedirect`** controls where Forge sends users who request
+a step that is not reachable. `'entry'` redirects to the default active
+entry point, `'frontier'` redirects to the current frontier when one
+exists, falling back to the entry point. When omitted, it behaves as
+`'entry'`.
 
 **`disableReachabilityChecks`** skips the reachability BFS walk for
 this journey. All steps are treated as reachable without needing entry
@@ -218,9 +227,9 @@ reachability: {
 }
 ```
 
-### `redirectTo` (Optional)
+### `goto` (Required on `redirect()`)
 
-The target path or URL to redirect to after a hook completes.
+The target path or URL a `redirect()` outcome sends the user to.
 Can be an absolute path (`/travel-declaration/check-answers`), a
 relative path (`check-answers`), or an external URL
 (`https://example.com/confirmation`).

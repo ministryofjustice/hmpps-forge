@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ASTTestFactory } from '../../../ast/testing-helpers/ASTTestFactory'
 import { FunctionType, HookType, PredicateType } from '../../../../../authoring/types/enums'
-import { FormatGeneratorsRegistry } from '../../../../../authoring/generators/formatGenerators'
+import { formatGeneratorsRegistry } from '../../../../../authoring/generators/formatGenerators'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../../registries/ComponentRegistry'
 import { AccessHookASTNode, SubmitHookASTNode } from '../../../../contracts/ast/expressions.type'
@@ -23,6 +23,7 @@ import WorkContext from '../../../../runtime/evaluation/work/WorkContext'
 import WorkExecutor from '../../../../runtime/evaluation/work/WorkExecutor'
 import { createWorkTask, isWorkTask } from '../../../../runtime/evaluation/work/workTask'
 import type { WorkTask, WorkHandler } from '../../../../contracts/runtime/work.type'
+import type { SubmitLifecycleWorkTask } from '../../../../contracts/runtime/SubmitLifecycleWork.type'
 import WorkTaskFactory from '../../../../runtime/evaluation/work/WorkTaskFactory'
 
 function createPredicate(answerCode: string, functionName = 'isRequired'): TestPredicateASTNode {
@@ -146,7 +147,7 @@ describe('HookLifecycleCompiler', () => {
     functionRegistry = new FunctionRegistry()
     compiler = new HookLifecycleCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
     functionRegistry.register({
-      ...FormatGeneratorsRegistry,
+      ...formatGeneratorsRegistry.build(),
       isRequired: {
         name: 'isRequired',
         isAsync: false,
@@ -338,6 +339,7 @@ describe('HookLifecycleCompiler', () => {
       const validRedirect = ASTTestFactory.redirectOutcome({ goto: '/valid' })
       const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('validate', true)
+        .withProperty('validationGroups', ['default'])
         .withProperty('onAlways', {
           effects: [ASTTestFactory.functionExpression(FunctionType.EFFECT, 'submitEffect')],
           next: [alwaysRedirect],
@@ -372,6 +374,7 @@ describe('HookLifecycleCompiler', () => {
       })
       const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('validate', true)
+        .withProperty('validationGroups', ['default'])
         .withProperty('onInvalid', {
           next: [errorOutcome],
         })
@@ -395,7 +398,7 @@ describe('HookLifecycleCompiler', () => {
       })
     })
 
-    it('should call validation callback with hook validation groups', async () => {
+    it('should compile hook validation groups into the submit validation task', async () => {
       // Arrange
       const hook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('validate', true)
@@ -406,9 +409,11 @@ describe('HookLifecycleCompiler', () => {
       const ctx = createContext(functionRegistry, { buildStepValidation })
 
       // Act
-      const result = await executeCompiledSubmitHooks(fn!, ctx)
+      const lifecycleTask = (await fn(ctx)) as SubmitLifecycleWorkTask
+      const result = await executeCompiledSubmitHooks(fn, ctx)
 
       // Assert
+      expect(lifecycleTask.props.hooks[0]?.props.validation?.props.groups).toEqual(['lookup'])
       expect(buildStepValidation).toHaveBeenCalledWith('submit-step', true)
       expect(result).toEqual({
         executed: true,

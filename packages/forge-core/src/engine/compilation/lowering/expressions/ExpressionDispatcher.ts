@@ -12,6 +12,7 @@ import ConditionalNodeCompiler from './ConditionalNodeCompiler'
 import MatchNodeCompiler from './MatchNodeCompiler'
 import { isASTNode } from '../../../contracts/ast/nodes'
 import type { CompilationDependencies } from '../compilationDependencies.type'
+import CompilationTracer from '../../../diagnostics/tracing/CompilationTracer'
 import { compileIifeExpression } from './IifeExpressionCompiler'
 
 export type { IteratorScopeFrame } from './types'
@@ -62,6 +63,10 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
 
   get usesAwait(): boolean {
     return this.usedAwait
+  }
+
+  get tracer(): CompilationTracer {
+    return this.dependencies.tracer ?? CompilationTracer.disabled
   }
 
   /**
@@ -507,10 +512,17 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Emits a registered function call through shared helpers when diagnostics are available.
+   * Emits a registered function call through the shared evaluation helper, so
+   * schema validation and diagnostics tracking always run.
    */
   compileFunctionCall(funcName: string, argExprs: string[], source?: unknown): string {
-    const callIsAsync = this.dependencies.functionRegistry.get(funcName)?.isAsync ?? true
+    const registeredFunction = this.dependencies.functionRegistry.get(funcName)
+
+    if (!registeredFunction) {
+      throw new Error(`Function "${funcName}" missing from registry`)
+    }
+
+    const callIsAsync = registeredFunction.isAsync
 
     if (callIsAsync) {
       this.usedAwait = true
@@ -518,16 +530,6 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
 
     const helperName = callIsAsync ? 'evaluateFunctionAsync' : 'evaluateFunction'
     const helperCall = this.diagnostics.wrapFunctionCall(helperName, funcName, argExprs, source)
-
-    if (helperCall === undefined) {
-      const callExpr = `ctx.conditions.get(${JSON.stringify(funcName)}).evaluate(${argExprs.join(', ')})`
-
-      if (callIsAsync) {
-        return `(await ${callExpr})`
-      }
-
-      return callExpr
-    }
 
     if (callIsAsync) {
       return `(await ${helperCall})`

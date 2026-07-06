@@ -1,3 +1,4 @@
+import type { MockInstance } from 'vitest'
 import { buildComponent } from '../components/utils/buildComponent'
 import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
@@ -307,6 +308,22 @@ describe('Forge', () => {
   })
 
   describe('getRouter()', () => {
+    const SEEN_CODES = Symbol.for('forge:deprecations')
+    const deprecationMessage =
+      'frameworkAdapter and getRouter() are deprecated - build framework routers directly, ' +
+      'for example createExpressRouter(forge, options).'
+    let emitWarning: MockInstance<typeof process.emitWarning>
+
+    beforeEach(() => {
+      // Reset the process-global dedup set so each case observes the once-only warning.
+      delete (globalThis as Record<symbol, unknown>)[SEEN_CODES]
+      emitWarning = vi.spyOn(process, 'emitWarning').mockImplementation(() => {})
+    })
+
+    afterEach(() => {
+      emitWarning.mockRestore()
+    })
+
     it('should build the router through the deprecated framework adapter', () => {
       // Arrange
       const router = { kind: 'router' }
@@ -319,9 +336,10 @@ describe('Forge', () => {
       // Assert
       expect(result).toBe(router)
       expect(frameworkAdapter.build).toHaveBeenCalledWith(engine)
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        '[Forge] `frameworkAdapter` and `getRouter()` are deprecated. Build the router directly instead.',
-      )
+      expect(emitWarning).toHaveBeenCalledWith(deprecationMessage, {
+        type: 'DeprecationWarning',
+        code: 'FORGE_DEP_getRouter',
+      })
     })
 
     it('should throw when no framework adapter is configured', () => {
@@ -333,9 +351,10 @@ describe('Forge', () => {
 
       // Assert
       expect(act).toThrow('getRouter() requires a frameworkAdapter')
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        '[Forge] `frameworkAdapter` and `getRouter()` are deprecated. Build the router directly instead.',
-      )
+      expect(emitWarning).toHaveBeenCalledWith(deprecationMessage, {
+        type: 'DeprecationWarning',
+        code: 'FORGE_DEP_getRouter',
+      })
     })
   })
 

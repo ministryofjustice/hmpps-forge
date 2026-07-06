@@ -36,7 +36,7 @@ It does not persist work, retry work, or schedule work outside the current reque
 - Drain child `WorkGroup`s in `sequential`, `concurrent`, or `first-match` mode.
 - Pass a scoped `WorkContext` to every handler.
 - Fold child outputs through the parent handler's `complete()` method.
-- Record `WorkUnit` trace nodes as the tree runs.
+- Record `TraceSpan` trace nodes as the tree runs.
 - Serialize work-unit trees for request traces.
 - Replace nested `WorkTask` props with completed outputs when a handler needs renderable values.
 - Preserve partial trace state when execution fails.
@@ -69,7 +69,7 @@ Its optional `complete(ctx, children)` folds completed child work into the handl
 `CompletedWork` is the immutable result returned by the executor.
 It contains the task `key`, handler `kind`, handler `output`, and completed child results.
 
-`WorkUnit` is the mutable trace node created while a task runs.
+`TraceSpan` is the mutable trace node created while a task runs.
 It records key, kind, parent, children, timing, begin fields, complete fields, output, and `omitFromTrace`.
 
 `WorkContext` carries the request context and the current task props.
@@ -131,13 +131,13 @@ The handler owns the domain meaning of the output.
 ## Flow
 
 Work execution starts when runtime calls `WorkExecutor.execute()` or `WorkExecutor.executeWithUnit()` with a root `WorkTask` and root `WorkContext`.
-Each task creates one `WorkUnit`, runs `begin()`, executes any child groups, then runs `complete()` or returns the begin output.
+Each task creates one `TraceSpan`, runs `begin()`, executes any child groups, then runs `complete()` or returns the begin output.
 
 ```mermaid
 flowchart TD
   task["WorkTask"] -->|execute root task| executor["WorkExecutor.execute()"]
-  executor -->|create trace node| workUnit["WorkUnit"]
-  workUnit -->|scope request + props| workContext["WorkContext.withWork()"]
+  executor -->|create trace node| traceSpan["TraceSpan"]
+  traceSpan -->|scope request + props| workContext["WorkContext.withWork()"]
   workContext -->|record start metadata| startTrace["resolveTraceMetadataAtStart()"]
   startTrace -->|run handler| begin["WorkHandler.begin()"]
   begin --> hasGroups{"Child groups?"}
@@ -156,17 +156,17 @@ flowchart TD
 ```
 
 - [WorkExecutor.ts](WorkExecutor.ts) owns the execution loop.
-  `execute()` returns `CompletedWork`; `executeWithUnit()` also returns the root `WorkUnit` and wraps failures in `WorkExecutionError`.
-- [WorkContext.ts](WorkContext.ts) carries the request context, current props, and current `WorkUnit`.
+  `execute()` returns `CompletedWork`; `executeWithUnit()` also returns the root `TraceSpan` and wraps failures in `WorkExecutionError`.
+- [WorkContext.ts](WorkContext.ts) carries the request context, current props, and current `TraceSpan`.
   `withWork()` keeps the request context shared while giving each task its own props and trace node.
-- [WorkUnit.ts](WorkUnit.ts) records the trace tree.
+- [TraceSpan.ts](../../../diagnostics/tracing/TraceSpan.ts) records the trace tree.
   It is mutable while work runs and read later by trace projection.
 - [workTask.ts](workTask.ts) creates branded tasks and provides child-output helpers such as `singleChildOutput()`, `childOutputs()`, and `findChildByTask()`.
 - [WorkTaskFactory.ts](WorkTaskFactory.ts) wires known work kinds to their handlers and instrumentation.
   It is the main factory used by compiled functions and request pipeline builders.
 - [WorkTaskPropsWalker.ts](WorkTaskPropsWalker.ts) finds nested `WorkTask`s inside plain props and replaces them with completed outputs.
   Resolve uses it when block props contain nested render work.
-- [tracing/WorkUnitTraceSerializer.ts](tracing/WorkUnitTraceSerializer.ts) turns a `WorkUnit` tree into trace data and drops children marked `omitFromTrace`.
+- [TraceSpanSerializer.ts](../../../diagnostics/tracing/TraceSpanSerializer.ts) turns a `TraceSpan` tree into trace data and drops children marked `omitFromTrace`.
 - [tracing/contextSnapshot.ts](tracing/contextSnapshot.ts) deep-clones request evaluation state for after-phase trace snapshots.
 
 ## Boundaries
@@ -181,7 +181,7 @@ flowchart TD
   It should not import phase handlers.
 - `WorkContext` owns request and props threading.
   It should not clone request state or isolate phase state.
-- `WorkUnit` owns trace state.
+- `TraceSpan` owns trace state.
   It should not decide which request outcome or phase output is correct.
 - `WorkTaskPropsWalker` owns positional task collection and output replacement inside plain props.
   It should not execute tasks.
@@ -191,7 +191,7 @@ flowchart TD
 ## Quirks
 
 - `execute()` and `executeWithUnit()` differ only in failure shape and trace access.
-  `executeWithUnit()` is used when callers need the partial `WorkUnit` tree after a failure.
+  `executeWithUnit()` is used when callers need the partial `TraceSpan` tree after a failure.
 - `concurrent` groups preserve child declaration order in results.
   `Promise.all()` lets children run together, but the completed array still lines up with the original children.
 - `first-match` is sequential.
@@ -203,7 +203,7 @@ flowchart TD
 - `WorkTaskPropsWalker` only walks arrays and plain records.
   It ignores dates, class instances, primitives, malformed task-like objects, and task props below a valid task boundary.
 - `omitFromTrace()` is best effort.
-  It only works when the current context has a real `WorkUnit`.
+  It only works when the current context has a real `TraceSpan`.
 
 ## Constraints
 
@@ -215,12 +215,12 @@ flowchart TD
   `WorkTaskPropsWalker.replaceCompletedOutputs()` depends on the completed work array matching collection order.
 - Do not swallow handler or instrumentation errors.
   Runtime needs real failures, and `executeWithUnit()` needs to carry the partial tree through `WorkExecutionError`.
-- Only use `WorkUnit` as the parent trace object inside `WorkExecutor`.
-  A foreign `WorkUnitReference` cannot be mutated safely into the trace tree.
+- Only use `TraceSpan` as the parent trace object inside `WorkExecutor`.
+  A foreign `TraceSpanReference` cannot be mutated safely into the trace tree.
 - Keep task branding on `FORGE_WORK`.
   `isWorkTask()` and `WorkTaskPropsWalker` use the brand to distinguish work tasks from render blocks and ordinary records.
-- Do not expose `WorkUnit` as the stable output of execution.
-  `CompletedWork` is the execution result; `WorkUnit` is trace state.
+- Do not expose `TraceSpan` as the stable output of execution.
+  `CompletedWork` is the execution result; `TraceSpan` is trace state.
 - Do not make work handlers call request pipeline or compiler code directly.
   Work handlers execute runtime work for the current request; compilation must already be done.
 
@@ -240,7 +240,7 @@ flowchart TD
   Do not hand-cast `CompletedWork.output` in handlers unless the generic helper cannot express the lookup.
 - To support nested tasks inside props, use [WorkTaskPropsWalker.ts](WorkTaskPropsWalker.ts).
   Keep collect and replacement traversal aligned, or duplicate keys can pair with the wrong output.
-- To change trace projection, start in [tracing/WorkUnitTraceSerializer.ts](tracing/WorkUnitTraceSerializer.ts).
+- To change trace projection, start in [TraceSpanSerializer.ts](../../../diagnostics/tracing/TraceSpanSerializer.ts).
   Do not put trace serialization rules in `WorkExecutor`.
 
 ## Entry Points
@@ -249,10 +249,11 @@ flowchart TD
 - [workTask.ts](workTask.ts) answers how work tasks are created, identified, and read from completed children.
 - [WorkTaskFactory.ts](WorkTaskFactory.ts) answers which known runtime handlers are wired to which task kinds.
 - [WorkContext.ts](WorkContext.ts) answers how request context and task props are threaded through execution.
-- [WorkUnit.ts](WorkUnit.ts) answers how the live trace tree is recorded.
+- [TraceSpan.ts](../../../diagnostics/tracing/TraceSpan.ts) answers how the live trace tree is recorded.
 - [WorkExecutionError.ts](WorkExecutionError.ts) answers how a failed execution carries the partial work tree.
 - [WorkTaskPropsWalker.ts](WorkTaskPropsWalker.ts) answers how nested work tasks inside props are collected and replaced.
-- [tracing/WorkUnitTraceSerializer.ts](tracing/WorkUnitTraceSerializer.ts) answers how live work units become trace output.
+- [TraceSpanSerializer.ts](../../../diagnostics/tracing/TraceSpanSerializer.ts) answers how live work units become trace output.
 - [tracing/contextSnapshot.ts](tracing/contextSnapshot.ts) answers how request evaluation state is captured for phase traces.
-- [../../../contracts/runtime/work.type.ts](../../../contracts/runtime/work.type.ts) defines `WorkTask`, `WorkHandler`, `WorkBegin`, `WorkGroup`, `CompletedWork`, and `WorkUnitContract`.
+- [../../../contracts/runtime/work.type.ts](../../../contracts/runtime/work.type.ts) defines `WorkTask`, `WorkHandler`, `WorkBegin`, `WorkGroup`, and `CompletedWork`.
+- [../../../diagnostics/tracing/traceSpan.type.ts](../../../diagnostics/tracing/traceSpan.type.ts) defines `TraceSpanContract`, `TraceSpanReference`, `TraceSpanFields`, and `SerializedTraceSpan`.
 - [../../../contracts/runtime/workOutput.type.ts](../../../contracts/runtime/workOutput.type.ts) maps work kinds to their output types.

@@ -1,5 +1,6 @@
-import { FunctionType } from '../types/enums'
-import { buildExpressionFunctions, extractFactories } from './defineFunction'
+import { FunctionType } from '../../types/enums'
+import { ForgeDeprecations } from '../../../shared/utils/ForgeDeprecations'
+import { buildExpressionFunctions, tagFunctionType } from './defineFunction'
 import type {
   FunctionImplementations,
   FunctionShapeMap,
@@ -20,6 +21,8 @@ import type {
  * Each transformer factory receives dependencies and returns an evaluator function.
  * The evaluator's first parameter (`value`) is injected by the engine at runtime -
  * the returned `transformers` builders only expose the remaining configuration arguments.
+ *
+ * @deprecated Use TransformerRegistry instead.
  *
  * @param factories - Transformer factories keyed by function name
  *
@@ -57,8 +60,16 @@ export function defineTransformerFunctions<TShapes extends FunctionShapeMap, TDe
   transformers: TransformerFunctions<TShapes>
   implementations: FunctionImplementations<TShapes, TDeps>
 } {
+  ForgeDeprecations.warn(
+    'FORGE_DEP_defineTransformerFunctions',
+    'defineTransformerFunctions is deprecated - use TransformerRegistry instead.',
+  )
+
   return {
     transformers: buildExpressionFunctions(factories, FunctionType.TRANSFORMER) as TransformerFunctions<TShapes>,
-    implementations: extractFactories(factories) as unknown as FunctionImplementations<TShapes, TDeps>,
+    implementations: tagFunctionType(factories, FunctionType.TRANSFORMER) as unknown as FunctionImplementations<
+      TShapes,
+      TDeps
+    >,
   }
 }

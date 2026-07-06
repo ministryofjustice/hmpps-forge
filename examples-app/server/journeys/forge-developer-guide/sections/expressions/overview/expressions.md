@@ -1,7 +1,7 @@
 ---
 title: Authoring language
 section: authoring-language
-path: authoring-language
+path: authoring-language/overview
 teaches: [expressions, evaluation, dynamic-properties, references, functions]
 prerequisites: [block, field, step, journey]
 ---

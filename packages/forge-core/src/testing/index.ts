@@ -10,3 +10,10 @@ export type {
   RequestTracePhase,
   RequestTraceUnit,
 } from '../engine/contracts/runtime/trace.type'
+export type {
+  CompilationTrace,
+  CompilationTraceError,
+  CompilationTraceEvent,
+  CompilationTracePhase,
+} from '../engine/diagnostics/tracing/compilationTrace.type'
+export type { SerializedTraceSpan } from '../engine/diagnostics/tracing/traceSpan.type'

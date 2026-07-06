@@ -1,7 +1,19 @@
+import { ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
+import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import type { BlockASTNode } from '../../../contracts/ast/structures.type'
 import UnregisteredComponentError from '../../../errors/UnregisteredComponentError'
+import type { DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
+import { walkTemplateValue } from './templateWalker'
+
+function buildError(variant: string, source: DSLSourceLocation | undefined): UnregisteredComponentError {
+  return new UnregisteredComponentError({
+    path: source?.path ? [...source.path] : [],
+    formattedPath: source?.formattedPath ?? 'unknown',
+    variant,
+  })
+}
 
 export const validateRegisteredComponents: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
   const { nodeIndex, componentRegistry } = context
@@ -14,15 +26,37 @@ export const validateRegisteredComponents: ASTValidationRule = (context: ASTVali
       return
     }
 
-    const source = node.diagnostics?.source
+    errors.push(buildError(node.variant, node.diagnostics?.source))
+  })
 
-    errors.push(
-      new UnregisteredComponentError({
-        path: source?.path ? [...source.path] : [],
-        formattedPath: source?.formattedPath ?? 'unknown',
-        variant: node.variant,
-      }),
+  const iterateNodes = nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE)
+
+  iterateNodes.forEach(iterateNode => {
+    const { iterator } = iterateNode.properties
+
+    const templates = [iterator.yieldTemplate, iterator.predicateTemplate].filter(
+      (t): t is NonNullable<typeof t> => t !== undefined,
     )
+
+    templates.forEach(template => {
+      walkTemplateValue(template, {
+        onTemplateNode(templateNode, templateMetadata) {
+          if (templateNode.originalType !== ASTNodeType.BLOCK) {
+            return
+          }
+
+          const variant = (templateNode as Record<string, unknown>).variant
+
+          if (typeof variant !== 'string') {
+            return
+          }
+
+          if (!componentRegistry.has(variant)) {
+            errors.push(buildError(variant, templateMetadata))
+          }
+        },
+      })
+    })
   })
 
   return errors

@@ -76,7 +76,7 @@ Expressions build on references. They describe *what to do*
 with a value once it exists, without doing it yet:
 
 ```typescript
-Answer('dateOfBirth').pipe(Transformer.Date.Format('d MMMM yyyy'))
+Answer('dateOfBirth').pipe(Transformer.Date.Format('D MMMM YYYY'))
 ```
 
 This does not format a date. It creates a definition that says:
@@ -112,19 +112,21 @@ evaluation happens, Forge calls your function and passes in
 concrete values:
 
 ```typescript
-defineConditionFunctions({
-  IsEligible: () => (value: unknown, minAge: number) => {
-    // value is a real number here ─┘
-    return (value as number) >= minAge
-  },
+import { ConditionRegistry, TransformerRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
+
+const conditions = new ConditionRegistry()
+const transformers = new TransformerRegistry()
+
+const IsEligible = conditions.register('IsEligible', () => (value: unknown, minAge: number) => {
+  // value is a real number here ─┘
+  return (value as number) >= minAge
 })
 
-defineTransformerFunctions({
-  FormatName: () => (value: unknown) => {
-    // value is the actual answer ─┘
-    const { first, last } = value as Name
-    return `${first} ${last}`
-  },
+const FormatName = transformers.register('FormatName', () => (value: unknown) => {
+  // value is the actual answer ─┘
+  const { first, last } = value as Name
+
+  return `${first} ${last}`
 })
 ```
 
@@ -150,9 +152,11 @@ Inside your registered function, you work with concrete values
 that Forge has already resolved:
 
 ```typescript
-// Runtime: receives the resolved value from the reference
-IsEligible: () => (value: unknown, minAge: number) => {
-  return (value as number) >= minAge
+// Runtime: register() ties the name to the function; deps arrive first, the resolved value second
+export const MyConditions = {
+  IsEligible: conditions.register('IsEligible', () => (value: unknown, minAge: number) => {
+    return (value as number) >= minAge
+  }),
 }
 ```
 
@@ -169,11 +173,10 @@ them inside a registered function body:
 
 ```typescript
 // ✗ Wrong  - Answer() inside a registered function
-defineTransformerFunctions({
-  BuildGreeting: () => (value: unknown) => {
-    const name = Answer('firstName')  // returns a definition object, not a string
-    return `Hello, ${name}`           // "Hello, [object Object]"
-  },
+transformers.register('BuildGreeting', () => (value: unknown) => {
+  const name = Answer('firstName')  // returns a definition object, not a string
+
+  return `Hello, ${name}`           // "Hello, [object Object]"
 })
 ```
 
@@ -188,14 +191,12 @@ so the reference is in the definition:
 
 ```typescript
 // ✓ Option 1: Use the value Forge passes to your function
-defineTransformerFunctions({
-  BuildGreeting: () => (value: unknown) => {
-    return `Hello, ${value}`  // value is the resolved answer
-  },
+const BuildGreeting = transformers.register('BuildGreeting', () => (value: unknown) => {
+  return `Hello, ${value}`  // value is the resolved answer
 })
 
 // In the definition, pipe the reference through your transformer:
-Answer('firstName').pipe(Transformer.BuildGreeting())
+Answer('firstName').pipe(BuildGreeting())
 ```
 
 ```typescript

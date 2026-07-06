@@ -42,7 +42,6 @@ describe('BlockFactory', () => {
       expect(result.type).toBe(ASTNodeType.BLOCK)
       expect(result.variant).toBe('TestBlock')
       expect(result.blockType).toBe(BlockType.BASIC)
-      expect(result).not.toHaveProperty('raw')
     })
 
     it('should exclude type and variant from properties', () => {

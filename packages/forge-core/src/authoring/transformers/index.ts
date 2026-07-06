@@ -1,10 +1,31 @@
-import { ArrayTransformers, ArrayTransformersRegistry } from './arrayTransformers'
-import { DateTransformers, DateTransformersRegistry } from './dateTransformers'
-import { NumberTransformers, NumberTransformersRegistry } from './numberTransformers'
-import { ObjectTransformers, ObjectTransformersRegistry } from './objectTransformers'
-import { StringTransformers, StringTransformersRegistry } from './stringTransformers'
+import { ArrayTransformers, arrayTransformersRegistry } from './arrayTransformers'
+import { DateTransformers, dateTransformersRegistry } from './dateTransformers'
+import { NumberTransformers, numberTransformersRegistry } from './numberTransformers'
+import { ObjectTransformers, objectTransformersRegistry } from './objectTransformers'
+import { StringTransformers, stringTransformersRegistry } from './stringTransformers'
 
-export const Transformer = {
+// TypeScript declaration emit drops JSDoc when it structurally expands a type
+// imported from another file, so the built .d.ts would lose every per-function
+// doc comment. Annotating with `typeof` references makes the emitter print a
+// reference instead of expanding, keeping the docs on each group's own declaration.
+interface TransformerGroups {
+  /** Transformers for handling strings */
+  String: typeof StringTransformers
+
+  /** Transformers for handling numbers */
+  Number: typeof NumberTransformers
+
+  /** Transformers for handling arrays */
+  Array: typeof ArrayTransformers
+
+  /** Transformers for handling objects */
+  Object: typeof ObjectTransformers
+
+  /** Transformers for handling dates */
+  Date: typeof DateTransformers
+}
+
+export const Transformer: TransformerGroups = {
   /** Transformers for handling strings */
   String: StringTransformers,
 
@@ -22,9 +43,9 @@ export const Transformer = {
 }
 
 export const TransformersRegistry = {
-  ...StringTransformersRegistry,
-  ...NumberTransformersRegistry,
-  ...ArrayTransformersRegistry,
-  ...ObjectTransformersRegistry,
-  ...DateTransformersRegistry,
+  ...stringTransformersRegistry.build(),
+  ...numberTransformersRegistry.build(),
+  ...arrayTransformersRegistry.build(),
+  ...objectTransformersRegistry.build(),
+  ...dateTransformersRegistry.build(),
 }

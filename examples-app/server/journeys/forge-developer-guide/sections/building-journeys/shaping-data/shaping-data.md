@@ -3,7 +3,7 @@ title: Shaping data for rendering
 section: building-journeys
 path: building-journeys/shaping-data
 teaches: [derive-transformer, data-shaping, view-model, raw-data-to-render-model, inline-data-shaping]
-prerequisites: [Data, pipe, Transformer, defineTransformerFunctions, access-patterns, createFunctionScope]
+prerequisites: [Data, pipe, Transformer, TransformerRegistry, access-patterns]
 ---
 
 <p class="govuk-caption-xl">Working with data</p>
@@ -78,7 +78,12 @@ GovUKSummaryList({
     },
     {
       key: { text: 'Next appointment' },
-      value: { text: Data('case.nextAppointment').pipe(Transformer.Date.Format('d MMMM yyyy, h:mma')) },
+      value: {
+        text: Data('case.nextAppointment').pipe(
+          Transformer.String.ToDate(),
+          Transformer.Date.Format('Do MMMM YYYY, HH:mm'),
+        ),
+      },
     },
   ],
 })
@@ -181,57 +186,70 @@ A derive transformer converts raw data into a render-ready shape.
 There are two ways to define one, depending on whether it is
 shared or local.
 
-### Shared transformers with defineTransformerFunctions
+### Shared transformers with a TransformerRegistry
 
 When a transformer is used across multiple steps or is complex
-enough to warrant its own tests, use `defineTransformerFunctions`.
+enough to warrant its own tests, register it on a
+`TransformerRegistry` and export the handle for definitions to use.
 See [Custom transformers](../building-functions-and-components/custom-transformers)
 for the full pattern.
 
 ```typescript
-import { defineTransformerFunctions } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { TransformerRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
 
-export const { transformers: CaseTransformers, implementations: caseTransformerImplementations } =
-  defineTransformerFunctions<CaseTransformerShape>({
-    ToCaseSummaryRows: () => (value: unknown) => {
-      const data = value as CaseData
+const caseTransformers = new TransformerRegistry()
 
-      return [
-        { key: { text: 'Name' }, value: { text: `${data.person.firstName} ${data.person.lastName}` } },
-        { key: { text: 'Status' }, value: { html: statusTag(data.status) } },
-      ]
-    },
-  })
+export const CaseTransformers = {
+  ToCaseSummaryRows: caseTransformers.register('ToCaseSummaryRows', () => (value: unknown) => {
+    const data = value as CaseData
+
+    return [
+      { key: { text: 'Name' }, value: { text: `${data.person.firstName} ${data.person.lastName}` } },
+      { key: { text: 'Status' }, value: { html: statusTag(data.status) } },
+    ]
+  }),
+}
+
+export { caseTransformers }
 ```
 
-### Inline transformers with createFunctionScope
+`register()` returns a callable handle, so definitions call
+`CaseTransformers.ToCaseSummaryRows()` to build the piped
+expression. The `caseTransformers` registry itself is what you pass
+to `createForgePackage({ functions })`.
 
-When a transformer only serves one block, define it inline using a
-function scope. See [Inlining functions](../building-functions-and-components/inline-functions)
+### Inline transformers with anonymous registration
+
+When a transformer only serves one block, register it anonymously
+on a registry right where it is used. Omitting the name lets the
+registry auto-name the registration. See
+[Inlining functions](../building-functions-and-components/inline-functions)
 for the full API.
 
 ```typescript
-import { Data } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { Data, TransformerRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovUKSummaryList } from '@ministryofjustice/hmpps-forge/govuk-components'
-import { MyFunctions } from '../../functions'
+
+const myTransformers = new TransformerRegistry()
 
 export const caseSummary = GovUKSummaryList({
   rows: Data('case').pipe(
-    MyFunctions.transformer('ToCaseSummaryRows', () => (value: unknown) => {
+    myTransformers.register(() => (value: unknown) => {
       const data = value as CaseData
 
       return [
         { key: { text: 'Name' }, value: { text: `${data.person.firstName} ${data.person.lastName}` } },
         { key: { text: 'Status' }, value: { html: statusTag(data.status) } },
       ]
-    }),
+    })(),
   ),
 })
 ```
 
-Both approaches go through the same registry and evaluation
-pipeline. The choice is about where the code lives, not how it
-runs.
+The registration returns a handle, so it is invoked immediately —
+the trailing `()` produces the piped expression. Both approaches go
+through the same registry and evaluation pipeline. The choice is
+about where the code lives, not how it runs.
 
 ---
 

@@ -9,8 +9,8 @@ import type {
   WorkTask,
   WorkHandler,
   WorkInstrumentation,
-  WorkUnitFields,
 } from '../../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
 
 export type ResolveBlockWorkProps = CompiledResolveBlockWorkProps
 
@@ -83,7 +83,7 @@ function isStringRecord(value: unknown): value is Record<string, unknown> {
   return value !== undefined && value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
-function traceBegin(props: ResolveBlockWorkProps): WorkUnitFields {
+function traceBegin(props: ResolveBlockWorkProps): TraceSpanFields {
   return {
     id: props.id,
     variant: props.variant,
@@ -91,8 +91,9 @@ function traceBegin(props: ResolveBlockWorkProps): WorkUnitFields {
   }
 }
 
-function traceComplete(output: RenderBlock): WorkUnitFields {
+function traceComplete(output: RenderBlock): TraceSpanFields {
   return {
     visible: output.properties.visibleWhen !== false,
+    properties: output.properties,
   }
 }

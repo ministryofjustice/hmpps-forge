@@ -44,6 +44,8 @@ five per page. Following the flow shows:
 - **CollectionBlock** rendering the current page of results.
 - **Conditional Previous and Next links** deriving their URLs from
   `Data()` expressions.
+- **Numbered page links** built dynamically with `Iterator.Map` and
+  `Loop.Index()`.
 
 ---
 
@@ -101,8 +103,19 @@ GovUKPagination({
       Condition.Number.LessThan(Data('pages').pipe(Transformer.Array.Length())),
     ),
   },
+  items: Data('pages').each(
+    Iterator.Map({
+      number: Loop.Index(),
+      href: Format('?page=%1', Loop.Index()),
+      current: Loop.Index().match(Condition.Equals(Data('currentPage'))),
+    }),
+  ),
 })
 ```
+
+The `items` array maps over the page-count array set by the effect,
+using `Loop.Index()` (1-based) as both the page number and the link
+target.
 
 The page label can be generated the same way:
 
@@ -116,9 +129,9 @@ GovUKBody({
 
 ## Variations
 
-- **Numbered pages.** Use `GovUKPagination` with static `items` for
-  a fixed number of pages, or build dynamic page number links with
-  `CollectionBlock` and `Iterator.Map`.
+- **Previous and Next only.** Omit the `items` array to show just the
+  Previous and Next links, which suits very long result sets where
+  jumping to an arbitrary page is less useful.
 - **Combined with search.** Add pagination to search results by
   reading both `?q` and `?page` query parameters in the same effect.
 - **Page size selector.** Let users choose how many items per page

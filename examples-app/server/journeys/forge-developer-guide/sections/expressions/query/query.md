@@ -60,9 +60,10 @@ current request's query string. If the parameter is present, the
 expression resolves to its string value. If it is absent, it
 resolves to `undefined`.
 
-Query string values are always strings. A URL like `?page=2` gives
-`Query('page')` the value `'2'`, not the number `2`. Use `.pipe()`
-with a transformer if you need a different type.
+Query string values are always strings (or arrays of strings when a
+parameter repeats). A URL like `?page=2` gives `Query('page')` the
+value `'2'`, not the number `2`. Use `.pipe()` with a transformer if
+you need a different type.
 
 In effect functions, the same values are available through
 `context.getQueryParam(key)` and `context.getAllQueryParams()`:
@@ -102,9 +103,11 @@ Use `Format()` to carry query parameters through to other URLs,
 so context is not lost when the user navigates:
 
 ```typescript
-backlink: when(Query('type').match(Condition.IsRequired()))
-  .then(Format('overview?type=%1', Query('type')))
-  .else('overview')
+GovUKBackLink({
+  href: when(Query('type').match(Condition.IsRequired()))
+    .then(Format('overview?type=%1', Query('type')))
+    .else('overview'),
+})
 ```
 
 ### Pre-filling fields

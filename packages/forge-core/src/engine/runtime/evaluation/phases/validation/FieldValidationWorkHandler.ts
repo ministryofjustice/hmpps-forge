@@ -1,10 +1,6 @@
 import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
-import type {
-  WorkContextContract,
-  WorkHandler,
-  WorkInstrumentation,
-  WorkUnitFields,
-} from '../../../../contracts/runtime/work.type'
+import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
 import type { StepValidationFailure } from '../../../../contracts/runtime/evaluationState.type'
 import type { FieldValidationWorkProps } from '../../../../contracts/runtime/ValidationWork.type'
 
@@ -31,7 +27,7 @@ export const FIELD_VALIDATION_WORK_HANDLER: WorkHandler<'validation.field', Fiel
   },
 }
 
-function traceBegin(props: FieldValidationWorkProps): WorkUnitFields {
+function traceBegin(props: FieldValidationWorkProps): TraceSpanFields {
   return {
     blockId: props.blockId,
     blockCode: props.blockCode,

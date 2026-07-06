@@ -1,5 +1,5 @@
 import WorkContext from './WorkContext'
-import WorkUnit from './WorkUnit'
+import TraceSpan from '../../../diagnostics/tracing/TraceSpan'
 
 describe('WorkContext', () => {
   describe('withWork()', () => {
@@ -8,7 +8,7 @@ describe('WorkContext', () => {
       const requestContext = { phase: 'render' }
       const props = { value: 'x' }
       const original = new WorkContext(requestContext)
-      const work = new WorkUnit('work-1', 'resolve.block')
+      const work = new TraceSpan('work-1', 'resolve.block')
 
       // Act
       const result = original.withWork(work, props)

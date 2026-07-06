@@ -12,7 +12,6 @@ import {
 } from '../../../../../../authoring/types/enums'
 import { isTemplateNode } from '../../../../../contracts/ast/nodes'
 import { TemplateNode } from '../../../../../contracts/ast/template.type'
-import TemplateFactory from '../../template/TemplateFactory'
 import IterateFactory from './IterateFactory'
 
 describe('IterateFactory', () => {
@@ -45,7 +44,6 @@ describe('IterateFactory', () => {
       expect(result.id).toBeDefined()
       expect(result.type).toBe(ASTNodeType.EXPRESSION)
       expect(result.expressionType).toBe(ExpressionType.ITERATE)
-      expect(result).not.toHaveProperty('raw')
       expect(result.properties.iterator.type).toBe(IteratorType.MAP)
       expect(result.properties.iterator.yieldTemplate).toBeDefined()
       expect(isTemplateNode(result.properties.iterator.yieldTemplate)).toBe(true)
@@ -170,12 +168,11 @@ describe('IterateFactory', () => {
 
       // Act
       const result = iterateFactory.create(json)
-      const instantiatedTemplate = TemplateFactory.instantiate(result.properties.iterator.yieldTemplate!) as {
-        properties: { value?: unknown }
-      }
+      const yieldTemplate = result.properties.iterator.yieldTemplate as TemplateNode
 
-      // Assert — value is NOT set; compiled iterator expansion adds @self at runtime
-      expect(instantiatedTemplate.properties.value).toBeUndefined()
+      // Assert — the compiled field template carries no `value`; compiled iterator expansion adds @self at runtime
+      expect(yieldTemplate.originalType).toBe(ASTNodeType.BLOCK)
+      expect(yieldTemplate.properties?.value).toBeUndefined()
     })
 
     it('should preserve @self references for runtime resolution', () => {
@@ -200,12 +197,12 @@ describe('IterateFactory', () => {
 
       // Act
       const result = iterateFactory.create(json)
-      const instantiatedTemplate = TemplateFactory.instantiate(result.properties.iterator.yieldTemplate!) as {
-        properties: { label: { properties: { path: unknown[] } } }
-      }
+      const yieldTemplate = result.properties.iterator.yieldTemplate as TemplateNode
+      const labelTemplate = yieldTemplate.properties?.label as TemplateNode
 
-      // Assert — @self is preserved; compiled iterator expansion resolves self references at runtime
-      expect(instantiatedTemplate.properties.label.properties.path).toEqual(['answers', '@self'])
+      // Assert — @self is preserved in the compiled reference template; compiled iterator expansion resolves it at runtime
+      expect(isTemplateNode(labelTemplate)).toBe(true)
+      expect(labelTemplate.properties?.path).toEqual(['answers', '@self'])
     })
 
     it('should generate unique iterate node ids', () => {

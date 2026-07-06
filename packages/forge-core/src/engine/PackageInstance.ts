@@ -1,12 +1,16 @@
 import type { JourneyDefinition } from '../authoring/types/structures.type'
 import type { ForgePackageRegistration, PackageDependencies, NodeId } from './contracts/ast/engine.type'
 import { DSLValidator } from './validation/DSLValidator'
-import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegistry'
+import { createFunctionsRegistry } from '../authoring/utils/deprecated/createFunctionsRegistry'
+import { isFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
 import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
 import CompilationPipeline from './compilation/CompilationPipeline'
+import CompilationTracer from './diagnostics/tracing/CompilationTracer'
+import CompilationTraceProjector from './diagnostics/tracing/CompilationTraceProjector'
+import type { ForgeInstrumentation } from './diagnostics/ForgeTraceSinkDispatcher'
 
 import type { CompiledJourney, CompiledStep, CompiledPackage } from './contracts/plans/compilationArtefacts.type'
 import type { JourneyRouteIndex, StepRouteIndex } from './contracts/routing/routeDescriptors.type'
@@ -15,9 +19,12 @@ export interface PackageInstanceOptions<TDeps> {
   readonly functionRegistry: FunctionRegistry
   readonly componentRegistry: ComponentRegistry
   readonly functionDependencies?: TDeps
+  readonly instrumentation: ForgeInstrumentation
 }
 
 export default class PackageInstance {
+  private readonly traceProjector = new CompilationTraceProjector()
+
   private readonly dependencies: PackageDependencies
 
   private readonly compilation: CompiledPackage
@@ -25,19 +32,35 @@ export default class PackageInstance {
   private readonly rawConfiguration: JourneyDefinition
 
   constructor(pkg: ForgePackageRegistration<any>, options: PackageInstanceOptions<any>) {
+    const { instrumentation } = options
+    const tracer = new CompilationTracer({
+      enabled: instrumentation.enabled,
+      captureGeneratedSource: instrumentation.captureGeneratedSource,
+    })
+
     this.dependencies = {
       functionRegistry: PackageInstance.resolveFunctionRegistry(pkg, options),
       componentRegistry: PackageInstance.resolveComponentRegistry(pkg, options.componentRegistry),
     }
 
-    this.rawConfiguration = PackageInstance.loadConfiguration(pkg.journey)
+    try {
+      this.rawConfiguration = tracer.span('load-configuration', 'compilation.dsl-validation', () =>
+        PackageInstance.loadConfiguration(pkg.journey),
+      )
 
-    const pipeline = new CompilationPipeline({
-      functionRegistry: this.dependencies.functionRegistry,
-      componentRegistry: this.dependencies.componentRegistry,
-    })
+      const pipeline = new CompilationPipeline({
+        functionRegistry: this.dependencies.functionRegistry,
+        componentRegistry: this.dependencies.componentRegistry,
+        tracer,
+      })
 
-    this.compilation = pipeline.compile(this.rawConfiguration)
+      this.compilation = pipeline.compile(this.rawConfiguration)
+      this.traceProjector.emit(instrumentation, tracer, 'compiled')
+    } catch (e) {
+      this.traceProjector.emit(instrumentation, tracer, 'error', e)
+
+      throw e
+    }
   }
 
   getDependencies(): PackageDependencies {
@@ -98,7 +121,18 @@ export default class PackageInstance {
     const resolvedDeps = options.functionDependencies ?? {}
     const scopedFunctionRegistry = new ScopedFunctionRegistry(options.functionRegistry)
 
-    scopedFunctionRegistry.register(createFunctionsRegistry(pkg.functions, resolvedDeps))
+    const { functions } = pkg
+
+    if (isFunctionRegistry(functions)) {
+      scopedFunctionRegistry.register(functions.build(resolvedDeps))
+    } else if (Array.isArray(functions)) {
+      functions.forEach(registry => {
+        scopedFunctionRegistry.register(registry.build(resolvedDeps))
+      })
+    } else {
+      // deprecated: old implementations-map path
+      scopedFunctionRegistry.register(createFunctionsRegistry(functions, resolvedDeps))
+    }
 
     return scopedFunctionRegistry
   }

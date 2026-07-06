@@ -24,6 +24,7 @@ import {
   dependentWhenWithDefaultJourney,
   parserTypeErrorJourney,
   arrayNonMultipleJourney,
+  dateInputJourney,
 } from './answerPreparation.fixtures'
 
 describe('answer preparation contracts', () => {
@@ -556,5 +557,53 @@ describe('answer preparation contracts', () => {
 
     // Assert
     expect(session.answers?.['array-non-multiple']?.fieldCode).toBe('selected')
+  })
+
+  it('should drop an object submitted to a text field', async () => {
+    // Arrange
+    const client = createClient(storeValuesJourney)
+    const session: ContractSession = {}
+
+    // Act
+    await client.post('/store-values/name', { session, body: { fullName: { unexpected: 'object' } } })
+
+    // Assert
+    expect(session.answers?.['store-values']?.fullName).toBeUndefined()
+  })
+
+  it('should leave a schema-backed field unanswered when no value is submitted', async () => {
+    // Arrange
+    const client = createClient(storeValuesJourney)
+    const session: ContractSession = {}
+
+    // Act
+    await client.post('/store-values/name', { session, body: {} })
+
+    // Assert
+    expect(session.answers?.['store-values']?.fullName).toBeUndefined()
+  })
+
+  it('should accept a date-parts object submitted to a date input field', async () => {
+    // Arrange
+    const client = createClient(dateInputJourney)
+    const session: ContractSession = {}
+
+    // Act
+    await client.post('/date-input/dob', { session, body: { dob: { day: '31', month: '3', year: '1980' } } })
+
+    // Assert
+    expect(session.answers?.['date-input']?.dob).toBe('1980-03-31')
+  })
+
+  it('should drop a string submitted to a date input field', async () => {
+    // Arrange
+    const client = createClient(dateInputJourney)
+    const session: ContractSession = {}
+
+    // Act
+    await client.post('/date-input/dob', { session, body: { dob: 'not-a-date' } })
+
+    // Assert
+    expect(session.answers?.['date-input']?.dob).toBeUndefined()
   })
 })

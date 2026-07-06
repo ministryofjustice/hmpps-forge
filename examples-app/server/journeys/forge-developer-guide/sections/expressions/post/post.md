@@ -86,7 +86,7 @@ RemoveItem: (deps) => async (context) => {
   }
 
   const index = Number(action.replace('remove_', ''))
-  await deps.store.removeItem(context.sessionId, index)
+  await deps.store.removeItem(context.getSession()?.id, index)
 }
 ```
 

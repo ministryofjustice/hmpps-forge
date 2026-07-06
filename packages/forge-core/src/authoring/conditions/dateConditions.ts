@@ -1,13 +1,8 @@
-import { assertString, isAbsent } from '../../shared/utils/asserts'
-import { defineConditionFunctions } from '../utils/defineConditionFunctions'
-import { ConditionFunctionExpr, ResolvableValue } from '../types/expressions.type'
+import { z } from 'zod'
+import ConditionRegistry from '../registries/ConditionRegistry'
+import type { ResolvableValue } from '../types/expressions.type'
 
-/**
- * Helper function to parse and validate ISO-8601 date format (YYYY-MM-DD)
- * @param value - The string to parse
- * @returns Object with year, month, day if valid, null if invalid
- */
-function parseISODate(value: string): { year: number; month: number; day: number } | null {
+function parseISODate(value: unknown): { year: number; month: number; day: number } | null {
   if (typeof value !== 'string') {
     return null
   }
@@ -21,7 +16,6 @@ function parseISODate(value: string): { year: number; month: number; day: number
   const month = parseInt(dateMatch[2], 10)
   const day = parseInt(dateMatch[3], 10)
 
-  // Basic range validation
   if (month < 1 || month > 12 || day < 1 || day > 31) {
     return null
   }
@@ -29,74 +23,19 @@ function parseISODate(value: string): { year: number; month: number; day: number
   return { year, month, day }
 }
 
-export interface DateConditionGroup {
-  /**
-   * Checks if a value is a valid ISO-8601 date string (YYYY-MM-DD)
-   * @returns true if the value is a valid date
-   */
-  IsValid: () => ConditionFunctionExpr
+const stringSchema = z.string()
+const stringArgsSchema = z.tuple([z.string()])
 
-  /**
-   * Validates if an ISO date string has a valid year component (1000-9999)
-   * @returns true if the year is valid
-   */
-  IsValidYear: () => ConditionFunctionExpr
+const dateConditions = new ConditionRegistry()
 
-  /**
-   * Validates if an ISO date string has a valid month component (1-12)
-   * @returns true if the month is valid
-   */
-  IsValidMonth: () => ConditionFunctionExpr
-
-  /**
-   * Validates if a date string has a valid day component for its specific month/year
-   * Handles leap years and varying month lengths correctly
-   * @returns true if the day is valid for the specific month and year
-   */
-  IsValidDay: () => ConditionFunctionExpr
-
-  /**
-   * Checks if an ISO date string is before another ISO date string
-   * @param dateStr - The comparison ISO date string
-   * @returns true if value is before the comparison date
-   */
-  IsBefore: (dateStr: ResolvableValue) => ConditionFunctionExpr
-
-  /**
-   * Checks if an ISO date string is after another ISO date string
-   * @param dateStr - The comparison ISO date string
-   * @returns true if value is after the comparison date
-   */
-  IsAfter: (dateStr: ResolvableValue) => ConditionFunctionExpr
-
-  /**
-   * Checks if an ISO date string is in the future (after today)
-   * @returns true if value is after today
-   */
-  IsFutureDate: () => ConditionFunctionExpr
-
-  /**
-   * Checks if an ISO date string is in the past (before today)
-   * @returns true if value is before today
-   */
-  IsPastDate: () => ConditionFunctionExpr
-
-  /**
-   * Checks if an ISO date string is today
-   * @returns true if value is today's date
-   */
-  IsToday: () => ConditionFunctionExpr
-}
-
-export const { conditions: DateConditions, implementations: DateConditionsImplementations } =
-  defineConditionFunctions<DateConditionGroup>({
-    IsValid: () => (value: unknown) => {
-      if (isAbsent(value)) {
-        return false
-      }
-
-      assertString(value, 'Condition.Date.IsValid')
-
+export const DateConditions = {
+  /** Checks if a value is a valid ISO-8601 date string (YYYY-MM-DD) */
+  IsValid: dateConditions.register(
+    'Date.IsValid',
+    {
+      inputSchema: stringSchema,
+    },
+    () => (value: string) => {
       const parsed = parseISODate(value)
       if (!parsed) {
         return false
@@ -109,14 +48,15 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
         date.getMonth() === parsed.month - 1 &&
         date.getDate() === parsed.day
     },
+  ),
 
-    IsValidYear: () => (value: unknown) => {
-      if (isAbsent(value)) {
-        return false
-      }
-
-      assertString(value, 'Condition.Date.IsValidYear')
-
+  /** Validates if an ISO date string has a valid year component (1000-9999) */
+  IsValidYear: dateConditions.register(
+    'Date.IsValidYear',
+    {
+      inputSchema: stringSchema,
+    },
+    () => (value: string) => {
       const parsed = parseISODate(value)
       if (!parsed) {
         return false
@@ -124,14 +64,15 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
 
       return parsed.year >= 1000 && parsed.year <= 9999
     },
+  ),
 
-    IsValidMonth: () => (value: unknown) => {
-      if (isAbsent(value)) {
-        return false
-      }
-
-      assertString(value, 'Condition.Date.IsValidMonth')
-
+  /** Validates if an ISO date string has a valid month component (1-12) */
+  IsValidMonth: dateConditions.register(
+    'Date.IsValidMonth',
+    {
+      inputSchema: stringSchema,
+    },
+    () => (value: string) => {
       const parsed = parseISODate(value)
       if (!parsed) {
         return false
@@ -139,15 +80,16 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
 
       return parsed.month >= 1 && parsed.month <= 12
     },
+  ),
 
-    IsValidDay: () => (value: unknown) => {
-      if (isAbsent(value)) {
-        return false
-      }
-
-      assertString(value, 'Condition.Date.IsValidDay')
-
-      const dateMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  /** Validates if a date string has a valid day component for its specific month/year */
+  IsValidDay: dateConditions.register(
+    'Date.IsValidDay',
+    {
+      inputSchema: stringSchema,
+    },
+    () => (value: string) => {
+      const dateMatch = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/)
       if (!dateMatch) {
         return false
       }
@@ -164,15 +106,16 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
 
       return day >= 1 && day <= daysInMonth
     },
+  ),
 
-    IsBefore: () => (value: unknown, dateStr: ResolvableValue) => {
-      if (isAbsent(value)) {
-        return false
-      }
-
-      assertString(value, 'Condition.Date.IsBefore')
-      assertString(dateStr, 'Condition.Date.IsBefore (dateStr)')
-
+  /** Checks if an ISO date string is before another ISO date string */
+  IsBefore: dateConditions.register(
+    'Date.IsBefore',
+    {
+      inputSchema: stringSchema,
+      argumentsSchema: stringArgsSchema,
+    },
+    () => (value: string, dateStr: ResolvableValue) => {
       const valueParsed = parseISODate(value)
       const compareParsed = parseISODate(dateStr)
 
@@ -188,15 +131,16 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
 
       return valueDate < compareDate
     },
+  ),
 
-    IsAfter: () => (value: unknown, dateStr: ResolvableValue) => {
-      if (isAbsent(value)) {
-        return false
-      }
-
-      assertString(value, 'Condition.Date.IsAfter')
-      assertString(dateStr, 'Condition.Date.IsAfter (dateStr)')
-
+  /** Checks if an ISO date string is after another ISO date string */
+  IsAfter: dateConditions.register(
+    'Date.IsAfter',
+    {
+      inputSchema: stringSchema,
+      argumentsSchema: stringArgsSchema,
+    },
+    () => (value: string, dateStr: ResolvableValue) => {
       const valueParsed = parseISODate(value)
       if (!valueParsed) {
         throw new Error(`Condition.Date.IsAfter: Invalid date string "${value}"`)
@@ -212,14 +156,15 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
 
       return valueDate > compareDate
     },
+  ),
 
-    IsFutureDate: () => (value: unknown) => {
-      if (isAbsent(value)) {
-        return false
-      }
-
-      assertString(value, 'Condition.Date.IsFutureDate')
-
+  /** Checks if an ISO date string is in the future (after today) */
+  IsFutureDate: dateConditions.register(
+    'Date.IsFutureDate',
+    {
+      inputSchema: stringSchema,
+    },
+    () => (value: string) => {
       const parsed = parseISODate(value)
       if (!parsed) {
         throw new Error(`Condition.Date.IsFutureDate: Invalid date string "${value}"`)
@@ -231,14 +176,15 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
 
       return valueDate > todayUTC
     },
+  ),
 
-    IsPastDate: () => (value: unknown) => {
-      if (isAbsent(value)) {
-        return false
-      }
-
-      assertString(value, 'Condition.Date.IsPastDate')
-
+  /** Checks if an ISO date string is in the past (before today) */
+  IsPastDate: dateConditions.register(
+    'Date.IsPastDate',
+    {
+      inputSchema: stringSchema,
+    },
+    () => (value: string) => {
       const parsed = parseISODate(value)
       if (!parsed) {
         throw new Error(`Condition.Date.IsPastDate: Invalid date string "${value}"`)
@@ -250,14 +196,15 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
 
       return valueDate < todayUTC
     },
+  ),
 
-    IsToday: () => (value: unknown) => {
-      if (isAbsent(value)) {
-        return false
-      }
-
-      assertString(value, 'Condition.Date.IsToday')
-
+  /** Checks if an ISO date string is today */
+  IsToday: dateConditions.register(
+    'Date.IsToday',
+    {
+      inputSchema: stringSchema,
+    },
+    () => (value: string) => {
       const parsed = parseISODate(value)
       if (!parsed) {
         throw new Error(`Condition.Date.IsToday: Invalid date string "${value}"`)
@@ -269,6 +216,7 @@ export const { conditions: DateConditions, implementations: DateConditionsImplem
 
       return valueDate.getTime() === todayUTC.getTime()
     },
-  })
+  ),
+}
 
-export const DateConditionsRegistry = DateConditionsImplementations
+export { dateConditions as dateConditionsRegistry }

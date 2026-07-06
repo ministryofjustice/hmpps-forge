@@ -36,6 +36,7 @@ const forge = new Forge({ logger })
 | `disableBuiltInFunctions` | `boolean` | `false` | Skip registering built-in conditions, transformers, and effects. |
 | `disableBuiltInComponents` | `boolean` | `false` | Skip registering built-in components (HtmlBlock, CollectionBlock, TemplateWrapper). |
 | `debug` | `boolean` | `false` | Enable debug logging for compilation and evaluation. |
+| `instrumentation` | `ForgeInstrumentationOptions` | `{}` | Trace sinks for request and compilation diagnostics, plus an opt-in flag to capture generated source on compilation traces. |
 
 ---
 
@@ -78,7 +79,7 @@ import { createForgePackage } from '@ministryofjustice/hmpps-forge/core/authorin
 
 export const myPackage = createForgePackage({
   journey: myJourney,
-  functions: myEffectImplementations,
+  functions: myEffects,
   components: [myCustomComponent],
   enabled: true,
 })
@@ -87,7 +88,7 @@ export const myPackage = createForgePackage({
 | Property | Type | Description |
 |----------|------|-------------|
 | `journey` | `JourneyDefinition` | The journey definition (required). |
-| `functions` | `FunctionImplementations` | Custom effect, condition, transformer, and generator implementations. |
+| `functions` | `Registry \| Registry[]` | One or more function registries (`EffectRegistry`, `ConditionRegistry`, `TransformerRegistry`, `GeneratorRegistry`) holding your custom implementations. A deprecated implementations map is also accepted. |
 | `components` | `ComponentRegistryEntry[]` | Custom components scoped to this journey. |
 | `enabled` | `boolean` | Whether to register the package. Defaults to `true`. |
 
@@ -103,8 +104,16 @@ import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components
 import { nunjucksFunctions } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 forge
-  .registerGlobalComponents(govukComponents(nunjucksEnv))
+  .registerGlobalComponents(govukComponents)
   .registerGlobalFunctions(nunjucksFunctions)
+```
+
+`registerGlobalFunctions()` accepts a single function registry, an
+array of registries, or (deprecated) an implementations map. Pass
+any dependencies those functions need as the second argument:
+
+```typescript
+forge.registerGlobalFunctions([myConditions, myTransformers], { api: services.apiClient })
 ```
 
 You can also register a single component:

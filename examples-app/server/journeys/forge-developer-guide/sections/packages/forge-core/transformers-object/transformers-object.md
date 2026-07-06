@@ -38,9 +38,10 @@ Answer('dateOfBirth').pipe(
 ### ToISO
 
 Converts an object with date-part properties into an ISO 8601 date
-string. This is the transformer you use when a GOV.UK Date Input
-submits `{ year: "2024", month: "3", day: "15" }` and you need
-`"2024-03-15"`.
+string. This is the transformer that turns a GOV.UK Date Input
+submission of `{ year: "2024", month: "3", day: "15" }` into
+`"2024-03-15"` - the date input wrappers add it for you as a
+formatter.
 
 The `paths` argument maps date components to property names (or
 dot-separated paths for nested objects).
@@ -110,24 +111,23 @@ paths, an empty object is returned.
 
 ### Date input with ISO storage
 
-A GOV.UK Date Input collects three separate fields. Use `ToISO` as
-a formatter to store a single ISO string, and `FromISO` as a parser
-to split it back for display:
+A GOV.UK Date Input collects three separate fields. The wrapper
+functions (`GovUKDateInputFull`, `GovUKDateInputYearMonth`,
+`GovUKDateInputMonthDay`) automatically add `ToISO` as a formatter
+to store a single ISO string, and `FromISO` as a parser to split it
+back for display - you don't need to add them yourself:
 
 ```typescript
-GovUKDateInput({
+GovUKDateInputFull({
   code: 'dateOfBirth',
   fieldset: {
     legend: { text: 'Date of birth', isPageHeading: true, classes: 'govuk-fieldset__legend--l' },
   },
-  formatters: [
-    Transformer.Object.ToISO({ year: 'year', month: 'month', day: 'day' }),
-  ],
-  parsers: [
-    Transformer.Object.FromISO({ year: 'year', month: 'month', day: 'day' }),
-  ],
 })
 ```
+
+Any `formatters` or `parsers` you pass in run after the built-in
+ISO conversion.
 
 ### Display a formatted date from ISO
 

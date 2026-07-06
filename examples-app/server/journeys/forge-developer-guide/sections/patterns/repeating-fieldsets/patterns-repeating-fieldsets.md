@@ -84,25 +84,16 @@ the field name and the item's index:
 ```typescript
 CollectionBlock({
   collection: Data('members').each(
-    Iterator.Map(
-      GovUKGridRow({
-        columns: [
-          {
-            width: 'one-third',
-            blocks: [
-              GovUKTextInput({
-                code: Format('memberName_%1', Loop.Index0()),
-                label: { text: 'Name' },
-                defaultValue: Item().path('memberName'),
-              }),
-            ],
-          },
-          // ... more columns
-        ],
+    Iterator.Map([
+      GovUKTextInput({
+        code: Format('memberName_%1', Loop.Index0()),
+        label: { text: 'Name' },
+        defaultValue: Item().path('memberName'),
       }),
-    ),
+      // ... age field, Remove button, section break
+    ]),
   ),
-  fallback: [],
+  fallback: [GovUKInsetText({ text: 'You have not added any household members yet.' })],
 })
 ```
 
@@ -129,12 +120,13 @@ onAccess: [
 ],
 ```
 
-The effect ensures at least one empty item exists so the page
-always renders with at least one row of fields.
+If the session has no stored items yet, the effect does nothing
+and the `CollectionBlock` renders its `fallback` - an inset text
+saying no members have been added.
 
 ### Adding an item
 
-The "Add another" button posts with `action=add-another`. An
+The "Add another" button posts with `action=add-another`. A
 non-validating submit hook catches it and runs the effect. Because
 the hook has no redirect, the page re-renders with the updated
 collection:
@@ -192,8 +184,8 @@ submit({
 
 The effect parses the index from the POST action value, saves
 current field values, splices the item, and re-indexes the
-remaining answers. If only one item remains, it clears the
-values instead of removing the row.
+remaining answers. Removing the last item leaves an empty
+collection, so the `fallback` renders instead.
 
 ### Submitting the collection
 
@@ -219,7 +211,8 @@ onSubmission: [
 
 Validation runs across all dynamically-created fields. If any
 name or age is missing, the error summary shows which field
-failed.
+failed. The step also has a step-level `validWhen` rule that
+requires at least one member before the user can continue.
 
 ---
 
@@ -227,9 +220,10 @@ failed.
 
 - **Reordering.** Add up and down buttons per row. A submit hook
   swaps adjacent items in the array and re-indexes answers.
-- **Minimum or maximum items.** Use `validWhen` on the step to
-  enforce a minimum count, and disable "Add another" when the
-  maximum is reached using a `visibleWhen` condition.
+- **Maximum items.** The demo already enforces a minimum of one
+  member with a step-level `validWhen`. To cap the count, hide the
+  "Add another" button with a `visibleWhen` condition once the
+  maximum is reached.
 - **Mixed field types.** Replace text inputs with selects, radios,
   or date fields. The pattern works with any field component as
   long as the `code` uses `Format()` with `Loop.Index0()`.

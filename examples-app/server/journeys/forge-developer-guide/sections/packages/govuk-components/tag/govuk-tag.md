@@ -67,15 +67,11 @@ Use expressions for dynamic status tags.
 
 ```typescript
 GovUKTag({
-  text: when(
-    Answer('status').match(Condition.Equals('complete')),
-    'Completed',
-    'In progress',
-  ),
-  classes: when(
-    Answer('status').match(Condition.Equals('complete')),
-    GovUKUtilityClasses.Tag.Green,
-    GovUKUtilityClasses.Tag.Blue,
-  ),
+  text: when(Answer('status').match(Condition.Equals('complete')))
+    .then('Completed')
+    .else('In progress'),
+  classes: when(Answer('status').match(Condition.Equals('complete')))
+    .then(GovUKUtilityClasses.Tag.Green)
+    .else(GovUKUtilityClasses.Tag.Blue),
 })
 ```

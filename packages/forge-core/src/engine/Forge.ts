@@ -1,14 +1,13 @@
 import PackageInstance from './PackageInstance'
-import type {
-  ForgeDependencies,
-  ForgeFunctionImplementations,
-  ForgePackageRegistration,
-} from './contracts/ast/engine.type'
+import type { ForgeDependencies, ForgePackageFunctions, ForgePackageRegistration } from './contracts/ast/engine.type'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ComponentRegistry from './registries/ComponentRegistry'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import type { BlockDefinition } from '../components/types/structures.type'
-import { createFunctionsRegistry } from '../authoring/utils/createFunctionsRegistry'
+import { createFunctionsRegistry } from '../authoring/utils/deprecated/createFunctionsRegistry'
+import { isFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
+import { ForgeDeprecations } from '../shared/utils/ForgeDeprecations'
+import type { FunctionImplementations, FunctionShapeMap } from '../authoring/utils/deprecated/defineFunction.type'
 import type { Logger } from '../framework/types/adapter.type'
 import type { ForgeRenderer } from '../framework/rendering/types'
 import type { ForgeOutcome } from '../framework/types/outcome.type'
@@ -167,10 +166,22 @@ export default class Forge {
   }
 
   /** Add functions to the global registry, making them available to all journeys. */
-  registerGlobalFunctions<TDeps>(functions: ForgeFunctionImplementations<TDeps>, deps?: TDeps): this {
+  registerGlobalFunctions<TDeps>(functions: ForgePackageFunctions<TDeps>, deps?: TDeps): this {
     const resolvedDeps = (deps ?? {}) as TDeps
 
-    this.functionRegistry.register(createFunctionsRegistry(functions, resolvedDeps))
+    if (isFunctionRegistry(functions)) {
+      this.functionRegistry.register(functions.build(resolvedDeps))
+    } else if (Array.isArray(functions)) {
+      functions.forEach(registry => {
+        if (isFunctionRegistry(registry)) {
+          this.functionRegistry.register(registry.build(resolvedDeps))
+        }
+      })
+    } else {
+      this.functionRegistry.register(
+        createFunctionsRegistry(functions as FunctionImplementations<FunctionShapeMap, TDeps>, resolvedDeps),
+      )
+    }
 
     return this
   }
@@ -209,6 +220,7 @@ export default class Forge {
         functionRegistry: this.functionRegistry,
         componentRegistry: this.componentRegistry,
         functionDependencies: deps,
+        instrumentation: this.instrumentation,
       })
 
       this.registerPackageInstance(packageInstance)
@@ -264,8 +276,9 @@ export default class Forge {
    * @deprecated Build framework routers directly, for example `createExpressRouter(forge, options)`.
    */
   getRouter(): unknown {
-    this.options.logger.warn(
-      '[Forge] `frameworkAdapter` and `getRouter()` are deprecated. Build the router directly instead.',
+    ForgeDeprecations.warn(
+      'FORGE_DEP_getRouter',
+      'frameworkAdapter and getRouter() are deprecated - build framework routers directly, for example createExpressRouter(forge, options).',
     )
 
     if (!this.options.frameworkAdapter) {

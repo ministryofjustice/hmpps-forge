@@ -10,7 +10,7 @@ import {
 } from '../../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
-  FormatGeneratorsRegistry,
+  formatGeneratorsRegistry,
 } from '../../../../../authoring/generators/formatGenerators'
 import { FieldBlockASTNode, StepASTNode, StepEntryValidationAST } from '../../../../contracts/ast/structures.type'
 import {
@@ -141,7 +141,7 @@ function createCtx(overrides: Partial<CompiledValidationContext> = {}): Compiled
     conditions: {
       get: vi.fn((name: string) => {
         if (name === FORMAT_STRING_GENERATOR_NAME) {
-          return FormatGeneratorsRegistry[FORMAT_STRING_GENERATOR_NAME]
+          return formatGeneratorsRegistry.build()[FORMAT_STRING_GENERATOR_NAME]
         }
 
         if (name === 'isRequired') {
@@ -209,6 +209,15 @@ describe('StepValidationCompiler', () => {
     functionRegistry: new FunctionRegistry(),
     componentRegistry: new ComponentRegistry(),
   }
+
+  dependencies.functionRegistry.register({
+    equals: { name: 'equals', isAsync: true, evaluate: () => undefined },
+    FormatString: { name: 'FormatString', isAsync: true, evaluate: () => undefined },
+    hasMaxLength: { name: 'hasMaxLength', isAsync: true, evaluate: () => undefined },
+    isRequired: { name: 'isRequired', isAsync: true, evaluate: () => undefined },
+    messageGenerator: { name: 'messageGenerator', isAsync: true, evaluate: () => undefined },
+    throwingCondition: { name: 'throwingCondition', isAsync: true, evaluate: () => undefined },
+  })
 
   beforeEach(() => {
     ASTTestFactory.resetIds()

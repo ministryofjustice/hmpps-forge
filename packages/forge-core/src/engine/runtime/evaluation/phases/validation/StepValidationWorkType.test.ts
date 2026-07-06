@@ -128,9 +128,9 @@ describe('StepValidationWorkHandler', () => {
       const result = await executor.executeWithUnit(validation, createContext())
 
       // Assert
-      expect(result.workUnit.beginFields).toEqual({ fieldValidations: 1, domainValidations: 1 })
-      expect(result.workUnit.completeFields).toEqual({ fieldFailures: 1, domainFailures: 1 })
-      expect(result.workUnit.children).toEqual([
+      expect(result.traceSpan.beginFields).toEqual({ fieldValidations: 1, domainValidations: 1 })
+      expect(result.traceSpan.completeFields).toEqual({ fieldFailures: 1, domainFailures: 1 })
+      expect(result.traceSpan.children).toEqual([
         expect.objectContaining({
           key: 'field:first',
           kind: 'validation.field',

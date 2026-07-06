@@ -9,6 +9,18 @@ describe('govukTextInput', () => {
 
   const helper = new GovukComponentTestHelper(govukTextInput)
 
+  describe('Registration entry', () => {
+    it('should accept a scalar string and reject an array against the input schema', () => {
+      // Arrange & Act
+      const scalar = govukTextInput.inputSchema?.safeParse('hello')
+      const array = govukTextInput.inputSchema?.safeParse(['hello'])
+
+      // Assert
+      expect(scalar?.success).toBe(true)
+      expect(array?.success).toBe(false)
+    })
+  })
+
   describe('Data transformation', () => {
     it('sets default values correctly', async () => {
       const params = await helper.getParams({ code: 'test-input' })

@@ -35,7 +35,6 @@ describe('TestFactory', () => {
       expect(result.id).toBeDefined()
       expect(result.type).toBe(ASTNodeType.PREDICATE)
       expect(result.predicateType).toBe(PredicateType.TEST)
-      expect(result).not.toHaveProperty('raw')
       expect(result.properties.subject).toBeDefined()
       expect(result.properties.condition).toBeDefined()
       expect(result.properties.negate).toBeDefined()

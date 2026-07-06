@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import {
   StructureType,
   HookType,
@@ -13,10 +14,13 @@ import type { JourneyDefinition, StepDefinition } from '../../../authoring/types
 import type { FieldBlockDefinition, BlockDefinition } from '../../../components/types/structures.type'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import ComponentRegistry from '../../registries/ComponentRegistry'
+import ConditionRegistry from '../../../authoring/registries/ConditionRegistry'
+import TransformerRegistry from '../../../authoring/registries/TransformerRegistry'
 import { buildComponent } from '../../../components/utils/buildComponent'
 import ForgeConfigurationReferenceScopeError from '../../errors/ForgeConfigurationReferenceScopeError'
 import UnregisteredFunctionError from '../../errors/UnregisteredFunctionError'
 import UnregisteredComponentError from '../../errors/UnregisteredComponentError'
+import FunctionArityError from '../../errors/FunctionArityError'
 import CompilationPipeline from '../CompilationPipeline'
 
 function compileJourney(
@@ -897,6 +901,91 @@ describe('ASTSemanticValidator', () => {
       // Act / Assert
       expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
     })
+
+    it('should reject an effect outside a hook', () => {
+      // Arrange
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'text',
+                code: 'field1',
+                defaultValue: { type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] },
+              } as unknown as FieldBlockDefinition,
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+
+      try {
+        compileJourney(journey, functionRegistry, componentRegistry)
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const scopeErrors = error.errors.filter(
+            (e: ForgeConfigurationReferenceScopeError) => e.code === 'effect_outside_hook',
+          )
+
+          expect(scopeErrors).toHaveLength(1)
+        }
+      }
+    })
+
+    it('should reject an effect inside an iterator template outside a hook', () => {
+      // Arrange
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'text',
+                code: 'field1',
+                defaultValue: {
+                  type: ExpressionType.ITERATE,
+                  input: { type: ExpressionType.REFERENCE, path: ['answers', 'items'] },
+                  iterator: {
+                    type: IteratorType.MAP,
+                    yield: { type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] },
+                  },
+                },
+              } as unknown as FieldBlockDefinition,
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+
+      try {
+        compileJourney(journey, functionRegistry, componentRegistry)
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const scopeErrors = error.errors.filter(
+            (e: ForgeConfigurationReferenceScopeError) => e.code === 'effect_outside_hook',
+          )
+
+          expect(scopeErrors.length).toBeGreaterThanOrEqual(1)
+        }
+      }
+    })
   })
 
   describe('function argument scope', () => {
@@ -1696,6 +1785,187 @@ describe('ASTSemanticValidator', () => {
     })
   })
 
+  describe('structure scope', () => {
+    const functionRegistry = new FunctionRegistry()
+    const componentRegistry = new ComponentRegistry()
+    componentRegistry.registerMany([buildComponent('text', () => '<input />')])
+
+    const baseJourney: JourneyDefinition = {
+      type: StructureType.JOURNEY,
+      path: '/test',
+      code: 'test',
+      title: 'Test',
+      steps: [],
+    }
+
+    it('should allow steps in journey steps arrays and journeys in children arrays', () => {
+      // Arrange
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [{ type: StructureType.STEP, path: '/step1', title: 'Step 1', blocks: [] } as StepDefinition],
+        children: [
+          {
+            type: StructureType.JOURNEY,
+            path: '/child',
+            code: 'child',
+            title: 'Child',
+            steps: [{ type: StructureType.STEP, path: '/step2', title: 'Step 2', blocks: [] } as StepDefinition],
+          },
+        ],
+      }
+
+      // Act / Assert
+      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+    })
+
+    it('should reject a step defined inside a block property', () => {
+      // Arrange
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'text',
+                code: 'field1',
+                content: { type: StructureType.STEP, path: '/stray', title: 'Stray' },
+              } as unknown as FieldBlockDefinition,
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+
+      try {
+        compileJourney(journey, functionRegistry, componentRegistry)
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const scopeErrors = error.errors.filter(
+            (e: ForgeConfigurationReferenceScopeError) => e.code === 'step_outside_journey_steps',
+          )
+
+          expect(scopeErrors).toHaveLength(1)
+        }
+      }
+    })
+
+    it('should reject a journey defined inside a block property', () => {
+      // Arrange
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'text',
+                code: 'field1',
+                content: { type: StructureType.JOURNEY, path: '/stray', code: 'stray', title: 'Stray' },
+              } as unknown as FieldBlockDefinition,
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+
+      try {
+        compileJourney(journey, functionRegistry, componentRegistry)
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const scopeErrors = error.errors.filter(
+            (e: ForgeConfigurationReferenceScopeError) => e.code === 'journey_outside_journey_children',
+          )
+
+          expect(scopeErrors).toHaveLength(1)
+        }
+      }
+    })
+  })
+
+  describe('block scope', () => {
+    const functionRegistry = new FunctionRegistry()
+    const componentRegistry = new ComponentRegistry()
+    componentRegistry.registerMany([
+      buildComponent('text', () => '<input />'),
+      buildComponent('wrapper', () => '<div />'),
+    ])
+
+    const baseJourney: JourneyDefinition = {
+      type: StructureType.JOURNEY,
+      path: '/test',
+      code: 'test',
+      title: 'Test',
+      steps: [],
+    }
+
+    it('should allow blocks in step blocks arrays and nested within other blocks', () => {
+      // Arrange
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.BASIC,
+                variant: 'wrapper',
+                content: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'text' },
+              } as unknown as BlockDefinition,
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+    })
+
+    it('should reject a block defined inside journey metadata', () => {
+      // Arrange
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        metadata: {
+          banner: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'text' },
+        },
+        steps: [{ type: StructureType.STEP, path: '/step1', title: 'Step 1', blocks: [] } as StepDefinition],
+      }
+
+      // Act / Assert
+      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+
+      try {
+        compileJourney(journey, functionRegistry, componentRegistry)
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const scopeErrors = error.errors.filter(
+            (e: ForgeConfigurationReferenceScopeError) => e.code === 'block_outside_blocks',
+          )
+
+          expect(scopeErrors).toHaveLength(1)
+        }
+      }
+    })
+  })
+
   describe('container types', () => {
     const functionRegistry = new FunctionRegistry()
     functionRegistry.register({
@@ -1884,6 +2154,328 @@ describe('ASTSemanticValidator', () => {
           )
 
           expect(scopeErrors).toHaveLength(1)
+        }
+      }
+    })
+  })
+
+  describe('function arity', () => {
+    const createArityRegistry = (): FunctionRegistry => {
+      const conditions = new ConditionRegistry()
+      conditions.register('exactOne', { argumentsSchema: z.tuple([z.number()]) }, () => () => true)
+      conditions.register('withRest', { argumentsSchema: z.tuple([z.number()]).rest(z.number()) }, () => () => true)
+      conditions.register(
+        'trailingOptional',
+        { argumentsSchema: z.tuple([z.number(), z.number().optional()]) },
+        () => () => true,
+      )
+      conditions.register('noSchema', {}, () => () => true)
+      conditions.register('nonTuple', { argumentsSchema: z.number() }, () => () => true)
+
+      const transformers = new TransformerRegistry()
+      transformers.register(
+        'exactOneTransformer',
+        { argumentsSchema: z.tuple([z.number()]) },
+        () => (value: unknown) => value,
+      )
+
+      const registry = new FunctionRegistry()
+      registry.register(conditions.build({}))
+      registry.register(transformers.build({}))
+
+      return registry
+    }
+
+    const componentRegistry = new ComponentRegistry()
+    componentRegistry.registerMany([
+      buildComponent('text', () => '<input />'),
+      buildComponent('collection-block', () => '<div />'),
+    ])
+
+    const baseJourney: JourneyDefinition = {
+      type: StructureType.JOURNEY,
+      path: '/test',
+      code: 'test',
+      title: 'Test',
+      steps: [],
+    }
+
+    const ref = (name: string): ReferenceExpr => ({ type: ExpressionType.REFERENCE, path: [name] })
+
+    const conditionField = (code: string, conditionName: string, args: ReferenceExpr[]): FieldBlockDefinition =>
+      ({
+        type: StructureType.BLOCK,
+        blockType: BlockType.FIELD,
+        variant: 'text',
+        code,
+        validWhen: [
+          {
+            type: ExpressionType.VALIDATION,
+            message: 'Invalid',
+            condition: {
+              type: PredicateType.TEST,
+              subject: { type: ExpressionType.REFERENCE, path: [code] },
+              negate: false,
+              condition: { type: FunctionType.CONDITION, name: conditionName, arguments: args },
+            },
+          },
+        ],
+      }) as FieldBlockDefinition
+
+    const journeyWithField = (field: FieldBlockDefinition): JourneyDefinition => ({
+      ...baseJourney,
+      steps: [
+        {
+          type: StructureType.STEP,
+          path: '/step1',
+          title: 'Step 1',
+          blocks: [field],
+        } as StepDefinition,
+      ],
+    })
+
+    it('should throw when an exact-arity function receives too few arguments', () => {
+      // Arrange
+      const registry = createArityRegistry()
+      const journey = journeyWithField(conditionField('field1', 'exactOne', []))
+
+      // Act / Assert
+      try {
+        compileJourney(journey, registry, componentRegistry)
+        expect.fail('Expected AggregateError')
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const arityErrors = error.errors.filter((e: Error) => e instanceof FunctionArityError)
+
+          expect(arityErrors).toHaveLength(1)
+          expect(arityErrors[0].functionName).toBe('exactOne')
+          expect(arityErrors[0].expected).toBe('1')
+          expect(arityErrors[0].received).toBe(0)
+        }
+      }
+    })
+
+    it('should throw when an exact-arity function receives too many arguments', () => {
+      // Arrange
+      const registry = createArityRegistry()
+      const journey = journeyWithField(conditionField('field1', 'exactOne', [ref('a'), ref('b')]))
+
+      // Act / Assert
+      try {
+        compileJourney(journey, registry, componentRegistry)
+        expect.fail('Expected AggregateError')
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const arityErrors = error.errors.filter((e: Error) => e instanceof FunctionArityError)
+
+          expect(arityErrors).toHaveLength(1)
+          expect(arityErrors[0].received).toBe(2)
+        }
+      }
+    })
+
+    it('should not throw when an exact-arity function receives exactly the right count', () => {
+      // Arrange
+      const registry = createArityRegistry()
+      const journey = journeyWithField(conditionField('field1', 'exactOne', [ref('a')]))
+
+      // Act / Assert
+      expect(() => compileJourney(journey, registry, componentRegistry)).not.toThrow()
+    })
+
+    it('should not throw when the entry has no argumentsSchema', () => {
+      // Arrange
+      const registry = createArityRegistry()
+      const journey = journeyWithField(conditionField('field1', 'noSchema', [ref('a'), ref('b'), ref('c')]))
+
+      // Act / Assert
+      expect(() => compileJourney(journey, registry, componentRegistry)).not.toThrow()
+    })
+
+    it('should not throw when the argumentsSchema is not a tuple', () => {
+      // Arrange
+      const registry = createArityRegistry()
+      const journey = journeyWithField(conditionField('field1', 'nonTuple', [ref('a'), ref('b')]))
+
+      // Act / Assert
+      expect(() => compileJourney(journey, registry, componentRegistry)).not.toThrow()
+    })
+
+    it('should throw when a tuple with rest receives fewer than the fixed items', () => {
+      // Arrange
+      const registry = createArityRegistry()
+      const journey = journeyWithField(conditionField('field1', 'withRest', []))
+
+      // Act / Assert
+      try {
+        compileJourney(journey, registry, componentRegistry)
+        expect.fail('Expected AggregateError')
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const arityErrors = error.errors.filter((e: Error) => e instanceof FunctionArityError)
+
+          expect(arityErrors).toHaveLength(1)
+          expect(arityErrors[0].expected).toBe('at least 1')
+        }
+      }
+    })
+
+    it('should not throw when a tuple with rest receives more than the fixed items', () => {
+      // Arrange
+      const registry = createArityRegistry()
+      const journey = journeyWithField(conditionField('field1', 'withRest', [ref('a'), ref('b'), ref('c')]))
+
+      // Act / Assert
+      expect(() => compileJourney(journey, registry, componentRegistry)).not.toThrow()
+    })
+
+    it('should not throw when a trailing optional item is omitted', () => {
+      // Arrange
+      const registry = createArityRegistry()
+      const journey = journeyWithField(conditionField('field1', 'trailingOptional', [ref('a')]))
+
+      // Act / Assert
+      expect(() => compileJourney(journey, registry, componentRegistry)).not.toThrow()
+    })
+
+    it('should throw when fewer than the required prefix is supplied to a trailing-optional tuple', () => {
+      // Arrange
+      const registry = createArityRegistry()
+      const journey = journeyWithField(conditionField('field1', 'trailingOptional', []))
+
+      // Act / Assert
+      try {
+        compileJourney(journey, registry, componentRegistry)
+        expect.fail('Expected AggregateError')
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const arityErrors = error.errors.filter((e: Error) => e instanceof FunctionArityError)
+
+          expect(arityErrors).toHaveLength(1)
+          expect(arityErrors[0].expected).toBe('between 1 and 2')
+          expect(arityErrors[0].received).toBe(0)
+        }
+      }
+    })
+
+    it('should throw when a function inside an iterator yield template has the wrong arity', () => {
+      // Arrange
+      const registry = createArityRegistry()
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.BASIC,
+                variant: 'collection-block',
+                collection: {
+                  type: ExpressionType.ITERATE,
+                  input: { type: ExpressionType.REFERENCE, path: ['data', 'items'] },
+                  iterator: {
+                    type: IteratorType.MAP,
+                    yield: {
+                      blocks: [
+                        {
+                          type: StructureType.BLOCK,
+                          blockType: BlockType.FIELD,
+                          variant: 'text',
+                          code: 'item',
+                          defaultValue: {
+                            type: FunctionType.TRANSFORMER,
+                            name: 'exactOneTransformer',
+                            arguments: [],
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              } as BlockDefinition & Record<string, unknown>,
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      try {
+        compileJourney(journey, registry, componentRegistry)
+        expect.fail('Expected AggregateError')
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const arityErrors = error.errors.filter((e: Error) => e instanceof FunctionArityError)
+
+          expect(arityErrors).toHaveLength(1)
+          expect(arityErrors[0].functionName).toBe('exactOneTransformer')
+          expect(arityErrors[0].received).toBe(0)
+        }
+      }
+    })
+
+    it('should collect multiple arity violations in one aggregate error', () => {
+      // Arrange
+      const registry = createArityRegistry()
+      const journey: JourneyDefinition = {
+        ...baseJourney,
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              conditionField('field1', 'exactOne', []),
+              conditionField('field2', 'exactOne', [ref('a'), ref('b')]),
+            ],
+          } as StepDefinition,
+        ],
+      }
+
+      // Act / Assert
+      try {
+        compileJourney(journey, registry, componentRegistry)
+        expect.fail('Expected AggregateError')
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const arityErrors = error.errors.filter((e: Error) => e instanceof FunctionArityError)
+
+          expect(arityErrors).toHaveLength(2)
+
+          const receivedCounts = arityErrors.map((e: FunctionArityError) => e.received)
+          expect(receivedCounts).toContain(0)
+          expect(receivedCounts).toContain(2)
+        }
+      }
+    })
+
+    it('should populate error fields from the node source diagnostics', () => {
+      // Arrange
+      const registry = createArityRegistry()
+      const journey = journeyWithField(conditionField('field1', 'exactOne', []))
+
+      // Act / Assert
+      try {
+        compileJourney(journey, registry, componentRegistry)
+        expect.fail('Expected AggregateError')
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const arityError = error.errors.find((e: Error) => e instanceof FunctionArityError) as FunctionArityError
+
+          expect(arityError.functionName).toBe('exactOne')
+          expect(arityError.functionType).toBe(FunctionType.CONDITION)
+          expect(arityError.expected).toBe('1')
+          expect(arityError.received).toBe(0)
+          expect(arityError.formattedPath).toBeDefined()
         }
       }
     })

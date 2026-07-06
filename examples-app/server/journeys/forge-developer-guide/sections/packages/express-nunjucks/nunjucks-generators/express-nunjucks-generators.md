@@ -88,5 +88,9 @@ forge.registerGlobalFunctions(nunjucksFunctions)
 ```
 
 This registers all generator and function implementations from
-the package in one call. Without this, any journey that uses
-`NunjucksGenerators.String` will fail at runtime.
+the package in one call. Register them before any packages
+whose journeys use the generator - `registerPackage` validates
+function references during compilation, so a journey that uses
+`NunjucksGenerators.String` without the implementations
+registered fails at registration time with an
+`UnregisteredFunctionError`.

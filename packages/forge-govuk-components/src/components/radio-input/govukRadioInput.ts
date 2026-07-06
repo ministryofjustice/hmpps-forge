@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import {
   BlockDefinition,
   ResolvableBoolean,
@@ -259,28 +260,32 @@ interface GovUKRadioInputDivider {
   visibleWhen?: ResolvableBoolean
 }
 
-export const govukRadioInput = buildNunjucksComponent<GovUKRadioInput>('govukRadioInput', (block, nunjucksEnv) => {
-  const items = block.items
-    .filter(option => option.visibleWhen !== false)
-    .map(option => makeOption(option, block.value as string))
+export const govukRadioInput = buildNunjucksComponent<GovUKRadioInput>(
+  'govukRadioInput',
+  (block, nunjucksEnv) => {
+    const items = block.items
+      .filter(option => option.visibleWhen !== false)
+      .map(option => makeOption(option, block.value as string))
 
-  const params = {
-    fieldset: normaliseGovukFieldset(block.fieldset, block.label),
-    idPrefix: block.idPrefix || block.code,
-    name: block.code,
-    value: block.value,
-    formGroup: block.formGroup,
-    hint: normaliseGovukTextParam(block.hint),
-    items,
-    classes: block.classes,
-    attributes: block.attributes,
-    errorMessage: normaliseGovukErrorMessage(block.errors),
-  }
+    const params = {
+      fieldset: normaliseGovukFieldset(block.fieldset, block.label),
+      idPrefix: block.idPrefix || block.code,
+      name: block.code,
+      value: block.value,
+      formGroup: block.formGroup,
+      hint: normaliseGovukTextParam(block.hint),
+      items,
+      classes: block.classes,
+      attributes: block.attributes,
+      errorMessage: normaliseGovukErrorMessage(block.errors),
+    }
 
-  return nunjucksEnv.render('govuk/components/radios/template.njk', {
-    params,
-  })
-})
+    return nunjucksEnv.render('govuk/components/radios/template.njk', {
+      params,
+    })
+  },
+  { inputSchema: z.string() },
+)
 
 const getConditionalContent = (block: GovukRenderedBlockContent) => {
   const html = renderGovukBlocksToHtml(block)

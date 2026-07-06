@@ -103,7 +103,7 @@ which becomes this AST node:
 
 AST building is a two-pass process, driven in sequence by `CompilationPipeline.buildAstTree()`.
 The first pass (`NodeFactory.createNode()`) builds the node tree from authoring definitions.
-The second pass (`NodeRegistrationWalker.register()`) walks that tree to assign any missing compile IDs, resolve `Self()`, and index each node.
+The second pass (`NodeRegistrationWalker.register()`) walks that tree to assign any missing compile IDs, resolve `Self()`, wire each node's `parent` link, and index each node.
 
 ```mermaid
 flowchart TD
@@ -114,9 +114,9 @@ flowchart TD
   diagnosticNode -->|start registration walk| registrationWalker["NodeRegistrationWalker"]
   registrationWalker -->|inspect value| templateCheck{"Template node?"}
   templateCheck -->|yes| skipTemplate["Skip node and children"]
-  templateCheck -->|no| registerNode["ASTNodeIndex"]
-  registerNode -->|store frozen node by ID and type| recordParent["ASTNodeTree"]
-  recordParent -->|record parent link| walkProperties["Node properties"]
+  templateCheck -->|no| wireParent["Wire parent link"]
+  wireParent -->|assign non-enumerable parent| registerNode["ASTNodeIndex"]
+  registerNode -->|store frozen node by ID and type| walkProperties["Node properties"]
   walkProperties -->|walk descendants| templateCheck
 ```
 
@@ -129,7 +129,7 @@ flowchart TD
 - `NodeFactory` tracks the current DSL path during recursion.
   `withDiagnostics()` uses that path to attach source information to the node.
 - [NodeRegistrationWalker.ts](ast-state/NodeRegistrationWalker.ts) starts registration.
-  The walker skips template nodes, assigns a compile ID when an AST-shaped value has no ID, resolves `Self()` references, registers each ordinary AST node in `ASTNodeIndex`, and records parent links in `ASTNodeTree`.
+  The walker skips template nodes, assigns a compile ID when an AST-shaped value has no ID, resolves `Self()` references, wires each node's `parent` link, and registers each ordinary AST node in `ASTNodeIndex`.
 
 ## Boundaries
 
@@ -137,9 +137,9 @@ flowchart TD
   They should not register nodes.
 - `NodeRegistrationWalker` owns registration-time behavior.
   That includes missing compile IDs, parent links, and `Self()` resolution.
-- Ancestor and lookup-by-type are separately handled
-  `ASTNodeIndex` owns lookup, `ASTNodeTree` owns ancestry.
-- `TemplateFactory` owns conversion between AST-shaped values and template nodes.
+- Lookup and ancestry are separately handled.
+  `ASTNodeIndex` owns lookup by type, and ancestry lives on each node's `parent` link.
+- `TemplateFactory` owns conversion of AST-shaped values into template nodes.
   Template nodes should not be treated as ordinary AST nodes.
 
 ## Quirks
@@ -147,16 +147,16 @@ flowchart TD
 - Templates are AST-shaped but not AST nodes.
   Iterate payloads describe forms that do not exist until runtime data provides collection items.
   They are kept as templates so compile-time planning does not treat those forms as already materialised.
-- Template compilation and instantiation happen in different phases.
+- Templates are compiled at compile time, but the iterated form only exists at request time.
   `TemplateFactory.compile()` runs at compile time, freezing the iterator payload into a template.
-  `TemplateFactory.instantiate()` is static and runs at request time, rebuilding AST nodes from that template once per collection item. The rebuilt nodes have no IDs; the next `NodeRegistrationWalker` pass assigns fresh IDs.
-  Deferring instantiation to runtime is the reason templates exist: the form is materialised only when the iterated collection is known.
+  Templates are never rebuilt into AST nodes at request time. Lowering compiles the template's values inline into generated source (see `ScopedTemplateCompiler`), and the generated loop evaluates them once per collection item, using the template ID as the stable prefix for generated instance IDs.
+  Deferring evaluation to runtime is the reason templates exist: the form is materialised only when the iterated collection is known.
 - `Self()` is resolved during registration.
   Node factories can see the current DSL path, but they do not know the containing field stack.
   The registration walk has that context, so it replaces `Self()` while registering the tree.
-- The index and tree are separate structures.
-  `ASTNodeIndex` answers lookup questions by ID or type.
-  `ASTNodeTree` answers ancestry questions.
+- The index does not answer ancestry questions.
+  `ASTNodeIndex` answers lookup questions by type.
+  Ancestry questions are answered by walking the `parent` link carried on each registered node.
 
 ## Constraints
 
@@ -177,8 +177,8 @@ flowchart TD
 - Do not use one ID counter for compile AST nodes and template nodes.
   `NodeIDGenerator` has separate counters for `compile_ast` and `template`.
 - Do not move semantic analysis before registration.
-  It is tempting to reject a bad journey before building the tree, but semantic rules consume the registry and tree that registration produces.
-  `ASTSemanticValidator` queries `ASTNodeIndex` (e.g. every function node via `findByType`) and `ASTNodeTree` (ancestry for scope rules), so those structures must already exist.
+  It is tempting to reject a bad journey before building the tree, but semantic rules consume the registry and `parent` links that registration produces.
+  `ASTSemanticValidator` queries `ASTNodeIndex` (e.g. every function node via `findByType`) and walks `parent` links (ancestry for scope rules), so those must already exist.
   The `Self()` errors that the walker throws are failures of a required normalization step, not free-standing validation that could run earlier.
 
 ## Editing Notes
@@ -199,7 +199,5 @@ flowchart TD
 
 - [NodeFactory.ts](nodes/NodeFactory.ts) dispatches authoring definitions to node factories.
 - [NodeRegistrationWalker.ts](ast-state/NodeRegistrationWalker.ts) registers nodes and handles `Self()`.
-- [ASTNodeIndex.ts](ast-state/ASTNodeIndex.ts) stores nodes by ID and type.
-- [ASTNodeTree.ts](ast-state/ASTNodeTree.ts) stores parent links.
-- [getAncestorChain.ts](ast-state/getAncestorChain.ts) walks parent links in `ASTNodeTree` to return a node's ancestor chain.
-- [TemplateFactory.ts](nodes/template/TemplateFactory.ts) compiles and instantiates template nodes.
+- [ASTNodeIndex.ts](ast-state/ASTNodeIndex.ts) registers frozen nodes and indexes them by type.
+- [TemplateFactory.ts](nodes/template/TemplateFactory.ts) compiles AST-shaped values into template nodes.

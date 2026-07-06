@@ -43,7 +43,7 @@ export default class RequestEvaluator {
 
     const { executionContext, pipelineElement } = this.preparePipeline(node, snapshot, responseBindings, renderer)
 
-    const pipelineResult = await this.run(executionContext, pipelineElement, snapshot)
+    const pipelineResult = await this.run(node, executionContext, pipelineElement, snapshot)
 
     return this.buildOutcome(pipelineResult, snapshot)
   }
@@ -59,6 +59,7 @@ export default class RequestEvaluator {
       node,
       snapshot,
       renderer,
+      traceEnabled: this.options.instrumentation.enabled,
     })
 
     const context = {
@@ -79,6 +80,7 @@ export default class RequestEvaluator {
   }
 
   private async run(
+    node: MountedNode,
     requestExecutionContext: ReturnType<RequestPipelineBootstrap['buildExecutionContext']>,
     pipelineElement: WorkTask,
     snapshot: RequestSnapshot,
@@ -96,18 +98,35 @@ export default class RequestEvaluator {
         throw new Error('[Forge] Request pipeline completed without a result')
       }
 
-      this.traceProjector.emitTrace(snapshot, instrumentation, pipelineResult, completed.workUnit)
+      this.traceProjector.emitTrace(
+        snapshot,
+        instrumentation,
+        pipelineResult,
+        completed.traceSpan,
+        node,
+        requestExecutionContext.routeTree,
+        requestExecutionContext.reachabilityEvaluation,
+      )
 
       return pipelineResult
     } catch (error) {
       if (error instanceof WorkExecutionError) {
-        this.traceProjector.emitFailedTrace(snapshot, instrumentation, error.workUnit, requestExecutionContext.context)
-
         let unwrapped: unknown = error
 
         while (unwrapped instanceof WorkExecutionError) {
           unwrapped = unwrapped.original
         }
+
+        this.traceProjector.emitFailedTrace(
+          snapshot,
+          instrumentation,
+          unwrapped,
+          error.traceSpan,
+          requestExecutionContext.context,
+          node,
+          requestExecutionContext.routeTree,
+          requestExecutionContext.reachabilityEvaluation,
+        )
 
         throw unwrapped
       }

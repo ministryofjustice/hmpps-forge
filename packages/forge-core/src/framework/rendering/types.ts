@@ -97,6 +97,17 @@ export interface ForgeRenderer<TOut> {
     entry: ComponentRegistryEntry<BlockDefinition, TOut>,
     block: EvaluatedBlock<BlockDefinition>,
   ): MaybePromise<TOut>
+
+  /**
+   * Optionally tag a block's rendered output with an out-of-band marker tying it
+   * to its `nodeId`, so devtools can locate the block within the host output —
+   * for an HTML renderer, paired comments bracketing the block. The orchestrator
+   * calls this once per rendered block (nested blocks included) and only while a
+   * request is being traced, so untraced (production) output is never marked.
+   * Renderers whose output can't carry an invisible marker omit this method.
+   */
+  markBlock?(nodeId: NodeId, output: TOut): TOut
+
   wrapNestedBlock(block: BlockDefinition, output: TOut): MaybePromise<unknown>
   assemblePage(
     context: RenderContext,

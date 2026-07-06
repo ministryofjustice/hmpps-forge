@@ -7,6 +7,7 @@ import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
+import ForgeTraceSinkDispatcher from './diagnostics/ForgeTraceSinkDispatcher'
 import PackageInstance from './PackageInstance'
 
 describe('PackageInstance', () => {
@@ -25,7 +26,7 @@ describe('PackageInstance', () => {
       // Act
       const instance = new PackageInstance(
         { journey: createJourneyDefinition() },
-        { functionRegistry, componentRegistry },
+        { functionRegistry, componentRegistry, instrumentation: new ForgeTraceSinkDispatcher() },
       )
 
       // Assert
@@ -59,6 +60,7 @@ describe('PackageInstance', () => {
           functionRegistry,
           componentRegistry,
           functionDependencies: { prefix: 'case-' },
+          instrumentation: new ForgeTraceSinkDispatcher(),
         },
       )
 
@@ -87,7 +89,7 @@ describe('PackageInstance', () => {
           journey: createJourneyDefinition(),
           components: [packageComponent],
         },
-        { functionRegistry, componentRegistry },
+        { functionRegistry, componentRegistry, instrumentation: new ForgeTraceSinkDispatcher() },
       )
 
       // Assert

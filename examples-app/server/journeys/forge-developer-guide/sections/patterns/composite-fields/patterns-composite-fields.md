@@ -59,7 +59,7 @@ The live demo works end-to-end. Following the flow shows:
 
 ```
 /forge-developer-guide/patterns/demos/composite-fields/
-├── /                 → Overview and "Start" button
+├── /overview         → Overview and "Start" button
 ├── /date-of-birth    → Component-owned composite (GovUKDateInputFull)
 ├── /address          → Author-owned composite (4 text inputs)
 ├── /check-answers    → Summary with formatted date and composed address
@@ -87,11 +87,11 @@ GovUKDateInputFull({
   hint: { text: 'For example, 27 3 1990' },
   validWhen: [
     ...GovUKValidations.DateInputFull({
-      empty: { message: 'Enter your date of birth', submissionOnly: true },
-      missingDay: { message: 'Date of birth must include a day', submissionOnly: true },
-      missingMonth: { message: 'Date of birth must include a month', submissionOnly: true },
-      missingYear: { message: 'Date of birth must include a year', submissionOnly: true },
-      invalid: { message: 'Date of birth must be a real date', submissionOnly: true },
+      empty: { message: 'Enter your date of birth' },
+      missingDay: { message: 'Date of birth must include a day' },
+      missingMonth: { message: 'Date of birth must include a month' },
+      missingYear: { message: 'Date of birth must include a year' },
+      invalid: { message: 'Date of birth must be a real date' },
       mustBePast: { message: 'Date of birth must be in the past', submissionOnly: true },
     }),
   ],
@@ -119,7 +119,7 @@ Answer('dateOfBirth').pipe(
 ### Field-specific error targeting
 
 `GovUKValidations.DateInputFull` attaches a `details.field` hint to
-each validation. When a rule fails, the component applies the error
+each missing-part validation. When one of those rules fails, the component applies the error
 outline to only that input (for example, only the year box if the
 year is missing), rather than colouring all 3 red. This is why the
 pre-built set is worth using instead of writing ad-hoc required
@@ -171,30 +171,34 @@ GovUKTextInput({
 ### Composing on the summary
 
 The defining move of the author-owned flavour is that the step
-collects parts and the summary assembles the whole. `Format()` with
-`<br>` separators produces a multi-line value, and `match()` picks
-the right template depending on whether line 2 is filled in:
+collects parts and the summary assembles the whole. The demo uses
+`NunjucksGenerators.String` to render a small template with `<br>`
+separators, gating the optional line 2 with a plain `{% if %}`:
 
 ```typescript
-const line1 = Answer('addressLine1').pipe(Transformer.String.EscapeHtml())
-const line2 = Answer('addressLine2').pipe(Transformer.String.EscapeHtml())
-const town = Answer('addressTown').pipe(Transformer.String.EscapeHtml())
-const postcode = Answer('addressPostcode').pipe(Transformer.String.EscapeHtml())
-
-const addressDisplay = match(Answer('addressLine2'))
-  .branch(
-    Condition.IsRequired(),
-    Format('%1<br>%2<br>%3<br>%4', line1, line2, town, postcode),
-  )
-  .otherwise(Format('%1<br>%2<br>%3', line1, town, postcode))
+const addressDisplay = NunjucksGenerators.String({
+  template: `
+    {{ line1 }}<br>
+    {% if line2 %}{{ line2 }}<br>{% endif %}
+    {{ town }}<br>
+    {{ postcode }}
+  `,
+  data: {
+    line1: Answer('addressLine1'),
+    line2: Answer('addressLine2'),
+    town: Answer('addressTown'),
+    postcode: Answer('addressPostcode'),
+  },
+})
 ```
 
 The row uses `value: { html: addressDisplay }` so the `<br>` tags
-render as line breaks. Because the value is HTML, every user-supplied
-part is piped through `Transformer.String.EscapeHtml()` first -
-without that, a line like `<script>...</script>` would render as
-real markup. One change link targets the address step, so any part
-can be edited.
+render as line breaks. The template renders with autoescape on, so
+each user-supplied part is HTML-escaped automatically - a line like
+`<script>...</script>` comes out as text, not real markup. Forge
+resolves the `Answer()` references in `data` before the template
+runs, so the template just sees strings. One change link targets the
+address step, so any part can be edited.
 
 ---
 

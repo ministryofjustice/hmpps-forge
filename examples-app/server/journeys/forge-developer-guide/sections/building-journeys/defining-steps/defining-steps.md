@@ -210,6 +210,15 @@ where you need to identify a step without relying on its path.
 code: 'add-trip'
 ```
 
+### `description` (Optional)
+
+A short description of the step. Passed through to the route tree and
+available in templates.
+
+```typescript
+description: 'Record the details of a single trip'
+```
+
 ### `blocks` (Optional)
 
 An array of block and field definitions that make up the page content.
@@ -241,8 +250,9 @@ view: {
 ### `backlink` (Optional)
 
 Sets a custom back link URL. By default, Forge provides a back link
-based on the user's navigation history. Set a custom URL to override
-this, or an empty string to remove the back link entirely.
+to the previous step on the user's path through the journey. Set a
+custom URL to override this, or an empty string to remove the back
+link entirely.
 
 ```typescript
 backlink: '/travel-declaration/your-trips'  // Custom URL
@@ -318,7 +328,8 @@ See [Hooks and lifecycle](hooks-and-lifecycle) for full details.
 ### `validWhen` (Optional)
 
 Step-level validation rules that run alongside field-level validations.
-Useful for cross-field rules that depend on multiple inputs. See
+Useful for cross-field rules that depend on multiple inputs. For running
+validation when a user enters a step, see `validateOnEntry` in
 [Validation](validation).
 
 ---

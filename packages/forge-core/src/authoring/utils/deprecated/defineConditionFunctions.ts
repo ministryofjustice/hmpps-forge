@@ -1,5 +1,6 @@
-import { FunctionType } from '../types/enums'
-import { buildExpressionFunctions, extractFactories } from './defineFunction'
+import { FunctionType } from '../../types/enums'
+import { ForgeDeprecations } from '../../../shared/utils/ForgeDeprecations'
+import { buildExpressionFunctions, tagFunctionType } from './defineFunction'
 import type {
   ConditionFunctionGroup,
   ConditionFunctions,
@@ -20,6 +21,8 @@ import type {
  * Each condition factory receives dependencies and returns an evaluator function.
  * The evaluator's first parameter (`value`) is injected by the engine at runtime -
  * the returned `conditions` builders only expose the remaining configuration arguments.
+ *
+ * @deprecated Use ConditionRegistry instead.
  *
  * @param factories - Condition factories keyed by function name
  *
@@ -55,8 +58,16 @@ export function defineConditionFunctions<TShapes extends FunctionShapeMap, TDeps
   conditions: ConditionFunctions<TShapes>
   implementations: FunctionImplementations<TShapes, TDeps>
 } {
+  ForgeDeprecations.warn(
+    'FORGE_DEP_defineConditionFunctions',
+    'defineConditionFunctions is deprecated - use ConditionRegistry instead.',
+  )
+
   return {
     conditions: buildExpressionFunctions(factories, FunctionType.CONDITION) as ConditionFunctions<TShapes>,
-    implementations: extractFactories(factories) as unknown as FunctionImplementations<TShapes, TDeps>,
+    implementations: tagFunctionType(factories, FunctionType.CONDITION) as unknown as FunctionImplementations<
+      TShapes,
+      TDeps
+    >,
   }
 }
