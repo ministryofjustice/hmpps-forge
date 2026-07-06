@@ -15,6 +15,7 @@ export interface RequestPipelineConfig {
   readonly node: MountedNode
   readonly snapshot: RequestSnapshot
   readonly renderer?: ForgeRenderer<unknown>
+  readonly traceEnabled: boolean
 }
 
 export default class RequestPipelineBootstrap {
@@ -50,6 +51,7 @@ export default class RequestPipelineBootstrap {
       componentRegistry,
       currentStepId: node.kind === 'step' ? node.nodeId : undefined,
       hasRenderer: this.config.renderer !== undefined,
+      traceEnabled: this.config.traceEnabled,
       buildStepValidation,
       recordStepValidation,
     }

@@ -56,6 +56,7 @@ function createContext(
     functionRegistry: new FunctionRegistry(),
     componentRegistry: new ComponentRegistry(),
     hasRenderer: false,
+    traceEnabled: false,
     buildStepValidation: () => undefined,
     recordStepValidation: () => {},
   }

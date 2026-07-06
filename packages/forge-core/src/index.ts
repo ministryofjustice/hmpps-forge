@@ -21,6 +21,8 @@ export type {
   RequestTraceError,
   RequestTraceEvent,
   RequestTracePhase,
+  RequestTraceReachability,
+  RequestTraceReachabilityStep,
   RequestTraceRedirect,
   RequestTraceRouteContext,
   RequestTraceUnit,

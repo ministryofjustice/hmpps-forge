@@ -59,6 +59,7 @@ export default class RequestEvaluator {
       node,
       snapshot,
       renderer,
+      traceEnabled: this.options.instrumentation.enabled,
     })
 
     const context = {
@@ -104,6 +105,7 @@ export default class RequestEvaluator {
         completed.traceSpan,
         node,
         requestExecutionContext.routeTree,
+        requestExecutionContext.reachabilityEvaluation,
       )
 
       return pipelineResult
@@ -123,6 +125,7 @@ export default class RequestEvaluator {
           requestExecutionContext.context,
           node,
           requestExecutionContext.routeTree,
+          requestExecutionContext.reachabilityEvaluation,
         )
 
         throw unwrapped

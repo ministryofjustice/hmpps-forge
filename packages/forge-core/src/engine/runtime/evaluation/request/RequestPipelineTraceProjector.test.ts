@@ -1,6 +1,7 @@
 import type { RequestSnapshot } from '../../../../framework/types/snapshot.type'
 import type { RenderContext, RouteTree } from '../../../../framework/rendering/types'
 import type { RequestTraceEvent } from '../../../contracts/runtime/trace.type'
+import type { ReachabilityEvaluation } from '../../../contracts/reachability/reachabilityEvaluation.type'
 import type { RuntimeContext } from '../../../contracts/runtime/evaluationState.type'
 import type { MountedNode } from '../../../registries/MountRegistry'
 import type { ForgeInstrumentation } from '../../../diagnostics/ForgeTraceSinkDispatcher'
@@ -47,6 +48,7 @@ describe('RequestPipelineTraceProjector', () => {
         },
         root,
         createMountedNode(),
+        undefined,
         undefined,
       )
 
@@ -108,6 +110,7 @@ describe('RequestPipelineTraceProjector', () => {
         createRuntimeContext(),
         createMountedNode(),
         undefined,
+        undefined,
       )
 
       // Assert
@@ -160,6 +163,7 @@ describe('RequestPipelineTraceProjector', () => {
         root,
         createMountedNode(),
         undefined,
+        undefined,
       )
 
       // Assert
@@ -185,6 +189,7 @@ describe('RequestPipelineTraceProjector', () => {
         { kind: 'error', status: 403, message: 'Forbidden' },
         root,
         createMountedNode(),
+        undefined,
         undefined,
       )
 
@@ -212,6 +217,7 @@ describe('RequestPipelineTraceProjector', () => {
         createRuntimeContext(),
         createMountedNode(),
         undefined,
+        undefined,
       )
 
       // Assert
@@ -235,6 +241,7 @@ describe('RequestPipelineTraceProjector', () => {
         root,
         createRuntimeContext(),
         createMountedNode(),
+        undefined,
         undefined,
       )
 
@@ -260,6 +267,7 @@ describe('RequestPipelineTraceProjector', () => {
         { kind: 'render', context: createRenderContext() },
         root,
         createMountedNode(),
+        undefined,
         undefined,
       )
 
@@ -291,6 +299,7 @@ describe('RequestPipelineTraceProjector', () => {
         root,
         createMountedNode(),
         createRouteTree(),
+        undefined,
       )
 
       // Assert
@@ -320,6 +329,7 @@ describe('RequestPipelineTraceProjector', () => {
         createRuntimeContext(),
         createMountedNode(),
         undefined,
+        undefined,
       )
 
       // Assert
@@ -328,6 +338,166 @@ describe('RequestPipelineTraceProjector', () => {
         routeTemplatePath: '/journey/step',
         journeyTitle: undefined,
         stepTitle: undefined,
+      })
+    })
+
+    it('should carry the projected reachability evaluation when the pipeline provides one', () => {
+      // Arrange
+      const root = new TraceSpan('request', 'request.pipeline')
+      const phase = new TraceSpan('resolve', 'request.resolve', root)
+      const projector = new RequestPipelineTraceProjector()
+      const emitted: RequestTraceEvent[] = []
+
+      root.addChild(phase)
+      phase.complete({ action: 'continue' })
+      root.complete({ kind: 'render', context: createRenderContext() })
+
+      // Act
+      projector.emitTrace(
+        createSnapshot(),
+        createInstrumentation(emitted),
+        { kind: 'render', context: createRenderContext() },
+        root,
+        createMountedNode(),
+        undefined,
+        createReachabilityEvaluation(),
+      )
+
+      // Assert
+      expect(emitted[0].trace.reachability).toEqual({
+        currentStepId: 'compile_ast:2',
+        steps: [
+          {
+            stepId: 'compile_ast:2',
+            routeTemplatePath: '/journey/step',
+            code: 'step',
+            declarationIndex: 0,
+            isEntryPoint: true,
+            isConditionalEntry: false,
+            hasValidation: true,
+            isReachable: true,
+            isValid: true,
+            forwardRouteTemplatePaths: ['/journey/next'],
+            declaredForwardRouteTemplatePaths: ['/journey/next'],
+            predecessorRouteTemplatePaths: [],
+            tieBreakerPriority: 0,
+          },
+        ],
+        defaultEntryRouteTemplatePath: '/journey/step',
+        frontierRouteTemplatePath: '/journey/step',
+        canonicalPathRouteTemplatePaths: ['/journey/step'],
+        progressExists: true,
+        resumeActive: false,
+        resumeOutcome: 'no-op',
+        unreachableRedirect: 'entry',
+      })
+    })
+
+    it('should copy reachability arrays so the trace does not alias the live evaluation', () => {
+      // Arrange
+      const root = new TraceSpan('request', 'request.pipeline')
+      const phase = new TraceSpan('resolve', 'request.resolve', root)
+      const projector = new RequestPipelineTraceProjector()
+      const emitted: RequestTraceEvent[] = []
+      const evaluation = createReachabilityEvaluation()
+
+      root.addChild(phase)
+      phase.complete({ action: 'continue' })
+      root.complete({ kind: 'render', context: createRenderContext() })
+
+      // Act
+      projector.emitTrace(
+        createSnapshot(),
+        createInstrumentation(emitted),
+        { kind: 'render', context: createRenderContext() },
+        root,
+        createMountedNode(),
+        undefined,
+        evaluation,
+      )
+
+      // Assert
+      const { reachability } = emitted[0].trace
+      expect(reachability?.steps[0].forwardRouteTemplatePaths).not.toBe(evaluation.steps[0].forwardRouteTemplatePaths)
+      expect(reachability?.steps[0].forwardRouteTemplatePaths).toEqual(evaluation.steps[0].forwardRouteTemplatePaths)
+      expect(reachability?.canonicalPathRouteTemplatePaths).not.toBe(evaluation.canonicalPathRouteTemplatePaths)
+      expect(reachability?.canonicalPathRouteTemplatePaths).toEqual(evaluation.canonicalPathRouteTemplatePaths)
+    })
+
+    it('should omit reachability when the pipeline provides no evaluation', () => {
+      // Arrange
+      const root = new TraceSpan('request', 'request.pipeline')
+      const phase = new TraceSpan('resolve', 'request.resolve', root)
+      const projector = new RequestPipelineTraceProjector()
+      const emitted: RequestTraceEvent[] = []
+
+      root.addChild(phase)
+      phase.complete({ action: 'continue' })
+      root.complete({ kind: 'render', context: createRenderContext() })
+
+      // Act
+      projector.emitTrace(
+        createSnapshot(),
+        createInstrumentation(emitted),
+        { kind: 'render', context: createRenderContext() },
+        root,
+        createMountedNode(),
+        undefined,
+        undefined,
+      )
+
+      // Assert
+      expect(emitted[0].trace).not.toHaveProperty('reachability')
+    })
+
+    it('should carry the projected reachability evaluation when emitting a failed trace', () => {
+      // Arrange
+      const root = new TraceSpan('request', 'request.pipeline')
+      const phase = new TraceSpan('resolve', 'request.resolve', root)
+      const projector = new RequestPipelineTraceProjector()
+      const emitted: RequestTraceEvent[] = []
+
+      root.addChild(phase)
+
+      // Act
+      projector.emitFailedTrace(
+        createSnapshot(),
+        createInstrumentation(emitted),
+        new Error('boom'),
+        root,
+        createRuntimeContext(),
+        createMountedNode(),
+        undefined,
+        createReachabilityEvaluation(),
+      )
+
+      // Assert
+      expect(emitted[0].trace.reachability).toEqual({
+        currentStepId: 'compile_ast:2',
+        steps: [
+          {
+            stepId: 'compile_ast:2',
+            routeTemplatePath: '/journey/step',
+            code: 'step',
+            declarationIndex: 0,
+            isEntryPoint: true,
+            isConditionalEntry: false,
+            hasValidation: true,
+            isReachable: true,
+            isValid: true,
+            forwardRouteTemplatePaths: ['/journey/next'],
+            declaredForwardRouteTemplatePaths: ['/journey/next'],
+            predecessorRouteTemplatePaths: [],
+            tieBreakerPriority: 0,
+          },
+        ],
+        defaultEntryRouteTemplatePath: '/journey/step',
+        frontierRouteTemplatePath: '/journey/step',
+        canonicalPathRouteTemplatePaths: ['/journey/step'],
+        progressExists: true,
+        resumeActive: false,
+        resumeOutcome: 'no-op',
+        unreachableRedirect: 'entry',
       })
     })
   })
@@ -423,6 +593,39 @@ function createMountedNode(): MountedNode {
     journeyCode: 'journey',
     templatePath: '/journey/step',
   } as unknown as MountedNode
+}
+
+// NodeId is a branded template-literal type; 'compile_ast:2' literals satisfy it like createMountedNode.
+// cleardownRetentionRouteTemplatePaths is deliberately populated so the projector's drop of it is provable.
+function createReachabilityEvaluation(): ReachabilityEvaluation {
+  return {
+    currentStepId: 'compile_ast:2',
+    steps: [
+      {
+        stepId: 'compile_ast:2',
+        routeTemplatePath: '/journey/step',
+        code: 'step',
+        declarationIndex: 0,
+        isEntryPoint: true,
+        isConditionalEntry: false,
+        hasValidation: true,
+        isReachable: true,
+        isValid: true,
+        forwardRouteTemplatePaths: ['/journey/next'],
+        declaredForwardRouteTemplatePaths: ['/journey/next'],
+        predecessorRouteTemplatePaths: [],
+        tieBreakerPriority: 0,
+      },
+    ],
+    defaultEntryRouteTemplatePath: '/journey/step',
+    frontierRouteTemplatePath: '/journey/step',
+    canonicalPathRouteTemplatePaths: ['/journey/step'],
+    progressExists: true,
+    resumeActive: false,
+    resumeOutcome: 'no-op',
+    unreachableRedirect: 'entry',
+    cleardownRetentionRouteTemplatePaths: ['/journey/next'],
+  }
 }
 
 function createRouteTree(): RouteTree {
