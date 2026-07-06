@@ -5,12 +5,13 @@ import PaneHeader from './layout/PaneHeader'
 import SplitPane from './layout/SplitPane'
 import ListPanel from './layout/ListPanel'
 import AuthOverlay from './components/AuthOverlay'
+import BlocksView from './components/BlocksView'
 import Profiler from './components/Profiler'
 import StateView from './components/StateView'
 import TraceDetail from './components/TraceDetail'
 import TraceEntry from './components/TraceEntry'
 
-const DETAIL_TABS = ['Details', 'Profiler', 'State'] as const
+const DETAIL_TABS = ['Details', 'Profiler', 'State', 'Blocks'] as const
 
 function Panel() {
   const connection = useConnection()
@@ -82,6 +83,7 @@ function Panel() {
               {activeTab === 0 && <TraceDetail trace={selectedTrace} />}
               {activeTab === 1 && <Profiler trace={selectedTrace} />}
               {activeTab === 2 && <StateView trace={selectedTrace} />}
+              {activeTab === 3 && <BlocksView trace={selectedTrace} />}
             </div>
           }
         />
