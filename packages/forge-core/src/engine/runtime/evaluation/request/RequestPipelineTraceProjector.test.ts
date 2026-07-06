@@ -504,14 +504,17 @@ describe('RequestPipelineTraceProjector', () => {
 })
 
 function createInstrumentation(emitted: RequestTraceEvent[]): ForgeInstrumentation {
-  return {
+  const instrumentation: ForgeInstrumentation = {
     enabled: true,
     captureGeneratedSource: false,
+    forRequest: () => instrumentation,
     onRequestTrace: event => {
       emitted.push(event)
     },
     onCompilationTrace: vi.fn(),
   }
+
+  return instrumentation
 }
 
 function createSnapshot(): RequestSnapshot {

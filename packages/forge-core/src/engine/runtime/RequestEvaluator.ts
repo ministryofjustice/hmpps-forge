@@ -41,9 +41,17 @@ export default class RequestEvaluator {
   async evaluate(requestInput: RequestEvaluationRequest): Promise<ForgeOutcome<unknown>> {
     const { node, snapshot, renderer, responseBindings = NO_OP_RESPONSE_BINDINGS } = requestInput
 
-    const { executionContext, pipelineElement } = this.preparePipeline(node, snapshot, responseBindings, renderer)
+    const instrumentation = this.options.instrumentation.forRequest(snapshot)
 
-    const pipelineResult = await this.run(node, executionContext, pipelineElement, snapshot)
+    const { executionContext, pipelineElement } = this.preparePipeline(
+      node,
+      snapshot,
+      responseBindings,
+      instrumentation,
+      renderer,
+    )
+
+    const pipelineResult = await this.run(node, executionContext, pipelineElement, snapshot, instrumentation)
 
     return this.buildOutcome(pipelineResult, snapshot)
   }
@@ -52,6 +60,7 @@ export default class RequestEvaluator {
     node: MountedNode,
     snapshot: RequestSnapshot,
     responseBindings: ResponseBindings,
+    instrumentation: ForgeInstrumentation,
     renderer?: ForgeRenderer<unknown>,
   ): PreparedPipeline {
     const bootstrap = new RequestPipelineBootstrap({
@@ -59,7 +68,7 @@ export default class RequestEvaluator {
       node,
       snapshot,
       renderer,
-      traceEnabled: this.options.instrumentation.enabled,
+      traceEnabled: instrumentation.enabled,
     })
 
     const context = {
@@ -84,9 +93,8 @@ export default class RequestEvaluator {
     requestExecutionContext: ReturnType<RequestPipelineBootstrap['buildExecutionContext']>,
     pipelineElement: WorkTask,
     snapshot: RequestSnapshot,
+    instrumentation: ForgeInstrumentation,
   ): Promise<RequestPipelineResult> {
-    const { instrumentation } = this.options
-
     try {
       const workExecutor = new WorkExecutor(instrumentation.enabled)
 
