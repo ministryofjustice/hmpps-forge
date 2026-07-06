@@ -5,7 +5,7 @@ import type {
   RenderedBlock,
   ComponentRegistryEntry,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import type { ForgeRenderer, RenderContext, RouteTreeNode } from '@ministryofjustice/hmpps-forge/core/framework'
+import type { ForgeRenderer, NodeId, RenderContext, RouteTreeNode } from '@ministryofjustice/hmpps-forge/core/framework'
 import type { TemplateContext, TemplateNavigationItem } from './types'
 
 export interface NunjucksRendererOptions {
@@ -55,6 +55,11 @@ export default class NunjucksRenderer implements ForgeRenderer<string> {
     }
 
     return rendered
+  }
+
+  /** Bracket a block's HTML with paired comment markers so devtools can locate it in the rendered DOM. */
+  markBlock(nodeId: NodeId, output: string): string {
+    return `<!--forge:${nodeId}-->${output}<!--/forge:${nodeId}-->`
   }
 
   wrapNestedBlock(block: BlockDefinition, output: string): RenderedBlock {

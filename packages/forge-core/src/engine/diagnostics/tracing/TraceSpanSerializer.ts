@@ -12,6 +12,8 @@ export default class TraceSpanSerializer {
       completedAtMs: span.completedAtMs,
       durationMs: span.durationMs,
       selfDurationMs: span.selfDurationMs,
+      // TraceSpan is shared with compilation tracing, which never records slices — keep those spans clean.
+      ...(span.executionSlices.length > 0 ? { executionSlices: span.executionSlices } : {}),
       children: span.children.filter(child => !child.omitFromTrace).map(child => this.serialize(child)),
     }
   }
