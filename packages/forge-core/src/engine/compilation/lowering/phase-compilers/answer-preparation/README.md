@@ -34,7 +34,7 @@ The runtime work executor runs the answer-preparation handler and field handlers
 - POST mode reads submitted values from `ctx.post`.
   It normalizes multiple fields, checks the component input schema, records a `post` mutation, runs formatters, and can record a `processed` mutation.
 - The component input schema check runs between normalization and the `post` mutation.
-  Variants that declare an `inputSchema` on their registry entry validate the normalized value; a value that fails the schema is dropped to absent (`undefined`, or `[]` when multiple) and a `FORGE_INPUT_SCHEMA_REJECTED` process warning is emitted.
+  Variants that declare an `inputSchema` on their registry entry validate the normalized value; a value that fails the schema is dropped to absent (`undefined`, or `[]` when multiple).
   An unanswered value and variants without a schema are left untouched.
 - GET mode does not run formatters.
   It keeps the current answer or seeds `defaultValue` when no answer exists.

@@ -68,7 +68,6 @@ interface RuntimeEvaluationDiagnostics {
     functionName?: string,
     functionType?: string,
   ): unknown
-  warn(code: string, message: string, details?: Record<string, unknown>): void
 }
 
 const VALIDATION_CONDITION_FUNCTION_TYPE = 'FunctionType.Condition'
@@ -78,14 +77,7 @@ export interface GeneratedFunctionHelpers {
   ensureAnswerHistory(ctx: AnswerHistoryContext, code: string): AnswerHistory
   pushAnswerMutation(answerHistory: AnswerHistory, value: unknown, source: string): void
   normalizePostValue(rawValue: unknown, multiple: boolean): unknown
-  checkComponentInputValue(
-    ctx: ComponentInputContext,
-    diagnostics: RuntimeEvaluationDiagnostics | undefined,
-    variant: string,
-    code: string,
-    value: unknown,
-    multiple: boolean,
-  ): unknown
+  checkComponentInputValue(ctx: ComponentInputContext, variant: string, value: unknown, multiple: boolean): unknown
   resolveFieldValue(ctx: RenderFieldValueContext, blockProps: Record<string, unknown>): void
   resolveFieldFailures(ctx: RenderFieldFailureContext, blockId: unknown, blockProps: Record<string, unknown>): void
   evaluateFunction(
@@ -157,12 +149,11 @@ export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
    * Checks a submitted value against the component variant's `inputSchema` after
    * normalisation. A value failing the schema is by definition not from the
    * rendered form, so it fails soft to absent — `[]` when multiple, else
-   * `undefined` — with a per-occurrence runtime warning rather than a thrown
-   * error, since no legitimate user action can produce it. A passing value is
-   * returned unchanged (no Zod coercion in v1). An unanswered value, an unknown
+   * `undefined` — since no legitimate user action can produce it. A passing value
+   * is returned unchanged (no Zod coercion in v1). An unanswered value, an unknown
    * variant, or a variant without a schema is left untouched.
    */
-  checkComponentInputValue(ctx, diagnostics, variant, code, value, multiple) {
+  checkComponentInputValue(ctx, variant, value, multiple) {
     if (value === undefined) {
       return value
     }
@@ -178,12 +169,6 @@ export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
     if (parsed.success) {
       return value
     }
-
-    diagnostics?.warn(
-      'FORGE_INPUT_SCHEMA_REJECTED',
-      `${code}: value failed schema validation for component variant '${variant}' — dropped as unanswered`,
-      { issues: parsed.error.issues },
-    )
 
     return multiple ? [] : undefined
   },
