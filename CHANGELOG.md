@@ -55,8 +55,25 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ## 0.3.1
 
-Instrumentation sinks can now opt in to tracing per request instead of paying for every
-request the server handles.
+The devtools release. A Chrome DevTools panel for inspecting Forge requests, with
+tracing that only runs for requests a devtools user is actually watching.
+
+### For journey authors
+
+_Definitions, expressions, hooks, navigation, reachability_
+
+#### New
+
+- **Forge DevTools.** A Chrome DevTools panel for inspecting Forge requests - profiler
+  flame chart, pipeline state with snapshot diffs, resolved block tree with validation,
+  and the reachability step graph. The bridge ships under the `/devtools` subpath:
+  `setUpForgeDevTools`, register it as an instrumentation sink, attach it to the HTTP
+  server. Auth is a one-time code printed to the app's logs, and traces are scoped
+  per browser by cookie. Apps running multiple replicas hand `setUpForgeDevTools` their
+  Redis client so every pod's traces reach the panel. See the package README for setup
+  and the extension install. ([#150], [#152])
+
+---
 
 ### For engine / internal developers
 
@@ -72,7 +89,9 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
   without `shouldTrace` trace everything, as before - and compile-time tracing is
   untouched. ([#151])
 
+[#150]: https://github.com/ministryofjustice/hmpps-forge/pull/150
 [#151]: https://github.com/ministryofjustice/hmpps-forge/pull/151
+[#152]: https://github.com/ministryofjustice/hmpps-forge/pull/152
 
 ---
 

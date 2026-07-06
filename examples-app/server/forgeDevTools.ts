@@ -3,8 +3,13 @@ import type { ForgeInstrumentationSink } from '@ministryofjustice/hmpps-forge/co
 import { setUpForgeDevTools } from '@ministryofjustice/hmpps-forge/devtools'
 import config from './config'
 import logger from './logger'
+import { createRedisClient } from './data/redisClient'
 
-const forgeDevTools = setUpForgeDevTools({ logger, noAuth: !config.production })
+const forgeDevTools = setUpForgeDevTools({
+  logger,
+  noAuth: !config.production,
+  redis: config.redis.enabled ? createRedisClient() : undefined,
+})
 
 export const forgeDevToolsInstrumentationSink: ForgeInstrumentationSink = forgeDevTools
 
