@@ -89,9 +89,20 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
   without `shouldTrace` trace everything, as before - and compile-time tracing is
   untouched. ([#151])
 
+#### Improvements
+
+- **Split the build and lint configs per package.** `packages/rolldown.config.mjs` had
+  grown into a 200-line mix of the library builds, the dts machinery and the whole
+  devtools extension build. Each `forge-*` folder now owns its own `rolldown.config.mjs`
+  and `eslint.config.mjs` fragment, composed by thin root configs. Package externals and
+  the eslint cross-import bans are now derived from a package list - forge-core and
+  forge-devtools get the same bans as everyone else. Published output is byte-identical.
+  ([#153])
+
 [#150]: https://github.com/ministryofjustice/hmpps-forge/pull/150
 [#151]: https://github.com/ministryofjustice/hmpps-forge/pull/151
 [#152]: https://github.com/ministryofjustice/hmpps-forge/pull/152
+[#153]: https://github.com/ministryofjustice/hmpps-forge/pull/153
 
 ---
 
