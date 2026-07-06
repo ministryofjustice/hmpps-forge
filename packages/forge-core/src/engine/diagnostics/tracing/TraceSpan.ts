@@ -1,4 +1,4 @@
-import type { TraceSpanContract, TraceSpanFields } from './traceSpan.type'
+import type { TraceSpanContract, TraceSpanExecutionSlice, TraceSpanFields } from './traceSpan.type'
 
 export default class TraceSpan implements TraceSpanContract {
   private readonly spanKey: string
@@ -22,6 +22,8 @@ export default class TraceSpan implements TraceSpanContract {
   private mutableDurationMs: number | undefined
 
   private mutableSelfDurationMs = 0
+
+  private readonly mutableExecutionSlices: TraceSpanExecutionSlice[] = []
 
   private mutableOutput: unknown
 
@@ -77,6 +79,10 @@ export default class TraceSpan implements TraceSpanContract {
     return this.mutableSelfDurationMs
   }
 
+  get executionSlices(): readonly TraceSpanExecutionSlice[] {
+    return this.mutableExecutionSlices
+  }
+
   get output(): unknown {
     return this.mutableOutput
   }
@@ -91,6 +97,10 @@ export default class TraceSpan implements TraceSpanContract {
 
   addSelfTime(ms: number): void {
     this.mutableSelfDurationMs += ms
+  }
+
+  recordExecutionSlice(startedAtMs: number, completedAtMs: number): void {
+    this.mutableExecutionSlices.push({ startedAtMs, completedAtMs })
   }
 
   recordTraceMetadataAtStart(traceMetadata: TraceSpanFields | undefined): void {

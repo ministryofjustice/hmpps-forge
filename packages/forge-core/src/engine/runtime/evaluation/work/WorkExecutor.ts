@@ -72,8 +72,10 @@ export default class WorkExecutor {
     // would fold in siblings' interleaved work, which is exactly the queue-wait smear we drop.
     const beginStartedAtMs = performance.now()
     const beginResult = task.handler.begin(workCtx)
+    const beginCompletedAtMs = performance.now()
 
-    traceSpan.addSelfTime(performance.now() - beginStartedAtMs)
+    traceSpan.addSelfTime(beginCompletedAtMs - beginStartedAtMs)
+    traceSpan.recordExecutionSlice(beginStartedAtMs, beginCompletedAtMs)
 
     const begin = await beginResult
     const children: CompletedWork[] = []
@@ -86,8 +88,10 @@ export default class WorkExecutor {
 
     const completeStartedAtMs = performance.now()
     const completeResult = this.completeWork(task, workCtx, children, begin.output)
+    const completeCompletedAtMs = performance.now()
 
-    traceSpan.addSelfTime(performance.now() - completeStartedAtMs)
+    traceSpan.addSelfTime(completeCompletedAtMs - completeStartedAtMs)
+    traceSpan.recordExecutionSlice(completeStartedAtMs, completeCompletedAtMs)
 
     const output = await completeResult
     const traceMetadataAtFinish = this.resolveTraceMetadataAtFinish(task, workCtx, output)

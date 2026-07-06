@@ -1,5 +1,10 @@
 export type TraceSpanFields = Readonly<Record<string, unknown>>
 
+export interface TraceSpanExecutionSlice {
+  readonly startedAtMs: number
+  readonly completedAtMs: number
+}
+
 export interface TraceSpanReference {
   readonly key: string
   readonly kind: string
@@ -26,6 +31,7 @@ export interface TraceSpanContract extends TraceSpanReference {
   readonly completedAtMs?: number
   readonly durationMs?: number
   readonly selfDurationMs: number
+  readonly executionSlices: readonly TraceSpanExecutionSlice[]
   readonly output?: unknown
   readonly omitFromTrace: boolean
 }
@@ -40,5 +46,6 @@ export interface SerializedTraceSpan {
   readonly completedAtMs?: number
   readonly durationMs?: number
   readonly selfDurationMs?: number
+  readonly executionSlices?: readonly TraceSpanExecutionSlice[]
   readonly children: readonly SerializedTraceSpan[]
 }

@@ -58,6 +58,39 @@ describe('TraceSpanSerializer', () => {
       })
     })
 
+    it('should serialize the recorded execution slices', () => {
+      // Arrange
+      const span = new TraceSpan('unit', 'render.block')
+      const serializer = new TraceSpanSerializer()
+
+      span.recordExecutionSlice(1, 3)
+      span.recordExecutionSlice(8, 9)
+      span.complete('output')
+
+      // Act
+      const result = serializer.serialize(span)
+
+      // Assert
+      expect(result.executionSlices).toEqual([
+        { startedAtMs: 1, completedAtMs: 3 },
+        { startedAtMs: 8, completedAtMs: 9 },
+      ])
+    })
+
+    it('should omit execution slices when none were recorded', () => {
+      // Arrange
+      const span = new TraceSpan('unit', 'render.block')
+      const serializer = new TraceSpanSerializer()
+
+      span.complete('output')
+
+      // Act
+      const result = serializer.serialize(span)
+
+      // Assert
+      expect(result).not.toHaveProperty('executionSlices')
+    })
+
     it('should drop children marked omit-from-trace', () => {
       // Arrange
       const root = new TraceSpan('root', 'submit.hook')

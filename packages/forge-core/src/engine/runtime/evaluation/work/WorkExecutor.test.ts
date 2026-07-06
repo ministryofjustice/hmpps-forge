@@ -591,5 +591,74 @@ describe('WorkExecutor', () => {
       expect(traceSpan.selfDurationMs).toBeLessThan(10)
       expect(traceSpan.durationMs).toBeGreaterThanOrEqual(20)
     })
+
+    it('should record a begin and a complete execution slice for a completed unit', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const element = createOutputElement('child-1', 'done')
+
+      // Act
+      const { traceSpan } = await executor.executeWithUnit(element, createContext())
+
+      // Assert
+      expect(traceSpan.executionSlices).toHaveLength(2)
+      traceSpan.executionSlices.forEach(slice => {
+        expect(slice.completedAtMs).toBeGreaterThanOrEqual(slice.startedAtMs)
+      })
+    })
+
+    it('should record disjoint execution slices for serially-executed concurrent siblings', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const firstBusyType: WorkHandler = {
+        kind: 'test.child',
+        begin: () => {
+          busyWaitMs(10)
+
+          return { output: 'first' }
+        },
+      }
+      const secondBusyType: WorkHandler = {
+        kind: 'test.child',
+        begin: () => {
+          busyWaitMs(10)
+
+          return { output: 'second' }
+        },
+      }
+      const element = createParentElement(
+        [createWorkTask('first', firstBusyType, {}), createWorkTask('second', secondBusyType, {})],
+        { mode: 'concurrent' },
+      )
+
+      // Act
+      const { traceSpan } = await executor.executeWithUnit(element, createContext())
+
+      // Assert
+      const slices = traceSpan.children
+        .flatMap(child => child.executionSlices)
+        .sort((a, b) => a.startedAtMs - b.startedAtMs)
+      slices.forEach((slice, index) => {
+        if (index > 0) {
+          expect(slice.startedAtMs).toBeGreaterThanOrEqual(slices[index - 1].completedAtMs)
+        }
+      })
+    })
+
+    it('should report selfDurationMs as the sum of its execution slice widths', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const element = createOutputElement('child-1', 'done')
+
+      // Act
+      const { traceSpan } = await executor.executeWithUnit(element, createContext())
+
+      // Assert
+      const summedSliceWidths = traceSpan.executionSlices.reduce(
+        (total, slice) => total + (slice.completedAtMs - slice.startedAtMs),
+        0,
+      )
+      expect(traceSpan.selfDurationMs).toBe(summedSliceWidths)
+    })
   })
 })
