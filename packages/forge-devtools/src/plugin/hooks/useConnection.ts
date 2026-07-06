@@ -44,6 +44,16 @@ export interface TraceRouteContext {
   readonly formattedDslPath?: string
 }
 
+export interface TraceRequestMessage {
+  readonly params: Record<string, string>
+  readonly query: Record<string, string | string[]>
+  readonly post: Record<string, unknown>
+  readonly state: Record<string, unknown>
+  readonly headers: Record<string, string | string[] | undefined>
+  readonly cookies: Record<string, string | undefined>
+  readonly session: Record<string, unknown>
+}
+
 export interface TraceMessage {
   readonly type: 'trace'
   readonly method: string
@@ -59,6 +69,7 @@ export interface TraceMessage {
     readonly phases: readonly PhaseMessage[]
   }
   readonly route: TraceRouteContext
+  readonly request?: TraceRequestMessage
 }
 
 export interface AuthState {
