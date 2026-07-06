@@ -1,0 +1,16 @@
+@use '../styles/tokens' as *;
+
+.list-panel {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: $spacing-8;
+  padding: $spacing-4 $spacing-8;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface-alt);
+  flex-shrink: 0;
+}

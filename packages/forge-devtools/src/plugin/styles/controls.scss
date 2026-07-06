@@ -1,0 +1,52 @@
+@use 'tokens' as *;
+
+.button {
+  padding: $spacing-6 $spacing-16;
+  border: 1px solid var(--button-border);
+  border-radius: $radius-md;
+  background: var(--button-bg);
+  color: var(--fg);
+  cursor: pointer;
+  font-size: $font-size-base;
+
+  &:hover {
+    background: var(--bg-hover);
+  }
+
+  &--small {
+    padding: $spacing-2 $spacing-8;
+    border: 1px solid var(--button-border);
+    border-radius: $radius-sm;
+    background: var(--button-bg);
+    color: var(--fg);
+    font-size: $font-size-sm;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--bg-hover);
+    }
+  }
+}
+
+.connection-status {
+  padding: $spacing-4 $spacing-12;
+  font-size: $font-size-sm;
+  color: var(--fg-muted);
+
+  &--connected {
+    color: var(--color-success);
+  }
+
+  &--error {
+    color: var(--color-error);
+  }
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--fg-muted);
+  font-size: $font-size-base;
+}

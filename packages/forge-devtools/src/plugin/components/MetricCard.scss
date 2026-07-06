@@ -1,0 +1,29 @@
+@use '../styles/tokens' as *;
+
+.metric-card {
+  border: none;
+  border-radius: $radius-md;
+  padding: $spacing-16;
+  background: var(--bg-surface-alt);
+  flex: 1;
+  min-width: 0;
+
+  &__title {
+    font-size: $font-size-md;
+    font-weight: 600;
+    color: var(--fg);
+    margin-bottom: $spacing-8;
+  }
+
+  &__value {
+    font-size: 32px;
+    font-weight: 400;
+    color: var(--color-success);
+    margin-bottom: $spacing-8;
+  }
+
+  &__description {
+    font-size: $font-size-sm;
+    color: var(--fg-muted);
+  }
+}
