@@ -12,7 +12,6 @@ import {
   buildGeneratedSource,
   compileGeneratedFunction,
   GENERATED_FUNCTION_HELPERS_PARAM,
-  RUNTIME_DIAGNOSTICS_PARAM,
 } from '../../function-construction/GeneratedFunctionCompiler'
 import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
 import type ComponentRegistry from '../../../../registries/ComponentRegistry'
@@ -201,7 +200,7 @@ export default class StepAnswerPreparationCompiler {
     if (entry?.inputSchema !== undefined) {
       emitter.assign(
         rawVar,
-        `${GENERATED_FUNCTION_HELPERS_PARAM}.checkComponentInputValue(ctx, ${RUNTIME_DIAGNOSTICS_PARAM}, ${JSON.stringify(variant)}, ${codeExpr}, ${rawVar}, ${multipleLiteral})`,
+        `${GENERATED_FUNCTION_HELPERS_PARAM}.checkComponentInputValue(ctx, ${JSON.stringify(variant)}, ${rawVar}, ${multipleLiteral})`,
       )
     }
 

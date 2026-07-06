@@ -566,7 +566,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const source = localCompiler.generateSource([block])
 
       // Assert
-      expect(source).toContain('checkComponentInputValue(ctx, _forgeRuntimeDiagnostics, "text-input"')
+      expect(source).toContain('checkComponentInputValue(ctx, "text-input"')
     })
 
     it('should not emit a checkComponentInputValue call for a variant without an input schema', () => {
@@ -587,7 +587,6 @@ describe('StepAnswerPreparationCompiler', () => {
       const componentRegistry = createComponentRegistry({ variant: 'text-input', inputSchema: z.string() })
       const localCompiler = createComponentCompiler(componentRegistry)
       const block = createFieldBlock('name', {}, 'text-input')
-      const diagnostics = { warn: vi.fn() }
       const ctx = createCtx({
         post: { name: { nested: 'object' } as unknown as string },
         components: componentRegistry,
@@ -595,16 +594,11 @@ describe('StepAnswerPreparationCompiler', () => {
 
       // Act
       const source = localCompiler.generateSource([block])
-      await runGeneratedSource(source, ctx, diagnostics)
+      await runGeneratedSource(source, ctx)
 
       // Assert
       expect(ctx.answers.name.current).toBeUndefined()
       expect(ctx.answers.name.mutations[0]).toEqual({ value: undefined, source: 'post' })
-      expect(diagnostics.warn).toHaveBeenCalledWith(
-        'FORGE_INPUT_SCHEMA_REJECTED',
-        expect.stringContaining('text-input'),
-        expect.objectContaining({ issues: expect.any(Array) }),
-      )
     })
 
     it('should drop a bad shape to an empty array when the entry declares multiple', async () => {
@@ -635,16 +629,14 @@ describe('StepAnswerPreparationCompiler', () => {
       const componentRegistry = createComponentRegistry({ variant: 'text-input', inputSchema: z.string() })
       const localCompiler = createComponentCompiler(componentRegistry)
       const block = createFieldBlock('name', {}, 'text-input')
-      const diagnostics = { warn: vi.fn() }
       const ctx = createCtx({ post: { name: 'Ada' }, components: componentRegistry })
 
       // Act
       const source = localCompiler.generateSource([block])
-      await runGeneratedSource(source, ctx, diagnostics)
+      await runGeneratedSource(source, ctx)
 
       // Assert
       expect(ctx.answers.name.current).toBe('Ada')
-      expect(diagnostics.warn).not.toHaveBeenCalled()
     })
   })
 

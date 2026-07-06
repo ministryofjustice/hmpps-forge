@@ -53,7 +53,7 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
-## 0.3.0 (unreleased - WIP)
+## 0.3.0
 
 Compilation got a lot stricter - misplaced definitions and unregistered function names now
 fail at `registerPackage()` instead of silently vanishing or half-working. Function
@@ -126,14 +126,8 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   produce (a text input submits a string, a date input submits date parts), plus an
   optional `multiple` flag. Answer preparation validates the normalized POST value against
   the schema: a value that fails is not from the rendered form, so it is dropped as
-  unanswered - `undefined`, or `[]` when multiple - and a `FORGE_INPUT_SCHEMA_REJECTED`
-  runtime warning is emitted via `process.emitWarning`. Unanswered fields and variants
+  unanswered - `undefined`, or `[]` when multiple. Unanswered fields and variants
   without a schema are untouched. ([#141])
-
-- **Built-in GOV.UK and MOJ field components declare their input schemas.** Text,
-  textarea, character count, select, radio and password inputs declare `z.string()`,
-  checkbox declares `z.array(z.string())`, and the date inputs declare their per-variant
-  date-parts object. Third-party components are unaffected until they opt in. ([#141])
 
 #### Improvements
 

@@ -27,12 +27,6 @@ const componentContextFor = (entry: StubComponentEntry | undefined) => ({
   },
 })
 
-const stubDiagnostics = () => ({
-  current: undefined,
-  wrap: vi.fn(),
-  warn: vi.fn(),
-})
-
 describe('generatedFunctionHelpers', () => {
   describe('evaluateFunction()', () => {
     it('should return false without invoking the implementation when a condition value is absent', () => {
@@ -107,148 +101,73 @@ describe('generatedFunctionHelpers', () => {
     it('should return the value unchanged when it is undefined', () => {
       // Arrange
       const ctx = componentContextFor({ inputSchema: z.string() })
-      const diagnostics = stubDiagnostics()
 
       // Act
-      const result = generatedFunctionHelpers.checkComponentInputValue(
-        ctx,
-        diagnostics,
-        'textInput',
-        'name',
-        undefined,
-        false,
-      )
+      const result = generatedFunctionHelpers.checkComponentInputValue(ctx, 'textInput', undefined, false)
 
       // Assert
       expect(result).toBeUndefined()
       expect(ctx.components.get).not.toHaveBeenCalled()
-      expect(diagnostics.warn).not.toHaveBeenCalled()
     })
 
     it('should return the value unchanged when the variant has no registry entry', () => {
       // Arrange
       const ctx = componentContextFor(undefined)
-      const diagnostics = stubDiagnostics()
 
       // Act
       const result = generatedFunctionHelpers.checkComponentInputValue(
         ctx,
-        diagnostics,
         'unknownVariant',
-        'name',
         { unexpected: true },
         false,
       )
 
       // Assert
       expect(result).toEqual({ unexpected: true })
-      expect(diagnostics.warn).not.toHaveBeenCalled()
     })
 
     it('should return the value unchanged when the entry declares no input schema', () => {
       // Arrange
       const ctx = componentContextFor({})
-      const diagnostics = stubDiagnostics()
 
       // Act
-      const result = generatedFunctionHelpers.checkComponentInputValue(
-        ctx,
-        diagnostics,
-        'textInput',
-        'name',
-        { unexpected: true },
-        false,
-      )
+      const result = generatedFunctionHelpers.checkComponentInputValue(ctx, 'textInput', { unexpected: true }, false)
 
       // Assert
       expect(result).toEqual({ unexpected: true })
-      expect(diagnostics.warn).not.toHaveBeenCalled()
     })
 
     it('should return the original value when it satisfies the input schema', () => {
       // Arrange
       const ctx = componentContextFor({ inputSchema: z.string() })
-      const diagnostics = stubDiagnostics()
 
       // Act
-      const result = generatedFunctionHelpers.checkComponentInputValue(
-        ctx,
-        diagnostics,
-        'textInput',
-        'name',
-        'Ada',
-        false,
-      )
+      const result = generatedFunctionHelpers.checkComponentInputValue(ctx, 'textInput', 'Ada', false)
 
       // Assert
       expect(result).toBe('Ada')
-      expect(diagnostics.warn).not.toHaveBeenCalled()
     })
 
-    it('should return undefined and warn when a single-value schema rejects the value', () => {
+    it('should return undefined when a single-value schema rejects the value', () => {
       // Arrange
       const ctx = componentContextFor({ inputSchema: z.string() })
-      const diagnostics = stubDiagnostics()
 
       // Act
-      const result = generatedFunctionHelpers.checkComponentInputValue(
-        ctx,
-        diagnostics,
-        'textInput',
-        'name',
-        { unexpected: true },
-        false,
-      )
+      const result = generatedFunctionHelpers.checkComponentInputValue(ctx, 'textInput', { unexpected: true }, false)
 
       // Assert
       expect(result).toBeUndefined()
-      expect(diagnostics.warn).toHaveBeenCalledWith(
-        'FORGE_INPUT_SCHEMA_REJECTED',
-        expect.stringContaining('name'),
-        expect.objectContaining({ issues: expect.any(Array) }),
-      )
     })
 
-    it('should return an empty array and warn when a multiple schema rejects the value', () => {
+    it('should return an empty array when a multiple schema rejects the value', () => {
       // Arrange
       const ctx = componentContextFor({ inputSchema: z.array(z.string()) })
-      const diagnostics = stubDiagnostics()
 
       // Act
-      const result = generatedFunctionHelpers.checkComponentInputValue(
-        ctx,
-        diagnostics,
-        'checkbox',
-        'options',
-        'not-an-array',
-        true,
-      )
+      const result = generatedFunctionHelpers.checkComponentInputValue(ctx, 'checkbox', 'not-an-array', true)
 
       // Assert
       expect(result).toEqual([])
-      expect(diagnostics.warn).toHaveBeenCalledWith(
-        'FORGE_INPUT_SCHEMA_REJECTED',
-        expect.stringContaining('checkbox'),
-        expect.objectContaining({ issues: expect.any(Array) }),
-      )
-    })
-
-    it('should drop the value without throwing when no diagnostics are provided', () => {
-      // Arrange
-      const ctx = componentContextFor({ inputSchema: z.string() })
-
-      // Act
-      const result = generatedFunctionHelpers.checkComponentInputValue(
-        ctx,
-        undefined,
-        'textInput',
-        'name',
-        { unexpected: true },
-        false,
-      )
-
-      // Assert
-      expect(result).toBeUndefined()
     })
   })
 
