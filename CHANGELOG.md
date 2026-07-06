@@ -53,6 +53,29 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.3.1
+
+Instrumentation sinks can now opt in to tracing per request instead of paying for every
+request the server handles.
+
+### For engine / internal developers
+
+_Compilation, runtime, contracts, diagnostics, instrumentation_
+
+#### Changes
+
+- **Per-request trace gating.** Instrumentation sinks can declare `shouldTrace(snapshot)` -
+  decided once at request start, and a declined request builds no trace at all: no context
+  snapshot cloning, no block marking, no trace projection. `RequestEvaluator` resolves the
+  sinks that want the request into a request-scoped instrumentation view (`forRequest` on
+  `ForgeInstrumentation`), and traces only deliver to the sinks that accepted. Sinks
+  without `shouldTrace` trace everything, as before - and compile-time tracing is
+  untouched. ([#151])
+
+[#151]: https://github.com/ministryofjustice/hmpps-forge/pull/151
+
+---
+
 ## 0.3.0
 
 Compilation got a lot stricter - misplaced definitions and unregistered function names now
