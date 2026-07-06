@@ -4,8 +4,8 @@ import { PatternEffects } from '../../../effects'
 import { visitTypeField, continueButton } from './blocks'
 
 // The branching happens here. After saving, the next[] array is evaluated in
-// order: the first redirect whose `when` matches wins. The final redirect has
-// no `when`, so it acts as a fallback. Only one of them will fire per submit.
+// order: the first redirect whose `when` matches wins. Only one of them will
+// fire per submit.
 export const visitTypeStep = patternStep({
   code: 'visit-type',
   path: '/visit-type',
@@ -26,7 +26,10 @@ export const visitTypeStep = patternStep({
             when: Answer('visitType').match(Condition.Equals('video')),
             goto: 'video-email',
           }),
-          redirect({ goto: 'phone-number' }),
+          redirect({
+            when: Answer('visitType').match(Condition.Equals('phone')),
+            goto: 'phone-number',
+          }),
         ],
       },
     }),
