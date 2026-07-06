@@ -7,11 +7,12 @@ import ListPanel from './layout/ListPanel'
 import AuthOverlay from './components/AuthOverlay'
 import BlocksView from './components/BlocksView'
 import Profiler from './components/Profiler'
+import ReachabilityView from './components/ReachabilityView'
 import StateView from './components/StateView'
 import TraceDetail from './components/TraceDetail'
 import TraceEntry from './components/TraceEntry'
 
-const DETAIL_TABS = ['Details', 'Profiler', 'State', 'Blocks'] as const
+const DETAIL_TABS = ['Details', 'Profiler', 'State', 'Blocks', 'Reachability'] as const
 
 function Panel() {
   const connection = useConnection()
@@ -84,6 +85,7 @@ function Panel() {
               {activeTab === 1 && <Profiler trace={selectedTrace} />}
               {activeTab === 2 && <StateView trace={selectedTrace} />}
               {activeTab === 3 && <BlocksView trace={selectedTrace} />}
+              {activeTab === 4 && <ReachabilityView trace={selectedTrace} />}
             </div>
           }
         />

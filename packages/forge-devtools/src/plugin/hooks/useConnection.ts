@@ -54,6 +54,34 @@ export interface TraceRequestMessage {
   readonly session: Record<string, unknown>
 }
 
+export interface TraceReachabilityStepMessage {
+  readonly stepId: string
+  readonly routeTemplatePath: string
+  readonly code?: string
+  readonly declarationIndex: number
+  readonly isEntryPoint: boolean
+  readonly isConditionalEntry: boolean
+  readonly hasValidation: boolean
+  readonly isReachable: boolean
+  readonly isValid: boolean
+  readonly forwardRouteTemplatePaths: readonly string[]
+  readonly declaredForwardRouteTemplatePaths?: readonly string[]
+  readonly predecessorRouteTemplatePaths: readonly string[]
+  readonly tieBreakerPriority?: number
+}
+
+export interface TraceReachabilityMessage {
+  readonly currentStepId?: string
+  readonly steps: readonly TraceReachabilityStepMessage[]
+  readonly defaultEntryRouteTemplatePath?: string
+  readonly frontierRouteTemplatePath?: string
+  readonly canonicalPathRouteTemplatePaths: readonly string[]
+  readonly progressExists: boolean
+  readonly resumeActive: boolean
+  readonly resumeOutcome: 'no-op' | 'redirect'
+  readonly unreachableRedirect: 'entry' | 'frontier'
+}
+
 export interface TraceMessage {
   readonly type: 'trace'
   readonly method: string
@@ -66,6 +94,7 @@ export interface TraceMessage {
     readonly startedAtMs: number
     readonly redirect?: { readonly target: string }
     readonly error?: { readonly status?: number; readonly message: string; readonly stack?: string }
+    readonly reachability?: TraceReachabilityMessage
     readonly phases: readonly PhaseMessage[]
   }
   readonly route: TraceRouteContext
