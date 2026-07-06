@@ -1,6 +1,6 @@
 import express from 'express'
 import createError from 'http-errors'
-import { Forge } from '@ministryofjustice/hmpps-forge/core'
+import { Forge, type ForgeInstrumentationSink } from '@ministryofjustice/hmpps-forge/core'
 import {
   createExpressRouter,
   nunjucksFunctions,
@@ -19,12 +19,13 @@ import developerGuidePackage from './journeys/forge-developer-guide'
 import setUpWebSecurity from './middleware/setUpWebSecurity'
 import llmsTxtRouter from './routes/llmsTxt'
 import type { Services } from './services'
+import { forgeDevToolsInstrumentationSink } from './forgeDevTools'
 
 export default function createApp(services: Services): express.Application {
   const app = express()
   const nunjucksEnv = nunjucksSetup(app)
 
-  const forge = new Forge({ logger })
+  const forge = new Forge({ logger, instrumentation: { sinks: createForgeInstrumentationSinks() } })
     .registerGlobalComponents(govukComponents)
     .registerGlobalComponents(mojComponents)
     .registerGlobalFunctions(nunjucksFunctions)
@@ -58,4 +59,8 @@ export default function createApp(services: Services): express.Application {
   app.use(errorHandler(process.env.NODE_ENV === 'production'))
 
   return app
+}
+
+function createForgeInstrumentationSinks(): ForgeInstrumentationSink[] {
+  return [forgeDevToolsInstrumentationSink]
 }
