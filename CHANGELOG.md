@@ -171,6 +171,14 @@ _Express adapter, Nunjucks renderer, test harness, framework integration_
   `onCompilationTrace` and a readonly `captureGeneratedSource` - breaking only for
   external implementers of that interface; sinks are unaffected. ([#138])
 
+- **Renderers can mark blocks for devtools.** The renderer contract gains an optional
+  `markBlock(nodeId, output)` - the orchestrator calls it once per rendered block (nested
+  blocks included), and only while the request is being traced, so untraced production
+  output is never touched. It tags the block's output with an out-of-band marker tying it
+  back to its `nodeId` - for an HTML renderer, paired `<!--forge:<nodeId>-->` comments -
+  which is what the devtools panel uses to find and highlight a block on the page.
+  Renderers whose output can't carry an invisible marker just omit the method. ([#145])
+
 #### Improvements
 
 - **Request traces carry a lot more detail.** `RequestTraceEvent`s (and phase and 
@@ -228,6 +236,14 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
   `codegen.function` span per compiled function at the single choke point where the
   generated source already exists. Zero overhead when no sinks are registered. ([#138])
 
+- **Request traces carry the reachability evaluation.** `RequestTrace` gains an optional
+  `reachability` - a projection of the request's `ReachabilityEvaluation` with the
+  journey-level facts (canonical path, frontier, resume outcome, unreachable redirect)
+  plus a node per step. Redirect traces carry it too, which is the interesting case when
+  debugging why a request bounced. Every array is copied rather than aliased - traces are
+  buffered immutable records and the graph builder mutates the live evaluation's arrays
+  in place. `cleardownRetentionRouteTemplatePaths` is deliberately not projected. ([#145])
+
 [#131]: https://github.com/ministryofjustice/hmpps-forge/pull/131
 [#132]: https://github.com/ministryofjustice/hmpps-forge/pull/132
 [#135]: https://github.com/ministryofjustice/hmpps-forge/pull/135
@@ -236,6 +252,7 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
 [#138]: https://github.com/ministryofjustice/hmpps-forge/pull/138
 [#141]: https://github.com/ministryofjustice/hmpps-forge/pull/141
 [#142]: https://github.com/ministryofjustice/hmpps-forge/pull/142
+[#145]: https://github.com/ministryofjustice/hmpps-forge/pull/145
 
 ---
 <br>
