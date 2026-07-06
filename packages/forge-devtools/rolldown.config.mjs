@@ -27,7 +27,7 @@ const createPluginConfig = (name, input, plugins) => ({
 // The manifest, html and compiled scss are shared by all four plugin bundles, so
 // they attach to the single background build to be emitted exactly once.
 const pluginAssetPlugins = [
-  copyAssets('forge-devtools/src/plugin', 'dist/plugin', ['.html']),
+  copyAssets('forge-devtools/src/plugin', 'dist/plugin', ['.html', '.png']),
   {
     name: 'compile-plugin-sass',
     writeBundle() {
@@ -39,7 +39,12 @@ const pluginAssetPlugins = [
   {
     name: 'copy-plugin-manifest',
     writeBundle() {
-      fs.copyFileSync('forge-devtools/src/plugin/manifest.json', 'dist/plugin/manifest.json')
+      // Stamp the manifest version from the npm package version so the extension zip
+      // attached to each release self-identifies with the release it was built from.
+      const manifest = JSON.parse(fs.readFileSync('forge-devtools/src/plugin/manifest.json', 'utf8'))
+      const { version } = JSON.parse(fs.readFileSync('./package.json', 'utf8'))
+      manifest.version = version
+      fs.writeFileSync('dist/plugin/manifest.json', `${JSON.stringify(manifest, null, 2)}\n`)
     },
   },
 ]
