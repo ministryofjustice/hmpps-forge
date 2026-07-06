@@ -4,6 +4,7 @@ import { WebSocketServer, type WebSocket } from 'ws'
 import type { ForgeInstrumentationSink, RequestTraceEvent } from '@ministryofjustice/hmpps-forge/core'
 import DevToolsSession from './session/DevToolsSession'
 import TraceDispatcher from './trace/TraceDispatcher'
+import { extractDevToolsCookie } from './trace/devToolsCookie'
 
 export interface DevToolsServerOptions {
   readonly path: string
@@ -62,6 +63,10 @@ export default class DevToolsServer implements ForgeInstrumentationSink {
 
   onRequestTrace(event: RequestTraceEvent): void {
     this.dispatcher.onRequestTrace(event)
+  }
+
+  shouldTrace(snapshot: RequestTraceEvent['snapshot']): boolean {
+    return extractDevToolsCookie(snapshot) !== undefined
   }
 
   private readonly handleUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer): void => {
