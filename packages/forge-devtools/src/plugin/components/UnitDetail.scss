@@ -1,0 +1,211 @@
+@use '../styles/tokens' as *;
+
+.unit-detail {
+  display: flex;
+  gap: $spacing-16 + $spacing-16 + $spacing-8;
+  font-size: 11.5px;
+
+  &__col {
+    min-width: 0;
+
+    &--tree {
+      flex: 1;
+    }
+  }
+
+  &__swatch {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    border: 1px solid;
+  }
+
+  &__kind {
+    display: flex;
+    align-items: center;
+    gap: $spacing-6;
+    font-family: monospace;
+    font-size: $font-size-sm;
+    font-weight: 600;
+    color: var(--fg);
+  }
+
+  &__metadata {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: $spacing-2 $spacing-12;
+    margin: $spacing-8 0 0;
+  }
+
+  &__meta-row {
+    display: contents;
+  }
+
+  &__meta-label {
+    font-size: $font-size-xs;
+    color: var(--fg-muted);
+    white-space: nowrap;
+  }
+
+  &__meta-value {
+    font-size: $font-size-xs;
+    color: var(--fg);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &--mono {
+      font-family: monospace;
+    }
+  }
+
+  &__section-title {
+    font-size: $font-size-xs;
+    font-weight: 600;
+    color: var(--fg-muted);
+    margin-bottom: $spacing-8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  &__props {
+    font-family: monospace;
+    font-size: $font-size-xs;
+  }
+
+  &__no-props {
+    font-size: $font-size-xs;
+    color: var(--fg-muted);
+  }
+}
+
+.property-row {
+  &__line {
+    display: flex;
+    align-items: center;
+    gap: $spacing-4;
+    height: 20px;
+    line-height: 18px;
+  }
+
+  &__toggle {
+    appearance: none;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--fg-muted);
+    cursor: pointer;
+    padding: 0;
+    width: 10px;
+    height: 14px;
+    flex-shrink: 0;
+    line-height: 0;
+
+    &::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      border: solid currentcolor;
+      border-width: 0 1px 1px 0;
+      transform: rotate(-45deg);
+    }
+
+    &--expanded::before {
+      transform: rotate(45deg);
+    }
+  }
+
+  &__spacer {
+    width: 10px;
+    flex-shrink: 0;
+  }
+
+  &__name {
+    color: var(--accent);
+    flex-shrink: 0;
+
+    &::after {
+      content: ':';
+      color: var(--fg-muted);
+      margin-right: $spacing-4;
+    }
+  }
+
+  &__preview {
+    color: var(--fg-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  &__children {
+    padding-left: $spacing-12;
+  }
+}
+
+.property-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &--string {
+    color: #c41a16;
+
+    :root.dark & {
+      color: #ce9178;
+    }
+  }
+
+  &--number {
+    color: #1c00cf;
+
+    :root.dark & {
+      color: #b5cea8;
+    }
+  }
+
+  &--boolean {
+    color: #0d22aa;
+
+    :root.dark & {
+      color: #569cd6;
+    }
+  }
+
+  &--null {
+    color: var(--fg-muted);
+    font-style: italic;
+  }
+}
+
+.block-ref {
+  display: inline-flex;
+  align-items: center;
+  padding: $spacing-2 $spacing-6;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-family: monospace;
+  color: var(--accent);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--bg-hover);
+  }
+
+  &--inactive {
+    cursor: default;
+    color: var(--fg-muted);
+
+    &:hover {
+      background: var(--bg-surface);
+    }
+  }
+}

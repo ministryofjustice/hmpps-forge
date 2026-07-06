@@ -5,10 +5,11 @@ import PaneHeader from './layout/PaneHeader'
 import SplitPane from './layout/SplitPane'
 import ListPanel from './layout/ListPanel'
 import AuthOverlay from './components/AuthOverlay'
+import Profiler from './components/Profiler'
 import TraceDetail from './components/TraceDetail'
 import TraceEntry from './components/TraceEntry'
 
-const DETAIL_TABS = ['Details'] as const
+const DETAIL_TABS = ['Details', 'Profiler'] as const
 
 function Panel() {
   const connection = useConnection()
@@ -78,6 +79,7 @@ function Panel() {
                 right={<span class={`connection-status connection-status--${connection.status}`}>{connection.statusText}</span>}
               />
               {activeTab === 0 && <TraceDetail trace={selectedTrace} />}
+              {activeTab === 1 && <Profiler trace={selectedTrace} />}
             </div>
           }
         />
