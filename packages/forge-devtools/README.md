@@ -35,8 +35,10 @@ devTools.attach(httpServer)
 `setUpForgeDevTools` takes:
 
 - `path` - where the websocket lives, defaults to `/__forge-devtools`
-- `logger` - anything with an `info(message)` method, defaults to `console`
+- `logger` - anything with `info(message)` and `warn(message)` methods, defaults to `console`
 - `noAuth` - skips the auth code prompt entirely. Local development only.
+- `redis` - a node-redis client, for apps running more than one instance. See
+  [Load-balanced deployments](#load-balanced-deployments).
 
 ## Installing the extension
 
@@ -72,6 +74,30 @@ nobody else's.
 
 With `noAuth: true` the code prompt is skipped, but each panel still gets its
 own cookie - traces stay scoped to the browser that made the requests.
+
+## Load-balanced deployments
+
+With replicas behind a load balancer the panel's websocket lands on one pod,
+but page requests fan out across all of them - the panel would only see the
+slice of traces its own pod happened to evaluate. Passing a `redis` client
+fixes this:
+
+```typescript
+const devTools = setUpForgeDevTools({
+  logger,
+  redis: createRedisClient(),
+})
+```
+
+Every pod publishes its traces (gzipped) to a pub/sub channel on the app's own
+Redis, and whichever pod holds your websocket hears them all and forwards by
+cookie exactly as before. Nothing is persisted - it's transient pub/sub on the
+Redis the app already has. The devtools duplicates the client it's given for
+its own use and never issues commands on it, and Redis being down just means
+missing traces while it's down.
+
+Only requests carrying a devtools cookie build a trace at all, so normal
+users' traffic is never traced and never leaves the pod.
 
 ## The panels
 

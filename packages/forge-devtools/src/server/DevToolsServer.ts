@@ -5,11 +5,13 @@ import type { ForgeInstrumentationSink, RequestTraceEvent } from '@ministryofjus
 import DevToolsSession from './session/DevToolsSession'
 import TraceDispatcher from './trace/TraceDispatcher'
 import { extractDevToolsCookie } from './trace/devToolsCookie'
+import type RedisTraceChannel from './trace/RedisTraceChannel'
 
 export interface DevToolsServerOptions {
   readonly path: string
   readonly logger: { info(message: string): void }
   readonly noAuth?: boolean
+  readonly redisChannel?: RedisTraceChannel
 }
 
 interface ClientMessage {
@@ -32,14 +34,28 @@ export default class DevToolsServer implements ForgeInstrumentationSink {
 
   private readonly noAuth: boolean
 
+  private readonly redisChannel?: RedisTraceChannel
+
   private attachedServer?: HttpServer
+
+  private redisStarted = false
 
   constructor(options: DevToolsServerOptions) {
     this.logger = options.logger
     this.webSocketPath = normalizeWebSocketPath(options.path)
     this.noAuth = options.noAuth ?? false
+    this.redisChannel = options.redisChannel
 
-    this.wss = new WebSocketServer({ noServer: true })
+    this.wss = new WebSocketServer({
+      noServer: true,
+      // Context takeover keeps the deflate window across messages on a
+      // connection, so each trace compresses against earlier ones (~11x
+      // measured); the threshold skips tiny auth/heartbeat frames.
+      perMessageDeflate: {
+        threshold: 1024,
+        serverNoContextTakeover: false,
+      },
+    })
     this.wss.on('connection', ws => this.handleConnection(ws))
   }
 
@@ -47,6 +63,7 @@ export default class DevToolsServer implements ForgeInstrumentationSink {
     this.detach()
     this.attachedServer = server
     server.on('upgrade', this.handleUpgrade)
+    this.startRedisChannel()
     this.logger.info(`Forge DevTools WebSocket server attached at ${this.webSocketPath}`)
   }
 
@@ -59,14 +76,33 @@ export default class DevToolsServer implements ForgeInstrumentationSink {
     this.detach()
     this.dispatcher.closeAll()
     this.wss.close()
+    this.redisChannel?.close()
   }
 
   onRequestTrace(event: RequestTraceEvent): void {
-    this.dispatcher.onRequestTrace(event)
+    if (!this.redisChannel) {
+      this.dispatcher.onRequestTrace(event)
+
+      return
+    }
+
+    // Redis mode has one delivery path: publish even our own traces and hear
+    // them back through the subscription, like every other pod's.
+    this.redisChannel.publish(event)
   }
 
   shouldTrace(snapshot: RequestTraceEvent['snapshot']): boolean {
     return extractDevToolsCookie(snapshot) !== undefined
+  }
+
+  private async startRedisChannel(): Promise<void> {
+    if (!this.redisChannel || this.redisStarted) {
+      return
+    }
+
+    this.redisStarted = true
+    await this.redisChannel.connect()
+    await this.redisChannel.subscribe(event => this.dispatcher.onRequestTrace(event))
   }
 
   private readonly handleUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer): void => {
