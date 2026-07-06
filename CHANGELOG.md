@@ -56,7 +56,8 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 ## 0.3.1
 
 The devtools release. A Chrome DevTools panel for inspecting Forge requests, with
-tracing that only runs for requests a devtools user is actually watching.
+tracing that only runs for requests a devtools user is actually watching. Plus a batch
+of bug fixes out of an audit pass over the tests, guards and conditions.
 
 ### For journey authors
 
@@ -72,6 +73,32 @@ _Definitions, expressions, hooks, navigation, reachability_
   per browser by cookie. Apps running multiple replicas hand `setUpForgeDevTools` their
   Redis client so every pod's traces reach the panel. See the package README for setup
   and the extension install. ([#150], [#152])
+
+#### Fixes
+
+- **Radio groups no longer render two checked radios.** `GovUKRadioInput` computed each
+  item's `checked` as the answer match OR the item's own `checked`, so an explicit
+  `checked: true` fought the stored answer and `checked: false` could never uncheck
+  anything - the browser kept the last checked radio, and the next POST silently flipped
+  the answer to whatever was displayed. Precedence now matches the govuk-frontend macro:
+  a defined item `checked` wins, otherwise the answer decides. ([#154])
+- **A bare Iterate `validWhen` now compiles.** `validWhen` has always accepted a single
+  Iterate without the array brackets - the types allow it, the schema allows it, and it
+  runs correctly - but the validation-scope rule only understood the array form and
+  failed the journey with `validation_outside_valid_when`. ([#154])
+- **`Item()` and `Loop` in an iterate's input now fail compilation.** There's no current
+  item while the input collection is still being evaluated, but the scope rule miscounted
+  the depth and let them through to resolve as `undefined` at runtime. They now fail at
+  `registerPackage()` with `item_outside_iterator_scope` / `loop_outside_iterator_scope`.
+  ([#154])
+- **`Email.IsValidEmail` can no longer be DoS'd.** The old regex backtracked
+  catastrophically on long malformed addresses - ~7s of pure CPU for a 2,000 character
+  one, and conditions run against POST bodies. Addresses over the RFC 5321 cap of 254
+  characters are now rejected before the regex runs, and the pattern is rewritten into a
+  linear form. It also stops rejecting real addresses with long TLDs like
+  `name@company.engineering` - the old pattern capped TLDs at 6 characters. ([#154])
+- **The missing step `title` error now says so.** The diagnostic claimed
+  `expected: path property` - a copy-paste from the path check. ([#154])
 
 ---
 
@@ -99,10 +126,20 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
   forge-devtools get the same bans as everyone else. Published output is byte-identical.
   ([#153])
 
+#### Notes
+
+- **Binned two pieces of dead compilation code.** `NodeRegistrationWalker.assignIdsRecursive`
+  (the walk after `Self()` resolution already assigns ids and registers the cloned
+  subtree) and the reference-scope depth counter (registered references always sit at
+  depth 0 - loop bodies are lifted into templates before the rule runs). Removing the
+  depth counter is what turned the `Item()`-in-input case above into a compile error.
+  ([#154])
+
 [#150]: https://github.com/ministryofjustice/hmpps-forge/pull/150
 [#151]: https://github.com/ministryofjustice/hmpps-forge/pull/151
 [#152]: https://github.com/ministryofjustice/hmpps-forge/pull/152
 [#153]: https://github.com/ministryofjustice/hmpps-forge/pull/153
+[#154]: https://github.com/ministryofjustice/hmpps-forge/pull/154
 
 ---
 

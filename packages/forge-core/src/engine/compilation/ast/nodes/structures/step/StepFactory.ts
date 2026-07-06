@@ -42,7 +42,7 @@ export default class StepFactory {
       throw new InvalidNodeError({
         message: 'Step requires a title property',
         node: json,
-        expected: 'path property',
+        expected: 'title property',
         actual: 'undefined',
       })
     }

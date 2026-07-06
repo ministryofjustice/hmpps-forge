@@ -310,7 +310,7 @@ const makeOption = (option: EvaluatedBlock<GovUKRadioInputItem | GovUKRadioInput
     html: option.html,
     id: option.id,
     hint: normaliseGovukTextParam(option.hint),
-    checked: checkedValue === option.value || (option.checked ?? false),
+    checked: option.checked ?? checkedValue === option.value,
     conditional: getConditionalContent(option.block),
     disabled: option.disabled,
     attributes: option.attributes,

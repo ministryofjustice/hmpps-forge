@@ -19,13 +19,10 @@ function buildError(source: DSLSourceLocation | undefined): ForgeConfigurationRe
 }
 
 function collectNodeIdsFromValidWhen(validWhen: unknown): string[] {
-  if (!Array.isArray(validWhen)) {
-    return []
-  }
-
+  const entries = Array.isArray(validWhen) ? validWhen : [validWhen]
   const ids: string[] = []
 
-  validWhen.forEach((entry: unknown) => {
+  entries.forEach((entry: unknown) => {
     if (
       entry != null &&
       typeof entry === 'object' &&

@@ -193,18 +193,59 @@ describe('govukRadioInput', () => {
       expect(params.items[2].checked).toBe(false)
     })
 
-    it('respects individual checked property over value', async () => {
-      // TODO: I'm not really sure how the JS handles 2 of these with competing checks...
+    it('should let explicit item checked win over value match when both apply', async () => {
+      // Arrange
+      const items = [
+        { value: 'option1', text: 'Option 1' },
+        { value: 'option2', text: 'Option 2', checked: true },
+      ]
+
+      // Act
       const params = await helper.getParams({
         code: 'test-radio',
         value: 'option1',
-        items: [
-          { value: 'option1', text: 'Option 1' },
-          { value: 'option2', text: 'Option 2', checked: true },
-        ],
+        items,
       })
 
+      // Assert
       expect(params.items[0].checked).toBe(true)
+      expect(params.items[1].checked).toBe(true)
+    })
+
+    it('should render unchecked when explicit item checked is false on a value-matched item', async () => {
+      // Arrange
+      const items = [
+        { value: 'option1', text: 'Option 1', checked: false },
+        { value: 'option2', text: 'Option 2' },
+      ]
+
+      // Act
+      const params = await helper.getParams({
+        code: 'test-radio',
+        value: 'option1',
+        items,
+      })
+
+      // Assert
+      expect(params.items[0].checked).toBe(false)
+      expect(params.items[1].checked).toBe(false)
+    })
+
+    it('should pre-select an item with explicit checked true when no value is present', async () => {
+      // Arrange
+      const items = [
+        { value: 'option1', text: 'Option 1' },
+        { value: 'option2', text: 'Option 2', checked: true },
+      ]
+
+      // Act
+      const params = await helper.getParams({
+        code: 'test-radio',
+        items,
+      })
+
+      // Assert
+      expect(params.items[0].checked).toBe(false)
       expect(params.items[1].checked).toBe(true)
     })
 
