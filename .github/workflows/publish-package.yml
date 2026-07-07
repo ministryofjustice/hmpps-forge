@@ -4,10 +4,6 @@ on:
   release:
     types: [published]
 
-permissions:
-  contents: read
-  id-token: write
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -16,6 +12,8 @@ jobs:
   validate:
     name: Validate package
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
@@ -42,6 +40,9 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - validate
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
@@ -57,6 +58,15 @@ jobs:
       - name: Build packages
         working-directory: packages
         run: npm run build
+      - name: Attach devtools extension to release
+        working-directory: packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(jq -r .version package.json)
+          cd dist/plugin && zip -r "../../forge-devtools-${version}.zip" .
+          cd ../..
+          gh release upload "${{ github.event.release.tag_name }}" "forge-devtools-${version}.zip" --clobber
       - name: Publish package
         working-directory: packages
         run: |
