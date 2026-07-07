@@ -142,29 +142,6 @@ export default class NodeRegistrationWalker {
     }
 
     const clonedCode = cloneASTValue(codeValue)
-    this.assignIdsRecursive(clonedCode)
     refPath[1] = clonedCode
-  }
-
-  private assignIdsRecursive(value: unknown): void {
-    if (value === null || value === undefined || typeof value !== 'object') {
-      return
-    }
-
-    if (Array.isArray(value)) {
-      value.forEach(item => this.assignIdsRecursive(item))
-
-      return
-    }
-
-    if (isTemplateNode(value)) {
-      return
-    }
-
-    if (isASTNode(value) && !value.id) {
-      ;(value as { id: string }).id = this.nodeIdGenerator.nextAstNodeId()
-    }
-
-    Object.values(value as Record<string, unknown>).forEach(v => this.assignIdsRecursive(v))
   }
 }

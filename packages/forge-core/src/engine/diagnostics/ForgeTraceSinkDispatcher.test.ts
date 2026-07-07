@@ -1,4 +1,5 @@
 import type { RequestTraceEvent } from '../contracts/runtime/trace.type'
+import type { RequestSnapshot } from '../../framework/types/snapshot.type'
 import type { CompilationTraceEvent } from './tracing/compilationTrace.type'
 import ForgeTraceSinkDispatcher from './ForgeTraceSinkDispatcher'
 
@@ -40,6 +41,88 @@ describe('ForgeTraceSinkDispatcher', () => {
 
       // Assert
       expect(enabled).toBe(true)
+    })
+  })
+
+  describe('forRequest()', () => {
+    it('should return a disabled view when no sinks are registered', () => {
+      // Arrange
+      const instrumentation = new ForgeTraceSinkDispatcher()
+
+      // Act
+      const view = instrumentation.forRequest(createSnapshot())
+
+      // Assert
+      expect(view.enabled).toBe(false)
+    })
+
+    it('should include a sink that has no shouldTrace', () => {
+      // Arrange
+      const instrumentation = new ForgeTraceSinkDispatcher({
+        sinks: [{ onRequestTrace: vi.fn() }],
+      })
+
+      // Act
+      const view = instrumentation.forRequest(createSnapshot())
+
+      // Assert
+      expect(view.enabled).toBe(true)
+    })
+
+    it('should deliver traces only to sinks that accepted the request', () => {
+      // Arrange
+      const acceptingSink = vi.fn()
+      const decliningSink = vi.fn()
+      const event = createTraceEvent('/target')
+      const instrumentation = new ForgeTraceSinkDispatcher({
+        sinks: [
+          { onRequestTrace: acceptingSink, shouldTrace: () => true },
+          { onRequestTrace: decliningSink, shouldTrace: () => false },
+        ],
+      })
+
+      // Act
+      const view = instrumentation.forRequest(createSnapshot())
+      view.onRequestTrace(event)
+
+      // Assert
+      expect(acceptingSink).toHaveBeenCalledWith(event)
+      expect(decliningSink).not.toHaveBeenCalled()
+    })
+
+    it('should return a disabled view when every sink declines the request', () => {
+      // Arrange
+      const instrumentation = new ForgeTraceSinkDispatcher({
+        sinks: [
+          { onRequestTrace: vi.fn(), shouldTrace: () => false },
+          { onRequestTrace: vi.fn(), shouldTrace: () => false },
+        ],
+      })
+
+      // Act
+      const view = instrumentation.forRequest(createSnapshot())
+
+      // Assert
+      expect(view.enabled).toBe(false)
+    })
+
+    it('should call shouldTrace once with the snapshot even when multiple traces are delivered', () => {
+      // Arrange
+      const shouldTrace = vi.fn().mockReturnValue(true)
+      const snapshot = createSnapshot()
+      const event = createTraceEvent('/target')
+      const instrumentation = new ForgeTraceSinkDispatcher({
+        sinks: [{ onRequestTrace: vi.fn(), shouldTrace }],
+      })
+
+      // Act
+      const view = instrumentation.forRequest(snapshot)
+      view.onRequestTrace(event)
+      view.onRequestTrace(event)
+
+      // Assert
+      expect(shouldTrace).toHaveBeenCalledTimes(1)
+      expect(shouldTrace).toHaveBeenCalledWith(snapshot)
     })
   })
 
@@ -153,6 +236,26 @@ function createTraceEvent(pathname: string): RequestTraceEvent {
       durationMs: 1,
       phases: [],
     },
+  }
+}
+
+function createSnapshot(): RequestSnapshot {
+  return {
+    nodeId: 'node',
+    method: 'GET',
+    location: {
+      origin: 'http://localhost',
+      href: 'http://localhost/target',
+      pathname: '/target',
+      basePath: '',
+    },
+    params: {},
+    query: {},
+    post: {},
+    headers: {},
+    cookies: {},
+    state: {},
+    session: undefined,
   }
 }
 
