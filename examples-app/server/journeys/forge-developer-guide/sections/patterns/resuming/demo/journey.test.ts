@@ -1,28 +1,25 @@
-import { ForgeTestHarness, createTestPackage } from '@ministryofjustice/hmpps-forge/core/testing'
+import { ForgeTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { describe, expect, it, vi } from 'vitest'
-import { PatternEffectsImplementations } from '../../effects'
+import type { GuideDeps } from '../../../../effects'
+import { patternEffectRegistry } from '../../effects'
 import { resumingDemoJourney } from './journey'
 
 const basePackage = {
   journey: resumingDemoJourney,
-  functions: PatternEffectsImplementations,
+  functions: patternEffectRegistry,
 }
 
-const mockSaveAnswers = vi.fn()
-const mockClearAnswers = vi.fn()
-
-const testPackage = createTestPackage(basePackage, {
-  overrides: {
-    SaveAnswers: mockSaveAnswers,
-    ClearAnswers: mockClearAnswers,
-  },
-})
+const mockFormDataStore = {
+  get: vi.fn().mockResolvedValue(undefined),
+  set: vi.fn(),
+  delete: vi.fn(),
+}
 
 function createClient() {
   return new ForgeTestHarness()
     .registerGlobalComponents(govukComponents)
-    .registerPackage(testPackage)
+    .registerPackage(basePackage, { formDataStore: mockFormDataStore } as unknown as GuideDeps)
     .createClient()
 }
 
@@ -306,7 +303,7 @@ describe('resumingDemoJourney', () => {
         expect(result.url).toContain('confirmation')
       }
 
-      expect(mockSaveAnswers).toHaveBeenCalled()
+      expect(mockFormDataStore.set).toHaveBeenCalled()
 
       const submitted = session.patternSubmitted as Record<string, boolean> | undefined
 

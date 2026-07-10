@@ -5,7 +5,7 @@ import {
   GovUKBody,
   GovUKLinkButton,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
-import { PatternFunctions } from '../../../functions'
+import { patternTransformerRegistry } from '../../../functions'
 
 interface CaseGoal {
   title: string
@@ -17,22 +17,22 @@ interface CaseCompliance {
   missed: number
 }
 
+const riskLevelTag = patternTransformerRegistry.register('RiskLevelTag', () => (value: unknown) => {
+  const config: Record<string, { text: string; colour: string }> = {
+    VERY_HIGH: { text: 'Very high', colour: 'red' },
+    HIGH: { text: 'High', colour: 'red' },
+    MEDIUM: { text: 'Medium', colour: 'yellow' },
+    LOW: { text: 'Low', colour: 'green' },
+  }
+  const { text, colour } = config[value as string] ?? { text: String(value), colour: 'grey' }
+
+  return `<strong class="govuk-tag govuk-tag--${colour}">${text}</strong>`
+})
+
 const riskRow = (area: string, ref: ReturnType<typeof Data>) => ({
   key: { text: area },
   value: {
-    html: ref.pipe(
-      PatternFunctions.transformer('RiskLevelTag', () => (value: unknown) => {
-        const config: Record<string, { text: string; colour: string }> = {
-          VERY_HIGH: { text: 'Very high', colour: 'red' },
-          HIGH: { text: 'High', colour: 'red' },
-          MEDIUM: { text: 'Medium', colour: 'yellow' },
-          LOW: { text: 'Low', colour: 'green' },
-        }
-        const { text, colour } = config[value as string] ?? { text: String(value), colour: 'grey' }
-
-        return `<strong class="govuk-tag govuk-tag--${colour}">${text}</strong>`
-      }),
-    ),
+    html: ref.pipe(riskLevelTag()),
   },
 })
 
@@ -67,30 +67,36 @@ export const sentenceDetails = GovUKSummaryList({
 
 export const goalsHeading = GovUKHeading({ text: 'Goals', size: 'm' })
 
-export const goalsSummary = GovUKBody({
-  text: Data('case.goals').pipe(
-    PatternFunctions.transformer('GoalsSummary', () => (value: unknown) => {
-      const goals = value as CaseGoal[]
-      const achieved = goals.filter(g => g.status === 'ACHIEVED').length
+const goalsSummaryText = patternTransformerRegistry.register(
+  'GoalsSummary',
+  () => (value: unknown) => {
+    const goals = value as CaseGoal[]
+    const achieved = goals.filter(g => g.status === 'ACHIEVED').length
 
-      return `${achieved} of ${goals.length} goals achieved`
-    }),
-  ),
+    return `${achieved} of ${goals.length} goals achieved`
+  },
+)
+
+export const goalsSummary = GovUKBody({
+  text: Data('case.goals').pipe(goalsSummaryText()),
   classes: 'govuk-!-font-weight-bold',
 })
 
 export const complianceHeading = GovUKHeading({ text: 'Compliance', size: 'm' })
 
-export const complianceSummary = GovUKBody({
-  text: Data('case.compliance').pipe(
-    PatternFunctions.transformer('ComplianceSummary', () => (value: unknown) => {
-      const { attended, missed } = value as CaseCompliance
-      const total = attended + missed
-      const rate = total > 0 ? Math.round((attended / total) * 100) : 0
+const complianceSummaryText = patternTransformerRegistry.register(
+  'ComplianceSummary',
+  () => (value: unknown) => {
+    const { attended, missed } = value as CaseCompliance
+    const total = attended + missed
+    const rate = total > 0 ? Math.round((attended / total) * 100) : 0
 
-      return `${rate}% attendance rate`
-    }),
-  ),
+    return `${rate}% attendance rate`
+  },
+)
+
+export const complianceSummary = GovUKBody({
+  text: Data('case.compliance').pipe(complianceSummaryText()),
   classes: 'govuk-!-font-weight-bold',
 })
 
