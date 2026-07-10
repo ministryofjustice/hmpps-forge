@@ -104,7 +104,6 @@ _Definitions, expressions, hooks, navigation, reachability_
   now carries on through the current step, so every step a valid chain reaches keeps its
   answers and cleardown clears only the steps no path reaches. The retention mechanism is
   binned. ([#160])
-=======
 - **The missing step `title` error now says so.** The diagnostic claimed
   `expected: path property` - a copy-paste from the path check. ([#154])
 
