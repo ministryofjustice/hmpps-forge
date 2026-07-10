@@ -1,0 +1,63 @@
+import { ExpressionType, IteratorType } from '../../../../authoring/types/enums'
+import type { ASTNode, NodeId } from '../../../contracts/ast/engine.type'
+import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
+import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
+import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
+import FunctionRegistry from '../../../registries/FunctionRegistry'
+import ComponentRegistry from '../../../registries/ComponentRegistry'
+import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
+import type { ASTValidationContext } from './types'
+import { validateReferenceScopes } from './validateReferenceScopes'
+
+const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, NodeId]>): ASTValidationContext => {
+  const byId = new Map<NodeId, ASTNode>(nodes.map(node => [node.id, node]))
+
+  edges.forEach(([childId, parentId]) => {
+    const child = byId.get(childId)
+    const parent = byId.get(parentId)
+
+    if (child !== undefined && parent !== undefined) {
+      Object.defineProperty(child, 'parent', { value: parent, enumerable: false })
+    }
+  })
+
+  const nodeIndex = new ASTNodeIndex()
+  nodes.forEach(node => nodeIndex.register(node.id, node))
+
+  return {
+    nodeIndex,
+    functionRegistry: new FunctionRegistry(),
+    componentRegistry: new ComponentRegistry(),
+  }
+}
+
+const scopeErrors = (errors: readonly Error[]): ForgeConfigurationReferenceScopeError[] =>
+  errors.filter((error): error is ForgeConfigurationReferenceScopeError => {
+    return error instanceof ForgeConfigurationReferenceScopeError
+  })
+
+describe('validateReferenceScopes', () => {
+  describe('validateReferenceScopes()', () => {
+    beforeEach(() => {
+      ASTTestFactory.resetIds()
+    })
+
+    it('should reject an Item reference wrapped in a raw array as an iterate input', () => {
+      // Arrange
+      const reference = ASTTestFactory.reference(['@scope', '0', 'firstName'])
+      const iterate = ASTTestFactory.expression<IterateASTNode>(ExpressionType.ITERATE)
+        .withProperty('input', [reference, 'other'])
+        .withProperty('iterator', { type: IteratorType.MAP })
+        .build()
+      const context = createContext([reference, iterate], [[reference.id, iterate.id]])
+
+      // Act
+      const errors = validateReferenceScopes(context)
+
+      // Assert
+      const [scopeError] = scopeErrors(errors)
+      expect(scopeError.code).toBe('item_outside_iterator_scope')
+      expect(scopeError.message).toBe('Item() can only be used inside an iterator')
+    })
+  })
+})

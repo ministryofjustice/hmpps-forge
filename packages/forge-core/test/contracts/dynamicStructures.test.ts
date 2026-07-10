@@ -15,6 +15,7 @@ import {
   visibleWhenNonFieldBlockJourney,
   combinedVisibleAndDependentJourney,
   unreachableStepCleardownJourney,
+  linearChainCleardownJourney,
   conditionalEntryStepJourney,
   unreachableRedirectsToEntryJourney,
   postThenGetCycleJourney,
@@ -454,6 +455,63 @@ describe('dynamic structures', () => {
 
       // Assert
       expect(session.answers?.cleardown?.detail).toBe('some info')
+    })
+
+    it('should retain all answers of a valid linear chain when accessing its entry step', async () => {
+      // Arrange
+      const client = createClient(linearChainCleardownJourney)
+      const session: ContractSession = {
+        answers: { chain: { fieldA: 'answer-a', fieldB: 'valid-b', fieldC: 'answer-c' } },
+      }
+
+      // Act
+      const result = await client.get('/chain/a', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(answerOf(result.context.answers, 'fieldA').current).toBe('answer-a')
+        expect(answerOf(result.context.answers, 'fieldB').current).toBe('valid-b')
+        expect(answerOf(result.context.answers, 'fieldC').current).toBe('answer-c')
+      }
+    })
+
+    it('should clear answers past an invalid step while retaining the invalid step when accessing the entry step', async () => {
+      // Arrange
+      const client = createClient(linearChainCleardownJourney)
+      const session: ContractSession = {
+        answers: { chain: { fieldA: 'answer-a', fieldB: 'wrong-b', fieldC: 'answer-c' } },
+      }
+
+      // Act
+      const result = await client.get('/chain/a', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(answerOf(result.context.answers, 'fieldB').current).toBe('wrong-b')
+        expect(answerOf(result.context.answers, 'fieldC').current).toBeUndefined()
+      }
+    })
+
+    it('should retain a two-step-ahead answer reached only through the entry step chain', async () => {
+      // Arrange
+      const client = createClient(linearChainCleardownJourney)
+      const session: ContractSession = {
+        answers: { chain: { fieldA: 'answer-a', fieldB: 'valid-b', fieldC: 'answer-c' } },
+      }
+
+      // Act
+      const result = await client.get('/chain/a', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(answerOf(result.context.answers, 'fieldC').current).toBe('answer-c')
+      }
     })
 
     it('should render conditional entry step when condition is true', async () => {

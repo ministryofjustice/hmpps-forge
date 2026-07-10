@@ -136,13 +136,16 @@ describe('CompilationTraceProjector', () => {
 })
 
 function createInstrumentation(overrides: Partial<ForgeInstrumentation> = {}): ForgeInstrumentation {
-  return {
+  const instrumentation: ForgeInstrumentation = {
     enabled: true,
     captureGeneratedSource: false,
+    forRequest: () => instrumentation,
     onRequestTrace: vi.fn(),
     onCompilationTrace: vi.fn(),
     ...overrides,
   }
+
+  return instrumentation
 }
 
 function tracerWithPhase(phaseKind: string): CompilationTracer {

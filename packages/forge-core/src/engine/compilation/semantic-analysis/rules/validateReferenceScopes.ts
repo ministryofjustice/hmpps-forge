@@ -1,13 +1,12 @@
 import { ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode, ReferenceASTNode } from '../../../contracts/ast/expressions.type'
-import { isIterateExprNode } from '../../../contracts/ast/expression-nodes'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
 import type { DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 import type { TemplateNode } from '../../../contracts/ast/template.type'
-import type { ASTNode, NodeId } from '../../../contracts/ast/engine.type'
+import type { ASTNode } from '../../../contracts/ast/engine.type'
 
 const LOOP_PROPERTIES: ReadonlySet<string> = new Set([
   'index',
@@ -40,49 +39,6 @@ function parseReferenceLevel(value: unknown): number | undefined {
   const level = Number(value)
 
   return Number.isInteger(level) && level >= 0 ? level : undefined
-}
-
-function getIteratorDepthForNode(node: ASTNode): number {
-  let depth = 0
-  let current = node.parent
-
-  while (current !== undefined) {
-    if (isIterateExprNode(current) && isInsideIteratorTemplate(node, current as IterateASTNode)) {
-      depth += 1
-    }
-
-    current = current.parent
-  }
-
-  return depth
-}
-
-function isInsideIteratorTemplate(descendant: ASTNode, iterateNode: IterateASTNode): boolean {
-  const inputNode = iterateNode.properties.input
-
-  if (inputNode && typeof inputNode === 'object' && 'id' in inputNode) {
-    const inputId = (inputNode as ASTNode).id
-
-    if (descendant.id === inputId || isDescendantOfNode(descendant, inputId)) {
-      return false
-    }
-  }
-
-  return true
-}
-
-function isDescendantOfNode(node: ASTNode, ancestorId: NodeId): boolean {
-  let current = node.parent
-
-  while (current !== undefined) {
-    if (current.id === ancestorId) {
-      return true
-    }
-
-    current = current.parent
-  }
-
-  return false
 }
 
 function validateItemReference(
@@ -148,16 +104,14 @@ function validateRegisteredReference(node: ReferenceASTNode): readonly Error[] {
   const path = node.properties.path
   const namespace = path[0]
 
+  // Iterator bodies are lifted into templates at AST build, so any reference still
+  // in the registered tree sits outside every iterator scope: its depth is always 0.
   if (namespace === '@scope') {
-    const depth = getIteratorDepthForNode(node)
-
-    return validateItemReference(path, depth, node.diagnostics?.source)
+    return validateItemReference(path, 0, node.diagnostics?.source)
   }
 
   if (namespace === '@loop') {
-    const depth = getIteratorDepthForNode(node)
-
-    return validateLoopReference(path, depth, node.diagnostics?.source)
+    return validateLoopReference(path, 0, node.diagnostics?.source)
   }
 
   return []
@@ -226,11 +180,10 @@ function walkIterateTemplateReferences(
   })
 }
 
-function validateTemplateReferences(iterateNode: IterateASTNode, parentIterateDepth: number): readonly Error[] {
+function validateTemplateReferences(iterateNode: IterateASTNode): readonly Error[] {
   const errors: Error[] = []
-  const templateDepth = parentIterateDepth + 1
 
-  walkIterateTemplateReferences(iterateNode.properties.iterator, templateDepth, errors)
+  walkIterateTemplateReferences(iterateNode.properties.iterator, 1, errors)
 
   return errors
 }
@@ -248,9 +201,7 @@ export const validateReferenceScopes: ASTValidationRule = (context: ASTValidatio
   const iterateNodes = nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE)
 
   iterateNodes.forEach(iterateNode => {
-    const parentDepth = getIteratorDepthForNode(iterateNode)
-
-    errors.push(...validateTemplateReferences(iterateNode, parentDepth))
+    errors.push(...validateTemplateReferences(iterateNode))
   })
 
   return errors

@@ -110,7 +110,6 @@ describe('evaluateReachabilityState', () => {
         createEntry({ stepId: 'compile_ast:2', path: 'gated' }),
         createEntry({ stepId: 'compile_ast:3', path: 'later' }),
       ],
-      resumeConfigured: false,
       unreachableRedirect: 'entry',
       reachabilityDisabled: false,
     }
@@ -142,7 +141,6 @@ describe('evaluateReachabilityState', () => {
         createEntry({ stepId: 'compile_ast:111', path: 'middle', hasValidation: true }),
         createEntry({ stepId: 'compile_ast:112', path: 'end' }),
       ],
-      resumeConfigured: false,
       unreachableRedirect: 'entry',
       reachabilityDisabled: false,
     }
@@ -173,7 +171,6 @@ describe('evaluateReachabilityState', () => {
         createEntry({ stepId: 'compile_ast:32', path: 'your-role', hasValidation: true }),
         createEntry({ stepId: 'compile_ast:34', path: 'check-answers', hasValidation: true }),
       ],
-      resumeConfigured: true,
       unreachableRedirect: 'entry',
       reachabilityDisabled: false,
     }
@@ -206,7 +203,6 @@ describe('evaluateReachabilityState', () => {
         createEntry({ stepId: 'compile_ast:40', path: 'your-name', isEntryPoint: true, hasValidation: true }),
         createEntry({ stepId: 'compile_ast:42', path: 'your-role', hasValidation: true }),
       ],
-      resumeConfigured: true,
       unreachableRedirect: 'entry',
       reachabilityDisabled: false,
     }
@@ -237,7 +233,6 @@ describe('evaluateReachabilityState', () => {
         createEntry({ stepId: 'compile_ast:75', path: 'branch-b', hasValidation: true }),
         createEntry({ stepId: 'compile_ast:77', path: 'merge', hasValidation: true }),
       ],
-      resumeConfigured: false,
       unreachableRedirect: 'entry',
       reachabilityDisabled: false,
     }
@@ -273,7 +268,6 @@ describe('evaluateReachabilityState', () => {
         createEntry({ stepId: 'compile_ast:91', path: 'page-two' }),
         createEntry({ stepId: 'compile_ast:92', path: 'page-three' }),
       ],
-      resumeConfigured: false,
       unreachableRedirect: 'entry',
       reachabilityDisabled: true,
     }
@@ -301,7 +295,6 @@ describe('evaluateReachabilityState', () => {
         createEntry({ stepId: 'compile_ast:80', path: 'first' }),
         createEntry({ stepId: 'compile_ast:81', path: 'second' }),
       ],
-      resumeConfigured: false,
       unreachableRedirect: 'entry',
       reachabilityDisabled: false,
     }
@@ -321,19 +314,19 @@ describe('evaluateReachabilityState', () => {
     expect(evaluation.steps.every(step => !step.isReachable)).toBe(true)
   })
 
-  it('should retain the current step forward paths for cleardown when forward outcomes are exact', () => {
+  it('should propagate reachability through the current step to steps ahead of it', () => {
     // Arrange
     const plan: ReachabilityStateTable = {
       entries: [
         createEntry({ stepId: 'compile_ast:400', path: 'entry', isEntryPoint: true }),
         createEntry({ stepId: 'compile_ast:401', path: 'next' }),
+        createEntry({ stepId: 'compile_ast:402', path: 'last' }),
       ],
-      resumeConfigured: false,
       unreachableRedirect: 'entry',
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-    const facts = createFacts(plan, { outcomeValues: { 0: ['next'] } })
+    const facts = createFacts(plan, { outcomeValues: { 0: ['next'], 1: ['last'] } })
 
     // Act
     const { evaluation } = evaluateReachabilityState(plan, {
@@ -344,38 +337,11 @@ describe('evaluateReachabilityState', () => {
     })
 
     // Assert
-    expect(evaluation.cleardownRetentionRouteTemplatePaths).toEqual(['/journey/next'])
-  })
-
-  it('should retain nothing for cleardown when the current step forward outcomes are over-approximated', () => {
-    // Arrange
-    const plan: ReachabilityStateTable = {
-      entries: [
-        createEntry({
-          stepId: 'compile_ast:410',
-          path: 'entry',
-          isEntryPoint: true,
-          forwardOutcomeEvaluation: 'over-approximate',
-        }),
-        createEntry({ stepId: 'compile_ast:411', path: 'next' }),
-      ],
-      resumeConfigured: false,
-      unreachableRedirect: 'entry',
-      reachabilityDisabled: false,
-    }
-    const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-    const facts = createFacts(plan, { outcomeValues: { 0: ['next'] } })
-
-    // Act
-    const { evaluation } = evaluateReachabilityState(plan, {
-      facts,
-      currentStepId: 'compile_ast:410',
-      routeTemplateCatalog,
-      stepValidities,
-    })
-
-    // Assert
-    expect(evaluation.cleardownRetentionRouteTemplatePaths).toEqual([])
+    expect(evaluation.steps.filter(step => step.isReachable).map(step => step.routeTemplatePath)).toEqual([
+      '/journey/entry',
+      '/journey/next',
+      '/journey/last',
+    ])
   })
 
   it('should project reachable and unreachable steps when field inventory and params are supplied', () => {
@@ -392,7 +358,6 @@ describe('evaluateReachabilityState', () => {
         createEntry({ stepId: 'compile_ast:201', path: 'question', code: 'question', hasValidation: true }),
         createEntry({ stepId: 'compile_ast:202', path: 'unreached', hasValidation: true }),
       ],
-      resumeConfigured: false,
       unreachableRedirect: 'entry',
       reachabilityDisabled: false,
     }
@@ -428,7 +393,6 @@ describe('evaluateReachabilityState', () => {
     // Arrange
     const plan: ReachabilityStateTable = {
       entries: [createEntry({ stepId: 'compile_ast:300', path: 'entry', isEntryPoint: true })],
-      resumeConfigured: false,
       unreachableRedirect: 'entry',
       reachabilityDisabled: false,
     }

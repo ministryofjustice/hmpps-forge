@@ -1,0 +1,70 @@
+@use '../styles/tokens' as *;
+
+.auth-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-overlay);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  gap: $spacing-12;
+
+  &__message {
+    font-size: $font-size-md;
+    color: var(--fg-subtle);
+  }
+
+  &__input-row {
+    display: flex;
+    gap: $spacing-8;
+  }
+
+  &__input {
+    font-family: monospace;
+    font-size: $font-size-lg;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    width: 120px;
+    padding: $spacing-6 10px;
+    border: 1px solid var(--input-border);
+    border-radius: $radius-md;
+    text-align: center;
+    background: var(--input-bg);
+    color: var(--fg);
+
+    &:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+  }
+
+  &__error {
+    color: var(--color-error);
+    font-size: $font-size-sm;
+  }
+
+  &__countdown {
+    font-family: monospace;
+    font-size: $font-size-sm;
+    color: var(--fg-muted);
+
+    &--warning {
+      color: var(--color-error);
+    }
+  }
+
+  &__refresh {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: $font-size-sm;
+    cursor: pointer;
+    text-decoration: underline;
+
+    &:hover {
+      color: var(--fg);
+    }
+  }
+}
