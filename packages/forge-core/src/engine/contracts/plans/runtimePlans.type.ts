@@ -16,7 +16,6 @@ export interface StepRuntimePlan {
  */
 export interface ReachabilityStateTable {
   entries: ReachabilityStateTableEntry[]
-  resumeConfigured: boolean
   unreachableRedirect: UnreachableRedirectTarget
   reachabilityDisabled: boolean
 }

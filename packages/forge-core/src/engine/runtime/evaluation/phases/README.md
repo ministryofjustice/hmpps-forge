@@ -138,7 +138,7 @@ flowchart TD
 - [reachability](reachability) owns the redirect decision after reachability evaluation.
   See its README for redirect resolution, backlinks, and target URLs.
 - [answer-cleardown](answer-cleardown) owns stale-answer clearing.
-  See its README for retained paths and `cleardown` mutations.
+  See its README for unreachable-step clearing and `cleardown` mutations.
 - [route-tree](route-tree) owns hydrating the route tree from resolved route metadata.
   See its README for param resolution, active state, and metadata merge.
 - [resolve](resolve) owns conversion from compiled block work to `RenderBlock`.

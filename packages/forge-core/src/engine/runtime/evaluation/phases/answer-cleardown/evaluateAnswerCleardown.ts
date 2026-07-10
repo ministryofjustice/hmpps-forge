@@ -1,25 +1,17 @@
-import { resolvePathParams } from '../../../../../framework/path/routePath'
 import type { AnswerHistory } from '../../../../contracts/runtime/answerHistory.type'
 import type { JourneyReachabilityProjection } from '../../../../contracts/reachability/journeyReachabilityProjection.type'
-import type { ReachabilityEvaluation } from '../../../../contracts/reachability/reachabilityEvaluation.type'
 
 /**
  * Resolves the answers of steps no active path can reach and clears each in place,
- * returning the resolved field codes. The current step's forward edges, retained by
- * the compiled reachability state, are excluded — their answers belong to progress
- * the user can still return to — so only steps that no path can reach under the
- * current answers are cleared.
+ * returning the resolved field codes. The reachability walk marks every step a valid
+ * chain reaches — including steps ahead of the current one — as reachable, so only
+ * steps no path can reach under the current answers are cleared.
  */
 export function evaluateAnswerCleardown(
   reachability: JourneyReachabilityProjection,
   answers: Record<string, AnswerHistory>,
-  evaluation: ReachabilityEvaluation,
-  params: Record<string, string>,
 ): readonly string[] {
-  const retainedStepPaths = evaluation.cleardownRetentionRouteTemplatePaths.map(routeTemplatePath =>
-    resolvePathParams(routeTemplatePath, params),
-  )
-  const fieldsToClear = resolveFieldsToClear(reachability, answers, retainedStepPaths)
+  const fieldsToClear = resolveFieldsToClear(reachability, answers)
 
   clearStaleAnswers(answers, fieldsToClear)
 
@@ -29,13 +21,11 @@ export function evaluateAnswerCleardown(
 /**
  * Resolves which answer field codes belong to unreachable steps: codes declared on
  * those steps' blocks, plus any answer key matching their `cleardownFieldCodes`
- * patterns. Steps on `retainedStepPaths` are excluded, and only codes that actually
- * have an answer are returned.
+ * patterns. Only codes that actually have an answer are returned.
  */
 function resolveFieldsToClear(
   reachability: JourneyReachabilityProjection,
   answers: Record<string, AnswerHistory>,
-  retainedStepPaths: readonly string[],
 ): readonly string[] {
   const answerKeys = Object.keys(answers)
 
@@ -43,8 +33,7 @@ function resolveFieldsToClear(
     return []
   }
 
-  const retainedStepPathSet = new Set(retainedStepPaths)
-  const unreachableSteps = reachability.unreachableSteps.filter(step => !retainedStepPathSet.has(step.path))
+  const unreachableSteps = reachability.unreachableSteps
   const answerKeySet = new Set(answerKeys)
   const fieldsToClear = new Set<string>()
 

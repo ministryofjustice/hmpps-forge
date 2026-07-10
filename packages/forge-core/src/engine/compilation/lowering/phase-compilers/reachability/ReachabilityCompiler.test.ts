@@ -112,7 +112,6 @@ function createStateTable(entries: ReachabilityCompilationEntry[]): Reachability
       code: entry.code,
       isEntryPoint: entry.isEntryPoint,
     })),
-    resumeConfigured: false,
     unreachableRedirect: 'entry',
     reachabilityDisabled: false,
   }

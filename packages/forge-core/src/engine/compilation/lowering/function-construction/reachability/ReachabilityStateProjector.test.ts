@@ -35,7 +35,6 @@ describe('ReachabilityStateProjector', () => {
       resumeActive: false,
       resumeOutcome: 'no-op',
       unreachableRedirect: 'entry',
-      cleardownRetentionRouteTemplatePaths: [],
       ...overrides,
     }
   }

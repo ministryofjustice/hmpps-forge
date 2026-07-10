@@ -530,6 +530,57 @@ export const unreachableRedirectsToEntryJourney = journey({
   ],
 })
 
+export const linearChainCleardownJourney = journey({
+  code: 'chain',
+  path: '/chain',
+  title: 'Linear chain cleardown',
+  onAccess: [access({ effects: [Effects.LoadAnswers('chain')] })],
+  steps: [
+    step({
+      code: 'a',
+      path: '/a',
+      title: 'A',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKTextInput({
+          code: 'fieldA',
+          label: 'Field A',
+          validWhen: [validation({ condition: Self().match(Condition.IsRequired()), message: 'Required' })],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [submit({ validate: true, onValid: { next: [redirect({ goto: 'b' })] } })],
+    }),
+    step({
+      code: 'b',
+      path: '/b',
+      title: 'B',
+      blocks: [
+        GovUKTextInput({
+          code: 'fieldB',
+          label: 'Field B',
+          validWhen: [validation({ condition: Self().match(Condition.Equals('valid-b')), message: 'Must be valid-b' })],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [submit({ validate: true, onValid: { next: [redirect({ goto: 'c' })] } })],
+    }),
+    step({
+      code: 'c',
+      path: '/c',
+      title: 'C',
+      blocks: [
+        GovUKTextInput({
+          code: 'fieldC',
+          label: 'Field C',
+          validWhen: [validation({ condition: Self().match(Condition.IsRequired()), message: 'Required' })],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+    }),
+  ],
+})
+
 export const dependentWhenOnlyPostJourney = journey({
   code: 'dw-post-only',
   path: '/dw-post-only',

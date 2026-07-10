@@ -28,7 +28,6 @@ export default class ReachabilityPlanAnalyzer {
         isEntryPoint: entry.isEntryPoint,
         forwardOutcomeEvaluation: entry.forwardOutcomeEvaluation,
       })),
-      resumeConfigured: resumeAlways || resumeWhenNode !== undefined,
       unreachableRedirect: journeyNode.properties.reachability?.unreachableRedirect ?? 'entry',
       reachabilityDisabled: this.resolveReachabilityDisabled(journeyNode),
     }
