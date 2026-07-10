@@ -86,7 +86,6 @@ describe('FieldInventoryAnalyzer', () => {
       const result = analyzer.buildFieldInventorySources({
         stateTable: {
           entries: [],
-          resumeConfigured: false,
           unreachableRedirect: 'entry',
           reachabilityDisabled: false,
         },

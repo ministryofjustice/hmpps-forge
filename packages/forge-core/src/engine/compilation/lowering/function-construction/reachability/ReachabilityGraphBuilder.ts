@@ -32,7 +32,6 @@ export default class ReachabilityGraphBuilder {
 
   buildReachableSteps(
     plan: ReachabilityStateTable,
-    currentStepId: NodeId | undefined,
     routeTemplateCatalog: JourneyRouteTemplateCatalog,
     compiledResult: CompiledReachabilityResult,
     stepValidities: ReadonlyMap<NodeId, boolean>,
@@ -56,7 +55,7 @@ export default class ReachabilityGraphBuilder {
     }
 
     this.seedEntryPoints(plan.entries)
-    this.walkReachabilityGraph(plan, currentStepId)
+    this.walkReachabilityGraph()
     this.populateUnvisitedForwardPaths()
     this.populateDeclaredForwardPaths()
     this.applyCompiledTieBreakers()
@@ -113,14 +112,8 @@ export default class ReachabilityGraphBuilder {
     })
   }
 
-  private walkReachabilityGraph(plan: ReachabilityStateTable, currentStepId: NodeId | undefined): void {
+  private walkReachabilityGraph(): void {
     if (this.steps.length === 0) {
-      return
-    }
-
-    const isCurrentStepAnActiveEntry = this.steps.some(step => step.isReachable && step.stepId === currentStepId)
-
-    if (!plan.resumeConfigured && isCurrentStepAnActiveEntry) {
       return
     }
 
@@ -131,10 +124,6 @@ export default class ReachabilityGraphBuilder {
       const current = this.dequeueNextStep(queue, visited)
 
       if (!current) {
-        continue
-      }
-
-      if (current.stepId === currentStepId && !plan.resumeConfigured) {
         continue
       }
 

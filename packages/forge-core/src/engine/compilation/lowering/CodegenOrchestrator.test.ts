@@ -34,7 +34,6 @@ describe('CodegenOrchestrator', () => {
             isEntryPoint: false,
           },
         ],
-        resumeConfigured: false,
         unreachableRedirect: 'entry',
         reachabilityDisabled: false,
       }
@@ -164,7 +163,6 @@ describe('CodegenOrchestrator', () => {
             isEntryPoint: false,
           },
         ],
-        resumeConfigured: false,
         unreachableRedirect: 'entry',
         reachabilityDisabled: true,
       }
@@ -259,7 +257,6 @@ describe('CodegenOrchestrator', () => {
       const stepNode = ASTTestFactory.step().withPath('/first').build()
       const stateTable: ReachabilityStateTable = {
         entries: [{ stepId: stepNode.id, isEntryPoint: false }],
-        resumeConfigured: false,
         unreachableRedirect: 'entry',
         reachabilityDisabled: false,
       }

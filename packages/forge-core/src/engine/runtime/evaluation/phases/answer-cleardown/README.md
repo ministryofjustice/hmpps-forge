@@ -18,14 +18,13 @@ If a user changes an earlier answer, fields on now-unreachable steps should stop
 The runtime cannot just leave those answers in place.
 
 It also cannot delete all forward-looking answers blindly.
-Some steps may be ahead of the current step but still belong to progress the user can return to.
-This is why cleardown uses both the full reachability projection and the current step's forward edges.
+Steps ahead of the current step still belong to progress the user can return to.
+The reachability walk marks every step a valid chain reaches, including those ahead of the current step, so cleardown clears only steps that no path can reach.
 
 ## Responsibilities
 
 - Resolve field codes that belong to unreachable steps.
 - Match `cleardownFieldCodes` patterns against existing answer keys.
-- Retain the current step's reachable forward paths.
 - Clear stale answers in place.
 - Push `cleardown` mutations onto answer history.
 - Return the field codes cleared.
@@ -35,8 +34,6 @@ This is why cleardown uses both the full reachability projection and the current
 `evaluateAnswerCleardown()` receives:
 - `reachability`, a `JourneyReachabilityProjection` from reachability projection.
 - `answers`, the live `Record<string, AnswerHistory>`.
-- `evaluation`, the current `ReachabilityEvaluation` — its `cleardownRetentionRouteTemplatePaths` lists the current step's forward edges to retain.
-- `params`, used to resolve route-template paths.
 
 `AnswerHistory` is mutated in place:
 - `current` becomes `undefined`.
@@ -78,15 +75,13 @@ answers.petName = {
 ```mermaid
 flowchart TD
   reachability["JourneyReachabilityProjection"] --> fields["resolveFieldsToClear()"]
-  evaluation["ReachabilityEvaluation.cleardownRetentionRouteTemplatePaths"] --> retained["resolve retained paths"]
-  retained --> fields
   answers["AnswerHistory map"] --> fields
   fields --> clear["clearStaleAnswers()"]
   clear --> result["cleared field codes"]
 ```
 
 - [evaluateAnswerCleardown.ts](evaluateAnswerCleardown.ts) owns the whole cleardown algorithm.
-  It resolves retained paths, resolves fields to clear, mutates answers, and returns the cleared field codes.
+  It resolves fields to clear, mutates answers, and returns the cleared field codes.
 
 ## Boundaries
 
@@ -105,17 +100,15 @@ flowchart TD
   Later trace and runtime code can still see that the answer existed and was cleared.
 - Already-cleared answers are skipped.
   A request should not stack duplicate cleardown mutations.
-- Steps on the current step's forward edges are retained.
-  Current-step-relative reachability can mark future steps unreachable, but their answers may still be valid progress.
+- Steps ahead of the current step keep their answers when a valid chain still reaches them.
+  The reachability walk marks them reachable, so cleardown only clears steps no path can reach.
 - Pattern matching only checks existing answer keys.
   Cleardown never invents field codes that are not in the answer store.
 
 ## Constraints
 
 - Run cleardown after reachability.
-  It needs both `JourneyReachabilityProjection` and `ReachabilityEvaluation`.
-- Do not clear retained forward paths.
-  Users would lose progress they can still return to.
+  It needs the `JourneyReachabilityProjection`.
 - Do not delete `AnswerHistory` entries.
   That would erase mutation history and make traces less useful.
 - Keep `source: 'cleardown'`.
@@ -123,7 +116,7 @@ flowchart TD
 
 ## Editing Notes
 
-- To change which paths are retained, start in `resolveCleardownRetentionRouteTemplatePaths()` in `compilation/lowering/function-construction/reachability`; the exclusion itself lives in `resolveFieldsToClear()`.
+- To change which steps count as reachable, start in `compilation/lowering/function-construction/reachability`, not this helper.
 - To change which fields are cleared, start in `resolveFieldsToClear()`.
 - To change answer mutation shape, start in `clearStaleAnswers()`.
 - To change when cleardown runs, edit `RequestAnswerCleardownWorkHandler`, not this helper.
@@ -131,4 +124,4 @@ flowchart TD
 ## Entry Points
 
 - [evaluateAnswerCleardown.ts](evaluateAnswerCleardown.ts) answers which stale answers are cleared and how they are mutated.
-- [evaluateAnswerCleardown.test.ts](evaluateAnswerCleardown.test.ts) shows retained paths, pattern matching, and duplicate-cleardown behavior.
+- [evaluateAnswerCleardown.test.ts](evaluateAnswerCleardown.test.ts) shows unreachable-step clearing, pattern matching, and duplicate-cleardown behavior.
