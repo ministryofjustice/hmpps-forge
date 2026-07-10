@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { GuideDeps } from '../../effects'
-import { PatternEffectsImplementations } from './effects'
+import { patternEffectRegistry } from './effects'
 import type { PatternEffectContext, PatternSession } from './context.type'
 
 const deps = {
@@ -64,7 +64,7 @@ function createPatternEffectContext(options: {
   return context as PatternEffectContext
 }
 
-describe('PatternEffectsImplementations', () => {
+describe('patternEffectRegistry', () => {
   describe('AddRepeatingItem()', () => {
     it('should append a new row from live context data when no draft collection exists yet', () => {
       // Arrange
@@ -79,7 +79,7 @@ describe('PatternEffectsImplementations', () => {
           memberAge_0: '10',
         },
       })
-      const addRepeatingItem = PatternEffectsImplementations.AddRepeatingItem(deps)
+      const addRepeatingItem = patternEffectRegistry.build(deps).AddRepeatingItem.evaluate
 
       // Act
       addRepeatingItem(effectContext, 'repeating-fieldsets', 'members', ['memberName', 'memberAge'])
@@ -114,7 +114,7 @@ describe('PatternEffectsImplementations', () => {
           memberAge_0: '10',
         },
       })
-      const saveRepeatingItems = PatternEffectsImplementations.SaveRepeatingItems(deps)
+      const saveRepeatingItems = patternEffectRegistry.build(deps).SaveRepeatingItems.evaluate
 
       // Act
       saveRepeatingItems(effectContext, 'repeating-fieldsets', 'members', [

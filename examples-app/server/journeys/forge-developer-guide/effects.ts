@@ -1,8 +1,7 @@
 import {
   access,
-  defineEffectFunctions,
   EffectFunctionContext,
-  EffectFunctionExpr,
+  EffectRegistry,
 } from '@ministryofjustice/hmpps-forge/core/authoring'
 import type GuideContentStore from '../../data/guideContentStore'
 import type GuideSearch from '../../data/guideSearch'
@@ -16,14 +15,12 @@ export interface GuideDeps {
   mocksApi: MocksApi
 }
 
-export interface GuideEffectShape {
-  LoadContent: (slug: string) => EffectFunctionExpr
-  SearchContent: () => EffectFunctionExpr
-}
+export const guideEffectRegistry = new EffectRegistry<GuideDeps>()
 
-export const { effects: GuideEffects, implementations: GuideEffectsImplementations } =
-  defineEffectFunctions<GuideEffectShape, GuideDeps>({
-    LoadContent: (deps: GuideDeps) => async (context: EffectFunctionContext, slug: string) => {
+export const GuideEffects = {
+  LoadContent: guideEffectRegistry.register(
+    'LoadContent',
+    deps => async (context: EffectFunctionContext, slug: string) => {
       await deps.guideContentStore.load()
 
       const entry = deps.guideContentStore.get(slug)
@@ -34,8 +31,11 @@ export const { effects: GuideEffects, implementations: GuideEffectsImplementatio
         context.setData('pageTitle', entry.title)
       }
     },
+  ),
 
-    SearchContent: (deps: GuideDeps) => async (context: EffectFunctionContext) => {
+  SearchContent: guideEffectRegistry.register(
+    'SearchContent',
+    deps => async (context: EffectFunctionContext) => {
       const queryParam = context.getQueryParam('q')
       const query = typeof queryParam === 'string' ? queryParam : ''
 
@@ -48,7 +48,8 @@ export const { effects: GuideEffects, implementations: GuideEffectsImplementatio
         context.setData('searchQuery', '')
       }
     },
-  })
+  ),
+}
 
 export function loadContent(slug: string) {
   return access({

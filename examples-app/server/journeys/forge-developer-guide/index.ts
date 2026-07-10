@@ -1,8 +1,8 @@
 import { createForgePackage } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { developerGuideJourney } from './journey'
-import { GuideDeps, GuideEffectsImplementations } from './effects'
-import { PatternEffectsImplementations } from './sections/patterns/effects'
-import { PatternFunctions } from './sections/patterns/functions'
+import { GuideDeps, guideEffectRegistry } from './effects'
+import { patternEffectRegistry } from './sections/patterns/effects'
+import { patternTransformerRegistry } from './sections/patterns/functions'
 import { govukMarkdown } from './components/govukMarkdown'
 import { tableOfContentsComponent } from './components/tableOfContents'
 import { lotteryBallComponent } from './components/lotteryBall'
@@ -16,9 +16,5 @@ export default createForgePackage<GuideDeps>({
     lotteryBallComponent,
     richTextEditorComponent,
   ],
-  functions: {
-    ...GuideEffectsImplementations,
-    ...PatternEffectsImplementations,
-    ...PatternFunctions.implementations,
-  },
+  functions: [guideEffectRegistry, patternEffectRegistry, patternTransformerRegistry],
 })

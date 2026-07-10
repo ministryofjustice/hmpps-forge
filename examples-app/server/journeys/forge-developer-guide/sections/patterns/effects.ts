@@ -1,7 +1,4 @@
-import {
-  defineEffectFunctions,
-  EffectFunctionExpr,
-} from '@ministryofjustice/hmpps-forge/core/authoring'
+import { EffectRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
 import type { GuideDeps } from '../../effects'
 import type { PatternEffectContext } from './context.type'
 
@@ -11,155 +8,37 @@ import type { PatternEffectContext } from './context.type'
  * express session under `session.patternDrafts[patternCode]` so they remain
  * isolated from committed state.
  */
-export interface PatternEffectShape {
+export const patternEffectRegistry = new EffectRegistry<GuideDeps>()
+
+export const PatternEffects = {
   /** Copies previously stored answers for this pattern into the form context on access. */
-  LoadAnswers: (patternCode: string) => EffectFunctionExpr
+  LoadAnswers: patternEffectRegistry.register(
+    'LoadAnswers',
+    (deps: GuideDeps) => async (context: PatternEffectContext, patternCode: string) => {
+      const sessionId = context.getSession()?.id
+
+      if (!sessionId) {
+        return
+      }
+
+      const stored = await deps.formDataStore.get(sessionId, patternCode)
+
+      if (!stored) {
+        return
+      }
+
+      for (const [code, value] of Object.entries(stored)) {
+        if (!context.hasAnswer(code)) {
+          context.setAnswer(code, value)
+        }
+      }
+    },
+  ),
 
   /** Copies previously stored draft answers for this pattern into the form context on access. */
-  LoadDraftAnswers: (patternCode: string) => EffectFunctionExpr
-
-  /** Persists the current answers into the session under the pattern's code. */
-  SaveAnswers: (patternCode: string) => EffectFunctionExpr
-
-  /** Persists the current answers into the session as a draft, kept separately from committed answers. */
-  SaveDraftAnswers: (patternCode: string) => EffectFunctionExpr
-
-  /** Records in the session whether this pattern has been submitted. */
-  SaveSubmitStateToSession: (patternCode: string, submitted: boolean) => EffectFunctionExpr
-
-  /** Clears stored answers for this pattern (used after confirmation / reset). */
-  ClearAnswers: (patternCode: string) => EffectFunctionExpr
-
-  /** Clears draft answers for this pattern (used after committing drafts to the store). */
-  ClearDraftAnswers: (patternCode: string) => EffectFunctionExpr
-
-  /** Writes a fixed set of example answers into the session and form context, for demos that need a pre-populated starting state. */
-  SeedAnswers: (patternCode: string, answers: Record<string, unknown>) => EffectFunctionExpr
-
-  /** Writes a fixed set of example answers into the session draft namespace and form context, for demos that need a pre-populated in-progress state. */
-  SeedDraftAnswers: (patternCode: string, answers: Record<string, unknown>) => EffectFunctionExpr
-
-  /** Bundles temporary field answers into an object and appends it to a collection array. Clears the temporary fields afterwards. */
-  AddItemToCollection: (collectionCode: string, fieldCodes: string[]) => EffectFunctionExpr
-
-  /** Removes an item from a collection array by its index, read from the 'remove' query parameter. */
-  RemoveItemFromCollection: (collectionCode: string) => EffectFunctionExpr
-
-  /** Reads the ':index' route parameter, extracts the item at that position from the collection, and sets each field as Data for display on a confirmation page. */
-  LoadItemForDelete: (collectionCode: string, fieldCodes: string[]) => EffectFunctionExpr
-
-  /** Reads the ':index' route parameter and removes the item at that position from the collection. */
-  DeleteItemFromCollection: (collectionCode: string) => EffectFunctionExpr
-
-  /** Sets a single answer value in the form context. Useful for status tracking or computed values that aren't form fields. */
-  SetAnswer: (code: string, value: unknown) => EffectFunctionExpr
-
-  /** Reads the ':index' route parameter, extracts the item at that position from the collection, sets each field as an answer, and stores the edit index in the session. */
-  LoadItemForEdit: (
-    patternCode: string,
-    collectionCode: string,
-    fieldCodes: string[],
-  ) => EffectFunctionExpr
-
-  /** Reads the stored edit index from the session, bundles the current field answers into an object, and replaces the item at that index in the collection. Clears the stored edit index afterwards. */
-  EditItemInCollection: (
-    patternCode: string,
-    collectionCode: string,
-    fieldCodes: string[],
-  ) => EffectFunctionExpr
-
-  /** Loads a repeating collection from the session, sets it as Data for the iterator, and restores indexed field answers. */
-  InitializeRepeatingFieldsets: (
-    patternCode: string,
-    collectionCode: string,
-    fieldCodes: string[],
-  ) => EffectFunctionExpr
-
-  /** Saves current indexed field values to the session collection, appends an empty item, and restores answers with new indices. */
-  AddRepeatingItem: (
-    patternCode: string,
-    collectionCode: string,
-    fieldCodes: string[],
-  ) => EffectFunctionExpr
-
-  /** Saves current indexed field values, removes the item whose index matches the POST action value, and re-indexes answers. */
-  RemoveRepeatingItem: (
-    patternCode: string,
-    collectionCode: string,
-    fieldCodes: string[],
-  ) => EffectFunctionExpr
-
-  /** Reads current indexed field values into the session collection for persistence across requests. */
-  SaveRepeatingItems: (
-    patternCode: string,
-    collectionCode: string,
-    fieldCodes: string[],
-  ) => EffectFunctionExpr
-
-  /** Reads the postcode answer, calls the address lookup API, and sets the address field answers with the result. */
-  LookupAddress: () => EffectFunctionExpr
-
-  /** Generates 6 unique lottery numbers (1-59, sorted) and a bonus ball, then sets them as Data values for blocks to display. */
-  DrawLotteryNumbers: () => EffectFunctionExpr
-
-  /** Sets session.demoUser with the given name and role. Used by the auth-role pattern demo. */
-  SimulateLogin: (name: string, role: string) => EffectFunctionExpr
-
-  /** Clears session.demoUser. Used by the auth-role pattern demo. */
-  SimulateLogout: () => EffectFunctionExpr
-
-  /** Reads the searchQuery answer, filters a hardcoded set of London Underground stations by name, and sets the matching results as Data. */
-  SearchStations: () => EffectFunctionExpr
-
-  /** Reads the :index route parameter and loads the corresponding station's fields into Data. */
-  LoadStation: () => EffectFunctionExpr
-
-  /** Reads the ?page query parameter, slices the station list into pages, and sets pagination Data. */
-  LoadStationPage: () => EffectFunctionExpr
-
-  /** Loads case overview data and pre-computed derived values for the inline functions pattern demo. */
-  LoadCaseOverview: () => EffectFunctionExpr
-
-  /** Loads blog posts from the session and sets them as Data for the posts list. */
-  LoadBlogPosts: () => EffectFunctionExpr
-
-  /** Reads the title and body answers, creates a new blog post, and appends it to the session. */
-  SaveBlogPost: () => EffectFunctionExpr
-
-  /** Loads plan goals from the session (or seeds defaults) and sets them as Data for the collection-validation pattern demo. */
-  LoadPlanGoals: () => EffectFunctionExpr
-
-  /** Filters active goals from the session and sets them as Data('activeGoals') for the manage-plan step. */
-  InitializePlanActions: () => EffectFunctionExpr
-
-  /** Reads indexed action answers, adds non-empty values to the corresponding active goal, and persists the updated goals in the session. */
-  SavePlanActions: () => EffectFunctionExpr
-}
-
-export const { effects: PatternEffects, implementations: PatternEffectsImplementations } =
-  defineEffectFunctions<PatternEffectShape, GuideDeps>({
-    LoadAnswers:
-      (deps: GuideDeps) => async (context: PatternEffectContext, patternCode: string) => {
-        const sessionId = context.getSession()?.id
-
-        if (!sessionId) {
-          return
-        }
-
-        const stored = await deps.formDataStore.get(sessionId, patternCode)
-
-        if (!stored) {
-          return
-        }
-
-        for (const [code, value] of Object.entries(stored)) {
-          if (!context.hasAnswer(code)) {
-            context.setAnswer(code, value)
-          }
-        }
-      },
-
-    LoadDraftAnswers: () => (context: PatternEffectContext, patternCode: string) => {
+  LoadDraftAnswers: patternEffectRegistry.register(
+    'LoadDraftAnswers',
+    () => (context: PatternEffectContext, patternCode: string) => {
       const stored = context.getSession()?.patternDrafts?.[patternCode]
 
       if (!stored) {
@@ -172,25 +51,32 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
         }
       }
     },
+  ),
 
-    SaveAnswers:
-      (deps: GuideDeps) => async (context: PatternEffectContext, patternCode: string) => {
-        const sessionId = context.getSession()?.id
+  /** Persists the current answers into the session under the pattern's code. */
+  SaveAnswers: patternEffectRegistry.register(
+    'SaveAnswers',
+    (deps: GuideDeps) => async (context: PatternEffectContext, patternCode: string) => {
+      const sessionId = context.getSession()?.id
 
-        if (!sessionId) {
-          return
-        }
+      if (!sessionId) {
+        return
+      }
 
-        const fieldsToClear = context.getFieldsToClear()
+      const fieldsToClear = context.getFieldsToClear()
 
-        for (const field of fieldsToClear) {
-          context.clearAnswer(field)
-        }
+      for (const field of fieldsToClear) {
+        context.clearAnswer(field)
+      }
 
-        await deps.formDataStore.set(sessionId, patternCode, context.getAllAnswers())
-      },
+      await deps.formDataStore.set(sessionId, patternCode, context.getAllAnswers())
+    },
+  ),
 
-    SaveDraftAnswers: () => (context: PatternEffectContext, patternCode: string) => {
+  /** Persists the current answers into the session as a draft, kept separately from committed answers. */
+  SaveDraftAnswers: patternEffectRegistry.register(
+    'SaveDraftAnswers',
+    () => (context: PatternEffectContext, patternCode: string) => {
       const session = context.getSession()
 
       if (!session) {
@@ -206,53 +92,63 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
         ...context.getAllAnswers(),
       }
     },
+  ),
 
-    SaveSubmitStateToSession:
-      () => (context: PatternEffectContext, patternCode: string, submitted: boolean) => {
-        const session = context.getSession()
+  /** Records in the session whether this pattern has been submitted. */
+  SaveSubmitStateToSession: patternEffectRegistry.register(
+    'SaveSubmitStateToSession',
+    () => (context: PatternEffectContext, patternCode: string, submitted: boolean) => {
+      const session = context.getSession()
 
-        if (!session) {
-          return
-        }
+      if (!session) {
+        return
+      }
 
-        if (!session.patternSubmitted) {
-          session.patternSubmitted = {}
-        }
+      if (!session.patternSubmitted) {
+        session.patternSubmitted = {}
+      }
 
-        session.patternSubmitted[patternCode] = submitted
-      },
+      session.patternSubmitted[patternCode] = submitted
+    },
+  ),
 
-    ClearAnswers:
-      (deps: GuideDeps) => async (context: PatternEffectContext, patternCode: string) => {
-        const sessionId = context.getSession()?.id
+  /** Clears stored answers for this pattern (used after confirmation / reset). */
+  ClearAnswers: patternEffectRegistry.register(
+    'ClearAnswers',
+    (deps: GuideDeps) => async (context: PatternEffectContext, patternCode: string) => {
+      const sessionId = context.getSession()?.id
 
-        if (!sessionId) {
-          return
-        }
+      if (!sessionId) {
+        return
+      }
 
-        await deps.formDataStore.delete(sessionId, patternCode)
+      await deps.formDataStore.delete(sessionId, patternCode)
 
-        for (const key of Object.keys(context.getAllAnswers())) {
-          context.clearAnswer(key)
-        }
-      },
-
-    ClearDraftAnswers: () => {
-      return (context: PatternEffectContext, patternCode: string) => {
-        const session = context.getSession()
-
-        if (session?.patternDrafts) {
-          delete session.patternDrafts[patternCode]
-        }
-
-        for (const key of Object.keys(context.getAllAnswers())) {
-          context.clearAnswer(key)
-        }
+      for (const key of Object.keys(context.getAllAnswers())) {
+        context.clearAnswer(key)
       }
     },
+  ),
 
-    SeedAnswers:
-      (deps: GuideDeps) =>
+  /** Clears draft answers for this pattern (used after committing drafts to the store). */
+  ClearDraftAnswers: patternEffectRegistry.register('ClearDraftAnswers', () => {
+    return (context: PatternEffectContext, patternCode: string) => {
+      const session = context.getSession()
+
+      if (session?.patternDrafts) {
+        delete session.patternDrafts[patternCode]
+      }
+
+      for (const key of Object.keys(context.getAllAnswers())) {
+        context.clearAnswer(key)
+      }
+    }
+  }),
+
+  /** Writes a fixed set of example answers into the session and form context, for demos that need a pre-populated starting state. */
+  SeedAnswers: patternEffectRegistry.register(
+    'SeedAnswers',
+    (deps: GuideDeps) =>
       async (
         context: PatternEffectContext,
         patternCode: string,
@@ -266,9 +162,12 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
 
         Object.entries(answers).forEach(([code, value]) => context.setAnswer(code, value))
       },
+  ),
 
-    SeedDraftAnswers:
-      () =>
+  /** Writes a fixed set of example answers into the session draft namespace and form context, for demos that need a pre-populated in-progress state. */
+  SeedDraftAnswers: patternEffectRegistry.register(
+    'SeedDraftAnswers',
+    () =>
       (context: PatternEffectContext, patternCode: string, answers: Record<string, unknown>) => {
         const session = context.getSession()
 
@@ -287,28 +186,35 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
           context.setAnswer(code, value)
         }
       },
+  ),
 
-    AddItemToCollection:
-      () => (context: PatternEffectContext, collectionCode: string, fieldCodes: string[]) => {
-        const item: Record<string, unknown> = {}
+  /** Bundles temporary field answers into an object and appends it to a collection array. Clears the temporary fields afterwards. */
+  AddItemToCollection: patternEffectRegistry.register(
+    'AddItemToCollection',
+    () => (context: PatternEffectContext, collectionCode: string, fieldCodes: string[]) => {
+      const item: Record<string, unknown> = {}
 
-        for (const code of fieldCodes) {
-          const value = context.getAnswer(code)
+      for (const code of fieldCodes) {
+        const value = context.getAnswer(code)
 
-          if (value !== undefined) {
-            item[code] = value
-          }
+        if (value !== undefined) {
+          item[code] = value
         }
+      }
 
-        const collection = (context.getAnswer(collectionCode) ?? []) as unknown[]
-        context.setAnswer(collectionCode, [...collection, item])
+      const collection = (context.getAnswer(collectionCode) ?? []) as unknown[]
+      context.setAnswer(collectionCode, [...collection, item])
 
-        for (const code of fieldCodes) {
-          context.setAnswer(code, undefined)
-        }
-      },
+      for (const code of fieldCodes) {
+        context.setAnswer(code, undefined)
+      }
+    },
+  ),
 
-    RemoveItemFromCollection: () => (context: PatternEffectContext, collectionCode: string) => {
+  /** Removes an item from a collection array by its index, read from the 'remove' query parameter. */
+  RemoveItemFromCollection: patternEffectRegistry.register(
+    'RemoveItemFromCollection',
+    () => (context: PatternEffectContext, collectionCode: string) => {
       const indexStr = context.getQueryParam('remove')
 
       if (indexStr === undefined) {
@@ -324,32 +230,39 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
         context.setAnswer(collectionCode, updated)
       }
     },
+  ),
 
-    LoadItemForDelete:
-      () => (context: PatternEffectContext, collectionCode: string, fieldCodes: string[]) => {
-        const indexStr = context.getRequestParam('index')
+  /** Reads the ':index' route parameter, extracts the item at that position from the collection, and sets each field as Data for display on a confirmation page. */
+  LoadItemForDelete: patternEffectRegistry.register(
+    'LoadItemForDelete',
+    () => (context: PatternEffectContext, collectionCode: string, fieldCodes: string[]) => {
+      const indexStr = context.getRequestParam('index')
 
-        if (indexStr === undefined) {
-          return
+      if (indexStr === undefined) {
+        return
+      }
+
+      const index = parseInt(indexStr, 10)
+      const collection = (context.getAnswer(collectionCode) ?? []) as Record<string, unknown>[]
+
+      if (Number.isNaN(index) || index < 0 || index >= collection.length) {
+        return
+      }
+
+      const item = collection[index]
+
+      for (const code of fieldCodes) {
+        if (item[code] !== undefined) {
+          context.setData(code, item[code])
         }
+      }
+    },
+  ),
 
-        const index = parseInt(indexStr, 10)
-        const collection = (context.getAnswer(collectionCode) ?? []) as Record<string, unknown>[]
-
-        if (Number.isNaN(index) || index < 0 || index >= collection.length) {
-          return
-        }
-
-        const item = collection[index]
-
-        for (const code of fieldCodes) {
-          if (item[code] !== undefined) {
-            context.setData(code, item[code])
-          }
-        }
-      },
-
-    DeleteItemFromCollection: () => (context: PatternEffectContext, collectionCode: string) => {
+  /** Reads the ':index' route parameter and removes the item at that position from the collection. */
+  DeleteItemFromCollection: patternEffectRegistry.register(
+    'DeleteItemFromCollection',
+    () => (context: PatternEffectContext, collectionCode: string) => {
       const indexStr = context.getRequestParam('index')
 
       if (indexStr === undefined) {
@@ -367,13 +280,20 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
       updated.splice(index, 1)
       context.setAnswer(collectionCode, updated)
     },
+  ),
 
-    SetAnswer: () => (context: PatternEffectContext, code: string, value: unknown) => {
+  /** Sets a single answer value in the form context. Useful for status tracking or computed values that aren't form fields. */
+  SetAnswer: patternEffectRegistry.register(
+    'SetAnswer',
+    () => (context: PatternEffectContext, code: string, value: unknown) => {
       context.setAnswer(code, value)
     },
+  ),
 
-    LoadItemForEdit:
-      () =>
+  /** Reads the ':index' route parameter, extracts the item at that position from the collection, sets each field as an answer, and stores the edit index in the session. */
+  LoadItemForEdit: patternEffectRegistry.register(
+    'LoadItemForEdit',
+    () =>
       (
         context: PatternEffectContext,
         patternCode: string,
@@ -415,9 +335,12 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
           session.patternDrafts[patternCode].editingIndex = index
         }
       },
+  ),
 
-    InitializeRepeatingFieldsets:
-      () =>
+  /** Loads a repeating collection from the session, sets it as Data for the iterator, and restores indexed field answers. */
+  InitializeRepeatingFieldsets: patternEffectRegistry.register(
+    'InitializeRepeatingFieldsets',
+    () =>
       (
         context: PatternEffectContext,
         patternCode: string,
@@ -439,9 +362,12 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
           }
         })
       },
+  ),
 
-    AddRepeatingItem:
-      () =>
+  /** Saves current indexed field values to the session collection, appends an empty item, and restores answers with new indices. */
+  AddRepeatingItem: patternEffectRegistry.register(
+    'AddRepeatingItem',
+    () =>
       (
         context: PatternEffectContext,
         patternCode: string,
@@ -488,9 +414,12 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
           }
         })
       },
+  ),
 
-    RemoveRepeatingItem:
-      () =>
+  /** Saves current indexed field values, removes the item whose index matches the POST action value, and re-indexes answers. */
+  RemoveRepeatingItem: patternEffectRegistry.register(
+    'RemoveRepeatingItem',
+    () =>
       (
         context: PatternEffectContext,
         patternCode: string,
@@ -538,9 +467,12 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
           }
         })
       },
+  ),
 
-    SaveRepeatingItems:
-      () =>
+  /** Reads current indexed field values into the session collection for persistence across requests. */
+  SaveRepeatingItems: patternEffectRegistry.register(
+    'SaveRepeatingItems',
+    () =>
       (
         context: PatternEffectContext,
         patternCode: string,
@@ -576,8 +508,12 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
           return merged
         })
       },
+  ),
 
-    LookupAddress: (deps: GuideDeps) => async (context: PatternEffectContext) => {
+  /** Reads the postcode answer, calls the address lookup API, and sets the address field answers with the result. */
+  LookupAddress: patternEffectRegistry.register(
+    'LookupAddress',
+    (deps: GuideDeps) => async (context: PatternEffectContext) => {
       const postcode = context.getAnswer('postcode') as string | undefined
 
       if (!postcode) {
@@ -592,33 +528,48 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
       context.setAnswer('addressCounty', address.county)
       context.setAnswer('addressPostcode', address.postcode)
     },
+  ),
 
-    DrawLotteryNumbers: (deps: GuideDeps) => async (context: PatternEffectContext) => {
+  /** Generates 6 unique lottery numbers (1-59, sorted) and a bonus ball, then sets them as Data values for blocks to display. */
+  DrawLotteryNumbers: patternEffectRegistry.register(
+    'DrawLotteryNumbers',
+    (deps: GuideDeps) => async (context: PatternEffectContext) => {
       const draw = await deps.mocksApi.getLotteryBalls()
 
       draw.balls.forEach((n, i) => context.setData(`ball${i + 1}`, String(n)))
       context.setData('bonusBall', String(draw.bonusBall))
       context.setData('drawDate', draw.drawDate)
     },
+  ),
 
-    SimulateLogin: () => (context: PatternEffectContext, name: string, role: string) => {
+  /** Sets session.demoUser with the given name and role. Used by the auth-role pattern demo. */
+  SimulateLogin: patternEffectRegistry.register(
+    'SimulateLogin',
+    () => (context: PatternEffectContext, name: string, role: string) => {
       const session = context.getSession()
 
       if (session) {
         session.demoUser = { name, role }
       }
     },
+  ),
 
-    SimulateLogout: () => (context: PatternEffectContext) => {
+  /** Clears session.demoUser. Used by the auth-role pattern demo. */
+  SimulateLogout: patternEffectRegistry.register(
+    'SimulateLogout',
+    () => (context: PatternEffectContext) => {
       const session = context.getSession()
 
       if (session) {
         delete session.demoUser
       }
     },
+  ),
 
-    EditItemInCollection:
-      () =>
+  /** Reads the stored edit index from the session, bundles the current field answers into an object, and replaces the item at that index in the collection. Clears the stored edit index afterwards. */
+  EditItemInCollection: patternEffectRegistry.register(
+    'EditItemInCollection',
+    () =>
       (
         context: PatternEffectContext,
         patternCode: string,
@@ -661,8 +612,12 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
           delete session.patternDrafts[patternCode].editingIndex
         }
       },
+  ),
 
-    SearchStations: () => (context: PatternEffectContext) => {
+  /** Reads the searchQuery answer, filters a hardcoded set of London Underground stations by name, and sets the matching results as Data. */
+  SearchStations: patternEffectRegistry.register(
+    'SearchStations',
+    () => (context: PatternEffectContext) => {
       const query = (context.getAnswer('searchQuery') as string | undefined)?.trim().toLowerCase()
 
       if (!query) {
@@ -727,8 +682,12 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
       context.setData('searchResults', results)
       context.setData('hasSearched', 'true')
     },
+  ),
 
-    LoadStation: () => (context: PatternEffectContext) => {
+  /** Reads the :index route parameter and loads the corresponding station's fields into Data. */
+  LoadStation: patternEffectRegistry.register(
+    'LoadStation',
+    () => (context: PatternEffectContext) => {
       const indexStr = context.getRequestParam('index')
 
       if (indexStr === undefined) {
@@ -918,8 +877,12 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
         context.setData('stationPage', String(Math.floor(index / 5) + 1))
       }
     },
+  ),
 
-    LoadStationPage: () => (context: PatternEffectContext) => {
+  /** Reads the ?page query parameter, slices the station list into pages, and sets pagination Data. */
+  LoadStationPage: patternEffectRegistry.register(
+    'LoadStationPage',
+    () => (context: PatternEffectContext) => {
       const pageParam = context.getQueryParam('page')
       const pageSize = 5
 
@@ -983,8 +946,12 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
       context.setData('currentPage', page)
       context.setData('pages', Array(totalPages).fill(0))
     },
+  ),
 
-    LoadCaseOverview: () => (context: PatternEffectContext) => {
+  /** Loads case overview data and pre-computed derived values for the inline functions pattern demo. */
+  LoadCaseOverview: patternEffectRegistry.register(
+    'LoadCaseOverview',
+    () => (context: PatternEffectContext) => {
       context.setData('case', caseOverviewData)
 
       const { goals } = caseOverviewData
@@ -999,8 +966,12 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
 
       context.setData('complianceRate', rate)
     },
+  ),
 
-    LoadBlogPosts: () => (context: PatternEffectContext) => {
+  /** Loads blog posts from the session and sets them as Data for the posts list. */
+  LoadBlogPosts: patternEffectRegistry.register(
+    'LoadBlogPosts',
+    () => (context: PatternEffectContext) => {
       const session = context.getSession()
       const posts = session?.blogPosts ?? []
 
@@ -1010,8 +981,12 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
         context.setData('postCount', posts.length)
       }
     },
+  ),
 
-    SaveBlogPost: () => (context: PatternEffectContext) => {
+  /** Reads the title and body answers, creates a new blog post, and appends it to the session. */
+  SaveBlogPost: patternEffectRegistry.register(
+    'SaveBlogPost',
+    () => (context: PatternEffectContext) => {
       const session = context.getSession()
 
       if (!session) {
@@ -1042,8 +1017,12 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
       context.setAnswer('postTitle', undefined)
       context.setAnswer('postBody', undefined)
     },
+  ),
 
-    LoadPlanGoals: () => (context: PatternEffectContext) => {
+  /** Loads plan goals from the session (or seeds defaults) and sets them as Data for the collection-validation pattern demo. */
+  LoadPlanGoals: patternEffectRegistry.register(
+    'LoadPlanGoals',
+    () => (context: PatternEffectContext) => {
       const session = context.getSession()
       const stored = session?.patternDrafts?.['collection-validation']?.goals as
         | typeof planGoals
@@ -1054,8 +1033,12 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
       context.setData('activeGoalCount', goals.filter(g => g.status === 'ACTIVE').length)
       context.setData('totalGoalCount', goals.length)
     },
+  ),
 
-    InitializePlanActions: () => (context: PatternEffectContext) => {
+  /** Filters active goals from the session and sets them as Data('activeGoals') for the manage-plan step. */
+  InitializePlanActions: patternEffectRegistry.register(
+    'InitializePlanActions',
+    () => (context: PatternEffectContext) => {
       const session = context.getSession()
       const stored = session?.patternDrafts?.['collection-validation']?.goals as
         | typeof planGoals
@@ -1071,8 +1054,12 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
         }
       })
     },
+  ),
 
-    SavePlanActions: () => (context: PatternEffectContext) => {
+  /** Reads indexed action answers, adds non-empty values to the corresponding active goal, and persists the updated goals in the session. */
+  SavePlanActions: patternEffectRegistry.register(
+    'SavePlanActions',
+    () => (context: PatternEffectContext) => {
       const session = context.getSession()
 
       if (!session) {
@@ -1116,7 +1103,8 @@ export const { effects: PatternEffects, implementations: PatternEffectsImplement
 
       session.patternDrafts['collection-validation'].goals = updated
     },
-  })
+  ),
+}
 
 const planGoals = [
   {
