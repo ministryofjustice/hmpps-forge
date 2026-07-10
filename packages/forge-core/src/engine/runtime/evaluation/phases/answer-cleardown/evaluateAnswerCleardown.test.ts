@@ -1,21 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { AnswerHistory } from '../../../../contracts/runtime/answerHistory.type'
 import type { JourneyReachabilityProjection } from '../../../../contracts/reachability/journeyReachabilityProjection.type'
-import type { ReachabilityEvaluation } from '../../../../contracts/reachability/reachabilityEvaluation.type'
 import { evaluateAnswerCleardown } from './evaluateAnswerCleardown'
-
-const noCurrentStep = {
-  steps: [],
-  currentStepId: undefined,
-  cleardownRetentionRouteTemplatePaths: [],
-} as unknown as ReachabilityEvaluation
 
 function evaluate(
   reachability: JourneyReachabilityProjection,
   answers: Record<string, AnswerHistory>,
-  evaluation: ReachabilityEvaluation = noCurrentStep,
 ): readonly string[] {
-  return evaluateAnswerCleardown(reachability, answers, evaluation, {})
+  return evaluateAnswerCleardown(reachability, answers)
 }
 
 describe('evaluateAnswerCleardown', () => {
@@ -100,34 +92,6 @@ describe('evaluateAnswerCleardown', () => {
 
       // Assert
       expect(answers.stale.mutations).toEqual([{ value: undefined, source: 'cleardown' }])
-    })
-
-    it('should retain answers of steps on the current step forward edges', () => {
-      // Arrange
-      const answers: Record<string, AnswerHistory> = {
-        retained: { current: 'keep', mutations: [{ value: 'keep', source: 'post' }] },
-        stale: { current: 'drop', mutations: [{ value: 'drop', source: 'post' }] },
-      }
-      const reachability: JourneyReachabilityProjection = {
-        reachableSteps: [],
-        unreachableSteps: [
-          { path: '/forward', fieldCodes: ['retained'] },
-          { path: '/stale', fieldCodes: ['stale'] },
-        ],
-      }
-      const evaluation = {
-        currentStepId: 'step-1',
-        steps: [],
-        cleardownRetentionRouteTemplatePaths: ['/forward'],
-      } as unknown as ReachabilityEvaluation
-
-      // Act
-      const result = evaluate(reachability, answers, evaluation)
-
-      // Assert
-      expect(result).toEqual(['stale'])
-      expect(answers.retained.current).toBe('keep')
-      expect(answers.stale.current).toBeUndefined()
     })
 
     it('should return an empty array when there are no answers', () => {

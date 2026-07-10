@@ -599,7 +599,6 @@ function createMountedNode(): MountedNode {
 }
 
 // NodeId is a branded template-literal type; 'compile_ast:2' literals satisfy it like createMountedNode.
-// cleardownRetentionRouteTemplatePaths is deliberately populated so the projector's drop of it is provable.
 function createReachabilityEvaluation(): ReachabilityEvaluation {
   return {
     currentStepId: 'compile_ast:2',
@@ -627,7 +626,6 @@ function createReachabilityEvaluation(): ReachabilityEvaluation {
     resumeActive: false,
     resumeOutcome: 'no-op',
     unreachableRedirect: 'entry',
-    cleardownRetentionRouteTemplatePaths: ['/journey/next'],
   }
 }
 

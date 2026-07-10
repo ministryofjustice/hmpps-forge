@@ -97,6 +97,13 @@ _Definitions, expressions, hooks, navigation, reachability_
   characters are now rejected before the regex runs, and the pattern is rewritten into a
   linear form. It also stops rejecting real addresses with long TLDs like
   `name@company.engineering` - the old pattern capped TLDs at 6 characters. ([#154])
+- **Cleardown no longer wipes answers more than one step ahead.** The reachability walk
+  deliberately stopped at the requested step, and cleardown compensated by retaining only
+  that step's direct forward edges - so revisiting an early step cleared valid answers
+  two or more steps ahead, even though the user could still walk back to them. The walk
+  now carries on through the current step, so every step a valid chain reaches keeps its
+  answers and cleardown clears only the steps no path reaches. The retention mechanism is
+  binned. ([#160])
 - **The missing step `title` error now says so.** The diagnostic claimed
   `expected: path property` - a copy-paste from the path check. ([#154])
 
@@ -140,6 +147,7 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
 [#152]: https://github.com/ministryofjustice/hmpps-forge/pull/152
 [#153]: https://github.com/ministryofjustice/hmpps-forge/pull/153
 [#154]: https://github.com/ministryofjustice/hmpps-forge/pull/154
+[#160]: https://github.com/ministryofjustice/hmpps-forge/pull/160
 
 ---
 

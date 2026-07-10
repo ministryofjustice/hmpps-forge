@@ -38,12 +38,7 @@ export const REQUEST_ANSWER_CLEARDOWN_WORK_HANDLER: WorkHandler<
       return { action: 'continue' }
     }
 
-    context.evaluation.fieldsToClear = evaluateAnswerCleardown(
-      context.evaluation.reachability,
-      context.domain.answers,
-      evaluation,
-      ctx.request.context.request.params,
-    )
+    context.evaluation.fieldsToClear = evaluateAnswerCleardown(context.evaluation.reachability, context.domain.answers)
 
     return { action: 'continue' }
   },

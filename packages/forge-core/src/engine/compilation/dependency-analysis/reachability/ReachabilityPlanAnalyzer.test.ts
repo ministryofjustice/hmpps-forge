@@ -207,7 +207,6 @@ describe('ReachabilityPlanAnalyzer', () => {
 
       // Assert
       expect(result.resumeWhen).toBe(resumeWhen)
-      expect(result.stateTable.resumeConfigured).toBe(true)
       expect(result.entries.map(entry => entry.stepId)).toEqual([firstStepNode.id, secondStepNode.id])
       expect(result.entries[0]).toMatchObject({
         stepId: firstStepNode.id,
