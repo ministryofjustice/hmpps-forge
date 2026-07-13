@@ -287,7 +287,7 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   that spreads effects and transformers into one map moves both at once
   (`functions: [effectRegistry, transformerRegistry]`). The old utilities still work but
   warn once per process via `process.emitWarning`, so Node's `--trace-deprecation` /
-  `--throw-deprecation` / `--no-deprecation` flags all apply. Removal comes in 0.4.0.
+  `--throw-deprecation` / `--no-deprecation` flags all apply.
   ([#132], [#135])
 
 ---
@@ -454,7 +454,7 @@ _Definitions, expressions, hooks, navigation, reachability_
   app.use(createExpressRouter(forge, { nunjucksEnv }))
   ```
 
-  The old pattern still works but logs a warning; removal comes in 0.4.0.
+  The old pattern still works but logs a warning.
 
 #### Fixes
 
