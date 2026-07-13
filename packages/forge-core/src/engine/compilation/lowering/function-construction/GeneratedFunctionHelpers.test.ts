@@ -95,6 +95,105 @@ describe('generatedFunctionHelpers', () => {
       expect(call).toThrow(TypeError)
       expect(evaluate).not.toHaveBeenCalled()
     })
+
+    it('should return undefined without invoking the implementation when a transformer value is absent', () => {
+      // Arrange
+      const evaluate = vi.fn()
+      const ctx = contextFor({ evaluate, functionType: FunctionType.TRANSFORMER })
+
+      // Act
+      const result = generatedFunctionHelpers.evaluateFunction(ctx, undefined, {}, 'toUpperCase', [undefined])
+
+      // Assert
+      expect(result).toBeUndefined()
+      expect(evaluate).not.toHaveBeenCalled()
+    })
+
+    it('should return false without invoking the implementation when a condition value is absent and no input schema is registered', () => {
+      // Arrange
+      const evaluate = vi.fn()
+      const ctx = contextFor({ evaluate, functionType: FunctionType.CONDITION })
+
+      // Act
+      const result = generatedFunctionHelpers.evaluateFunction(ctx, undefined, {}, 'isNotEmpty', [undefined])
+
+      // Assert
+      expect(result).toBe(false)
+      expect(evaluate).not.toHaveBeenCalled()
+    })
+
+    it('should throw TypeError when a transformer value is absent but its arguments fail the arguments schema', () => {
+      // Arrange
+      const evaluate = vi.fn()
+      const ctx = contextFor({
+        evaluate,
+        functionType: FunctionType.TRANSFORMER,
+        argumentsSchema: z.tuple([z.string()]),
+      })
+
+      // Act
+      const call = () => generatedFunctionHelpers.evaluateFunction(ctx, undefined, {}, 'padStart', [undefined, 42])
+
+      // Assert
+      expect(call).toThrow(TypeError)
+      expect(evaluate).not.toHaveBeenCalled()
+    })
+
+    it('should invoke the implementation for a generator whose first argument is undefined', () => {
+      // Arrange
+      const evaluate = vi.fn(() => 'generated')
+      const ctx = contextFor({ evaluate, functionType: FunctionType.GENERATOR })
+
+      // Act
+      const result = generatedFunctionHelpers.evaluateFunction(ctx, undefined, {}, 'uuid', [undefined])
+
+      // Assert
+      expect(result).toBe('generated')
+      expect(evaluate).toHaveBeenCalledWith(undefined)
+    })
+
+    it('should not consult the output schema when a transformer short-circuits on an absent value', () => {
+      // Arrange
+      const evaluate = vi.fn()
+      const ctx = contextFor({ evaluate, functionType: FunctionType.TRANSFORMER, outputSchema: z.string() })
+
+      // Act
+      const result = generatedFunctionHelpers.evaluateFunction(ctx, undefined, {}, 'toUpperCase', [undefined])
+
+      // Assert
+      expect(result).toBeUndefined()
+      expect(evaluate).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('evaluateFunctionAsync()', () => {
+    it('should return undefined without invoking the implementation when a transformer value is absent', async () => {
+      // Arrange
+      const evaluate = vi.fn()
+      const ctx = contextFor({ evaluate, functionType: FunctionType.TRANSFORMER })
+
+      // Act
+      const result = await generatedFunctionHelpers.evaluateFunctionAsync(ctx, undefined, {}, 'toUpperCase', [
+        undefined,
+      ])
+
+      // Assert
+      expect(result).toBeUndefined()
+      expect(evaluate).not.toHaveBeenCalled()
+    })
+
+    it('should return false without invoking the implementation when a condition value is absent', async () => {
+      // Arrange
+      const evaluate = vi.fn()
+      const ctx = contextFor({ evaluate, functionType: FunctionType.CONDITION })
+
+      // Act
+      const result = await generatedFunctionHelpers.evaluateFunctionAsync(ctx, undefined, {}, 'isNotEmpty', [undefined])
+
+      // Assert
+      expect(result).toBe(false)
+      expect(evaluate).not.toHaveBeenCalled()
+    })
   })
 
   describe('checkComponentInputValue()', () => {

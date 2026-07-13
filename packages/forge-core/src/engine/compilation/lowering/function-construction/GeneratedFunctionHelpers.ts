@@ -206,8 +206,10 @@ export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
     const evaluate = () => {
       const entry = ctx.conditions.get(functionName)
 
-      if (failsSoftAsFalse(entry, functionName, args)) {
-        return false
+      const shortCircuit = precheckShortCircuit(entry, functionName, args)
+
+      if (shortCircuit !== undefined) {
+        return shortCircuit.value
       }
 
       const result = entry.evaluate(...args)
@@ -224,8 +226,10 @@ export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
     const evaluate = async () => {
       const entry = ctx.conditions.get(functionName)
 
-      if (failsSoftAsFalse(entry, functionName, args)) {
-        return false
+      const shortCircuit = precheckShortCircuit(entry, functionName, args)
+
+      if (shortCircuit !== undefined) {
+        return shortCircuit.value
       }
 
       const result = await entry.evaluate(...args)
@@ -283,18 +287,35 @@ function validateOutput(entry: FunctionRegistryLookupEntry, functionName: string
   }
 }
 
+interface ShortCircuitOutcome {
+  value: unknown
+}
+
 /**
  * Checks a function call's args against its registry entry's schemas before
- * `evaluate` runs. Generators take no injected first parameter, so their full
- * `args` is config; every other kind injects `args[0]` (value or context) and
- * `argumentsSchema` only covers what follows it.
+ * `evaluate` runs, returning a short-circuit outcome (whose `value` replaces the
+ * call result) or `undefined` to let the call proceed. Generators take no
+ * injected first parameter, so their full `args` is config; every other kind
+ * injects `args[0]` (value or context) and `argumentsSchema` only covers what
+ * follows it. Bad config args are always an author mistake and throw, even when
+ * the injected value is absent.
  *
- * `inputSchema` only has a defined failure mode for conditions, which fail soft
- * — an unanswered/wrongly-shaped field is a normal "not valid yet" outcome, not
- * a bug. Every other schema failure (arguments on any kind, or a transformer's
- * value) is an author mistake and throws.
+ * An undefined injected value never reaches a condition or transformer: a
+ * condition can't hold (`false`) and a transformer has nothing to transform
+ * (`undefined`), regardless of any `inputSchema`. `null` is a real value and
+ * flows through. Effects still receive an undefined context, since it may be
+ * exactly what they act on.
+ *
+ * For a defined value, `inputSchema` only has a soft failure mode for
+ * conditions — a wrongly-shaped field is a normal "not valid yet" outcome, so
+ * they fail soft to `false`. Any other value schema failure is an author
+ * mistake and throws.
  */
-function failsSoftAsFalse(entry: FunctionRegistryLookupEntry, functionName: string, args: unknown[]): boolean {
+function precheckShortCircuit(
+  entry: FunctionRegistryLookupEntry,
+  functionName: string,
+  args: unknown[],
+): ShortCircuitOutcome | undefined {
   const hasInjectedValue = entry.functionType !== FunctionType.GENERATOR
   const configArgs = hasInjectedValue ? args.slice(1) : args
 
@@ -306,18 +327,32 @@ function failsSoftAsFalse(entry: FunctionRegistryLookupEntry, functionName: stri
     }
   }
 
-  if (entry.inputSchema === undefined || !hasInjectedValue) {
-    return false
+  if (!hasInjectedValue) {
+    return undefined
+  }
+
+  if (args[0] === undefined) {
+    if (entry.functionType === FunctionType.CONDITION) {
+      return { value: false }
+    }
+
+    if (entry.functionType === FunctionType.TRANSFORMER) {
+      return { value: undefined }
+    }
+  }
+
+  if (entry.inputSchema === undefined) {
+    return undefined
   }
 
   const parsedValue = entry.inputSchema.safeParse(args[0])
 
   if (parsedValue.success) {
-    return false
+    return undefined
   }
 
   if (entry.functionType === FunctionType.CONDITION) {
-    return true
+    return { value: false }
   }
 
   throw new TypeError(`${functionName}: value failed schema validation — ${parsedValue.error.message}`)

@@ -25,6 +25,7 @@ import {
   parsedValueRenderJourney,
   postBlockValueAfterDependentWhenJourney,
   nestedBlockValidationJourney,
+  transformerOverUnansweredJourney,
 } from './resolve.fixtures'
 
 function iteratorBlocks(blocks: RenderBlock[]): RenderBlock[] {
@@ -211,6 +212,24 @@ describe('resolve contracts', () => {
 
         expect(expanded[0].properties.label).toBe('Member 1 name')
         expect(expanded[1].properties.label).toBe('Member 2 name')
+      }
+    })
+
+    it('should resolve a transformer prop to undefined when the piped answer is unanswered', async () => {
+      // Arrange
+      const client = createClient(transformerOverUnansweredJourney)
+
+      // Act
+      const result = await client.get('/transformer-unanswered/info', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const insetBlocks = result.getBlocksByVariant('govukInsetText')
+
+        expect(insetBlocks).toHaveLength(1)
+        expect(insetBlocks[0].properties.text).toBeUndefined()
       }
     })
   })
