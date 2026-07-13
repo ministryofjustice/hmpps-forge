@@ -56,11 +56,13 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> {
     third?: (deps: TDeps) => (...args: any[]) => any,
   ): { name: string; options: RegistrationOptions; factory: (deps: TDeps) => (...args: any[]) => any } {
     if (typeof first === 'function') {
-      return { name: this.nextAnonymousName(), options: {}, factory: first }
+      return { name: first.name || this.nextAnonymousName(), options: {}, factory: first }
     }
 
     if (typeof first !== 'string') {
-      return { name: this.nextAnonymousName(), options: first, factory: second as any }
+      const factory = second as (deps: TDeps) => (...args: any[]) => any
+
+      return { name: factory.name || this.nextAnonymousName(), options: first, factory }
     }
 
     if (typeof second === 'function') {
@@ -71,6 +73,10 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> {
   }
 
   protected store(name: string, options: RegistrationOptions, factory: (deps: TDeps) => (...args: any[]) => any): void {
+    if (this.registrations.has(name)) {
+      throw new Error(`A ${this.functionType} is already registered under the name "${name}"`)
+    }
+
     this.registrations.set(name, {
       name,
       inputSchema: options.inputSchema,

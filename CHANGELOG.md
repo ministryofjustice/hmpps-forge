@@ -68,8 +68,6 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   covers `const isAdult = deps => ...` as well as named function declarations - with
   `__anon_N` kept for inline arrows. An explicit string name still wins. ([#167])
 
-#### Improvements
-
 - **Undefined short-circuits conditions and transformers.** Previously an unanswered
   field flowing into a registered function was only safe when the registration had an
   `inputSchema` - a schemaless condition or any transformer would throw on the undefined
@@ -295,7 +293,7 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   that spreads effects and transformers into one map moves both at once
   (`functions: [effectRegistry, transformerRegistry]`). The old utilities still work but
   warn once per process via `process.emitWarning`, so Node's `--trace-deprecation` /
-  `--throw-deprecation` / `--no-deprecation` flags all apply. Removal comes in 0.4.0.
+  `--throw-deprecation` / `--no-deprecation` flags all apply.
   ([#132], [#135])
 
 ---
@@ -462,7 +460,7 @@ _Definitions, expressions, hooks, navigation, reachability_
   app.use(createExpressRouter(forge, { nunjucksEnv }))
   ```
 
-  The old pattern still works but logs a warning; removal comes in 0.4.0.
+  The old pattern still works but logs a warning.
 
 #### Fixes
 
