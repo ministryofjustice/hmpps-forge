@@ -53,6 +53,34 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.3.2
+
+Registered functions now pick up their own names, and duplicate registrations fail
+loudly instead of silently replacing each other.
+
+### For function and component authors
+
+_Conditions, transformers, effects, generators, iterators, component packages_
+
+#### New
+
+- **Nameless registrations use the function's own name.** Previously
+  `registry.register(fn)` without an explicit name always registered under a generated
+  `__anon_N` name, so diagnostics and runtime errors reported `__anon_3` rather than the
+  function that failed. The factory's own `.name` is now used when it has one - which
+  covers `const isAdult = deps => ...` as well as named function declarations - with
+  `__anon_N` kept for inline arrows. An explicit string name still wins. ([#167])
+
+#### Breaking changes
+
+- **Duplicate names now throw at registration.** Registering two functions under the
+  same name used to silently replace the first. Only breaking if you relied on the
+  overwrite - rename one of the pair. ([#167])
+
+[#167]: https://github.com/ministryofjustice/hmpps-forge/pull/167
+
+---
+
 ## 0.3.1
 
 The devtools release. A Chrome DevTools panel for inspecting Forge requests, with
