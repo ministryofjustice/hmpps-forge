@@ -238,10 +238,28 @@ _Conditions, transformers, effects, generators, iterators, component packages_
 #### Deprecated
 
 - **`defineFunction`, the `define*Functions` utilities and `createFunctionScope`.**
-  Moved to a `deprecated` folder with `@deprecated` markers - they still work, but now
-  emit a once-per-process runtime warning via `process.emitWarning`, so Node's
-  `--trace-deprecation` / `--throw-deprecation` / `--no-deprecation` flags all apply.
-  Removal comes in a later release. Use the registry classes above instead.
+  Replaced by the registry classes above. The shapes-type-plus-implementations-map pair
+  becomes one `register()` call per function, which returns the expression handle
+  directly:
+
+  ```ts
+  // Before
+  const { effects: MyEffects, implementations } = defineEffectFunctions<Shapes, MyDeps>({ loadPlan })
+  
+  createForgePackage({ journey, functions: implementations })
+
+  // After
+  const registry = new EffectRegistry<MyDeps>()
+  const MyEffects = { loadPlan: registry.register('loadPlan', myEffectFn) }
+  
+  createForgePackage({ journey, functions: registry })
+  ```
+
+  Note `functions` takes an implementations map or registries, never a mix - a package
+  that spreads effects and transformers into one map moves both at once
+  (`functions: [effectRegistry, transformerRegistry]`). The old utilities still work but
+  warn once per process via `process.emitWarning`, so Node's `--trace-deprecation` /
+  `--throw-deprecation` / `--no-deprecation` flags all apply. Removal comes in 0.4.0.
   ([#132], [#135])
 
 ---
@@ -286,7 +304,9 @@ _Express adapter, Nunjucks renderer, test harness, framework integration_
   queue wait, so 15 render blocks in a ~7ms phase each reported ~6.6ms. ([#137])
 
 - **Deprecation warnings on the old setup pattern.** `getRouter()` (which previously
-  warned on every single call)
+  warned on every single call) and `ExpressFrameworkAdapter.configure()` now warn once
+  per process each, with `FORGE_DEP_*` codes so Node's `--trace-deprecation` /
+  `--no-deprecation` flags apply. ([#135])
 
 ---
 
@@ -393,8 +413,20 @@ _Definitions, expressions, hooks, navigation, reachability_
 #### Deprecated
 
 - **`new Forge({ frameworkAdapter: ExpressFrameworkAdapter.configure(...) })` and
-  `forge.getRouter()`.** This setup pattern still works but logs a warning and will be
-  removed in a future release. See `createExpressRouter` under **New** above.
+  `forge.getRouter()`.** The adapter options move onto the router call, and the
+  `as express.Router` cast goes:
+
+  ```ts
+  // Before
+  const forge = new Forge({ frameworkAdapter: ExpressFrameworkAdapter.configure({ nunjucksEnv }) })
+  app.use(forge.getRouter() as express.Router)
+
+  // After
+  const forge = new Forge()
+  app.use(createExpressRouter(forge, { nunjucksEnv }))
+  ```
+
+  The old pattern still works but logs a warning; removal comes in 0.4.0.
 
 #### Fixes
 
