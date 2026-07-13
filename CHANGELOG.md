@@ -53,6 +53,42 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.3.2
+
+### For function and component authors
+
+_Conditions, transformers, effects, generators, iterators, component packages_
+
+#### New
+
+- **Nameless registrations use the function's own name.** Previously
+  `registry.register(fn)` without an explicit name always registered under a generated
+  `__anon_N` name, so diagnostics and runtime errors reported `__anon_3` rather than the
+  function that failed. The factory's own `.name` is now used when it has one - which
+  covers `const isAdult = deps => ...` as well as named function declarations - with
+  `__anon_N` kept for inline arrows. An explicit string name still wins. ([#167])
+
+#### Improvements
+
+- **Undefined short-circuits conditions and transformers.** Previously an unanswered
+  field flowing into a registered function was only safe when the registration had an
+  `inputSchema` - a schemaless condition or any transformer would throw on the undefined
+  value and take the request down. Now the engine doesn't call the function at all:
+  conditions evaluate to `false`, transformers return `undefined`, and piped chains
+  propagate the absence. `null` and wrongly-shaped values behave as before, and bad
+  config arguments still throw. ([#168])
+
+#### Breaking changes
+
+- **Duplicate names now throw at registration.** Registering two functions under the
+  same name used to silently replace the first. Only breaking if you relied on the
+  overwrite - rename one of the pair. ([#167])
+
+[#167]: https://github.com/ministryofjustice/hmpps-forge/pull/167
+[#168]: https://github.com/ministryofjustice/hmpps-forge/pull/168
+
+---
+
 ## 0.3.1
 
 The devtools release. A Chrome DevTools panel for inspecting Forge requests, with
