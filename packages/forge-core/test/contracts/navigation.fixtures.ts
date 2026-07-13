@@ -16,7 +16,9 @@ import {
   validation,
   tieBreaker,
   defineEffectFunctions,
+  defineConditionFunctions,
   type EffectFunctionExpr,
+  type ConditionFunctionExpr,
   Answer,
   Data,
   Post,
@@ -38,12 +40,27 @@ const { effects: NavigationEffects, implementations: navigationEffectImplementat
     },
   })
 
+interface NavigationConditionShape {
+  HasContent: () => ConditionFunctionExpr
+}
+
+const { conditions: NavigationConditions, implementations: navigationConditionImplementations } =
+  defineConditionFunctions<NavigationConditionShape>({
+    // No inputSchema, and the body reads `value.length` with no guard, so it throws
+    // on undefined — the engine must short-circuit to false before it is called.
+    HasContent: () => (value: unknown) => (value as string).length > 0,
+  })
+
 export function createNavigationClient(journeyDef: ReturnType<typeof journey>) {
   return new ForgeTestHarness()
     .registerGlobalComponents(govukComponents)
     .registerPackage({
       journey: journeyDef,
-      functions: { ...effectImplementations, ...navigationEffectImplementations },
+      functions: {
+        ...effectImplementations,
+        ...navigationEffectImplementations,
+        ...navigationConditionImplementations,
+      },
     })
     .createClient()
 }
@@ -762,6 +779,33 @@ export const headerSurvivesRedirectJourney = journey({
       blocks: [GovUKInsetText({ text: 'Start' })],
     }),
     step({ code: 'target', path: '/target', title: 'Target', blocks: [] }),
+  ],
+})
+
+export const schemalessConditionUndefinedJourney = journey({
+  code: 'schemaless-cond',
+  path: '/schemaless-cond',
+  title: 'Schemaless Condition Undefined',
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [GovUKTextInput({ code: 'name', label: 'Name' }), GovUKButton({ text: 'Continue' })],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            next: [
+              redirect({ when: Answer('unanswered').match(NavigationConditions.HasContent()), goto: 'blocked' }),
+              redirect({ goto: 'done' }),
+            ],
+          },
+        }),
+      ],
+    }),
+    step({ code: 'blocked', path: '/blocked', title: 'Blocked', blocks: [] }),
+    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
   ],
 })
 

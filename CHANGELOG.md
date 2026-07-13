@@ -55,9 +55,6 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ## 0.3.2
 
-Registered functions now pick up their own names, and duplicate registrations fail
-loudly instead of silently replacing each other.
-
 ### For function and component authors
 
 _Conditions, transformers, effects, generators, iterators, component packages_
@@ -71,6 +68,14 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   covers `const isAdult = deps => ...` as well as named function declarations - with
   `__anon_N` kept for inline arrows. An explicit string name still wins. ([#167])
 
+- **Undefined short-circuits conditions and transformers.** Previously an unanswered
+  field flowing into a registered function was only safe when the registration had an
+  `inputSchema` - a schemaless condition or any transformer would throw on the undefined
+  value and take the request down. Now the engine doesn't call the function at all:
+  conditions evaluate to `false`, transformers return `undefined`, and piped chains
+  propagate the absence. `null` and wrongly-shaped values behave as before, and bad
+  config arguments still throw. ([#168])
+
 #### Breaking changes
 
 - **Duplicate names now throw at registration.** Registering two functions under the
@@ -78,6 +83,7 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   overwrite - rename one of the pair. ([#167])
 
 [#167]: https://github.com/ministryofjustice/hmpps-forge/pull/167
+[#168]: https://github.com/ministryofjustice/hmpps-forge/pull/168
 
 ---
 

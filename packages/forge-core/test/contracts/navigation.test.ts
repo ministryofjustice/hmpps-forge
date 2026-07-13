@@ -25,6 +25,7 @@ import {
   unreachableRedirectToEntryJourney,
   headerSurvivesRedirectJourney,
   dynamicGotoFallbackJourney,
+  schemalessConditionUndefinedJourney,
   createNavigationClient,
 } from './navigation.fixtures'
 
@@ -149,6 +150,24 @@ describe('navigation contracts', () => {
 
       if (result.type === 'redirect') {
         expect(result.url).toBe('/cascade/default')
+      }
+    })
+
+    it('should treat a schemaless custom condition as false when the matched answer is unanswered', async () => {
+      // Arrange
+      const client = createNavigationClient(schemalessConditionUndefinedJourney)
+
+      // Act
+      const result = await client.post('/schemaless-cond/form', {
+        session: {},
+        body: { name: 'Ada' },
+      })
+
+      // Assert
+      expect(result.type).toBe('redirect')
+
+      if (result.type === 'redirect') {
+        expect(result.url).toBe('/schemaless-cond/done')
       }
     })
   })
