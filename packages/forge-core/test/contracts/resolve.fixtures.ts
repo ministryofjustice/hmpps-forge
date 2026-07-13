@@ -681,6 +681,30 @@ export const postBlockValueAfterDependentWhenJourney = journey({
   ],
 })
 
+export const transformerOverUnansweredJourney = journey({
+  code: 'transformer-unanswered',
+  path: '/transformer-unanswered',
+  title: 'Transformer Over Unanswered',
+  steps: [
+    step({
+      path: '/info',
+      title: 'Info',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKInsetText({ text: Answer('missingField').pipe(Transformer.String.ToUpperCase()) }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: { next: [redirect({ goto: 'done' })] },
+        }),
+      ],
+    }),
+    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})
+
 export const nestedBlockValidationJourney = journey({
   code: 'nested-valid',
   path: '/nested-valid',
