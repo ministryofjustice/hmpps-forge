@@ -527,6 +527,44 @@ export const stepViewJourney = journey({
   ],
 })
 
+export const inheritedViewJourney = journey({
+  code: 'inherited-view',
+  path: '/inherited-view',
+  title: 'Inherited View',
+  data: { resolvedLabel: 'resolved' },
+  view: {
+    template: 'root-layout',
+    locals: { rootOnly: 'root', shared: 'root' },
+  },
+  children: [
+    journey({
+      code: 'inherited-view-child',
+      path: '/child',
+      title: 'Inherited View Child',
+      view: {
+        template: 'child-layout',
+        locals: { childOnly: 'child', shared: 'child' },
+      },
+      steps: [
+        step({
+          path: '/step-view',
+          title: 'Step View',
+          view: {
+            template: 'step-layout',
+            locals: { stepOnly: 'step', shared: 'step', resolvedLabel: Data('resolvedLabel') },
+          },
+          reachability: { entryWhen: true },
+        }),
+        step({
+          path: '/ancestor-view',
+          title: 'Ancestor View',
+          reachability: { entryWhen: true },
+        }),
+      ],
+    }),
+  ],
+})
+
 export const blockSkipPropsJourney = journey({
   code: 'block-skip',
   path: '/block-skip',

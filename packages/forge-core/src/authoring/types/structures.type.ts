@@ -6,13 +6,14 @@ import type { BlockDefinition, ResolvableString } from '../../components/types/s
 
 /**
  * View configuration for journeys and steps.
- * Controls rendering behavior including template selection and template locals.
+ * Forge combines journey configurations from root to leaf, then applies the
+ * current step configuration before passing the effective view to the renderer.
  */
 export interface ViewConfig {
-  /** Template to use for rendering (inherits from parent journey if not specified) */
+  /** Template identifier. The nearest journey or current step declaration wins. */
   template?: string
 
-  /** Arbitrary properties to pass to the template as locals */
+  /** Template locals merged by key from the root journey to the current step. */
   locals?: Record<string, unknown>
 }
 

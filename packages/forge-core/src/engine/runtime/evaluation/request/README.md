@@ -34,6 +34,7 @@ No compilation, tree walking etc happens at runtime. Request evaluation calls co
 - Convert phase outputs into `RequestPipelineResult`.
 - Store mutable request signals for later phases.
 - Build compiled-function contexts for access, answer preparation, reachability, route metadata, validation, submit, and resolve.
+- Resolve inherited journey and step view configuration into the effective step view.
 - Project work traces into request trace phases.
 - Preserve partial trace data when request work fails.
 
@@ -217,6 +218,8 @@ flowchart TD
   It needs the reachability projection and current answers from the same request point.
 - `request.resolve` groups field failures by render block ID.
   Field code is answer identity and metadata. It is not render block identity.
+- `request.resolve` combines evaluated journey views from root to leaf, then applies the current step view.
+  The nearest template wins and locals merge by key, with nearer values replacing ancestor values.
 - `request.resolve` and `request.render` split terminal rendering.
   Without a renderer, resolve returns `RenderContext`; with a renderer, resolve stores it and render produces output.
 - Every request phase records a context snapshot when it completes, not just after the full request.
@@ -266,6 +269,8 @@ flowchart TD
 - To change validation visibility on `POST`, start in `RequestSubmitWorkHandler` and the submit validation phase.
 - To change how validation errors attach to rendered fields, start in `RequestResolveWorkHandler`.
   Keep failures keyed by block ID.
+- To change inherited view resolution, start in `RequestResolveWorkHandler`.
+  Keep ancestor views unchanged and expose the effective result through `RenderContext.step.view`.
 - To change tracing, start in `RequestPipelineTraceProjector` and `requestPhase.ts`.
   Do not put trace projection rules in individual phase handlers unless the data is phase-specific.
 
