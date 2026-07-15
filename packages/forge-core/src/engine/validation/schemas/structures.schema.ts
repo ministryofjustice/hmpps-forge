@@ -220,7 +220,7 @@ const TieBreakerSchema = z.looseObject({
 
 const StepReachabilitySchema = z
   .object({
-    entryWhen: z.union([z.literal(true), PredicateExprSchema]).optional(),
+    entryWhen: ResolvableBooleanSchema.optional(),
     tieBreakers: z.array(TieBreakerSchema).optional(),
   })
   .optional()

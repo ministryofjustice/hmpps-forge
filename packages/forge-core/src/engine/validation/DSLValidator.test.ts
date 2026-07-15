@@ -233,6 +233,131 @@ describe('FormValidator', () => {
       expect(() => DSLValidator.validateSchema(invalidJourney)).toThrow(AggregateError)
     })
 
+    it('should accept step entryWhen when set to true', () => {
+      // Arrange
+      const validJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [],
+            reachability: {
+              entryWhen: true,
+            },
+          } as StepDefinition,
+        ],
+      } satisfies JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
+    })
+
+    it('should accept step entryWhen when set to false', () => {
+      // Arrange
+      const validJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [],
+            reachability: {
+              entryWhen: false,
+            },
+          } as StepDefinition,
+        ],
+      } satisfies JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
+    })
+
+    it('should accept step entryWhen when set to a predicate expression', () => {
+      // Arrange
+      const validJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [],
+            reachability: {
+              entryWhen: {
+                type: PredicateType.TEST,
+                negate: false,
+                subject: { type: ExpressionType.REFERENCE, path: ['session', 'submitted'] },
+                condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['true'] },
+              },
+            },
+          } as StepDefinition,
+        ],
+      } satisfies JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
+    })
+
+    it('should accept step entryWhen when set to a non-predicate expression', () => {
+      // Arrange
+      const validJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [],
+            reachability: {
+              entryWhen: { type: ExpressionType.REFERENCE, path: ['data', 'entryActive'] },
+            },
+          } as StepDefinition,
+        ],
+      } satisfies JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
+    })
+
+    it('should reject step entryWhen when set to an invalid value', () => {
+      // Arrange
+      const invalidJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [],
+            reachability: {
+              entryWhen: 'always',
+            },
+          },
+        ],
+      } as unknown as JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(invalidJourney)).toThrow(AggregateError)
+    })
+
     it('should validate static data with ordinary nested type fields', () => {
       // Arrange
       const validJourney = {

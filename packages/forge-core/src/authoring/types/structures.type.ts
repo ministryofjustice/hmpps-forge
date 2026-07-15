@@ -134,15 +134,16 @@ export interface StepReachability {
    * Declares this step as an entry point for the reachability walk.
    *
    * - `true` — unconditional entry point (always seeded as reachable).
-   * - A predicate expression — conditional entry point, seeded only when the
-   *   condition evaluates to true. Active conditional entries take priority
-   *   in the resume frontier over normal blockers.
+   * - A dynamic expression — conditional entry point, seeded only when the
+   *   expression resolves to a truthy value. Active conditional entries take
+   *   priority in the resume frontier over normal blockers.
+   * - `false` — behaves the same as omitting it (not an entry point).
    *
    * @example
    * reachability: { entryWhen: true }
    * reachability: { entryWhen: Session('submitted').match(Condition.Equals(true)) }
    */
-  entryWhen?: true | PredicateExpr | PredicateTestExprBuilder
+  entryWhen?: ResolvableBoolean
 
   /**
    * Prioritised tie-breaker rules consulted whenever this step is one of
