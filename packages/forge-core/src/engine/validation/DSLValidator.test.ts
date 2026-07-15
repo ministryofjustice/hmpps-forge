@@ -177,6 +177,62 @@ describe('FormValidator', () => {
       expect(() => DSLValidator.validateSchema(invalidJourney)).toThrow(AggregateError)
     })
 
+    it('should accept block visibleWhen when set to a non-predicate expression', () => {
+      // Arrange
+      const validJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.BASIC,
+                variant: 'GovUKPanel',
+                visibleWhen: { type: ExpressionType.REFERENCE, path: ['data', 'showBlock'] },
+              },
+            ],
+          } as StepDefinition,
+        ],
+      } satisfies JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
+    })
+
+    it('should reject block visibleWhen when set to an invalid value', () => {
+      // Arrange
+      const invalidJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.BASIC,
+                variant: 'GovUKPanel',
+                visibleWhen: 'yes',
+              },
+            ],
+          },
+        ],
+      } as unknown as JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(invalidJourney)).toThrow(AggregateError)
+    })
+
     it('should validate static data with ordinary nested type fields', () => {
       // Arrange
       const validJourney = {

@@ -130,7 +130,7 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
   const baseBlock = z.looseObject({
     type: z.literal(StructureType.BLOCK),
     variant: z.string(),
-    visibleWhen: z.union([z.boolean(), PredicateExprSchema]).optional(),
+    visibleWhen: ResolvableBooleanSchema.optional(),
     metadata: z.record(z.string(), z.any()).optional(),
   })
 
