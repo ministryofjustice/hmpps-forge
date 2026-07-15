@@ -21,6 +21,7 @@ Render handles those nested blocks before calling `renderer.renderBlock()` for t
 The resolved block data is not enough because framework adapters need renderer output.
 For example, an in-process renderer may return HTML strings, while another renderer could return another output shape.
 This phase treats renderer output as `unknown` and only controls order and nesting.
+The `RenderContext` already contains the effective inherited view at `step.view`; renderers do not need to resolve journey view precedence.
 
 ## Responsibilities
 
@@ -107,6 +108,8 @@ flowchart TD
   Runtime render should only call `renderBlock()` and `assemblePage()`.
 - Request render owns the phase split.
   This folder assumes `renderContext` already exists.
+- Request resolve owns view inheritance.
+  Renderers consume `context.step.view` without combining the individual evaluated views retained on `context.ancestors`.
 
 ## Quirks
 
