@@ -37,7 +37,7 @@ export interface RouteTreeNode {
 export type RouteTree = RouteTreeNode[]
 
 /**
- * Journey ancestor in the render context.
+ * Journey ancestor in the render context, including its evaluated view configuration.
  */
 export interface JourneyAncestor {
   code: string
@@ -64,6 +64,7 @@ export interface RenderContext {
   step: {
     path: string
     title?: string
+    /** Effective view inherited from journey ancestors and completed by the current step. */
     view?: ViewConfig
     backlink?: string
     metadata?: Record<string, unknown>
