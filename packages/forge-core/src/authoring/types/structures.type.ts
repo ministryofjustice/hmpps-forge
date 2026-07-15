@@ -2,7 +2,7 @@ import { IterateExpr, ResolvableValue, SubmitHook, AccessHook, PredicateExpr } f
 import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
 import { ExpressionType, StructureType } from './enums'
 import type { ChainableIterable } from '../builders/types'
-import type { BlockDefinition, ResolvableString } from '../../components/types/structures.type'
+import type { BlockDefinition, ResolvableString, ResolvableBoolean } from '../../components/types/structures.type'
 
 /**
  * View configuration for journeys and steps.
@@ -89,14 +89,16 @@ export interface JourneyReachability {
    * Controls when Forge's resume behaviour is active for this journey.
    *
    * - `true` — always resume (every request redirects to the resume frontier).
-   * - A predicate expression — resume only when the condition evaluates to true.
+   * - A dynamic expression — resume only when the expression resolves to a
+   *   truthy value; a falsy result behaves the same as `false`.
+   * - `false` — behaves the same as omitting it (resume is never active).
    * - Omitted — resume is never active; users access any reachable step freely.
    *
    * @example
    * reachability: { resumeWhen: true }
    * reachability: { resumeWhen: Query('resume').match(Condition.Equals('true')) }
    */
-  resumeWhen?: true | PredicateExpr | PredicateTestExprBuilder
+  resumeWhen?: ResolvableBoolean
 
   /**
    * Controls where Forge redirects when a requested step is not reachable.

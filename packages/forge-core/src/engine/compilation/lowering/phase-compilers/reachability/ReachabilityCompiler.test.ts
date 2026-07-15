@@ -720,6 +720,34 @@ describe('ReachabilityCompiler', () => {
       // Assert
       expect(result.resumeActive).toBe(false)
     })
+
+    it('should set resumeActive true when a non-predicate expression resolves truthy', async () => {
+      // Arrange
+      const plan = createPlan({ resumeWhen: createReference(['data', 'resumeActive']) })
+
+      const ctx = createCtx({ data: { resumeActive: true } })
+
+      // Act
+      const fn = compiler.compileFacts(plan, [])
+      const result = await fn!(ctx)
+
+      // Assert
+      expect(result.resumeActive).toBe(true)
+    })
+
+    it('should set resumeActive false when a non-predicate expression resolves falsy', async () => {
+      // Arrange
+      const plan = createPlan({ resumeWhen: createReference(['data', 'resumeActive']) })
+
+      const ctx = createCtx({ data: { resumeActive: false } })
+
+      // Act
+      const fn = compiler.compileFacts(plan, [])
+      const result = await fn!(ctx)
+
+      // Assert
+      expect(result.resumeActive).toBe(false)
+    })
   })
 
   describe('error handling', () => {

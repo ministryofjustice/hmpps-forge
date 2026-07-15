@@ -65,12 +65,25 @@ const StaticDataValueSchema: z.ZodType<unknown> = z.lazy(() =>
 
 const StaticDataSchema = z.record(z.string(), StaticDataValueSchema)
 
-// TODO: Probably should add other resolvable schemas, such as ResolvableBoolean.
+// TODO: Probably should add the remaining resolvable schemas, such as ResolvableNumber/Array/Object.
 /**
  * @see {@link ResolvableString}
  */
 export const ResolvableStringSchema = z.union([
   z.string(),
+  ReferenceExprSchema,
+  GeneratorFunctionExprSchema,
+  PipelineExprSchema,
+  ConditionalExprSchema,
+  MatchExprSchema,
+])
+
+/**
+ * @see {@link ResolvableBoolean}
+ */
+export const ResolvableBooleanSchema = z.union([
+  z.boolean(),
+  PredicateExprSchema,
   ReferenceExprSchema,
   GeneratorFunctionExprSchema,
   PipelineExprSchema,
@@ -219,7 +232,7 @@ const StepEntryValidationSchema = z.object({
 
 const JourneyReachabilitySchema = z
   .object({
-    resumeWhen: z.union([z.literal(true), PredicateExprSchema]).optional(),
+    resumeWhen: ResolvableBooleanSchema.optional(),
     unreachableRedirect: z.enum(['entry', 'frontier']).optional(),
     disableReachabilityChecks: z.boolean().optional(),
   })
