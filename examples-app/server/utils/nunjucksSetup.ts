@@ -3,6 +3,7 @@ import nunjucks from 'nunjucks'
 import express from 'express'
 import fs from 'fs'
 import mojFilters from '@ministryofjustice/frontend/moj/filters/all'
+import { registerNunjucksGlobals } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { initialiseName } from './utils'
 import config from '../config'
 import logger from '../logger'
@@ -80,34 +81,7 @@ export default function nunjucksSetup(app: express.Express): nunjucks.Environmen
     return groups
   })
 
-  interface ValidationError {
-    message: string
-    blockCode?: string
-  }
-
-  njkEnv.addGlobal(
-    'toErrorList',
-    (fieldErrors?: ValidationError[], domainErrors?: ValidationError[]) => {
-      const allErrors = [...(domainErrors ?? []), ...(fieldErrors ?? [])]
-      const seen = new Set<string>()
-
-      return allErrors.flatMap((error): { text: string; href?: string }[] => {
-        const key = error.blockCode ?? error.message
-
-        if (seen.has(key)) {
-          return []
-        }
-
-        seen.add(key)
-
-        return [
-          error.blockCode
-            ? { text: error.message, href: `#${error.blockCode}` }
-            : { text: error.message },
-        ]
-      })
-    },
-  )
+  registerNunjucksGlobals(njkEnv)
 
   return njkEnv
 }
