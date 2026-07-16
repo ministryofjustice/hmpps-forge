@@ -1,3 +1,4 @@
+// eslint-disable-next-line max-classes-per-file
 import { createMockContext } from '../../../compilation/ast/testing-helpers/runtimeContextTestHelpers'
 import { EffectFunctionContext } from './EffectFunctionContext'
 
@@ -730,6 +731,31 @@ describe('EffectFunctionContext', () => {
     })
   })
 
+  describe('getSession()', () => {
+    it('should return the live session object', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockRequest: { session: { userId: 'abc' } },
+      })
+      const effectContext = new EffectFunctionContext<
+        Record<string, unknown>,
+        Record<string, unknown>,
+        { userId: string; visited?: boolean }
+      >(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const session = effectContext.getSession()
+
+      // Assert
+      expect(() => {
+        if (session !== undefined) {
+          session.visited = true
+        }
+      }).not.toThrow()
+      expect((mockContext.context.request.session as Record<string, unknown>).visited).toBe(true)
+    })
+  })
+
   describe('getState()', () => {
     it('should throw TypeError when mutating an object state value', () => {
       // Arrange
@@ -776,6 +802,100 @@ describe('EffectFunctionContext', () => {
 
       // Assert
       expect(first).toBe(second)
+    })
+
+    it('should return Map state values unwrapped', () => {
+      // Arrange
+      const theMap = new Map<string, string>([['a', '1']])
+      const mockContext = createMockContext({
+        mockRequest: { state: { theMap } },
+      })
+      const effectContext = new EffectFunctionContext<
+        Record<string, unknown>,
+        Record<string, unknown>,
+        unknown,
+        { theMap: Map<string, string> }
+      >(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const result = effectContext.getState('theMap')
+
+      // Assert
+      expect(result).toBe(theMap)
+      expect(() => result?.set('k', 'v')).not.toThrow()
+    })
+
+    it('should return Set state values unwrapped', () => {
+      // Arrange
+      const theSet = new Set<string>(['a'])
+      const mockContext = createMockContext({
+        mockRequest: { state: { theSet } },
+      })
+      const effectContext = new EffectFunctionContext<
+        Record<string, unknown>,
+        Record<string, unknown>,
+        unknown,
+        { theSet: Set<string> }
+      >(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const result = effectContext.getState('theSet')
+
+      // Assert
+      expect(result).toBe(theSet)
+      expect(() => result?.add('b')).not.toThrow()
+    })
+
+    it('should return Date state values unwrapped', () => {
+      // Arrange
+      const theDate = new Date('2026-07-16T00:00:00.000Z')
+      const mockContext = createMockContext({
+        mockRequest: { state: { theDate } },
+      })
+      const effectContext = new EffectFunctionContext<
+        Record<string, unknown>,
+        Record<string, unknown>,
+        unknown,
+        { theDate: Date }
+      >(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const result = effectContext.getState('theDate')
+
+      // Assert
+      expect(result).toBe(theDate)
+      expect(result?.getTime()).toBe(theDate.getTime())
+    })
+
+    it('should return class instances unwrapped', () => {
+      // Arrange
+      class Counter {
+        constructor(private count: number) {}
+
+        increment(): number {
+          this.count += 1
+
+          return this.count
+        }
+      }
+
+      const counter = new Counter(1)
+      const mockContext = createMockContext({
+        mockRequest: { state: { counter } },
+      })
+      const effectContext = new EffectFunctionContext<
+        Record<string, unknown>,
+        Record<string, unknown>,
+        unknown,
+        { counter: Counter }
+      >(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const result = effectContext.getState('counter')
+
+      // Assert
+      expect(result).toBe(counter)
+      expect(result?.increment()).toBe(2)
     })
   })
 
