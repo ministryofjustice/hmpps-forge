@@ -137,6 +137,292 @@ describe('EffectFunctionContext', () => {
       expect(firstName).toBe('Ada')
       expect(score).toBe(42)
     })
+
+    it('should throw TypeError when assigning a top-level property on an object answer', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockAnswers: { profile: { name: 'Ada' } },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const profile = effectContext.getAnswer<{ name: string }>('profile')
+
+      // Assert
+      expect(() => {
+        profile.name = 'Grace'
+      }).toThrow(TypeError)
+      expect(() => {
+        profile.name = 'Grace'
+      }).toThrow(/Cannot set property 'name'/)
+      expect(() => {
+        profile.name = 'Grace'
+      }).toThrow(/read-only/)
+    })
+
+    it('should throw TypeError when assigning a nested property on an object answer', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockAnswers: { profile: { nested: { value: 'initial' } } },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const profile = effectContext.getAnswer<{ nested: { value: string } }>('profile')
+
+      // Assert
+      expect(() => {
+        profile.nested.value = 'changed'
+      }).toThrow(TypeError)
+      expect(() => {
+        profile.nested.value = 'changed'
+      }).toThrow(/Cannot set property 'value'/)
+    })
+
+    it('should throw TypeError when pushing to an array answer', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockAnswers: { tags: ['a', 'b'] },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const tags = effectContext.getAnswer<string[]>('tags')
+
+      // Assert
+      expect(() => tags.push('c')).toThrow(TypeError)
+      expect(() => tags.push('c')).toThrow(/read-only/)
+    })
+
+    it('should throw TypeError when splicing an array answer', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockAnswers: { tags: ['a', 'b'] },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const tags = effectContext.getAnswer<string[]>('tags')
+
+      // Assert
+      expect(() => tags.splice(0, 1)).toThrow(TypeError)
+      expect(() => tags.splice(0, 1)).toThrow(/read-only/)
+    })
+
+    it('should throw TypeError when deleting a property from an object answer', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockAnswers: { profile: { name: 'Ada' } },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const profile = effectContext.getAnswer<{ name?: string }>('profile')
+
+      // Assert
+      expect(() => {
+        delete profile.name
+      }).toThrow(TypeError)
+      expect(() => {
+        delete profile.name
+      }).toThrow(/Cannot delete property 'name'/)
+    })
+
+    it('should return the same proxy when called twice for the same answer', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockAnswers: { profile: { name: 'Ada' } },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const first = effectContext.getAnswer('profile')
+      const second = effectContext.getAnswer('profile')
+
+      // Assert
+      expect(first).toBe(second)
+    })
+
+    it('should return primitive answers unchanged', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockAnswers: { firstName: 'Ada', score: 42 },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const firstName = effectContext.getAnswer('firstName')
+      const score = effectContext.getAnswer('score')
+
+      // Assert
+      expect(firstName).toBe('Ada')
+      expect(score).toBe(42)
+    })
+  })
+
+  describe('getAllAnswers()', () => {
+    it('should return current values for all answers', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockAnswers: { firstName: 'Ada', profile: { name: 'Ada' } },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const answers = effectContext.getAllAnswers()
+
+      // Assert
+      expect(answers).toEqual({ firstName: 'Ada', profile: { name: 'Ada' } })
+    })
+
+    it('should throw TypeError when setting a key on the returned object', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockAnswers: { firstName: 'Ada' },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const answers = effectContext.getAllAnswers()
+
+      // Assert
+      expect(() => {
+        answers.lastName = 'Lovelace'
+      }).toThrow(TypeError)
+      expect(() => {
+        answers.lastName = 'Lovelace'
+      }).toThrow(/Cannot set property 'lastName'/)
+    })
+
+    it('should throw TypeError when mutating a nested answer value', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockAnswers: { profile: { name: 'Ada' } },
+      })
+      const effectContext = new EffectFunctionContext<Record<string, unknown>, { profile: { name: string } }>(
+        mockContext.context,
+        mockContext.response,
+        'access',
+      )
+
+      // Act
+      const answers = effectContext.getAllAnswers()
+
+      // Assert
+      expect(() => {
+        answers.profile.name = 'Grace'
+      }).toThrow(TypeError)
+      expect(() => {
+        answers.profile.name = 'Grace'
+      }).toThrow(/read-only/)
+    })
+
+    it('should return the same nested proxy as getAnswer() for the same key', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockAnswers: { profile: { name: 'Ada' } },
+      })
+      const effectContext = new EffectFunctionContext<Record<string, unknown>, { profile: { name: string } }>(
+        mockContext.context,
+        mockContext.response,
+        'access',
+      )
+
+      // Act
+      const fromAll = effectContext.getAllAnswers().profile
+      const fromSingle = effectContext.getAnswer('profile')
+
+      // Assert
+      expect(fromAll).toBe(fromSingle)
+    })
+  })
+
+  describe('getAnswerHistory()', () => {
+    it('should throw TypeError when pushing to the mutations array', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockAnswers: { firstName: 'Ada' },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const history = effectContext.getAnswerHistory('firstName')
+
+      // Assert
+      expect(() => history?.mutations.push({ value: 'Grace', source: 'submit' })).toThrow(TypeError)
+      expect(() => history?.mutations.push({ value: 'Grace', source: 'submit' })).toThrow(/read-only/)
+    })
+
+    it('should throw TypeError when overwriting current', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockAnswers: { firstName: 'Ada' },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const history = effectContext.getAnswerHistory('firstName')
+
+      // Assert
+      expect(() => {
+        if (history !== undefined) {
+          history.current = 'Grace'
+        }
+      }).toThrow(TypeError)
+      expect(() => {
+        if (history !== undefined) {
+          history.current = 'Grace'
+        }
+      }).toThrow(/Cannot set property 'current'/)
+    })
+
+    it('should return undefined when the answer does not exist', () => {
+      // Arrange
+      const mockContext = createMockContext()
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const history = effectContext.getAnswerHistory('missing')
+
+      // Assert
+      expect(history).toBeUndefined()
+    })
+  })
+
+  describe('getAllAnswerHistories()', () => {
+    it('should throw TypeError when adding an answer key to the returned record', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockAnswers: { firstName: 'Ada' },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const histories = effectContext.getAllAnswerHistories()
+
+      // Assert
+      expect(() => {
+        histories.lastName = { current: 'Lovelace', mutations: [] }
+      }).toThrow(TypeError)
+      expect(() => {
+        histories.lastName = { current: 'Lovelace', mutations: [] }
+      }).toThrow(/Cannot set property 'lastName'/)
+    })
+
+    it('should return the same proxy when called twice', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockAnswers: { firstName: 'Ada' },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const first = effectContext.getAllAnswerHistories()
+      const second = effectContext.getAllAnswerHistories()
+
+      // Assert
+      expect(first).toBe(second)
+    })
   })
 
   describe('getData()', () => {
