@@ -59,6 +59,16 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 _Definitions, expressions, hooks, navigation, reachability_
 
+#### Notes
+
+- **`getErrorSummaryList` is now exported from `govuk-components`.** The
+  `toErrorList` Nunjucks global that converts Forge validation errors into
+  `govukErrorSummary`'s `{ text, href }` shape was previously something every app
+  had to write inline. It now ships as `registerForgeGovUKComponentsGlobals(nunjucksEnv)`,
+  which registers `getErrorSummaryList` - a global that reads the errors from the
+  template context automatically, so templates just call `getErrorSummaryList()` with
+  no arguments.
+
 #### Improvements
 
 - **Boolean conditions accept any dynamic expression.** `resumeWhen`, `entryWhen`,
