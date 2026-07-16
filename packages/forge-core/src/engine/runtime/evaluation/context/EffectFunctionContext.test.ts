@@ -576,6 +576,81 @@ describe('EffectFunctionContext', () => {
     })
   })
 
+  describe('getQueryParam()', () => {
+    it('should throw TypeError when pushing to a multi-value query param', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockRequest: {
+          query: { filter: ['active', 'pending'] },
+        },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const filter = effectContext.getQueryParam('filter')
+
+      // Assert
+      expect(() => (filter as string[]).push('archived')).toThrow(TypeError)
+      expect(() => (filter as string[]).push('archived')).toThrow(/read-only/)
+    })
+
+    it('should return string values unchanged', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockRequest: {
+          query: { page: '1' },
+        },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const page = effectContext.getQueryParam('page')
+
+      // Assert
+      expect(page).toBe('1')
+    })
+  })
+
+  describe('getAllQueryParams()', () => {
+    it('should throw TypeError when setting a key on the returned object', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockRequest: {
+          query: { page: '1' },
+        },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const query = effectContext.getAllQueryParams()
+
+      // Assert
+      expect(() => {
+        query.filter = 'active'
+      }).toThrow(TypeError)
+      expect(() => {
+        query.filter = 'active'
+      }).toThrow(/Cannot set property 'filter'/)
+    })
+
+    it('should throw TypeError when pushing to an array value', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockRequest: {
+          query: { filter: ['active', 'pending'] },
+        },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const query = effectContext.getAllQueryParams()
+
+      // Assert
+      expect(() => (query.filter as string[]).push('archived')).toThrow(TypeError)
+      expect(() => (query.filter as string[]).push('archived')).toThrow(/read-only/)
+    })
+  })
+
   describe('getPostData()', () => {
     it('should support call-level generic types for keyed post data', () => {
       // Arrange
@@ -592,6 +667,23 @@ describe('EffectFunctionContext', () => {
       // Assert
       expectTypeOf(action).toEqualTypeOf<string | undefined>()
       expect(action).toBe('remove_1')
+    })
+
+    it('should throw TypeError when pushing to an array post value', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockRequest: {
+          post: { selected: ['a', 'b'] },
+        },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const selected = effectContext.getPostData<string[]>('selected')
+
+      // Assert
+      expect(() => selected?.push('c')).toThrow(TypeError)
+      expect(() => selected?.push('c')).toThrow(/read-only/)
     })
   })
 
@@ -614,6 +706,99 @@ describe('EffectFunctionContext', () => {
       // Assert
       expectTypeOf(postData).toEqualTypeOf<{ action: string; selected: string[] }>()
       expect(postData).toEqual({ action: 'remove_1', selected: ['a', 'b'] })
+    })
+
+    it('should throw TypeError when setting a key on the returned object', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockRequest: {
+          post: { action: 'remove_1' },
+        },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const postData = effectContext.getAllPostData()
+
+      // Assert
+      expect(() => {
+        postData.extra = 'value'
+      }).toThrow(TypeError)
+      expect(() => {
+        postData.extra = 'value'
+      }).toThrow(/Cannot set property 'extra'/)
+    })
+  })
+
+  describe('getState()', () => {
+    it('should throw TypeError when mutating an object state value', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockRequest: {
+          state: { profile: { name: 'Ada' } },
+        },
+      })
+      const effectContext = new EffectFunctionContext<
+        Record<string, unknown>,
+        Record<string, unknown>,
+        unknown,
+        { profile: { name: string } }
+      >(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const profile = effectContext.getState('profile')
+
+      // Assert
+      expect(() => {
+        if (profile !== undefined) {
+          profile.name = 'Grace'
+        }
+      }).toThrow(TypeError)
+      expect(() => {
+        if (profile !== undefined) {
+          profile.name = 'Grace'
+        }
+      }).toThrow(/Cannot set property 'name'/)
+    })
+
+    it('should return the same proxy when called twice for the same key', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockRequest: {
+          state: { profile: { name: 'Ada' } },
+        },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const first = effectContext.getState('profile')
+      const second = effectContext.getState('profile')
+
+      // Assert
+      expect(first).toBe(second)
+    })
+  })
+
+  describe('getAllState()', () => {
+    it('should throw TypeError when setting a key on the returned object', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockRequest: {
+          state: { profile: { name: 'Ada' } },
+        },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const state = effectContext.getAllState()
+
+      // Assert
+      expect(() => {
+        state.extra = 'value'
+      }).toThrow(TypeError)
+      expect(() => {
+        state.extra = 'value'
+      }).toThrow(/Cannot set property 'extra'/)
     })
   })
 
@@ -663,6 +848,23 @@ describe('EffectFunctionContext', () => {
       // Assert
       expect(result).toEqual(['cookie1=value1', 'cookie2=value2'])
     })
+
+    it('should throw TypeError when pushing to a multi-value header', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockRequest: {
+          headers: { 'set-cookie': ['cookie1=value1', 'cookie2=value2'] },
+        },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const result = effectContext.getRequestHeader('set-cookie')
+
+      // Assert
+      expect(() => (result as string[]).push('cookie3=value3')).toThrow(TypeError)
+      expect(() => (result as string[]).push('cookie3=value3')).toThrow(/read-only/)
+    })
   })
 
   describe('getAllRequestHeaders()', () => {
@@ -694,6 +896,27 @@ describe('EffectFunctionContext', () => {
 
       // Assert
       expect(result).toEqual({})
+    })
+
+    it('should throw TypeError when setting a key on the returned object', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockRequest: {
+          headers: { 'content-type': 'application/json' },
+        },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const result = effectContext.getAllRequestHeaders()
+
+      // Assert
+      expect(() => {
+        result.accept = 'text/html'
+      }).toThrow(TypeError)
+      expect(() => {
+        result.accept = 'text/html'
+      }).toThrow(/Cannot set property 'accept'/)
     })
   })
 

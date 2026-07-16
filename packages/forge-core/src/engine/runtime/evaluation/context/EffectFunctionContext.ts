@@ -293,28 +293,28 @@ class EffectFunctionContext<
    * Get a specific query parameter
    */
   getQueryParam(key: string): string | string[] | undefined {
-    return this.context.request.query[key]
+    return this.readonlyProxies.wrap(this.context.request.query[key])
   }
 
   /**
    * Get all query parameters
    */
   getAllQueryParams(): Record<string, string | string[]> {
-    return { ...this.context.request.query }
+    return this.readonlyProxies.wrap({ ...this.context.request.query })
   }
 
   /**
    * Get raw POST data (before formatting)
    */
   getPostData<TValue = unknown>(key: string): TValue | undefined {
-    return this.context.request.post[key] as TValue | undefined
+    return this.readonlyProxies.wrap(this.context.request.post[key]) as TValue | undefined
   }
 
   /**
    * Get all raw POST data (before formatting)
    */
   getAllPostData<TValue = Record<string, unknown>>(): TValue {
-    return { ...this.context.request.post } as TValue
+    return this.readonlyProxies.wrap({ ...this.context.request.post }) as TValue
   }
 
   /**
@@ -328,28 +328,28 @@ class EffectFunctionContext<
    * Get a custom request state value by key
    */
   getState<K extends string & keyof TState>(key: K): TState[K] | undefined {
-    return this.context.request.state[key] as TState[K] | undefined
+    return this.readonlyProxies.wrap(this.context.request.state[key]) as TState[K] | undefined
   }
 
   /**
    * Get all custom request state data
    */
   getAllState(): TState {
-    return { ...this.context.request.state } as TState
+    return this.readonlyProxies.wrap({ ...this.context.request.state }) as TState
   }
 
   /**
    * Get a request header value
    */
   getRequestHeader(name: string): string | string[] | undefined {
-    return this.context.request.headers[name]
+    return this.readonlyProxies.wrap(this.context.request.headers[name])
   }
 
   /**
    * Get all request headers
    */
   getAllRequestHeaders(): Record<string, string | string[] | undefined> {
-    return { ...this.context.request.headers }
+    return this.readonlyProxies.wrap({ ...this.context.request.headers })
   }
 
   /**
