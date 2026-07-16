@@ -326,6 +326,38 @@ describe('ReachabilityCompiler', () => {
       // Assert
       expect(result.entryResults[0]).toBe(false)
     })
+
+    it('should set entryResult true when a non-predicate expression resolves truthy', async () => {
+      // Arrange
+      const plan = createPlan({
+        entries: [createEntry({ entryWhen: createReference(['data', 'entryActive']) })],
+      })
+
+      const ctx = createCtx({ data: { entryActive: true } })
+
+      // Act
+      const fn = compiler.compileFacts(plan, [])
+      const result = await fn!(ctx)
+
+      // Assert
+      expect(result.entryResults[0]).toBe(true)
+    })
+
+    it('should set entryResult false when a non-predicate expression resolves falsy', async () => {
+      // Arrange
+      const plan = createPlan({
+        entries: [createEntry({ entryWhen: createReference(['data', 'entryActive']) })],
+      })
+
+      const ctx = createCtx({ data: { entryActive: false } })
+
+      // Act
+      const fn = compiler.compileFacts(plan, [])
+      const result = await fn!(ctx)
+
+      // Assert
+      expect(result.entryResults[0]).toBe(false)
+    })
   })
 
   describe('forward outcomes', () => {
@@ -712,6 +744,34 @@ describe('ReachabilityCompiler', () => {
       const plan = createPlan({ resumeWhen: pred })
 
       const ctx = createCtx({ data: { hasProgress: false } })
+
+      // Act
+      const fn = compiler.compileFacts(plan, [])
+      const result = await fn!(ctx)
+
+      // Assert
+      expect(result.resumeActive).toBe(false)
+    })
+
+    it('should set resumeActive true when a non-predicate expression resolves truthy', async () => {
+      // Arrange
+      const plan = createPlan({ resumeWhen: createReference(['data', 'resumeActive']) })
+
+      const ctx = createCtx({ data: { resumeActive: true } })
+
+      // Act
+      const fn = compiler.compileFacts(plan, [])
+      const result = await fn!(ctx)
+
+      // Assert
+      expect(result.resumeActive).toBe(true)
+    })
+
+    it('should set resumeActive false when a non-predicate expression resolves falsy', async () => {
+      // Arrange
+      const plan = createPlan({ resumeWhen: createReference(['data', 'resumeActive']) })
+
+      const ctx = createCtx({ data: { resumeActive: false } })
 
       // Act
       const fn = compiler.compileFacts(plan, [])
