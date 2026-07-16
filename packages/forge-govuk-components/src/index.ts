@@ -24,6 +24,7 @@
 export { govukComponents } from './components/index'
 export { GovUKUtilityClasses } from './utils/govukUtilityClasses'
 export { GovUKValidations } from './utils/govukValidations'
+export { registerForgeGovUKComponentsGlobals } from './utils/registerForgeGovUKComponentsGlobals'
 export { GovUKButtonGroup } from './wrappers/govukButtonGroup'
 export { GovUKGridRow } from './wrappers/govukGridRow'
 export { GovUKSectionBreak } from './wrappers/govukSectionBreak'

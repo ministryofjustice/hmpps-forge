@@ -69,7 +69,19 @@ _Definitions, expressions, hooks, navigation, reachability_
   and so on), coerced to a boolean at evaluation. `false` is also now valid and behaves
   the same as omitting the condition. ([#175])
 
+#### Notes
+
+- **`getErrorSummaryList` is now exported from `govuk-components`.** The
+  `toErrorList` Nunjucks global that converts Forge validation errors into
+  `govukErrorSummary`'s `{ text, href }` shape was previously something every app
+  had to write inline. It now ships as `registerForgeGovUKComponentsGlobals(nunjucksEnv)`,
+  which registers `getErrorSummaryList` - a global that reads the errors from the
+  template context automatically, so templates just call `getErrorSummaryList()` with
+  no arguments. ([#176])
+
 [#175]: https://github.com/ministryofjustice/hmpps-forge/pull/175
+[#176]: https://github.com/ministryofjustice/hmpps-forge/pull/176
+
 
 ---
 
