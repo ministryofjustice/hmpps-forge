@@ -1,5 +1,5 @@
 import { ASTNodeType } from '../../../../../contracts/ast/enums'
-import { StructureType } from '../../../../../../authoring/types/enums'
+import { ExpressionType, StructureType } from '../../../../../../authoring/types/enums'
 import type { JourneyDefinition, StepDefinition } from '../../../../../../authoring/types/structures.type'
 import type { BlockDefinition } from '../../../../../../components/types/structures.type'
 import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
@@ -131,6 +131,49 @@ describe('JourneyFactory', () => {
 
       // Assert
       expect(result.properties.reachability?.unreachableRedirect).toBe('frontier')
+    })
+
+    it('should omit resumeWhen from reachability config when set to false', () => {
+      // Arrange
+      const json = {
+        type: StructureType.JOURNEY,
+        code: 'test-journey',
+        path: 'test-journey',
+        title: 'Test Journey',
+        reachability: {
+          resumeWhen: false,
+        },
+        steps: [] as StepDefinition[],
+      } satisfies JourneyDefinition
+
+      // Act
+      const result = journeyFactory.create(json)
+
+      // Assert
+      expect(result.properties.reachability).toBeDefined()
+      expect(result.properties.reachability?.resumeWhen).toBeUndefined()
+    })
+
+    it('should create a child node for resumeWhen when set to an expression', () => {
+      // Arrange
+      const json = {
+        type: StructureType.JOURNEY,
+        code: 'test-journey',
+        path: 'test-journey',
+        title: 'Test Journey',
+        reachability: {
+          resumeWhen: { type: ExpressionType.REFERENCE, path: ['data', 'resumeActive'] },
+        },
+        steps: [] as StepDefinition[],
+      } satisfies JourneyDefinition
+
+      // Act
+      const result = journeyFactory.create(json)
+      const resumeWhen = result.properties.reachability?.resumeWhen
+
+      // Assert
+      expect(resumeWhen).not.toBe(true)
+      expect(resumeWhen).toMatchObject({ type: ASTNodeType.EXPRESSION, expressionType: ExpressionType.REFERENCE })
     })
   })
 })

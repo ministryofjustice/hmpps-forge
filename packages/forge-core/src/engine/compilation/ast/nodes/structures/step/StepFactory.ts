@@ -60,11 +60,19 @@ export default class StepFactory {
     }
 
     if (dataProperties.validateOnEntry !== undefined) {
-      properties.validateOnEntry = dataProperties.validateOnEntry.map((entry, index) => ({
-        groups: entry.groups,
-        when:
-          entry.when === true ? true : this.nodeFactory.createChildNode(entry.when, 'validateOnEntry', index, 'when'),
-      }))
+      // flatMap rather than filter + map so dropped `when: false` entries don't shift
+      // the diagnostics index of the entries that follow them.
+      properties.validateOnEntry = dataProperties.validateOnEntry.flatMap((entry, index) => {
+        if (entry.when === false) {
+          return []
+        }
+
+        return {
+          groups: entry.groups,
+          when:
+            entry.when === true ? true : this.nodeFactory.createChildNode(entry.when, 'validateOnEntry', index, 'when'),
+        }
+      })
     }
 
     if (dataProperties.blocks !== undefined) {

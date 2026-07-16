@@ -65,12 +65,25 @@ const StaticDataValueSchema: z.ZodType<unknown> = z.lazy(() =>
 
 const StaticDataSchema = z.record(z.string(), StaticDataValueSchema)
 
-// TODO: Probably should add other resolvable schemas, such as ResolvableBoolean.
+// TODO: Probably should add the remaining resolvable schemas, such as ResolvableNumber/Array/Object.
 /**
  * @see {@link ResolvableString}
  */
 export const ResolvableStringSchema = z.union([
   z.string(),
+  ReferenceExprSchema,
+  GeneratorFunctionExprSchema,
+  PipelineExprSchema,
+  ConditionalExprSchema,
+  MatchExprSchema,
+])
+
+/**
+ * @see {@link ResolvableBoolean}
+ */
+export const ResolvableBooleanSchema = z.union([
+  z.boolean(),
+  PredicateExprSchema,
   ReferenceExprSchema,
   GeneratorFunctionExprSchema,
   PipelineExprSchema,
@@ -117,7 +130,7 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
   const baseBlock = z.looseObject({
     type: z.literal(StructureType.BLOCK),
     variant: z.string(),
-    visibleWhen: z.union([z.boolean(), PredicateExprSchema]).optional(),
+    visibleWhen: ResolvableBooleanSchema.optional(),
     metadata: z.record(z.string(), z.any()).optional(),
   })
 
@@ -207,19 +220,19 @@ const TieBreakerSchema = z.looseObject({
 
 const StepReachabilitySchema = z
   .object({
-    entryWhen: z.union([z.literal(true), PredicateExprSchema]).optional(),
+    entryWhen: ResolvableBooleanSchema.optional(),
     tieBreakers: z.array(TieBreakerSchema).optional(),
   })
   .optional()
 
 const StepEntryValidationSchema = z.object({
   groups: z.array(z.string().trim().min(1)).min(1),
-  when: z.union([z.literal(true), PredicateExprSchema]),
+  when: ResolvableBooleanSchema,
 })
 
 const JourneyReachabilitySchema = z
   .object({
-    resumeWhen: z.union([z.literal(true), PredicateExprSchema]).optional(),
+    resumeWhen: ResolvableBooleanSchema.optional(),
     unreachableRedirect: z.enum(['entry', 'frontier']).optional(),
     disableReachabilityChecks: z.boolean().optional(),
   })

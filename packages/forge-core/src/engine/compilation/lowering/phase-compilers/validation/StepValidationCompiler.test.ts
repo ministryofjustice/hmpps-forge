@@ -316,6 +316,36 @@ describe('StepValidationCompiler', () => {
       // Assert
       expect(result).toEqual(['contact', 'address'])
     })
+
+    it('should collect groups when a non-predicate reference resolves truthy', async () => {
+      // Arrange
+      const entries: StepEntryValidationAST[] = [
+        { groups: ['address'], when: createReference(['data', 'entryActive']) },
+      ]
+
+      const fn = compiler.compileOnEntryValidation(entries)
+
+      // Act
+      const result = await fn!(createCtx({ data: { entryActive: true } }))
+
+      // Assert
+      expect(result).toEqual(['address'])
+    })
+
+    it('should not collect groups when a non-predicate reference resolves falsy', async () => {
+      // Arrange
+      const entries: StepEntryValidationAST[] = [
+        { groups: ['address'], when: createReference(['data', 'entryActive']) },
+      ]
+
+      const fn = compiler.compileOnEntryValidation(entries)
+
+      // Act
+      const result = await fn!(createCtx({ data: { entryActive: false } }))
+
+      // Assert
+      expect(result).toEqual([])
+    })
   })
 
   describe('compileOnSubmitValidation()', () => {
