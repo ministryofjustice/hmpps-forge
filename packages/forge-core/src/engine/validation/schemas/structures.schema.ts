@@ -227,7 +227,7 @@ const StepReachabilitySchema = z
 
 const StepEntryValidationSchema = z.object({
   groups: z.array(z.string().trim().min(1)).min(1),
-  when: z.union([z.literal(true), PredicateExprSchema]),
+  when: ResolvableBooleanSchema,
 })
 
 const JourneyReachabilitySchema = z

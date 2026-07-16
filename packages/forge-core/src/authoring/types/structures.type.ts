@@ -161,7 +161,16 @@ export interface StepReachability {
 
 export interface StepEntryValidation {
   groups: string[]
-  when: true | PredicateExpr | PredicateTestExprBuilder
+
+  /**
+   * Controls when these groups are validated as the step is entered.
+   *
+   * - `true` — the groups are always validated on entry.
+   * - A dynamic expression — the groups are validated only when the expression
+   *   resolves to a truthy value.
+   * - `false` — behaves the same as omitting the entry (the rule never fires).
+   */
+  when: ResolvableBoolean
 }
 
 /**

@@ -358,6 +358,131 @@ describe('FormValidator', () => {
       expect(() => DSLValidator.validateSchema(invalidJourney)).toThrow(AggregateError)
     })
 
+    it('should accept step validateOnEntry when set to true', () => {
+      // Arrange
+      const validJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [],
+            validateOnEntry: [{ groups: ['personal-details'], when: true }],
+          } as StepDefinition,
+        ],
+      } satisfies JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
+    })
+
+    it('should accept step validateOnEntry when set to false', () => {
+      // Arrange
+      const validJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [],
+            validateOnEntry: [{ groups: ['personal-details'], when: false }],
+          } as StepDefinition,
+        ],
+      } satisfies JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
+    })
+
+    it('should accept step validateOnEntry when set to a predicate expression', () => {
+      // Arrange
+      const validJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [],
+            validateOnEntry: [
+              {
+                groups: ['personal-details'],
+                when: {
+                  type: PredicateType.TEST,
+                  negate: false,
+                  subject: { type: ExpressionType.REFERENCE, path: ['session', 'submitted'] },
+                  condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['true'] },
+                },
+              },
+            ],
+          } as StepDefinition,
+        ],
+      } satisfies JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
+    })
+
+    it('should accept step validateOnEntry when set to a non-predicate expression', () => {
+      // Arrange
+      const validJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [],
+            validateOnEntry: [
+              {
+                groups: ['personal-details'],
+                when: { type: ExpressionType.REFERENCE, path: ['data', 'entryValidation'] },
+              },
+            ],
+          } as StepDefinition,
+        ],
+      } satisfies JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
+    })
+
+    it('should reject step validateOnEntry when set to an invalid value', () => {
+      // Arrange
+      const invalidJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/step1',
+            title: 'Step 1',
+            blocks: [],
+            validateOnEntry: [{ groups: ['personal-details'], when: 'always' }],
+          },
+        ],
+      } as unknown as JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(invalidJourney)).toThrow(AggregateError)
+    })
+
     it('should validate static data with ordinary nested type fields', () => {
       // Arrange
       const validJourney = {
