@@ -53,6 +53,26 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.3.3
+
+### For journey authors
+
+_Definitions, expressions, hooks, navigation, reachability_
+
+#### Improvements
+
+- **Boolean conditions accept any dynamic expression.** `resumeWhen`, `entryWhen`,
+  entry validation `when` and block `visibleWhen` were limited to `true` or a predicate
+  expression, even though the engine could already evaluate anything - only the types
+  and schemas were in the way. All four now take a `ResolvableBoolean`: a boolean
+  literal, a predicate, or any dynamic expression (a reference, conditional, pipeline
+  and so on), coerced to a boolean at evaluation. `false` is also now valid and behaves
+  the same as omitting the condition. ([#175])
+
+[#175]: https://github.com/ministryofjustice/hmpps-forge/pull/175
+
+---
+
 ## 0.3.2
 
 ### For function and component authors
