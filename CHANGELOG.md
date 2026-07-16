@@ -79,8 +79,28 @@ _Definitions, expressions, hooks, navigation, reachability_
   template context automatically, so templates just call `getErrorSummaryList()` with
   no arguments. ([#176])
 
+---
+
+### For function and component authors
+
+_Conditions, transformers, effects, generators, iterators, component packages_
+
+#### Breaking changes
+
+- **Effect context getters now return read-only values.** `EffectFunctionContext`
+  getters (`getAnswer()`, `getData()`, `getAllAnswerHistories()` and the rest) used to
+  return live references into engine state, so mutating a returned object silently
+  bypassed the mutation history and precedence bookkeeping that `setAnswer()` and
+  `setData()` maintain - the corruption then surfaced far from the write. Returned
+  objects and arrays are now read-only: writes, deletes and array mutators like `push`
+  throw a `TypeError` pointing at the sanctioned setters. Only breaking if you were
+  mutating getter results, which was already corrupting the engine's bookkeeping - copy
+  the value and write it back with `setAnswer()`/`setData()` instead. `getSession()` is
+  unchanged: mutating the session object remains the only way to write to it. ([#177])
+
 [#175]: https://github.com/ministryofjustice/hmpps-forge/pull/175
 [#176]: https://github.com/ministryofjustice/hmpps-forge/pull/176
+[#177]: https://github.com/ministryofjustice/hmpps-forge/pull/177
 
 
 ---
