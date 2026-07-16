@@ -3,7 +3,7 @@ import nunjucks from 'nunjucks'
 import express from 'express'
 import fs from 'fs'
 import mojFilters from '@ministryofjustice/frontend/moj/filters/all'
-import { registerNunjucksGlobals } from '@ministryofjustice/hmpps-forge/govuk-components'
+import { registerForgeGovUKComponentsGlobals } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { initialiseName } from './utils'
 import config from '../config'
 import logger from '../logger'
@@ -81,7 +81,7 @@ export default function nunjucksSetup(app: express.Express): nunjucks.Environmen
     return groups
   })
 
-  registerNunjucksGlobals(njkEnv)
+  registerForgeGovUKComponentsGlobals(njkEnv)
 
   return njkEnv
 }
