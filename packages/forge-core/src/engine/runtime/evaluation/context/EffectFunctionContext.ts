@@ -1,3 +1,4 @@
+// eslint-disable-next-line max-classes-per-file
 import { AnswerHistory, HookType } from '../../../contracts/runtime/answerHistory.type'
 import type { CookieOptions } from '../../../../framework/types/response.type'
 import type { ResponseBindings } from '../../../../framework/types/responseBindings.type'
@@ -7,6 +8,96 @@ import { assertSerializable } from '../../../../shared/utils/asserts'
 function assertStringParam(value: unknown, method: string, param: string): void {
   if (typeof value !== 'string') {
     throw new TypeError(`${method}: ${param} must be a string, got ${typeof value}`)
+  }
+}
+
+/**
+ * Wraps values returned by EffectFunctionContext getters in a lazy, cached, recursive read-only
+ * Proxy so author effect code cannot bypass setAnswer()/setData() bookkeeping by writing straight
+ * through a returned live reference.
+ *
+ * Only plain objects (including `Object.create(null)` records) and arrays are wrapped. Values
+ * backed by internal slots — Map, Set, Date, class instances — pass through live: their prototype
+ * methods read that internal slot from `this`, and invoking them through a Proxy throws an
+ * "incompatible receiver" TypeError. Wrapping those would break normal reads, not just writes.
+ *
+ * This is a guardrail against accidental writes through the convenience getters, not a security
+ * boundary — author code can still reach the underlying context by other means.
+ *
+ * Note: `structuredClone()` of a wrapped value throws in V8, because the clone algorithm probes
+ * the proxy in ways its invariants reject.
+ */
+class ReadonlyStateProxyFactory {
+  private static readonly readonlyMessageTail =
+    'values returned by EffectFunctionContext getters are read-only. Use setAnswer() or setData() to modify state.'
+
+  private readonly proxyCache = new WeakMap<object, object>()
+
+  private readonly handler: ProxyHandler<object> = {
+    get: (target, property, receiver) => {
+      const value: unknown = Reflect.get(target, property, receiver)
+
+      return this.wrap(value)
+    },
+
+    set: (_target, property) => {
+      throw ReadonlyStateProxyFactory.readonlyError('set', property)
+    },
+
+    deleteProperty: (_target, property) => {
+      throw ReadonlyStateProxyFactory.readonlyError('delete', property)
+    },
+
+    defineProperty: (_target, property) => {
+      throw ReadonlyStateProxyFactory.readonlyError('define', property)
+    },
+
+    // Without these, `Object.setPrototypeOf(proxy, …)` and `Object.freeze(proxy)` (which calls
+    // preventExtensions) forward straight to and mutate the live target.
+    setPrototypeOf: () => {
+      throw new TypeError(`Cannot set prototype: ${ReadonlyStateProxyFactory.readonlyMessageTail}`)
+    },
+
+    preventExtensions: () => {
+      throw new TypeError(`Cannot prevent extensions: ${ReadonlyStateProxyFactory.readonlyMessageTail}`)
+    },
+  }
+
+  wrap<T>(value: T): T {
+    if (!this.isWrappable(value)) {
+      return value
+    }
+
+    const cached = this.proxyCache.get(value)
+
+    if (cached !== undefined) {
+      return cached as T
+    }
+
+    const proxy = new Proxy(value, this.handler)
+    this.proxyCache.set(value, proxy)
+
+    return proxy as T
+  }
+
+  private isWrappable(value: unknown): value is object {
+    if (value === null || typeof value !== 'object') {
+      return false
+    }
+
+    if (Array.isArray(value)) {
+      return true
+    }
+
+    const prototype = Object.getPrototypeOf(value)
+
+    return prototype === Object.prototype || prototype === null
+  }
+
+  private static readonlyError(action: string, property: PropertyKey): TypeError {
+    return new TypeError(
+      `Cannot ${action} property '${String(property)}': ${ReadonlyStateProxyFactory.readonlyMessageTail}`,
+    )
   }
 }
 
@@ -59,6 +150,8 @@ class EffectFunctionContext<
   TSession = unknown,
   TState extends Record<string, unknown> = Record<string, unknown>,
 > {
+  private readonly readonlyProxies = new ReadonlyStateProxyFactory()
+
   /** @internal */
   constructor(
     private readonly context: RuntimeContext,
@@ -74,7 +167,7 @@ class EffectFunctionContext<
   getAnswer<TValue = unknown>(key: string): TValue
 
   getAnswer<TValue = unknown>(key: string): TValue {
-    return this.context.domain.answers[key]?.current as TValue
+    return this.readonlyProxies.wrap(this.context.domain.answers[key]?.current) as TValue
   }
 
   /**
@@ -103,7 +196,7 @@ class EffectFunctionContext<
       result[key] = history.current
     })
 
-    return result as TAnswers
+    return this.readonlyProxies.wrap(result) as TAnswers
   }
 
   /**
@@ -112,7 +205,7 @@ class EffectFunctionContext<
    * Returns the complete mutation history including all sources that have set this answer.
    */
   getAnswerHistory<K extends string & keyof TAnswers>(key: K): AnswerHistory | undefined {
-    return this.context.domain.answers[key]
+    return this.readonlyProxies.wrap(this.context.domain.answers[key])
   }
 
   /**
@@ -122,7 +215,7 @@ class EffectFunctionContext<
    * Useful for calculating custom deltas based on mutation sources.
    */
   getAllAnswerHistories(): Record<string, AnswerHistory> {
-    return this.context.domain.answers
+    return this.readonlyProxies.wrap(this.context.domain.answers)
   }
 
   /**
@@ -147,7 +240,7 @@ class EffectFunctionContext<
   getData<TValue = unknown>(key: string): TValue
 
   getData<TValue = unknown>(key: string): TValue {
-    return this.context.domain.data[key] as TValue
+    return this.readonlyProxies.wrap(this.context.domain.data[key]) as TValue
   }
 
   /**
@@ -163,7 +256,7 @@ class EffectFunctionContext<
    * Get all stored data
    */
   getAllData(): TData {
-    return { ...this.context.domain.data } as TData
+    return this.readonlyProxies.wrap({ ...this.context.domain.data }) as TData
   }
 
   /**
@@ -200,28 +293,28 @@ class EffectFunctionContext<
    * Get a specific query parameter
    */
   getQueryParam(key: string): string | string[] | undefined {
-    return this.context.request.query[key]
+    return this.readonlyProxies.wrap(this.context.request.query[key])
   }
 
   /**
    * Get all query parameters
    */
   getAllQueryParams(): Record<string, string | string[]> {
-    return { ...this.context.request.query }
+    return this.readonlyProxies.wrap({ ...this.context.request.query })
   }
 
   /**
    * Get raw POST data (before formatting)
    */
   getPostData<TValue = unknown>(key: string): TValue | undefined {
-    return this.context.request.post[key] as TValue | undefined
+    return this.readonlyProxies.wrap(this.context.request.post[key]) as TValue | undefined
   }
 
   /**
    * Get all raw POST data (before formatting)
    */
   getAllPostData<TValue = Record<string, unknown>>(): TValue {
-    return { ...this.context.request.post } as TValue
+    return this.readonlyProxies.wrap({ ...this.context.request.post }) as TValue
   }
 
   /**
@@ -235,28 +328,28 @@ class EffectFunctionContext<
    * Get a custom request state value by key
    */
   getState<K extends string & keyof TState>(key: K): TState[K] | undefined {
-    return this.context.request.state[key] as TState[K] | undefined
+    return this.readonlyProxies.wrap(this.context.request.state[key]) as TState[K] | undefined
   }
 
   /**
    * Get all custom request state data
    */
   getAllState(): TState {
-    return { ...this.context.request.state } as TState
+    return this.readonlyProxies.wrap({ ...this.context.request.state }) as TState
   }
 
   /**
    * Get a request header value
    */
   getRequestHeader(name: string): string | string[] | undefined {
-    return this.context.request.headers[name]
+    return this.readonlyProxies.wrap(this.context.request.headers[name])
   }
 
   /**
    * Get all request headers
    */
   getAllRequestHeaders(): Record<string, string | string[] | undefined> {
-    return { ...this.context.request.headers }
+    return this.readonlyProxies.wrap({ ...this.context.request.headers })
   }
 
   /**
