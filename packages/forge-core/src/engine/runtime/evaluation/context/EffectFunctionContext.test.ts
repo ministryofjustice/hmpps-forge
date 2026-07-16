@@ -448,6 +448,132 @@ describe('EffectFunctionContext', () => {
       expect(pageTitle).toBe('Example')
       expect(count).toBe(3)
     })
+
+    it('should throw TypeError when assigning a property on an object data value', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockData: { profile: { name: 'Ada' } },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const profile = effectContext.getData<{ name: string }>('profile')
+
+      // Assert
+      expect(() => {
+        profile.name = 'Grace'
+      }).toThrow(TypeError)
+      expect(() => {
+        profile.name = 'Grace'
+      }).toThrow(/Cannot set property 'name'/)
+      expect(() => {
+        profile.name = 'Grace'
+      }).toThrow(/read-only/)
+    })
+
+    it('should throw TypeError when pushing to an array data value', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockData: { tags: ['a', 'b'] },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const tags = effectContext.getData<string[]>('tags')
+
+      // Assert
+      expect(() => tags.push('c')).toThrow(TypeError)
+      expect(() => tags.push('c')).toThrow(/read-only/)
+    })
+
+    it('should return the same proxy when called twice for the same key', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockData: { profile: { name: 'Ada' } },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const first = effectContext.getData('profile')
+      const second = effectContext.getData('profile')
+
+      // Assert
+      expect(first).toBe(second)
+    })
+
+    it('should return primitive data values unchanged', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockData: { pageTitle: 'Example', count: 3 },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const pageTitle = effectContext.getData('pageTitle')
+      const count = effectContext.getData('count')
+
+      // Assert
+      expect(pageTitle).toBe('Example')
+      expect(count).toBe(3)
+    })
+  })
+
+  describe('getAllData()', () => {
+    it('should return all stored data', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockData: { pageTitle: 'Example', profile: { name: 'Ada' } },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const data = effectContext.getAllData()
+
+      // Assert
+      expect(data).toEqual({ pageTitle: 'Example', profile: { name: 'Ada' } })
+    })
+
+    it('should throw TypeError when setting a key on the returned object', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockData: { pageTitle: 'Example' },
+      })
+      const effectContext = new EffectFunctionContext(mockContext.context, mockContext.response, 'access')
+
+      // Act
+      const data = effectContext.getAllData()
+
+      // Assert
+      expect(() => {
+        data.subtitle = 'Extra'
+      }).toThrow(TypeError)
+      expect(() => {
+        data.subtitle = 'Extra'
+      }).toThrow(/Cannot set property 'subtitle'/)
+    })
+
+    it('should throw TypeError when mutating a nested data value', () => {
+      // Arrange
+      const mockContext = createMockContext({
+        mockData: { profile: { name: 'Ada' } },
+      })
+      const effectContext = new EffectFunctionContext<{ profile: { name: string } }, Record<string, unknown>>(
+        mockContext.context,
+        mockContext.response,
+        'access',
+      )
+
+      // Act
+      const data = effectContext.getAllData()
+
+      // Assert
+      expect(() => {
+        data.profile.name = 'Grace'
+      }).toThrow(TypeError)
+      expect(() => {
+        data.profile.name = 'Grace'
+      }).toThrow(/read-only/)
+    })
   })
 
   describe('getPostData()', () => {

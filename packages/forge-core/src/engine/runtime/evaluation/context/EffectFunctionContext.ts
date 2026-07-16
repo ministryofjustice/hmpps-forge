@@ -240,7 +240,7 @@ class EffectFunctionContext<
   getData<TValue = unknown>(key: string): TValue
 
   getData<TValue = unknown>(key: string): TValue {
-    return this.context.domain.data[key] as TValue
+    return this.readonlyProxies.wrap(this.context.domain.data[key]) as TValue
   }
 
   /**
@@ -256,7 +256,7 @@ class EffectFunctionContext<
    * Get all stored data
    */
   getAllData(): TData {
-    return { ...this.context.domain.data } as TData
+    return this.readonlyProxies.wrap({ ...this.context.domain.data }) as TData
   }
 
   /**
