@@ -1,19 +1,19 @@
 import { DateGenerators, dateGeneratorsRegistry } from './dateGenerators'
 import { FunctionType } from '../types/enums'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
+import { FunctionRegistryTestHarness } from '../../testing/FunctionRegistryTestHarness'
 
 describe('DateGenerators', () => {
   const registry = dateGeneratorsRegistry.build()
+  const harness = new FunctionRegistryTestHarness(dateGeneratorsRegistry)
 
   describe('Now', () => {
-    const { evaluate } = registry['Date.Now']
-
     it('should return current date and time', () => {
       // Arrange
       const before = new Date()
 
       // Act
-      const result = evaluate()
+      const result = harness.evaluate(DateGenerators.Now()) as Date
 
       // Assert
       const after = new Date()
@@ -36,8 +36,6 @@ describe('DateGenerators', () => {
   })
 
   describe('Today', () => {
-    const { evaluate } = registry['Date.Today']
-
     it('should return start of current day', () => {
       // Arrange
       const now = new Date()
@@ -46,7 +44,7 @@ describe('DateGenerators', () => {
       const expectedDate = now.getDate()
 
       // Act
-      const result = evaluate()
+      const result = harness.evaluate(DateGenerators.Today()) as Date
 
       // Assert
       expect(result).toBeInstanceOf(Date)
