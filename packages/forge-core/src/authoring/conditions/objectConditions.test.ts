@@ -1,42 +1,41 @@
 import { ObjectConditions, objectConditionsRegistry } from './objectConditions'
 import { FunctionType } from '../types/enums'
+import { FunctionRegistryTestHarness } from '../../testing/FunctionRegistryTestHarness'
 
 describe('ObjectConditions', () => {
-  const registry = objectConditionsRegistry.build()
+  const harness = new FunctionRegistryTestHarness(objectConditionsRegistry)
 
   describe('IsObject', () => {
-    const { evaluate } = registry['Object.IsObject']
-
     test('should return true for plain objects', () => {
-      expect(evaluate({})).toBe(true)
-      expect(evaluate({ a: 1 })).toBe(true)
-      expect(evaluate({ nested: { value: true } })).toBe(true)
-      expect(evaluate(Object.create(null))).toBe(true)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput({})).toBe(true)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput({ a: 1 })).toBe(true)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput({ nested: { value: true } })).toBe(true)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput(Object.create(null))).toBe(true)
     })
 
     test('should return false for null', () => {
-      expect(evaluate(null)).toBe(false)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput(null)).toBe(false)
     })
 
     test('should return false for arrays', () => {
-      expect(evaluate([])).toBe(false)
-      expect(evaluate([1, 2, 3])).toBe(false)
-      expect(evaluate([{ a: 1 }])).toBe(false)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput([])).toBe(false)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput([1, 2, 3])).toBe(false)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput([{ a: 1 }])).toBe(false)
     })
 
     test('should return false for primitive values', () => {
-      expect(evaluate('string')).toBe(false)
-      expect(evaluate(123)).toBe(false)
-      expect(evaluate(true)).toBe(false)
-      expect(evaluate(false)).toBe(false)
-      expect(evaluate(undefined)).toBe(false)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput('string')).toBe(false)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput(123)).toBe(false)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput(true)).toBe(false)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput(false)).toBe(false)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput(undefined)).toBe(false)
     })
 
     test('should return false for other object types', () => {
-      expect(evaluate(new Date())).toBe(true)
-      expect(evaluate(new Map())).toBe(true)
-      expect(evaluate(new Set())).toBe(true)
-      expect(evaluate(/regex/)).toBe(true)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput(new Date())).toBe(true)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput(new Map())).toBe(true)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput(new Set())).toBe(true)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput(/regex/)).toBe(true)
     })
 
     test('should return false for functions', () => {
@@ -44,8 +43,8 @@ describe('ObjectConditions', () => {
       const namedFn = function testFn() {
         return 'test'
       }
-      expect(evaluate(arrowFn)).toBe(false)
-      expect(evaluate(namedFn)).toBe(false)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput(arrowFn)).toBe(false)
+      expect(harness.evaluate(ObjectConditions.IsObject()).withInput(namedFn)).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -59,19 +58,17 @@ describe('ObjectConditions', () => {
   })
 
   describe('HasProperty', () => {
-    const { evaluate } = registry['Object.HasProperty']
-
     test('should return true when object has the property', () => {
-      expect(evaluate({ name: 'John' }, 'name')).toBe(true)
-      expect(evaluate({ age: 0 }, 'age')).toBe(true)
-      expect(evaluate({ active: false }, 'active')).toBe(true)
-      expect(evaluate({ empty: '' }, 'empty')).toBe(true)
-      expect(evaluate({ nil: null }, 'nil')).toBe(true)
+      expect(harness.evaluate(ObjectConditions.HasProperty('name')).withInput({ name: 'John' })).toBe(true)
+      expect(harness.evaluate(ObjectConditions.HasProperty('age')).withInput({ age: 0 })).toBe(true)
+      expect(harness.evaluate(ObjectConditions.HasProperty('active')).withInput({ active: false })).toBe(true)
+      expect(harness.evaluate(ObjectConditions.HasProperty('empty')).withInput({ empty: '' })).toBe(true)
+      expect(harness.evaluate(ObjectConditions.HasProperty('nil')).withInput({ nil: null })).toBe(true)
     })
 
     test('should return false when object does not have the property', () => {
-      expect(evaluate({}, 'name')).toBe(false)
-      expect(evaluate({ name: 'John' }, 'age')).toBe(false)
+      expect(harness.evaluate(ObjectConditions.HasProperty('name')).withInput({})).toBe(false)
+      expect(harness.evaluate(ObjectConditions.HasProperty('age')).withInput({ name: 'John' })).toBe(false)
     })
 
     test('should support dot notation for nested paths', () => {
@@ -83,16 +80,16 @@ describe('ObjectConditions', () => {
         },
       }
 
-      expect(evaluate(obj, 'user')).toBe(true)
-      expect(evaluate(obj, 'user.address')).toBe(true)
-      expect(evaluate(obj, 'user.address.city')).toBe(true)
-      expect(evaluate(obj, 'user.address.postcode')).toBe(false)
-      expect(evaluate(obj, 'user.name')).toBe(false)
+      expect(harness.evaluate(ObjectConditions.HasProperty('user')).withInput(obj)).toBe(true)
+      expect(harness.evaluate(ObjectConditions.HasProperty('user.address')).withInput(obj)).toBe(true)
+      expect(harness.evaluate(ObjectConditions.HasProperty('user.address.city')).withInput(obj)).toBe(true)
+      expect(harness.evaluate(ObjectConditions.HasProperty('user.address.postcode')).withInput(obj)).toBe(false)
+      expect(harness.evaluate(ObjectConditions.HasProperty('user.name')).withInput(obj)).toBe(false)
     })
 
     test('should return false for undefined nested paths', () => {
       const obj: { user: null } = { user: null }
-      expect(evaluate(obj, 'user.name')).toBe(false)
+      expect(harness.evaluate(ObjectConditions.HasProperty('user.name')).withInput(obj)).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -106,34 +103,32 @@ describe('ObjectConditions', () => {
   })
 
   describe('PropertyIsEmpty', () => {
-    const { evaluate } = registry['Object.PropertyIsEmpty']
-
     test('should return true when property is null', () => {
-      expect(evaluate({ value: null }, 'value')).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyIsEmpty('value')).withInput({ value: null })).toBe(true)
     })
 
     test('should return true when property is undefined', () => {
-      expect(evaluate({ value: undefined }, 'value')).toBe(true)
-      expect(evaluate({}, 'value')).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyIsEmpty('value')).withInput({ value: undefined })).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyIsEmpty('value')).withInput({})).toBe(true)
     })
 
     test('should return true when property is empty string', () => {
-      expect(evaluate({ value: '' }, 'value')).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyIsEmpty('value')).withInput({ value: '' })).toBe(true)
     })
 
     test('should return true when property is whitespace-only string', () => {
-      expect(evaluate({ value: '   ' }, 'value')).toBe(true)
-      expect(evaluate({ value: '\t' }, 'value')).toBe(true)
-      expect(evaluate({ value: '\n' }, 'value')).toBe(true)
-      expect(evaluate({ value: '  \t\n  ' }, 'value')).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyIsEmpty('value')).withInput({ value: '   ' })).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyIsEmpty('value')).withInput({ value: '\t' })).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyIsEmpty('value')).withInput({ value: '\n' })).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyIsEmpty('value')).withInput({ value: '  \t\n  ' })).toBe(true)
     })
 
     test('should return false when property has a value', () => {
-      expect(evaluate({ value: 'text' }, 'value')).toBe(false)
-      expect(evaluate({ value: 0 }, 'value')).toBe(false)
-      expect(evaluate({ value: false }, 'value')).toBe(false)
-      expect(evaluate({ value: [] }, 'value')).toBe(false)
-      expect(evaluate({ value: {} }, 'value')).toBe(false)
+      expect(harness.evaluate(ObjectConditions.PropertyIsEmpty('value')).withInput({ value: 'text' })).toBe(false)
+      expect(harness.evaluate(ObjectConditions.PropertyIsEmpty('value')).withInput({ value: 0 })).toBe(false)
+      expect(harness.evaluate(ObjectConditions.PropertyIsEmpty('value')).withInput({ value: false })).toBe(false)
+      expect(harness.evaluate(ObjectConditions.PropertyIsEmpty('value')).withInput({ value: [] })).toBe(false)
+      expect(harness.evaluate(ObjectConditions.PropertyIsEmpty('value')).withInput({ value: {} })).toBe(false)
     })
 
     test('should support dot notation for nested paths', () => {
@@ -145,10 +140,10 @@ describe('ObjectConditions', () => {
         },
       }
 
-      expect(evaluate(obj, 'user.name')).toBe(false)
-      expect(evaluate(obj, 'user.email')).toBe(true)
-      expect(evaluate(obj, 'user.address')).toBe(true)
-      expect(evaluate(obj, 'user.phone')).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyIsEmpty('user.name')).withInput(obj)).toBe(false)
+      expect(harness.evaluate(ObjectConditions.PropertyIsEmpty('user.email')).withInput(obj)).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyIsEmpty('user.address')).withInput(obj)).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyIsEmpty('user.phone')).withInput(obj)).toBe(true)
     })
 
     test('should build correct expression object', () => {
@@ -162,32 +157,30 @@ describe('ObjectConditions', () => {
   })
 
   describe('PropertyHasValue', () => {
-    const { evaluate } = registry['Object.PropertyHasValue']
-
     test('should return true when property has a non-empty value', () => {
-      expect(evaluate({ value: 'text' }, 'value')).toBe(true)
-      expect(evaluate({ value: 0 }, 'value')).toBe(true)
-      expect(evaluate({ value: false }, 'value')).toBe(true)
-      expect(evaluate({ value: [] }, 'value')).toBe(true)
-      expect(evaluate({ value: {} }, 'value')).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyHasValue('value')).withInput({ value: 'text' })).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyHasValue('value')).withInput({ value: 0 })).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyHasValue('value')).withInput({ value: false })).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyHasValue('value')).withInput({ value: [] })).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyHasValue('value')).withInput({ value: {} })).toBe(true)
     })
 
     test('should return false when property is null', () => {
-      expect(evaluate({ value: null }, 'value')).toBe(false)
+      expect(harness.evaluate(ObjectConditions.PropertyHasValue('value')).withInput({ value: null })).toBe(false)
     })
 
     test('should return false when property is undefined', () => {
-      expect(evaluate({ value: undefined }, 'value')).toBe(false)
-      expect(evaluate({}, 'value')).toBe(false)
+      expect(harness.evaluate(ObjectConditions.PropertyHasValue('value')).withInput({ value: undefined })).toBe(false)
+      expect(harness.evaluate(ObjectConditions.PropertyHasValue('value')).withInput({})).toBe(false)
     })
 
     test('should return false when property is empty string', () => {
-      expect(evaluate({ value: '' }, 'value')).toBe(false)
+      expect(harness.evaluate(ObjectConditions.PropertyHasValue('value')).withInput({ value: '' })).toBe(false)
     })
 
     test('should return false when property is whitespace-only string', () => {
-      expect(evaluate({ value: '   ' }, 'value')).toBe(false)
-      expect(evaluate({ value: '\t\n' }, 'value')).toBe(false)
+      expect(harness.evaluate(ObjectConditions.PropertyHasValue('value')).withInput({ value: '   ' })).toBe(false)
+      expect(harness.evaluate(ObjectConditions.PropertyHasValue('value')).withInput({ value: '\t\n' })).toBe(false)
     })
 
     test('should support dot notation for nested paths', () => {
@@ -202,11 +195,11 @@ describe('ObjectConditions', () => {
         },
       }
 
-      expect(evaluate(obj, 'user.name')).toBe(true)
-      expect(evaluate(obj, 'user.email')).toBe(false)
-      expect(evaluate(obj, 'user.address.city')).toBe(true)
-      expect(evaluate(obj, 'user.address.postcode')).toBe(false)
-      expect(evaluate(obj, 'user.phone')).toBe(false)
+      expect(harness.evaluate(ObjectConditions.PropertyHasValue('user.name')).withInput(obj)).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyHasValue('user.email')).withInput(obj)).toBe(false)
+      expect(harness.evaluate(ObjectConditions.PropertyHasValue('user.address.city')).withInput(obj)).toBe(true)
+      expect(harness.evaluate(ObjectConditions.PropertyHasValue('user.address.postcode')).withInput(obj)).toBe(false)
+      expect(harness.evaluate(ObjectConditions.PropertyHasValue('user.phone')).withInput(obj)).toBe(false)
     })
 
     test('should build correct expression object', () => {
