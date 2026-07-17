@@ -53,6 +53,28 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.3.4
+
+### For journey authors
+
+_Definitions, expressions, hooks, navigation, reachability_
+
+#### New
+
+- **Outcome assertion helpers for the test harness.** `core/testing` now exports
+  `expectRenderOutcome`, `expectRedirectOutcome` and `expectErrorOutcome`. Previously
+  asserting on a `TestResult` took two steps - `expect(result.type).toBe('render')` to
+  fail the test, then `if (result.type === 'render')` anyway because matchers don't
+  narrow the union. Each helper does both in one statement: it throws
+  `ForgeTestOutcomeAssertionError` when the outcome differs, with a message saying what
+  actually happened (the redirect URL, the error status and message, or the rendered
+  step's title), and its `asserts` signature narrows `result` for the rest of the
+  test. ([#180])
+
+[#180]: https://github.com/ministryofjustice/hmpps-forge/pull/180
+
+---
+
 ## 0.3.3
 
 ### For journey authors
