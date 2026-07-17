@@ -1,5 +1,6 @@
 export { ForgeTestClient } from './test-client/ForgeTestClient'
 export { ForgeTestHarness } from './ForgeTestHarness'
+export { FunctionRegistryTestHarness } from './FunctionRegistryTestHarness'
 export { createTestPackage } from './createTestPackage'
 export { expectRenderOutcome, expectRedirectOutcome, expectErrorOutcome } from './outcomeAssertions'
 export { default as ForgeTestOutcomeAssertionError } from './ForgeTestOutcomeAssertionError'
