@@ -2,17 +2,18 @@ import { IterateExpr, ResolvableValue, SubmitHook, AccessHook, PredicateExpr } f
 import { PredicateTestExprBuilder } from '../builders/PredicateTestExprBuilder'
 import { ExpressionType, StructureType } from './enums'
 import type { ChainableIterable } from '../builders/types'
-import type { BlockDefinition, ResolvableString } from '../../components/types/structures.type'
+import type { BlockDefinition, ResolvableString, ResolvableBoolean } from '../../components/types/structures.type'
 
 /**
  * View configuration for journeys and steps.
- * Controls rendering behavior including template selection and template locals.
+ * Forge combines journey configurations from root to leaf, then applies the
+ * current step configuration before passing the effective view to the renderer.
  */
 export interface ViewConfig {
-  /** Template to use for rendering (inherits from parent journey if not specified) */
+  /** Template identifier. The nearest journey or current step declaration wins. */
   template?: string
 
-  /** Arbitrary properties to pass to the template as locals */
+  /** Template locals merged by key from the root journey to the current step. */
   locals?: Record<string, unknown>
 }
 
@@ -88,14 +89,16 @@ export interface JourneyReachability {
    * Controls when Forge's resume behaviour is active for this journey.
    *
    * - `true` — always resume (every request redirects to the resume frontier).
-   * - A predicate expression — resume only when the condition evaluates to true.
+   * - A dynamic expression — resume only when the expression resolves to a
+   *   truthy value; a falsy result behaves the same as `false`.
+   * - `false` — behaves the same as omitting it (resume is never active).
    * - Omitted — resume is never active; users access any reachable step freely.
    *
    * @example
    * reachability: { resumeWhen: true }
    * reachability: { resumeWhen: Query('resume').match(Condition.Equals('true')) }
    */
-  resumeWhen?: true | PredicateExpr | PredicateTestExprBuilder
+  resumeWhen?: ResolvableBoolean
 
   /**
    * Controls where Forge redirects when a requested step is not reachable.
@@ -131,15 +134,16 @@ export interface StepReachability {
    * Declares this step as an entry point for the reachability walk.
    *
    * - `true` — unconditional entry point (always seeded as reachable).
-   * - A predicate expression — conditional entry point, seeded only when the
-   *   condition evaluates to true. Active conditional entries take priority
-   *   in the resume frontier over normal blockers.
+   * - A dynamic expression — conditional entry point, seeded only when the
+   *   expression resolves to a truthy value. Active conditional entries take
+   *   priority in the resume frontier over normal blockers.
+   * - `false` — behaves the same as omitting it (not an entry point).
    *
    * @example
    * reachability: { entryWhen: true }
    * reachability: { entryWhen: Session('submitted').match(Condition.Equals(true)) }
    */
-  entryWhen?: true | PredicateExpr | PredicateTestExprBuilder
+  entryWhen?: ResolvableBoolean
 
   /**
    * Prioritised tie-breaker rules consulted whenever this step is one of
@@ -157,7 +161,16 @@ export interface StepReachability {
 
 export interface StepEntryValidation {
   groups: string[]
-  when: true | PredicateExpr | PredicateTestExprBuilder
+
+  /**
+   * Controls when these groups are validated as the step is entered.
+   *
+   * - `true` — the groups are always validated on entry.
+   * - A dynamic expression — the groups are validated only when the expression
+   *   resolves to a truthy value.
+   * - `false` — behaves the same as omitting the entry (the rule never fires).
+   */
+  when: ResolvableBoolean
 }
 
 /**

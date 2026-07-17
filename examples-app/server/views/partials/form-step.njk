@@ -30,7 +30,7 @@
 {% block content %}
   <div class="govuk-grid-row">
     <div class="{{ contentClasses | default('govuk-grid-column-two-thirds') }}">
-      {% set errorList = toErrorList(fieldValidationErrors, domainValidationErrors) %}
+      {% set errorList = getErrorSummaryList() %}
       {% if errorList.length %}
         {{ govukErrorSummary({
           titleText: "There is a problem",

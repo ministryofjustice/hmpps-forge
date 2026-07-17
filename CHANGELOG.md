@@ -53,6 +53,77 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.3.3
+
+### For journey authors
+
+_Definitions, expressions, hooks, navigation, reachability_
+
+#### Improvements
+
+- **Boolean conditions accept any dynamic expression.** `resumeWhen`, `entryWhen`,
+  entry validation `when` and block `visibleWhen` were limited to `true` or a predicate
+  expression, even though the engine could already evaluate anything - only the types
+  and schemas were in the way. All four now take a `ResolvableBoolean`: a boolean
+  literal, a predicate, or any dynamic expression (a reference, conditional, pipeline
+  and so on), coerced to a boolean at evaluation. `false` is also now valid and behaves
+  the same as omitting the condition. ([#175])
+
+#### Notes
+
+- **`getErrorSummaryList` is now exported from `govuk-components`.** The
+  `toErrorList` Nunjucks global that converts Forge validation errors into
+  `govukErrorSummary`'s `{ text, href }` shape was previously something every app
+  had to write inline. It now ships as `registerForgeGovUKComponentsGlobals(nunjucksEnv)`,
+  which registers `getErrorSummaryList` - a global that reads the errors from the
+  template context automatically, so templates just call `getErrorSummaryList()` with
+  no arguments. ([#176])
+
+---
+
+### For function and component authors
+
+_Conditions, transformers, effects, generators, iterators, component packages_
+
+#### Breaking changes
+
+- **Effect context getters now return read-only values.** `EffectFunctionContext`
+  getters (`getAnswer()`, `getData()`, `getAllAnswerHistories()` and the rest) used to
+  return live references into engine state, so mutating a returned object silently
+  bypassed the mutation history and precedence bookkeeping that `setAnswer()` and
+  `setData()` maintain - the corruption then surfaced far from the write. Returned
+  objects and arrays are now read-only: writes, deletes and array mutators like `push`
+  throw a `TypeError` pointing at the sanctioned setters. Only breaking if you were
+  mutating getter results, which was already corrupting the engine's bookkeeping - copy
+  the value and write it back with `setAnswer()`/`setData()` instead. `getSession()` is
+  unchanged: mutating the session object remains the only way to write to it. ([#177])
+
+---
+
+### For adapter and renderer developers
+
+_Express adapter, Nunjucks renderer, test harness, framework integration_
+
+#### Improvements
+
+- **Forge core now resolves inherited view configuration.** Previously every renderer
+  had to combine journey and step `view` config itself - `NunjucksRenderer` walked the
+  ancestors for the nearest template and merged locals from root to step. That
+  resolution now happens in core's resolve phase: `RenderContext.step.view` arrives as
+  the effective view (nearest declared template wins, locals merged by key from the
+  root journey down to the step), so renderers just read `context.step.view` and fall
+  back to their own default template. Each ancestor's own evaluated view is still on
+  `context.ancestors` untouched, and a renderer that still merges them itself lands on
+  the same result - so nothing breaks, there's just nothing left to merge. ([#174])
+
+[#174]: https://github.com/ministryofjustice/hmpps-forge/pull/174
+[#175]: https://github.com/ministryofjustice/hmpps-forge/pull/175
+[#176]: https://github.com/ministryofjustice/hmpps-forge/pull/176
+[#177]: https://github.com/ministryofjustice/hmpps-forge/pull/177
+
+
+---
+
 ## 0.3.2
 
 ### For function and component authors
@@ -190,7 +261,7 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
 Compilation got a lot stricter - misplaced definitions and unregistered function names now
 fail at `registerPackage()` instead of silently vanishing or half-working. Function
 registration moves onto registry classes with central schema validation, deprecated APIs
-now warn at runtime, and request traces carry a lot more detail for the upcoming 
+now warn at runtime, and request traces carry a lot more detail for the upcoming
 devtools. Compilation now emits trace events of its own, too! Components also now declare
 the shape of value they can legitimately submit - a tampered POST body gets dropped
 before it ever reaches answer history.
@@ -279,13 +350,13 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   ```ts
   // Before
   const { effects: MyEffects, implementations } = defineEffectFunctions<Shapes, MyDeps>({ loadPlan })
-  
+
   createForgePackage({ journey, functions: implementations })
 
   // After
   const registry = new EffectRegistry<MyDeps>()
   const MyEffects = { loadPlan: registry.register('loadPlan', myEffectFn) }
-  
+
   createForgePackage({ journey, functions: registry })
   ```
 
@@ -325,7 +396,7 @@ _Express adapter, Nunjucks renderer, test harness, framework integration_
 
 #### Improvements
 
-- **Request traces carry a lot more detail.** `RequestTraceEvent`s (and phase and 
+- **Request traces carry a lot more detail.** `RequestTraceEvent`s (and phase and
   work
   unit traces) now include `startedAtMs`/`completedAtMs`/`durationMs`, the resolved route
   context (journey code and title, step title, route template path), the redirect target,
@@ -407,7 +478,7 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
 
 The engine internals have been pretty much rewritten - compilation is now properly scoped
 into phases, reachability is compiled at startup instead of rebuilt per request, and the
-runtime evaluates through a work tree model. 
+runtime evaluates through a work tree model.
 
 ---
 
@@ -478,11 +549,11 @@ _Definitions, expressions, hooks, navigation, reachability_
   condition fix above addresses the most common case, but custom conditions that don't
   handle `undefined`/`null` inputs will need updating.
 
-- Request tracing comes with both a performance hit and a security risk. It's 
-  quite useful for debugging locally, and it will eventually power Forge's 
-  devtools solution, but we would advise against using it unless you want to 
-  debug something specific in Forge's runtime. Also worth noting it currently 
-  does not cover any of Forge's compilation stage. 
+- Request tracing comes with both a performance hit and a security risk. It's
+  quite useful for debugging locally, and it will eventually power Forge's
+  devtools solution, but we would advise against using it unless you want to
+  debug something specific in Forge's runtime. Also worth noting it currently
+  does not cover any of Forge's compilation stage.
 
 ---
 

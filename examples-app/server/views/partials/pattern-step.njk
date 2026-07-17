@@ -44,7 +44,7 @@
           {{ govukBackLink({ href: step.backlink, classes: "govuk-!-margin-top-0" }) }}
         {% endif %}
 
-        {% set errorList = toErrorList(fieldValidationErrors, domainValidationErrors) %}
+        {% set errorList = getErrorSummaryList() %}
         {% if errorList.length %}
           {{ govukErrorSummary({
             titleText: "There is a problem",

@@ -218,5 +218,88 @@ describe('StepFactory', () => {
       expect('type' in result.properties).toBe(false)
       expect('path' in result.properties).toBe(true)
     })
+
+    it('should omit entryWhen from reachability config when set to false', () => {
+      // Arrange
+      const json = {
+        type: StructureType.STEP,
+        path: 'test-step',
+        title: 'test-step',
+        blocks: [] as BlockDefinition[],
+        reachability: {
+          entryWhen: false,
+        },
+      } satisfies StepDefinition
+
+      // Act
+      const result = stepFactory.create(json)
+
+      // Assert
+      expect(result.properties.reachability).toBeDefined()
+      expect(result.properties.reachability?.entryWhen).toBeUndefined()
+    })
+
+    it('should create a child node for entryWhen when set to an expression', () => {
+      // Arrange
+      const json = {
+        type: StructureType.STEP,
+        path: 'test-step',
+        title: 'test-step',
+        blocks: [] as BlockDefinition[],
+        reachability: {
+          entryWhen: { type: ExpressionType.REFERENCE, path: ['data', 'entryActive'] },
+        },
+      } satisfies StepDefinition
+
+      // Act
+      const result = stepFactory.create(json)
+      const entryWhen = result.properties.reachability?.entryWhen
+
+      // Assert
+      expect(entryWhen).not.toBe(true)
+      expect(entryWhen).toMatchObject({ type: ASTNodeType.EXPRESSION, expressionType: ExpressionType.REFERENCE })
+    })
+
+    it('should drop validateOnEntry rules whose when is false while keeping the others', () => {
+      // Arrange
+      const json = {
+        type: StructureType.STEP,
+        path: 'test-step',
+        title: 'test-step',
+        blocks: [] as BlockDefinition[],
+        validateOnEntry: [
+          { groups: ['always'], when: true },
+          { groups: ['never'], when: false },
+        ],
+      } satisfies StepDefinition
+
+      // Act
+      const result = stepFactory.create(json)
+
+      // Assert
+      expect(result.properties.validateOnEntry).toHaveLength(1)
+      expect(result.properties.validateOnEntry?.[0]).toEqual({ groups: ['always'], when: true })
+    })
+
+    it('should create a child node for validateOnEntry when when is set to an expression', () => {
+      // Arrange
+      const json = {
+        type: StructureType.STEP,
+        path: 'test-step',
+        title: 'test-step',
+        blocks: [] as BlockDefinition[],
+        validateOnEntry: [
+          { groups: ['conditional'], when: { type: ExpressionType.REFERENCE, path: ['data', 'entryValidation'] } },
+        ],
+      } satisfies StepDefinition
+
+      // Act
+      const result = stepFactory.create(json)
+      const when = result.properties.validateOnEntry?.[0]?.when
+
+      // Assert
+      expect(when).not.toBe(true)
+      expect(when).toMatchObject({ type: ASTNodeType.EXPRESSION, expressionType: ExpressionType.REFERENCE })
+    })
   })
 })

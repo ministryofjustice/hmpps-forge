@@ -8,9 +8,9 @@ Rendering turns a Forge `RenderContext` into an HTTP response.
 filtering, and nested-block walking — and drives the host's `ForgeRenderer`
 methods to produce the HTML. It does this as real
 work types run by the `WorkExecutor`, not a hand-rolled traversal. The framework
-integration layer implements those render methods (template selection,
-view-locals merge, page assembly) and writes the finished outcome through the
-host framework.
+integration layer implements those render methods (template rendering and page
+assembly) and writes the finished outcome through the host framework. Forge
+core resolves inherited view configuration before it calls the renderer.
 
 This keeps the core engine independent of Express, Nunjucks, GOV.UK Frontend,
 MOJ Frontend, or any other rendering stack.
@@ -141,7 +141,7 @@ renderers consume the data.
 
 For the Express/Nunjucks adapter, it is mostly the `RenderContext`, but with
 top-level blocks replaced by rendered HTML strings. It also includes any locals
-provided by the Express app, response, journey views, or step view.
+provided by the Express app, response, or effective step view.
 
 This means page templates do not need to know how to render individual Forge
 blocks. They receive already-rendered block output, plus the step, ancestors,
@@ -156,12 +156,15 @@ engine's render phase calls its methods directly.
 
 `NunjucksRenderer` assembles a full page in its `assemblePage` method.
 
-`NunjucksRenderer` chooses the page template from the current step first, then
-from the nearest ancestor with a template, then from the configured default
-template.
+Before page assembly, `forge-core` combines journey views from root to leaf and
+then applies the current step view. The nearest declared template becomes
+`context.step.view.template`. View locals are merged by key in the same order,
+so nearer declarations replace ancestor values with the same key. Each
+ancestor's evaluated view also remains available on `context.ancestors` for
+integrations that need it.
 
-It also merges view locals from ancestors and the current step. Ancestor locals
-are applied from root to inner journey, and step locals are applied last.
+`NunjucksRenderer` uses that effective template, or its configured default when
+no template was declared, and adds the effective locals to the template context.
 
 ### Block rendering
 

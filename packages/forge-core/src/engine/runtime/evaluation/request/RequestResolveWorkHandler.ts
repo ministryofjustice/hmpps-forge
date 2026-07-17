@@ -3,6 +3,7 @@ import type { StepValidationFailure } from '../../../contracts/runtime/evaluatio
 import type { ValidationResult } from '../../../contracts/runtime/validationResult.type'
 import { resolvePathParams } from '../../../../framework/path/routePath'
 import type { RenderContext } from '../../../../framework/rendering/types'
+import type { ViewConfig } from '../../../../authoring/types/structures.type'
 import { buildCompiledResolveContext } from '../context/compiledEvaluationContext'
 import { resolveBacklinkRouteTemplatePath } from '../phases/reachability/reachabilityRedirects'
 import { RESOLVE_BLOCKS_KIND } from '../phases/resolve/ResolveBlocksWorkHandler'
@@ -24,8 +25,8 @@ export const REQUEST_RESOLVE_WORK_INSTRUMENTATION: WorkInstrumentation<RequestRe
 
 /**
  * The resolve phase as work. `begin` runs the compiled block task; `complete`
- * assembles the `RenderContext` from the resolved blocks plus the
- * navigation/validation signalling on the context. When a renderer is present,
+ * assembles the `RenderContext` from the resolved blocks, effective inherited
+ * view, and navigation/validation signalling on the context. When a renderer is present,
  * it stores the context for the render phase and continues. Otherwise it
  * returns the render context as the terminal outcome.
  */
@@ -60,11 +61,14 @@ export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', Reques
       throw new Error('Resolve work task completed with an invalid render result')
     }
 
-    const step = resolveStepMetadata(
+    const ancestors = output.ancestors as RenderContext['ancestors']
+    const stepMetadata = resolveStepMetadata(
       output.step as RenderContext['step'],
       ctx.request.context.request.params,
       ctx.request.reachabilityEvaluation,
     )
+    const view = resolveView(ancestors, stepMetadata.view)
+    const step = view === undefined ? stepMetadata : { ...stepMetadata, view }
 
     const showValidationFailures = ctx.request.showValidationFailures ?? false
     const fieldFailures = showValidationFailures ? (ctx.request.validation?.fieldFailures ?? []) : []
@@ -73,7 +77,7 @@ export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', Reques
     const renderContext: RenderContext = {
       routeTree: ctx.request.routeTree ?? [],
       step,
-      ancestors: output.ancestors as RenderContext['ancestors'],
+      ancestors,
       blocks: [...output.blocks],
       showValidationFailures,
       fieldValidationErrors: fieldFailures.map(stripBlockId),
@@ -90,6 +94,32 @@ export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', Reques
 
     return { action: 'render', renderContext }
   },
+}
+
+function resolveView(ancestors: RenderContext['ancestors'], stepView: ViewConfig | undefined): ViewConfig | undefined {
+  const viewConfigs = [
+    ...ancestors.flatMap(ancestor => (ancestor.view === undefined ? [] : [ancestor.view])),
+    ...(stepView === undefined ? [] : [stepView]),
+  ]
+
+  if (viewConfigs.length === 0) {
+    return undefined
+  }
+
+  const template = viewConfigs.reduce<string | undefined>(
+    (resolvedTemplate, view) => view.template ?? resolvedTemplate,
+    undefined,
+  )
+  const locals = viewConfigs.reduce<Record<string, unknown>>(
+    (resolvedLocals, view) => ({ ...resolvedLocals, ...view.locals }),
+    {},
+  )
+  const hasLocals = viewConfigs.some(view => view.locals !== undefined)
+
+  return {
+    ...(template === undefined ? {} : { template }),
+    ...(hasLocals ? { locals } : {}),
+  }
 }
 
 function resolveStepMetadata(

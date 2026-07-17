@@ -21,6 +21,7 @@ Resolve must run those nested tasks and replace them with completed outputs befo
 The raw compiled block props are not enough.
 Renderers need plain render blocks, not work tasks hidden inside property values.
 The request resolve handler combines those block outputs with the route tree built by the route-tree phase to build `RenderContext`.
+It also combines the evaluated view configurations carried by the ancestor and step metadata into the effective step view.
 
 ## Responsibilities
 
@@ -111,7 +112,7 @@ flowchart TD
 - `WorkTaskPropsWalker` owns traversal and replacement semantics.
   Resolve should use it rather than hand-walking props.
 - Request resolve owns `RenderContext` assembly.
-  This folder only returns resolve outputs.
+  It resolves inherited view configuration after this folder returns evaluated step and ancestor metadata.
 
 ## Quirks
 
