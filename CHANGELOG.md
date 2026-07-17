@@ -79,6 +79,25 @@ _Definitions, expressions, hooks, navigation, reachability_
   template context automatically, so templates just call `getErrorSummaryList()` with
   no arguments. ([#176])
 
+---
+
+### For adapter and renderer developers
+
+_Express adapter, Nunjucks renderer, test harness, framework integration_
+
+#### Improvements
+
+- **Forge core now resolves inherited view configuration.** Previously every renderer
+  had to combine journey and step `view` config itself - `NunjucksRenderer` walked the
+  ancestors for the nearest template and merged locals from root to step. That
+  resolution now happens in core's resolve phase: `RenderContext.step.view` arrives as
+  the effective view (nearest declared template wins, locals merged by key from the
+  root journey down to the step), so renderers just read `context.step.view` and fall
+  back to their own default template. Each ancestor's own evaluated view is still on
+  `context.ancestors` untouched, and a renderer that still merges them itself lands on
+  the same result - so nothing breaks, there's just nothing left to merge. ([#174])
+
+[#174]: https://github.com/ministryofjustice/hmpps-forge/pull/174
 [#175]: https://github.com/ministryofjustice/hmpps-forge/pull/175
 [#176]: https://github.com/ministryofjustice/hmpps-forge/pull/176
 
@@ -222,7 +241,7 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
 Compilation got a lot stricter - misplaced definitions and unregistered function names now
 fail at `registerPackage()` instead of silently vanishing or half-working. Function
 registration moves onto registry classes with central schema validation, deprecated APIs
-now warn at runtime, and request traces carry a lot more detail for the upcoming 
+now warn at runtime, and request traces carry a lot more detail for the upcoming
 devtools. Compilation now emits trace events of its own, too! Components also now declare
 the shape of value they can legitimately submit - a tampered POST body gets dropped
 before it ever reaches answer history.
@@ -311,13 +330,13 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   ```ts
   // Before
   const { effects: MyEffects, implementations } = defineEffectFunctions<Shapes, MyDeps>({ loadPlan })
-  
+
   createForgePackage({ journey, functions: implementations })
 
   // After
   const registry = new EffectRegistry<MyDeps>()
   const MyEffects = { loadPlan: registry.register('loadPlan', myEffectFn) }
-  
+
   createForgePackage({ journey, functions: registry })
   ```
 
@@ -357,7 +376,7 @@ _Express adapter, Nunjucks renderer, test harness, framework integration_
 
 #### Improvements
 
-- **Request traces carry a lot more detail.** `RequestTraceEvent`s (and phase and 
+- **Request traces carry a lot more detail.** `RequestTraceEvent`s (and phase and
   work
   unit traces) now include `startedAtMs`/`completedAtMs`/`durationMs`, the resolved route
   context (journey code and title, step title, route template path), the redirect target,
@@ -439,7 +458,7 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
 
 The engine internals have been pretty much rewritten - compilation is now properly scoped
 into phases, reachability is compiled at startup instead of rebuilt per request, and the
-runtime evaluates through a work tree model. 
+runtime evaluates through a work tree model.
 
 ---
 
@@ -510,11 +529,11 @@ _Definitions, expressions, hooks, navigation, reachability_
   condition fix above addresses the most common case, but custom conditions that don't
   handle `undefined`/`null` inputs will need updating.
 
-- Request tracing comes with both a performance hit and a security risk. It's 
-  quite useful for debugging locally, and it will eventually power Forge's 
-  devtools solution, but we would advise against using it unless you want to 
-  debug something specific in Forge's runtime. Also worth noting it currently 
-  does not cover any of Forge's compilation stage. 
+- Request tracing comes with both a performance hit and a security risk. It's
+  quite useful for debugging locally, and it will eventually power Forge's
+  devtools solution, but we would advise against using it unless you want to
+  debug something specific in Forge's runtime. Also worth noting it currently
+  does not cover any of Forge's compilation stage.
 
 ---
 
