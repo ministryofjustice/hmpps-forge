@@ -1,33 +1,32 @@
 import { NumberConditions, numberConditionsRegistry } from './numberConditions'
 import { FunctionType } from '../types/enums'
+import { FunctionRegistryTestHarness } from '../../testing/FunctionRegistryTestHarness'
 
 describe('NumberConditions', () => {
-  const registry = numberConditionsRegistry.build()
+  const harness = new FunctionRegistryTestHarness(numberConditionsRegistry)
 
   describe('IsNumber', () => {
-    const { evaluate } = registry['Number.IsNumber']
-
     test('should return true for valid numbers', () => {
-      expect(evaluate(0)).toBe(true)
-      expect(evaluate(42)).toBe(true)
-      expect(evaluate(-5)).toBe(true)
-      expect(evaluate(3.14)).toBe(true)
-      expect(evaluate(Infinity)).toBe(true)
-      expect(evaluate(-Infinity)).toBe(true)
+      expect(harness.evaluate(NumberConditions.IsNumber()).withInput(0)).toBe(true)
+      expect(harness.evaluate(NumberConditions.IsNumber()).withInput(42)).toBe(true)
+      expect(harness.evaluate(NumberConditions.IsNumber()).withInput(-5)).toBe(true)
+      expect(harness.evaluate(NumberConditions.IsNumber()).withInput(3.14)).toBe(true)
+      expect(harness.evaluate(NumberConditions.IsNumber()).withInput(Infinity)).toBe(true)
+      expect(harness.evaluate(NumberConditions.IsNumber()).withInput(-Infinity)).toBe(true)
     })
 
     test('should return false for NaN', () => {
-      expect(evaluate(NaN)).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsNumber()).withInput(NaN)).toBe(false)
     })
 
     test('should return false for non-numbers', () => {
-      expect(evaluate('42')).toBe(false)
-      expect(evaluate('')).toBe(false)
-      expect(evaluate(null)).toBe(false)
-      expect(evaluate(undefined)).toBe(false)
-      expect(evaluate(true)).toBe(false)
-      expect(evaluate({})).toBe(false)
-      expect(evaluate([])).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsNumber()).withInput('42')).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsNumber()).withInput('')).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsNumber()).withInput(null)).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsNumber()).withInput(undefined)).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsNumber()).withInput(true)).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsNumber()).withInput({})).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsNumber()).withInput([])).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -41,32 +40,30 @@ describe('NumberConditions', () => {
   })
 
   describe('IsInteger', () => {
-    const { evaluate } = registry['Number.IsInteger']
-
     test('should return true for integers', () => {
-      expect(evaluate(0)).toBe(true)
-      expect(evaluate(42)).toBe(true)
-      expect(evaluate(-5)).toBe(true)
-      expect(evaluate(1000000)).toBe(true)
+      expect(harness.evaluate(NumberConditions.IsInteger()).withInput(0)).toBe(true)
+      expect(harness.evaluate(NumberConditions.IsInteger()).withInput(42)).toBe(true)
+      expect(harness.evaluate(NumberConditions.IsInteger()).withInput(-5)).toBe(true)
+      expect(harness.evaluate(NumberConditions.IsInteger()).withInput(1000000)).toBe(true)
     })
 
     test('should return false for floats', () => {
-      expect(evaluate(3.14)).toBe(false)
-      expect(evaluate(0.5)).toBe(false)
-      expect(evaluate(-2.7)).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsInteger()).withInput(3.14)).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsInteger()).withInput(0.5)).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsInteger()).withInput(-2.7)).toBe(false)
     })
 
     test('should return false for NaN and Infinity', () => {
-      expect(evaluate(NaN)).toBe(false)
-      expect(evaluate(Infinity)).toBe(false)
-      expect(evaluate(-Infinity)).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsInteger()).withInput(NaN)).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsInteger()).withInput(Infinity)).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsInteger()).withInput(-Infinity)).toBe(false)
     })
 
     test('should return false for non-numbers', () => {
-      expect(evaluate('42')).toBe(false)
-      expect(evaluate('')).toBe(false)
-      expect(evaluate(null)).toBe(false)
-      expect(evaluate(undefined)).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsInteger()).withInput('42')).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsInteger()).withInput('')).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsInteger()).withInput(null)).toBe(false)
+      expect(harness.evaluate(NumberConditions.IsInteger()).withInput(undefined)).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -80,28 +77,29 @@ describe('NumberConditions', () => {
   })
 
   describe('GreaterThan', () => {
-    const { evaluate } = registry['Number.GreaterThan']
-
     test('should return true when value is greater than threshold', () => {
-      expect(evaluate(10, 5)).toBe(true)
-      expect(evaluate(0, -1)).toBe(true)
-      expect(evaluate(1.5, 1.4)).toBe(true)
+      expect(harness.evaluate(NumberConditions.GreaterThan(5)).withInput(10)).toBe(true)
+      expect(harness.evaluate(NumberConditions.GreaterThan(-1)).withInput(0)).toBe(true)
+      expect(harness.evaluate(NumberConditions.GreaterThan(1.4)).withInput(1.5)).toBe(true)
     })
 
     test('should return false when value is equal to threshold', () => {
-      expect(evaluate(5, 5)).toBe(false)
-      expect(evaluate(0, 0)).toBe(false)
+      expect(harness.evaluate(NumberConditions.GreaterThan(5)).withInput(5)).toBe(false)
+      expect(harness.evaluate(NumberConditions.GreaterThan(0)).withInput(0)).toBe(false)
     })
 
     test('should return false when value is less than threshold', () => {
-      expect(evaluate(3, 5)).toBe(false)
-      expect(evaluate(-1, 0)).toBe(false)
+      expect(harness.evaluate(NumberConditions.GreaterThan(5)).withInput(3)).toBe(false)
+      expect(harness.evaluate(NumberConditions.GreaterThan(0)).withInput(-1)).toBe(false)
     })
 
     test('should handle edge cases with Infinity and negative numbers', () => {
-      expect(evaluate(Infinity, 1000)).toBe(true)
-      expect(evaluate(-Infinity, 0)).toBe(false)
-      expect(evaluate(0, -Infinity)).toBe(true)
+      // An Infinity value fails the numberSchema inputSchema (Zod z.number() rejects
+      // non-finite numbers), so the condition soft-fails to false rather than comparing.
+      expect(harness.evaluate(NumberConditions.GreaterThan(1000)).withInput(Infinity)).toBe(false)
+      expect(harness.evaluate(NumberConditions.GreaterThan(0)).withInput(-Infinity)).toBe(false)
+      // An Infinity config argument fails the argumentsSchema, which is an author mistake and throws.
+      expect(() => harness.evaluate(NumberConditions.GreaterThan(-Infinity)).withInput(0)).toThrow(TypeError)
     })
 
     test('should build correct expression object', () => {
@@ -115,22 +113,20 @@ describe('NumberConditions', () => {
   })
 
   describe('GreaterThanOrEqual', () => {
-    const { evaluate } = registry['Number.GreaterThanOrEqual']
-
     test('should return true when value is greater than threshold', () => {
-      expect(evaluate(10, 5)).toBe(true)
-      expect(evaluate(1.6, 1.5)).toBe(true)
+      expect(harness.evaluate(NumberConditions.GreaterThanOrEqual(5)).withInput(10)).toBe(true)
+      expect(harness.evaluate(NumberConditions.GreaterThanOrEqual(1.5)).withInput(1.6)).toBe(true)
     })
 
     test('should return true when value is equal to threshold', () => {
-      expect(evaluate(5, 5)).toBe(true)
-      expect(evaluate(0, 0)).toBe(true)
-      expect(evaluate(-10, -10)).toBe(true)
+      expect(harness.evaluate(NumberConditions.GreaterThanOrEqual(5)).withInput(5)).toBe(true)
+      expect(harness.evaluate(NumberConditions.GreaterThanOrEqual(0)).withInput(0)).toBe(true)
+      expect(harness.evaluate(NumberConditions.GreaterThanOrEqual(-10)).withInput(-10)).toBe(true)
     })
 
     test('should return false when value is less than threshold', () => {
-      expect(evaluate(3, 5)).toBe(false)
-      expect(evaluate(-1, 0)).toBe(false)
+      expect(harness.evaluate(NumberConditions.GreaterThanOrEqual(5)).withInput(3)).toBe(false)
+      expect(harness.evaluate(NumberConditions.GreaterThanOrEqual(0)).withInput(-1)).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -144,28 +140,28 @@ describe('NumberConditions', () => {
   })
 
   describe('LessThan', () => {
-    const { evaluate } = registry['Number.LessThan']
-
     test('should return true when value is less than threshold', () => {
-      expect(evaluate(3, 5)).toBe(true)
-      expect(evaluate(-1, 0)).toBe(true)
-      expect(evaluate(1.4, 1.5)).toBe(true)
+      expect(harness.evaluate(NumberConditions.LessThan(5)).withInput(3)).toBe(true)
+      expect(harness.evaluate(NumberConditions.LessThan(0)).withInput(-1)).toBe(true)
+      expect(harness.evaluate(NumberConditions.LessThan(1.5)).withInput(1.4)).toBe(true)
     })
 
     test('should return false when value is equal to threshold', () => {
-      expect(evaluate(5, 5)).toBe(false)
-      expect(evaluate(0, 0)).toBe(false)
+      expect(harness.evaluate(NumberConditions.LessThan(5)).withInput(5)).toBe(false)
+      expect(harness.evaluate(NumberConditions.LessThan(0)).withInput(0)).toBe(false)
     })
 
     test('should return false when value is greater than threshold', () => {
-      expect(evaluate(10, 5)).toBe(false)
-      expect(evaluate(0, -1)).toBe(false)
+      expect(harness.evaluate(NumberConditions.LessThan(5)).withInput(10)).toBe(false)
+      expect(harness.evaluate(NumberConditions.LessThan(-1)).withInput(0)).toBe(false)
     })
 
     test('should handle edge cases with Infinity', () => {
-      expect(evaluate(-Infinity, 0)).toBe(true)
-      expect(evaluate(0, Infinity)).toBe(true)
-      expect(evaluate(Infinity, Infinity)).toBe(false)
+      // A -Infinity value fails the numberSchema inputSchema, so the condition soft-fails to false.
+      expect(harness.evaluate(NumberConditions.LessThan(0)).withInput(-Infinity)).toBe(false)
+      // An Infinity config argument fails the argumentsSchema, which is an author mistake and throws.
+      expect(() => harness.evaluate(NumberConditions.LessThan(Infinity)).withInput(0)).toThrow(TypeError)
+      expect(() => harness.evaluate(NumberConditions.LessThan(Infinity)).withInput(Infinity)).toThrow(TypeError)
     })
 
     test('should build correct expression object', () => {
@@ -179,22 +175,20 @@ describe('NumberConditions', () => {
   })
 
   describe('LessThanOrEqual', () => {
-    const { evaluate } = registry['Number.LessThanOrEqual']
-
     test('should return true when value is less than threshold', () => {
-      expect(evaluate(3, 5)).toBe(true)
-      expect(evaluate(-10, -5)).toBe(true)
+      expect(harness.evaluate(NumberConditions.LessThanOrEqual(5)).withInput(3)).toBe(true)
+      expect(harness.evaluate(NumberConditions.LessThanOrEqual(-5)).withInput(-10)).toBe(true)
     })
 
     test('should return true when value is equal to threshold', () => {
-      expect(evaluate(5, 5)).toBe(true)
-      expect(evaluate(0, 0)).toBe(true)
-      expect(evaluate(-7, -7)).toBe(true)
+      expect(harness.evaluate(NumberConditions.LessThanOrEqual(5)).withInput(5)).toBe(true)
+      expect(harness.evaluate(NumberConditions.LessThanOrEqual(0)).withInput(0)).toBe(true)
+      expect(harness.evaluate(NumberConditions.LessThanOrEqual(-7)).withInput(-7)).toBe(true)
     })
 
     test('should return false when value is greater than threshold', () => {
-      expect(evaluate(10, 5)).toBe(false)
-      expect(evaluate(0, -1)).toBe(false)
+      expect(harness.evaluate(NumberConditions.LessThanOrEqual(5)).withInput(10)).toBe(false)
+      expect(harness.evaluate(NumberConditions.LessThanOrEqual(-1)).withInput(0)).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -208,45 +202,43 @@ describe('NumberConditions', () => {
   })
 
   describe('Between', () => {
-    const { evaluate } = registry['Number.Between']
-
     test('should return true when value is between min and max (inclusive)', () => {
-      expect(evaluate(5, 1, 10)).toBe(true)
-      expect(evaluate(1, 1, 10)).toBe(true)
-      expect(evaluate(10, 1, 10)).toBe(true)
-      expect(evaluate(0, -5, 5)).toBe(true)
+      expect(harness.evaluate(NumberConditions.Between(1, 10)).withInput(5)).toBe(true)
+      expect(harness.evaluate(NumberConditions.Between(1, 10)).withInput(1)).toBe(true)
+      expect(harness.evaluate(NumberConditions.Between(1, 10)).withInput(10)).toBe(true)
+      expect(harness.evaluate(NumberConditions.Between(-5, 5)).withInput(0)).toBe(true)
     })
 
     test('should return false when value is outside the range', () => {
-      expect(evaluate(0, 1, 10)).toBe(false)
-      expect(evaluate(11, 1, 10)).toBe(false)
-      expect(evaluate(-6, -5, 5)).toBe(false)
+      expect(harness.evaluate(NumberConditions.Between(1, 10)).withInput(0)).toBe(false)
+      expect(harness.evaluate(NumberConditions.Between(1, 10)).withInput(11)).toBe(false)
+      expect(harness.evaluate(NumberConditions.Between(-5, 5)).withInput(-6)).toBe(false)
     })
 
     test('should handle decimal values', () => {
-      expect(evaluate(5.5, 5.0, 6.0)).toBe(true)
-      expect(evaluate(5.0, 5.0, 6.0)).toBe(true)
-      expect(evaluate(6.0, 5.0, 6.0)).toBe(true)
-      expect(evaluate(4.9, 5.0, 6.0)).toBe(false)
-      expect(evaluate(6.1, 5.0, 6.0)).toBe(false)
+      expect(harness.evaluate(NumberConditions.Between(5.0, 6.0)).withInput(5.5)).toBe(true)
+      expect(harness.evaluate(NumberConditions.Between(5.0, 6.0)).withInput(5.0)).toBe(true)
+      expect(harness.evaluate(NumberConditions.Between(5.0, 6.0)).withInput(6.0)).toBe(true)
+      expect(harness.evaluate(NumberConditions.Between(5.0, 6.0)).withInput(4.9)).toBe(false)
+      expect(harness.evaluate(NumberConditions.Between(5.0, 6.0)).withInput(6.1)).toBe(false)
     })
 
     test('should handle negative ranges', () => {
-      expect(evaluate(-5, -10, -1)).toBe(true)
-      expect(evaluate(-10, -10, -1)).toBe(true)
-      expect(evaluate(-1, -10, -1)).toBe(true)
-      expect(evaluate(0, -10, -1)).toBe(false)
+      expect(harness.evaluate(NumberConditions.Between(-10, -1)).withInput(-5)).toBe(true)
+      expect(harness.evaluate(NumberConditions.Between(-10, -1)).withInput(-10)).toBe(true)
+      expect(harness.evaluate(NumberConditions.Between(-10, -1)).withInput(-1)).toBe(true)
+      expect(harness.evaluate(NumberConditions.Between(-10, -1)).withInput(0)).toBe(false)
     })
 
     test('should handle single-point range', () => {
-      expect(evaluate(5, 5, 5)).toBe(true)
-      expect(evaluate(4, 5, 5)).toBe(false)
-      expect(evaluate(6, 5, 5)).toBe(false)
+      expect(harness.evaluate(NumberConditions.Between(5, 5)).withInput(5)).toBe(true)
+      expect(harness.evaluate(NumberConditions.Between(5, 5)).withInput(4)).toBe(false)
+      expect(harness.evaluate(NumberConditions.Between(5, 5)).withInput(6)).toBe(false)
     })
 
     test('should handle inverted ranges (max < min)', () => {
-      expect(evaluate(5, 10, 1)).toBe(false)
-      expect(evaluate(5, 10, 5)).toBe(false)
+      expect(harness.evaluate(NumberConditions.Between(10, 1)).withInput(5)).toBe(false)
+      expect(harness.evaluate(NumberConditions.Between(10, 5)).withInput(5)).toBe(false)
     })
 
     test('should build correct expression object', () => {
