@@ -1,17 +1,16 @@
-import { dateTransformersRegistry } from './dateTransformers'
-
-const DateTransformersRegistry = dateTransformersRegistry.build()
+import { DateTransformers, dateTransformersRegistry } from './dateTransformers'
+import { FunctionRegistryTestHarness } from '../../testing/FunctionRegistryTestHarness'
 
 describe('DateTransformers', () => {
-  describe('Format', () => {
-    const { evaluate } = DateTransformersRegistry['Date.Format']
+  const harness = new FunctionRegistryTestHarness(dateTransformersRegistry)
 
+  describe('Format', () => {
     it('should format date with DD/MM/YYYY pattern', () => {
       // Arrange
       const date = new Date(2024, 2, 15) // March 15, 2024
 
       // Act
-      const result = evaluate(date, 'DD/MM/YYYY')
+      const result = harness.evaluate(DateTransformers.Format('DD/MM/YYYY')).withInput(date)
 
       // Assert
       expect(result).toBe('15/03/2024')
@@ -22,7 +21,7 @@ describe('DateTransformers', () => {
       const date = new Date(2024, 2, 15)
 
       // Act
-      const result = evaluate(date, 'YYYY-MM-DD')
+      const result = harness.evaluate(DateTransformers.Format('YYYY-MM-DD')).withInput(date)
 
       // Assert
       expect(result).toBe('2024-03-15')
@@ -33,7 +32,7 @@ describe('DateTransformers', () => {
       const date = new Date(2024, 2, 15, 14, 30, 45)
 
       // Act
-      const result = evaluate(date, 'DD/MM/YYYY HH:mm:ss')
+      const result = harness.evaluate(DateTransformers.Format('DD/MM/YYYY HH:mm:ss')).withInput(date)
 
       // Assert
       expect(result).toBe('15/03/2024 14:30:45')
@@ -44,7 +43,7 @@ describe('DateTransformers', () => {
       const date = new Date(2024, 2, 5, 9, 5, 3) // March 5, 2024 09:05:03
 
       // Act
-      const result = evaluate(date, 'D/M/YYYY H:m:s')
+      const result = harness.evaluate(DateTransformers.Format('D/M/YYYY H:m:s')).withInput(date)
 
       // Assert
       expect(result).toBe('5/3/2024 9:5:3')
@@ -52,19 +51,19 @@ describe('DateTransformers', () => {
 
     it('should throw on non-Date input', () => {
       // Act & Assert
-      expect(() => evaluate('not a date', 'DD/MM/YYYY')).toThrow('expects a Date object')
+      expect(() => harness.evaluate(DateTransformers.Format('DD/MM/YYYY')).withInput('not a date')).toThrow(
+        'expects a Date object',
+      )
     })
   })
 
   describe('AddDays', () => {
-    const { evaluate } = DateTransformersRegistry['Date.AddDays']
-
     it('should add days to a date', () => {
       // Arrange
       const date = new Date(2024, 2, 15)
 
       // Act
-      const result = evaluate(date, 7)
+      const result = harness.evaluate(DateTransformers.AddDays(7)).withInput(date) as Date
 
       // Assert
       expect(result.getDate()).toBe(22)
@@ -76,7 +75,7 @@ describe('DateTransformers', () => {
       const date = new Date(2024, 2, 30) // March 30
 
       // Act
-      const result = evaluate(date, 5)
+      const result = harness.evaluate(DateTransformers.AddDays(5)).withInput(date) as Date
 
       // Assert
       expect(result.getMonth()).toBe(3) // April
@@ -88,7 +87,7 @@ describe('DateTransformers', () => {
       const date = new Date(2024, 2, 15)
 
       // Act
-      const result = evaluate(date, -10)
+      const result = harness.evaluate(DateTransformers.AddDays(-10)).withInput(date) as Date
 
       // Assert
       expect(result.getDate()).toBe(5)
@@ -96,14 +95,12 @@ describe('DateTransformers', () => {
   })
 
   describe('SubtractDays', () => {
-    const { evaluate } = DateTransformersRegistry['Date.SubtractDays']
-
     it('should subtract days from a date', () => {
       // Arrange
       const date = new Date(2024, 2, 15)
 
       // Act
-      const result = evaluate(date, 7)
+      const result = harness.evaluate(DateTransformers.SubtractDays(7)).withInput(date) as Date
 
       // Assert
       expect(result.getDate()).toBe(8)
@@ -111,14 +108,12 @@ describe('DateTransformers', () => {
   })
 
   describe('AddMonths', () => {
-    const { evaluate } = DateTransformersRegistry['Date.AddMonths']
-
     it('should add months to a date', () => {
       // Arrange
       const date = new Date(2024, 2, 15) // March 15
 
       // Act
-      const result = evaluate(date, 3)
+      const result = harness.evaluate(DateTransformers.AddMonths(3)).withInput(date) as Date
 
       // Assert
       expect(result.getMonth()).toBe(5) // June
@@ -130,7 +125,7 @@ describe('DateTransformers', () => {
       const date = new Date(2024, 10, 15) // November 15
 
       // Act
-      const result = evaluate(date, 3)
+      const result = harness.evaluate(DateTransformers.AddMonths(3)).withInput(date) as Date
 
       // Assert
       expect(result.getFullYear()).toBe(2025)
@@ -139,14 +134,12 @@ describe('DateTransformers', () => {
   })
 
   describe('AddYears', () => {
-    const { evaluate } = DateTransformersRegistry['Date.AddYears']
-
     it('should add years to a date', () => {
       // Arrange
       const date = new Date(2024, 2, 15)
 
       // Act
-      const result = evaluate(date, 5)
+      const result = harness.evaluate(DateTransformers.AddYears(5)).withInput(date) as Date
 
       // Assert
       expect(result.getFullYear()).toBe(2029)
@@ -157,7 +150,7 @@ describe('DateTransformers', () => {
       const date = new Date(2024, 2, 15)
 
       // Act
-      const result = evaluate(date, -18)
+      const result = harness.evaluate(DateTransformers.AddYears(-18)).withInput(date) as Date
 
       // Assert
       expect(result.getFullYear()).toBe(2006)
@@ -165,14 +158,12 @@ describe('DateTransformers', () => {
   })
 
   describe('StartOfDay', () => {
-    const { evaluate } = DateTransformersRegistry['Date.StartOfDay']
-
     it('should return midnight of the given date', () => {
       // Arrange
       const date = new Date(2024, 2, 15, 14, 30, 45, 123)
 
       // Act
-      const result = evaluate(date)
+      const result = harness.evaluate(DateTransformers.StartOfDay()).withInput(date) as Date
 
       // Assert
       expect(result.getHours()).toBe(0)
@@ -184,14 +175,12 @@ describe('DateTransformers', () => {
   })
 
   describe('EndOfDay', () => {
-    const { evaluate } = DateTransformersRegistry['Date.EndOfDay']
-
     it('should return end of day for the given date', () => {
       // Arrange
       const date = new Date(2024, 2, 15, 14, 30, 45)
 
       // Act
-      const result = evaluate(date)
+      const result = harness.evaluate(DateTransformers.EndOfDay()).withInput(date) as Date
 
       // Assert
       expect(result.getHours()).toBe(23)
@@ -203,14 +192,12 @@ describe('DateTransformers', () => {
   })
 
   describe('ToISOString', () => {
-    const { evaluate } = DateTransformersRegistry['Date.ToISOString']
-
     it('should convert date to ISO string', () => {
       // Arrange
       const date = new Date(Date.UTC(2024, 2, 15, 14, 30, 45, 123))
 
       // Act
-      const result = evaluate(date)
+      const result = harness.evaluate(DateTransformers.ToISOString()).withInput(date)
 
       // Assert
       expect(result).toBe('2024-03-15T14:30:45.123Z')
@@ -218,14 +205,12 @@ describe('DateTransformers', () => {
   })
 
   describe('ToLocaleString', () => {
-    const { evaluate } = DateTransformersRegistry['Date.ToLocaleString']
-
     it('should convert date to locale string', () => {
       // Arrange
       const date = new Date(2024, 2, 15, 14, 30, 45)
 
       // Act
-      const result = evaluate(date)
+      const result = harness.evaluate(DateTransformers.ToLocaleString()).withInput(date) as string
 
       // Assert
       expect(typeof result).toBe('string')
@@ -237,7 +222,7 @@ describe('DateTransformers', () => {
       const date = new Date(2024, 2, 15, 14, 30, 45)
 
       // Act
-      const result = evaluate(date, 'en-US')
+      const result = harness.evaluate(DateTransformers.ToLocaleString('en-US')).withInput(date)
 
       // Assert
       expect(typeof result).toBe('string')
@@ -251,7 +236,7 @@ describe('DateTransformers', () => {
       const originalTime = original.getTime()
 
       // Act
-      DateTransformersRegistry['Date.AddDays'].evaluate(original, 7)
+      harness.evaluate(DateTransformers.AddDays(7)).withInput(original)
 
       // Assert
       expect(original.getTime()).toBe(originalTime)
@@ -263,7 +248,7 @@ describe('DateTransformers', () => {
       const originalTime = original.getTime()
 
       // Act
-      DateTransformersRegistry['Date.AddMonths'].evaluate(original, 3)
+      harness.evaluate(DateTransformers.AddMonths(3)).withInput(original)
 
       // Assert
       expect(original.getTime()).toBe(originalTime)

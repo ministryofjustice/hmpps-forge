@@ -55,6 +55,10 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ## 0.3.4
 
+In this release, we focused on testing - one-line outcome assertions for journey tests,
+and registered functions can now be unit tested through the engine's real evaluation
+pipeline instead of calling the raw evaluator and skipping it.
+
 ### For journey authors
 
 _Definitions, expressions, hooks, navigation, reachability_
@@ -71,7 +75,36 @@ _Definitions, expressions, hooks, navigation, reachability_
   step's title), and its `asserts` signature narrows `result` for the rest of the
   test. ([#180])
 
+---
+
+### For function and component authors
+
+_Conditions, transformers, effects, generators, iterators, component packages_
+
+#### New
+
+- **Test registered functions through the real evaluation pipeline.** Previously the
+  only way to unit test a registered function was to call the raw evaluator off
+  `registry.build()` - which skips everything the engine wraps around the call at
+  runtime: `argumentsSchema`/`inputSchema` prechecks, the undefined short-circuit and
+  output validation, so a wrong schema shipped silently. `FunctionRegistryTestHarness`
+  (from `core/testing`) takes a registry (or an array of them) plus deps, and evaluates
+  the expression the author-facing handle returns through the same prechecks, evaluation
+  and output validation production runs: `harness.evaluate(IsAdult(18)).withInput(21)`
+  for conditions and transformers, `.withContext(context)` for effects, and generators
+  run straight off `evaluate()`. The built-in condition, transformer and generator
+  suites now run through it. ([#181])
+
+- **`createTestEffectContext` builds a real effect context for tests.** Effect tests
+  previously hand-rolled fake contexts - a `Pick` of whichever getters the effect
+  happened to touch, drifting from the real class and its mutation-history behaviour.
+  `createTestEffectContext({ answers, data, session, ... })` returns a genuine
+  `EffectFunctionContext` over in-memory state, plus `getResponseHeaders()` and
+  `getResponseCookies()` to read back what an effect wrote through the response setters.
+  ([#181])
+
 [#180]: https://github.com/ministryofjustice/hmpps-forge/pull/180
+[#181]: https://github.com/ministryofjustice/hmpps-forge/pull/181
 
 ---
 

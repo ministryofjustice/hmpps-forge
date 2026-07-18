@@ -1,61 +1,58 @@
 import { ArrayConditions, arrayConditionsRegistry } from './arrayConditions'
 import { FunctionType } from '../types/enums'
+import { FunctionRegistryTestHarness } from '../../testing/FunctionRegistryTestHarness'
 
 describe('ArrayConditions', () => {
-  const registry = arrayConditionsRegistry.build()
+  const harness = new FunctionRegistryTestHarness(arrayConditionsRegistry)
 
   describe('IsArray', () => {
-    const { evaluate } = registry['Array.IsArray']
-
     test('should return true when value is an array', () => {
-      expect(evaluate([])).toBe(true)
-      expect(evaluate(['foo', 'bar', 'baz'])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.IsArray()).withInput([])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.IsArray()).withInput(['foo', 'bar', 'baz'])).toBe(true)
     })
 
     test('should return false when value is not an array', () => {
-      expect(evaluate('foo')).toBe(false)
-      expect(evaluate(123)).toBe(false)
-      expect(evaluate(null)).toBe(false)
-      expect(evaluate(undefined)).toBe(false)
-      expect(evaluate({})).toBe(false)
+      expect(harness.evaluate(ArrayConditions.IsArray()).withInput('foo')).toBe(false)
+      expect(harness.evaluate(ArrayConditions.IsArray()).withInput(123)).toBe(false)
+      expect(harness.evaluate(ArrayConditions.IsArray()).withInput(null)).toBe(false)
+      expect(harness.evaluate(ArrayConditions.IsArray()).withInput(undefined)).toBe(false)
+      expect(harness.evaluate(ArrayConditions.IsArray()).withInput({})).toBe(false)
     })
   })
 
   describe('IsIn', () => {
-    const { evaluate } = registry['Array.IsIn']
-
     test('should return true when value is in the expected array', () => {
-      expect(evaluate('apple', ['apple', 'banana', 'orange'])).toBe(true)
-      expect(evaluate(1, [1, 2, 3])).toBe(true)
-      expect(evaluate(true, [false, true])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.IsIn(['apple', 'banana', 'orange'])).withInput('apple')).toBe(true)
+      expect(harness.evaluate(ArrayConditions.IsIn([1, 2, 3])).withInput(1)).toBe(true)
+      expect(harness.evaluate(ArrayConditions.IsIn([false, true])).withInput(true)).toBe(true)
     })
 
     test('should return false when value is not in the expected array', () => {
-      expect(evaluate('grape', ['apple', 'banana', 'orange'])).toBe(false)
-      expect(evaluate(4, [1, 2, 3])).toBe(false)
-      expect(evaluate('1', [1, 2, 3])).toBe(false)
-      expect(evaluate(false, [true])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.IsIn(['apple', 'banana', 'orange'])).withInput('grape')).toBe(false)
+      expect(harness.evaluate(ArrayConditions.IsIn([1, 2, 3])).withInput(4)).toBe(false)
+      expect(harness.evaluate(ArrayConditions.IsIn([1, 2, 3])).withInput('1')).toBe(false)
+      expect(harness.evaluate(ArrayConditions.IsIn([true])).withInput(false)).toBe(false)
     })
 
     test('should handle empty array', () => {
-      expect(evaluate('anything', [])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.IsIn([])).withInput('anything')).toBe(false)
     })
 
     test('should use strict equality', () => {
-      expect(evaluate('1', [1])).toBe(false)
-      expect(evaluate(1, ['1'])).toBe(false)
-      expect(evaluate(0, [false])).toBe(false)
-      expect(evaluate(false, [0])).toBe(false)
-      expect(evaluate(null, [undefined])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.IsIn([1])).withInput('1')).toBe(false)
+      expect(harness.evaluate(ArrayConditions.IsIn(['1'])).withInput(1)).toBe(false)
+      expect(harness.evaluate(ArrayConditions.IsIn([false])).withInput(0)).toBe(false)
+      expect(harness.evaluate(ArrayConditions.IsIn([0])).withInput(false)).toBe(false)
+      expect(harness.evaluate(ArrayConditions.IsIn([undefined])).withInput(null)).toBe(false)
     })
 
     test('should handle complex values', () => {
       const obj = { a: 1 }
       const arr = [1, 2]
-      expect(evaluate(obj, [obj, { b: 2 }])).toBe(true)
-      expect(evaluate(arr, [arr, [3, 4]])).toBe(true)
-      expect(evaluate({ a: 1 }, [{ a: 1 }])).toBe(false)
-      expect(evaluate([1, 2], [[1, 2]])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.IsIn([obj, { b: 2 }])).withInput(obj)).toBe(true)
+      expect(harness.evaluate(ArrayConditions.IsIn([arr, [3, 4]])).withInput(arr)).toBe(true)
+      expect(harness.evaluate(ArrayConditions.IsIn([{ a: 1 }])).withInput({ a: 1 })).toBe(false)
+      expect(harness.evaluate(ArrayConditions.IsIn([[1, 2]])).withInput([1, 2])).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -69,38 +66,36 @@ describe('ArrayConditions', () => {
   })
 
   describe('Contains', () => {
-    const { evaluate } = registry['Array.Contains']
-
     test('should return true when value array contains the expected value', () => {
-      expect(evaluate(['apple', 'banana'], 'apple')).toBe(true)
-      expect(evaluate([1, 2, 3], 2)).toBe(true)
-      expect(evaluate([true, false], false)).toBe(true)
+      expect(harness.evaluate(ArrayConditions.Contains('apple')).withInput(['apple', 'banana'])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.Contains(2)).withInput([1, 2, 3])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.Contains(false)).withInput([true, false])).toBe(true)
     })
 
     test('should return false when value array does not contain the expected value', () => {
-      expect(evaluate(['apple', 'banana'], 'orange')).toBe(false)
-      expect(evaluate([1, 2, 3], 4)).toBe(false)
-      expect(evaluate([true], false)).toBe(false)
+      expect(harness.evaluate(ArrayConditions.Contains('orange')).withInput(['apple', 'banana'])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.Contains(4)).withInput([1, 2, 3])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.Contains(false)).withInput([true])).toBe(false)
     })
 
     test('should handle empty array', () => {
-      expect(evaluate([], 'anything')).toBe(false)
+      expect(harness.evaluate(ArrayConditions.Contains('anything')).withInput([])).toBe(false)
     })
 
     test('should use strict equality', () => {
-      expect(evaluate([1, 2, 3], '2')).toBe(false)
-      expect(evaluate(['1', '2', '3'], 2)).toBe(false)
-      expect(evaluate([0], false)).toBe(false)
-      expect(evaluate([false], 0)).toBe(false)
+      expect(harness.evaluate(ArrayConditions.Contains('2')).withInput([1, 2, 3])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.Contains(2)).withInput(['1', '2', '3'])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.Contains(false)).withInput([0])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.Contains(0)).withInput([false])).toBe(false)
     })
 
     test('should handle complex values', () => {
       const obj = { a: 1 }
       const arr = [1, 2]
-      expect(evaluate([obj, { b: 2 }], obj)).toBe(true)
-      expect(evaluate([arr, [3, 4]], arr)).toBe(true)
-      expect(evaluate([{ a: 1 }], { a: 1 })).toBe(false)
-      expect(evaluate([[1, 2]], [1, 2])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.Contains(obj)).withInput([obj, { b: 2 }])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.Contains(arr)).withInput([arr, [3, 4]])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.Contains({ a: 1 })).withInput([{ a: 1 }])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.Contains([1, 2])).withInput([[1, 2]])).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -114,32 +109,34 @@ describe('ArrayConditions', () => {
   })
 
   describe('ContainsAny', () => {
-    const { evaluate } = registry['Array.ContainsAny']
-
     test('should return true when value array contains any of the items from expected array', () => {
-      expect(evaluate(['apple', 'banana'], ['orange', 'apple'])).toBe(true)
-      expect(evaluate([1, 2, 3], [3, 4, 5])).toBe(true)
-      expect(evaluate(['a', 'b', 'c'], ['x', 'y', 'z', 'a'])).toBe(true)
-      expect(evaluate([true, false], [false])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAny(['orange', 'apple'])).withInput(['apple', 'banana'])).toBe(
+        true,
+      )
+      expect(harness.evaluate(ArrayConditions.ContainsAny([3, 4, 5])).withInput([1, 2, 3])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAny(['x', 'y', 'z', 'a'])).withInput(['a', 'b', 'c'])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAny([false])).withInput([true, false])).toBe(true)
     })
 
     test('should return false when value array contains none of the items from expected array', () => {
-      expect(evaluate(['apple', 'banana'], ['orange', 'grape'])).toBe(false)
-      expect(evaluate([1, 2, 3], [4, 5, 6])).toBe(false)
-      expect(evaluate(['a', 'b'], ['x', 'y', 'z'])).toBe(false)
-      expect(evaluate([true], [false])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAny(['orange', 'grape'])).withInput(['apple', 'banana'])).toBe(
+        false,
+      )
+      expect(harness.evaluate(ArrayConditions.ContainsAny([4, 5, 6])).withInput([1, 2, 3])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAny(['x', 'y', 'z'])).withInput(['a', 'b'])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAny([false])).withInput([true])).toBe(false)
     })
 
     test('should handle empty arrays', () => {
-      expect(evaluate([], ['anything'])).toBe(false)
-      expect(evaluate([], [])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAny(['anything'])).withInput([])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAny([])).withInput([])).toBe(true)
     })
 
     test('should use strict equality', () => {
-      expect(evaluate([1, 2], ['1', '2'])).toBe(false)
-      expect(evaluate(['1', '2'], [1, 2])).toBe(false)
-      expect(evaluate([0], [false])).toBe(false)
-      expect(evaluate([false], [0])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAny(['1', '2'])).withInput([1, 2])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAny([1, 2])).withInput(['1', '2'])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAny([false])).withInput([0])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAny([0])).withInput([false])).toBe(false)
     })
 
     test('should handle complex values with reference equality', () => {
@@ -148,10 +145,10 @@ describe('ArrayConditions', () => {
       const arr1 = [1, 2]
       const arr2 = [1, 2]
 
-      expect(evaluate([obj1, 'test'], [obj1, obj2])).toBe(true)
-      expect(evaluate([obj1, 'test'], [obj2])).toBe(false)
-      expect(evaluate([arr1, 'test'], [arr1, arr2])).toBe(true)
-      expect(evaluate([arr1, 'test'], [arr2])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAny([obj1, obj2])).withInput([obj1, 'test'])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAny([obj2])).withInput([obj1, 'test'])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAny([arr1, arr2])).withInput([arr1, 'test'])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAny([arr2])).withInput([arr1, 'test'])).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -165,46 +162,52 @@ describe('ArrayConditions', () => {
   })
 
   describe('ContainsAll', () => {
-    const { evaluate } = registry['Array.ContainsAll']
-
     test('should return true when all items in value array are in expected array', () => {
-      expect(evaluate(['apple', 'banana'], ['apple', 'banana', 'orange'])).toBe(true)
-      expect(evaluate([1, 2], [1, 2, 3, 4])).toBe(true)
-      expect(evaluate(['a'], ['a', 'b', 'c'])).toBe(true)
-      expect(evaluate([true], [true, false])).toBe(true)
-      expect(evaluate([], ['anything'])).toBe(true)
+      expect(
+        harness.evaluate(ArrayConditions.ContainsAll(['apple', 'banana', 'orange'])).withInput(['apple', 'banana']),
+      ).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAll([1, 2, 3, 4])).withInput([1, 2])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAll(['a', 'b', 'c'])).withInput(['a'])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAll([true, false])).withInput([true])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAll(['anything'])).withInput([])).toBe(true)
     })
 
     test('should return true for identical arrays regardless of order', () => {
-      expect(evaluate(['apple', 'banana'], ['banana', 'apple'])).toBe(true)
-      expect(evaluate([1, 2, 3], [3, 1, 2])).toBe(true)
-      expect(evaluate(['a', 'b', 'c'], ['c', 'a', 'b'])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAll(['banana', 'apple'])).withInput(['apple', 'banana'])).toBe(
+        true,
+      )
+      expect(harness.evaluate(ArrayConditions.ContainsAll([3, 1, 2])).withInput([1, 2, 3])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAll(['c', 'a', 'b'])).withInput(['a', 'b', 'c'])).toBe(true)
     })
 
     test('should return false when value array has items not in expected array', () => {
-      expect(evaluate(['apple', 'grape'], ['apple', 'banana'])).toBe(false)
-      expect(evaluate([1, 2, 5], [1, 2, 3, 4])).toBe(false)
-      expect(evaluate(['a', 'x'], ['a', 'b', 'c'])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAll(['apple', 'banana'])).withInput(['apple', 'grape'])).toBe(
+        false,
+      )
+      expect(harness.evaluate(ArrayConditions.ContainsAll([1, 2, 3, 4])).withInput([1, 2, 5])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAll(['a', 'b', 'c'])).withInput(['a', 'x'])).toBe(false)
     })
 
     test('should handle empty arrays', () => {
-      expect(evaluate([], [])).toBe(true)
-      expect(evaluate([], ['anything'])).toBe(true)
-      expect(evaluate(['anything'], [])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAll([])).withInput([])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAll(['anything'])).withInput([])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAll([])).withInput(['anything'])).toBe(false)
     })
 
     test('should handle duplicate values correctly', () => {
-      expect(evaluate(['apple', 'apple'], ['apple', 'banana'])).toBe(true)
-      expect(evaluate([1, 1, 2], [1, 2, 3])).toBe(true)
-      expect(evaluate(['a', 'a', 'b'], ['a', 'b'])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAll(['apple', 'banana'])).withInput(['apple', 'apple'])).toBe(
+        true,
+      )
+      expect(harness.evaluate(ArrayConditions.ContainsAll([1, 2, 3])).withInput([1, 1, 2])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAll(['a', 'b'])).withInput(['a', 'a', 'b'])).toBe(true)
     })
 
     test('should use strict equality', () => {
-      expect(evaluate([1, 2], ['1', '2', 3])).toBe(false)
-      expect(evaluate(['1', '2'], [1, 2, 3])).toBe(false)
-      expect(evaluate([0], [false, 1])).toBe(false)
-      expect(evaluate([false], [0, 1])).toBe(false)
-      expect(evaluate([null], [undefined, 'test'])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAll(['1', '2', 3])).withInput([1, 2])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAll([1, 2, 3])).withInput(['1', '2'])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAll([false, 1])).withInput([0])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAll([0, 1])).withInput([false])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAll([undefined, 'test'])).withInput([null])).toBe(false)
     })
 
     test('should handle complex values with reference equality', () => {
@@ -213,10 +216,10 @@ describe('ArrayConditions', () => {
       const arr1 = [1, 2]
       const arr2 = [1, 2]
 
-      expect(evaluate([obj1], [obj1, obj2])).toBe(true)
-      expect(evaluate([obj1], [obj2])).toBe(false)
-      expect(evaluate([arr1], [arr1, arr2])).toBe(true)
-      expect(evaluate([arr1], [arr2])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAll([obj1, obj2])).withInput([obj1])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAll([obj2])).withInput([obj1])).toBe(false)
+      expect(harness.evaluate(ArrayConditions.ContainsAll([arr1, arr2])).withInput([arr1])).toBe(true)
+      expect(harness.evaluate(ArrayConditions.ContainsAll([arr2])).withInput([arr1])).toBe(false)
     })
 
     test('should build correct expression object', () => {
