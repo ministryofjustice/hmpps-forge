@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { RequestTraceEvent } from '../../src/testing'
+import { expectErrorOutcome, type RequestTraceEvent } from '../../src/testing'
+import ForgeRuntimeEvaluationError, {
+  getForgeRuntimeEvaluationDiagnostics,
+} from '../../src/engine/errors/ForgeRuntimeEvaluationError'
 import { answerOf, answersFromTrace } from './contractHelpers'
 import {
   createHooksClient,
@@ -33,6 +36,11 @@ import {
   submitGuardsBlocksEffectsJourney,
   journeyRootAccessRedirectJourney,
   crashingEffectJourney,
+  httpErrorEffectJourney,
+  nonErrorEffectJourney,
+  accidentalEffectError,
+  httpEffectError,
+  nonErrorEffectFailure,
 } from './hooks.fixtures'
 
 describe('hooks and effects contracts', () => {
@@ -202,12 +210,11 @@ describe('hooks and effects contracts', () => {
       })
 
       // Assert
-      expect(result.type).toBe('error')
-
-      if (result.type === 'error') {
-        expect(result.status).toBe(503)
-        expect(result.message).toBe('Service unavailable')
-      }
+      expectErrorOutcome(result)
+      expect(result.error).toBeInstanceOf(Error)
+      expect(result.error.status).toBe(503)
+      expect(result.error.statusCode).toBe(503)
+      expect(result.error.message).toBe('Service unavailable')
     })
 
     it('should run onAlways effects before onInvalid effects when validation fails', async () => {
@@ -746,16 +753,78 @@ describe('hooks and effects contracts', () => {
   })
 
   describe('trace emission', () => {
-    it('should emit trace to observer even when pipeline throws an unhandled error', async () => {
+    it('should emit a failed trace when the request pipeline fails', async () => {
       // Arrange
       const traces: RequestTraceEvent[] = []
       const client = createTracedHooksClient(crashingEffectJourney, traces)
 
-      // Act & Assert
-      await expect(client.get('/crash-effect/form', { session: {} })).rejects.toThrow('boom')
+      // Act
+      const result = await client.get('/crash-effect/form', { session: {} })
 
+      // Assert
+      expectErrorOutcome(result)
+      expect(result.error).toBe(accidentalEffectError)
       expect(traces).toHaveLength(1)
       expect(traces[0].trace.outcome).toBe('error')
+      expect(traces[0].trace.error).toEqual({
+        message: accidentalEffectError.message,
+        stack: accidentalEffectError.stack,
+      })
+    })
+  })
+
+  describe('error outcomes', () => {
+    it('should preserve an HTTP Error thrown by an effect', async () => {
+      // Arrange
+      const client = createHooksClient(httpErrorEffectJourney)
+
+      // Act
+      const result = await client.get('/http-error-effect/form', { session: {} })
+
+      // Assert
+      expectErrorOutcome(result)
+      expect(result.error).toBe(httpEffectError)
+      expect(result.error.status).toBe(404)
+      expect(result.error.statusCode).toBe(404)
+      expect(result.error.stack).toContain('Booking not found')
+      expect(result.error.stack).toContain('Forge diagnostics:')
+      expect(result.error).toMatchObject({ dependency: 'bookingStore' })
+      expect(getForgeRuntimeEvaluationDiagnostics(result.error)).toBeDefined()
+    })
+
+    it('should preserve an accidental Error thrown by an effect without assigning a status', async () => {
+      // Arrange
+      const client = createHooksClient(crashingEffectJourney)
+
+      // Act
+      const result = await client.get('/crash-effect/form', { session: {} })
+
+      // Assert
+      expectErrorOutcome(result)
+      expect(result.error).toBe(accidentalEffectError)
+      expect(result.error).toBeInstanceOf(SyntaxError)
+      expect(result.error.status).toBeUndefined()
+      expect(result.error.statusCode).toBeUndefined()
+      expect(result.error.stack).toContain('Unexpected token in booking data')
+      expect(result.error.stack).toContain('Forge diagnostics:')
+      expect(getForgeRuntimeEvaluationDiagnostics(result.error)).toBeDefined()
+    })
+
+    it('should wrap a non-Error thrown by an effect and retain the value as its cause', async () => {
+      // Arrange
+      const client = createHooksClient(nonErrorEffectJourney)
+
+      // Act
+      const result = await client.get('/non-error-effect/form', { session: {} })
+
+      // Assert
+      expectErrorOutcome(result)
+      expect(result.error).toBeInstanceOf(ForgeRuntimeEvaluationError)
+      expect(result.error.cause).toBe(nonErrorEffectFailure)
+      expect(result.error.status).toBeUndefined()
+      expect(result.error.statusCode).toBeUndefined()
+      expect(result.error.stack).toContain('Forge diagnostics:')
+      expect(result.error).toMatchObject({ phase: 'hooks' })
     })
   })
 })

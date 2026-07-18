@@ -64,7 +64,7 @@ export class ForgeTestClient {
     }
 
     if (outcome.kind === 'error') {
-      return { type: 'error', status: outcome.error.status, message: outcome.error.message, headers, cookies }
+      return { type: 'error', error: outcome.error, headers, cookies }
     }
 
     const { context } = outcome

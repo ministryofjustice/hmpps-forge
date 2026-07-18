@@ -23,11 +23,16 @@ function redirectResult(url: string): TestRedirectResult {
   }
 }
 
-function errorResult(status: number, message: string): TestErrorResult {
+function errorResult(message: string, status?: number): TestErrorResult {
+  const error = new Error(message)
+
+  if (status !== undefined) {
+    Object.assign(error, { status, statusCode: status })
+  }
+
   return {
     type: 'error',
-    status,
-    message,
+    error,
     headers: new Map(),
     cookies: new Map(),
   }
@@ -58,10 +63,20 @@ describe('expectRenderOutcome()', () => {
 
   it('should throw describing the status and message when the outcome is an error', () => {
     // Arrange
-    const result = errorResult(404, 'Not found')
+    const result = errorResult('Not found', 404)
 
     // Act & Assert
     expect(() => expectRenderOutcome(result)).toThrow("Expected a render outcome but received a 404 error: 'Not found'")
+  })
+
+  it('should throw describing the message when an error has no status', () => {
+    // Arrange
+    const result = errorResult('Unexpected failure')
+
+    // Act & Assert
+    expect(() => expectRenderOutcome(result)).toThrow(
+      "Expected a render outcome but received an error: 'Unexpected failure'",
+    )
   })
 })
 
@@ -90,7 +105,7 @@ describe('expectRedirectOutcome()', () => {
 
   it('should throw describing the status and message when the outcome is an error', () => {
     // Arrange
-    const result = errorResult(500, 'Boom')
+    const result = errorResult('Boom', 500)
 
     // Act & Assert
     expect(() => expectRedirectOutcome(result)).toThrow("Expected a redirect outcome but received a 500 error: 'Boom'")
@@ -100,14 +115,14 @@ describe('expectRedirectOutcome()', () => {
 describe('expectErrorOutcome()', () => {
   it('should return without throwing and narrow to an error result when the outcome matches', () => {
     // Arrange
-    const result = errorResult(404, 'Not found')
+    const result = errorResult('Not found', 404)
 
     // Act
     expectErrorOutcome(result)
 
     // Assert
-    expect(result.status).toBe(404)
-    expect(result.message).toBe('Not found')
+    expect(result.error.status).toBe(404)
+    expect(result.error.message).toBe('Not found')
   })
 
   it('should throw ForgeTestOutcomeAssertionError describing the redirect when the outcome is a redirect', () => {

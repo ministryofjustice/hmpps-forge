@@ -142,11 +142,30 @@ _Express adapter, Nunjucks renderer, test harness, framework integration_
   `context.ancestors` untouched, and a renderer that still merges them itself lands on
   the same result - so nothing breaks, there's just nothing left to merge. ([#174])
 
+---
+
+### For engine / internal developers
+
+_Compilation, runtime, contracts, diagnostics, instrumentation_
+
+#### Changes
+
+- **Request failures now resolve as error outcomes.** Previously an authored
+  `throwError()` result became an outcome, while an exception from a registered function
+  rejected `Forge.execute()` and left framework adapters with a second error path.
+  Synchronous and asynchronous execution failures now resolve through the same
+  `ForgeError` outcome, preserving the original Error's identity, stack, Forge
+  diagnostics, custom properties and optional `status` / `statusCode`; non-Error throws
+  are wrapped with the original value as their `cause`. The test harness exposes that
+  same Error as `result.error`, and the Express adapter forwards it to `next()` after
+  defaulting a missing HTTP status to 500. ([#182])
+
 [#174]: https://github.com/ministryofjustice/hmpps-forge/pull/174
 [#175]: https://github.com/ministryofjustice/hmpps-forge/pull/175
 [#176]: https://github.com/ministryofjustice/hmpps-forge/pull/176
 [#180]: https://github.com/ministryofjustice/hmpps-forge/pull/180
 [#181]: https://github.com/ministryofjustice/hmpps-forge/pull/181
+[#182]: https://github.com/ministryofjustice/hmpps-forge/pull/182
 
 ---
 
