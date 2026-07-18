@@ -89,6 +89,28 @@ it.
 
 This keeps application errors recognisable while still adding Forge context.
 
+### Request error outcomes
+
+`Forge.execute()` is the public boundary for request handling. If node lookup
+or evaluation fails, it resolves an error outcome instead of rejecting its
+promise. Authored errors from `throwError()` and exceptions raised while
+evaluating registered functions therefore reach adapters through the same
+outcome shape.
+
+When request execution throws an existing `Error`, Forge preserves that
+instance, including its stack, diagnostic metadata, and any application-defined
+properties. If execution throws a non-`Error` value, Forge creates an `Error`
+and retains the original value as its `cause`.
+
+An error outcome may carry `status` or `statusCode`, but Forge does not assign a
+status when the Error has none. The framework adapter chooses how to represent
+the outcome in its own error-handling model and defaults a missing HTTP status
+to 500.
+
+This request boundary does not change registration or compilation failures.
+Problems known while building the application still follow the fail-early
+rules below rather than becoming request outcomes.
+
 ### Route and node errors
 
 Some errors protect internal invariants.
@@ -236,7 +258,10 @@ Configuration problems should fail before compilation.
 
 Compilation problems should identify the phase that failed.
 
-Runtime evaluation failures should preserve the original error when possible.
+Runtime evaluation failures should preserve the original error in an error
+outcome when possible.
+
+Framework adapters should default a missing error status to 500.
 
 Errors from generated functions should carry Forge diagnostics.
 

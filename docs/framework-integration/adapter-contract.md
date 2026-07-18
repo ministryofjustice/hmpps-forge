@@ -47,7 +47,7 @@ constructs it internally.
 | Method | What it provides |
 |--------|-----------------|
 | `forge.getTopology()` | A `ForgeTopology` (`{ routes }`) listing every registrable route (`nodeId`, `kind`, `templatePath`, `basePath`, `methods`, optional `title`) |
-| `forge.execute({ snapshot, responseBindings?, renderer? })` | Looks up the node by `snapshot.nodeId`, evaluates it, and resolves to a `ForgeOutcome<unknown>` for the host to dispatch. Throws if no node is registered for the `nodeId` |
+| `forge.execute({ snapshot, responseBindings?, renderer? })` | Looks up the node by `snapshot.nodeId`, evaluates it, and resolves to a `ForgeOutcome<unknown>` for the host to dispatch. Node lookup and evaluation failures resolve as error outcomes |
 | `forge.getLogger()` | The configured logger |
 | `forge.getInstrumentation()` | The configured request instrumentation dispatcher |
 
@@ -59,7 +59,7 @@ step — the snapshot is an input and the outcome is the return value.
 For request observability, `Forge` owns instrumentation through
 `new Forge({ instrumentation: { sinks: [...] } })`. The runtime emits
 `RequestTraceEvent` objects to those sinks after the request, and emits a
-partial trace if the request fails.
+partial trace if evaluation fails after a node has been resolved.
 
 ## Inputs and outputs
 
@@ -87,7 +87,10 @@ host dispatches:
 Response IO (headers, cookies) is written during evaluation through the
 host-provided `ResponseBindings`; the host then dispatches the returned outcome
 to its framework. An error outcome carries the Error instance itself so the
-adapter can preserve its message, stack, and other diagnostic properties.
+adapter can preserve its message, stack, Forge diagnostics, and other
+properties. Errors thrown during request execution keep their identity. A
+non-Error thrown value is converted to an Error with the original value as its
+`cause`.
 
 ## Key concepts
 
@@ -114,8 +117,10 @@ is a `ForgeExecutionRequest`:
   carries only its `context` and no `output`
 
 `Forge` resolves `snapshot.nodeId` to a registered node and runs the runtime
-against it. The host drives this call directly; the engine does not call back
-into the host to assemble the request.
+against it. Failures from node lookup or evaluation resolve as error outcomes;
+the execution promise does not reject for those failures. The host drives this
+call directly; the engine does not call back into the host to assemble the
+request.
 
 ### `ForgeOutcome`
 
@@ -132,7 +137,10 @@ discriminated union with three variants:
 - **navigate** - carries the resolved redirect `url`
 - **error** - carries a `ForgeError`, which extends `Error` with optional
   `status` and `statusCode` hints. The host adapter decides how to represent that
-  Error in its framework
+  Error in its framework. Authored errors and exceptions raised during request
+  execution use this same outcome. Forge preserves an Error instance and its
+  diagnostic data rather than replacing it, and does not assign an HTTP status
+  when the Error has none
 
 ### `ResponseBindings`
 
@@ -277,11 +285,14 @@ contract the engine expects.
 Important failure cases include:
 
 - the host cannot convert a request into a `RequestSnapshot`
-- `snapshot.nodeId` does not match a registered node (`forge.execute` throws)
-- `forge.execute()` throws (internal engine error)
+- `snapshot.nodeId` does not match a registered node (`forge.execute` resolves
+  an error outcome)
+- request evaluation fails (`forge.execute` preserves the Error and resolves an
+  error outcome)
 - the host cannot interpret a `ForgeOutcome` variant
-- the host's `ResponseBindings` implementation fails during evaluation
-- rendering fails inside the supplied `ForgeRenderer`
+- the host's `ResponseBindings` implementation fails during evaluation (an
+  error outcome)
+- rendering fails inside the supplied `ForgeRenderer` (an error outcome)
 - redirect targets cannot be written to the response
 - errors cannot be forwarded into the framework's error model
 

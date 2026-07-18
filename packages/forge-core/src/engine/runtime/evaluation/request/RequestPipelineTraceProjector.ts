@@ -159,10 +159,24 @@ export default class RequestPipelineTraceProjector {
 
   private errorDetail(error: unknown): RequestTraceError {
     if (error instanceof Error) {
-      return { message: error.message, stack: error.stack }
+      const status = this.errorStatus(error)
+
+      return { message: error.message, stack: error.stack, ...(status === undefined ? {} : { status }) }
     }
 
     return { message: String(error) }
+  }
+
+  private errorStatus(error: Error): number | undefined {
+    const status = Reflect.get(error, 'status')
+
+    if (typeof status === 'number') {
+      return status
+    }
+
+    const statusCode = Reflect.get(error, 'statusCode')
+
+    return typeof statusCode === 'number' ? statusCode : undefined
   }
 
   private reachabilityDetail(evaluation: ReachabilityEvaluation | undefined): Pick<RequestTrace, 'reachability'> {

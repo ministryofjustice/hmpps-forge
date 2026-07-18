@@ -4,6 +4,7 @@ import {
   GovUKInsetText,
   govukComponents,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
+import createHttpError from 'http-errors'
 
 import {
   journey,
@@ -42,9 +43,17 @@ interface HooksEffectShape {
   DirectSetAnswer: (code: string, value: string) => EffectFunctionExpr
   DirectSetData: (key: string, value: string) => EffectFunctionExpr
   DirectClearAnswer: (code: string) => EffectFunctionExpr
-  ThrowUnhandled: (message: string) => EffectFunctionExpr
+  ThrowUnhandled: () => EffectFunctionExpr
+  ThrowHttpError: () => EffectFunctionExpr
+  ThrowNonError: () => EffectFunctionExpr
   StoreHasAnswer: (code: string, dataKey: string) => EffectFunctionExpr
 }
+
+export const httpEffectError = Object.assign(createHttpError(404, 'Booking not found'), {
+  dependency: 'bookingStore',
+})
+export const accidentalEffectError = new SyntaxError('Unexpected token in booking data')
+export const nonErrorEffectFailure = { reason: 'booking data was malformed' }
 
 const { effects: HooksEffects, implementations: hooksEffectImplementations } = defineEffectFunctions<HooksEffectShape>({
   AppendLog: () => (context, marker: string) => {
@@ -182,8 +191,16 @@ const { effects: HooksEffects, implementations: hooksEffectImplementations } = d
     }
   },
 
-  ThrowUnhandled: () => (_context, message: string) => {
-    throw new Error(message)
+  ThrowUnhandled: () => () => {
+    throw accidentalEffectError
+  },
+
+  ThrowHttpError: () => () => {
+    throw httpEffectError
+  },
+
+  ThrowNonError: () => () => {
+    throw nonErrorEffectFailure
   },
 })
 
@@ -897,21 +914,24 @@ export const journeyRootAccessRedirectJourney = journey({
   ],
 })
 
-export const crashingEffectJourney = journey({
-  code: 'crash-effect',
-  path: '/crash-effect',
-  title: 'Crashing Effect',
-  onAccess: [
-    access({
-      effects: [HooksEffects.ThrowUnhandled('boom')],
-    }),
-  ],
-  steps: [
-    step({
-      path: '/form',
-      title: 'Form',
-      reachability: { entryWhen: true },
-      blocks: [GovUKInsetText({ text: 'Content' })],
-    }),
-  ],
-})
+const errorOutcomeJourney = (code: string, effect: EffectFunctionExpr) =>
+  journey({
+    code,
+    path: `/${code}`,
+    title: 'Error Outcome',
+    onAccess: [access({ effects: [effect] })],
+    steps: [
+      step({
+        path: '/form',
+        title: 'Form',
+        reachability: { entryWhen: true },
+        blocks: [GovUKInsetText({ text: 'Content' })],
+      }),
+    ],
+  })
+
+export const crashingEffectJourney = errorOutcomeJourney('crash-effect', HooksEffects.ThrowUnhandled())
+
+export const httpErrorEffectJourney = errorOutcomeJourney('http-error-effect', HooksEffects.ThrowHttpError())
+
+export const nonErrorEffectJourney = errorOutcomeJourney('non-error-effect', HooksEffects.ThrowNonError())

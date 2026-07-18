@@ -464,15 +464,89 @@ describe('Forge', () => {
       expect(mockRequestEvaluator.evaluate).toHaveBeenCalledWith(expect.objectContaining({ node: mockNode }))
     })
 
-    it('should throw when no node is registered for the snapshot', () => {
+    it('should return an error outcome when no node is registered for the snapshot', async () => {
       // Arrange
       const engine = new Forge(createDefaultOptions())
       const request = { snapshot: { nodeId: 'unknown::step', method: 'GET' } } as never
 
       vi.mocked(mockMountRegistry.getNode).mockReturnValue(undefined)
 
-      // Act & Assert
-      expect(() => engine.execute(request)).toThrow('[Forge] No node registered for "unknown::step"')
+      // Act
+      const result = await engine.execute(request)
+
+      // Assert
+      expect(result.kind).toBe('error')
+
+      if (result.kind === 'error') {
+        expect(result.error.message).toBe('[Forge] No node registered for "unknown::step"')
+      }
+    })
+
+    it('should preserve an Error rejected by the runtime', async () => {
+      // Arrange
+      const engine = new Forge(createDefaultOptions())
+      const mockNode = { mountKey: 'test::step-one', kind: 'step' } as MountedNode
+      const request = { snapshot: { nodeId: 'test::step-one', method: 'GET' } } as never
+      const error = Object.assign(new Error('Effect failed'), { status: 409, diagnostic: 'effect' })
+
+      vi.mocked(mockMountRegistry.getNode).mockReturnValue(mockNode)
+      vi.mocked(mockRequestEvaluator.evaluate).mockRejectedValue(error)
+
+      // Act
+      const result = await engine.execute(request)
+
+      // Assert
+      expect(result).toEqual({ kind: 'error', error })
+
+      if (result.kind === 'error') {
+        expect(result.error).toBe(error)
+        expect(result.error.stack).toBe(error.stack)
+        expect(result.error).toMatchObject({ status: 409, diagnostic: 'effect' })
+      }
+    })
+
+    it('should preserve an Error thrown synchronously by the runtime', async () => {
+      // Arrange
+      const engine = new Forge(createDefaultOptions())
+      const mockNode = { mountKey: 'test::step-one', kind: 'step' } as MountedNode
+      const request = { snapshot: { nodeId: 'test::step-one', method: 'GET' } } as never
+      const error = new Error('Synchronous failure')
+
+      vi.mocked(mockMountRegistry.getNode).mockReturnValue(mockNode)
+      vi.mocked(mockRequestEvaluator.evaluate).mockImplementation(() => {
+        throw error
+      })
+
+      // Act
+      const result = await engine.execute(request)
+
+      // Assert
+      expect(result).toEqual({ kind: 'error', error })
+    })
+
+    it('should wrap a non-Error runtime failure and retain the value as its cause', async () => {
+      // Arrange
+      const engine = new Forge(createDefaultOptions())
+      const mockNode = { mountKey: 'test::step-one', kind: 'step' } as MountedNode
+      const request = { snapshot: { nodeId: 'test::step-one', method: 'GET' } } as never
+      const failure = { reason: 'dependency unavailable' }
+
+      vi.mocked(mockMountRegistry.getNode).mockReturnValue(mockNode)
+      vi.mocked(mockRequestEvaluator.evaluate).mockRejectedValue(failure)
+
+      // Act
+      const result = await engine.execute(request)
+
+      // Assert
+      expect(result.kind).toBe('error')
+
+      if (result.kind === 'error') {
+        expect(result.error).toBeInstanceOf(Error)
+        expect(result.error.message).toBe('[object Object]')
+        expect(result.error.cause).toBe(failure)
+        expect(result.error.status).toBeUndefined()
+        expect(result.error.statusCode).toBeUndefined()
+      }
     })
   })
 })
