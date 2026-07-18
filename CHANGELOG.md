@@ -53,11 +53,12 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
-## 0.3.4
+## 0.3.3
 
 In this release, we focused on testing - one-line outcome assertions for journey tests,
 and registered functions can now be unit tested through the engine's real evaluation
-pipeline instead of calling the raw evaluator and skipping it.
+pipeline instead of calling the raw evaluator and skipping it. We also made some
+small improvements to the typings!
 
 ### For journey authors
 
@@ -74,6 +75,26 @@ _Definitions, expressions, hooks, navigation, reachability_
   actually happened (the redirect URL, the error status and message, or the rendered
   step's title), and its `asserts` signature narrows `result` for the rest of the
   test. ([#180])
+
+#### Improvements
+
+- **Boolean conditions accept any dynamic expression.** `resumeWhen`, `entryWhen`,
+  entry validation `when` and block `visibleWhen` were limited to `true` or a predicate
+  expression, even though the engine could already evaluate anything - only the types
+  and schemas were in the way. All four now take a `ResolvableBoolean`: a boolean
+  literal, a predicate, or any dynamic expression (a reference, conditional, pipeline
+  and so on), coerced to a boolean at evaluation. `false` is also now valid and behaves
+  the same as omitting the condition. ([#175])
+
+#### Notes
+
+- **`getErrorSummaryList` is now exported from `govuk-components`.** The
+  `toErrorList` Nunjucks global that converts Forge validation errors into
+  `govukErrorSummary`'s `{ text, href }` shape was previously something every app
+  had to write inline. It now ships as `registerForgeGovUKComponentsGlobals(nunjucksEnv)`,
+  which registers `getErrorSummaryList` - a global that reads the errors from the
+  template context automatically, so templates just call `getErrorSummaryList()` with
+  no arguments. ([#176])
 
 ---
 
@@ -103,37 +124,6 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   `getResponseCookies()` to read back what an effect wrote through the response setters.
   ([#181])
 
-[#180]: https://github.com/ministryofjustice/hmpps-forge/pull/180
-[#181]: https://github.com/ministryofjustice/hmpps-forge/pull/181
-
----
-
-## 0.3.3
-
-### For journey authors
-
-_Definitions, expressions, hooks, navigation, reachability_
-
-#### Improvements
-
-- **Boolean conditions accept any dynamic expression.** `resumeWhen`, `entryWhen`,
-  entry validation `when` and block `visibleWhen` were limited to `true` or a predicate
-  expression, even though the engine could already evaluate anything - only the types
-  and schemas were in the way. All four now take a `ResolvableBoolean`: a boolean
-  literal, a predicate, or any dynamic expression (a reference, conditional, pipeline
-  and so on), coerced to a boolean at evaluation. `false` is also now valid and behaves
-  the same as omitting the condition. ([#175])
-
-#### Notes
-
-- **`getErrorSummaryList` is now exported from `govuk-components`.** The
-  `toErrorList` Nunjucks global that converts Forge validation errors into
-  `govukErrorSummary`'s `{ text, href }` shape was previously something every app
-  had to write inline. It now ships as `registerForgeGovUKComponentsGlobals(nunjucksEnv)`,
-  which registers `getErrorSummaryList` - a global that reads the errors from the
-  template context automatically, so templates just call `getErrorSummaryList()` with
-  no arguments. ([#176])
-
 ---
 
 ### For adapter and renderer developers
@@ -155,7 +145,8 @@ _Express adapter, Nunjucks renderer, test harness, framework integration_
 [#174]: https://github.com/ministryofjustice/hmpps-forge/pull/174
 [#175]: https://github.com/ministryofjustice/hmpps-forge/pull/175
 [#176]: https://github.com/ministryofjustice/hmpps-forge/pull/176
-
+[#180]: https://github.com/ministryofjustice/hmpps-forge/pull/180
+[#181]: https://github.com/ministryofjustice/hmpps-forge/pull/181
 
 ---
 
