@@ -58,7 +58,9 @@ export default class ExpressHandlerFactory {
     }
 
     if (outcome.kind === 'error') {
-      next(createHttpError(outcome.error.status, outcome.error.message))
+      const status = outcome.error.status ?? outcome.error.statusCode ?? 500
+
+      next(createHttpError(status, outcome.error))
 
       return
     }

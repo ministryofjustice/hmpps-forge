@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { RequestTraceEvent } from '../../src/testing'
+import { expectErrorOutcome, type RequestTraceEvent } from '../../src/testing'
 import { answerOf, answersFromTrace } from './contractHelpers'
 import {
   createHooksClient,
@@ -202,12 +202,11 @@ describe('hooks and effects contracts', () => {
       })
 
       // Assert
-      expect(result.type).toBe('error')
-
-      if (result.type === 'error') {
-        expect(result.status).toBe(503)
-        expect(result.message).toBe('Service unavailable')
-      }
+      expectErrorOutcome(result)
+      expect(result.error).toBeInstanceOf(Error)
+      expect(result.error.status).toBe(503)
+      expect(result.error.statusCode).toBe(503)
+      expect(result.error.message).toBe('Service unavailable')
     })
 
     it('should run onAlways effects before onInvalid effects when validation fails', async () => {

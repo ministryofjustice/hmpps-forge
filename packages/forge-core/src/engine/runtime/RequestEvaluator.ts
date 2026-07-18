@@ -1,5 +1,5 @@
 import type { RequestSnapshot } from '../../framework/types/snapshot.type'
-import type { ForgeOutcome } from '../../framework/types/outcome.type'
+import type { ForgeError, ForgeOutcome } from '../../framework/types/outcome.type'
 import type { MountedNode } from '../registries/MountRegistry'
 import type { PipelineState } from '../contracts/runtime/RequestExecution.type'
 import type { RequestExecutionContext, RequestPipelineResult } from '../contracts/runtime/RequestExecutionContext.type'
@@ -155,12 +155,14 @@ export default class RequestEvaluator {
     }
 
     if (result.kind === 'error') {
+      const error: ForgeError = Object.assign(new Error(result.message), {
+        status: result.status,
+        statusCode: result.status,
+      })
+
       return {
         kind: 'error',
-        error: {
-          status: result.status,
-          message: result.message,
-        },
+        error,
       }
     }
 

@@ -1,6 +1,7 @@
 import type { CookieMutation } from '../framework/types/response.type'
 import type { RenderBlock, RenderContext } from '../framework/rendering/types'
 import type { ValidationResult } from '../engine/contracts/runtime/validationResult.type'
+import type { ForgeError } from '../framework/types/outcome.type'
 
 /** Options for configuring a test request sent via {@link ForgeTestClient}. */
 export interface TestRequestOptions {
@@ -36,8 +37,7 @@ export type TestRedirectResult = {
 /** Result returned when the engine yields an error outcome. */
 export type TestErrorResult = {
   type: 'error'
-  status: number
-  message: string
+  error: ForgeError
   headers: Map<string, string>
   cookies: Map<string, CookieMutation>
 }

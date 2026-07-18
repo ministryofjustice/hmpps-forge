@@ -81,12 +81,13 @@ host dispatches:
   `RenderContext`; `output` is the assembled result, present only when a
   `ForgeRenderer` was supplied
 - `{ kind: 'navigate', url }` - redirect to a URL
-- `{ kind: 'error', error }` - a `ForgeError` (`{ status, message }`) from a
-  journey hook
+- `{ kind: 'error', error }` - the `ForgeError` instance, with optional `status`
+  and `statusCode` hints for the adapter
 
-The outcome is pure data. Response IO (headers, cookies) is written during
-evaluation through the host-provided `ResponseBindings`; the host then dispatches
-the returned outcome to its framework.
+Response IO (headers, cookies) is written during evaluation through the
+host-provided `ResponseBindings`; the host then dispatches the returned outcome
+to its framework. An error outcome carries the Error instance itself so the
+adapter can preserve its message, stack, and other diagnostic properties.
 
 ## Key concepts
 
@@ -129,9 +130,9 @@ discriminated union with three variants:
   registry on the outcome — component lookup happens inside the engine's render
   phase
 - **navigate** - carries the resolved redirect `url`
-- **error** - carries a `ForgeError`: a journey hook error with an HTTP `status`
-  and `message`. Route and method matching is the adapter's job, so the engine
-  raises no route-level errors of its own
+- **error** - carries a `ForgeError`, which extends `Error` with optional
+  `status` and `statusCode` hints. The host adapter decides how to represent that
+  Error in its framework
 
 ### `ResponseBindings`
 
@@ -221,9 +222,11 @@ Each handler (`ExpressHandlerFactory`):
   (`res.setHeader`, `res.cookie`) — nothing is buffered
 - calls `forge.execute({ snapshot, responseBindings, renderer })`
 - commits the returned outcome: `navigate` redirects with `res.redirect(url)`;
-  `error` forwards with `next(createHttpError(status, message))`; `render` sends
-  the assembled output with `res.type('html').send(output)` (or a 500 when a
-  render outcome has no `output`, which means no renderer was bound)
+  `error` normalizes the same Error with
+  `createHttpError(error.status ?? error.statusCode ?? 500, error)` before
+  passing it to `next`; `render` sends the assembled output with
+  `res.type('html').send(output)` (or a 500 when a render outcome has no
+  `output`, which means no renderer was bound)
 
 `NunjucksRenderer` implements `ForgeRenderer<string>`: `renderBlock` calls the
 component entry's `render`, `wrapNestedBlock` returns `{ block, html }`, and
@@ -256,7 +259,8 @@ methods delegate to `Forge`, and `createClient()` returns a `ForgeTestClient`.
 - calls `forge.execute({ snapshot, responseBindings })` with no renderer, then
   maps the `ForgeOutcome` to a `TestResult`:
   - `navigate` becomes `{ type: 'redirect', url, headers, cookies }`
-  - `error` becomes `{ type: 'error', status, message, headers, cookies }`
+  - `error` becomes `{ type: 'error', error, headers, cookies }`, preserving the
+    same `ForgeError` instance
   - `render` becomes `{ type: 'render', context, headers, cookies }` plus
     `getBlocksByVariant` and `getValidationErrorsByFieldCode` helpers
 

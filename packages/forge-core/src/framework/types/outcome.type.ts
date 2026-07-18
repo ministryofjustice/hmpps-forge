@@ -1,16 +1,13 @@
 import type { RenderContext } from '../rendering/types'
 
 /**
- * Error raised by a journey's lifecycle hooks. The status is the HTTP status
- * code declared in the journey configuration. Route and method matching is the
- * adapter's responsibility, so a hook error is the only error the engine produces.
+ * Error returned in a Forge error outcome. Its optional status and statusCode
+ * properties are hints for framework adapters.
  */
-export interface ForgeHookError {
-  readonly status: number
-  readonly message: string
+export interface ForgeError extends Error {
+  readonly status?: number
+  readonly statusCode?: number
 }
-
-export type ForgeError = ForgeHookError
 
 export type ForgeOutcome<TOut = undefined> =
   | {
