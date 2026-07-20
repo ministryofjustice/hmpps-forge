@@ -26,7 +26,7 @@ interface RenderFieldFailureContext {
   fieldFailures: Record<string, unknown[]>
 }
 
-interface FunctionRegistryLookupEntry {
+export interface FunctionRegistryLookupEntry {
   evaluate(...args: unknown[]): unknown
   inputSchema?: ZodType
   argumentsSchema?: ZodType
@@ -275,7 +275,7 @@ export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
   },
 }
 
-function validateOutput(entry: FunctionRegistryLookupEntry, functionName: string, result: unknown): void {
+export function validateOutput(entry: FunctionRegistryLookupEntry, functionName: string, result: unknown): void {
   if (entry.outputSchema === undefined) {
     return
   }
@@ -287,7 +287,7 @@ function validateOutput(entry: FunctionRegistryLookupEntry, functionName: string
   }
 }
 
-interface ShortCircuitOutcome {
+export interface ShortCircuitOutcome {
   value: unknown
 }
 
@@ -311,7 +311,7 @@ interface ShortCircuitOutcome {
  * they fail soft to `false`. Any other value schema failure is an author
  * mistake and throws.
  */
-function precheckShortCircuit(
+export function precheckShortCircuit(
   entry: FunctionRegistryLookupEntry,
   functionName: string,
   args: unknown[],

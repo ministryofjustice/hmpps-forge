@@ -10,7 +10,7 @@ import { ForgeDeprecations } from '../shared/utils/ForgeDeprecations'
 import type { FunctionImplementations, FunctionShapeMap } from '../authoring/utils/deprecated/defineFunction.type'
 import type { Logger } from '../framework/types/adapter.type'
 import type { ForgeRenderer } from '../framework/rendering/types'
-import type { ForgeOutcome } from '../framework/types/outcome.type'
+import type { ForgeError, ForgeOutcome } from '../framework/types/outcome.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
 import type { ResponseBindings } from '../framework/types/responseBindings.type'
 import type { ForgeTopology } from '../framework/types/topology.type'
@@ -291,13 +291,25 @@ export default class Forge {
     return this.options.frameworkAdapter.build(this)
   }
 
-  execute(request: ForgeExecutionRequest): Promise<ForgeOutcome<unknown>> {
-    const node = this.mountRegistry.getNode(request.snapshot.nodeId)
+  async execute(request: ForgeExecutionRequest): Promise<ForgeOutcome<unknown>> {
+    try {
+      const node = this.mountRegistry.getNode(request.snapshot.nodeId)
 
-    if (!node) {
-      throw new Error(`[Forge] No node registered for "${request.snapshot.nodeId}"`)
+      if (!node) {
+        throw new Error(`[Forge] No node registered for "${request.snapshot.nodeId}"`)
+      }
+
+      return await this.requestEvaluator.evaluate({ node, ...request })
+    } catch (error) {
+      return { kind: 'error', error: this.toError(error) }
+    }
+  }
+
+  private toError(error: unknown): ForgeError {
+    if (error instanceof Error) {
+      return error
     }
 
-    return this.requestEvaluator.evaluate({ node, ...request })
+    return new Error(String(error), { cause: error })
   }
 }

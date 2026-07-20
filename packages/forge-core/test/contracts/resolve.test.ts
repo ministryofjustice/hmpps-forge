@@ -20,6 +20,7 @@ import {
   ancestorJourney,
   autoDerivedBacklinkJourney,
   stepViewJourney,
+  inheritedViewJourney,
   blockSkipPropsJourney,
   routeTreeJourney,
   parsedValueRenderJourney,
@@ -559,6 +560,77 @@ describe('resolve contracts', () => {
           template: 'custom-layout.njk',
           locals: { sidebar: 'enabled' },
         })
+      }
+    })
+
+    it('should resolve the effective view when ancestors and the step declare view config', async () => {
+      // Arrange
+      const client = createClient(inheritedViewJourney)
+
+      // Act
+      const result = await client.get('/inherited-view/child/step-view', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.step.view).toEqual({
+          template: 'step-layout',
+          locals: {
+            rootOnly: 'root',
+            childOnly: 'child',
+            stepOnly: 'step',
+            shared: 'step',
+            resolvedLabel: 'resolved',
+          },
+        })
+        expect(result.context.ancestors.map(ancestor => ancestor.view)).toEqual([
+          {
+            template: 'root-layout',
+            locals: { rootOnly: 'root', shared: 'root' },
+          },
+          {
+            template: 'child-layout',
+            locals: { childOnly: 'child', shared: 'child' },
+          },
+        ])
+      }
+    })
+
+    it('should resolve an effective view when only ancestors declare view config', async () => {
+      // Arrange
+      const client = createClient(inheritedViewJourney)
+
+      // Act
+      const result = await client.get('/inherited-view/child/ancestor-view', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.step.view).toEqual({
+          template: 'child-layout',
+          locals: {
+            rootOnly: 'root',
+            childOnly: 'child',
+            shared: 'child',
+          },
+        })
+      }
+    })
+
+    it('should leave the step view undefined when the step and its ancestors omit view config', async () => {
+      // Arrange
+      const client = createClient(ancestorJourney)
+
+      // Act
+      const result = await client.get('/parent/child/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.step.view).toBeUndefined()
       }
     })
 

@@ -71,11 +71,9 @@ export default class NunjucksRenderer implements ForgeRenderer<string> {
     renderedBlocks: readonly string[],
     requestState: Record<string, unknown>,
   ): string {
-    const mergedViewLocals = this.mergeViewLocals(context)
-
     const templateContext: TemplateContext = {
       ...requestState,
-      ...mergedViewLocals,
+      ...context.step.view?.locals,
       blocks: renderedBlocks,
       step: context.step,
       ancestors: context.ancestors,
@@ -93,38 +91,13 @@ export default class NunjucksRenderer implements ForgeRenderer<string> {
   }
 
   private resolveTemplate(context: RenderContext): string {
-    let template: string
-
-    if (context.step.view?.template) {
-      template = context.step.view.template
-    } else {
-      const reversedAncestors = [...context.ancestors].reverse()
-      const ancestorWithTemplate = reversedAncestors.find(ancestor => ancestor.view?.template)
-
-      template = ancestorWithTemplate?.view?.template ?? this.defaultTemplate
-    }
+    const template = context.step.view?.template ?? this.defaultTemplate
 
     if (!template.endsWith(NunjucksRenderer.TEMPLATE_EXTENSION)) {
       return `${template}${NunjucksRenderer.TEMPLATE_EXTENSION}`
     }
 
     return template
-  }
-
-  private mergeViewLocals(context: RenderContext): Record<string, unknown> {
-    const merged: Record<string, unknown> = {}
-
-    context.ancestors.forEach(ancestor => {
-      if (ancestor.view?.locals) {
-        Object.assign(merged, ancestor.view.locals)
-      }
-    })
-
-    if (context.step.view?.locals) {
-      Object.assign(merged, context.step.view.locals)
-    }
-
-    return merged
   }
 
   private renderTemplate(template: string, context: TemplateContext): string {

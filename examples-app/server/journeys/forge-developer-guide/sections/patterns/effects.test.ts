@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import {
+  FunctionRegistryTestHarness,
+  createTestEffectContext,
+} from '@ministryofjustice/hmpps-forge/core/testing'
 import type { GuideDeps } from '../../effects'
-import { patternEffectRegistry } from './effects'
-import type { PatternEffectContext, PatternSession } from './context.type'
+import { PatternEffects, patternEffectRegistry } from './effects'
+import type { PatternSession } from './context.type'
 
 const deps = {
   guideContentStore: {
@@ -33,44 +37,14 @@ const deps = {
   },
 } as unknown as GuideDeps
 
-function createPatternEffectContext(options: {
-  answers?: Record<string, unknown>
-  data?: Record<string, unknown>
-  post?: Record<string, string>
-  session?: PatternSession
-}): PatternEffectContext {
-  const answers = { ...(options.answers ?? {}) }
-  const data = { ...(options.data ?? {}) }
-  const post = { ...(options.post ?? {}) }
-
-  const context = {
-    getSession: () => options.session,
-    getAnswer: (key: string) => answers[key],
-    setAnswer: (key: string, value: unknown) => {
-      answers[key] = value
-    },
-    getData: (key: string) => data[key],
-    setData: (key: string, value: unknown) => {
-      data[key] = value
-    },
-    getPostData: <TValue = unknown>(key: string) => {
-      return post[key] as TValue | undefined
-    },
-  } satisfies Pick<
-    PatternEffectContext,
-    'getSession' | 'getAnswer' | 'setAnswer' | 'getData' | 'setData' | 'getPostData'
-  >
-
-  return context as PatternEffectContext
-}
+const harness = new FunctionRegistryTestHarness(patternEffectRegistry, deps)
 
 describe('patternEffectRegistry', () => {
   describe('AddRepeatingItem()', () => {
     it('should append a new row from live context data when no draft collection exists yet', () => {
       // Arrange
-      const session = {} as PatternSession
-      const effectContext = createPatternEffectContext({
-        session,
+      const effectContext = createTestEffectContext({
+        session: {},
         data: {
           members: [{ memberName: '', memberAge: '' }],
         },
@@ -79,12 +53,19 @@ describe('patternEffectRegistry', () => {
           memberAge_0: '10',
         },
       })
-      const addRepeatingItem = patternEffectRegistry.build(deps).AddRepeatingItem.evaluate
 
       // Act
-      addRepeatingItem(effectContext, 'repeating-fieldsets', 'members', ['memberName', 'memberAge'])
+      harness
+        .evaluate(
+          PatternEffects.AddRepeatingItem('repeating-fieldsets', 'members', [
+            'memberName',
+            'memberAge',
+          ]),
+        )
+        .withContext(effectContext)
 
       // Assert
+      const session = effectContext.getSession() as PatternSession
       expect(session.patternDrafts?.['repeating-fieldsets']).toEqual({
         members: [
           { memberName: 'Alice', memberAge: '10' },
@@ -103,9 +84,8 @@ describe('patternEffectRegistry', () => {
   describe('SaveRepeatingItems()', () => {
     it('should persist the current rows from live context data when saving for the first time', () => {
       // Arrange
-      const session = {} as PatternSession
-      const effectContext = createPatternEffectContext({
-        session,
+      const effectContext = createTestEffectContext({
+        session: {},
         data: {
           members: [{ memberName: '', memberAge: '' }],
         },
@@ -114,15 +94,19 @@ describe('patternEffectRegistry', () => {
           memberAge_0: '10',
         },
       })
-      const saveRepeatingItems = patternEffectRegistry.build(deps).SaveRepeatingItems.evaluate
 
       // Act
-      saveRepeatingItems(effectContext, 'repeating-fieldsets', 'members', [
-        'memberName',
-        'memberAge',
-      ])
+      harness
+        .evaluate(
+          PatternEffects.SaveRepeatingItems('repeating-fieldsets', 'members', [
+            'memberName',
+            'memberAge',
+          ]),
+        )
+        .withContext(effectContext)
 
       // Assert
+      const session = effectContext.getSession() as PatternSession
       expect(session.patternDrafts?.['repeating-fieldsets']).toEqual({
         members: [{ memberName: 'Alice', memberAge: '10' }],
       })

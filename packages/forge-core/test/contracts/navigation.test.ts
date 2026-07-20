@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createClient, createTracedClient, answerOf, type ContractSession } from './contractHelpers'
-import type { RequestTraceEvent } from '../../src/testing'
+import { expectErrorOutcome, type RequestTraceEvent } from '../../src/testing'
 import {
   basicRedirectJourney,
   validationBranchJourney,
@@ -184,12 +184,9 @@ describe('navigation contracts', () => {
       })
 
       // Assert
-      expect(result.type).toBe('error')
-
-      if (result.type === 'error') {
-        expect(result.status).toBe(400)
-        expect(result.message).toBe('Must confirm before continuing')
-      }
+      expectErrorOutcome(result)
+      expect(result.error.status).toBe(400)
+      expect(result.error.message).toBe('Must confirm before continuing')
     })
 
     it('should fall through to redirect when throwError condition is not met', async () => {
@@ -397,12 +394,9 @@ describe('navigation contracts', () => {
       const result = await client.get('/access-error/resource', { session })
 
       // Assert
-      expect(result.type).toBe('error')
-
-      if (result.type === 'error') {
-        expect(result.status).toBe(404)
-        expect(result.message).toBe('Resource not found')
-      }
+      expectErrorOutcome(result)
+      expect(result.error.status).toBe(404)
+      expect(result.error.message).toBe('Resource not found')
     })
   })
 
@@ -676,12 +670,9 @@ describe('navigation contracts', () => {
       })
 
       // Assert
-      expect(result.type).toBe('error')
-
-      if (result.type === 'error') {
-        expect(result.status).toBe(500)
-        expect(result.message).toBe('Save failed: connection timeout')
-      }
+      expectErrorOutcome(result)
+      expect(result.error.status).toBe(500)
+      expect(result.error.message).toBe('Save failed: connection timeout')
     })
   })
 

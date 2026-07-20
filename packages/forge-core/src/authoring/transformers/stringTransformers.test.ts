@@ -1,39 +1,40 @@
 import { StringTransformers, stringTransformersRegistry } from './stringTransformers'
 import { FunctionType } from '../types/enums'
-
-const StringTransformersRegistry = stringTransformersRegistry.build()
+import { FunctionRegistryTestHarness } from '../../testing/FunctionRegistryTestHarness'
 
 describe('String Transformers', () => {
-  describe('Trim', () => {
-    const { evaluate } = StringTransformersRegistry['String.Trim']
+  const harness = new FunctionRegistryTestHarness(stringTransformersRegistry)
 
+  describe('Trim', () => {
     it('should remove leading and trailing whitespace', () => {
-      const result = evaluate('  hello world  ')
+      const result = harness.evaluate(StringTransformers.Trim()).withInput('  hello world  ')
       expect(result).toBe('hello world')
     })
 
     it('should handle strings with no whitespace', () => {
-      const result = evaluate('hello')
+      const result = harness.evaluate(StringTransformers.Trim()).withInput('hello')
       expect(result).toBe('hello')
     })
 
     it('should handle empty strings', () => {
-      const result = evaluate('')
+      const result = harness.evaluate(StringTransformers.Trim()).withInput('')
       expect(result).toBe('')
     })
 
     it('should handle strings with only whitespace', () => {
-      const result = evaluate('   ')
+      const result = harness.evaluate(StringTransformers.Trim()).withInput('   ')
       expect(result).toBe('')
     })
 
     it('should preserve internal whitespace', () => {
-      const result = evaluate('  hello   world  ')
+      const result = harness.evaluate(StringTransformers.Trim()).withInput('  hello   world  ')
       expect(result).toBe('hello   world')
     })
 
     it('should throw error for non-string values', () => {
-      expect(() => evaluate(123)).toThrow('Transformer.String.Trim expects a string but received number.')
+      expect(() => harness.evaluate(StringTransformers.Trim()).withInput(123)).toThrow(
+        'Transformer.String.Trim expects a string but received number.',
+      )
     })
 
     it('should return a function expression when called', () => {
@@ -47,158 +48,158 @@ describe('String Transformers', () => {
   })
 
   describe('ToUpperCase', () => {
-    const { evaluate } = StringTransformersRegistry['String.ToUpperCase']
-
     it('should convert string to uppercase', () => {
-      const result = evaluate('hello world')
+      const result = harness.evaluate(StringTransformers.ToUpperCase()).withInput('hello world')
       expect(result).toBe('HELLO WORLD')
     })
 
     it('should handle already uppercase strings', () => {
-      const result = evaluate('HELLO WORLD')
+      const result = harness.evaluate(StringTransformers.ToUpperCase()).withInput('HELLO WORLD')
       expect(result).toBe('HELLO WORLD')
     })
 
     it('should handle mixed case strings', () => {
-      const result = evaluate('HeLLo WoRLd')
+      const result = harness.evaluate(StringTransformers.ToUpperCase()).withInput('HeLLo WoRLd')
       expect(result).toBe('HELLO WORLD')
     })
 
     it('should handle empty strings', () => {
-      const result = evaluate('')
+      const result = harness.evaluate(StringTransformers.ToUpperCase()).withInput('')
       expect(result).toBe('')
     })
 
     it('should handle strings with numbers and symbols', () => {
-      const result = evaluate('hello123!@#')
+      const result = harness.evaluate(StringTransformers.ToUpperCase()).withInput('hello123!@#')
       expect(result).toBe('HELLO123!@#')
     })
 
     it('should throw error for non-string values', () => {
-      expect(() => evaluate(123)).toThrow('Transformer.String.ToUpperCase expects a string but received number.')
+      expect(() => harness.evaluate(StringTransformers.ToUpperCase()).withInput(123)).toThrow(
+        'Transformer.String.ToUpperCase expects a string but received number.',
+      )
     })
   })
 
   describe('ToLowerCase', () => {
-    const { evaluate } = StringTransformersRegistry['String.ToLowerCase']
-
     it('should convert string to lowercase', () => {
-      const result = evaluate('HELLO WORLD')
+      const result = harness.evaluate(StringTransformers.ToLowerCase()).withInput('HELLO WORLD')
       expect(result).toBe('hello world')
     })
 
     it('should handle already lowercase strings', () => {
-      const result = evaluate('hello world')
+      const result = harness.evaluate(StringTransformers.ToLowerCase()).withInput('hello world')
       expect(result).toBe('hello world')
     })
 
     it('should handle mixed case strings', () => {
-      const result = evaluate('HeLLo WoRLd')
+      const result = harness.evaluate(StringTransformers.ToLowerCase()).withInput('HeLLo WoRLd')
       expect(result).toBe('hello world')
     })
 
     it('should handle empty strings', () => {
-      const result = evaluate('')
+      const result = harness.evaluate(StringTransformers.ToLowerCase()).withInput('')
       expect(result).toBe('')
     })
 
     it('should throw error for non-string values', () => {
-      expect(() => evaluate(123)).toThrow('Transformer.String.ToLowerCase expects a string but received number.')
+      expect(() => harness.evaluate(StringTransformers.ToLowerCase()).withInput(123)).toThrow(
+        'Transformer.String.ToLowerCase expects a string but received number.',
+      )
     })
   })
 
   describe('ToTitleCase', () => {
-    const { evaluate } = StringTransformersRegistry['String.ToTitleCase']
-
     it('should capitalize first letter of each word', () => {
-      const result = evaluate('hello world')
+      const result = harness.evaluate(StringTransformers.ToTitleCase()).withInput('hello world')
       expect(result).toBe('Hello World')
     })
 
     it('should handle single word', () => {
-      const result = evaluate('hello')
+      const result = harness.evaluate(StringTransformers.ToTitleCase()).withInput('hello')
       expect(result).toBe('Hello')
     })
 
     it('should handle mixed case input', () => {
-      const result = evaluate('hELLo WoRLD')
+      const result = harness.evaluate(StringTransformers.ToTitleCase()).withInput('hELLo WoRLD')
       expect(result).toBe('Hello World')
     })
 
     it('should handle words with apostrophes', () => {
-      const result = evaluate("don't worry")
+      const result = harness.evaluate(StringTransformers.ToTitleCase()).withInput("don't worry")
       expect(result).toBe("Don't Worry")
     })
 
     it('should handle empty strings', () => {
-      const result = evaluate('')
+      const result = harness.evaluate(StringTransformers.ToTitleCase()).withInput('')
       expect(result).toBe('')
     })
 
     it('should throw error for non-string values', () => {
-      expect(() => evaluate(123)).toThrow('Transformer.String.ToTitleCase expects a string but received number.')
+      expect(() => harness.evaluate(StringTransformers.ToTitleCase()).withInput(123)).toThrow(
+        'Transformer.String.ToTitleCase expects a string but received number.',
+      )
     })
   })
 
   describe('Capitalize', () => {
-    const { evaluate } = StringTransformersRegistry['String.Capitalize']
-
     it('should capitalize first letter only', () => {
-      const result = evaluate('hello world')
+      const result = harness.evaluate(StringTransformers.Capitalize()).withInput('hello world')
       expect(result).toBe('Hello world')
     })
 
     it('should handle single character', () => {
-      const result = evaluate('h')
+      const result = harness.evaluate(StringTransformers.Capitalize()).withInput('h')
       expect(result).toBe('H')
     })
 
     it('should handle already capitalized strings', () => {
-      const result = evaluate('Hello world')
+      const result = harness.evaluate(StringTransformers.Capitalize()).withInput('Hello world')
       expect(result).toBe('Hello world')
     })
 
     it('should handle empty strings', () => {
-      const result = evaluate('')
+      const result = harness.evaluate(StringTransformers.Capitalize()).withInput('')
       expect(result).toBe('')
     })
 
     it('should throw error for non-string values', () => {
-      expect(() => evaluate(123)).toThrow('Transformer.String.Capitalize expects a string but received number.')
+      expect(() => harness.evaluate(StringTransformers.Capitalize()).withInput(123)).toThrow(
+        'Transformer.String.Capitalize expects a string but received number.',
+      )
     })
   })
 
   describe('Possessive', () => {
-    const { evaluate } = StringTransformersRegistry['String.Possessive']
-
     it('should add apostrophe-s for names not ending in s', () => {
-      expect(evaluate('John')).toBe("John's")
+      expect(harness.evaluate(StringTransformers.Possessive()).withInput('John')).toBe("John's")
     })
 
     it('should add only apostrophe for names ending in s', () => {
-      expect(evaluate('James')).toBe("James'")
+      expect(harness.evaluate(StringTransformers.Possessive()).withInput('James')).toBe("James'")
     })
 
     it('should handle names ending in uppercase S', () => {
-      expect(evaluate('JAMES')).toBe("JAMES'")
+      expect(harness.evaluate(StringTransformers.Possessive()).withInput('JAMES')).toBe("JAMES'")
     })
 
     it('should handle single character names', () => {
-      expect(evaluate('J')).toBe("J's")
-      expect(evaluate('S')).toBe("S'")
+      expect(harness.evaluate(StringTransformers.Possessive()).withInput('J')).toBe("J's")
+      expect(harness.evaluate(StringTransformers.Possessive()).withInput('S')).toBe("S'")
     })
 
     it('should handle empty strings', () => {
-      expect(evaluate('')).toBe('')
+      expect(harness.evaluate(StringTransformers.Possessive()).withInput('')).toBe('')
     })
 
     it('should handle names with mixed case', () => {
-      expect(evaluate('Chris')).toBe("Chris'")
-      expect(evaluate('Tom')).toBe("Tom's")
+      expect(harness.evaluate(StringTransformers.Possessive()).withInput('Chris')).toBe("Chris'")
+      expect(harness.evaluate(StringTransformers.Possessive()).withInput('Tom')).toBe("Tom's")
     })
 
     it('should throw error for non-string values', () => {
-      expect(() => evaluate(123)).toThrow('Transformer.String.Possessive expects a string but received number.')
+      expect(() => harness.evaluate(StringTransformers.Possessive()).withInput(123)).toThrow(
+        'Transformer.String.Possessive expects a string but received number.',
+      )
     })
 
     it('should return a function expression when called', () => {
@@ -212,168 +213,170 @@ describe('String Transformers', () => {
   })
 
   describe('Substring', () => {
-    const { evaluate } = StringTransformersRegistry['String.Substring']
-
     it('should extract substring with start and end positions', () => {
-      const result = evaluate('hello world', 0, 5)
+      const result = harness.evaluate(StringTransformers.Substring(0, 5)).withInput('hello world')
       expect(result).toBe('hello')
     })
 
     it('should extract substring with only start position', () => {
-      const result = evaluate('hello world', 6)
+      const result = harness.evaluate(StringTransformers.Substring(6)).withInput('hello world')
       expect(result).toBe('world')
     })
 
     it('should handle start position beyond string length', () => {
-      const result = evaluate('hello', 10)
+      const result = harness.evaluate(StringTransformers.Substring(10)).withInput('hello')
       expect(result).toBe('')
     })
 
     it('should handle negative start position', () => {
-      const result = evaluate('hello', -2, 3)
+      const result = harness.evaluate(StringTransformers.Substring(-2, 3)).withInput('hello')
       expect(result).toBe('hel')
     })
 
     it('should throw error for non-string values', () => {
-      expect(() => evaluate(123, 0, 1)).toThrow('Transformer.String.Substring expects a string but received number.')
+      expect(() => harness.evaluate(StringTransformers.Substring(0, 1)).withInput(123)).toThrow(
+        'Transformer.String.Substring expects a string but received number.',
+      )
     })
   })
 
   describe('Replace', () => {
-    const { evaluate } = StringTransformersRegistry['String.Replace']
-
     it('should replace all occurrences of search string', () => {
-      const result = evaluate('hello world hello', 'hello', 'hi')
+      const result = harness.evaluate(StringTransformers.Replace('hello', 'hi')).withInput('hello world hello')
       expect(result).toBe('hi world hi')
     })
 
     it('should handle case-sensitive replacement', () => {
-      const result = evaluate('Hello world hello', 'hello', 'hi')
+      const result = harness.evaluate(StringTransformers.Replace('hello', 'hi')).withInput('Hello world hello')
       expect(result).toBe('Hello world hi')
     })
 
     it('should handle replacement with empty string', () => {
-      const result = evaluate('hello world', 'hello ', '')
+      const result = harness.evaluate(StringTransformers.Replace('hello ', '')).withInput('hello world')
       expect(result).toBe('world')
     })
 
     it('should handle search string not found', () => {
-      const result = evaluate('hello world', 'xyz', 'abc')
+      const result = harness.evaluate(StringTransformers.Replace('xyz', 'abc')).withInput('hello world')
       expect(result).toBe('hello world')
     })
 
     it('should throw error for non-string values', () => {
-      expect(() => evaluate(123, 'a', 'b')).toThrow('Transformer.String.Replace expects a string but received number.')
+      expect(() => harness.evaluate(StringTransformers.Replace('a', 'b')).withInput(123)).toThrow(
+        'Transformer.String.Replace expects a string but received number.',
+      )
     })
   })
 
   describe('PadStart', () => {
-    const { evaluate } = StringTransformersRegistry['String.PadStart']
-
     it('should pad string to target length with spaces', () => {
-      const result = evaluate('5', 3)
+      const result = harness.evaluate(StringTransformers.PadStart(3)).withInput('5')
       expect(result).toBe('  5')
     })
 
     it('should pad string with custom character', () => {
-      const result = evaluate('5', 3, '0')
+      const result = harness.evaluate(StringTransformers.PadStart(3, '0')).withInput('5')
       expect(result).toBe('005')
     })
 
     it('should not pad if string is already longer than target', () => {
-      const result = evaluate('hello', 3)
+      const result = harness.evaluate(StringTransformers.PadStart(3)).withInput('hello')
       expect(result).toBe('hello')
     })
 
     it('should handle empty string', () => {
-      const result = evaluate('', 3, 'x')
+      const result = harness.evaluate(StringTransformers.PadStart(3, 'x')).withInput('')
       expect(result).toBe('xxx')
     })
 
     it('should throw error for non-string values', () => {
-      expect(() => evaluate(123, 5)).toThrow('Transformer.String.PadStart expects a string but received number.')
+      expect(() => harness.evaluate(StringTransformers.PadStart(5)).withInput(123)).toThrow(
+        'Transformer.String.PadStart expects a string but received number.',
+      )
     })
   })
 
   describe('PadEnd', () => {
-    const { evaluate } = StringTransformersRegistry['String.PadEnd']
-
     it('should pad string to target length with spaces', () => {
-      const result = evaluate('5', 3)
+      const result = harness.evaluate(StringTransformers.PadEnd(3)).withInput('5')
       expect(result).toBe('5  ')
     })
 
     it('should pad string with custom character', () => {
-      const result = evaluate('5', 3, '0')
+      const result = harness.evaluate(StringTransformers.PadEnd(3, '0')).withInput('5')
       expect(result).toBe('500')
     })
 
     it('should not pad if string is already longer than target', () => {
-      const result = evaluate('hello', 3)
+      const result = harness.evaluate(StringTransformers.PadEnd(3)).withInput('hello')
       expect(result).toBe('hello')
     })
 
     it('should handle empty string', () => {
-      const result = evaluate('', 3, 'x')
+      const result = harness.evaluate(StringTransformers.PadEnd(3, 'x')).withInput('')
       expect(result).toBe('xxx')
     })
 
     it('should throw error for non-string values', () => {
-      expect(() => evaluate(123, 5)).toThrow('Transformer.String.PadEnd expects a string but received number.')
+      expect(() => harness.evaluate(StringTransformers.PadEnd(5)).withInput(123)).toThrow(
+        'Transformer.String.PadEnd expects a string but received number.',
+      )
     })
   })
 
   describe('ToInt', () => {
-    const { evaluate } = StringTransformersRegistry['String.ToInt']
-
     it('should convert string to integer', () => {
-      const result = evaluate('123')
+      const result = harness.evaluate(StringTransformers.ToInt()).withInput('123')
       expect(result).toBe(123)
     })
 
     it('should truncate decimal strings', () => {
-      const result = evaluate('123.45')
+      const result = harness.evaluate(StringTransformers.ToInt()).withInput('123.45')
       expect(result).toBe(123)
     })
 
     it('should handle negative numbers', () => {
-      const result = evaluate('-456')
+      const result = harness.evaluate(StringTransformers.ToInt()).withInput('-456')
       expect(result).toBe(-456)
     })
 
     it('should handle negative decimals by truncating', () => {
-      const result = evaluate('-456.789')
+      const result = harness.evaluate(StringTransformers.ToInt()).withInput('-456.789')
       expect(result).toBe(-456)
     })
 
     it('should handle strings with leading/trailing spaces', () => {
-      const result = evaluate('  123  ')
+      const result = harness.evaluate(StringTransformers.ToInt()).withInput('  123  ')
       expect(result).toBe(123)
     })
 
     it('should throw for empty string', () => {
-      expect(() => evaluate('')).toThrow('is not a valid number')
-      expect(() => evaluate('')).toThrow(TypeError)
+      expect(() => harness.evaluate(StringTransformers.ToInt()).withInput('')).toThrow('is not a valid number')
+      expect(() => harness.evaluate(StringTransformers.ToInt()).withInput('')).toThrow(TypeError)
     })
 
     it('should throw for whitespace-only string', () => {
-      expect(() => evaluate('   ')).toThrow('is not a valid number')
+      expect(() => harness.evaluate(StringTransformers.ToInt()).withInput('   ')).toThrow('is not a valid number')
     })
 
     it('should throw for non-numeric input', () => {
-      expect(() => evaluate('not a number')).toThrow('is not a valid number')
+      expect(() => harness.evaluate(StringTransformers.ToInt()).withInput('not a number')).toThrow(
+        'is not a valid number',
+      )
     })
 
     it('should throw for partial numeric input', () => {
-      expect(() => evaluate('123abc')).toThrow('is not a valid number')
+      expect(() => harness.evaluate(StringTransformers.ToInt()).withInput('123abc')).toThrow('is not a valid number')
     })
 
     it('should throw for Infinity', () => {
-      expect(() => evaluate('Infinity')).toThrow('is not a valid number')
+      expect(() => harness.evaluate(StringTransformers.ToInt()).withInput('Infinity')).toThrow('is not a valid number')
     })
 
     it('should throw error for non-string values', () => {
-      expect(() => evaluate(123)).toThrow('Transformer.String.ToInt expects a string but received number.')
+      expect(() => harness.evaluate(StringTransformers.ToInt()).withInput(123)).toThrow(
+        'Transformer.String.ToInt expects a string but received number.',
+      )
     })
 
     it('should return a function expression when called', () => {
@@ -387,61 +390,67 @@ describe('String Transformers', () => {
   })
 
   describe('ToFloat', () => {
-    const { evaluate } = StringTransformersRegistry['String.ToFloat']
-
     it('should convert string to float', () => {
-      const result = evaluate('123.45')
+      const result = harness.evaluate(StringTransformers.ToFloat()).withInput('123.45')
       expect(result).toBe(123.45)
     })
 
     it('should handle integers', () => {
-      const result = evaluate('123')
+      const result = harness.evaluate(StringTransformers.ToFloat()).withInput('123')
       expect(result).toBe(123)
     })
 
     it('should handle negative numbers', () => {
-      const result = evaluate('-456.789')
+      const result = harness.evaluate(StringTransformers.ToFloat()).withInput('-456.789')
       expect(result).toBe(-456.789)
     })
 
     it('should handle scientific notation', () => {
-      const result = evaluate('1.23e5')
+      const result = harness.evaluate(StringTransformers.ToFloat()).withInput('1.23e5')
       expect(result).toBe(123000)
     })
 
     it('should handle strings with leading/trailing spaces', () => {
-      const result = evaluate('  3.14159  ')
+      const result = harness.evaluate(StringTransformers.ToFloat()).withInput('  3.14159  ')
       expect(result).toBeCloseTo(3.14159)
     })
 
     it('should throw for empty string', () => {
-      expect(() => evaluate('')).toThrow('is not a valid number')
-      expect(() => evaluate('')).toThrow(TypeError)
+      expect(() => harness.evaluate(StringTransformers.ToFloat()).withInput('')).toThrow('is not a valid number')
+      expect(() => harness.evaluate(StringTransformers.ToFloat()).withInput('')).toThrow(TypeError)
     })
 
     it('should throw for whitespace-only string', () => {
-      expect(() => evaluate('   ')).toThrow('is not a valid number')
+      expect(() => harness.evaluate(StringTransformers.ToFloat()).withInput('   ')).toThrow('is not a valid number')
     })
 
     it('should handle very small decimals', () => {
-      const result = evaluate('0.000001')
+      const result = harness.evaluate(StringTransformers.ToFloat()).withInput('0.000001')
       expect(result).toBe(0.000001)
     })
 
     it('should throw for non-numeric input', () => {
-      expect(() => evaluate('not a number')).toThrow('is not a valid number')
+      expect(() => harness.evaluate(StringTransformers.ToFloat()).withInput('not a number')).toThrow(
+        'is not a valid number',
+      )
     })
 
     it('should throw for partial numeric input', () => {
-      expect(() => evaluate('123.45abc')).toThrow('is not a valid number')
+      expect(() => harness.evaluate(StringTransformers.ToFloat()).withInput('123.45abc')).toThrow(
+        'is not a valid number',
+      )
     })
 
     it('should throw for Infinity', () => {
-      expect(() => evaluate('Infinity')).toThrow('is not a valid number')
+      expect(() => harness.evaluate(StringTransformers.ToFloat()).withInput('Infinity')).toThrow(
+        'is not a valid number',
+      )
     })
 
     it('should throw error for non-string values', () => {
-      expect(() => evaluate(123.45)).toThrow('Transformer.String.ToFloat expects a string but received number.')
+      expect(() => harness.evaluate(StringTransformers.ToFloat()).withInput(123.45)).toThrow(
+        'Transformer.String.ToFloat expects a string but received number.',
+      )
     })
 
     it('should return a function expression when called', () => {
@@ -455,55 +464,55 @@ describe('String Transformers', () => {
   })
 
   describe('ToArray', () => {
-    const { evaluate } = StringTransformersRegistry['String.ToArray']
-
     it('should split string into character array by default', () => {
-      const result = evaluate('hello')
+      const result = harness.evaluate(StringTransformers.ToArray()).withInput('hello')
       expect(result).toEqual(['h', 'e', 'l', 'l', 'o'])
     })
 
     it('should split string by comma separator', () => {
-      const result = evaluate('hello,world,test', ',')
+      const result = harness.evaluate(StringTransformers.ToArray(',')).withInput('hello,world,test')
       expect(result).toEqual(['hello', 'world', 'test'])
     })
 
     it('should split string by space separator', () => {
-      const result = evaluate('hello world test', ' ')
+      const result = harness.evaluate(StringTransformers.ToArray(' ')).withInput('hello world test')
       expect(result).toEqual(['hello', 'world', 'test'])
     })
 
     it('should split string by custom separator', () => {
-      const result = evaluate('a-b-c-d', '-')
+      const result = harness.evaluate(StringTransformers.ToArray('-')).withInput('a-b-c-d')
       expect(result).toEqual(['a', 'b', 'c', 'd'])
     })
 
     it('should handle empty string', () => {
-      const result = evaluate('')
+      const result = harness.evaluate(StringTransformers.ToArray()).withInput('')
       expect(result).toEqual([])
     })
 
     it('should handle empty string with separator', () => {
-      const result = evaluate('', ',')
+      const result = harness.evaluate(StringTransformers.ToArray(',')).withInput('')
       expect(result).toEqual([''])
     })
 
     it('should handle separator not found', () => {
-      const result = evaluate('hello', ',')
+      const result = harness.evaluate(StringTransformers.ToArray(',')).withInput('hello')
       expect(result).toEqual(['hello'])
     })
 
     it('should handle multi-character separator', () => {
-      const result = evaluate('hello::world::test', '::')
+      const result = harness.evaluate(StringTransformers.ToArray('::')).withInput('hello::world::test')
       expect(result).toEqual(['hello', 'world', 'test'])
     })
 
     it('should handle consecutive separators', () => {
-      const result = evaluate('a,,b', ',')
+      const result = harness.evaluate(StringTransformers.ToArray(',')).withInput('a,,b')
       expect(result).toEqual(['a', '', 'b'])
     })
 
     it('should throw error for non-string values', () => {
-      expect(() => evaluate(123)).toThrow('Transformer.String.ToArray expects a string but received number.')
+      expect(() => harness.evaluate(StringTransformers.ToArray()).withInput(123)).toThrow(
+        'Transformer.String.ToArray expects a string but received number.',
+      )
     })
 
     it('should return a function expression when called', () => {
@@ -517,10 +526,8 @@ describe('String Transformers', () => {
   })
 
   describe('ToDate', () => {
-    const { evaluate } = StringTransformersRegistry['String.ToDate']
-
     it('should parse UK format with slash separator (DD/MM/YYYY)', () => {
-      const result = evaluate('15/03/2024')
+      const result = harness.evaluate(StringTransformers.ToDate()).withInput('15/03/2024') as Date
       expect(result).toBeInstanceOf(Date)
       expect(result.getFullYear()).toBe(2024)
       expect(result.getMonth()).toBe(2) // March is month 2 (0-indexed)
@@ -528,7 +535,7 @@ describe('String Transformers', () => {
     })
 
     it('should parse UK format with dash separator (DD-MM-YYYY)', () => {
-      const result = evaluate('15-03-2024')
+      const result = harness.evaluate(StringTransformers.ToDate()).withInput('15-03-2024') as Date
       expect(result).toBeInstanceOf(Date)
       expect(result.getFullYear()).toBe(2024)
       expect(result.getMonth()).toBe(2)
@@ -536,7 +543,7 @@ describe('String Transformers', () => {
     })
 
     it('should handle single-digit days and months', () => {
-      const result = evaluate('5/3/2024')
+      const result = harness.evaluate(StringTransformers.ToDate()).withInput('5/3/2024') as Date
       expect(result).toBeInstanceOf(Date)
       expect(result.getFullYear()).toBe(2024)
       expect(result.getMonth()).toBe(2)
@@ -544,7 +551,7 @@ describe('String Transformers', () => {
     })
 
     it('should handle end of year dates', () => {
-      const result = evaluate('31/12/2024')
+      const result = harness.evaluate(StringTransformers.ToDate()).withInput('31/12/2024') as Date
       expect(result).toBeInstanceOf(Date)
       expect(result.getFullYear()).toBe(2024)
       expect(result.getMonth()).toBe(11) // December (0-indexed)
@@ -552,7 +559,7 @@ describe('String Transformers', () => {
     })
 
     it('should handle leap year dates', () => {
-      const result = evaluate('29/02/2024')
+      const result = harness.evaluate(StringTransformers.ToDate()).withInput('29/02/2024') as Date
       expect(result).toBeInstanceOf(Date)
       expect(result.getFullYear()).toBe(2024)
       expect(result.getMonth()).toBe(1) // February (0-indexed)
@@ -560,7 +567,7 @@ describe('String Transformers', () => {
     })
 
     it('should handle strings with leading/trailing spaces', () => {
-      const result = evaluate('  15/03/2024  ')
+      const result = harness.evaluate(StringTransformers.ToDate()).withInput('  15/03/2024  ') as Date
       expect(result).toBeInstanceOf(Date)
       expect(result.getFullYear()).toBe(2024)
       expect(result.getMonth()).toBe(2)
@@ -568,16 +575,16 @@ describe('String Transformers', () => {
     })
 
     it('should throw for empty string', () => {
-      expect(() => evaluate('')).toThrow('is not a valid date')
-      expect(() => evaluate('')).toThrow(TypeError)
+      expect(() => harness.evaluate(StringTransformers.ToDate()).withInput('')).toThrow('is not a valid date')
+      expect(() => harness.evaluate(StringTransformers.ToDate()).withInput('')).toThrow(TypeError)
     })
 
     it('should throw for whitespace-only string', () => {
-      expect(() => evaluate('   ')).toThrow('is not a valid date')
+      expect(() => harness.evaluate(StringTransformers.ToDate()).withInput('   ')).toThrow('is not a valid date')
     })
 
     it('should parse ISO format (YYYY-MM-DD)', () => {
-      const result = evaluate('2024-03-15')
+      const result = harness.evaluate(StringTransformers.ToDate()).withInput('2024-03-15') as Date
       expect(result).toBeInstanceOf(Date)
       expect(result.getFullYear()).toBe(2024)
       expect(result.getMonth()).toBe(2)
@@ -585,7 +592,7 @@ describe('String Transformers', () => {
     })
 
     it('should parse ISO format with time and timezone', () => {
-      const result = evaluate('2024-03-15T14:30:00Z')
+      const result = harness.evaluate(StringTransformers.ToDate()).withInput('2024-03-15T14:30:00Z') as Date
       expect(result).toBeInstanceOf(Date)
       expect(result.getFullYear()).toBe(2024)
       expect(result.getMonth()).toBe(2)
@@ -597,7 +604,7 @@ describe('String Transformers', () => {
       const input = '2026-04-27T23:05:36.647Z'
 
       // Act
-      const result = evaluate(input)
+      const result = harness.evaluate(StringTransformers.ToDate()).withInput(input) as Date
 
       // Assert
       expect(result).toBeInstanceOf(Date)
@@ -605,44 +612,52 @@ describe('String Transformers', () => {
     })
 
     it('should throw for non realistic ISO dates that js would silently roll over', () => {
-      expect(() => evaluate('2026-02-30')).toThrow('is not a valid date')
-      expect(() => evaluate('2026-02-30T12:00:00Z')).toThrow('is not a valid date')
-      expect(() => evaluate('2024-04-31')).toThrow('is not a valid date')
-      expect(() => evaluate('2023-02-29')).toThrow('is not a valid date')
+      expect(() => harness.evaluate(StringTransformers.ToDate()).withInput('2026-02-30')).toThrow('is not a valid date')
+      expect(() => harness.evaluate(StringTransformers.ToDate()).withInput('2026-02-30T12:00:00Z')).toThrow(
+        'is not a valid date',
+      )
+      expect(() => harness.evaluate(StringTransformers.ToDate()).withInput('2024-04-31')).toThrow('is not a valid date')
+      expect(() => harness.evaluate(StringTransformers.ToDate()).withInput('2023-02-29')).toThrow('is not a valid date')
     })
 
     it('should throw for US format (not supported)', () => {
-      expect(() => evaluate('03/15/2024')).toThrow('is not a valid date')
+      expect(() => harness.evaluate(StringTransformers.ToDate()).withInput('03/15/2024')).toThrow('is not a valid date')
     })
 
     it('should throw for invalid date string', () => {
-      expect(() => evaluate('not a date')).toThrow('is not a valid date')
+      expect(() => harness.evaluate(StringTransformers.ToDate()).withInput('not a date')).toThrow('is not a valid date')
     })
 
     it('should throw for invalid day', () => {
-      expect(() => evaluate('32/03/2024')).toThrow('is not a valid date')
+      expect(() => harness.evaluate(StringTransformers.ToDate()).withInput('32/03/2024')).toThrow('is not a valid date')
     })
 
     it('should throw for invalid month', () => {
-      expect(() => evaluate('15/13/2024')).toThrow('is not a valid date')
+      expect(() => harness.evaluate(StringTransformers.ToDate()).withInput('15/13/2024')).toThrow('is not a valid date')
     })
 
     it('should throw for invalid leap year date', () => {
-      expect(() => evaluate('29/02/2023')).toThrow('is not a valid date')
+      expect(() => harness.evaluate(StringTransformers.ToDate()).withInput('29/02/2023')).toThrow('is not a valid date')
     })
 
     it('should throw for wrong format', () => {
-      expect(() => evaluate('2024/03/15')).toThrow('is not a valid date')
+      expect(() => harness.evaluate(StringTransformers.ToDate()).withInput('2024/03/15')).toThrow('is not a valid date')
     })
 
     it('should throw for partial dates', () => {
-      expect(() => evaluate('15/03')).toThrow('is not a valid date')
+      expect(() => harness.evaluate(StringTransformers.ToDate()).withInput('15/03')).toThrow('is not a valid date')
     })
 
     it('should throw error for non-string values', () => {
-      expect(() => evaluate(123)).toThrow('Transformer.String.ToDate expects a string but received number.')
-      expect(() => evaluate(null)).toThrow('Transformer.String.ToDate expects a string but received object.')
-      expect(() => evaluate(undefined)).toThrow('Transformer.String.ToDate expects a string but received undefined.')
+      expect(() => harness.evaluate(StringTransformers.ToDate()).withInput(123)).toThrow(
+        'Transformer.String.ToDate expects a string but received number.',
+      )
+      // `null` is a real value, so it flows through to the transformer and fails its string assertion.
+      expect(() => harness.evaluate(StringTransformers.ToDate()).withInput(null)).toThrow(
+        'Transformer.String.ToDate expects a string but received object.',
+      )
+      // An undefined input short-circuits to undefined without calling the transformer.
+      expect(harness.evaluate(StringTransformers.ToDate()).withInput(undefined)).toBeUndefined()
     })
 
     it('should return a function expression when called', () => {
@@ -656,14 +671,12 @@ describe('String Transformers', () => {
   })
 
   describe('FormatDate', () => {
-    const { evaluate } = StringTransformersRegistry['String.FormatDate']
-
     it('should format ISO date as UK long date when options are omitted', () => {
       // Arrange
       const input = '2024-03-15'
 
       // Act
-      const result = evaluate(input)
+      const result = harness.evaluate(StringTransformers.FormatDate()).withInput(input)
 
       // Assert
       expect(result).toBe('15 March 2024')
@@ -674,7 +687,7 @@ describe('String Transformers', () => {
       const input = '2026-04-27T23:30:00.000Z'
 
       // Act
-      const result = evaluate(input)
+      const result = harness.evaluate(StringTransformers.FormatDate()).withInput(input)
 
       // Assert
       expect(result).toBe('28 April 2026')
@@ -685,7 +698,7 @@ describe('String Transformers', () => {
       const input = '15/03/2024'
 
       // Act
-      const result = evaluate(input, { dateStyle: 'long' })
+      const result = harness.evaluate(StringTransformers.FormatDate({ dateStyle: 'long' })).withInput(input)
 
       // Assert
       expect(result).toBe('15 March 2024')
@@ -696,7 +709,9 @@ describe('String Transformers', () => {
       const input = '2024-03-15'
 
       // Act
-      const result = evaluate(input, { locale: 'en-US', dateStyle: 'long' })
+      const result = harness
+        .evaluate(StringTransformers.FormatDate({ locale: 'en-US', dateStyle: 'long' }))
+        .withInput(input)
 
       // Assert
       expect(result).toBe('March 15, 2024')
@@ -707,11 +722,15 @@ describe('String Transformers', () => {
       const input = '2024-03-15'
 
       // Act
-      const result = evaluate(input, {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      })
+      const result = harness
+        .evaluate(
+          StringTransformers.FormatDate({
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+          }),
+        )
+        .withInput(input)
 
       // Assert
       expect(result).toBe('15/03/2024')
@@ -722,7 +741,7 @@ describe('String Transformers', () => {
       const input = 'not a date'
 
       // Act
-      const act = () => evaluate(input)
+      const act = () => harness.evaluate(StringTransformers.FormatDate()).withInput(input)
 
       // Assert
       expect(act).toThrow('Transformer.String.FormatDate: "not a date" is not a valid date')
@@ -734,7 +753,7 @@ describe('String Transformers', () => {
       const input = 123
 
       // Act
-      const act = () => evaluate(input)
+      const act = () => harness.evaluate(StringTransformers.FormatDate()).withInput(input)
 
       // Assert
       expect(act).toThrow('Transformer.String.FormatDate expects a string but received number.')
@@ -772,14 +791,12 @@ describe('String Transformers', () => {
   })
 
   describe('FormatDate', () => {
-    const { evaluate } = StringTransformersRegistry['String.FormatDate']
-
     it('should format ISO date as UK long date when options are omitted', () => {
       // Arrange
       const input = '2024-03-15'
 
       // Act
-      const result = evaluate(input)
+      const result = harness.evaluate(StringTransformers.FormatDate()).withInput(input)
 
       // Assert
       expect(result).toBe('15 March 2024')
@@ -790,7 +807,7 @@ describe('String Transformers', () => {
       const input = '15/03/2024'
 
       // Act
-      const result = evaluate(input, { dateStyle: 'long' })
+      const result = harness.evaluate(StringTransformers.FormatDate({ dateStyle: 'long' })).withInput(input)
 
       // Assert
       expect(result).toBe('15 March 2024')
@@ -801,7 +818,9 @@ describe('String Transformers', () => {
       const input = '2024-03-15'
 
       // Act
-      const result = evaluate(input, { locale: 'en-US', dateStyle: 'long' })
+      const result = harness
+        .evaluate(StringTransformers.FormatDate({ locale: 'en-US', dateStyle: 'long' }))
+        .withInput(input)
 
       // Assert
       expect(result).toBe('March 15, 2024')
@@ -812,7 +831,7 @@ describe('String Transformers', () => {
       const input = '2026-04-27T23:05:36.647Z'
 
       // Act
-      const result = evaluate(input)
+      const result = harness.evaluate(StringTransformers.FormatDate()).withInput(input)
 
       // Assert
       expect(result).toBe('28 April 2026')
@@ -823,11 +842,15 @@ describe('String Transformers', () => {
       const input = '2024-03-15'
 
       // Act
-      const result = evaluate(input, {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      })
+      const result = harness
+        .evaluate(
+          StringTransformers.FormatDate({
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+          }),
+        )
+        .withInput(input)
 
       // Assert
       expect(result).toBe('15/03/2024')
@@ -838,7 +861,7 @@ describe('String Transformers', () => {
       const input = 'not a date'
 
       // Act
-      const act = () => evaluate(input)
+      const act = () => harness.evaluate(StringTransformers.FormatDate()).withInput(input)
 
       // Assert
       expect(act).toThrow('Transformer.String.FormatDate: "not a date" is not a valid date')
@@ -849,7 +872,7 @@ describe('String Transformers', () => {
       const input = 123
 
       // Act
-      const act = () => evaluate(input)
+      const act = () => harness.evaluate(StringTransformers.FormatDate()).withInput(input)
 
       // Assert
       expect(act).toThrow('Transformer.String.FormatDate expects a string but received number.')
@@ -887,71 +910,87 @@ describe('String Transformers', () => {
   })
 
   describe('ToISODate', () => {
-    const { evaluate } = StringTransformersRegistry['String.ToISODate']
-
     it('should convert UK date format to ISO format', () => {
-      expect(evaluate('15/03/2024')).toBe('2024-03-15')
+      expect(harness.evaluate(StringTransformers.ToISODate()).withInput('15/03/2024')).toBe('2024-03-15')
     })
 
     it('should handle single digit day and month', () => {
-      expect(evaluate('5/3/2024')).toBe('2024-03-05')
-      expect(evaluate('1/1/2024')).toBe('2024-01-01')
+      expect(harness.evaluate(StringTransformers.ToISODate()).withInput('5/3/2024')).toBe('2024-03-05')
+      expect(harness.evaluate(StringTransformers.ToISODate()).withInput('1/1/2024')).toBe('2024-01-01')
     })
 
     it('should handle dash separator', () => {
-      expect(evaluate('15-03-2024')).toBe('2024-03-15')
+      expect(harness.evaluate(StringTransformers.ToISODate()).withInput('15-03-2024')).toBe('2024-03-15')
     })
 
     it('should handle leading/trailing whitespace', () => {
-      expect(evaluate('  15/03/2024  ')).toBe('2024-03-15')
+      expect(harness.evaluate(StringTransformers.ToISODate()).withInput('  15/03/2024  ')).toBe('2024-03-15')
     })
 
     it('should handle end of year dates', () => {
-      expect(evaluate('31/12/2024')).toBe('2024-12-31')
+      expect(harness.evaluate(StringTransformers.ToISODate()).withInput('31/12/2024')).toBe('2024-12-31')
     })
 
     it('should handle leap year dates', () => {
-      expect(evaluate('29/02/2024')).toBe('2024-02-29')
+      expect(harness.evaluate(StringTransformers.ToISODate()).withInput('29/02/2024')).toBe('2024-02-29')
     })
 
     it('should throw for empty string', () => {
-      expect(() => evaluate('')).toThrow('is not a valid date')
-      expect(() => evaluate('')).toThrow(TypeError)
+      expect(() => harness.evaluate(StringTransformers.ToISODate()).withInput('')).toThrow('is not a valid date')
+      expect(() => harness.evaluate(StringTransformers.ToISODate()).withInput('')).toThrow(TypeError)
     })
 
     it('should throw for whitespace only', () => {
-      expect(() => evaluate('   ')).toThrow('is not a valid date')
+      expect(() => harness.evaluate(StringTransformers.ToISODate()).withInput('   ')).toThrow('is not a valid date')
     })
 
     it('should throw for ISO format input', () => {
-      expect(() => evaluate('2024-03-15')).toThrow('is not a valid UK date')
-      expect(() => evaluate('2024-03-15')).toThrow(TypeError)
+      expect(() => harness.evaluate(StringTransformers.ToISODate()).withInput('2024-03-15')).toThrow(
+        'is not a valid UK date',
+      )
+      expect(() => harness.evaluate(StringTransformers.ToISODate()).withInput('2024-03-15')).toThrow(TypeError)
     })
 
     it('should throw for invalid day', () => {
-      expect(() => evaluate('32/03/2024')).toThrow('is not a valid date')
+      expect(() => harness.evaluate(StringTransformers.ToISODate()).withInput('32/03/2024')).toThrow(
+        'is not a valid date',
+      )
     })
 
     it('should throw for invalid month', () => {
-      expect(() => evaluate('15/13/2024')).toThrow('is not a valid date')
+      expect(() => harness.evaluate(StringTransformers.ToISODate()).withInput('15/13/2024')).toThrow(
+        'is not a valid date',
+      )
     })
 
     it('should throw for invalid leap year date', () => {
-      expect(() => evaluate('29/02/2023')).toThrow('is not a valid date')
+      expect(() => harness.evaluate(StringTransformers.ToISODate()).withInput('29/02/2023')).toThrow(
+        'is not a valid date',
+      )
     })
 
     it('should throw for wrong format', () => {
-      expect(() => evaluate('2024/03/15')).toThrow('is not a valid UK date')
+      expect(() => harness.evaluate(StringTransformers.ToISODate()).withInput('2024/03/15')).toThrow(
+        'is not a valid UK date',
+      )
     })
 
     it('should throw for partial dates', () => {
-      expect(() => evaluate('15/03')).toThrow('is not a valid UK date')
+      expect(() => harness.evaluate(StringTransformers.ToISODate()).withInput('15/03')).toThrow(
+        'is not a valid UK date',
+      )
     })
 
     it('should throw error for non-string values', () => {
-      expect(() => evaluate(123)).toThrow('Transformer.String.ToISODate expects a string but received number.')
-      expect(() => evaluate(null)).toThrow('Transformer.String.ToISODate expects a string but received object.')
-      expect(() => evaluate(undefined)).toThrow('Transformer.String.ToISODate expects a string but received undefined.')
+      expect(() => harness.evaluate(StringTransformers.ToISODate()).withInput(123)).toThrow(
+        'Transformer.String.ToISODate expects a string but received number.',
+      )
+      // `null` is a real value, so it flows through to the transformer and fails its string assertion.
+      expect(() => harness.evaluate(StringTransformers.ToISODate()).withInput(null)).toThrow(
+        'Transformer.String.ToISODate expects a string but received object.',
+      )
+      // An undefined input short-circuits to undefined without calling the transformer.
+      expect(harness.evaluate(StringTransformers.ToISODate()).withInput(undefined)).toBeUndefined()
     })
 
     it('should return a function expression when called', () => {
@@ -965,14 +1004,12 @@ describe('String Transformers', () => {
   })
 
   describe('ToTimestampDate', () => {
-    const { evaluate } = StringTransformersRegistry['String.ToTimestampDate']
-
     it('should convert an epoch timestamp string to a Date', () => {
       // Arrange
       const timestamp = '1710460800000'
 
       // Act
-      const result = evaluate(timestamp)
+      const result = harness.evaluate(StringTransformers.ToTimestampDate()).withInput(timestamp) as Date
 
       // Assert
       expect(result).toBeInstanceOf(Date)
@@ -984,7 +1021,7 @@ describe('String Transformers', () => {
       const invalidTimestamp = 'not-a-timestamp'
 
       // Act
-      const act = () => evaluate(invalidTimestamp)
+      const act = () => harness.evaluate(StringTransformers.ToTimestampDate()).withInput(invalidTimestamp)
 
       // Assert
       expect(act).toThrow('is not a timestamp')
@@ -993,14 +1030,12 @@ describe('String Transformers', () => {
   })
 
   describe('EscapeHtml', () => {
-    const { evaluate } = StringTransformersRegistry['String.EscapeHtml']
-
     it('should escape angle brackets', () => {
       // Arrange
       const input = '<script>alert(1)</script>'
 
       // Act
-      const result = evaluate(input)
+      const result = harness.evaluate(StringTransformers.EscapeHtml()).withInput(input)
 
       // Assert
       expect(result).toBe('&lt;script&gt;alert(1)&lt;/script&gt;')
@@ -1011,7 +1046,7 @@ describe('String Transformers', () => {
       const input = '"><img src=x onerror=alert(1)>'
 
       // Act
-      const result = evaluate(input)
+      const result = harness.evaluate(StringTransformers.EscapeHtml()).withInput(input)
 
       // Assert
       expect(result).toBe('&quot;&gt;&lt;img src=x onerror=alert(1)&gt;')
@@ -1022,7 +1057,7 @@ describe('String Transformers', () => {
       const input = "it's a test"
 
       // Act
-      const result = evaluate(input)
+      const result = harness.evaluate(StringTransformers.EscapeHtml()).withInput(input)
 
       // Assert
       expect(result).toBe('it&#39;s a test')
@@ -1033,7 +1068,7 @@ describe('String Transformers', () => {
       const input = 'foo & bar'
 
       // Act
-      const result = evaluate(input)
+      const result = harness.evaluate(StringTransformers.EscapeHtml()).withInput(input)
 
       // Assert
       expect(result).toBe('foo &amp; bar')
@@ -1044,7 +1079,7 @@ describe('String Transformers', () => {
       const input = 'Buy milk'
 
       // Act
-      const result = evaluate(input)
+      const result = harness.evaluate(StringTransformers.EscapeHtml()).withInput(input)
 
       // Assert
       expect(result).toBe('Buy milk')
@@ -1052,14 +1087,16 @@ describe('String Transformers', () => {
 
     it('should handle empty strings', () => {
       // Arrange / Act
-      const result = evaluate('')
+      const result = harness.evaluate(StringTransformers.EscapeHtml()).withInput('')
 
       // Assert
       expect(result).toBe('')
     })
 
     it('should throw error for non-string values', () => {
-      expect(() => evaluate(123)).toThrow('Transformer.String.EscapeHtml expects a string but received number.')
+      expect(() => harness.evaluate(StringTransformers.EscapeHtml()).withInput(123)).toThrow(
+        'Transformer.String.EscapeHtml expects a string but received number.',
+      )
     })
 
     it('should return a function expression when called', () => {

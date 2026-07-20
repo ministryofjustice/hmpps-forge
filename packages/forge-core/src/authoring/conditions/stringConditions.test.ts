@@ -1,25 +1,26 @@
 import { StringConditions, stringConditionsRegistry } from './stringConditions'
 import { FunctionType } from '../types/enums'
+import { FunctionRegistryTestHarness } from '../../testing/FunctionRegistryTestHarness'
 
 describe('StringConditions', () => {
-  const registry = stringConditionsRegistry.build()
+  const harness = new FunctionRegistryTestHarness(stringConditionsRegistry)
 
   describe('MatchesRegex', () => {
-    const { evaluate } = registry['String.MatchesRegex']
-
     test('should return true when string matches regex pattern', () => {
-      expect(evaluate('hello', 'h.*o')).toBe(true)
-      expect(evaluate('test@example.com', '.*@.*\\.com')).toBe(true)
-      expect(evaluate('123', '^\\d+$')).toBe(true)
+      expect(harness.evaluate(StringConditions.MatchesRegex('h.*o')).withInput('hello')).toBe(true)
+      expect(harness.evaluate(StringConditions.MatchesRegex('.*@.*\\.com')).withInput('test@example.com')).toBe(true)
+      expect(harness.evaluate(StringConditions.MatchesRegex('^\\d+$')).withInput('123')).toBe(true)
     })
 
     test('should return false when string does not match regex pattern', () => {
-      expect(evaluate('hello', '^world$')).toBe(false)
-      expect(evaluate('abc', '^\\d+$')).toBe(false)
+      expect(harness.evaluate(StringConditions.MatchesRegex('^world$')).withInput('hello')).toBe(false)
+      expect(harness.evaluate(StringConditions.MatchesRegex('^\\d+$')).withInput('abc')).toBe(false)
     })
 
     test('should throw error for invalid regex pattern', () => {
-      expect(() => evaluate('test', '[[')).toThrow('Condition.String.MatchesRegex: Invalid regex pattern')
+      expect(() => harness.evaluate(StringConditions.MatchesRegex('[[')).withInput('test')).toThrow(
+        'Condition.String.MatchesRegex: Invalid regex pattern',
+      )
     })
 
     test('should build correct expression object', () => {
@@ -33,17 +34,15 @@ describe('StringConditions', () => {
   })
 
   describe('HasMinLength', () => {
-    const { evaluate } = registry['String.HasMinLength']
-
     test('should return true when string length is greater than or equal to min', () => {
-      expect(evaluate('hello', 3)).toBe(true)
-      expect(evaluate('hello', 5)).toBe(true)
-      expect(evaluate('', 0)).toBe(true)
+      expect(harness.evaluate(StringConditions.HasMinLength(3)).withInput('hello')).toBe(true)
+      expect(harness.evaluate(StringConditions.HasMinLength(5)).withInput('hello')).toBe(true)
+      expect(harness.evaluate(StringConditions.HasMinLength(0)).withInput('')).toBe(true)
     })
 
     test('should return false when string length is less than min', () => {
-      expect(evaluate('hi', 3)).toBe(false)
-      expect(evaluate('', 1)).toBe(false)
+      expect(harness.evaluate(StringConditions.HasMinLength(3)).withInput('hi')).toBe(false)
+      expect(harness.evaluate(StringConditions.HasMinLength(1)).withInput('')).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -57,17 +56,15 @@ describe('StringConditions', () => {
   })
 
   describe('HasMaxLength', () => {
-    const { evaluate } = registry['String.HasMaxLength']
-
     test('should return true when string length is less than or equal to max', () => {
-      expect(evaluate('hello', 10)).toBe(true)
-      expect(evaluate('hello', 5)).toBe(true)
-      expect(evaluate('', 0)).toBe(true)
+      expect(harness.evaluate(StringConditions.HasMaxLength(10)).withInput('hello')).toBe(true)
+      expect(harness.evaluate(StringConditions.HasMaxLength(5)).withInput('hello')).toBe(true)
+      expect(harness.evaluate(StringConditions.HasMaxLength(0)).withInput('')).toBe(true)
     })
 
     test('should return false when string length is greater than max', () => {
-      expect(evaluate('hello', 3)).toBe(false)
-      expect(evaluate('x', 0)).toBe(false)
+      expect(harness.evaluate(StringConditions.HasMaxLength(3)).withInput('hello')).toBe(false)
+      expect(harness.evaluate(StringConditions.HasMaxLength(0)).withInput('x')).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -81,18 +78,16 @@ describe('StringConditions', () => {
   })
 
   describe('HasExactLength', () => {
-    const { evaluate } = registry['String.HasExactLength']
-
     test('should return true when string length equals the specified length', () => {
-      expect(evaluate('hello', 5)).toBe(true)
-      expect(evaluate('', 0)).toBe(true)
-      expect(evaluate('ab', 2)).toBe(true)
+      expect(harness.evaluate(StringConditions.HasExactLength(5)).withInput('hello')).toBe(true)
+      expect(harness.evaluate(StringConditions.HasExactLength(0)).withInput('')).toBe(true)
+      expect(harness.evaluate(StringConditions.HasExactLength(2)).withInput('ab')).toBe(true)
     })
 
     test('should return false when string length does not equal the specified length', () => {
-      expect(evaluate('hello', 4)).toBe(false)
-      expect(evaluate('hello', 6)).toBe(false)
-      expect(evaluate('', 1)).toBe(false)
+      expect(harness.evaluate(StringConditions.HasExactLength(4)).withInput('hello')).toBe(false)
+      expect(harness.evaluate(StringConditions.HasExactLength(6)).withInput('hello')).toBe(false)
+      expect(harness.evaluate(StringConditions.HasExactLength(1)).withInput('')).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -106,27 +101,25 @@ describe('StringConditions', () => {
   })
 
   describe('HasMaxWords', () => {
-    const { evaluate } = registry['String.HasMaxWords']
-
     test('should return true when word count is less than or equal to max', () => {
-      expect(evaluate('hello world', 2)).toBe(true)
-      expect(evaluate('hello world', 3)).toBe(true)
-      expect(evaluate('one', 1)).toBe(true)
-      expect(evaluate('', 0)).toBe(true)
-      expect(evaluate('', 1)).toBe(true)
-      expect(evaluate('  ', 0)).toBe(true)
+      expect(harness.evaluate(StringConditions.HasMaxWords(2)).withInput('hello world')).toBe(true)
+      expect(harness.evaluate(StringConditions.HasMaxWords(3)).withInput('hello world')).toBe(true)
+      expect(harness.evaluate(StringConditions.HasMaxWords(1)).withInput('one')).toBe(true)
+      expect(harness.evaluate(StringConditions.HasMaxWords(0)).withInput('')).toBe(true)
+      expect(harness.evaluate(StringConditions.HasMaxWords(1)).withInput('')).toBe(true)
+      expect(harness.evaluate(StringConditions.HasMaxWords(0)).withInput('  ')).toBe(true)
     })
 
     test('should return false when word count exceeds max', () => {
-      expect(evaluate('hello world test', 2)).toBe(false)
-      expect(evaluate('one', 0)).toBe(false)
+      expect(harness.evaluate(StringConditions.HasMaxWords(2)).withInput('hello world test')).toBe(false)
+      expect(harness.evaluate(StringConditions.HasMaxWords(0)).withInput('one')).toBe(false)
     })
 
     test('should handle multiple spaces correctly', () => {
-      expect(evaluate('hello   world', 2)).toBe(true)
-      expect(evaluate('  hello  world  ', 2)).toBe(true)
-      expect(evaluate('one  two  three  four', 4)).toBe(true)
-      expect(evaluate('one  two  three  four', 3)).toBe(false)
+      expect(harness.evaluate(StringConditions.HasMaxWords(2)).withInput('hello   world')).toBe(true)
+      expect(harness.evaluate(StringConditions.HasMaxWords(2)).withInput('  hello  world  ')).toBe(true)
+      expect(harness.evaluate(StringConditions.HasMaxWords(4)).withInput('one  two  three  four')).toBe(true)
+      expect(harness.evaluate(StringConditions.HasMaxWords(3)).withInput('one  two  three  four')).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -140,21 +133,19 @@ describe('StringConditions', () => {
   })
 
   describe('LettersOnly', () => {
-    const { evaluate } = registry['String.LettersOnly']
-
     test('should return true for strings with only letters', () => {
-      expect(evaluate('hello')).toBe(true)
-      expect(evaluate('HelloWorld')).toBe(true)
-      expect(evaluate('ABC')).toBe(true)
-      expect(evaluate('xyz')).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersOnly()).withInput('hello')).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersOnly()).withInput('HelloWorld')).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersOnly()).withInput('ABC')).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersOnly()).withInput('xyz')).toBe(true)
     })
 
     test('should return false for strings with non-letter characters', () => {
-      expect(evaluate('hello123')).toBe(false)
-      expect(evaluate('hello world')).toBe(false)
-      expect(evaluate('hello!')).toBe(false)
-      expect(evaluate('')).toBe(false)
-      expect(evaluate('123')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersOnly()).withInput('hello123')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersOnly()).withInput('hello world')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersOnly()).withInput('hello!')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersOnly()).withInput('')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersOnly()).withInput('123')).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -168,20 +159,18 @@ describe('StringConditions', () => {
   })
 
   describe('DigitsOnly', () => {
-    const { evaluate } = registry['String.DigitsOnly']
-
     test('should return true for strings with only digits', () => {
-      expect(evaluate('123')).toBe(true)
-      expect(evaluate('0')).toBe(true)
-      expect(evaluate('999999')).toBe(true)
+      expect(harness.evaluate(StringConditions.DigitsOnly()).withInput('123')).toBe(true)
+      expect(harness.evaluate(StringConditions.DigitsOnly()).withInput('0')).toBe(true)
+      expect(harness.evaluate(StringConditions.DigitsOnly()).withInput('999999')).toBe(true)
     })
 
     test('should return false for strings with non-digit characters', () => {
-      expect(evaluate('123abc')).toBe(false)
-      expect(evaluate('12.34')).toBe(false)
-      expect(evaluate('12 34')).toBe(false)
-      expect(evaluate('')).toBe(false)
-      expect(evaluate('-123')).toBe(false)
+      expect(harness.evaluate(StringConditions.DigitsOnly()).withInput('123abc')).toBe(false)
+      expect(harness.evaluate(StringConditions.DigitsOnly()).withInput('12.34')).toBe(false)
+      expect(harness.evaluate(StringConditions.DigitsOnly()).withInput('12 34')).toBe(false)
+      expect(harness.evaluate(StringConditions.DigitsOnly()).withInput('')).toBe(false)
+      expect(harness.evaluate(StringConditions.DigitsOnly()).withInput('-123')).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -195,22 +184,20 @@ describe('StringConditions', () => {
   })
 
   describe('LettersWithCommonPunctuation', () => {
-    const { evaluate } = registry['String.LettersWithCommonPunctuation']
-
     test('should return true for letters with allowed punctuation', () => {
-      expect(evaluate('Hello, World!')).toBe(true)
-      expect(evaluate("It's a test.")).toBe(true)
-      expect(evaluate('Question?')).toBe(true)
-      expect(evaluate('(parentheses)')).toBe(true)
-      expect(evaluate('dash-test')).toBe(true)
-      expect(evaluate('"quoted"')).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersWithCommonPunctuation()).withInput('Hello, World!')).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersWithCommonPunctuation()).withInput("It's a test.")).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersWithCommonPunctuation()).withInput('Question?')).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersWithCommonPunctuation()).withInput('(parentheses)')).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersWithCommonPunctuation()).withInput('dash-test')).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersWithCommonPunctuation()).withInput('"quoted"')).toBe(true)
     })
 
     test('should return false for strings with disallowed characters', () => {
-      expect(evaluate('hello123')).toBe(false)
-      expect(evaluate('test@email')).toBe(false)
-      expect(evaluate('price$10')).toBe(false)
-      expect(evaluate('')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersWithCommonPunctuation()).withInput('hello123')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersWithCommonPunctuation()).withInput('test@email')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersWithCommonPunctuation()).withInput('price$10')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersWithCommonPunctuation()).withInput('')).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -224,21 +211,19 @@ describe('StringConditions', () => {
   })
 
   describe('LettersWithSpaceDashApostrophe', () => {
-    const { evaluate } = registry['String.LettersWithSpaceDashApostrophe']
-
     test('should return true for letters with space, dash, and apostrophe', () => {
-      expect(evaluate('Hello World')).toBe(true)
-      expect(evaluate("O'Connor")).toBe(true)
-      expect(evaluate('Mary-Jane')).toBe(true)
-      expect(evaluate('Smith')).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersWithSpaceDashApostrophe()).withInput('Hello World')).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersWithSpaceDashApostrophe()).withInput("O'Connor")).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersWithSpaceDashApostrophe()).withInput('Mary-Jane')).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersWithSpaceDashApostrophe()).withInput('Smith')).toBe(true)
     })
 
     test('should return false for strings with other characters', () => {
-      expect(evaluate('Hello!')).toBe(false)
-      expect(evaluate('test123')).toBe(false)
-      expect(evaluate('name@email')).toBe(false)
-      expect(evaluate('')).toBe(false)
-      expect(evaluate('test.')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersWithSpaceDashApostrophe()).withInput('Hello!')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersWithSpaceDashApostrophe()).withInput('test123')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersWithSpaceDashApostrophe()).withInput('name@email')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersWithSpaceDashApostrophe()).withInput('')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersWithSpaceDashApostrophe()).withInput('test.')).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -252,20 +237,18 @@ describe('StringConditions', () => {
   })
 
   describe('LettersAndDigitsOnly', () => {
-    const { evaluate } = registry['String.LettersAndDigitsOnly']
-
     test('should return true for alphanumeric strings', () => {
-      expect(evaluate('Hello123')).toBe(true)
-      expect(evaluate('ABC123')).toBe(true)
-      expect(evaluate('test')).toBe(true)
-      expect(evaluate('999')).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersAndDigitsOnly()).withInput('Hello123')).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersAndDigitsOnly()).withInput('ABC123')).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersAndDigitsOnly()).withInput('test')).toBe(true)
+      expect(harness.evaluate(StringConditions.LettersAndDigitsOnly()).withInput('999')).toBe(true)
     })
 
     test('should return false for strings with non-alphanumeric characters', () => {
-      expect(evaluate('hello world')).toBe(false)
-      expect(evaluate('test-123')).toBe(false)
-      expect(evaluate('hello!')).toBe(false)
-      expect(evaluate('')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersAndDigitsOnly()).withInput('hello world')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersAndDigitsOnly()).withInput('test-123')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersAndDigitsOnly()).withInput('hello!')).toBe(false)
+      expect(harness.evaluate(StringConditions.LettersAndDigitsOnly()).withInput('')).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -279,21 +262,19 @@ describe('StringConditions', () => {
   })
 
   describe('AlphanumericWithCommonPunctuation', () => {
-    const { evaluate } = registry['String.AlphanumericWithCommonPunctuation']
-
     test('should return true for alphanumeric with allowed punctuation', () => {
-      expect(evaluate('Hello123!')).toBe(true)
-      expect(evaluate('Test, 123.')).toBe(true)
-      expect(evaluate("It's 2024")).toBe(true)
-      expect(evaluate('(123) test')).toBe(true)
-      expect(evaluate('dash-123')).toBe(true)
+      expect(harness.evaluate(StringConditions.AlphanumericWithCommonPunctuation()).withInput('Hello123!')).toBe(true)
+      expect(harness.evaluate(StringConditions.AlphanumericWithCommonPunctuation()).withInput('Test, 123.')).toBe(true)
+      expect(harness.evaluate(StringConditions.AlphanumericWithCommonPunctuation()).withInput("It's 2024")).toBe(true)
+      expect(harness.evaluate(StringConditions.AlphanumericWithCommonPunctuation()).withInput('(123) test')).toBe(true)
+      expect(harness.evaluate(StringConditions.AlphanumericWithCommonPunctuation()).withInput('dash-123')).toBe(true)
     })
 
     test('should return false for strings with disallowed characters', () => {
-      expect(evaluate('test@email')).toBe(false)
-      expect(evaluate('price$10')).toBe(false)
-      expect(evaluate('test#hash')).toBe(false)
-      expect(evaluate('')).toBe(false)
+      expect(harness.evaluate(StringConditions.AlphanumericWithCommonPunctuation()).withInput('test@email')).toBe(false)
+      expect(harness.evaluate(StringConditions.AlphanumericWithCommonPunctuation()).withInput('price$10')).toBe(false)
+      expect(harness.evaluate(StringConditions.AlphanumericWithCommonPunctuation()).withInput('test#hash')).toBe(false)
+      expect(harness.evaluate(StringConditions.AlphanumericWithCommonPunctuation()).withInput('')).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -307,22 +288,22 @@ describe('StringConditions', () => {
   })
 
   describe('AlphanumericWithAllSafeSymbols', () => {
-    const { evaluate } = registry['String.AlphanumericWithAllSafeSymbols']
-
     test('should return true for alphanumeric with all safe symbols', () => {
-      expect(evaluate('Hello@123')).toBe(true)
-      expect(evaluate('Test#$%')).toBe(true)
-      expect(evaluate('email@test')).toBe(true)
-      expect(evaluate('100% success!')).toBe(true)
-      expect(evaluate('(test) & *stars*')).toBe(true)
-      expect(evaluate('price: $10.99')).toBe(true)
+      expect(harness.evaluate(StringConditions.AlphanumericWithAllSafeSymbols()).withInput('Hello@123')).toBe(true)
+      expect(harness.evaluate(StringConditions.AlphanumericWithAllSafeSymbols()).withInput('Test#$%')).toBe(true)
+      expect(harness.evaluate(StringConditions.AlphanumericWithAllSafeSymbols()).withInput('email@test')).toBe(true)
+      expect(harness.evaluate(StringConditions.AlphanumericWithAllSafeSymbols()).withInput('100% success!')).toBe(true)
+      expect(harness.evaluate(StringConditions.AlphanumericWithAllSafeSymbols()).withInput('(test) & *stars*')).toBe(
+        true,
+      )
+      expect(harness.evaluate(StringConditions.AlphanumericWithAllSafeSymbols()).withInput('price: $10.99')).toBe(true)
     })
 
     test('should return false for strings with unsafe characters', () => {
-      expect(evaluate('test<script>')).toBe(false)
-      expect(evaluate('test\\escape')).toBe(false)
-      expect(evaluate('test/slash')).toBe(false)
-      expect(evaluate('')).toBe(false)
+      expect(harness.evaluate(StringConditions.AlphanumericWithAllSafeSymbols()).withInput('test<script>')).toBe(false)
+      expect(harness.evaluate(StringConditions.AlphanumericWithAllSafeSymbols()).withInput('test\\escape')).toBe(false)
+      expect(harness.evaluate(StringConditions.AlphanumericWithAllSafeSymbols()).withInput('test/slash')).toBe(false)
+      expect(harness.evaluate(StringConditions.AlphanumericWithAllSafeSymbols()).withInput('')).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -336,19 +317,17 @@ describe('StringConditions', () => {
   })
 
   describe('StartsWith', () => {
-    const { evaluate } = registry['String.StartsWith']
-
     test('should return true when string starts with the prefix', () => {
-      expect(evaluate('hello world', 'hello')).toBe(true)
-      expect(evaluate('hello', 'h')).toBe(true)
-      expect(evaluate('hello', 'hello')).toBe(true)
-      expect(evaluate('hello', '')).toBe(true)
+      expect(harness.evaluate(StringConditions.StartsWith('hello')).withInput('hello world')).toBe(true)
+      expect(harness.evaluate(StringConditions.StartsWith('h')).withInput('hello')).toBe(true)
+      expect(harness.evaluate(StringConditions.StartsWith('hello')).withInput('hello')).toBe(true)
+      expect(harness.evaluate(StringConditions.StartsWith('')).withInput('hello')).toBe(true)
     })
 
     test('should return false when string does not start with the prefix', () => {
-      expect(evaluate('hello world', 'world')).toBe(false)
-      expect(evaluate('hello', 'Hello')).toBe(false)
-      expect(evaluate('', 'h')).toBe(false)
+      expect(harness.evaluate(StringConditions.StartsWith('world')).withInput('hello world')).toBe(false)
+      expect(harness.evaluate(StringConditions.StartsWith('Hello')).withInput('hello')).toBe(false)
+      expect(harness.evaluate(StringConditions.StartsWith('h')).withInput('')).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -362,19 +341,17 @@ describe('StringConditions', () => {
   })
 
   describe('EndsWith', () => {
-    const { evaluate } = registry['String.EndsWith']
-
     test('should return true when string ends with the suffix', () => {
-      expect(evaluate('hello world', 'world')).toBe(true)
-      expect(evaluate('hello', 'o')).toBe(true)
-      expect(evaluate('hello', 'hello')).toBe(true)
-      expect(evaluate('hello', '')).toBe(true)
+      expect(harness.evaluate(StringConditions.EndsWith('world')).withInput('hello world')).toBe(true)
+      expect(harness.evaluate(StringConditions.EndsWith('o')).withInput('hello')).toBe(true)
+      expect(harness.evaluate(StringConditions.EndsWith('hello')).withInput('hello')).toBe(true)
+      expect(harness.evaluate(StringConditions.EndsWith('')).withInput('hello')).toBe(true)
     })
 
     test('should return false when string does not end with the suffix', () => {
-      expect(evaluate('hello world', 'hello')).toBe(false)
-      expect(evaluate('hello', 'Hello')).toBe(false)
-      expect(evaluate('', 'o')).toBe(false)
+      expect(harness.evaluate(StringConditions.EndsWith('hello')).withInput('hello world')).toBe(false)
+      expect(harness.evaluate(StringConditions.EndsWith('Hello')).withInput('hello')).toBe(false)
+      expect(harness.evaluate(StringConditions.EndsWith('o')).withInput('')).toBe(false)
     })
 
     test('should build correct expression object', () => {
@@ -388,21 +365,19 @@ describe('StringConditions', () => {
   })
 
   describe('Contains', () => {
-    const { evaluate } = registry['String.Contains']
-
     test('should return true when string contains the substring', () => {
-      expect(evaluate('hello world', 'lo wo')).toBe(true)
-      expect(evaluate('hello', 'ell')).toBe(true)
-      expect(evaluate('hello', 'hello')).toBe(true)
-      expect(evaluate('hello', '')).toBe(true)
-      expect(evaluate('hello', 'h')).toBe(true)
-      expect(evaluate('hello', 'o')).toBe(true)
+      expect(harness.evaluate(StringConditions.Contains('lo wo')).withInput('hello world')).toBe(true)
+      expect(harness.evaluate(StringConditions.Contains('ell')).withInput('hello')).toBe(true)
+      expect(harness.evaluate(StringConditions.Contains('hello')).withInput('hello')).toBe(true)
+      expect(harness.evaluate(StringConditions.Contains('')).withInput('hello')).toBe(true)
+      expect(harness.evaluate(StringConditions.Contains('h')).withInput('hello')).toBe(true)
+      expect(harness.evaluate(StringConditions.Contains('o')).withInput('hello')).toBe(true)
     })
 
     test('should return false when string does not contain the substring', () => {
-      expect(evaluate('hello world', 'xyz')).toBe(false)
-      expect(evaluate('hello', 'Hello')).toBe(false)
-      expect(evaluate('', 'a')).toBe(false)
+      expect(harness.evaluate(StringConditions.Contains('xyz')).withInput('hello world')).toBe(false)
+      expect(harness.evaluate(StringConditions.Contains('Hello')).withInput('hello')).toBe(false)
+      expect(harness.evaluate(StringConditions.Contains('a')).withInput('')).toBe(false)
     })
 
     test('should build correct expression object', () => {

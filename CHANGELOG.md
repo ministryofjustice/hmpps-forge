@@ -53,6 +53,122 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.3.3
+
+In this release, we focused on testing - one-line outcome assertions for journey tests,
+and registered functions can now be unit tested through the engine's real evaluation
+pipeline instead of calling the raw evaluator and skipping it. We also made some
+small improvements to the typings!
+
+### For journey authors
+
+_Definitions, expressions, hooks, navigation, reachability_
+
+#### New
+
+- **Outcome assertion helpers for the test harness.** `core/testing` now exports
+  `expectRenderOutcome`, `expectRedirectOutcome` and `expectErrorOutcome`. Previously
+  asserting on a `TestResult` took two steps - `expect(result.type).toBe('render')` to
+  fail the test, then `if (result.type === 'render')` anyway because matchers don't
+  narrow the union. Each helper does both in one statement: it throws
+  `ForgeTestOutcomeAssertionError` when the outcome differs, with a message saying what
+  actually happened (the redirect URL, the error status and message, or the rendered
+  step's title), and its `asserts` signature narrows `result` for the rest of the
+  test. ([#180])
+
+#### Improvements
+
+- **Boolean conditions accept any dynamic expression.** `resumeWhen`, `entryWhen`,
+  entry validation `when` and block `visibleWhen` were limited to `true` or a predicate
+  expression, even though the engine could already evaluate anything - only the types
+  and schemas were in the way. All four now take a `ResolvableBoolean`: a boolean
+  literal, a predicate, or any dynamic expression (a reference, conditional, pipeline
+  and so on), coerced to a boolean at evaluation. `false` is also now valid and behaves
+  the same as omitting the condition. ([#175])
+
+#### Notes
+
+- **`getErrorSummaryList` is now exported from `govuk-components`.** The
+  `toErrorList` Nunjucks global that converts Forge validation errors into
+  `govukErrorSummary`'s `{ text, href }` shape was previously something every app
+  had to write inline. It now ships as `registerForgeGovUKComponentsGlobals(nunjucksEnv)`,
+  which registers `getErrorSummaryList` - a global that reads the errors from the
+  template context automatically, so templates just call `getErrorSummaryList()` with
+  no arguments. ([#176])
+
+---
+
+### For function and component authors
+
+_Conditions, transformers, effects, generators, iterators, component packages_
+
+#### New
+
+- **Test registered functions through the real evaluation pipeline.** Previously the
+  only way to unit test a registered function was to call the raw evaluator off
+  `registry.build()` - which skips everything the engine wraps around the call at
+  runtime: `argumentsSchema`/`inputSchema` prechecks, the undefined short-circuit and
+  output validation, so a wrong schema shipped silently. `FunctionRegistryTestHarness`
+  (from `core/testing`) takes a registry (or an array of them) plus deps, and evaluates
+  the expression the author-facing handle returns through the same prechecks, evaluation
+  and output validation production runs: `harness.evaluate(IsAdult(18)).withInput(21)`
+  for conditions and transformers, `.withContext(context)` for effects, and generators
+  run straight off `evaluate()`. The built-in condition, transformer and generator
+  suites now run through it. ([#181])
+
+- **`createTestEffectContext` builds a real effect context for tests.** Effect tests
+  previously hand-rolled fake contexts - a `Pick` of whichever getters the effect
+  happened to touch, drifting from the real class and its mutation-history behaviour.
+  `createTestEffectContext({ answers, data, session, ... })` returns a genuine
+  `EffectFunctionContext` over in-memory state, plus `getResponseHeaders()` and
+  `getResponseCookies()` to read back what an effect wrote through the response setters.
+  ([#181])
+
+---
+
+### For adapter and renderer developers
+
+_Express adapter, Nunjucks renderer, test harness, framework integration_
+
+#### Improvements
+
+- **Forge core now resolves inherited view configuration.** Previously every renderer
+  had to combine journey and step `view` config itself - `NunjucksRenderer` walked the
+  ancestors for the nearest template and merged locals from root to step. That
+  resolution now happens in core's resolve phase: `RenderContext.step.view` arrives as
+  the effective view (nearest declared template wins, locals merged by key from the
+  root journey down to the step), so renderers just read `context.step.view` and fall
+  back to their own default template. Each ancestor's own evaluated view is still on
+  `context.ancestors` untouched, and a renderer that still merges them itself lands on
+  the same result - so nothing breaks, there's just nothing left to merge. ([#174])
+
+---
+
+### For engine / internal developers
+
+_Compilation, runtime, contracts, diagnostics, instrumentation_
+
+#### Changes
+
+- **Request failures now resolve as error outcomes.** Previously an authored
+  `throwError()` result became an outcome, while an exception from a registered function
+  rejected `Forge.execute()` and left framework adapters with a second error path.
+  Synchronous and asynchronous execution failures now resolve through the same
+  `ForgeError` outcome, preserving the original Error's identity, stack, Forge
+  diagnostics, custom properties and optional `status` / `statusCode`; non-Error throws
+  are wrapped with the original value as their `cause`. The test harness exposes that
+  same Error as `result.error`, and the Express adapter forwards it to `next()` after
+  defaulting a missing HTTP status to 500. ([#182])
+
+[#174]: https://github.com/ministryofjustice/hmpps-forge/pull/174
+[#175]: https://github.com/ministryofjustice/hmpps-forge/pull/175
+[#176]: https://github.com/ministryofjustice/hmpps-forge/pull/176
+[#180]: https://github.com/ministryofjustice/hmpps-forge/pull/180
+[#181]: https://github.com/ministryofjustice/hmpps-forge/pull/181
+[#182]: https://github.com/ministryofjustice/hmpps-forge/pull/182
+
+---
+
 ## 0.3.2
 
 ### For function and component authors
@@ -190,7 +306,7 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
 Compilation got a lot stricter - misplaced definitions and unregistered function names now
 fail at `registerPackage()` instead of silently vanishing or half-working. Function
 registration moves onto registry classes with central schema validation, deprecated APIs
-now warn at runtime, and request traces carry a lot more detail for the upcoming 
+now warn at runtime, and request traces carry a lot more detail for the upcoming
 devtools. Compilation now emits trace events of its own, too! Components also now declare
 the shape of value they can legitimately submit - a tampered POST body gets dropped
 before it ever reaches answer history.
@@ -279,13 +395,13 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   ```ts
   // Before
   const { effects: MyEffects, implementations } = defineEffectFunctions<Shapes, MyDeps>({ loadPlan })
-  
+
   createForgePackage({ journey, functions: implementations })
 
   // After
   const registry = new EffectRegistry<MyDeps>()
   const MyEffects = { loadPlan: registry.register('loadPlan', myEffectFn) }
-  
+
   createForgePackage({ journey, functions: registry })
   ```
 
@@ -325,7 +441,7 @@ _Express adapter, Nunjucks renderer, test harness, framework integration_
 
 #### Improvements
 
-- **Request traces carry a lot more detail.** `RequestTraceEvent`s (and phase and 
+- **Request traces carry a lot more detail.** `RequestTraceEvent`s (and phase and
   work
   unit traces) now include `startedAtMs`/`completedAtMs`/`durationMs`, the resolved route
   context (journey code and title, step title, route template path), the redirect target,
@@ -407,7 +523,7 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
 
 The engine internals have been pretty much rewritten - compilation is now properly scoped
 into phases, reachability is compiled at startup instead of rebuilt per request, and the
-runtime evaluates through a work tree model. 
+runtime evaluates through a work tree model.
 
 ---
 
@@ -478,11 +594,11 @@ _Definitions, expressions, hooks, navigation, reachability_
   condition fix above addresses the most common case, but custom conditions that don't
   handle `undefined`/`null` inputs will need updating.
 
-- Request tracing comes with both a performance hit and a security risk. It's 
-  quite useful for debugging locally, and it will eventually power Forge's 
-  devtools solution, but we would advise against using it unless you want to 
-  debug something specific in Forge's runtime. Also worth noting it currently 
-  does not cover any of Forge's compilation stage. 
+- Request tracing comes with both a performance hit and a security risk. It's
+  quite useful for debugging locally, and it will eventually power Forge's
+  devtools solution, but we would advise against using it unless you want to
+  debug something specific in Forge's runtime. Also worth noting it currently
+  does not cover any of Forge's compilation stage.
 
 ---
 

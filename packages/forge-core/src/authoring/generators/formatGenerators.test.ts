@@ -5,19 +5,19 @@ import {
   formatGeneratorsRegistry,
   formatString,
 } from './formatGenerators'
+import { FunctionRegistryTestHarness } from '../../testing/FunctionRegistryTestHarness'
 
 describe('FormatGenerators', () => {
   const registry = formatGeneratorsRegistry.build()
+  const harness = new FunctionRegistryTestHarness(formatGeneratorsRegistry)
 
   describe('FormatString', () => {
-    const { evaluate } = registry[FORMAT_STRING_GENERATOR_NAME]
-
     it('should replace positional placeholders when replacements are provided', () => {
       // Arrange
       const template = 'Hello %1, welcome to %2'
 
       // Act
-      const result = evaluate(template, 'Ada', 'Forge')
+      const result = harness.evaluate(FormatGenerators.FormatString(template, 'Ada', 'Forge'))
 
       // Assert
       expect(result).toBe('Hello Ada, welcome to Forge')
@@ -28,7 +28,7 @@ describe('FormatGenerators', () => {
       const template = '%1 %2 %10'
 
       // Act
-      const result = evaluate(template, 'one', 'two')
+      const result = harness.evaluate(FormatGenerators.FormatString(template, 'one', 'two'))
 
       // Assert
       expect(result).toBe('one two %10')
@@ -39,7 +39,7 @@ describe('FormatGenerators', () => {
       const template = 'Goals (%1)'
 
       // Act
-      const result = evaluate(template, undefined)
+      const result = harness.evaluate(FormatGenerators.FormatString(template, undefined))
 
       // Assert
       expect(result).toBe('Goals ()')
@@ -61,7 +61,7 @@ describe('FormatGenerators', () => {
       const template = 123
 
       // Act / Assert
-      expect(() => evaluate(template)).toThrow(TypeError)
+      expect(() => harness.evaluate(FormatGenerators.FormatString(template))).toThrow(TypeError)
     })
 
     it('should build correct generator expression', () => {

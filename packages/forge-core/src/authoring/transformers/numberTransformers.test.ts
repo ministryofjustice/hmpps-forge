@@ -1,34 +1,35 @@
 import { NumberTransformers, numberTransformersRegistry } from './numberTransformers'
 import { FunctionType } from '../types/enums'
-
-const NumberTransformersRegistry = numberTransformersRegistry.build()
+import { FunctionRegistryTestHarness } from '../../testing/FunctionRegistryTestHarness'
 
 describe('Number Transformers', () => {
-  describe('Add', () => {
-    const { evaluate } = NumberTransformersRegistry['Number.Add']
+  const harness = new FunctionRegistryTestHarness(numberTransformersRegistry)
 
+  describe('Add', () => {
     it('should add two positive numbers', () => {
-      const result = evaluate(5, 3)
+      const result = harness.evaluate(NumberTransformers.Add(3)).withInput(5)
       expect(result).toBe(8)
     })
 
     it('should add negative numbers', () => {
-      const result = evaluate(-5, -3)
+      const result = harness.evaluate(NumberTransformers.Add(-3)).withInput(-5)
       expect(result).toBe(-8)
     })
 
     it('should add positive and negative numbers', () => {
-      const result = evaluate(5, -3)
+      const result = harness.evaluate(NumberTransformers.Add(-3)).withInput(5)
       expect(result).toBe(2)
     })
 
     it('should handle decimals', () => {
-      const result = evaluate(2.5, 1.3)
+      const result = harness.evaluate(NumberTransformers.Add(1.3)).withInput(2.5)
       expect(result).toBeCloseTo(3.8)
     })
 
     it('should throw error for non-number values', () => {
-      expect(() => evaluate('5', 3)).toThrow('Transformer.Number.Add expects a number but received string.')
+      expect(() => harness.evaluate(NumberTransformers.Add(3)).withInput('5')).toThrow(
+        'Transformer.Number.Add expects a number but received string.',
+      )
     })
 
     it('should return a function expression when called', () => {
@@ -42,337 +43,341 @@ describe('Number Transformers', () => {
   })
 
   describe('Subtract', () => {
-    const { evaluate } = NumberTransformersRegistry['Number.Subtract']
-
     it('should subtract two positive numbers', () => {
-      const result = evaluate(10, 3)
+      const result = harness.evaluate(NumberTransformers.Subtract(3)).withInput(10)
       expect(result).toBe(7)
     })
 
     it('should subtract negative numbers', () => {
-      const result = evaluate(-5, -3)
+      const result = harness.evaluate(NumberTransformers.Subtract(-3)).withInput(-5)
       expect(result).toBe(-2)
     })
 
     it('should handle decimals', () => {
-      const result = evaluate(5.7, 2.2)
+      const result = harness.evaluate(NumberTransformers.Subtract(2.2)).withInput(5.7)
       expect(result).toBeCloseTo(3.5)
     })
 
     it('should throw error for non-number values', () => {
-      expect(() => evaluate('10', 3)).toThrow('Transformer.Number.Subtract expects a number but received string.')
+      expect(() => harness.evaluate(NumberTransformers.Subtract(3)).withInput('10')).toThrow(
+        'Transformer.Number.Subtract expects a number but received string.',
+      )
     })
   })
 
   describe('Multiply', () => {
-    const { evaluate } = NumberTransformersRegistry['Number.Multiply']
-
     it('should multiply two positive numbers', () => {
-      const result = evaluate(4, 3)
+      const result = harness.evaluate(NumberTransformers.Multiply(3)).withInput(4)
       expect(result).toBe(12)
     })
 
     it('should multiply by zero', () => {
-      const result = evaluate(5, 0)
+      const result = harness.evaluate(NumberTransformers.Multiply(0)).withInput(5)
       expect(result).toBe(0)
     })
 
     it('should multiply negative numbers', () => {
-      const result = evaluate(-4, -3)
+      const result = harness.evaluate(NumberTransformers.Multiply(-3)).withInput(-4)
       expect(result).toBe(12)
     })
 
     it('should handle decimals', () => {
-      const result = evaluate(2.5, 4)
+      const result = harness.evaluate(NumberTransformers.Multiply(4)).withInput(2.5)
       expect(result).toBe(10)
     })
 
     it('should throw error for non-number values', () => {
-      expect(() => evaluate('4', 3)).toThrow('Transformer.Number.Multiply expects a number but received string.')
+      expect(() => harness.evaluate(NumberTransformers.Multiply(3)).withInput('4')).toThrow(
+        'Transformer.Number.Multiply expects a number but received string.',
+      )
     })
   })
 
   describe('Divide', () => {
-    const { evaluate } = NumberTransformersRegistry['Number.Divide']
-
     it('should divide two positive numbers', () => {
-      const result = evaluate(15, 3)
+      const result = harness.evaluate(NumberTransformers.Divide(3)).withInput(15)
       expect(result).toBe(5)
     })
 
     it('should handle decimals', () => {
-      const result = evaluate(7.5, 2.5)
+      const result = harness.evaluate(NumberTransformers.Divide(2.5)).withInput(7.5)
       expect(result).toBe(3)
     })
 
     it('should throw error for division by zero', () => {
-      expect(() => evaluate(10, 0)).toThrow('Division by zero is not allowed in Transformer.Number.Divide')
+      expect(() => harness.evaluate(NumberTransformers.Divide(0)).withInput(10)).toThrow(
+        'Division by zero is not allowed in Transformer.Number.Divide',
+      )
     })
 
     it('should throw error for non-number values', () => {
-      expect(() => evaluate('15', 3)).toThrow('Transformer.Number.Divide expects a number but received string.')
+      expect(() => harness.evaluate(NumberTransformers.Divide(3)).withInput('15')).toThrow(
+        'Transformer.Number.Divide expects a number but received string.',
+      )
     })
   })
 
   describe('Abs', () => {
-    const { evaluate } = NumberTransformersRegistry['Number.Abs']
-
     it('should return absolute value of positive number', () => {
-      const result = evaluate(5)
+      const result = harness.evaluate(NumberTransformers.Abs()).withInput(5)
       expect(result).toBe(5)
     })
 
     it('should return absolute value of negative number', () => {
-      const result = evaluate(-5)
+      const result = harness.evaluate(NumberTransformers.Abs()).withInput(-5)
       expect(result).toBe(5)
     })
 
     it('should handle zero', () => {
-      const result = evaluate(0)
+      const result = harness.evaluate(NumberTransformers.Abs()).withInput(0)
       expect(result).toBe(0)
     })
 
     it('should handle decimals', () => {
-      const result = evaluate(-3.7)
+      const result = harness.evaluate(NumberTransformers.Abs()).withInput(-3.7)
       expect(result).toBe(3.7)
     })
 
     it('should throw error for non-number values', () => {
-      expect(() => evaluate('-5')).toThrow('Transformer.Number.Abs expects a number but received string.')
+      expect(() => harness.evaluate(NumberTransformers.Abs()).withInput('-5')).toThrow(
+        'Transformer.Number.Abs expects a number but received string.',
+      )
     })
   })
 
   describe('Round', () => {
-    const { evaluate } = NumberTransformersRegistry['Number.Round']
-
     it('should round positive decimal down', () => {
-      const result = evaluate(4.4)
+      const result = harness.evaluate(NumberTransformers.Round()).withInput(4.4)
       expect(result).toBe(4)
     })
 
     it('should round positive decimal up', () => {
-      const result = evaluate(4.7)
+      const result = harness.evaluate(NumberTransformers.Round()).withInput(4.7)
       expect(result).toBe(5)
     })
 
     it('should round negative decimal', () => {
-      const result = evaluate(-4.7)
+      const result = harness.evaluate(NumberTransformers.Round()).withInput(-4.7)
       expect(result).toBe(-5)
     })
 
     it('should handle integers', () => {
-      const result = evaluate(5)
+      const result = harness.evaluate(NumberTransformers.Round()).withInput(5)
       expect(result).toBe(5)
     })
 
     it('should throw error for non-number values', () => {
-      expect(() => evaluate('4.7')).toThrow('Transformer.Number.Round expects a number but received string.')
+      expect(() => harness.evaluate(NumberTransformers.Round()).withInput('4.7')).toThrow(
+        'Transformer.Number.Round expects a number but received string.',
+      )
     })
   })
 
   describe('Floor', () => {
-    const { evaluate } = NumberTransformersRegistry['Number.Floor']
-
     it('should floor positive decimal', () => {
-      const result = evaluate(4.7)
+      const result = harness.evaluate(NumberTransformers.Floor()).withInput(4.7)
       expect(result).toBe(4)
     })
 
     it('should floor negative decimal', () => {
-      const result = evaluate(-4.2)
+      const result = harness.evaluate(NumberTransformers.Floor()).withInput(-4.2)
       expect(result).toBe(-5)
     })
 
     it('should handle integers', () => {
-      const result = evaluate(5)
+      const result = harness.evaluate(NumberTransformers.Floor()).withInput(5)
       expect(result).toBe(5)
     })
 
     it('should throw error for non-number values', () => {
-      expect(() => evaluate('4.7')).toThrow('Transformer.Number.Floor expects a number but received string.')
+      expect(() => harness.evaluate(NumberTransformers.Floor()).withInput('4.7')).toThrow(
+        'Transformer.Number.Floor expects a number but received string.',
+      )
     })
   })
 
   describe('Ceil', () => {
-    const { evaluate } = NumberTransformersRegistry['Number.Ceil']
-
     it('should ceiling positive decimal', () => {
-      const result = evaluate(4.2)
+      const result = harness.evaluate(NumberTransformers.Ceil()).withInput(4.2)
       expect(result).toBe(5)
     })
 
     it('should ceiling negative decimal', () => {
-      const result = evaluate(-4.7)
+      const result = harness.evaluate(NumberTransformers.Ceil()).withInput(-4.7)
       expect(result).toBe(-4)
     })
 
     it('should handle integers', () => {
-      const result = evaluate(5)
+      const result = harness.evaluate(NumberTransformers.Ceil()).withInput(5)
       expect(result).toBe(5)
     })
 
     it('should throw error for non-number values', () => {
-      expect(() => evaluate('4.2')).toThrow('Transformer.Number.Ceil expects a number but received string.')
+      expect(() => harness.evaluate(NumberTransformers.Ceil()).withInput('4.2')).toThrow(
+        'Transformer.Number.Ceil expects a number but received string.',
+      )
     })
   })
 
   describe('ToFixed', () => {
-    const { evaluate } = NumberTransformersRegistry['Number.ToFixed']
-
     it('should round to specified decimal places', () => {
-      const result = evaluate(3.14159, 2)
+      const result = harness.evaluate(NumberTransformers.ToFixed(2)).withInput(3.14159)
       expect(result).toBe(3.14)
     })
 
     it('should handle zero decimal places', () => {
-      const result = evaluate(3.7, 0)
+      const result = harness.evaluate(NumberTransformers.ToFixed(0)).withInput(3.7)
       expect(result).toBe(4)
     })
 
     it('should add zeros when needed', () => {
-      const result = evaluate(3, 2)
+      const result = harness.evaluate(NumberTransformers.ToFixed(2)).withInput(3)
       expect(result).toBe(3.0)
     })
 
     it('should throw error for non-number values', () => {
-      expect(() => evaluate('3.14', 2)).toThrow('Transformer.Number.ToFixed expects a number but received string.')
+      expect(() => harness.evaluate(NumberTransformers.ToFixed(2)).withInput('3.14')).toThrow(
+        'Transformer.Number.ToFixed expects a number but received string.',
+      )
     })
   })
 
   describe('Max', () => {
-    const { evaluate } = NumberTransformersRegistry['Number.Max']
-
     it('should return maximum of two numbers', () => {
-      const result = evaluate(5, 10)
+      const result = harness.evaluate(NumberTransformers.Max(10)).withInput(5)
       expect(result).toBe(10)
     })
 
     it('should return input when it is larger', () => {
-      const result = evaluate(15, 10)
+      const result = harness.evaluate(NumberTransformers.Max(10)).withInput(15)
       expect(result).toBe(15)
     })
 
     it('should handle equal numbers', () => {
-      const result = evaluate(5, 5)
+      const result = harness.evaluate(NumberTransformers.Max(5)).withInput(5)
       expect(result).toBe(5)
     })
 
     it('should handle negative numbers', () => {
-      const result = evaluate(-5, -10)
+      const result = harness.evaluate(NumberTransformers.Max(-10)).withInput(-5)
       expect(result).toBe(-5)
     })
 
     it('should throw error for non-number values', () => {
-      expect(() => evaluate('5', 10)).toThrow('Transformer.Number.Max expects a number but received string.')
+      expect(() => harness.evaluate(NumberTransformers.Max(10)).withInput('5')).toThrow(
+        'Transformer.Number.Max expects a number but received string.',
+      )
     })
   })
 
   describe('Min', () => {
-    const { evaluate } = NumberTransformersRegistry['Number.Min']
-
     it('should return minimum of two numbers', () => {
-      const result = evaluate(5, 10)
+      const result = harness.evaluate(NumberTransformers.Min(10)).withInput(5)
       expect(result).toBe(5)
     })
 
     it('should return comparison when it is smaller', () => {
-      const result = evaluate(15, 10)
+      const result = harness.evaluate(NumberTransformers.Min(10)).withInput(15)
       expect(result).toBe(10)
     })
 
     it('should handle equal numbers', () => {
-      const result = evaluate(5, 5)
+      const result = harness.evaluate(NumberTransformers.Min(5)).withInput(5)
       expect(result).toBe(5)
     })
 
     it('should handle negative numbers', () => {
-      const result = evaluate(-5, -10)
+      const result = harness.evaluate(NumberTransformers.Min(-10)).withInput(-5)
       expect(result).toBe(-10)
     })
 
     it('should throw error for non-number values', () => {
-      expect(() => evaluate('5', 10)).toThrow('Transformer.Number.Min expects a number but received string.')
+      expect(() => harness.evaluate(NumberTransformers.Min(10)).withInput('5')).toThrow(
+        'Transformer.Number.Min expects a number but received string.',
+      )
     })
   })
 
   describe('Power', () => {
-    const { evaluate } = NumberTransformersRegistry['Number.Power']
-
     it('should raise number to power', () => {
-      const result = evaluate(2, 3)
+      const result = harness.evaluate(NumberTransformers.Power(3)).withInput(2)
       expect(result).toBe(8)
     })
 
     it('should handle power of zero', () => {
-      const result = evaluate(5, 0)
+      const result = harness.evaluate(NumberTransformers.Power(0)).withInput(5)
       expect(result).toBe(1)
     })
 
     it('should handle negative exponents', () => {
-      const result = evaluate(2, -2)
+      const result = harness.evaluate(NumberTransformers.Power(-2)).withInput(2)
       expect(result).toBe(0.25)
     })
 
     it('should throw error for non-number values', () => {
-      expect(() => evaluate('2', 3)).toThrow('Transformer.Number.Power expects a number but received string.')
+      expect(() => harness.evaluate(NumberTransformers.Power(3)).withInput('2')).toThrow(
+        'Transformer.Number.Power expects a number but received string.',
+      )
     })
   })
 
   describe('Sqrt', () => {
-    const { evaluate } = NumberTransformersRegistry['Number.Sqrt']
-
     it('should return square root of positive number', () => {
-      const result = evaluate(16)
+      const result = harness.evaluate(NumberTransformers.Sqrt()).withInput(16)
       expect(result).toBe(4)
     })
 
     it('should handle zero', () => {
-      const result = evaluate(0)
+      const result = harness.evaluate(NumberTransformers.Sqrt()).withInput(0)
       expect(result).toBe(0)
     })
 
     it('should handle decimals', () => {
-      const result = evaluate(2.25)
+      const result = harness.evaluate(NumberTransformers.Sqrt()).withInput(2.25)
       expect(result).toBe(1.5)
     })
 
     it('should throw error for negative numbers', () => {
-      expect(() => evaluate(-4)).toThrow('Cannot calculate square root of negative number in Transformer.Number.Sqrt')
+      expect(() => harness.evaluate(NumberTransformers.Sqrt()).withInput(-4)).toThrow(
+        'Cannot calculate square root of negative number in Transformer.Number.Sqrt',
+      )
     })
 
     it('should throw error for non-number values', () => {
-      expect(() => evaluate('16')).toThrow('Transformer.Number.Sqrt expects a number but received string.')
+      expect(() => harness.evaluate(NumberTransformers.Sqrt()).withInput('16')).toThrow(
+        'Transformer.Number.Sqrt expects a number but received string.',
+      )
     })
   })
 
   describe('Clamp', () => {
-    const { evaluate } = NumberTransformersRegistry['Number.Clamp']
-
     it('should clamp value above maximum', () => {
-      const result = evaluate(15, 5, 10)
+      const result = harness.evaluate(NumberTransformers.Clamp(5, 10)).withInput(15)
       expect(result).toBe(10)
     })
 
     it('should clamp value below minimum', () => {
-      const result = evaluate(3, 5, 10)
+      const result = harness.evaluate(NumberTransformers.Clamp(5, 10)).withInput(3)
       expect(result).toBe(5)
     })
 
     it('should return value within range', () => {
-      const result = evaluate(7, 5, 10)
+      const result = harness.evaluate(NumberTransformers.Clamp(5, 10)).withInput(7)
       expect(result).toBe(7)
     })
 
     it('should handle value equal to bounds', () => {
-      const result1 = evaluate(5, 5, 10)
+      const result1 = harness.evaluate(NumberTransformers.Clamp(5, 10)).withInput(5)
       expect(result1).toBe(5)
 
-      const result2 = evaluate(10, 5, 10)
+      const result2 = harness.evaluate(NumberTransformers.Clamp(5, 10)).withInput(10)
       expect(result2).toBe(10)
     })
 
     it('should throw error for non-number values', () => {
-      expect(() => evaluate('7', 5, 10)).toThrow('Transformer.Number.Clamp expects a number but received string.')
+      expect(() => harness.evaluate(NumberTransformers.Clamp(5, 10)).withInput('7')).toThrow(
+        'Transformer.Number.Clamp expects a number but received string.',
+      )
     })
   })
 })
