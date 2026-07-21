@@ -29,8 +29,13 @@ function describeOutcome(result: TestResult): string {
   switch (result.type) {
     case 'redirect':
       return `received a redirect to '${result.url}'`
-    case 'error':
-      return `received a ${result.status} error: '${result.message}'`
+    case 'error': {
+      const status = result.error.status ?? result.error.statusCode
+
+      return status === undefined
+        ? `received an error: '${result.error.message}'`
+        : `received a ${status} error: '${result.error.message}'`
+    }
     default:
       return `received a render of step '${result.context.step.title ?? '<untitled>'}'`
   }

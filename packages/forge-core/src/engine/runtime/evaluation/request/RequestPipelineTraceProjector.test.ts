@@ -224,6 +224,58 @@ describe('RequestPipelineTraceProjector', () => {
       expect(emitted[0].trace.error).toEqual({ message: 'handler exploded', stack: thrown.stack })
     })
 
+    it('should carry status when a failed trace is thrown from an HTTP Error', () => {
+      // Arrange
+      const root = new TraceSpan('request', 'request.pipeline')
+      const phase = new TraceSpan('resolve', 'request.resolve', root)
+      const projector = new RequestPipelineTraceProjector()
+      const emitted: RequestTraceEvent[] = []
+      const thrown = Object.assign(new Error('Missing'), { status: 404, statusCode: 409 })
+
+      root.addChild(phase)
+
+      // Act
+      projector.emitFailedTrace(
+        createSnapshot(),
+        createInstrumentation(emitted),
+        thrown,
+        root,
+        createRuntimeContext(),
+        createMountedNode(),
+        undefined,
+        undefined,
+      )
+
+      // Assert
+      expect(emitted[0].trace.error).toEqual({ message: 'Missing', stack: thrown.stack, status: 404 })
+    })
+
+    it('should carry statusCode when a failed trace Error has no status', () => {
+      // Arrange
+      const root = new TraceSpan('request', 'request.pipeline')
+      const phase = new TraceSpan('resolve', 'request.resolve', root)
+      const projector = new RequestPipelineTraceProjector()
+      const emitted: RequestTraceEvent[] = []
+      const thrown = Object.assign(new Error('Unavailable'), { statusCode: 503 })
+
+      root.addChild(phase)
+
+      // Act
+      projector.emitFailedTrace(
+        createSnapshot(),
+        createInstrumentation(emitted),
+        thrown,
+        root,
+        createRuntimeContext(),
+        createMountedNode(),
+        undefined,
+        undefined,
+      )
+
+      // Assert
+      expect(emitted[0].trace.error).toEqual({ message: 'Unavailable', stack: thrown.stack, status: 503 })
+    })
+
     it('should stringify the thrown value when a failed trace is thrown from a non-Error', () => {
       // Arrange
       const root = new TraceSpan('request', 'request.pipeline')
