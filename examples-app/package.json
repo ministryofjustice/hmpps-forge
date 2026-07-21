@@ -24,6 +24,10 @@
     "node": "^24",
     "npm": "^11"
   },
+  "overrides": {
+    "adm-zip": "^0.6.0",
+    "@opentelemetry/core": "^2.8.0"
+  },
   "dependencies": {
     "@huggingface/transformers": "^4.0.1",
     "@ministryofjustice/frontend": "9.0.0",
