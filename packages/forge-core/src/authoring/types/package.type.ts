@@ -15,11 +15,29 @@ import type { JourneyDefinition } from './structures.type'
  * @see {@link createForgePackage} for the recommended way to create forge packages
  */
 export interface ForgePackage<TDeps = Record<string, never>> {
+  /** The root journey definition this package mounts, compiled at registration. */
   journey: JourneyDefinition
+
+  /**
+   * Custom functions for this package, layered over the global function
+   * registry and visible only to this package's journey. Accepts a function
+   * registry, an array of registries, or the deprecated implementations-map
+   * form. The dependencies passed to `registerPackage()` are given to each
+   * registry's `build()`.
+   *
+   * @see {@link BaseFunctionRegistry}
+   */
   functions?:
     | FunctionImplementations<FunctionShapeMap, TDeps>
     | BaseFunctionRegistry<TDeps>
     | BaseFunctionRegistry<TDeps>[]
+
+  /**
+   * Custom components for this package, layered over the global component
+   * registry and visible only to this package's journey.
+   *
+   * @see {@link ComponentRegistryEntry}
+   */
   components?: ComponentRegistryEntry<BlockDefinition, unknown>[]
 
   /**
