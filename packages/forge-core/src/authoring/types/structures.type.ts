@@ -29,7 +29,7 @@ export interface ValidationExpr {
   message: ResolvableString
   /** When `true`, the rule only runs on form submission, not during navigation/traversal checks. Useful for expensive or time-sensitive validations. */
   submissionOnly?: boolean
-  /** Validation groups this rule belongs to. Defaults to `['default']` when omitted. */
+  /** Validation groups this rule belongs to. Defaults to `['default']` when omitted or empty. */
   groups?: string[]
   /** Metadata passed to the error handler, e.g. `{ field: 'month' }` to highlight a specific part of a composite input like a date. */
   details?: Record<string, any>
@@ -204,7 +204,8 @@ export interface JourneyReachability {
   /**
    * Controls when Forge's resume behaviour is active for this journey.
    *
-   * - `true` — always resume (every request redirects to the resume frontier).
+   * - `true` — resume is always active: GET requests to a step other than the
+   *   resume frontier redirect to it, once progress and a frontier exist.
    * - A dynamic expression — resume only when the expression resolves to a
    *   truthy value; a falsy result behaves the same as `false`.
    * - `false` — behaves the same as omitting it (resume is never active).
@@ -251,8 +252,9 @@ export interface StepReachability {
    *
    * - `true` — unconditional entry point (always seeded as reachable).
    * - A dynamic expression — conditional entry point, seeded only when the
-   *   expression resolves to a truthy value. Active conditional entries take
-   *   priority in the resume frontier over normal blockers.
+   *   expression resolves to a truthy value. An active conditional entry
+   *   whose path already has progress can anchor the resume frontier past
+   *   an earlier blocker.
    * - `false` — behaves the same as omitting it (not an entry point).
    *
    * @example
