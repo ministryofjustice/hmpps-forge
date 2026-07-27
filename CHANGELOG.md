@@ -53,6 +53,25 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.3.4
+
+### For journey authors
+
+_Definitions, expressions, hooks, navigation, reachability_
+
+#### Improvements
+
+- **JSDoc across the authoring types.** Previously most fields on `JourneyDefinition` and
+  `StepDefinition` had no docs at all, and a bunch of the existing ones had drifted -
+  examples used enum values and function names that don't exist, and the `SubmitHook` docs
+  claimed `onValid`/`onInvalid` only run when `validate` is true (they route on the step's
+  recorded validity). Every field is now documented, with each claim verified against the
+  engine, and examples use real registered function names. ([#191])
+
+[#191]: https://github.com/ministryofjustice/hmpps-forge/pull/191
+
+---
+
 ## 0.3.3
 
 In this release, we focused on testing - one-line outcome assertions for journey tests,
