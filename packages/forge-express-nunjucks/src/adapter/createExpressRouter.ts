@@ -4,20 +4,35 @@ import type { Forge } from '@ministryofjustice/hmpps-forge/core'
 import ExpressHandlerFactory from './ExpressHandlerFactory'
 import NunjucksRenderer from '../renderer/NunjucksRenderer'
 
+/**
+ * Options for {@link createExpressRouter}. Passed through verbatim to the
+ * `NunjucksRenderer` the router builds, so each mounted router gets its own
+ * renderer configuration.
+ */
 export interface ExpressForgeRouterOptions {
-  /** Nunjucks environment for page template rendering. */
+  /**
+   * Nunjucks environment used to load and render page templates. The same
+   * environment is handed to components at render time via their `renderer`
+   * parameter, so component templates and macros resolve against it too.
+   */
   nunjucksEnv: nunjucks.Environment
 
   /**
-   * Default template to use when no template is specified in step or ancestors.
-   * Defaults to 'form-step'. The .njk extension is appended automatically if not present.
+   * Template used when neither the step nor its journey ancestors resolve a
+   * `view.template`. The `.njk` extension is appended automatically when not
+   * present.
+   *
+   * @default 'form-step'
    */
   defaultTemplate?: string
 
   /**
    * When true, the `blocks` array handed to page templates carries `{ html, block }`
-   * entries pairing each rendered string with its `RenderBlock` data.
-   * Defaults to false: plain rendered HTML strings.
+   * entries pairing each rendered string with its `RenderBlock` data (id, variant,
+   * block type, and evaluated properties including any authored `metadata`).
+   * When false, `blocks` is plain rendered HTML strings.
+   *
+   * @default false
    */
   includeBlockData?: boolean
 }

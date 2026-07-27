@@ -9,14 +9,40 @@ import type { ForgeRenderer, NodeId, RenderContext, RouteTreeNode } from '@minis
 import type { TemplateBlock, TemplateContext, TemplateNavigationItem } from './types'
 
 export interface NunjucksRendererOptions {
+  /**
+   * Nunjucks environment used to load and render page templates. The same
+   * environment is handed to components at render time via their `renderer`
+   * parameter, so component templates and macros resolve against it too.
+   * Compiled templates are cached per renderer instance.
+   */
   nunjucksEnv: nunjucks.Environment
+
+  /**
+   * Template used when neither the step nor its journey ancestors resolve a
+   * `view.template`. The `.njk` extension is appended automatically when not
+   * present.
+   *
+   * @default 'form-step'
+   */
   defaultTemplate?: string
 
   /**
    * When true, the `blocks` array handed to page templates carries `{ html, block }`
-   * entries pairing each rendered string with its `RenderBlock` data, index-aligned
-   * with `RenderContext.blocks` - invisible blocks stay in the array with `html: ''`.
-   * Defaults to false: plain rendered HTML strings.
+   * entries pairing each rendered string with its `RenderBlock` data (id, variant,
+   * block type, and evaluated properties including any authored `metadata`),
+   * index-aligned with `RenderContext.blocks` - invisible blocks stay in the array
+   * with `html: ''`. When false, `blocks` is plain rendered HTML strings.
+   *
+   * @default false
+   *
+   * @example
+   * ```njk
+   * {% for entry in blocks %}
+   *   {% if entry.block.properties.metadata.region == 'sidebar' %}
+   *     {{ entry.html | safe }}
+   *   {% endif %}
+   * {% endfor %}
+   * ```
    */
   includeBlockData?: boolean
 }
