@@ -13,6 +13,13 @@ export interface ExpressForgeRouterOptions {
    * Defaults to 'form-step'. The .njk extension is appended automatically if not present.
    */
   defaultTemplate?: string
+
+  /**
+   * When true, the `blocks` array handed to page templates carries `{ html, block }`
+   * entries pairing each rendered string with its `RenderBlock` data.
+   * Defaults to false: plain rendered HTML strings.
+   */
+  includeBlockData?: boolean
 }
 
 export function createExpressRouter(forge: Forge, options: ExpressForgeRouterOptions): express.Router {

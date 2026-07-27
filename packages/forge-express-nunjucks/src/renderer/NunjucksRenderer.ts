@@ -6,11 +6,19 @@ import type {
   ComponentRegistryEntry,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import type { ForgeRenderer, NodeId, RenderContext, RouteTreeNode } from '@ministryofjustice/hmpps-forge/core/framework'
-import type { TemplateContext, TemplateNavigationItem } from './types'
+import type { TemplateBlock, TemplateContext, TemplateNavigationItem } from './types'
 
 export interface NunjucksRendererOptions {
   nunjucksEnv: nunjucks.Environment
   defaultTemplate?: string
+
+  /**
+   * When true, the `blocks` array handed to page templates carries `{ html, block }`
+   * entries pairing each rendered string with its `RenderBlock` data, index-aligned
+   * with `RenderContext.blocks` - invisible blocks stay in the array with `html: ''`.
+   * Defaults to false: plain rendered HTML strings.
+   */
+  includeBlockData?: boolean
 }
 
 export default class NunjucksRenderer implements ForgeRenderer<string> {
@@ -22,6 +30,8 @@ export default class NunjucksRenderer implements ForgeRenderer<string> {
 
   private readonly defaultTemplate: string
 
+  private readonly includeBlockData: boolean
+
   private readonly templateCache = new Map<string, nunjucks.Template>()
 
   private readonly cachedRenderer: unknown
@@ -29,6 +39,7 @@ export default class NunjucksRenderer implements ForgeRenderer<string> {
   constructor(options: NunjucksRendererOptions) {
     this.nunjucksEnv = options.nunjucksEnv
     this.defaultTemplate = options.defaultTemplate ?? NunjucksRenderer.FALLBACK_TEMPLATE
+    this.includeBlockData = options.includeBlockData ?? false
 
     const env = this.nunjucksEnv
     const cache = this.templateCache
@@ -74,7 +85,7 @@ export default class NunjucksRenderer implements ForgeRenderer<string> {
     const templateContext: TemplateContext = {
       ...requestState,
       ...context.step.view?.locals,
-      blocks: renderedBlocks,
+      blocks: this.buildTemplateBlocks(context, renderedBlocks),
       step: context.step,
       ancestors: context.ancestors,
       routeTree: context.routeTree,
@@ -88,6 +99,17 @@ export default class NunjucksRenderer implements ForgeRenderer<string> {
     const template = this.resolveTemplate(context)
 
     return this.renderTemplate(template, templateContext)
+  }
+
+  private buildTemplateBlocks(
+    context: RenderContext,
+    renderedBlocks: readonly string[],
+  ): readonly string[] | readonly TemplateBlock[] {
+    if (!this.includeBlockData) {
+      return renderedBlocks
+    }
+
+    return renderedBlocks.map((html, index) => ({ html, block: context.blocks[index] }))
   }
 
   private resolveTemplate(context: RenderContext): string {

@@ -30,6 +30,7 @@ export { ExpressFrameworkAdapter } from './adapter/ExpressFrameworkAdapter'
 export type { ExpressForgeAdapter } from './adapter/ExpressFrameworkAdapter'
 export { default as NunjucksRenderer } from './renderer/NunjucksRenderer'
 export type { NunjucksRendererOptions } from './renderer/NunjucksRenderer'
+export type { TemplateBlock } from './renderer/types'
 export { buildNunjucksComponent } from './utils/buildNunjucksComponent'
 export type { NunjucksComponentRenderer } from './utils/buildNunjucksComponent'
 
