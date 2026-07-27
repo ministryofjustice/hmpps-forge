@@ -68,7 +68,7 @@ _Definitions, expressions, hooks, navigation, reachability_
   hands templates `{ html, block }` pairs instead, so a template can group, filter, or
   inspect blocks - e.g. splitting a page into regions with `selectattr` over
   `block.properties.metadata`. Blocks that rendered nothing stay in the array with an empty
-  `html`, so it always lines up with the step's authored blocks.
+  `html`, so it always lines up with the step's authored blocks. ([#193])
 
 #### Improvements
 
@@ -80,6 +80,7 @@ _Definitions, expressions, hooks, navigation, reachability_
   engine, and examples use real registered function names. ([#191])
 
 [#191]: https://github.com/ministryofjustice/hmpps-forge/pull/191
+[#193]: https://github.com/ministryofjustice/hmpps-forge/pull/193
 
 ---
 
