@@ -1,17 +1,62 @@
 import type { ZodType } from 'zod'
 import type { FunctionType } from './enums'
 
-// Export types for registry entries
+/**
+ * The callable implementation of a registered function, with its dependencies
+ * already applied. For conditions, transformers, and effects the first
+ * argument is the injected value (or effect context) and the remaining
+ * arguments are the authored ones; generators receive only the authored
+ * arguments.
+ */
 export type FunctionEvaluator<T = any> = (...args: any[]) => T
 
+/**
+ * A runtime registry entry for one registered function, as consumed by the
+ * engine. Usually produced by `build()` on a {@link BaseFunctionRegistry}
+ * subclass rather than written by hand.
+ */
 export interface FunctionRegistryEntry {
+  /** Registry key the function is looked up by when expressions call it. */
   name: string
+
+  /** The implementation to call. */
   evaluate: FunctionEvaluator
+
+  /**
+   * Whether {@link evaluate} is an async function. Decides whether compiled
+   * expressions await the call, so it must be accurate; `build()` detects it
+   * from the function itself.
+   */
   isAsync: boolean
+
+  /**
+   * Validates the injected value before {@link evaluate} runs. A failing
+   * value makes a condition evaluate to `false` (a wrongly-shaped field is
+   * a normal "not valid yet" outcome); for any other kind a failure throws.
+   */
   inputSchema?: ZodType
+
+  /**
+   * Validates the authored arguments (excluding the injected value) before
+   * {@link evaluate} runs, and drives arity checking at compilation. A
+   * failure always throws: bad arguments are an authoring mistake.
+   */
   argumentsSchema?: ZodType
+
+  /**
+   * Validates the return value of {@link evaluate}. A failure throws.
+   */
   outputSchema?: ZodType
+
+  /**
+   * Which kind of function this is. Decides whether a value is injected as
+   * the first argument and how schema failures short-circuit.
+   */
   functionType?: FunctionType
 }
 
+/**
+ * Registry entries keyed by function name: the shape the engine resolves
+ * function calls against, and what `build()` on a registry returns.
+ */
 export type FunctionRegistryObject = Record<string, FunctionRegistryEntry>
