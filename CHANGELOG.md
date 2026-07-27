@@ -59,6 +59,17 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 _Definitions, expressions, hooks, navigation, reachability_
 
+#### New
+
+- **Page templates can see block data.** Previously the `blocks` array in the page template
+  context was just rendered HTML strings - the block's variant, properties, and metadata were
+  gone by the time the template ran. The Nunjucks renderer (and `createExpressRouter`) now
+  takes `includeBlockData: boolean`. It defaults to false, keeping the plain strings; true
+  hands templates `{ html, block }` pairs instead, so a template can group, filter, or
+  inspect blocks - e.g. splitting a page into regions with `selectattr` over
+  `block.properties.metadata`. Blocks that rendered nothing stay in the array with an empty
+  `html`, so it always lines up with the step's authored blocks. ([#193])
+
 #### Improvements
 
 - **JSDoc across the authoring types.** Previously most fields on `JourneyDefinition` and
@@ -69,6 +80,7 @@ _Definitions, expressions, hooks, navigation, reachability_
   engine, and examples use real registered function names. ([#191])
 
 [#191]: https://github.com/ministryofjustice/hmpps-forge/pull/191
+[#193]: https://github.com/ministryofjustice/hmpps-forge/pull/193
 
 ---
 
