@@ -88,9 +88,22 @@ _Definitions, expressions, hooks, navigation, reachability_
   recorded validity). Every field is now documented, with each claim verified against the
   engine, and examples use real registered function names. ([#191])
 
+---
+
+### For engine / internal developers
+
+_Compilation, runtime, contracts, diagnostics, instrumentation_
+
+#### Notes
+
+- **`http-errors` is no longer a dependency.** It was used in one place - stamping
+  `status`, `statusCode` and `expose` onto the error the Express adapter passes to
+  `next` - so the adapter now sets the three properties itself. ([#195])
+
 [#191]: https://github.com/ministryofjustice/hmpps-forge/pull/191
 [#193]: https://github.com/ministryofjustice/hmpps-forge/pull/193
 [#194]: https://github.com/ministryofjustice/hmpps-forge/pull/194
+[#195]: https://github.com/ministryofjustice/hmpps-forge/pull/195
 
 ---
 

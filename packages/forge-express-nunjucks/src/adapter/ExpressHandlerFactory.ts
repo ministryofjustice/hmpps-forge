@@ -1,5 +1,4 @@
 import type express from 'express'
-import createHttpError from 'http-errors'
 import type { Forge } from '@ministryofjustice/hmpps-forge/core'
 import type {
   ForgeOutcome,
@@ -60,17 +59,26 @@ export default class ExpressHandlerFactory {
     if (outcome.kind === 'error') {
       const status = outcome.error.status ?? outcome.error.statusCode ?? 500
 
-      next(createHttpError(status, outcome.error))
+      next(this.toHttpError(status, outcome.error))
 
       return
     }
 
     if (!outcome.output) {
-      next(createHttpError(500, 'Render outcome produced no output - renderer not bound'))
+      next(this.toHttpError(500, new Error('Render outcome produced no output - renderer not bound')))
 
       return
     }
 
     res.type('html').send(outcome.output)
+  }
+
+  /**
+   * Express's final handler and error middleware read `status`/`statusCode` to pick the response
+   * code, and `expose` to decide whether `err.message` is shown in production. Both status
+   * properties are set because middleware is split on which one it reads.
+   */
+  private static toHttpError(status: number, error: Error): Error {
+    return Object.assign(error, { status, statusCode: status, expose: status < 500 })
   }
 }
