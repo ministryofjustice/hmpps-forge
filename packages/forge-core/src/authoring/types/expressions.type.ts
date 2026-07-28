@@ -1,4 +1,12 @@
-import { FunctionType, ExpressionType, PredicateType, HookType, IteratorType, OutcomeType } from './enums'
+import {
+  FunctionType,
+  ExpressionType,
+  PredicateType,
+  ConditionCombinatorType,
+  HookType,
+  IteratorType,
+  OutcomeType,
+} from './enums'
 
 /**
  * Represents a reference to a value in the form context.
@@ -528,12 +536,124 @@ export interface ConditionalExpr {
 }
 
 /**
+ * Represents an AND condition combinator where all operands must be true.
+ * Operands are bare conditions or nested combinators; the match subject is
+ * applied to every condition leaf.
+ *
+ * @example
+ * // AND logic - all must be true
+ * {
+ *   type: 'ConditionCombinatorType.And',
+ *   operands: [
+ *     { type: 'FunctionType.Condition', name: 'IsRequired', arguments: [] },
+ *     { type: 'FunctionType.Condition', name: 'Number.IsGreaterThan', arguments: [18] }
+ *   ]
+ * }
+ */
+export interface ConditionAndExpr {
+  type: ConditionCombinatorType.AND
+
+  /**
+   * Array of condition branches that must all be true.
+   * Requires at least 2 operands for logical AND.
+   */
+  operands: [ConditionBranchExpr, ConditionBranchExpr, ...ConditionBranchExpr[]]
+}
+
+/**
+ * Represents an OR condition combinator where at least one operand must be true.
+ * Operands are bare conditions or nested combinators; the match subject is
+ * applied to every condition leaf.
+ *
+ * @example
+ * // OR logic - at least one must be true
+ * {
+ *   type: 'ConditionCombinatorType.Or',
+ *   operands: [
+ *     { type: 'FunctionType.Condition', name: 'Equals', arguments: ['ACTIVE'] },
+ *     { type: 'FunctionType.Condition', name: 'Equals', arguments: ['PENDING'] }
+ *   ]
+ * }
+ */
+export interface ConditionOrExpr {
+  type: ConditionCombinatorType.OR
+
+  /**
+   * Array of condition branches where at least one must be true.
+   * Requires at least 2 operands for logical OR.
+   */
+  operands: [ConditionBranchExpr, ConditionBranchExpr, ...ConditionBranchExpr[]]
+}
+
+/**
+ * Represents an XOR condition combinator where exactly one operand must be true.
+ * Operands are bare conditions or nested combinators; the match subject is
+ * applied to every condition leaf.
+ *
+ * @example
+ * // XOR logic - exactly one must be true
+ * {
+ *   type: 'ConditionCombinatorType.Xor',
+ *   operands: [
+ *     { type: 'FunctionType.Condition', name: 'Equals', arguments: ['ACTIVE'] },
+ *     { type: 'FunctionType.Condition', name: 'String.IsEmpty', arguments: [] }
+ *   ]
+ * }
+ */
+export interface ConditionXorExpr {
+  type: ConditionCombinatorType.XOR
+
+  /**
+   * Array of condition branches where exactly one must be true.
+   * Requires at least 2 operands for logical XOR.
+   */
+  operands: [ConditionBranchExpr, ConditionBranchExpr, ...ConditionBranchExpr[]]
+}
+
+/**
+ * Represents a NOT condition combinator that inverts the operand's result.
+ * The operand is a bare condition or a nested combinator; the match subject
+ * is applied to every condition leaf.
+ *
+ * @example
+ * // NOT logic - invert the result
+ * {
+ *   type: 'ConditionCombinatorType.Not',
+ *   operand: { type: 'FunctionType.Condition', name: 'Equals', arguments: ['ACTIVE'] }
+ * }
+ */
+export interface ConditionNotExpr {
+  type: ConditionCombinatorType.NOT
+
+  /**
+   * Single condition branch to negate.
+   * NOT requires exactly one operand.
+   */
+  operand: ConditionBranchExpr
+}
+
+/**
+ * Represents any subject-less combination of conditions.
+ * Unlike PredicateExpr, combinators carry no subject of their own; the
+ * surrounding match expression supplies it to every condition leaf.
+ */
+export type ConditionCombinatorExpr = ConditionAndExpr | ConditionOrExpr | ConditionXorExpr | ConditionNotExpr
+
+/**
+ * Represents anything a match branch can test its subject against:
+ * a single condition, or a combinator tree over conditions.
+ */
+export type ConditionBranchExpr = ConditionFunctionExpr<any> | ConditionCombinatorExpr
+
+/**
  * Represents a single branch in a match expression.
  * Each branch pairs a condition with a value to return when the condition matches.
+ * The condition may be a single condition function or a combinator tree of them;
+ * the match subject is applied to every condition leaf in that tree.
  */
 export interface MatchBranch {
-  /** The condition to evaluate against the match subject. */
-  condition: ConditionFunctionExpr<any>
+  /** The condition, or combinator tree of conditions, to evaluate against the match subject. */
+  condition: ConditionBranchExpr
 
   /** The value to return when this branch's condition matches. */
   value: ResolvableValue

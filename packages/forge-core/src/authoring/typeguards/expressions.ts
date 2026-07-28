@@ -1,5 +1,6 @@
 import { TieBreaker, ValidationExpr } from '../types/structures.type'
 import { isPredicateExpr } from './predicates'
+import { isConditionCombinatorExpr } from './conditionCombinators'
 import {
   ReferenceExpr,
   PipelineExpr,
@@ -101,6 +102,7 @@ export function isExpression(node: any): boolean {
     isMatchExpr(node) ||
     isIterateExpr(node) ||
     isPredicateExpr(node) ||
+    isConditionCombinatorExpr(node) ||
     isFunctionExpr(node) ||
     isValidationExpr(node) ||
     isTieBreaker(node) ||

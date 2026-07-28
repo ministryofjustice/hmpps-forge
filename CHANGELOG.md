@@ -70,6 +70,15 @@ _Definitions, expressions, hooks, navigation, reachability_
   `block.properties.metadata`. Blocks that rendered nothing stay in the array with an empty
   `html`, so it always lines up with the step's authored blocks. ([#193])
 
+- **Combinators in `match()` branches.** Previously `.branch()` only took a single
+  condition, so testing two things at once - "is an object *and* has an `eventUuid`" -
+  meant falling back to nested `when()` chains. `and`, `or`, `xor`, and `not` now accept
+  bare conditions as well as predicates: `branch(and(Condition.Object.IsObject(),
+  Condition.Object.PropertyHasValue('eventUuid')), ...)`. There's no `.match()` call
+  because the branch has no subject of its own - every condition in the tree is tested
+  against the match subject, and combinators nest to any depth. Mixing bare conditions
+  with predicates in one call is a type error. ([#194])
+
 #### Improvements
 
 - **JSDoc across the authoring types.** Previously most fields on `JourneyDefinition` and
@@ -81,6 +90,7 @@ _Definitions, expressions, hooks, navigation, reachability_
 
 [#191]: https://github.com/ministryofjustice/hmpps-forge/pull/191
 [#193]: https://github.com/ministryofjustice/hmpps-forge/pull/193
+[#194]: https://github.com/ministryofjustice/hmpps-forge/pull/194
 
 ---
 

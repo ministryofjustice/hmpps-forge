@@ -20,6 +20,10 @@ import {
   Loop,
   Self,
   Condition,
+  match,
+  and,
+  or,
+  not,
 } from '../../src/authoring'
 import { CollectionBlock } from '../../src/components'
 import { Effects } from './contractHelpers'
@@ -255,6 +259,49 @@ export const answerDisplayJourney = journey({
       ],
     }),
     step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})
+
+export const matchCombinatorJourney = journey({
+  code: 'match-combinator',
+  path: '/match-combinator',
+  title: 'Match Combinator',
+  onAccess: [access({ effects: [Effects.LoadAnswers('match-combinator')] })],
+  steps: [
+    step({
+      path: '/reference',
+      title: 'Reference',
+      reachability: { entryWhen: true },
+      blocks: [GovUKTextInput({ code: 'referenceCode', label: 'Reference code' }), GovUKButton({ text: 'Continue' })],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            effects: [Effects.SaveAnswers('match-combinator')],
+            next: [redirect({ goto: 'summary' })],
+          },
+        }),
+      ],
+    }),
+    step({
+      code: 'summary',
+      path: '/summary',
+      title: 'Summary',
+      blocks: [
+        GovUKInsetText({
+          text: match(Answer('referenceCode'))
+            .branch(
+              or(
+                and(Condition.String.StartsWith('FT'), not(Condition.String.Contains('-'))),
+                Condition.Equals('LEGACY'),
+              ),
+              'Fast track referral',
+            )
+            .branch(Condition.String.HasMinLength(6), 'Standard referral')
+            .otherwise('Unrecognised referral'),
+        }),
+      ],
+    }),
   ],
 })
 

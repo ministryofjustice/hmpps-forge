@@ -12,6 +12,7 @@ import {
   dynamicPropertyJourney,
   stepMetadataJourney,
   answerDisplayJourney,
+  matchCombinatorJourney,
   validationDisplayJourney,
   iteratorRenderJourney,
   dataDisplayJourney,
@@ -231,6 +232,88 @@ describe('resolve contracts', () => {
 
         expect(insetBlocks).toHaveLength(1)
         expect(insetBlocks[0].properties.text).toBeUndefined()
+      }
+    })
+  })
+
+  describe('match expressions', () => {
+    it('should resolve the branch value when a nested combinator condition matches', async () => {
+      // Arrange
+      const client = createClient(matchCombinatorJourney)
+      const session: ContractSession = {
+        answers: { 'match-combinator': { referenceCode: 'FT12' } },
+      }
+
+      // Act
+      const result = await client.get('/match-combinator/summary', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const insetBlocks = result.getBlocksByVariant('govukInsetText')
+
+        expect(insetBlocks[0].properties.text).toBe('Fast track referral')
+      }
+    })
+
+    it('should resolve the branch value when a plain single condition matches', async () => {
+      // Arrange
+      const client = createClient(matchCombinatorJourney)
+      const session: ContractSession = {
+        answers: { 'match-combinator': { referenceCode: 'SR-1234' } },
+      }
+
+      // Act
+      const result = await client.get('/match-combinator/summary', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const insetBlocks = result.getBlocksByVariant('govukInsetText')
+
+        expect(insetBlocks[0].properties.text).toBe('Standard referral')
+      }
+    })
+
+    it('should resolve the otherwise value when no branch condition matches', async () => {
+      // Arrange
+      const client = createClient(matchCombinatorJourney)
+      const session: ContractSession = {
+        answers: { 'match-combinator': { referenceCode: 'SR-12' } },
+      }
+
+      // Act
+      const result = await client.get('/match-combinator/summary', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const insetBlocks = result.getBlocksByVariant('govukInsetText')
+
+        expect(insetBlocks[0].properties.text).toBe('Unrecognised referral')
+      }
+    })
+
+    it('should resolve the first matching branch when an answer satisfies both branches', async () => {
+      // Arrange
+      const client = createClient(matchCombinatorJourney)
+      const session: ContractSession = {
+        answers: { 'match-combinator': { referenceCode: 'FT123456' } },
+      }
+
+      // Act
+      const result = await client.get('/match-combinator/summary', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const insetBlocks = result.getBlocksByVariant('govukInsetText')
+
+        expect(insetBlocks[0].properties.text).toBe('Fast track referral')
       }
     })
   })

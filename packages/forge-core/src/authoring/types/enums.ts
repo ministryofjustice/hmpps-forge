@@ -68,6 +68,19 @@ export enum PredicateType {
 }
 
 /**
+ * Discriminates the logical combinations of a subject-less condition
+ * combinator tree, as used by match branches. Unlike PredicateType, whose
+ * TEST leaves carry their own subject, these trees combine bare conditions
+ * and take their subject from the surrounding match expression.
+ */
+export enum ConditionCombinatorType {
+  AND = 'ConditionCombinatorType.And',
+  OR = 'ConditionCombinatorType.Or',
+  XOR = 'ConditionCombinatorType.Xor',
+  NOT = 'ConditionCombinatorType.Not',
+}
+
+/**
  * Discriminates lifecycle hooks: access hooks run on every request, submit
  * hooks run on form submission.
  */
