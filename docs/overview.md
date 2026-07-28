@@ -149,7 +149,7 @@ forge-core
   No Express, Nunjucks, GOV.UK Frontend, or MOJ Frontend dependency.
 
 forge-express-nunjucks
-  Depends on forge-core, Express, Nunjucks, and http-errors.
+  Depends on forge-core, Express, and Nunjucks.
   Provides createExpressRouter and a NunjucksRenderer that implements the core
   ForgeRenderer interface, plus Nunjucks component helper utilities.
 

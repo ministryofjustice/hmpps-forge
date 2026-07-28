@@ -4,7 +4,6 @@ import {
   GovUKInsetText,
   govukComponents,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
-import createHttpError from 'http-errors'
 
 import {
   journey,
@@ -49,7 +48,9 @@ interface HooksEffectShape {
   StoreHasAnswer: (code: string, dataKey: string) => EffectFunctionExpr
 }
 
-export const httpEffectError = Object.assign(createHttpError(404, 'Booking not found'), {
+export const httpEffectError = Object.assign(new Error('Booking not found'), {
+  status: 404,
+  statusCode: 404,
   dependency: 'bookingStore',
 })
 export const accidentalEffectError = new SyntaxError('Unexpected token in booking data')
