@@ -230,9 +230,9 @@ Each handler (`ExpressHandlerFactory`):
   (`res.setHeader`, `res.cookie`) — nothing is buffered
 - calls `forge.execute({ snapshot, responseBindings, renderer })`
 - commits the returned outcome: `navigate` redirects with `res.redirect(url)`;
-  `error` normalizes the same Error with
-  `createHttpError(error.status ?? error.statusCode ?? 500, error)` before
-  passing it to `next`; `render` sends the assembled output with
+  `error` stamps `status`, `statusCode` and `expose` onto the same Error (using
+  `error.status ?? error.statusCode ?? 500`) before passing it to `next`;
+  `render` sends the assembled output with
   `res.type('html').send(output)` (or a 500 when a render outcome has no
   `output`, which means no renderer was bound)
 

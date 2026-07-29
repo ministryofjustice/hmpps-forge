@@ -1,4 +1,12 @@
-import { FunctionType, ExpressionType, PredicateType, HookType, IteratorType, OutcomeType } from './enums'
+import {
+  FunctionType,
+  ExpressionType,
+  PredicateType,
+  ConditionCombinatorType,
+  HookType,
+  IteratorType,
+  OutcomeType,
+} from './enums'
 
 /**
  * Represents a reference to a value in the form context.
@@ -103,7 +111,10 @@ export interface BaseFunctionExpr<A extends ResolvableValue[]> {
   type: FunctionType
   /**
    * Name of the registered function.
-   * Must match a function in the appropriate registry.
+   * Must match a function in the appropriate registry. Built-in functions
+   * register under PascalCase names, namespaced where grouped (e.g.
+   * `'IsRequired'`, `'Date.Now'`, `'Array.Slice'`); custom functions use
+   * whatever name they were registered with.
    */
   name: string
 
@@ -119,7 +130,7 @@ export interface BaseFunctionExpr<A extends ResolvableValue[]> {
  * // Required validation condition
  * {
  *   type: 'FunctionType.Condition',
- *   name: 'isRequired',
+ *   name: 'IsRequired',
  *   arguments: []
  * }
  *
@@ -177,7 +188,7 @@ export interface TransformerFunctionExpr<A extends ResolvableValue[] = Resolvabl
  * Represents a side effect to be executed during lifecycle hooks.
  * Effects handle actions like saving data, manipulating collections,
  * or triggering external operations.
- **
+ *
  * @example
  * // Save effect
  * {
@@ -210,7 +221,7 @@ export interface EffectFunctionExpr<A extends ResolvableValue[] = ResolvableValu
  * // Generate current date
  * {
  *   type: 'FunctionType.Generator',
- *   name: 'Now',
+ *   name: 'Date.Now',
  *   arguments: []
  * }
  *
@@ -246,7 +257,7 @@ export interface MapIteratorConfig {
  * Configuration for Iterator.Filter - keeps items matching a predicate.
  *
  * @example
- * Iterator.Filter(Item().path('active').match(Condition.IsTrue()))
+ * Iterator.Filter(Item().path('active').match(Condition.Equals(true)))
  */
 export interface FilterIteratorConfig {
   type: IteratorType.FILTER
@@ -286,7 +297,7 @@ export type IteratorConfig = MapIteratorConfig | FilterIteratorConfig | FindIter
  * @example
  * // Filter and map in sequence
  * Data('items')
- *   .each(Iterator.Filter(Item().path('active').match(Condition.IsTrue())))
+ *   .each(Iterator.Filter(Item().path('active').match(Condition.Equals(true))))
  *   .each(Iterator.Map({ label: Item().path('name'), value: Item().path('id') }))
  *
  * @example
@@ -337,7 +348,7 @@ export type ResolvableValue =
  *   type: 'PredicateType.Test',
  *   subject: { type: 'ExpressionType.Reference', path: ['@self'] },
  *   negate: false,
- *   condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
+ *   condition: { type: 'FunctionType.Condition', name: 'IsRequired', arguments: [] }
  * }
  *
  * @example
@@ -346,7 +357,7 @@ export type ResolvableValue =
  *   type: 'PredicateType.Test',
  *   subject: { type: 'ExpressionType.Reference', path: ['answers', 'email'] },
  *   negate: true,
- *   condition: { type: 'FunctionType.Condition', name: 'isEmail', arguments: [] }
+ *   condition: { type: 'FunctionType.Condition', name: 'Email.IsValidEmail', arguments: [] }
  * }
  */
 export interface PredicateTestExpr {
@@ -395,8 +406,8 @@ export interface PredicateAndExpr {
  * {
  *   type: 'PredicateType.Or',
  *   operands: [
- *     { type: 'PredicateType.Test', subject: {...}, condition: {...} },
- *     { type: 'PredicateType.Test', subject: {...}, condition: {...} }
+ *     { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} },
+ *     { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} }
  *   ]
  * }
  */
@@ -418,8 +429,8 @@ export interface PredicateOrExpr {
  * {
  *   type: 'PredicateType.Xor',
  *   operands: [
- *     { type: 'PredicateType.Test', subject: {...}, condition: {...} },
- *     { type: 'PredicateType.Test', subject: {...}, condition: {...} }
+ *     { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} },
+ *     { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} }
  *   ]
  * }
  */
@@ -440,7 +451,7 @@ export interface PredicateXorExpr {
  * // NOT logic - invert the result
  * {
  *   type: 'PredicateType.Not',
- *   operand: { type: 'PredicateType.Test', subject: {...}, condition: {...} }
+ *   operand: { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} }
  * }
  */
 export interface PredicateNotExpr {
@@ -466,12 +477,12 @@ export type PredicateExpr = PredicateTestExpr | PredicateAndExpr | PredicateOrEx
  * @example
  * // Simple validation rule
  * {
- *   type: 'LogicType.Conditional',
+ *   type: 'ExpressionType.Conditional',
  *   predicate: {
  *     type: 'PredicateType.Test',
  *     subject: { type: 'ExpressionType.Reference', path: ['@self'] },
  *     negate: true,
- *     condition: { type: 'FunctionType.Condition', name: 'isRequired', arguments: [] }
+ *     condition: { type: 'FunctionType.Condition', name: 'IsRequired', arguments: [] }
  *   },
  *   thenValue: 'This field is required',
  *   elseValue: false
@@ -480,12 +491,12 @@ export type PredicateExpr = PredicateTestExpr | PredicateAndExpr | PredicateOrEx
  * @example
  * // Conditional field visibility (dependentWhen)
  * {
- *   type: 'LogicType.Conditional',
+ *   type: 'ExpressionType.Conditional',
  *   predicate: {
  *     type: 'PredicateType.Test',
  *     subject: { type: 'ExpressionType.Reference', path: ['answers', 'hasChildren'] },
  *     negate: false,
- *     condition: { type: 'FunctionType.Condition', name: 'matchesValue', arguments: [true] }
+ *     condition: { type: 'FunctionType.Condition', name: 'Equals', arguments: [true] }
  *   },
  *   thenValue: true,
  *   elseValue: false
@@ -494,11 +505,11 @@ export type PredicateExpr = PredicateTestExpr | PredicateAndExpr | PredicateOrEx
  * @example
  * // Nested conditionals for complex logic
  * {
- *   type: 'LogicType.Conditional',
- *   predicate: { type: 'PredicateType.Test', subject: {...}, condition: {...} },
+ *   type: 'ExpressionType.Conditional',
+ *   predicate: { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} },
  *   thenValue: {
- *     type: 'LogicType.Conditional',
- *     predicate: { type: 'PredicateType.Test', subject: {...}, condition: {...} ,
+ *     type: 'ExpressionType.Conditional',
+ *     predicate: { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} },
  *     thenValue: 'Option A',
  *     elseValue: 'Option B'
  *   },
@@ -525,12 +536,124 @@ export interface ConditionalExpr {
 }
 
 /**
+ * Represents an AND condition combinator where all operands must be true.
+ * Operands are bare conditions or nested combinators; the match subject is
+ * applied to every condition leaf.
+ *
+ * @example
+ * // AND logic - all must be true
+ * {
+ *   type: 'ConditionCombinatorType.And',
+ *   operands: [
+ *     { type: 'FunctionType.Condition', name: 'IsRequired', arguments: [] },
+ *     { type: 'FunctionType.Condition', name: 'Number.IsGreaterThan', arguments: [18] }
+ *   ]
+ * }
+ */
+export interface ConditionAndExpr {
+  type: ConditionCombinatorType.AND
+
+  /**
+   * Array of condition branches that must all be true.
+   * Requires at least 2 operands for logical AND.
+   */
+  operands: [ConditionBranchExpr, ConditionBranchExpr, ...ConditionBranchExpr[]]
+}
+
+/**
+ * Represents an OR condition combinator where at least one operand must be true.
+ * Operands are bare conditions or nested combinators; the match subject is
+ * applied to every condition leaf.
+ *
+ * @example
+ * // OR logic - at least one must be true
+ * {
+ *   type: 'ConditionCombinatorType.Or',
+ *   operands: [
+ *     { type: 'FunctionType.Condition', name: 'Equals', arguments: ['ACTIVE'] },
+ *     { type: 'FunctionType.Condition', name: 'Equals', arguments: ['PENDING'] }
+ *   ]
+ * }
+ */
+export interface ConditionOrExpr {
+  type: ConditionCombinatorType.OR
+
+  /**
+   * Array of condition branches where at least one must be true.
+   * Requires at least 2 operands for logical OR.
+   */
+  operands: [ConditionBranchExpr, ConditionBranchExpr, ...ConditionBranchExpr[]]
+}
+
+/**
+ * Represents an XOR condition combinator where exactly one operand must be true.
+ * Operands are bare conditions or nested combinators; the match subject is
+ * applied to every condition leaf.
+ *
+ * @example
+ * // XOR logic - exactly one must be true
+ * {
+ *   type: 'ConditionCombinatorType.Xor',
+ *   operands: [
+ *     { type: 'FunctionType.Condition', name: 'Equals', arguments: ['ACTIVE'] },
+ *     { type: 'FunctionType.Condition', name: 'String.IsEmpty', arguments: [] }
+ *   ]
+ * }
+ */
+export interface ConditionXorExpr {
+  type: ConditionCombinatorType.XOR
+
+  /**
+   * Array of condition branches where exactly one must be true.
+   * Requires at least 2 operands for logical XOR.
+   */
+  operands: [ConditionBranchExpr, ConditionBranchExpr, ...ConditionBranchExpr[]]
+}
+
+/**
+ * Represents a NOT condition combinator that inverts the operand's result.
+ * The operand is a bare condition or a nested combinator; the match subject
+ * is applied to every condition leaf.
+ *
+ * @example
+ * // NOT logic - invert the result
+ * {
+ *   type: 'ConditionCombinatorType.Not',
+ *   operand: { type: 'FunctionType.Condition', name: 'Equals', arguments: ['ACTIVE'] }
+ * }
+ */
+export interface ConditionNotExpr {
+  type: ConditionCombinatorType.NOT
+
+  /**
+   * Single condition branch to negate.
+   * NOT requires exactly one operand.
+   */
+  operand: ConditionBranchExpr
+}
+
+/**
+ * Represents any subject-less combination of conditions.
+ * Unlike PredicateExpr, combinators carry no subject of their own; the
+ * surrounding match expression supplies it to every condition leaf.
+ */
+export type ConditionCombinatorExpr = ConditionAndExpr | ConditionOrExpr | ConditionXorExpr | ConditionNotExpr
+
+/**
+ * Represents anything a match branch can test its subject against:
+ * a single condition, or a combinator tree over conditions.
+ */
+export type ConditionBranchExpr = ConditionFunctionExpr<any> | ConditionCombinatorExpr
+
+/**
  * Represents a single branch in a match expression.
  * Each branch pairs a condition with a value to return when the condition matches.
+ * The condition may be a single condition function or a combinator tree of them;
+ * the match subject is applied to every condition leaf in that tree.
  */
 export interface MatchBranch {
-  /** The condition to evaluate against the match subject. */
-  condition: ConditionFunctionExpr<any>
+  /** The condition, or combinator tree of conditions, to evaluate against the match subject. */
+  condition: ConditionBranchExpr
 
   /** The value to return when this branch's condition matches. */
   value: ResolvableValue
@@ -722,16 +845,16 @@ export interface SubmitHook {
 
   /**
    * Whether to validate form fields before proceeding.
-   * When true, validates the default validation group and routes to onValid or onInvalid based on validation result.
-   * When passed a group list, validates those groups instead.
-   * When false (default), skips validation and uses onAlways.
+   * When true, validates the default validation group; when passed a group
+   * list, validates those groups instead.
+   * When false (default), no fresh validation runs — branches route on the
+   * step's already-recorded validity.
    */
   validate?: boolean | { groups: string[] }
 
   /**
-   * Actions to execute regardless of validation result.
-   * When validate is false, this is the only branch that executes.
-   * When validate is true, this runs before routing to onValid/onInvalid.
+   * Actions to execute regardless of validation result, before any routing
+   * to onValid or onInvalid.
    */
   onAlways?: {
     /** Effects to execute */
@@ -741,8 +864,9 @@ export interface SubmitHook {
   }
 
   /**
-   * Actions to execute when validation passes.
-   * Only meaningful when validate is true.
+   * Actions to execute when the step's recorded validation state is valid.
+   * With validate false this can still run, since a step with no recorded
+   * failures reads as valid.
    */
   onValid?: {
     /** Effects to execute */
@@ -752,8 +876,9 @@ export interface SubmitHook {
   }
 
   /**
-   * Actions to execute when validation fails.
-   * Only meaningful when validate is true.
+   * Actions to execute when the step's recorded validation state has
+   * failures, whether recorded by this hook's validation or earlier in the
+   * same request.
    */
   onInvalid?: {
     /** Effects to execute */

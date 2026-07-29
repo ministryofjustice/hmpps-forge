@@ -53,6 +53,60 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.3.4
+
+### For journey authors
+
+_Definitions, expressions, hooks, navigation, reachability_
+
+#### New
+
+- **Page templates can see block data.** Previously the `blocks` array in the page template
+  context was just rendered HTML strings - the block's variant, properties, and metadata were
+  gone by the time the template ran. The Nunjucks renderer (and `createExpressRouter`) now
+  takes `includeBlockData: boolean`. It defaults to false, keeping the plain strings; true
+  hands templates `{ html, block }` pairs instead, so a template can group, filter, or
+  inspect blocks - e.g. splitting a page into regions with `selectattr` over
+  `block.properties.metadata`. Blocks that rendered nothing stay in the array with an empty
+  `html`, so it always lines up with the step's authored blocks. ([#193])
+
+- **Combinators in `match()` branches.** Previously `.branch()` only took a single
+  condition, so testing two things at once - "is an object *and* has an `eventUuid`" -
+  meant falling back to nested `when()` chains. `and`, `or`, `xor`, and `not` now accept
+  bare conditions as well as predicates: `branch(and(Condition.Object.IsObject(),
+  Condition.Object.PropertyHasValue('eventUuid')), ...)`. There's no `.match()` call
+  because the branch has no subject of its own - every condition in the tree is tested
+  against the match subject, and combinators nest to any depth. Mixing bare conditions
+  with predicates in one call is a type error. ([#194])
+
+#### Improvements
+
+- **JSDoc across the authoring types.** Previously most fields on `JourneyDefinition` and
+  `StepDefinition` had no docs at all, and a bunch of the existing ones had drifted -
+  examples used enum values and function names that don't exist, and the `SubmitHook` docs
+  claimed `onValid`/`onInvalid` only run when `validate` is true (they route on the step's
+  recorded validity). Every field is now documented, with each claim verified against the
+  engine, and examples use real registered function names. ([#191])
+
+---
+
+### For engine / internal developers
+
+_Compilation, runtime, contracts, diagnostics, instrumentation_
+
+#### Notes
+
+- **`http-errors` is no longer a dependency.** It was used in one place - stamping
+  `status`, `statusCode` and `expose` onto the error the Express adapter passes to
+  `next` - so the adapter now sets the three properties itself. ([#195])
+
+[#191]: https://github.com/ministryofjustice/hmpps-forge/pull/191
+[#193]: https://github.com/ministryofjustice/hmpps-forge/pull/193
+[#194]: https://github.com/ministryofjustice/hmpps-forge/pull/194
+[#195]: https://github.com/ministryofjustice/hmpps-forge/pull/195
+
+---
+
 ## 0.3.3
 
 In this release, we focused on testing - one-line outcome assertions for journey tests,

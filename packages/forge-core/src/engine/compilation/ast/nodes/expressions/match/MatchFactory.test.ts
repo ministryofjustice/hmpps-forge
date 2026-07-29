@@ -1,17 +1,61 @@
 import { ASTNodeType } from '../../../../../contracts/ast/enums'
-import { ExpressionType, FunctionType, PredicateType } from '../../../../../../authoring/types/enums'
-import { MatchASTNode } from '../../../../../contracts/ast/expressions.type'
-import type { MatchExpr, ResolvableValue } from '../../../../../../authoring/types/expressions.type'
+import {
+  ConditionCombinatorType,
+  ExpressionType,
+  FunctionType,
+  PredicateType,
+} from '../../../../../../authoring/types/enums'
+import { FunctionASTNode, MatchASTNode, ReferenceASTNode } from '../../../../../contracts/ast/expressions.type'
+import type {
+  ConditionBranchExpr,
+  ConditionFunctionExpr,
+  MatchExpr,
+  ResolvableValue,
+} from '../../../../../../authoring/types/expressions.type'
 import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import InvalidNodeError from '../../../../../errors/InvalidNodeError'
 import { NodeFactory } from '../../NodeFactory'
-import { TestPredicateASTNode } from '../../../../../contracts/ast/predicates.type'
+import type {
+  AndPredicateASTNode,
+  NotPredicateASTNode,
+  OrPredicateASTNode,
+  PredicateASTNode,
+  TestPredicateASTNode,
+  XorPredicateASTNode,
+} from '../../../../../contracts/ast/predicates.type'
 import MatchFactory from './MatchFactory'
 
 describe('MatchFactory', () => {
   let nodeIDGenerator: NodeIDGenerator
   let nodeFactory: NodeFactory
   let matchFactory: MatchFactory
+
+  // Helpers for the combinator branch cases, which need larger condition trees than a single condition
+  const equals = (value: string): ConditionFunctionExpr => ({
+    type: FunctionType.CONDITION,
+    name: 'Equals',
+    arguments: [value],
+  })
+
+  const matchOn = (condition: ConditionBranchExpr): MatchExpr => ({
+    type: ExpressionType.MATCH,
+    subject: { type: ExpressionType.REFERENCE, path: ['data', 'status'] },
+    branches: [{ condition, value: 'Result' }],
+  })
+
+  const branchPredicate = (json: MatchExpr): PredicateASTNode =>
+    matchFactory.create(json).properties.branches[0].predicate as PredicateASTNode
+
+  const testLeaf = (predicate: PredicateASTNode) => {
+    const leaf = predicate as TestPredicateASTNode
+
+    return {
+      predicateType: leaf.predicateType,
+      negate: leaf.properties.negate,
+      subjectPath: (leaf.properties.subject as ReferenceASTNode).properties.path,
+      conditionArguments: (leaf.properties.condition as FunctionASTNode).properties.arguments,
+    }
+  }
 
   beforeEach(() => {
     nodeIDGenerator = new NodeIDGenerator()
@@ -70,6 +114,161 @@ describe('MatchFactory', () => {
       // Assert
       expect(predicate.type).toBe(ASTNodeType.PREDICATE)
       expect(predicate.predicateType).toBe(PredicateType.TEST)
+    })
+
+    it('should synthesise a TEST predicate carrying the subject when the branch is a single condition', () => {
+      // Arrange
+      const json = matchOn(equals('A'))
+
+      // Act
+      const predicate = branchPredicate(json)
+
+      // Assert
+      expect(testLeaf(predicate)).toEqual({
+        predicateType: PredicateType.TEST,
+        negate: false,
+        subjectPath: ['data', 'status'],
+        conditionArguments: ['A'],
+      })
+    })
+
+    it('should expand an AND branch condition into an AND predicate over TEST leaves', () => {
+      // Arrange
+      const json = matchOn({ type: ConditionCombinatorType.AND, operands: [equals('A'), equals('B')] })
+
+      // Act
+      const predicate = branchPredicate(json) as AndPredicateASTNode
+
+      // Assert
+      expect(predicate.predicateType).toBe(PredicateType.AND)
+      expect(predicate.properties.operands.map(testLeaf)).toEqual([
+        {
+          predicateType: PredicateType.TEST,
+          negate: false,
+          subjectPath: ['data', 'status'],
+          conditionArguments: ['A'],
+        },
+        {
+          predicateType: PredicateType.TEST,
+          negate: false,
+          subjectPath: ['data', 'status'],
+          conditionArguments: ['B'],
+        },
+      ])
+    })
+
+    it('should expand an OR branch condition into an OR predicate over TEST leaves', () => {
+      // Arrange
+      const json = matchOn({ type: ConditionCombinatorType.OR, operands: [equals('A'), equals('B')] })
+
+      // Act
+      const predicate = branchPredicate(json) as OrPredicateASTNode
+
+      // Assert
+      expect(predicate.predicateType).toBe(PredicateType.OR)
+      expect(predicate.properties.operands.map(testLeaf)).toEqual([
+        {
+          predicateType: PredicateType.TEST,
+          negate: false,
+          subjectPath: ['data', 'status'],
+          conditionArguments: ['A'],
+        },
+        {
+          predicateType: PredicateType.TEST,
+          negate: false,
+          subjectPath: ['data', 'status'],
+          conditionArguments: ['B'],
+        },
+      ])
+    })
+
+    it('should expand an XOR branch condition into an XOR predicate over TEST leaves', () => {
+      // Arrange
+      const json = matchOn({ type: ConditionCombinatorType.XOR, operands: [equals('A'), equals('B')] })
+
+      // Act
+      const predicate = branchPredicate(json) as XorPredicateASTNode
+
+      // Assert
+      expect(predicate.predicateType).toBe(PredicateType.XOR)
+      expect(predicate.properties.operands.map(testLeaf)).toEqual([
+        {
+          predicateType: PredicateType.TEST,
+          negate: false,
+          subjectPath: ['data', 'status'],
+          conditionArguments: ['A'],
+        },
+        {
+          predicateType: PredicateType.TEST,
+          negate: false,
+          subjectPath: ['data', 'status'],
+          conditionArguments: ['B'],
+        },
+      ])
+    })
+
+    it('should expand a NOT branch condition into a NOT predicate over a TEST leaf', () => {
+      // Arrange
+      const json = matchOn({ type: ConditionCombinatorType.NOT, operand: equals('A') })
+
+      // Act
+      const predicate = branchPredicate(json) as NotPredicateASTNode
+
+      // Assert
+      expect(predicate.predicateType).toBe(PredicateType.NOT)
+      expect(testLeaf(predicate.properties.operand as PredicateASTNode)).toEqual({
+        predicateType: PredicateType.TEST,
+        negate: false,
+        subjectPath: ['data', 'status'],
+        conditionArguments: ['A'],
+      })
+    })
+
+    it('should expand a nested combinator tree into matching nested predicates', () => {
+      // Arrange
+      const json = matchOn({
+        type: ConditionCombinatorType.OR,
+        operands: [
+          { type: ConditionCombinatorType.AND, operands: [equals('A'), equals('B')] },
+          { type: ConditionCombinatorType.NOT, operand: equals('C') },
+        ],
+      })
+
+      // Act
+      const predicate = branchPredicate(json) as OrPredicateASTNode
+      const [nestedAnd, nestedNot] = predicate.properties.operands as [AndPredicateASTNode, NotPredicateASTNode]
+
+      // Assert
+      expect(predicate.predicateType).toBe(PredicateType.OR)
+      expect(nestedAnd.predicateType).toBe(PredicateType.AND)
+      expect(nestedAnd.properties.operands.map(operand => testLeaf(operand).conditionArguments)).toEqual([['A'], ['B']])
+      expect(nestedNot.predicateType).toBe(PredicateType.NOT)
+      expect(testLeaf(nestedNot.properties.operand as PredicateASTNode).conditionArguments).toEqual(['C'])
+    })
+
+    it('should generate unique node IDs across the synthesised predicates of a combinator tree', () => {
+      // Arrange
+      const json = matchOn({
+        type: ConditionCombinatorType.OR,
+        operands: [
+          { type: ConditionCombinatorType.AND, operands: [equals('A'), equals('B')] },
+          { type: ConditionCombinatorType.NOT, operand: equals('C') },
+        ],
+      })
+
+      // Act
+      const predicate = branchPredicate(json) as OrPredicateASTNode
+      const [nestedAnd, nestedNot] = predicate.properties.operands as [AndPredicateASTNode, NotPredicateASTNode]
+      const ids = [
+        predicate.id,
+        nestedAnd.id,
+        ...nestedAnd.properties.operands.map(operand => operand.id),
+        nestedNot.id,
+        (nestedNot.properties.operand as PredicateASTNode).id,
+      ]
+
+      // Assert
+      expect(new Set(ids).size).toBe(ids.length)
     })
 
     it('should handle literal branch values', () => {

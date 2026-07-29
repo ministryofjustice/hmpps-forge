@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { PredicateType, ExpressionType, OutcomeType } from '../../../authoring/types/enums'
+import { PredicateType, ExpressionType, OutcomeType, ConditionCombinatorType } from '../../../authoring/types/enums'
 import { ResolvableValueSchema } from './expressions.schema'
 import { ConditionFunctionExprSchema } from './base.schema'
 
@@ -71,10 +71,55 @@ export const ConditionalExprSchema = z.lazy(() =>
 )
 
 /**
+ * @see {@link ConditionBranchExpr}
+ */
+export const ConditionBranchExprSchema: z.ZodType<any> = z.lazy(() =>
+  z.union([
+    ConditionFunctionExprSchema,
+    ConditionAndExprSchema,
+    ConditionOrExprSchema,
+    ConditionXorExprSchema,
+    ConditionNotExprSchema,
+  ]),
+)
+
+/**
+ * @see {@link ConditionAndExpr}
+ */
+export const ConditionAndExprSchema: z.ZodType<any> = z.looseObject({
+  type: z.literal(ConditionCombinatorType.AND),
+  operands: z.array(ConditionBranchExprSchema).min(2),
+})
+
+/**
+ * @see {@link ConditionOrExpr}
+ */
+export const ConditionOrExprSchema: z.ZodType<any> = z.looseObject({
+  type: z.literal(ConditionCombinatorType.OR),
+  operands: z.array(ConditionBranchExprSchema).min(2),
+})
+
+/**
+ * @see {@link ConditionXorExpr}
+ */
+export const ConditionXorExprSchema: z.ZodType<any> = z.looseObject({
+  type: z.literal(ConditionCombinatorType.XOR),
+  operands: z.array(ConditionBranchExprSchema).min(2),
+})
+
+/**
+ * @see {@link ConditionNotExpr}
+ */
+export const ConditionNotExprSchema: z.ZodType<any> = z.looseObject({
+  type: z.literal(ConditionCombinatorType.NOT),
+  operand: ConditionBranchExprSchema,
+})
+
+/**
  * @see {@link MatchBranch}
  */
 export const MatchBranchSchema = z.object({
-  condition: ConditionFunctionExprSchema,
+  condition: ConditionBranchExprSchema,
   value: ResolvableValueSchema,
 })
 

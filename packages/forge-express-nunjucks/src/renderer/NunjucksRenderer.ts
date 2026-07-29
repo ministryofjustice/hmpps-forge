@@ -6,11 +6,45 @@ import type {
   ComponentRegistryEntry,
 } from '@ministryofjustice/hmpps-forge/core/components'
 import type { ForgeRenderer, NodeId, RenderContext, RouteTreeNode } from '@ministryofjustice/hmpps-forge/core/framework'
-import type { TemplateContext, TemplateNavigationItem } from './types'
+import type { TemplateBlock, TemplateContext, TemplateNavigationItem } from './types'
 
 export interface NunjucksRendererOptions {
+  /**
+   * Nunjucks environment used to load and render page templates. The same
+   * environment is handed to components at render time via their `renderer`
+   * parameter, so component templates and macros resolve against it too.
+   * Compiled templates are cached per renderer instance.
+   */
   nunjucksEnv: nunjucks.Environment
+
+  /**
+   * Template used when neither the step nor its journey ancestors resolve a
+   * `view.template`. The `.njk` extension is appended automatically when not
+   * present.
+   *
+   * @default 'form-step'
+   */
   defaultTemplate?: string
+
+  /**
+   * When true, the `blocks` array handed to page templates carries `{ html, block }`
+   * entries pairing each rendered string with its `RenderBlock` data (id, variant,
+   * block type, and evaluated properties including any authored `metadata`),
+   * index-aligned with `RenderContext.blocks` - invisible blocks stay in the array
+   * with `html: ''`. When false, `blocks` is plain rendered HTML strings.
+   *
+   * @default false
+   *
+   * @example
+   * ```njk
+   * {% for entry in blocks %}
+   *   {% if entry.block.properties.metadata.region == 'sidebar' %}
+   *     {{ entry.html | safe }}
+   *   {% endif %}
+   * {% endfor %}
+   * ```
+   */
+  includeBlockData?: boolean
 }
 
 export default class NunjucksRenderer implements ForgeRenderer<string> {
@@ -22,6 +56,8 @@ export default class NunjucksRenderer implements ForgeRenderer<string> {
 
   private readonly defaultTemplate: string
 
+  private readonly includeBlockData: boolean
+
   private readonly templateCache = new Map<string, nunjucks.Template>()
 
   private readonly cachedRenderer: unknown
@@ -29,6 +65,7 @@ export default class NunjucksRenderer implements ForgeRenderer<string> {
   constructor(options: NunjucksRendererOptions) {
     this.nunjucksEnv = options.nunjucksEnv
     this.defaultTemplate = options.defaultTemplate ?? NunjucksRenderer.FALLBACK_TEMPLATE
+    this.includeBlockData = options.includeBlockData ?? false
 
     const env = this.nunjucksEnv
     const cache = this.templateCache
@@ -74,7 +111,7 @@ export default class NunjucksRenderer implements ForgeRenderer<string> {
     const templateContext: TemplateContext = {
       ...requestState,
       ...context.step.view?.locals,
-      blocks: renderedBlocks,
+      blocks: this.buildTemplateBlocks(context, renderedBlocks),
       step: context.step,
       ancestors: context.ancestors,
       routeTree: context.routeTree,
@@ -88,6 +125,17 @@ export default class NunjucksRenderer implements ForgeRenderer<string> {
     const template = this.resolveTemplate(context)
 
     return this.renderTemplate(template, templateContext)
+  }
+
+  private buildTemplateBlocks(
+    context: RenderContext,
+    renderedBlocks: readonly string[],
+  ): readonly string[] | readonly TemplateBlock[] {
+    if (!this.includeBlockData) {
+      return renderedBlocks
+    }
+
+    return renderedBlocks.map((html, index) => ({ html, block: context.blocks[index] }))
   }
 
   private resolveTemplate(context: RenderContext): string {

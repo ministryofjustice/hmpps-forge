@@ -17,13 +17,13 @@ import { IteratorType } from '../types/enums'
  * @example
  * // Filter: Keep matching items
  * Data('items').each(Iterator.Filter(
- *   Item().path('active').match(Condition.IsTrue())
+ *   Item().path('active').match(Condition.Equals(true))
  * ))
  *
  * @example
  * // Chain filter and map
  * Data('items')
- *   .each(Iterator.Filter(Item().path('active').match(Condition.IsTrue())))
+ *   .each(Iterator.Filter(Item().path('active').match(Condition.Equals(true))))
  *   .each(Iterator.Map({ label: Item().path('name') }))
  */
 export const Iterator = {
@@ -56,7 +56,7 @@ export const Iterator = {
    *
    * @example
    * // Keep only active items
-   * Iterator.Filter(Item().path('active').match(Condition.IsTrue()))
+   * Iterator.Filter(Item().path('active').match(Condition.Equals(true)))
    *
    * @example
    * // Exclude items matching a value
@@ -85,7 +85,7 @@ export const Iterator = {
    * @example
    * // Find first active item
    * Data('items').each(Iterator.Find(
-   *   Item().path('active').match(Condition.IsTrue())
+   *   Item().path('active').match(Condition.Equals(true))
    * ))
    */
   Find(predicate: PredicateExpr): FindIteratorConfig {

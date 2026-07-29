@@ -1,6 +1,6 @@
 import { PredicateTestExprBuilder, and, or, xor, not } from './PredicateTestExprBuilder'
 import { ResolvableValue, ConditionFunctionExpr, PredicateTestExpr } from '../types/expressions.type'
-import { FunctionType, PredicateType } from '../types/enums'
+import { ConditionCombinatorType, FunctionType, PredicateType } from '../types/enums'
 
 describe('PredicateTestExprBuilder', () => {
   // Helper function to create a mock condition
@@ -160,6 +160,16 @@ describe('Logic predicates', () => {
     condition: { type: FunctionType.CONDITION, name, arguments: [] as any },
   })
 
+  // Helper to create a bare condition, which takes its subject from the surrounding match
+  const testCondition = (name: string): ConditionFunctionExpr => ({
+    type: FunctionType.CONDITION,
+    name,
+    arguments: [],
+  })
+
+  const mixedOperandsError = (fnName: string) =>
+    `${fnName}() cannot mix bare conditions with predicates — conditions take their subject from the surrounding match`
+
   describe('and', () => {
     test('should create an AND logic predicate with two operands', () => {
       const p1 = testPredicate('test1')
@@ -206,6 +216,38 @@ describe('Logic predicates', () => {
       const builder = new PredicateTestExprBuilder('value')
 
       expect(() => and(p1, builder as any)).toThrow('PredicateBuilder must call .match() before use')
+    })
+
+    test('should create an AND condition combinator when given bare conditions', () => {
+      const c1 = testCondition('cond1')
+      const c2 = testCondition('cond2')
+
+      const result = and(c1, c2)
+
+      expect(result).toEqual({
+        type: ConditionCombinatorType.AND,
+        operands: [c1, c2],
+      })
+    })
+
+    test('should create an AND condition combinator when given an array of bare conditions', () => {
+      const c1 = testCondition('cond1')
+      const c2 = testCondition('cond2')
+      const c3 = testCondition('cond3')
+
+      const result = and([c1, c2, c3])
+
+      expect(result).toEqual({
+        type: ConditionCombinatorType.AND,
+        operands: [c1, c2, c3],
+      })
+    })
+
+    test('should throw error when bare conditions are mixed with predicates', () => {
+      const c1 = testCondition('cond1')
+      const p1 = testPredicate('test1')
+
+      expect(() => and(c1, p1 as any)).toThrow(mixedOperandsError('and'))
     })
   })
 
@@ -254,6 +296,37 @@ describe('Logic predicates', () => {
       const builder = new PredicateTestExprBuilder('value')
 
       expect(() => or(p1, builder as any)).toThrow('PredicateBuilder must call .match() before use')
+    })
+
+    test('should create an OR condition combinator when given bare conditions', () => {
+      const c1 = testCondition('cond1')
+      const c2 = testCondition('cond2')
+
+      const result = or(c1, c2)
+
+      expect(result).toEqual({
+        type: ConditionCombinatorType.OR,
+        operands: [c1, c2],
+      })
+    })
+
+    test('should create an OR condition combinator when given an array of bare conditions', () => {
+      const c1 = testCondition('cond1')
+      const c2 = testCondition('cond2')
+
+      const result = or([c1, c2])
+
+      expect(result).toEqual({
+        type: ConditionCombinatorType.OR,
+        operands: [c1, c2],
+      })
+    })
+
+    test('should throw error when bare conditions are mixed with predicates', () => {
+      const c1 = testCondition('cond1')
+      const p1 = testPredicate('test1')
+
+      expect(() => or(c1, p1 as any)).toThrow(mixedOperandsError('or'))
     })
   })
 
@@ -304,6 +377,37 @@ describe('Logic predicates', () => {
 
       expect(() => xor(p1, builder as any)).toThrow('PredicateBuilder must call .match() before use')
     })
+
+    test('should create an XOR condition combinator when given bare conditions', () => {
+      const c1 = testCondition('cond1')
+      const c2 = testCondition('cond2')
+
+      const result = xor(c1, c2)
+
+      expect(result).toEqual({
+        type: ConditionCombinatorType.XOR,
+        operands: [c1, c2],
+      })
+    })
+
+    test('should create an XOR condition combinator when given an array of bare conditions', () => {
+      const c1 = testCondition('cond1')
+      const c2 = testCondition('cond2')
+
+      const result = xor([c1, c2])
+
+      expect(result).toEqual({
+        type: ConditionCombinatorType.XOR,
+        operands: [c1, c2],
+      })
+    })
+
+    test('should throw error when bare conditions are mixed with predicates', () => {
+      const c1 = testCondition('cond1')
+      const p1 = testPredicate('test1')
+
+      expect(() => xor(c1, p1 as any)).toThrow(mixedOperandsError('xor'))
+    })
   })
 
   describe('not', () => {
@@ -347,6 +451,32 @@ describe('Logic predicates', () => {
       const builder = new PredicateTestExprBuilder('value')
 
       expect(() => not(builder as any)).toThrow('PredicateBuilder must call .match() before use')
+    })
+
+    test('should create a NOT condition combinator when given a bare condition', () => {
+      const c1 = testCondition('cond1')
+
+      const result = not(c1)
+
+      expect(result).toEqual({
+        type: ConditionCombinatorType.NOT,
+        operand: c1,
+      })
+    })
+
+    test('should create a NOT condition combinator when given a nested condition combinator', () => {
+      const c1 = testCondition('cond1')
+      const c2 = testCondition('cond2')
+
+      const result = not(and(c1, c2))
+
+      expect(result).toEqual({
+        type: ConditionCombinatorType.NOT,
+        operand: {
+          type: ConditionCombinatorType.AND,
+          operands: [c1, c2],
+        },
+      })
     })
   })
 
@@ -414,6 +544,28 @@ describe('Logic predicates', () => {
       expect((complex.operands[0] as any).type).toBe(PredicateType.OR)
       expect((complex.operands[1] as any).type).toBe(PredicateType.XOR)
       expect((complex.operands[2] as any).type).toBe(PredicateType.TEST)
+    })
+
+    test('should handle nested condition combinators', () => {
+      const c1 = testCondition('cond1')
+      const c2 = testCondition('cond2')
+      const c3 = testCondition('cond3')
+
+      const result = or(and(c1, c2), not(c3))
+
+      expect(result).toEqual({
+        type: ConditionCombinatorType.OR,
+        operands: [
+          {
+            type: ConditionCombinatorType.AND,
+            operands: [c1, c2],
+          },
+          {
+            type: ConditionCombinatorType.NOT,
+            operand: c3,
+          },
+        ],
+      })
     })
   })
 })

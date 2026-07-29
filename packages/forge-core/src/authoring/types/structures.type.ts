@@ -29,7 +29,7 @@ export interface ValidationExpr {
   message: ResolvableString
   /** When `true`, the rule only runs on form submission, not during navigation/traversal checks. Useful for expensive or time-sensitive validations. */
   submissionOnly?: boolean
-  /** Validation groups this rule belongs to. Defaults to `['default']` when omitted. */
+  /** Validation groups this rule belongs to. Defaults to `['default']` when omitted or empty. */
   groups?: string[]
   /** Metadata passed to the error handler, e.g. `{ field: 'month' }` to highlight a specific part of a composite input like a date. */
   details?: Record<string, any>
@@ -56,8 +56,22 @@ export interface TieBreaker {
 
 export type TieBreakerProps = Omit<TieBreaker, 'type'>
 
+/**
+ * Where Forge redirects a request for an unreachable step: the journey's
+ * default active entry point, or the current resume frontier.
+ *
+ * @see {@link JourneyReachability.unreachableRedirect}
+ */
 export type UnreachableRedirectTarget = 'entry' | 'frontier'
 
+/**
+ * Custom key/value pairs attached to a journey or step, surfaced on the
+ * route tree and render context. Values may be expressions, resolved per
+ * request.
+ *
+ * @see {@link JourneyDefinition.metadata}
+ * @see {@link StepDefinition.metadata}
+ */
 export type RouteMetadata = Record<string, ResolvableValue | undefined>
 
 /**
@@ -66,16 +80,118 @@ export type RouteMetadata = Record<string, ResolvableValue | undefined>
  */
 export interface JourneyDefinition {
   type: StructureType.JOURNEY
+
+  /**
+   * URL segment this journey mounts under.
+   * Nested journeys append their path to their parent's; the root journey
+   * mounts under the base path the Forge instance was created with.
+   *
+   * @example
+   * path: '/goals'
+   *
+   * @example
+   * // Route parameters are declared with a colon
+   * path: '/goals/:goalId'
+   */
   path: string
+
+  /**
+   * Stable identifier for the journey, independent of its URL path.
+   * The root journey's code identifies the whole registered package: it
+   * scopes the engine's route keys and appears in compilation traces and
+   * diagnostics, so it must be unique across registered packages.
+   *
+   * @example
+   * code: 'prison-visit-booking'
+   */
   code: string
+
+  /**
+   * Lifecycle hooks run on every request to this journey or any step or
+   * child journey beneath it, before the step's own hooks. Use them for
+   * access control and data loading.
+   *
+   * @example
+   * onAccess: [access({ effects: [loadUserData()] })]
+   *
+   * @see {@link AccessHook} for hook evaluation order and outcomes
+   */
   onAccess?: AccessHook[]
+
+  /**
+   * Steps belonging directly to this journey, routed under its path.
+   *
+   * @see {@link StepDefinition}
+   */
   steps?: StepDefinition[]
+
+  /**
+   * Child journeys nested under this one, routed beneath this journey's
+   * path.
+   */
   children?: JourneyDefinition[]
+
+  /**
+   * Display title for the journey, surfaced on the route tree and as a
+   * journey ancestor in the render context. The title may be an expression,
+   * resolved per request.
+   *
+   * @example
+   * title: 'Book a prison visit'
+   *
+   * @example
+   * // Titles may be expressions
+   * title: Format('Visit for %1', Data('prisonerName'))
+   */
   title: ResolvableString
+
+  /**
+   * Optional display description, surfaced alongside {@link title} on the
+   * route tree. The description may be an expression, resolved per request.
+   */
   description?: ResolvableString
+
+  /**
+   * View configuration for rendering this journey's steps. Combined from
+   * the root journey down to the current step: the nearest `template` wins
+   * and `locals` merge by key.
+   *
+   * @see {@link ViewConfig}
+   */
   view?: ViewConfig
+
+  /**
+   * Custom key/value pairs surfaced on the route tree and render context,
+   * for concerns like navigation labels or template flags.
+   * Values may be expressions, resolved per request.
+   *
+   * @example
+   * metadata: { section: 'sentencing', navLabel: 'Goals' }
+   *
+   * @example
+   * // Values may be expressions
+   * metadata: { navLabel: Data('journeyTitle') }
+   */
   metadata?: RouteMetadata
+
+  /**
+   * Static data merged into the request's data context, readable with
+   * `Data()` references. Merges root-first, so a step's or child journey's
+   * keys override this journey's. Plain values only; expressions are
+   * rejected at registration.
+   *
+   * @example
+   * data: { supportEmail: 'help@justice.gov.uk' }
+   * // Read elsewhere with Data('supportEmail')
+   */
   data?: Record<string, unknown>
+
+  /**
+   * Controls resume behaviour and how unreachable-step requests are
+   * redirected for this journey.
+   *
+   * @see {@link JourneyReachability}
+   */
   reachability?: JourneyReachability
 }
 
@@ -88,7 +204,8 @@ export interface JourneyReachability {
   /**
    * Controls when Forge's resume behaviour is active for this journey.
    *
-   * - `true` — always resume (every request redirects to the resume frontier).
+   * - `true` — resume is always active: GET requests to a step other than the
+   *   resume frontier redirect to it, once progress and a frontier exist.
    * - A dynamic expression — resume only when the expression resolves to a
    *   truthy value; a falsy result behaves the same as `false`.
    * - `false` — behaves the same as omitting it (resume is never active).
@@ -135,8 +252,9 @@ export interface StepReachability {
    *
    * - `true` — unconditional entry point (always seeded as reachable).
    * - A dynamic expression — conditional entry point, seeded only when the
-   *   expression resolves to a truthy value. Active conditional entries take
-   *   priority in the resume frontier over normal blockers.
+   *   expression resolves to a truthy value. An active conditional entry
+   *   whose path already has progress can anchor the resume frontier past
+   *   an earlier blocker.
    * - `false` — behaves the same as omitting it (not an entry point).
    *
    * @example
@@ -179,19 +297,158 @@ export interface StepEntryValidation {
  */
 export interface StepDefinition {
   type: StructureType.STEP
+
+  /**
+   * URL segment appended to the owning journey's path to form the step's
+   * route.
+   *
+   * @example
+   * path: '/overview'
+   *
+   * @example
+   * // Route parameters are declared with a colon
+   * path: '/record/:index'
+   */
   path: string
+
+  /**
+   * Optional stable identifier for the step, independent of its URL path.
+   * Surfaced in reachability projections and diagnostic traces so steps can
+   * be recognised without relying on their (possibly parameterised) path.
+   *
+   * @example
+   * code: 'check-answers'
+   */
   code?: string
+
+  /**
+   * Content of the step, rendered in order. Blocks are built with registered
+   * components: field blocks collect answers, basic blocks display content.
+   *
+   * @see {@link BlockDefinition}
+   */
   blocks?: BlockDefinition[]
+
+  /**
+   * Lifecycle hooks run on every request to this step, after the hooks of
+   * its ancestor journeys. Use them for access control and data loading.
+   *
+   * @example
+   * onAccess: [access({ effects: [loadGoal()] })]
+   *
+   * @see {@link AccessHook} for hook evaluation order and outcomes
+   */
   onAccess?: AccessHook[]
+
+  /**
+   * Hooks run when the step is submitted. The first hook whose `when` and
+   * `guards` pass executes; the rest are skipped.
+   *
+   * @example
+   * onSubmission: [
+   *   submit({
+   *     validate: true,
+   *     onValid: {
+   *       effects: [saveGoal()],
+   *       next: [redirect({ goto: '/overview' })],
+   *     },
+   *   }),
+   * ]
+   *
+   * @see {@link SubmitHook} for validation routing and outcomes
+   */
   onSubmission?: SubmitHook[]
+
+  /**
+   * Surfaces existing validation failures when the step is loaded, without
+   * a submission. Each entry names the validation groups to surface and a
+   * `when` controlling whether they are.
+   *
+   * @example
+   * // A check-answers step showing any outstanding failures on arrival
+   * validateOnEntry: [{ groups: ['default'], when: true }]
+   *
+   * @see {@link StepEntryValidation}
+   */
   validateOnEntry?: StepEntryValidation[]
+
+  /**
+   * Display title for the step, surfaced on the route tree and render
+   * context. The title may be an expression, resolved per request.
+   *
+   * @example
+   * title: 'Check your answers'
+   *
+   * @example
+   * // Titles may be expressions
+   * title: Format('Edit goal %1', Params('goalId'))
+   */
   title: ResolvableString
+
+  /**
+   * Optional display description, surfaced alongside {@link title} on the
+   * route tree. The description may be an expression, resolved per request.
+   */
   description?: ResolvableString
+
+  /**
+   * View configuration for rendering this step. Applied on top of the
+   * combined view of its ancestor journeys: the nearest `template` wins
+   * and `locals` merge by key.
+   *
+   * @see {@link ViewConfig}
+   */
   view?: ViewConfig
+
+  /**
+   * Controls how this step participates in the reachability walk: whether
+   * it is an entry point, and how ties between candidates are broken.
+   *
+   * @see {@link StepReachability}
+   */
   reachability?: StepReachability
+
+  /**
+   * Overrides the back link shown on this step. When omitted, Forge derives
+   * it from the reachability walk (the previous reachable step). The value
+   * is rendered as-is, so the browser resolves relative targets against the
+   * step's URL.
+   *
+   * @example
+   * backlink: 'tasks'
+   *
+   * @example
+   * // Point at a hub step in the parent journey
+   * backlink: '../tasks'
+   */
   backlink?: string
+
+  /**
+   * Custom key/value pairs surfaced on the route tree and render context,
+   * for concerns like navigation labels or template flags.
+   * Values may be expressions, resolved per request.
+   *
+   * @example
+   * metadata: { navLabel: 'Check answers', hideFromNav: true }
+   *
+   * @example
+   * // Values may be expressions
+   * metadata: { navLabel: Answer('nickname') }
+   */
   metadata?: RouteMetadata
+
+  /**
+   * Static data merged into the request's data context, readable with
+   * `Data()` references. Merges root-first, so this step's keys override
+   * its ancestor journeys'. Plain values only; expressions are rejected
+   * at registration.
+   *
+   * @example
+   * data: { maxAttachments: 5 }
+   * // Read elsewhere with Data('maxAttachments')
+   */
   data?: Record<string, unknown>
+
   /**
    * Validation rules for this step. Rules are checked in order.
    *
@@ -204,5 +461,16 @@ export interface StepDefinition {
    * ]
    */
   validWhen?: ValidWhenInput[] | IterateExpr | ChainableIterable
+
+  /**
+   * Regex patterns matched against answer keys when this step becomes
+   * unreachable. Matching answers are cleared alongside the step's own field
+   * answers. Use this for answers the step stores under dynamic keys that
+   * its blocks don't declare.
+   *
+   * @example
+   * // Clear every answer stored under the visitDetails prefix
+   * cleardownFieldCodes: ['^visitDetails\\.']
+   */
   cleardownFieldCodes?: string[]
 }
