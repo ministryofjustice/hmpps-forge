@@ -51,8 +51,9 @@ export interface ComponentRegistryEntry<T extends BlockDefinition, TRenderOutput
   inputSchema?: ZodType
 
   /**
-   * Component-level (fixed-shape) override of the field-level `multiple` flag. Fixed-shape
-   * components such as checkboxes declare it here rather than leaving it an author decision.
+   * Whether the component keeps every submitted value rather than the first non-empty one.
+   * Fixed-shape components such as checkboxes declare it here, so it is a component
+   * property rather than an author decision.
    */
   multiple?: boolean
 }

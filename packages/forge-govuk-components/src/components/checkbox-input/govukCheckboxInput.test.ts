@@ -1,6 +1,6 @@
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { GovUKCheckboxInput, govukCheckboxInput } from './govukCheckboxInput'
+import { govukCheckboxInput } from './govukCheckboxInput'
 
 vi.mock('nunjucks')
 
@@ -334,14 +334,6 @@ describe('govukCheckboxInput', () => {
 
       // Assert
       expect(result?.success).toBe(false)
-    })
-
-    it('should not set a field-level multiple flag when building the field', () => {
-      // Arrange & Act
-      const field = GovUKCheckboxInput({ code: 'contact', label: 'Contact', items: [] })
-
-      // Assert
-      expect(field).not.toHaveProperty('multiple')
     })
   })
 
