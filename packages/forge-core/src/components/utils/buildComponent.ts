@@ -16,7 +16,7 @@ export interface BuildComponentOptions {
  *
  * @param variant - The block variant identifier (e.g., 'html', 'collection-block')
  * @param renderer - Function that takes a block and returns HTML string
- * @param options - Optional input schema and fixed-shape `multiple` override for the entry
+ * @param options - Optional input schema and fixed-shape `multiple` flag for the entry
  * @returns A registerable component
  *
  * @example
