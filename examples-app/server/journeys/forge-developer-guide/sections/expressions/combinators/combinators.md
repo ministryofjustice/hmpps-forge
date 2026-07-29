@@ -31,6 +31,9 @@ import { and, or, not, xor } from '@ministryofjustice/hmpps-forge/core/authoring
 Each combinator takes predicate expressions (the results of
 `.match()` calls) and returns a new predicate expression.
 
+Inside a `match()` branch they also accept bare conditions - see
+[In match branches](#in-match-branches).
+
 ---
 
 ## The combinators
@@ -158,9 +161,42 @@ access({
 })
 ```
 
+### In match branches
+
+Inside `match().branch()`, combinators take bare conditions
+instead of predicates. There's no `.match()` call because the
+branch has no subject of its own - every condition in the tree is
+tested against the match subject:
+
+```typescript
+match(Session('deletionResponse').path('exception'))
+  .branch(
+    and(Condition.Object.IsObject(), Condition.Object.PropertyHasValue('eventUuid')),
+    Format('Could not aggregate %1', Session('deletionResponse').path('exception.eventName')),
+  )
+  .branch(Condition.Object.IsObject(), 'Something went wrong')
+  .otherwise('')
+```
+
+Nesting works the same as with predicates:
+
+```typescript
+match(Answer('status'))
+  .branch(or(and(Condition.IsRequired(), Condition.Equals('OPEN')), not(Condition.IsRequired())), 'Actionable')
+  .otherwise('Closed')
+```
+
+You can't mix the two forms in one call - `and(condition,
+predicate)` is a type error. Conditions take their subject from
+the surrounding match, so they only make sense inside a branch.
+
 ---
 
 ## API surface
+
+All four combinators also accept bare conditions in place of
+predicates when used inside `match().branch()` - same call forms,
+no mixing of the two.
 
 ### `and(...predicates)`
 

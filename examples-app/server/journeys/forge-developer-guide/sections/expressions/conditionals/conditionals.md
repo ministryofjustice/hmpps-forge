@@ -138,6 +138,27 @@ matches. `.otherwise()` provides a fallback when no branch matches.
 
 Branches are evaluated in order. The first matching branch wins.
 
+### Combining conditions in a branch
+
+A branch can test more than one thing at once by wrapping
+conditions in the [combinators](../combinators/combinators)
+`and`, `or`, `xor`, and `not`. Unlike elsewhere, there's no
+`.match()` call - every condition is tested against the match
+subject:
+
+```typescript
+match(Session('deletionResponse').path('exception'))
+  .branch(
+    and(Condition.Object.IsObject(), Condition.Object.PropertyHasValue('eventUuid')),
+    Format('Could not aggregate %1', Session('deletionResponse').path('exception.eventName')),
+  )
+  .branch(Condition.Object.IsObject(), 'Something went wrong')
+  .otherwise('')
+```
+
+Combinators nest to any depth, so `or(and(a, b), not(c))` works as
+a branch condition too.
+
 ### In block properties
 
 `match()` is commonly used for display values that vary based on
@@ -215,7 +236,8 @@ import { Conditional } from '@ministryofjustice/hmpps-forge/core/authoring'
 ### `match(subject)`
 
 Creates a multi-branch conditional. Returns a builder with
-`.branch(condition, value)` and `.otherwise(value)` methods.
+`.branch(condition, value)` and `.otherwise(value)` methods. The
+condition can be a single condition or a combinator tree of them.
 
 ```typescript
 import { match } from '@ministryofjustice/hmpps-forge/core/authoring'

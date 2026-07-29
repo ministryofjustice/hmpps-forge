@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express'
 import type { Forge } from '@ministryofjustice/hmpps-forge/core'
-import type { ForgeRenderer, ForgeRoute, Logger } from '@ministryofjustice/hmpps-forge/core/framework'
+import type { ForgeRenderer, ForgeRoute, Logger, RenderContext } from '@ministryofjustice/hmpps-forge/core/framework'
 import ExpressHandlerFactory from './ExpressHandlerFactory'
 
 const route: ForgeRoute = {
@@ -71,7 +71,7 @@ describe('ExpressHandlerFactory', () => {
 
       // Assert
       expect(next).toHaveBeenCalledWith(error)
-      expect(error).toMatchObject({ status: 404, statusCode: 404 })
+      expect(error).toMatchObject({ status: 404, statusCode: 404, expose: true })
       expect(error.diagnostic).toBe('effect failed')
     })
 
@@ -110,7 +110,31 @@ describe('ExpressHandlerFactory', () => {
 
       // Assert
       expect(next).toHaveBeenCalledWith(error)
-      expect(error).toMatchObject({ status: 500, statusCode: 500 })
+      expect(error).toMatchObject({ status: 500, statusCode: 500, expose: false })
+    })
+
+    it('should pass a 500 error to next when a render outcome produced no output', async () => {
+      // Arrange
+      const forge = createForge()
+      const req = createRequest()
+      const res = createResponse()
+      const next = vi.fn()
+      const handler = ExpressHandlerFactory.create(forge, route, createLogger(), createRenderer())
+
+      vi.mocked(forge.execute).mockResolvedValue({ kind: 'render', context: createRenderContext() })
+
+      // Act
+      await handler(req, res, next)
+
+      // Assert
+      expect(next).toHaveBeenCalledWith(expect.any(Error))
+      expect(next.mock.calls[0][0]).toMatchObject({
+        message: 'Render outcome produced no output - renderer not bound',
+        status: 500,
+        statusCode: 500,
+        expose: false,
+      })
+      expect(res.send).not.toHaveBeenCalled()
     })
   })
 })
@@ -144,6 +168,20 @@ function createRequest(): Request {
     body: {},
     app: { locals: {} },
   } as unknown as Request
+}
+
+function createRenderContext(): RenderContext {
+  return {
+    routeTree: [],
+    step: { path: '/step-one' },
+    ancestors: [],
+    blocks: [],
+    showValidationFailures: false,
+    fieldValidationErrors: [],
+    domainValidationErrors: [],
+    answers: {},
+    data: {},
+  }
 }
 
 function createRenderer(): ForgeRenderer<unknown> {

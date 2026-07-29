@@ -1,15 +1,17 @@
-import { ConditionFunctionExpr, MatchExpr, ResolvableValue } from '../types/expressions.type'
+import { ConditionBranchExpr, MatchExpr, ResolvableValue } from '../types/expressions.type'
 import { ExpressionType } from '../types/enums'
 import { BranchValue } from './ConditionalExprBuilder'
 
 /**
  * Fluent builder for creating match expressions.
  * Provides a flat alternative to deeply nested when().then().else() chains.
+ * Branch conditions may be a single condition or a combinator tree of them,
+ * with the subject applied to every condition leaf.
  */
 export class MatchExprBuilder {
   private readonly subject: ResolvableValue
 
-  private readonly branches: Array<{ condition: ConditionFunctionExpr<any>; value: BranchValue }> = []
+  private readonly branches: Array<{ condition: ConditionBranchExpr; value: BranchValue }> = []
 
   private otherwiseValue?: BranchValue
 
@@ -19,11 +21,11 @@ export class MatchExprBuilder {
 
   /**
    * Adds a branch to the match expression.
-   * @param condition - The condition to test against the subject
+   * @param condition - The condition, or combinator tree of conditions, to test against the subject
    * @param value - The value to return when this condition matches
    * @returns This builder for method chaining
    */
-  branch(condition: ConditionFunctionExpr<any>, value: BranchValue): this {
+  branch(condition: ConditionBranchExpr, value: BranchValue): this {
     this.branches.push({ condition, value })
 
     return this
@@ -61,6 +63,8 @@ export class MatchExprBuilder {
 /**
  * Creates a match expression builder for the given subject.
  * Use this to create switch-like conditional logic with multiple branches.
+ * Each branch takes a single condition or a combinator tree built with
+ * and()/or()/xor()/not(); the subject is applied to every condition leaf.
  *
  * @param subject - The value to match against
  * @returns A MatchExprBuilder for fluent branch building
@@ -69,7 +73,7 @@ export class MatchExprBuilder {
  * match(Item().path('status'))
  *   .branch(Condition.Equals('NOT_STARTED'), 'Not started')
  *   .branch(Condition.Equals('IN_PROGRESS'), 'In progress')
- *   .branch(Condition.Equals('COMPLETED'), 'Completed')
+ *   .branch(or(Condition.Equals('COMPLETED'), Condition.Equals('APPROVED')), 'Completed')
  *   .otherwise('Unknown')
  */
 export const match = (subject: BranchValue): MatchExprBuilder => {
