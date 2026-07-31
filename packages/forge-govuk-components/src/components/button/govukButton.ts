@@ -1,17 +1,17 @@
 import type nunjucks from 'nunjucks'
 import {
-  BasicBlockProps,
   BlockDefinition,
   ResolvableBoolean,
   ResolvableString,
-  EvaluatedBlock,
+  ResolvedPropsOf,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
- * Props for the GovUKButton component.
- * Contains properties common to standard buttons.
+ * GOV.UK Button component.
+ *
+ * Creates a button for form submission. Renders as a `<button>` element with form
+ * submission capabilities.
  *
  * @see https://design-system.service.gov.uk/components/button/
  * @example
@@ -24,7 +24,7 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  * })
  * ```
  */
-export interface GovUKButtonProps extends BasicBlockProps {
+export interface GovUKButton extends BlockDefinition {
   /** Text content for the button */
   text?: ResolvableString
 
@@ -60,8 +60,9 @@ export interface GovUKButtonProps extends BasicBlockProps {
 }
 
 /**
- * Props for the GovUKLinkButton component.
- * Contains properties for link-styled buttons.
+ * GOV.UK Link Button component.
+ *
+ * Creates a button for navigation. Renders as an `<a>` element styled as a button.
  *
  * @see https://design-system.service.gov.uk/components/button/
  * @example
@@ -73,7 +74,7 @@ export interface GovUKButtonProps extends BasicBlockProps {
  * })
  * ```
  */
-export interface GovUKLinkButtonProps extends BasicBlockProps {
+export interface GovUKLinkButton extends BlockDefinition {
   /** Text content for the button */
   text?: ResolvableString
 
@@ -96,73 +97,53 @@ export interface GovUKLinkButtonProps extends BasicBlockProps {
   href: ResolvableString
 }
 
-/**
- * GOV.UK Button Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKButtonProps` type or the `GovUKButton()` wrapper function instead.
- */
-export interface GovUKButton extends BlockDefinition, GovUKButtonProps {
-  /** Component variant identifier */
-  variant: 'govukButton'
-}
-
-/**
- * GOV.UK Link Button Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKLinkButtonProps` type or the `GovUKLinkButton()` wrapper function instead.
- */
-export interface GovUKLinkButton extends BlockDefinition, GovUKLinkButtonProps {
-  /** Component variant identifier */
-  variant: 'govukLinkButton'
+function isLinkButton(
+  props: ResolvedPropsOf<GovUKButton> | ResolvedPropsOf<GovUKLinkButton>,
+): props is ResolvedPropsOf<GovUKLinkButton> {
+  return 'href' in props && props.href !== undefined
 }
 
 /**
  * Shared renderer function for both button types.
  * Determines the appropriate element type and parameters based on the variant.
  */
-function buttonRenderer(block: EvaluatedBlock<GovUKButton | GovUKLinkButton>, nunjucksEnv: nunjucks.Environment) {
+function buttonRenderer(
+  props: ResolvedPropsOf<GovUKButton> | ResolvedPropsOf<GovUKLinkButton>,
+  nunjucksEnv: nunjucks.Environment,
+): string {
   let params: Record<string, any> = {
-    id: block.id,
-    text: block.html ? undefined : block.text,
-    html: block.html,
-    classes: block.classes,
-    attributes: block.attributes,
-    isStartButton: block.isStartButton,
+    id: props.id,
+    text: props.html ? undefined : props.text,
+    html: props.html,
+    classes: props.classes,
+    attributes: props.attributes,
+    isStartButton: props.isStartButton,
   }
 
-  if (isLinkButton(block)) {
+  if (isLinkButton(props)) {
     params = {
       ...params,
-      href: block.href,
+      href: props.href,
     }
   } else {
-    const buttonBlock = block as EvaluatedBlock<GovUKButton>
     params = {
       ...params,
-      name: buttonBlock.name ?? 'action',
-      type: buttonBlock.buttonType || 'submit',
-      value: buttonBlock.value,
-      disabled: buttonBlock.disabled,
-      preventDoubleClick: buttonBlock.preventDoubleClick,
+      name: props.name ?? 'action',
+      type: props.buttonType || 'submit',
+      value: props.value,
+      disabled: props.disabled,
+      preventDoubleClick: props.preventDoubleClick,
     }
   }
 
   return nunjucksEnv.render('govuk/components/button/template.njk', { params })
 }
 
-export const govukButton = buildNunjucksComponent<GovUKButton>('govukButton', buttonRenderer)
-
-export const govukLinkButton = buildNunjucksComponent<GovUKLinkButton>('govukLinkButton', buttonRenderer)
-
-function isLinkButton(block: EvaluatedBlock<GovUKButton | GovUKLinkButton>): block is EvaluatedBlock<GovUKLinkButton> {
-  return 'href' in block && block.href !== undefined
-}
-
 /**
- * Creates a GOV.UK Button for form submission.
- * Renders as a `<button>` element with form submission capabilities.
+ * GOV.UK Button component.
+ *
+ * Creates a button for form submission. Renders as a `<button>` element with form
+ * submission capabilities.
  *
  * @see https://design-system.service.gov.uk/components/button/
  * @example
@@ -175,13 +156,14 @@ function isLinkButton(block: EvaluatedBlock<GovUKButton | GovUKLinkButton>): blo
  * })
  * ```
  */
-export function GovUKButton(props: GovUKButtonProps): GovUKButton {
-  return buildBlock<GovUKButton>({ ...props, variant: 'govukButton' })
-}
+export const GovUKButton = nunjucksComponent<GovUKButton>('govukButton', {
+  render: buttonRenderer,
+})
 
 /**
- * Creates a GOV.UK Link Button for navigation.
- * Renders as an `<a>` element styled as a button.
+ * GOV.UK Link Button component.
+ *
+ * Creates a button for navigation. Renders as an `<a>` element styled as a button.
  *
  * @see https://design-system.service.gov.uk/components/button/
  * @example
@@ -193,6 +175,6 @@ export function GovUKButton(props: GovUKButtonProps): GovUKButton {
  * })
  * ```
  */
-export function GovUKLinkButton(props: GovUKLinkButtonProps): GovUKLinkButton {
-  return buildBlock<GovUKLinkButton>({ ...props, variant: 'govukLinkButton' })
-}
+export const GovUKLinkButton = nunjucksComponent<GovUKLinkButton>('govukLinkButton', {
+  render: buttonRenderer,
+})

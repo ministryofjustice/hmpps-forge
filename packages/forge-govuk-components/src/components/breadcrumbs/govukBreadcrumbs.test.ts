@@ -1,13 +1,13 @@
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukBreadcrumbs } from './govukBreadcrumbs'
+import { GovUKBreadcrumbs } from './govukBreadcrumbs'
 
 vi.mock('nunjucks')
 
 describe('GOV.UK Breadcrumbs Component', () => {
   setupComponentTest()
 
-  const helper = new GovukComponentTestHelper(govukBreadcrumbs)
+  const helper = new GovukComponentTestHelper(GovUKBreadcrumbs)
 
   describe('Item data transformation', () => {
     it('sets single item correctly', async () => {

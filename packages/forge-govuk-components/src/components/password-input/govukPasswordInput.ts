@@ -1,19 +1,42 @@
 import { z } from 'zod'
 import {
+  FieldBlockDefinition,
   ResolvableBoolean,
   ResolvableString,
-  FieldBlockDefinition,
-  FieldBlockProps,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
 /**
- * Props for the GovUKPasswordInput component.
+ * GOV.UK Password Input component.
+ * A password input component with a show/hide toggle following the GOV.UK Design System patterns.
+ *
+ * The password input component allows users to enter a password with a toggle button
+ * to show or hide the password text. This helps users check they have typed their
+ * password correctly, particularly on mobile devices.
+ *
  * @see https://design-system.service.gov.uk/components/password-input/
+ * @example
+ * ```typescript
+ * GovUKPasswordInput({
+ *   code: 'password',
+ *   label: 'Password',
+ *   hint: 'Your password must be at least 8 characters',
+ *   autocomplete: 'current-password',
+ * })
+ * ```
+ * @example
+ * ```typescript
+ * // For new password creation (e.g., registration)
+ * GovUKPasswordInput({
+ *   code: 'new-password',
+ *   label: { text: 'Create a password', isPageHeading: true },
+ *   hint: 'Your password must contain at least 8 characters, a number, and a special character',
+ *   autocomplete: 'new-password',
+ * })
+ * ```
  */
-export interface GovUKPasswordInputProps extends FieldBlockProps {
+export interface GovUKPasswordInput extends FieldBlockDefinition {
   /**
    * The ID of the input. Defaults to the value of `code` if not provided.
    * @example 'user-password'
@@ -200,51 +223,8 @@ export interface GovUKPasswordInputProps extends FieldBlockProps {
   }
 }
 
-export const govukPasswordInput = buildNunjucksComponent<GovUKPasswordInput>(
-  'govukPasswordInput',
-  (block, nunjucksEnv) => {
-    const params = {
-      id: block.id ?? block.code,
-      name: block.code,
-      label: normaliseGovukTextParam(block.label),
-      hint: normaliseGovukTextParam(block.hint),
-      value: block.value,
-      disabled: block.disabled,
-      autocomplete: block.autocomplete,
-      describedBy: block.describedBy,
-      formGroup: block.formGroup,
-      classes: block.classes,
-      attributes: block.attributes,
-      showPasswordText: block.showPasswordText,
-      hidePasswordText: block.hidePasswordText,
-      showPasswordAriaLabelText: block.showPasswordAriaLabelText,
-      hidePasswordAriaLabelText: block.hidePasswordAriaLabelText,
-      passwordShownAnnouncementText: block.passwordShownAnnouncementText,
-      passwordHiddenAnnouncementText: block.passwordHiddenAnnouncementText,
-      button: block.button,
-      errorMessage: normaliseGovukErrorMessage(block.errors),
-    }
-
-    return nunjucksEnv.render('govuk/components/password-input/template.njk', {
-      params,
-    })
-  },
-  { inputSchema: z.string() },
-)
-
 /**
- * GOV.UK Password Input Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKPasswordInputProps` type or the `GovUKPasswordInput()` wrapper function instead.
- */
-export interface GovUKPasswordInput extends FieldBlockDefinition, GovUKPasswordInputProps {
-  /** Component variant identifier */
-  variant: 'govukPasswordInput'
-}
-
-/**
- * Creates a GOV.UK Password Input field.
+ * GOV.UK Password Input component.
  * A password input component with a show/hide toggle following the GOV.UK Design System patterns.
  *
  * The password input component allows users to enter a password with a toggle button
@@ -272,6 +252,34 @@ export interface GovUKPasswordInput extends FieldBlockDefinition, GovUKPasswordI
  * })
  * ```
  */
-export function GovUKPasswordInput(props: GovUKPasswordInputProps): GovUKPasswordInput {
-  return buildField<GovUKPasswordInput>({ ...props, variant: 'govukPasswordInput' })
-}
+export const GovUKPasswordInput = nunjucksComponent<GovUKPasswordInput>('govukPasswordInput', {
+  field: true,
+  inputSchema: z.string(),
+  render: (props, nunjucksEnv) => {
+    const params = {
+      id: props.id ?? props.code,
+      name: props.code,
+      label: normaliseGovukTextParam(props.label),
+      hint: normaliseGovukTextParam(props.hint),
+      value: props.value,
+      disabled: props.disabled,
+      autocomplete: props.autocomplete,
+      describedBy: props.describedBy,
+      formGroup: props.formGroup,
+      classes: props.classes,
+      attributes: props.attributes,
+      showPasswordText: props.showPasswordText,
+      hidePasswordText: props.hidePasswordText,
+      showPasswordAriaLabelText: props.showPasswordAriaLabelText,
+      hidePasswordAriaLabelText: props.hidePasswordAriaLabelText,
+      passwordShownAnnouncementText: props.passwordShownAnnouncementText,
+      passwordHiddenAnnouncementText: props.passwordHiddenAnnouncementText,
+      button: props.button,
+      errorMessage: normaliseGovukErrorMessage(props.errors),
+    }
+
+    return nunjucksEnv.render('govuk/components/password-input/template.njk', {
+      params,
+    })
+  },
+})

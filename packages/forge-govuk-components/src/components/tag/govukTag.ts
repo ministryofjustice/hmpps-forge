@@ -1,18 +1,13 @@
-import type nunjucks from 'nunjucks'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ResolvableString,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
- * Props for the GovUKTag component.
+ * GOV.UK Tag component.
  *
  * Use this to display a status indicator, phase banner label, or other short
- * piece of information that needs to stand out from surrounding content.
+ * piece of information that needs to stand out from surrounding content. Tags are
+ * compact, coloured labels used to show the status of something, like a phase
+ * banner or task status.
  *
  * Different colours can be applied using the `classes` property with modifier
  * classes like `govuk-tag--grey`, `govuk-tag--green`, `govuk-tag--teal`,
@@ -22,13 +17,25 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  * @see https://design-system.service.gov.uk/components/tag/
  * @example
  * ```typescript
+ * // Default blue tag
+ * GovUKTag({
+ *   text: 'Active',
+ * })
+ *
+ * // Green tag for completed status
  * GovUKTag({
  *   text: 'Completed',
  *   classes: 'govuk-tag--green',
  * })
+ *
+ * // Red tag for error status
+ * GovUKTag({
+ *   text: 'Failed',
+ *   classes: 'govuk-tag--red',
+ * })
  * ```
  */
-export interface GovUKTagProps extends BasicBlockProps {
+export interface GovUKTag extends BlockDefinition {
   /**
    * Plain text content for the tag.
    * Required unless `html` is provided.
@@ -66,36 +73,17 @@ export interface GovUKTagProps extends BasicBlockProps {
 }
 
 /**
- * GOV.UK Tag component interface.
+ * GOV.UK Tag component.
  *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKTagProps` type or the `GovUKTag()` wrapper function instead.
- */
-export interface GovUKTag extends BlockDefinition, GovUKTagProps {
-  /** Component variant identifier */
-  variant: 'govukTag'
-}
-
-/**
- * Renders the GOV.UK Tag component using the official Nunjucks template.
- */
-function tagRenderer(block: EvaluatedBlock<GovUKTag>, nunjucksEnv: nunjucks.Environment): string {
-  const params: Record<string, any> = {
-    text: block.html ? undefined : block.text,
-    html: block.html,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('govuk/components/tag/template.njk', { params })
-}
-
-export const govukTag = buildNunjucksComponent<GovUKTag>('govukTag', tagRenderer)
-
-/**
- * Creates a GOV.UK Tag block for displaying status indicators or labels.
- * Tags are compact, coloured labels used to show the status of something,
- * like a phase banner or task status.
+ * Use this to display a status indicator, phase banner label, or other short
+ * piece of information that needs to stand out from surrounding content. Tags are
+ * compact, coloured labels used to show the status of something, like a phase
+ * banner or task status.
+ *
+ * Different colours can be applied using the `classes` property with modifier
+ * classes like `govuk-tag--grey`, `govuk-tag--green`, `govuk-tag--teal`,
+ * `govuk-tag--blue`, `govuk-tag--purple`, `govuk-tag--magenta`,
+ * `govuk-tag--red`, `govuk-tag--orange`, or `govuk-tag--yellow`.
  *
  * @see https://design-system.service.gov.uk/components/tag/
  * @example
@@ -118,6 +106,15 @@ export const govukTag = buildNunjucksComponent<GovUKTag>('govukTag', tagRenderer
  * })
  * ```
  */
-export function GovUKTag(props: GovUKTagProps): GovUKTag {
-  return buildBlock<GovUKTag>({ ...props, variant: 'govukTag' })
-}
+export const GovUKTag = nunjucksComponent<GovUKTag>('govukTag', {
+  render: (props, nunjucksEnv) => {
+    const params: Record<string, any> = {
+      text: props.html ? undefined : props.text,
+      html: props.html,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('govuk/components/tag/template.njk', { params })
+  },
+})

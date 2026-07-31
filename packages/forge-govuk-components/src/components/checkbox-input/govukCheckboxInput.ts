@@ -1,14 +1,13 @@
 import { z } from 'zod'
-import { ChainableExpr, field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { ChainableExpr } from '@ministryofjustice/hmpps-forge/core/authoring'
 import {
   BlockDefinition,
   ResolvableBoolean,
   ResolvableString,
   EvaluatedBlock,
   FieldBlockDefinition,
-  FieldBlockProps,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import {
   normaliseGovukErrorMessage,
   normaliseGovukFieldset,
@@ -18,9 +17,10 @@ import {
 } from '../../utils/govukParamNormalisers'
 
 /**
- * Props for the GovUKCheckboxInput component.
- * @see https://design-system.service.gov.uk/components/checkboxes/
+ * GOV.UK Checkbox Input component.
+ * Allows users to select multiple options from a list of choices.
  *
+ * @see https://design-system.service.gov.uk/components/checkboxes/
  * @example
  * ```typescript
  * GovUKCheckboxInput({
@@ -30,11 +30,12 @@ import {
  *   items: [
  *     { value: 'email', text: 'Email' },
  *     { value: 'phone', text: 'Phone' },
+ *     { value: 'text', text: 'Text message' },
  *   ],
  * })
  * ```
  */
-export interface GovUKCheckboxInputProps extends FieldBlockProps {
+export interface GovUKCheckboxInput extends FieldBlockDefinition {
   /**
    * The label for the checkbox group.
    * When using fieldset, this becomes the legend text if no fieldset legend is specified.
@@ -312,34 +313,54 @@ interface GovUKCheckboxInputDivider {
   visibleWhen?: ResolvableBoolean
 }
 
-export const govukCheckboxInput = buildNunjucksComponent<GovUKCheckboxInput>(
-  'govukCheckboxInput',
-  (block, nunjucksEnv) => {
+/**
+ * GOV.UK Checkbox Input component.
+ * Allows users to select multiple options from a list of choices.
+ *
+ * @see https://design-system.service.gov.uk/components/checkboxes/
+ * @example
+ * ```typescript
+ * GovUKCheckboxInput({
+ *   code: 'contact_methods',
+ *   label: 'How would you like to be contacted?',
+ *   hint: 'Select all that apply',
+ *   items: [
+ *     { value: 'email', text: 'Email' },
+ *     { value: 'phone', text: 'Phone' },
+ *     { value: 'text', text: 'Text message' },
+ *   ],
+ * })
+ * ```
+ */
+export const GovUKCheckboxInput = nunjucksComponent<GovUKCheckboxInput>('govukCheckboxInput', {
+  field: true,
+  inputSchema: z.array(z.string()),
+  multiple: true,
+  render: (props, nunjucksEnv) => {
     // At render time, items has been evaluated (Collection expressions resolved to arrays)
-    const evaluatedItems = block.items as EvaluatedBlock<GovUKCheckboxInputItem | GovUKCheckboxInputDivider>[]
+    const evaluatedItems = props.items as EvaluatedBlock<GovUKCheckboxInputItem | GovUKCheckboxInputDivider>[]
     const items = evaluatedItems
       .filter(option => option.visibleWhen !== false)
-      .map(option => makeOption(option, block.value))
+      .map(option => makeOption(option, props.value))
 
     const params = {
-      fieldset: normaliseGovukFieldset(block.fieldset, block.label),
-      idPrefix: block.idPrefix || block.code,
-      name: block.name || block.code,
-      describedBy: block.describedBy,
-      formGroup: block.formGroup,
-      hint: normaliseGovukTextParam(block.hint),
+      fieldset: normaliseGovukFieldset(props.fieldset, props.label),
+      idPrefix: props.idPrefix || props.code,
+      name: props.name || props.code,
+      describedBy: props.describedBy,
+      formGroup: props.formGroup,
+      hint: normaliseGovukTextParam(props.hint),
       items,
-      classes: block.classes,
-      attributes: block.attributes,
-      errorMessage: normaliseGovukErrorMessage(block.errors),
+      classes: props.classes,
+      attributes: props.attributes,
+      errorMessage: normaliseGovukErrorMessage(props.errors),
     }
 
     return nunjucksEnv.render('govuk/components/checkboxes/template.njk', {
       params,
     })
   },
-  { inputSchema: z.array(z.string()), multiple: true },
-)
+})
 
 const getConditionalContent = (block: GovukRenderedBlockContent) => {
   const html = renderGovukBlocksToHtml(block)
@@ -387,38 +408,4 @@ function isCheckboxDivider(
 ): option is EvaluatedBlock<GovUKCheckboxInputDivider>
 function isCheckboxDivider(option: any): option is GovUKCheckboxInputDivider {
   return option != null && typeof option === 'object' && 'divider' in option && !('value' in option) // prefer Divider if both accidentally exist
-}
-
-/**
- * GOV.UK Checkbox Input Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKCheckboxInputProps` type or the `GovUKCheckboxInput()` wrapper function instead.
- */
-export interface GovUKCheckboxInput extends FieldBlockDefinition, GovUKCheckboxInputProps {
-  /** Component variant identifier */
-  variant: 'govukCheckboxInput'
-}
-
-/**
- * Creates a GOV.UK Checkbox Input field.
- * Allows users to select multiple options from a list of choices.
- *
- * @see https://design-system.service.gov.uk/components/checkboxes/
- * @example
- * ```typescript
- * GovUKCheckboxInput({
- *   code: 'contact_methods',
- *   label: 'How would you like to be contacted?',
- *   hint: 'Select all that apply',
- *   items: [
- *     { value: 'email', text: 'Email' },
- *     { value: 'phone', text: 'Phone' },
- *     { value: 'text', text: 'Text message' },
- *   ],
- * })
- * ```
- */
-export function GovUKCheckboxInput(props: GovUKCheckboxInputProps): GovUKCheckboxInput {
-  return buildField<GovUKCheckboxInput>({ ...props, variant: 'govukCheckboxInput' })
 }

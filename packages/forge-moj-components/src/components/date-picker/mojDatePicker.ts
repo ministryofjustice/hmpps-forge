@@ -1,16 +1,11 @@
-import type nunjucks from 'nunjucks'
-
 import { z } from 'zod'
 import {
   FieldBlockDefinition,
-  FieldBlockProps,
   ResolvableString,
   ResolvableBoolean,
   ResolvableObject,
-  EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
  * Label configuration for the MOJ Date Picker component.
@@ -61,7 +56,8 @@ export interface MOJDatePickerFormGroup {
 }
 
 /**
- * Props for the MOJ Date Picker component.
+ * MOJ Date Picker component.
+ * A date input component with calendar widget following the MOJ Design Patterns.
  *
  * The date picker allows users to select a date via calendar or direct text entry.
  * It enhances a standard text input with a calendar button that opens a date picker.
@@ -74,10 +70,12 @@ export interface MOJDatePickerFormGroup {
  *   code: 'appointment_date',
  *   label: 'Appointment date',
  *   hint: 'For example, 17/5/2024',
+ *   minDate: '01/04/2025',
+ *   maxDate: '30/04/2025',
  * })
  * ```
  */
-export interface MOJDatePickerProps extends FieldBlockProps {
+export interface MOJDatePicker extends FieldBlockDefinition {
   /**
    * The ID of the input. Defaults to the value of `code` if not provided.
    * @example 'appointment-date'
@@ -143,17 +141,6 @@ export interface MOJDatePickerProps extends FieldBlockProps {
 }
 
 /**
- * MOJ Date Picker Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `MOJDatePickerProps` type or the `MOJDatePicker()` wrapper function instead.
- */
-export interface MOJDatePicker extends FieldBlockDefinition, MOJDatePickerProps {
-  /** Component variant identifier */
-  variant: 'mojDatePicker'
-}
-
-/**
  * Converts an ISO date string (YYYY-MM-DD) to UK format (DD/MM/YYYY).
  * If the value is already in UK format or not a valid date string, returns as-is.
  */
@@ -175,36 +162,12 @@ function toUKDateFormat(value: unknown): string | undefined {
 }
 
 /**
- * Renders an MOJ Date Picker component using Nunjucks template
- */
-function datePickerRenderer(block: EvaluatedBlock<MOJDatePicker>, nunjucksEnv: nunjucks.Environment): string {
-  const params = {
-    id: block.id ?? block.code,
-    name: block.code,
-    value: toUKDateFormat(block.value),
-    label: typeof block.label === 'object' ? block.label : { text: block.label },
-    hint: block.hint ? (typeof block.hint === 'object' ? block.hint : { text: block.hint }) : undefined,
-    errorMessage: block.errors?.length ? { text: block.errors[0].message } : undefined,
-    minDate: block.minDate,
-    maxDate: block.maxDate,
-    excludedDates: block.excludedDates?.join(' '),
-    excludedDays: block.excludedDays?.join(' '),
-    weekStartDay: block.weekStartDay,
-    formGroup: block.formGroup,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('moj/components/date-picker/template.njk', { params })
-}
-
-export const mojDatePicker = buildNunjucksComponent<MOJDatePicker>('mojDatePicker', datePickerRenderer, {
-  inputSchema: z.string(),
-})
-
-/**
- * Creates an MOJ Date Picker field.
+ * MOJ Date Picker component.
  * A date input component with calendar widget following the MOJ Design Patterns.
+ *
+ * The date picker allows users to select a date via calendar or direct text entry.
+ * It enhances a standard text input with a calendar button that opens a date picker.
+ * Date format is dd/mm/yyyy.
  *
  * @see https://design-patterns.service.justice.gov.uk/components/date-picker/
  * @example
@@ -218,6 +181,27 @@ export const mojDatePicker = buildNunjucksComponent<MOJDatePicker>('mojDatePicke
  * })
  * ```
  */
-export function MOJDatePicker(props: MOJDatePickerProps): MOJDatePicker {
-  return buildField<MOJDatePicker>({ ...props, variant: 'mojDatePicker' })
-}
+export const MOJDatePicker = nunjucksComponent<MOJDatePicker>('mojDatePicker', {
+  field: true,
+  inputSchema: z.string(),
+  render: (props, nunjucksEnv) => {
+    const params = {
+      id: props.id ?? props.code,
+      name: props.code,
+      value: toUKDateFormat(props.value),
+      label: typeof props.label === 'object' ? props.label : { text: props.label },
+      hint: props.hint ? (typeof props.hint === 'object' ? props.hint : { text: props.hint }) : undefined,
+      errorMessage: props.errors?.length ? { text: props.errors[0].message } : undefined,
+      minDate: props.minDate,
+      maxDate: props.maxDate,
+      excludedDates: props.excludedDates?.join(' '),
+      excludedDays: props.excludedDays?.join(' '),
+      weekStartDay: props.weekStartDay,
+      formGroup: props.formGroup,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('moj/components/date-picker/template.njk', { params })
+  },
+})

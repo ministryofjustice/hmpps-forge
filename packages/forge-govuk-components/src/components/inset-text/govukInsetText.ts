@@ -1,19 +1,12 @@
-import type nunjucks from 'nunjucks'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ResolvableString,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
- * Props for the GovUKInsetText component.
+ * GOV.UK Inset Text component.
  *
- * Use this to differentiate a block of text from the surrounding content,
- * for example quotes, examples, or additional information.
+ * Use this to differentiate a block of text from the surrounding content.
+ * Useful for quotes, examples, or additional information that needs visual distinction.
  *
  * @see https://design-system.service.gov.uk/components/inset-text/
  * @example
@@ -23,7 +16,7 @@ import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers
  * })
  * ```
  */
-export interface GovUKInsetTextProps extends BasicBlockProps {
+export interface GovUKInsetText extends BlockDefinition {
   /**
    * Plain text content for the inset text.
    * Required unless `html` is provided.
@@ -64,40 +57,9 @@ export interface GovUKInsetTextProps extends BasicBlockProps {
 }
 
 /**
- * GOV.UK Inset Text component interface.
+ * GOV.UK Inset Text component.
  *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKInsetTextProps` type or the `GovUKInsetText()` wrapper function instead.
- */
-export interface GovUKInsetText extends BlockDefinition, GovUKInsetTextProps {
-  /** Component variant identifier */
-  variant: 'govukInsetText'
-}
-
-/**
- * Renders the GOV.UK Inset Text component using the official Nunjucks template.
- */
-function insetTextRenderer(block: EvaluatedBlock<GovUKInsetText>, nunjucksEnv: nunjucks.Environment): string {
-  const content = normaliseGovukTextHtmlContent({
-    text: block.text,
-    html: block.html,
-    blocks: block.blocks,
-  })
-  const params: Record<string, any> = {
-    text: content.text,
-    html: content.html,
-    id: block.id,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('govuk/components/inset-text/template.njk', { params })
-}
-
-export const govukInsetText = buildNunjucksComponent<GovUKInsetText>('govukInsetText', insetTextRenderer)
-
-/**
- * Creates a GOV.UK Inset Text block for differentiating content from the surrounding text.
+ * Use this to differentiate a block of text from the surrounding content.
  * Useful for quotes, examples, or additional information that needs visual distinction.
  *
  * @see https://design-system.service.gov.uk/components/inset-text/
@@ -108,6 +70,21 @@ export const govukInsetText = buildNunjucksComponent<GovUKInsetText>('govukInset
  * })
  * ```
  */
-export function GovUKInsetText(props: GovUKInsetTextProps): GovUKInsetText {
-  return buildBlock<GovUKInsetText>({ ...props, variant: 'govukInsetText' })
-}
+export const GovUKInsetText = nunjucksComponent<GovUKInsetText>('govukInsetText', {
+  render: (props, nunjucksEnv) => {
+    const content = normaliseGovukTextHtmlContent({
+      text: props.text,
+      html: props.html,
+      blocks: props.blocks,
+    })
+    const params: Record<string, any> = {
+      text: content.text,
+      html: content.html,
+      id: props.id,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('govuk/components/inset-text/template.njk', { params })
+  },
+})

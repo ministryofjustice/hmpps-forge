@@ -1,15 +1,11 @@
-import type nunjucks from 'nunjucks'
-
 import {
-  BasicBlockProps,
   BlockDefinition,
   ResolvableBoolean,
   ResolvableString,
   ResolvableArray,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
 /**
@@ -122,10 +118,12 @@ export interface MOJTimelineItem {
 }
 
 /**
- * Props for the MOJTimeline component.
+ * MOJ Timeline component.
+ * Displays a chronological list of events.
  *
- * The timeline component displays a chronological list of events.
- * Each item has a label, optional description, timestamp, and byline.
+ * The timeline is used to show a history of events or actions,
+ * typically displayed with the most recent event first. Each event includes
+ * a label, optional description, timestamp, and byline (who did it).
  *
  * @see https://design-patterns.service.justice.gov.uk/components/timeline
  * @example
@@ -133,22 +131,23 @@ export interface MOJTimelineItem {
  * MOJTimeline({
  *   items: [
  *     {
- *       label: { text: 'Application submitted' },
- *       text: 'Your application has been received.',
+ *       label: { text: 'Application approved' },
+ *       text: 'Your application has been approved.',
  *       datetime: { timestamp: '2019-06-14T14:01:00.000Z', type: 'datetime' },
- *       byline: { text: 'Joe Bloggs' },
+ *       byline: { text: 'Caseworker 1' },
  *     },
  *     {
- *       label: { text: 'Application started' },
- *       text: 'You began your application.',
+ *       label: { text: 'Application submitted' },
+ *       html: '<p>Documents uploaded: <strong>3 files</strong></p>',
  *       datetime: { timestamp: '2019-06-01T09:00:00.000Z', type: 'datetime' },
  *       byline: { text: 'Joe Bloggs' },
  *     },
  *   ],
+ *   headingLevel: 3,
  * })
  * ```
  */
-export interface MOJTimelineProps extends BasicBlockProps {
+export interface MOJTimeline extends BlockDefinition {
   /**
    * Array of timeline items to display.
    * Items are displayed in the order provided (typically most recent first).
@@ -175,35 +174,8 @@ export interface MOJTimelineProps extends BasicBlockProps {
   attributes?: Record<string, ResolvableString>
 }
 
-/**
- * MOJ Timeline Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `MOJTimelineProps` type or the `MOJTimeline()` wrapper function instead.
- */
-export interface MOJTimeline extends BlockDefinition, MOJTimelineProps {
-  /** Component variant identifier */
-  variant: 'mojTimeline'
-}
-
-/**
- * Renders an MOJ Timeline component using Nunjucks template
- */
 /** Evaluated timeline item after expression resolution */
 type EvaluatedMOJTimelineItem = EvaluatedBlock<MOJTimelineItem, false>
-
-function timelineRenderer(block: EvaluatedBlock<MOJTimeline>, nunjucksEnv: nunjucks.Environment): string {
-  // NOTE: items is typed as ResolvableArray<MOJTimelineItem> which resolves to EvaluatedMOJTimelineItem[] at runtime
-  const items = block.items as EvaluatedMOJTimelineItem[]
-  const params = {
-    items: items.filter(item => item.visibleWhen !== false).map(normaliseTimelineItem),
-    headingLevel: block.headingLevel,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('moj/components/timeline/template.njk', { params })
-}
 
 function normaliseTimelineItem(item: EvaluatedMOJTimelineItem) {
   const { blocks, ...itemParams } = item
@@ -219,12 +191,11 @@ function normaliseTimelineItem(item: EvaluatedMOJTimelineItem) {
   }
 }
 
-export const mojTimeline = buildNunjucksComponent<MOJTimeline>('mojTimeline', timelineRenderer)
-
 /**
- * Creates an MOJ Timeline block for displaying chronological events.
+ * MOJ Timeline component.
+ * Displays a chronological list of events.
  *
- * The timeline component is used to show a history of events or actions,
+ * The timeline is used to show a history of events or actions,
  * typically displayed with the most recent event first. Each event includes
  * a label, optional description, timestamp, and byline (who did it).
  *
@@ -250,6 +221,17 @@ export const mojTimeline = buildNunjucksComponent<MOJTimeline>('mojTimeline', ti
  * })
  * ```
  */
-export function MOJTimeline(props: MOJTimelineProps): MOJTimeline {
-  return buildBlock<MOJTimeline>({ ...props, variant: 'mojTimeline' })
-}
+export const MOJTimeline = nunjucksComponent<MOJTimeline>('mojTimeline', {
+  render: (props, nunjucksEnv) => {
+    // NOTE: items is typed as ResolvableArray<MOJTimelineItem> which resolves to EvaluatedMOJTimelineItem[] at runtime
+    const items = props.items as EvaluatedMOJTimelineItem[]
+    const params = {
+      items: items.filter(item => item.visibleWhen !== false).map(normaliseTimelineItem),
+      headingLevel: props.headingLevel,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('moj/components/timeline/template.njk', { params })
+  },
+})

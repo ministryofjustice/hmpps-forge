@@ -1,18 +1,12 @@
-import type nunjucks from 'nunjucks'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ResolvableBoolean,
-  ResolvableString,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition, ResolvableBoolean, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
- * Props for the GovUKDetails component.
+ * GOV.UK Details component.
+ *
  * An expandable/collapsible section following the GOV.UK Design System patterns.
+ * Renders as a `<details>` element with summary and content sections.
  *
  * @see https://design-system.service.gov.uk/components/details/
  * @example
@@ -23,7 +17,7 @@ import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers
  * })
  * ```
  */
-export interface GovUKDetailsProps extends BasicBlockProps {
+export interface GovUKDetails extends BlockDefinition {
   /** Text to display in the summary (clickable part). Required unless summaryHtml is provided. */
   summaryText?: ResolvableString
 
@@ -53,43 +47,9 @@ export interface GovUKDetailsProps extends BasicBlockProps {
 }
 
 /**
- * GOV.UK Details Component
+ * GOV.UK Details component.
  *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKDetailsProps` type or the `GovUKDetails()` wrapper function instead.
- */
-export interface GovUKDetails extends BlockDefinition, GovUKDetailsProps {
-  /** Component variant identifier */
-  variant: 'govukDetails'
-}
-
-/**
- * Renders the GOV.UK Details component using the official Nunjucks template.
- */
-function detailsRenderer(block: EvaluatedBlock<GovUKDetails>, nunjucksEnv: nunjucks.Environment): string {
-  const content = normaliseGovukTextHtmlContent({
-    text: block.text,
-    html: block.html,
-    blocks: block.content,
-  })
-  const params: Record<string, any> = {
-    summaryText: block.summaryHtml ? undefined : block.summaryText,
-    summaryHtml: block.summaryHtml,
-    text: content.text,
-    html: content.html,
-    open: block.open,
-    id: block.id,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('govuk/components/details/template.njk', { params })
-}
-
-export const govukDetails = buildNunjucksComponent<GovUKDetails>('govukDetails', detailsRenderer as any)
-
-/**
- * Creates a GOV.UK Details expandable/collapsible section.
+ * An expandable/collapsible section following the GOV.UK Design System patterns.
  * Renders as a `<details>` element with summary and content sections.
  *
  * @see https://design-system.service.gov.uk/components/details/
@@ -101,6 +61,24 @@ export const govukDetails = buildNunjucksComponent<GovUKDetails>('govukDetails',
  * })
  * ```
  */
-export function GovUKDetails(props: GovUKDetailsProps): GovUKDetails {
-  return buildBlock<GovUKDetails>({ ...props, variant: 'govukDetails' })
-}
+export const GovUKDetails = nunjucksComponent<GovUKDetails>('govukDetails', {
+  render: (props, nunjucksEnv) => {
+    const content = normaliseGovukTextHtmlContent({
+      text: props.text,
+      html: props.html,
+      blocks: props.content,
+    })
+    const params: Record<string, any> = {
+      summaryText: props.summaryHtml ? undefined : props.summaryText,
+      summaryHtml: props.summaryHtml,
+      text: content.text,
+      html: content.html,
+      open: props.open,
+      id: props.id,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('govuk/components/details/template.njk', { params })
+  },
+})

@@ -1,23 +1,23 @@
 import { BlockDefinition, ComponentRegistryEntry } from '@ministryofjustice/hmpps-forge/core/components'
 
-import { mojAlert } from './alert/mojAlert'
-import { mojBadge } from './badge/mojBadge'
-import { mojBanner } from './banner/mojBanner'
-import { mojButtonMenu } from './button-menu/mojButtonMenu'
-import { mojCard } from './card/mojCard'
-import { mojCardGroup } from './card-group/mojCardGroup'
-import { mojDatePicker } from './date-picker/mojDatePicker'
-import { mojFilter } from './filter/mojFilter'
-import { mojProgressBar } from './progress-bar/mojProgressBar'
-import { mojSideNavigation } from './side-navigation/mojSideNavigation'
-import { mojSubNavigation } from './sub-navigation/mojSubNavigation'
-import { mojTicketPanel } from './ticket-panel/mojTicketPanel'
-import { mojTimeline } from './timeline/mojTimeline'
-import { mojMessages } from './messages/mojMessages'
-import { mojMultiSelect } from './multi-select/mojMultiSelect'
-import { mojSortableTable } from './sortable-table/mojSortableTable'
+import { MOJAlert } from './alert/mojAlert'
+import { MOJBadge } from './badge/mojBadge'
+import { MOJBanner } from './banner/mojBanner'
+import { MOJButtonMenu } from './button-menu/mojButtonMenu'
+import { MOJCard } from './card/mojCard'
+import { MOJCardGroup } from './card-group/mojCardGroup'
+import { MOJDatePicker } from './date-picker/mojDatePicker'
+import { MOJFilter } from './filter/mojFilter'
+import { MOJProgressBar } from './progress-bar/mojProgressBar'
+import { MOJSideNavigation } from './side-navigation/mojSideNavigation'
+import { MOJSubNavigation } from './sub-navigation/mojSubNavigation'
+import { MOJTicketPanel } from './ticket-panel/mojTicketPanel'
+import { MOJTimeline } from './timeline/mojTimeline'
+import { MOJMessages } from './messages/mojMessages'
+import { MOJMultiSelect } from './multi-select/mojMultiSelect'
+import { MOJSortableTable } from './sortable-table/mojSortableTable'
 
-// Re-export types only (for types that don't have wrapper functions)
+// Re-export supporting types
 export type { MOJAlertVariant, MOJAlertHeadingTag } from './alert/mojAlert'
 export type { MOJBadgeColour } from './badge/mojBadge'
 export type { MOJBannerType } from './banner/mojBanner'
@@ -51,7 +51,7 @@ export type { MOJMessageItem, MOJMessageType } from './messages/mojMessages'
 export type { MultiSelectHeadCell, MultiSelectCell, MultiSelectRow } from './multi-select/mojMultiSelect'
 export type { SortableTableHeadCell, SortableTableCell, SortableTableRow } from './sortable-table/mojSortableTable'
 
-// Re-export wrapper functions (types are exported implicitly with the functions)
+// Re-export the components (each const is both the block builder and the registry entry)
 export { MOJAlert } from './alert/mojAlert'
 export { MOJBadge } from './badge/mojBadge'
 export { MOJBanner } from './banner/mojBanner'
@@ -71,20 +71,20 @@ export { MOJSortableTable } from './sortable-table/mojSortableTable'
 
 /** All MOJ component definitions */
 export const mojComponents: ComponentRegistryEntry<BlockDefinition, string>[] = [
-  mojAlert,
-  mojBadge,
-  mojBanner,
-  mojButtonMenu,
-  mojCard,
-  mojCardGroup,
-  mojDatePicker,
-  mojFilter,
-  mojProgressBar,
-  mojSideNavigation,
-  mojSubNavigation,
-  mojTicketPanel,
-  mojTimeline,
-  mojMessages,
-  mojMultiSelect,
-  mojSortableTable,
+  MOJAlert,
+  MOJBadge,
+  MOJBanner,
+  MOJButtonMenu,
+  MOJCard,
+  MOJCardGroup,
+  MOJDatePicker,
+  MOJFilter,
+  MOJProgressBar,
+  MOJSideNavigation,
+  MOJSubNavigation,
+  MOJTicketPanel,
+  MOJTimeline,
+  MOJMessages,
+  MOJMultiSelect,
+  MOJSortableTable,
 ]

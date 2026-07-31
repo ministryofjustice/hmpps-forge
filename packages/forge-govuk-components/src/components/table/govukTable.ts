@@ -1,13 +1,10 @@
-import type nunjucks from 'nunjucks'
 import {
-  BasicBlockProps,
   BlockDefinition,
   ResolvableArray,
   ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { renderGovukBlocksToHtml } from '../../utils/govukParamNormalisers'
 
 /**
@@ -73,8 +70,10 @@ export interface TableCell {
 export type TableRow = TableCell[]
 
 /**
- * Props for the GovUKTable component.
- * Displays data in a structured table format following the GOV.UK Design System.
+ * GOV.UK Table component.
+ *
+ * Displays data in a structured table format.
+ * Supports headers, captions, numeric formatting, and row/column spans.
  *
  * @see https://design-system.service.gov.uk/components/table/
  * @example
@@ -93,7 +92,7 @@ export type TableRow = TableCell[]
  * })
  * ```
  */
-export interface GovUKTableProps extends BasicBlockProps {
+export interface GovUKTable extends BlockDefinition {
   /** The rows within the table. Each row is an array of cells. Supports dynamic expressions. */
   rows: ResolvableArray<TableRow>
 
@@ -116,17 +115,6 @@ export interface GovUKTableProps extends BasicBlockProps {
   attributes?: Record<string, any>
 }
 
-/**
- * GOV.UK Table component interface.
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKTableProps` type or the `GovUKTable()` wrapper function instead.
- */
-export interface GovUKTable extends BlockDefinition, GovUKTableProps {
-  /** Component variant identifier */
-  variant: 'govukTable'
-}
-
 type EvaluatedTableRow = EvaluatedBlock<GovUKTable>['rows'][number]
 type EvaluatedTableCell = EvaluatedTableRow[number]
 
@@ -146,26 +134,9 @@ function normaliseTableCell(cell: EvaluatedTableCell) {
 }
 
 /**
- * Renders the GOV.UK Table component using the official Nunjucks template.
- */
-function tableRenderer(block: EvaluatedBlock<GovUKTable>, nunjucksEnv: nunjucks.Environment): string {
-  const params: Record<string, any> = {
-    rows: block.rows.map(row => row.map(normaliseTableCell)),
-    head: block.head,
-    caption: block.caption,
-    captionClasses: block.captionClasses,
-    firstCellIsHeader: block.firstCellIsHeader,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('govuk/components/table/template.njk', { params })
-}
-
-export const govukTable = buildNunjucksComponent<GovUKTable>('govukTable', tableRenderer)
-
-/**
- * Creates a GOV.UK Table for displaying structured data.
+ * GOV.UK Table component.
+ *
+ * Displays data in a structured table format.
  * Supports headers, captions, numeric formatting, and row/column spans.
  *
  * @see https://design-system.service.gov.uk/components/table/
@@ -185,6 +156,18 @@ export const govukTable = buildNunjucksComponent<GovUKTable>('govukTable', table
  * })
  * ```
  */
-export function GovUKTable(props: GovUKTableProps): GovUKTable {
-  return buildBlock<GovUKTable>({ ...props, variant: 'govukTable' })
-}
+export const GovUKTable = nunjucksComponent<GovUKTable>('govukTable', {
+  render: (props, nunjucksEnv) => {
+    const params: Record<string, any> = {
+      rows: props.rows.map(row => row.map(normaliseTableCell)),
+      head: props.head,
+      caption: props.caption,
+      captionClasses: props.captionClasses,
+      firstCellIsHeader: props.firstCellIsHeader,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('govuk/components/table/template.njk', { params })
+  },
+})

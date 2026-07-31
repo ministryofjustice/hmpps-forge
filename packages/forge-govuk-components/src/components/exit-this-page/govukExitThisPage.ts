@@ -1,29 +1,33 @@
-import type nunjucks from 'nunjucks'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ResolvableString,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
- * Props for the GovUKExitThisPage component.
+ * GOV.UK Exit This Page component.
  *
- * This is a safety feature that provides users with a quick way to leave a page.
- * It should be used on pages with sensitive information where users may need
- * to hide what they're viewing quickly.
+ * A safety feature providing a quick escape route. Use it on pages with sensitive
+ * information where users may need to hide what they're viewing quickly.
+ *
+ * Users can activate the exit by clicking the button or pressing Shift 3 times.
  *
  * @see https://design-system.service.gov.uk/components/exit-this-page/
  * @example
  * ```typescript
+ * // Basic usage with default redirect
+ * GovUKExitThisPage({})
+ *
+ * // With custom redirect URL
  * GovUKExitThisPage({
+ *   redirectUrl: 'https://www.google.co.uk',
+ * })
+ *
+ * // With custom button text
+ * GovUKExitThisPage({
+ *   text: 'Leave this page',
  *   redirectUrl: 'https://www.google.co.uk',
  * })
  * ```
  */
-export interface GovUKExitThisPageProps extends BasicBlockProps {
+export interface GovUKExitThisPage extends BlockDefinition {
   /**
    * Plain text content for the button.
    * If `html` is provided, this option will be ignored.
@@ -89,42 +93,10 @@ export interface GovUKExitThisPageProps extends BasicBlockProps {
 }
 
 /**
- * GOV.UK Exit This Page component interface.
+ * GOV.UK Exit This Page component.
  *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKExitThisPageProps` type or the `GovUKExitThisPage()` wrapper function instead.
- */
-export interface GovUKExitThisPage extends BlockDefinition, GovUKExitThisPageProps {
-  /** Component variant identifier */
-  variant: 'govukExitThisPage'
-}
-
-/**
- * Renders the GOV.UK Exit This Page component using the official Nunjucks template.
- */
-function exitThisPageRenderer(block: EvaluatedBlock<GovUKExitThisPage>, nunjucksEnv: nunjucks.Environment): string {
-  const params: Record<string, any> = {
-    id: block.id,
-    text: block.html ? undefined : block.text,
-    html: block.html,
-    redirectUrl: block.redirectUrl,
-    classes: block.classes,
-    attributes: block.attributes,
-    activatedText: block.activatedText,
-    timedOutText: block.timedOutText,
-    pressTwoMoreTimesText: block.pressTwoMoreTimesText,
-    pressOneMoreTimeText: block.pressOneMoreTimeText,
-  }
-
-  return nunjucksEnv.render('govuk/components/exit-this-page/template.njk', { params })
-}
-
-export const govukExitThisPage = buildNunjucksComponent<GovUKExitThisPage>('govukExitThisPage', exitThisPageRenderer)
-
-/**
- * Creates a GOV.UK Exit This Page block for providing a quick escape route.
- * This is a safety feature for pages with sensitive content where users may need
- * to hide what they're viewing quickly.
+ * A safety feature providing a quick escape route. Use it on pages with sensitive
+ * information where users may need to hide what they're viewing quickly.
  *
  * Users can activate the exit by clicking the button or pressing Shift 3 times.
  *
@@ -146,6 +118,21 @@ export const govukExitThisPage = buildNunjucksComponent<GovUKExitThisPage>('govu
  * })
  * ```
  */
-export function GovUKExitThisPage(props: GovUKExitThisPageProps): GovUKExitThisPage {
-  return buildBlock<GovUKExitThisPage>({ ...props, variant: 'govukExitThisPage' })
-}
+export const GovUKExitThisPage = nunjucksComponent<GovUKExitThisPage>('govukExitThisPage', {
+  render: (props, nunjucksEnv) => {
+    const params: Record<string, any> = {
+      id: props.id,
+      text: props.html ? undefined : props.text,
+      html: props.html,
+      redirectUrl: props.redirectUrl,
+      classes: props.classes,
+      attributes: props.attributes,
+      activatedText: props.activatedText,
+      timedOutText: props.timedOutText,
+      pressTwoMoreTimesText: props.pressTwoMoreTimesText,
+      pressOneMoreTimeText: props.pressOneMoreTimeText,
+    }
+
+    return nunjucksEnv.render('govuk/components/exit-this-page/template.njk', { params })
+  },
+})

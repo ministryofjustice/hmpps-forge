@@ -1,13 +1,13 @@
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukTaskList } from './govukTaskList'
+import { GovUKTaskList } from './govukTaskList'
 
 vi.mock('nunjucks')
 
 describe('GOV.UK Task List Component', () => {
   setupComponentTest()
 
-  const helper = new GovukComponentTestHelper(govukTaskList)
+  const helper = new GovukComponentTestHelper(GovUKTaskList)
 
   describe('Item data transformation', () => {
     it('sets single item with title and status correctly', async () => {

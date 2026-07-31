@@ -1,13 +1,5 @@
-import type nunjucks from 'nunjucks'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ResolvableBoolean,
-  ResolvableString,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition, ResolvableBoolean, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
  * Individual breadcrumb item configuration.
@@ -33,7 +25,7 @@ export interface BreadcrumbItem {
 }
 
 /**
- * Props for the GovUKBreadcrumbs component.
+ * GOV.UK Breadcrumbs component.
  *
  * Use this to help users understand where they are in the website's structure
  * and navigate back to higher levels.
@@ -50,7 +42,7 @@ export interface BreadcrumbItem {
  * })
  * ```
  */
-export interface GovUKBreadcrumbsProps extends BasicBlockProps {
+export interface GovUKBreadcrumbs extends BlockDefinition {
   /** The breadcrumb items to display. Required. */
   items: BreadcrumbItem[]
 
@@ -68,36 +60,10 @@ export interface GovUKBreadcrumbsProps extends BasicBlockProps {
 }
 
 /**
- * GOV.UK Breadcrumbs component interface.
+ * GOV.UK Breadcrumbs component.
  *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKBreadcrumbsProps` type or the `GovUKBreadcrumbs()` wrapper function instead.
- */
-export interface GovUKBreadcrumbs extends BlockDefinition, GovUKBreadcrumbsProps {
-  /** Component variant identifier */
-  variant: 'govukBreadcrumbs'
-}
-
-/**
- * Renders the GOV.UK Breadcrumbs component using the official Nunjucks template.
- */
-function breadcrumbsRenderer(block: EvaluatedBlock<GovUKBreadcrumbs>, nunjucksEnv: nunjucks.Environment): string {
-  const params: Record<string, any> = {
-    items: block.items.filter(item => item.visibleWhen !== false),
-    collapseOnMobile: block.collapseOnMobile,
-    labelText: block.labelText,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('govuk/components/breadcrumbs/template.njk', { params })
-}
-
-export const govukBreadcrumbs = buildNunjucksComponent<GovUKBreadcrumbs>('govukBreadcrumbs', breadcrumbsRenderer)
-
-/**
- * Creates a GOV.UK Breadcrumbs block for navigation hierarchy.
- * Helps users understand where they are and navigate back to higher levels.
+ * Use this to help users understand where they are in the website's structure
+ * and navigate back to higher levels.
  *
  * @see https://design-system.service.gov.uk/components/breadcrumbs/
  * @example
@@ -111,6 +77,16 @@ export const govukBreadcrumbs = buildNunjucksComponent<GovUKBreadcrumbs>('govukB
  * })
  * ```
  */
-export function GovUKBreadcrumbs(props: GovUKBreadcrumbsProps): GovUKBreadcrumbs {
-  return buildBlock<GovUKBreadcrumbs>({ ...props, variant: 'govukBreadcrumbs' })
-}
+export const GovUKBreadcrumbs = nunjucksComponent<GovUKBreadcrumbs>('govukBreadcrumbs', {
+  render: (props, nunjucksEnv) => {
+    const params: Record<string, any> = {
+      items: props.items.filter(item => item.visibleWhen !== false),
+      collapseOnMobile: props.collapseOnMobile,
+      labelText: props.labelText,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('govuk/components/breadcrumbs/template.njk', { params })
+  },
+})

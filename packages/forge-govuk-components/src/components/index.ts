@@ -1,35 +1,35 @@
 import { BlockDefinition, ComponentRegistryEntry } from '@ministryofjustice/hmpps-forge/core/components'
 
-import { govukAccordion } from './accordion/govukAccordion'
-import { govukBackLink } from './back-link/govukBackLink'
-import { govukBreadcrumbs } from './breadcrumbs/govukBreadcrumbs'
-import { govukButton, govukLinkButton } from './button/govukButton'
-import { govukTextInput } from './text-input/govukTextInput'
-import { govukPasswordInput } from './password-input/govukPasswordInput'
-import { govukSelectInput } from './select-input/govukSelectInput'
-import { govukRadioInput } from './radio-input/govukRadioInput'
-import { govukCheckboxInput } from './checkbox-input/govukCheckboxInput'
-import { govukTextareaInput } from './textarea-input/govukTextareaInput'
-import { govukCharacterCount } from './character-count/govukCharacterCount'
+import { GovUKAccordion } from './accordion/govukAccordion'
+import { GovUKBackLink } from './back-link/govukBackLink'
+import { GovUKBreadcrumbs } from './breadcrumbs/govukBreadcrumbs'
+import { GovUKButton, GovUKLinkButton } from './button/govukButton'
+import { GovUKTextInput } from './text-input/govukTextInput'
+import { GovUKPasswordInput } from './password-input/govukPasswordInput'
+import { GovUKSelectInput } from './select-input/govukSelectInput'
+import { GovUKRadioInput } from './radio-input/govukRadioInput'
+import { GovUKCheckboxInput } from './checkbox-input/govukCheckboxInput'
+import { GovUKTextareaInput } from './textarea-input/govukTextareaInput'
+import { GovUKCharacterCount } from './character-count/govukCharacterCount'
 import {
-  govukDateInputFull,
-  govukDateInputYearMonth,
-  govukDateInputMonthDay,
+  GovUKDateInputFull,
+  GovUKDateInputYearMonth,
+  GovUKDateInputMonthDay,
 } from './date-input/govukDateInputVariants'
-import { govukDetails } from './details/govukDetails'
-import { govukExitThisPage } from './exit-this-page/govukExitThisPage'
-import { govukInsetText } from './inset-text/govukInsetText'
-import { govukNotificationBanner } from './notification-banner/govukNotificationBanner'
-import { govukPagination } from './pagination/govukPagination'
-import { govukPanel } from './panel/govukPanel'
-import { govukSummaryList } from './summary-list/govukSummaryList'
-import { govukTable } from './table/govukTable'
-import { govukTabs } from './tabs/govukTabs'
-import { govukTag } from './tag/govukTag'
-import { govukTaskList } from './task-list/govukTaskList'
-import { govukWarningText } from './warning-text/govukWarningText'
+import { GovUKDetails } from './details/govukDetails'
+import { GovUKExitThisPage } from './exit-this-page/govukExitThisPage'
+import { GovUKInsetText } from './inset-text/govukInsetText'
+import { GovUKNotificationBanner } from './notification-banner/govukNotificationBanner'
+import { GovUKPagination } from './pagination/govukPagination'
+import { GovUKPanel } from './panel/govukPanel'
+import { GovUKSummaryList } from './summary-list/govukSummaryList'
+import { GovUKTable } from './table/govukTable'
+import { GovUKTabs } from './tabs/govukTabs'
+import { GovUKTag } from './tag/govukTag'
+import { GovUKTaskList } from './task-list/govukTaskList'
+import { GovUKWarningText } from './warning-text/govukWarningText'
 
-// Re-export types only (for types that don't have wrapper functions)
+// Re-export supporting types
 export type {
   AccordionItemHeading,
   AccordionItemSummary,
@@ -58,7 +58,7 @@ export type {
   TaskListItem,
 } from './task-list/govukTaskList'
 
-// Re-export wrapper functions (types are exported implicitly with the functions)
+// Re-export the components (each const is both the block builder and the registry entry)
 export { GovUKAccordion } from './accordion/govukAccordion'
 export { GovUKBackLink } from './back-link/govukBackLink'
 export { GovUKBreadcrumbs } from './breadcrumbs/govukBreadcrumbs'
@@ -90,31 +90,31 @@ export { GovUKWarningText } from './warning-text/govukWarningText'
 
 /** All GOV.UK component definitions */
 export const govukComponents: ComponentRegistryEntry<BlockDefinition, string>[] = [
-  govukAccordion,
-  govukBackLink,
-  govukBreadcrumbs,
-  govukButton,
-  govukLinkButton,
-  govukTextInput,
-  govukPasswordInput,
-  govukSelectInput,
-  govukRadioInput,
-  govukCheckboxInput,
-  govukTextareaInput,
-  govukCharacterCount,
-  govukDateInputFull,
-  govukDateInputYearMonth,
-  govukDateInputMonthDay,
-  govukDetails,
-  govukExitThisPage,
-  govukInsetText,
-  govukNotificationBanner,
-  govukPagination,
-  govukPanel,
-  govukSummaryList,
-  govukTable,
-  govukTabs,
-  govukTag,
-  govukTaskList,
-  govukWarningText,
+  GovUKAccordion,
+  GovUKBackLink,
+  GovUKBreadcrumbs,
+  GovUKButton,
+  GovUKLinkButton,
+  GovUKTextInput,
+  GovUKPasswordInput,
+  GovUKSelectInput,
+  GovUKRadioInput,
+  GovUKCheckboxInput,
+  GovUKTextareaInput,
+  GovUKCharacterCount,
+  GovUKDateInputFull,
+  GovUKDateInputYearMonth,
+  GovUKDateInputMonthDay,
+  GovUKDetails,
+  GovUKExitThisPage,
+  GovUKInsetText,
+  GovUKNotificationBanner,
+  GovUKPagination,
+  GovUKPanel,
+  GovUKSummaryList,
+  GovUKTable,
+  GovUKTabs,
+  GovUKTag,
+  GovUKTaskList,
+  GovUKWarningText,
 ]

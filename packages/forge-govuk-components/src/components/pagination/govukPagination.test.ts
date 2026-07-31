@@ -1,13 +1,13 @@
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukPagination } from './govukPagination'
+import { GovUKPagination } from './govukPagination'
 
 vi.mock('nunjucks')
 
 describe('GOV.UK Pagination Component', () => {
   setupComponentTest()
 
-  const helper = new GovukComponentTestHelper(govukPagination)
+  const helper = new GovukComponentTestHelper(GovUKPagination)
 
   describe('Previous/Next navigation', () => {
     it('sets previous link correctly', async () => {

@@ -3,14 +3,14 @@ import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/componen
 
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { mojAlert } from './mojAlert'
+import { MOJAlert } from './mojAlert'
 
 vi.mock('nunjucks')
 
 describe('mojAlert', () => {
   setupComponentTest()
 
-  const helper = new MojComponentTestHelper(mojAlert)
+  const helper = new MojComponentTestHelper(MOJAlert)
   const renderedBlock = (html: string): RenderedBlock => ({
     block: {
       type: StructureType.BLOCK,

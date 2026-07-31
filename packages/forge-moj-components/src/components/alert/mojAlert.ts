@@ -1,14 +1,5 @@
-import type nunjucks from 'nunjucks'
-
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ResolvableString,
-  ResolvableBoolean,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition, ResolvableString, ResolvableBoolean } from '@ministryofjustice/hmpps-forge/core/components'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
 /**
@@ -22,7 +13,10 @@ export type MOJAlertVariant = 'information' | 'success' | 'warning' | 'error'
 export type MOJAlertHeadingTag = 'h2' | 'h3' | 'h4'
 
 /**
- * Props for the MOJAlert component.
+ * MOJ Alert component.
+ * Displays important messages to users as a notification banner.
+ * It supports different variants for different types of messages
+ * (information, success, warning, error) and can be dismissible.
  *
  * @see https://design-patterns.service.justice.gov.uk/components/alert
  * @example
@@ -35,7 +29,7 @@ export type MOJAlertHeadingTag = 'h2' | 'h3' | 'h4'
  * })
  * ```
  */
-export interface MOJAlertProps extends BasicBlockProps {
+export interface MOJAlert extends BlockDefinition {
   /**
    * The type of alert which determines styling and icon.
    * Options: 'information' (default), 'success', 'warning', 'error'
@@ -150,50 +144,8 @@ export interface MOJAlertProps extends BasicBlockProps {
 }
 
 /**
- * MOJ Alert Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `MOJAlertProps` type or the `MOJAlert()` wrapper function instead.
- */
-export interface MOJAlert extends BlockDefinition, MOJAlertProps {
-  /** Component variant identifier */
-  variant: 'mojAlert'
-}
-
-/**
- * Renders an MOJ Alert component using Nunjucks template
- */
-function alertRenderer(block: EvaluatedBlock<MOJAlert>, nunjucksEnv: nunjucks.Environment): string {
-  const content = normaliseMojTextHtmlContent({
-    text: block.text,
-    html: block.html,
-    blocks: block.blocks,
-  })
-  const params = {
-    variant: block.alertVariant,
-    title: block.title,
-    text: content.text,
-    html: content.html,
-    showTitleAsHeading: block.showTitleAsHeading,
-    headingTag: block.headingTag,
-    dismissible: block.dismissible,
-    dismissText: block.dismissText,
-    disableAutoFocus: block.disableAutoFocus,
-    focusOnDismissSelector: block.focusOnDismissSelector,
-    role: block.role,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('moj/components/alert/template.njk', { params })
-}
-
-export const mojAlert = buildNunjucksComponent<MOJAlert>('mojAlert', alertRenderer)
-
-/**
- * Creates an MOJ Alert block for displaying notification banners.
- *
- * The alert component is used to display important messages to users.
+ * MOJ Alert component.
+ * Displays important messages to users as a notification banner.
  * It supports different variants for different types of messages
  * (information, success, warning, error) and can be dismissible.
  *
@@ -208,6 +160,29 @@ export const mojAlert = buildNunjucksComponent<MOJAlert>('mojAlert', alertRender
  * })
  * ```
  */
-export function MOJAlert(props: MOJAlertProps): MOJAlert {
-  return buildBlock<MOJAlert>({ ...props, variant: 'mojAlert' })
-}
+export const MOJAlert = nunjucksComponent<MOJAlert>('mojAlert', {
+  render: (props, nunjucksEnv) => {
+    const content = normaliseMojTextHtmlContent({
+      text: props.text,
+      html: props.html,
+      blocks: props.blocks,
+    })
+    const params = {
+      variant: props.alertVariant,
+      title: props.title,
+      text: content.text,
+      html: content.html,
+      showTitleAsHeading: props.showTitleAsHeading,
+      headingTag: props.headingTag,
+      dismissible: props.dismissible,
+      dismissText: props.dismissText,
+      disableAutoFocus: props.disableAutoFocus,
+      focusOnDismissSelector: props.focusOnDismissSelector,
+      role: props.role,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('moj/components/alert/template.njk', { params })
+  },
+})
