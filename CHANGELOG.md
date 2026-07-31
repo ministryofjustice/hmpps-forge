@@ -72,6 +72,16 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   type, so render callbacks get a typed `nunjucks.Environment` with no casting.
   `buildNunjucksComponent` still works, and its docs now point at the replacement.
 
+- **JSX components (experimental).** `jsxComponent()` in the new
+  `@ministryofjustice/hmpps-forge/jsx-components` package defines a component whose render
+  is written in JSX - compiled to plain escaped HTML strings by the package's own runtime,
+  no React or other framework underneath. Point TypeScript at it (`"jsx": "react-jsx"`,
+  `"jsxImportSource": "@ministryofjustice/hmpps-forge/jsx-components"`) and render
+  callbacks write real markup with typed HTML attributes (`class`, `for`) instead of
+  template strings. Dynamic values are escaped by default; `raw()` marks already-rendered
+  HTML - a child block's output, say - as safe to embed. The whole package is
+  experimental: it may change or be removed in a minor release.
+
 ---
 
 ## 0.3.4

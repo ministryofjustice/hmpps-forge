@@ -114,6 +114,7 @@ app.use(createExpressRouter(forge, { nunjucksEnv }))
 | Express-Nunjucks Adapter | `@ministryofjustice/hmpps-forge/express-nunjucks` | Express adapter with Nunjucks rendering                                       |
 | GOV.UK Components        | `@ministryofjustice/hmpps-forge/govuk-components` | GOV.UK Design System blocks and fields                                        |
 | MOJ Components           | `@ministryofjustice/hmpps-forge/moj-components` | MOJ Frontend blocks and fields                                                |
+| JSX Components           | `@ministryofjustice/hmpps-forge/jsx-components` | JSX-to-HTML component authoring, no framework underneath (experimental)       |
 
 ## Development
 
@@ -125,6 +126,7 @@ packages/                   # Framework source
   forge-express-nunjucks/   # Express + Nunjucks adapter
   forge-govuk-components/   # GOV.UK Design System components
   forge-moj-components/     # MOJ Frontend components
+  forge-jsx-components/     # JSX-to-HTML component authoring (experimental)
 examples-app/               # Interactive examples and developer guide
 ```
 
