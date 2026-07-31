@@ -171,6 +171,19 @@ export const jsxs = jsx
 export const Fragment = (props: JsxProps): RawHtml => new RawHtml(serializeChildren(props.children))
 
 /**
+ * Development-mode entry point - dev transforms (Vite, esbuild with jsxDev,
+ * TypeScript's "react-jsxdev") import `<jsxImportSource>/jsx-dev-runtime` and call
+ * `jsxDEV` instead of `jsx`/`jsxs`. Its extra arguments (key, static-children flag,
+ * source location) only matter to frameworks that diff and re-render, so it is the
+ * production implementation under the dev name - the package's `jsx-dev-runtime`
+ * subpath resolves to this same module.
+ *
+ * @experimental Part of the experimental JSX component API - may change or be removed
+ * in a minor release.
+ */
+export const jsxDEV = jsx
+
+/**
  * The types TypeScript reads from the `jsxImportSource` module to type-check JSX
  * expressions: what an expression evaluates to, which tags exist with which
  * attributes, and which prop carries nested children.

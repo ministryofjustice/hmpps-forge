@@ -82,10 +82,10 @@
       "default": "./dist/jsx-components/jsx-runtime/index.mjs"
     },
     "./jsx-components/jsx-dev-runtime": {
-      "types": "./dist/jsx-components/jsx-dev-runtime/index.d.ts",
-      "import": "./dist/jsx-components/jsx-dev-runtime/index.mjs",
-      "require": "./dist/jsx-components/jsx-dev-runtime/index.cjs",
-      "default": "./dist/jsx-components/jsx-dev-runtime/index.mjs"
+      "types": "./dist/jsx-components/jsx-runtime/index.d.ts",
+      "import": "./dist/jsx-components/jsx-runtime/index.mjs",
+      "require": "./dist/jsx-components/jsx-runtime/index.cjs",
+      "default": "./dist/jsx-components/jsx-runtime/index.mjs"
     },
     "./devtools": {
       "types": "./dist/devtools/index.d.ts",

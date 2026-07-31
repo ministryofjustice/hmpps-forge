@@ -29,7 +29,7 @@
         "./forge-jsx-components/src/runtime/jsx-runtime.ts"
       ],
       "@ministryofjustice/hmpps-forge/jsx-components/jsx-dev-runtime": [
-        "./forge-jsx-components/src/runtime/jsx-dev-runtime.ts"
+        "./forge-jsx-components/src/runtime/jsx-runtime.ts"
       ]
     }
   },

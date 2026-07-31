@@ -43,7 +43,7 @@ export default defineConfig({
       },
       {
         find: /^@ministryofjustice\/hmpps-forge\/jsx-components\/jsx-dev-runtime$/,
-        replacement: resolve(import.meta.dirname, './forge-jsx-components/src/runtime/jsx-dev-runtime.ts'),
+        replacement: resolve(import.meta.dirname, './forge-jsx-components/src/runtime/jsx-runtime.ts'),
       },
     ],
   },
