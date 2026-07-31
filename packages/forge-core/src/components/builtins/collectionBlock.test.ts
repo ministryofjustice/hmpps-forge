@@ -1,4 +1,4 @@
-import { collectionBlock, EvaluatedCollectionBlock } from './collectionBlock'
+import { CollectionBlock, EvaluatedCollectionBlock } from './collectionBlock'
 import { BlockType, StructureType } from '../../authoring/types/enums'
 import type { RenderedBlock } from '../types/structures.type'
 
@@ -31,7 +31,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await collectionBlock.render(block as any)
+    const result = await CollectionBlock.render(block as any)
 
     // Assert
     expect(result).toBe('<div>Item 1</div><div>Item 2</div><div>Item 3</div>')
@@ -44,7 +44,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await collectionBlock.render(block as any)
+    const result = await CollectionBlock.render(block as any)
 
     // Assert
     expect(result).toBe('')
@@ -58,7 +58,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await collectionBlock.render(block as any)
+    const result = await CollectionBlock.render(block as any)
 
     // Assert
     expect(result).toBe('<div class="collection-wrapper custom-class"><div>Item 1</div><div>Item 2</div></div>')
@@ -75,7 +75,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await collectionBlock.render(block as any)
+    const result = await CollectionBlock.render(block as any)
 
     // Assert
     expect(result).toBe('<div data-collection="items" id="item-list"><div>Item 1</div></div>')
@@ -93,7 +93,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await collectionBlock.render(block as any)
+    const result = await CollectionBlock.render(block as any)
 
     // Assert
     expect(result).toBe(
@@ -110,7 +110,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await collectionBlock.render(block as any)
+    const result = await CollectionBlock.render(block as any)
 
     // Assert
     expect(result).toBe('<ul class="govuk-list"><li>Item 1</li><li>Item 2</li></ul>')
@@ -124,7 +124,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await collectionBlock.render(block as any)
+    const result = await CollectionBlock.render(block as any)
 
     // Assert
     expect(result).toBe('<ol><li>Item 1</li></ol>')
@@ -138,7 +138,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await collectionBlock.render(block as any)
+    const result = await CollectionBlock.render(block as any)
 
     // Assert
     expect(result).toBe('<div class="empty-collection"></div>')
@@ -153,7 +153,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await collectionBlock.render(block as any)
+    const result = await CollectionBlock.render(block as any)
 
     // Assert
     expect(result).toBe(`${html1}${html2}`)
@@ -161,7 +161,7 @@ describe('collectionBlock component', () => {
 
   it('should have the correct variant', () => {
     // Assert
-    expect(collectionBlock.variant).toBe('collection-block')
+    expect(CollectionBlock.variant).toBe('collection-block')
   })
 
   it('should handle undefined collection', async () => {
@@ -171,7 +171,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await collectionBlock.render(block as any)
+    const result = await CollectionBlock.render(block as any)
 
     // Assert
     expect(result).toBe('')
@@ -184,7 +184,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await collectionBlock.render(block as any)
+    const result = await CollectionBlock.render(block as any)
 
     // Assert
     expect(result).toBe('<li>Item 1</li><li>Item 2</li><li>Item 3</li>')
@@ -201,7 +201,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await collectionBlock.render(block as any)
+    const result = await CollectionBlock.render(block as any)
 
     // Assert
     expect(result).toBe('<div>Block 1</div><p>Plain string</p><div>Block 2</div>')
@@ -217,7 +217,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await collectionBlock.render(block as any)
+    const result = await CollectionBlock.render(block as any)
 
     // Assert
     expect(result).toBe('<li>Nested 1</li><li>Nested 2</li><li>Block item</li>')
@@ -231,7 +231,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await collectionBlock.render(block as any)
+    const result = await CollectionBlock.render(block as any)
 
     // Assert
     expect(result).toBe('<p>No items found</p>')
@@ -245,7 +245,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await collectionBlock.render(block as any)
+    const result = await CollectionBlock.render(block as any)
 
     // Assert
     expect(result).toBe('<p>No items available</p>')
@@ -259,7 +259,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await collectionBlock.render(block as any)
+    const result = await CollectionBlock.render(block as any)
 
     // Assert
     expect(result).toBe('<div>Item 1</div>')
@@ -274,7 +274,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await collectionBlock.render(block as any)
+    const result = await CollectionBlock.render(block as any)
 
     // Assert
     expect(result).toBe('<div class="empty-collection"><p>Empty state</p></div>')

@@ -1,5 +1,5 @@
 import type { EvaluatedBlock } from '../types/structures.type'
-import { templateWrapper, TemplateWrapper } from './templateWrapper'
+import { TemplateWrapper } from './templateWrapper'
 import { BlockType, StructureType } from '../../authoring/types/enums'
 
 describe('templateWrapper component', () => {
@@ -26,7 +26,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<section><p>Hello</p><p>World</p></section>')
@@ -56,7 +56,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<div><h1>Title</h1><main><p>Body</p></main><footer>End</footer></div>')
@@ -73,7 +73,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<h2>Journey Config</h2><p>Learn about journey configuration.</p>')
@@ -98,7 +98,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<section><h2>My Section</h2><p>Content here</p><p>See also...</p></section>')
@@ -119,7 +119,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<div><p>Present</p></div>')
@@ -135,7 +135,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<div>Hello</div>')
@@ -149,7 +149,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<div class="govuk-section"><p>Content</p></div>')
@@ -166,7 +166,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<div data-module="section" id="my-section"><p>Content</p></div>')
@@ -183,7 +183,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<div class="custom-class" data-test="value"><p>Content</p></div>')
@@ -197,7 +197,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<section><p>Content</p></section>')
@@ -212,7 +212,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<aside class="app-sidebar"><p>Content</p></aside>')
@@ -230,7 +230,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<nav class="app-nav" aria-label="Main navigation"><p>Content</p></nav>')
@@ -243,7 +243,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<div><p>Plain template</p></div>')
@@ -259,7 +259,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<div></div>')
@@ -280,7 +280,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<div><span>Repeated</span></div><div><span>Repeated</span></div>')
@@ -296,7 +296,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<span>Alice</span> and <span>Alice</span>')
@@ -312,7 +312,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<ul><li>One</li><li>Two</li><li>Three</li></ul>')
@@ -331,7 +331,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<div><p>Rendered block content</p></div>')
@@ -356,7 +356,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await templateWrapper.render(block)
+      const result = await TemplateWrapper.render(block)
 
       // Assert
       expect(result).toBe('<ul><li>First</li><li>Second</li></ul>')
@@ -364,6 +364,6 @@ describe('templateWrapper component', () => {
   })
 
   it('should have the correct variant', () => {
-    expect(templateWrapper.variant).toBe('templateWrapper')
+    expect(TemplateWrapper.variant).toBe('templateWrapper')
   })
 })
