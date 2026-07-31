@@ -1,15 +1,11 @@
-import type nunjucks from 'nunjucks'
-
 import {
-  BasicBlockProps,
   BlockDefinition,
   ResolvableBoolean,
   ResolvableString,
   ResolvableArray,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
 /**
@@ -80,115 +76,7 @@ export interface MOJMessageItem {
 }
 
 /**
- * Props for the MOJMessages component.
- *
- * The messages component displays a thread of messages with sender info,
- * content, and timestamps. Messages are visually differentiated between
- * sent (blue, right-aligned) and received (grey, left-aligned).
- *
- * @see https://design-patterns.service.justice.gov.uk/components/messages
- * @example
- * ```typescript
- * MOJMessages({
- *   items: [
- *     {
- *       id: 1,
- *       text: 'Hello, how can I help you today?',
- *       type: 'received',
- *       sender: 'Support Agent',
- *       timestamp: '2019-06-14T10:00:00.000Z',
- *     },
- *     {
- *       id: 2,
- *       text: 'I need help with my application.',
- *       type: 'sent',
- *       sender: 'John Smith',
- *       timestamp: '2019-06-14T10:05:00.000Z',
- *     },
- *   ],
- * })
- * ```
- */
-export interface MOJMessagesProps extends BasicBlockProps {
-  /**
-   * Array of message items to display.
-   * Messages are displayed in the order provided, grouped by date.
-   */
-  items: ResolvableArray<MOJMessageItem>
-
-  /**
-   * ID for the messages container element.
-   * Defaults to 'messages' if not specified.
-   * @example 'case-messages'
-   */
-  id?: ResolvableString
-
-  /**
-   * Accessible label for the messages container.
-   * Applied as aria-label attribute.
-   * @example 'Case correspondence'
-   */
-  label?: ResolvableString
-
-  /**
-   * Additional CSS classes for the messages container.
-   * @example 'app-messages--compact'
-   */
-  classes?: ResolvableString
-
-  /**
-   * Additional HTML attributes for the messages container.
-   * @example { 'data-module': 'app-messages' }
-   */
-  attributes?: Record<string, ResolvableString>
-}
-
-/**
- * MOJ Messages Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `MOJMessagesProps` type or the `MOJMessages()` wrapper function instead.
- */
-export interface MOJMessages extends BlockDefinition, MOJMessagesProps {
-  /** Component variant identifier */
-  variant: 'mojMessages'
-}
-
-type EvaluatedMOJMessageItem = EvaluatedBlock<MOJMessages>['items'][number]
-
-/**
- * Renders an MOJ Messages component using Nunjucks template
- */
-function messagesRenderer(block: EvaluatedBlock<MOJMessages>, nunjucksEnv: nunjucks.Environment): string {
-  const params = {
-    items: block.items.filter(item => item.visibleWhen !== false).map(normaliseMessageItem),
-    id: block.id,
-    label: block.label,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('moj/components/messages/template.njk', { params })
-}
-
-function normaliseMessageItem(item: EvaluatedMOJMessageItem) {
-  const { blocks, ...itemParams } = item
-  const content = normaliseMojTextHtmlContent({
-    text: item.text,
-    html: item.html,
-    blocks,
-  })
-
-  return {
-    ...itemParams,
-    ...content,
-  }
-}
-
-export const mojMessages = buildNunjucksComponent<MOJMessages>('mojMessages', messagesRenderer)
-
-/**
- * Creates an MOJ Messages block for displaying a thread of messages.
+ * MOJ Messages component.
  *
  * The messages component displays a conversation thread between two or more
  * parties. Messages are visually differentiated:
@@ -229,6 +117,108 @@ export const mojMessages = buildNunjucksComponent<MOJMessages>('mojMessages', me
  * })
  * ```
  */
-export function MOJMessages(props: MOJMessagesProps): MOJMessages {
-  return buildBlock<MOJMessages>({ ...props, variant: 'mojMessages' })
+export interface MOJMessages extends BlockDefinition {
+  /**
+   * Array of message items to display.
+   * Messages are displayed in the order provided, grouped by date.
+   */
+  items: ResolvableArray<MOJMessageItem>
+
+  /**
+   * ID for the messages container element.
+   * Defaults to 'messages' if not specified.
+   * @example 'case-messages'
+   */
+  id?: ResolvableString
+
+  /**
+   * Accessible label for the messages container.
+   * Applied as aria-label attribute.
+   * @example 'Case correspondence'
+   */
+  label?: ResolvableString
+
+  /**
+   * Additional CSS classes for the messages container.
+   * @example 'app-messages--compact'
+   */
+  classes?: ResolvableString
+
+  /**
+   * Additional HTML attributes for the messages container.
+   * @example { 'data-module': 'app-messages' }
+   */
+  attributes?: Record<string, ResolvableString>
 }
+
+type EvaluatedMOJMessageItem = EvaluatedBlock<MOJMessages>['items'][number]
+
+function normaliseMessageItem(item: EvaluatedMOJMessageItem) {
+  const { blocks, ...itemParams } = item
+  const content = normaliseMojTextHtmlContent({
+    text: item.text,
+    html: item.html,
+    blocks,
+  })
+
+  return {
+    ...itemParams,
+    ...content,
+  }
+}
+
+/**
+ * MOJ Messages component.
+ *
+ * The messages component displays a conversation thread between two or more
+ * parties. Messages are visually differentiated:
+ * - Sent messages (type: 'sent'): Blue background, aligned right
+ * - Received messages (type: 'received'): Grey background, aligned left
+ *
+ * Messages are automatically grouped by date, with date headers shown
+ * when the date changes between messages.
+ *
+ * @see https://design-patterns.service.justice.gov.uk/components/messages
+ * @example
+ * ```typescript
+ * MOJMessages({
+ *   items: [
+ *     {
+ *       id: 1,
+ *       text: 'Lorem ipsum dolor sit amet.',
+ *       type: 'sent',
+ *       sender: 'Person A',
+ *       timestamp: '2018-10-16T10:50:00.000Z',
+ *     },
+ *     {
+ *       id: 2,
+ *       text: 'Nullam vestibulum lorem vulputate.',
+ *       type: 'received',
+ *       sender: 'Person B',
+ *       timestamp: '2018-10-17T10:51:00.000Z',
+ *     },
+ *     {
+ *       id: 3,
+ *       html: '<p>Message with <strong>HTML</strong> content.</p>',
+ *       type: 'sent',
+ *       sender: 'Person A',
+ *       timestamp: '2018-10-19T10:53:00.000Z',
+ *     },
+ *   ],
+ *   label: 'Case correspondence',
+ * })
+ * ```
+ */
+export const MOJMessages = nunjucksComponent<MOJMessages>('mojMessages', {
+  render: (props, nunjucksEnv) => {
+    const params = {
+      items: props.items.filter(item => item.visibleWhen !== false).map(normaliseMessageItem),
+      id: props.id,
+      label: props.label,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('moj/components/messages/template.njk', { params })
+  },
+})

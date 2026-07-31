@@ -1,13 +1,5 @@
-import type nunjucks from 'nunjucks'
-
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ResolvableString,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
 /**
@@ -16,7 +8,10 @@ import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 export type MOJBannerType = 'success' | 'warning' | 'information'
 
 /**
- * Props for the MOJBanner component.
+ * MOJ Banner component.
+ * Displays important messages to users.
+ * It supports different types for different kinds of messages
+ * (success, warning, information) with corresponding icons.
  *
  * @see https://design-patterns.service.justice.gov.uk/components/banner
  * @example
@@ -27,7 +22,7 @@ export type MOJBannerType = 'success' | 'warning' | 'information'
  * })
  * ```
  */
-export interface MOJBannerProps extends BasicBlockProps {
+export interface MOJBanner extends BlockDefinition {
   /**
    * The type of banner which determines styling and icon.
    * Options: 'success', 'warning', 'information'
@@ -86,43 +81,8 @@ export interface MOJBannerProps extends BasicBlockProps {
 }
 
 /**
- * MOJ Banner Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `MOJBannerProps` type or the `MOJBanner()` wrapper function instead.
- */
-export interface MOJBanner extends BlockDefinition, MOJBannerProps {
-  /** Component variant identifier */
-  variant: 'mojBanner'
-}
-
-/**
- * Renders an MOJ Banner component using Nunjucks template
- */
-function bannerRenderer(block: EvaluatedBlock<MOJBanner>, nunjucksEnv: nunjucks.Environment): string {
-  const content = normaliseMojTextHtmlContent({
-    text: block.text,
-    html: block.html,
-    blocks: block.blocks,
-  })
-  const params = {
-    type: block.bannerType,
-    text: content.text,
-    html: content.html,
-    iconFallbackText: block.iconFallbackText,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('moj/components/banner/template.njk', { params })
-}
-
-export const mojBanner = buildNunjucksComponent<MOJBanner>('mojBanner', bannerRenderer)
-
-/**
- * Creates an MOJ Banner block for displaying important messages.
- *
- * The banner component is used to display important messages to users.
+ * MOJ Banner component.
+ * Displays important messages to users.
  * It supports different types for different kinds of messages
  * (success, warning, information) with corresponding icons.
  *
@@ -135,6 +95,22 @@ export const mojBanner = buildNunjucksComponent<MOJBanner>('mojBanner', bannerRe
  * })
  * ```
  */
-export function MOJBanner(props: MOJBannerProps): MOJBanner {
-  return buildBlock<MOJBanner>({ ...props, variant: 'mojBanner' })
-}
+export const MOJBanner = nunjucksComponent<MOJBanner>('mojBanner', {
+  render: (props, nunjucksEnv) => {
+    const content = normaliseMojTextHtmlContent({
+      text: props.text,
+      html: props.html,
+      blocks: props.blocks,
+    })
+    const params = {
+      type: props.bannerType,
+      text: content.text,
+      html: content.html,
+      iconFallbackText: props.iconFallbackText,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('moj/components/banner/template.njk', { params })
+  },
+})

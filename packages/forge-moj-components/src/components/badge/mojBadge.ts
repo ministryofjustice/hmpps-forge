@@ -1,13 +1,5 @@
-import type nunjucks from 'nunjucks'
-
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ResolvableString,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
  * Available badge colour classes.
@@ -35,7 +27,9 @@ export type MOJBadgeColour =
   | 'moj-badge--white'
 
 /**
- * Props for the MOJBadge component.
+ * MOJ Badge component.
+ * Displays small status or category labels.
+ * It can be styled with different colours to indicate different states.
  *
  * @see https://design-patterns.service.justice.gov.uk/components/badge
  * @example
@@ -45,8 +39,17 @@ export type MOJBadgeColour =
  *   classes: 'moj-badge--red',
  * })
  * ```
+ *
+ * @example
+ * ```typescript
+ * MOJBadge({
+ *   text: 'Complete',
+ *   classes: 'moj-badge--green',
+ *   label: 'Status: Complete',
+ * })
+ * ```
  */
-export interface MOJBadgeProps extends BasicBlockProps {
+export interface MOJBadge extends BlockDefinition {
   /**
    * Plain text content for the badge.
    * Use either text or html, not both.
@@ -90,37 +93,8 @@ export interface MOJBadgeProps extends BasicBlockProps {
 }
 
 /**
- * MOJ Badge Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `MOJBadgeProps` type or the `MOJBadge()` wrapper function instead.
- */
-export interface MOJBadge extends BlockDefinition, MOJBadgeProps {
-  /** Component variant identifier */
-  variant: 'mojBadge'
-}
-
-/**
- * Renders an MOJ Badge component using Nunjucks template
- */
-function badgeRenderer(block: EvaluatedBlock<MOJBadge>, nunjucksEnv: nunjucks.Environment): string {
-  const params = {
-    text: block.text,
-    html: block.html,
-    classes: block.classes,
-    label: block.label,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('moj/components/badge/template.njk', { params })
-}
-
-export const mojBadge = buildNunjucksComponent<MOJBadge>('mojBadge', badgeRenderer)
-
-/**
- * Creates an MOJ Badge block for displaying status indicators.
- *
- * The badge component is used to highlight small status or category labels.
+ * MOJ Badge component.
+ * Displays small status or category labels.
  * It can be styled with different colours to indicate different states.
  *
  * @see https://design-patterns.service.justice.gov.uk/components/badge
@@ -141,6 +115,16 @@ export const mojBadge = buildNunjucksComponent<MOJBadge>('mojBadge', badgeRender
  * })
  * ```
  */
-export function MOJBadge(props: MOJBadgeProps): MOJBadge {
-  return buildBlock<MOJBadge>({ ...props, variant: 'mojBadge' })
-}
+export const MOJBadge = nunjucksComponent<MOJBadge>('mojBadge', {
+  render: (props, nunjucksEnv) => {
+    const params = {
+      text: props.text,
+      html: props.html,
+      classes: props.classes,
+      label: props.label,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('moj/components/badge/template.njk', { params })
+  },
+})

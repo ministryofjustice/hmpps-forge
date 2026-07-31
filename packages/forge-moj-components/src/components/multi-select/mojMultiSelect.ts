@@ -1,12 +1,5 @@
-import type nunjucks from 'nunjucks'
-import {
-  BlockDefinition,
-  BasicBlockProps,
-  ResolvableString,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
  * Configuration for a table header cell.
@@ -66,93 +59,8 @@ export interface MultiSelectCell {
 export type MultiSelectRow = MultiSelectCell[]
 
 /**
- * Props for the MOJMultiSelect component.
- *
- * A thin wrapper around the GOV.UK Table that adds the `data-module="moj-multi-select"`
- * attribute to enable the MOJ multi-select JavaScript enhancement.
- *
- * Note: You must include checkbox inputs in your table cells for the multi-select
- * functionality to work. The first column should contain checkboxes, with a
- * "select all" checkbox in the header.
- *
- * @see https://design-patterns.service.justice.gov.uk/components/multi-select/
- * @example
- * ```typescript
- * MOJMultiSelect({
- *   head: [
- *     { html: '<input type="checkbox" class="govuk-checkboxes__input" id="select-all">' },
- *     { text: 'Name' },
- *     { text: 'Status' },
- *   ],
- *   rows: [
- *     [
- *       { html: '<input type="checkbox" class="govuk-checkboxes__input" name="selected" value="1">' },
- *       { text: 'John Smith' },
- *       { text: 'Active' },
- *     ],
- *   ],
- * })
- * ```
- */
-export interface MOJMultiSelectProps extends BasicBlockProps {
-  /** The rows within the table. Each row is an array of cells. Required. */
-  rows: MultiSelectRow[]
-
-  /** Table header cells. Renders a `<thead>` with a single header row. */
-  head?: MultiSelectHeadCell[]
-
-  /** Caption text displayed above the table. Useful for accessibility. */
-  caption?: ResolvableString
-
-  /** CSS classes for the caption. */
-  captionClasses?: ResolvableString
-
-  /** If true, the first cell in each row will be rendered as a header (`<th>`) with row scope. */
-  firstCellIsHeader?: boolean
-
-  /** Additional CSS classes for the table element. */
-  classes?: ResolvableString
-
-  /** Custom HTML attributes for the table element. */
-  attributes?: Record<string, any>
-}
-
-/**
- * MOJ Multi Select component interface.
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `MOJMultiSelectProps` type or the `MOJMultiSelect()` wrapper function instead.
- */
-export interface MOJMultiSelect extends BlockDefinition, MOJMultiSelectProps {
-  /** Component variant identifier */
-  variant: 'mojMultiSelect'
-}
-
-/**
- * Renders the MOJ Multi Select component using the GOV.UK Table template
- * with the moj-multi-select data-module attribute.
- */
-function multiSelectRenderer(block: EvaluatedBlock<MOJMultiSelect>, nunjucksEnv: nunjucks.Environment): string {
-  const params: Record<string, any> = {
-    rows: block.rows,
-    head: block.head,
-    caption: block.caption,
-    captionClasses: block.captionClasses,
-    firstCellIsHeader: block.firstCellIsHeader,
-    classes: block.classes,
-    attributes: {
-      ...block.attributes,
-      'data-module': 'moj-multi-select',
-    },
-  }
-
-  return nunjucksEnv.render('govuk/components/table/template.njk', { params })
-}
-
-export const mojMultiSelect = buildNunjucksComponent<MOJMultiSelect>('mojMultiSelect', multiSelectRenderer)
-
-/**
- * Creates an MOJ Multi Select table with row selection functionality.
+ * MOJ Multi Select component.
+ * A table with row selection functionality.
  *
  * This is a thin wrapper around the GOV.UK Table that adds the
  * `data-module="moj-multi-select"` attribute to enable the MOJ JavaScript enhancement.
@@ -180,6 +88,74 @@ export const mojMultiSelect = buildNunjucksComponent<MOJMultiSelect>('mojMultiSe
  * })
  * ```
  */
-export function MOJMultiSelect(props: MOJMultiSelectProps): MOJMultiSelect {
-  return buildBlock<MOJMultiSelect>({ ...props, variant: 'mojMultiSelect' })
+export interface MOJMultiSelect extends BlockDefinition {
+  /** The rows within the table. Each row is an array of cells. Required. */
+  rows: MultiSelectRow[]
+
+  /** Table header cells. Renders a `<thead>` with a single header row. */
+  head?: MultiSelectHeadCell[]
+
+  /** Caption text displayed above the table. Useful for accessibility. */
+  caption?: ResolvableString
+
+  /** CSS classes for the caption. */
+  captionClasses?: ResolvableString
+
+  /** If true, the first cell in each row will be rendered as a header (`<th>`) with row scope. */
+  firstCellIsHeader?: boolean
+
+  /** Additional CSS classes for the table element. */
+  classes?: ResolvableString
+
+  /** Custom HTML attributes for the table element. */
+  attributes?: Record<string, any>
 }
+
+/**
+ * MOJ Multi Select component.
+ * A table with row selection functionality.
+ *
+ * This is a thin wrapper around the GOV.UK Table that adds the
+ * `data-module="moj-multi-select"` attribute to enable the MOJ JavaScript enhancement.
+ *
+ * You must structure your table with checkbox inputs for the functionality to work:
+ * - First column header should contain a "select all" checkbox
+ * - First cell of each row should contain a checkbox with the row's value
+ *
+ * @see https://design-patterns.service.justice.gov.uk/components/multi-select/
+ * @example
+ * ```typescript
+ * MOJMultiSelect({
+ *   head: [
+ *     { html: '<input type="checkbox" class="govuk-checkboxes__input" id="select-all">' },
+ *     { text: 'Name' },
+ *     { text: 'Status' },
+ *   ],
+ *   rows: [
+ *     [
+ *       { html: '<input type="checkbox" class="govuk-checkboxes__input" name="selected" value="1">' },
+ *       { text: 'John Smith' },
+ *       { text: 'Active' },
+ *     ],
+ *   ],
+ * })
+ * ```
+ */
+export const MOJMultiSelect = nunjucksComponent<MOJMultiSelect>('mojMultiSelect', {
+  render: (props, nunjucksEnv) => {
+    const params: Record<string, any> = {
+      rows: props.rows,
+      head: props.head,
+      caption: props.caption,
+      captionClasses: props.captionClasses,
+      firstCellIsHeader: props.firstCellIsHeader,
+      classes: props.classes,
+      attributes: {
+        ...props.attributes,
+        'data-module': 'moj-multi-select',
+      },
+    }
+
+    return nunjucksEnv.render('govuk/components/table/template.njk', { params })
+  },
+})

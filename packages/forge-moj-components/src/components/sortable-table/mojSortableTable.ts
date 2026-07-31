@@ -1,12 +1,5 @@
-import type nunjucks from 'nunjucks'
-import {
-  BlockDefinition,
-  BasicBlockProps,
-  ResolvableString,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
  * Configuration for a sortable table header cell.
@@ -66,89 +59,8 @@ export interface SortableTableCell {
 export type SortableTableRow = SortableTableCell[]
 
 /**
- * Props for the MOJSortableTable component.
- *
- * A thin wrapper around the GOV.UK Table that adds the `data-module="moj-sortable-table"`
- * attribute to enable the MOJ sortable table JavaScript enhancement.
- *
- * The JavaScript will make column headers clickable, allowing users to sort
- * the table by that column. Headers should use `<button>` elements for accessibility.
- *
- * @see https://design-patterns.service.justice.gov.uk/components/sortable-table/
- * @example
- * ```typescript
- * MOJSortableTable({
- *   head: [
- *     { html: '<button>Name</button>' },
- *     { html: '<button>Date</button>' },
- *     { html: '<button>Status</button>' },
- *   ],
- *   rows: [
- *     [{ text: 'John Smith' }, { text: '2024-01-15' }, { text: 'Active' }],
- *     [{ text: 'Jane Doe' }, { text: '2024-02-20' }, { text: 'Pending' }],
- *   ],
- * })
- * ```
- */
-export interface MOJSortableTableProps extends BasicBlockProps {
-  /** The rows within the table. Each row is an array of cells. Required. */
-  rows: SortableTableRow[]
-
-  /** Table header cells. Renders a `<thead>` with a single header row. */
-  head?: SortableTableHeadCell[]
-
-  /** Caption text displayed above the table. Useful for accessibility. */
-  caption?: ResolvableString
-
-  /** CSS classes for the caption. */
-  captionClasses?: ResolvableString
-
-  /** If true, the first cell in each row will be rendered as a header (`<th>`) with row scope. */
-  firstCellIsHeader?: boolean
-
-  /** Additional CSS classes for the table element. */
-  classes?: ResolvableString
-
-  /** Custom HTML attributes for the table element. */
-  attributes?: Record<string, any>
-}
-
-/**
- * MOJ Sortable Table component interface.
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `MOJSortableTableProps` type or the `MOJSortableTable()` wrapper function instead.
- */
-export interface MOJSortableTable extends BlockDefinition, MOJSortableTableProps {
-  /** Component variant identifier */
-  variant: 'mojSortableTable'
-}
-
-/**
- * Renders the MOJ Sortable Table component using the GOV.UK Table template
- * with the moj-sortable-table data-module attribute.
- */
-function sortableTableRenderer(block: EvaluatedBlock<MOJSortableTable>, nunjucksEnv: nunjucks.Environment): string {
-  const params: Record<string, any> = {
-    rows: block.rows,
-    head: block.head,
-    caption: block.caption,
-    captionClasses: block.captionClasses,
-    firstCellIsHeader: block.firstCellIsHeader,
-    classes: block.classes,
-    attributes: {
-      ...block.attributes,
-      'data-module': 'moj-sortable-table',
-    },
-  }
-
-  return nunjucksEnv.render('govuk/components/table/template.njk', { params })
-}
-
-export const mojSortableTable = buildNunjucksComponent<MOJSortableTable>('mojSortableTable', sortableTableRenderer)
-
-/**
- * Creates an MOJ Sortable Table with clickable column headers for sorting.
+ * MOJ Sortable Table component.
+ * A table with clickable column headers for sorting.
  *
  * This is a thin wrapper around the GOV.UK Table that adds the
  * `data-module="moj-sortable-table"` attribute to enable the MOJ JavaScript enhancement.
@@ -172,6 +84,70 @@ export const mojSortableTable = buildNunjucksComponent<MOJSortableTable>('mojSor
  * })
  * ```
  */
-export function MOJSortableTable(props: MOJSortableTableProps): MOJSortableTable {
-  return buildBlock<MOJSortableTable>({ ...props, variant: 'mojSortableTable' })
+export interface MOJSortableTable extends BlockDefinition {
+  /** The rows within the table. Each row is an array of cells. Required. */
+  rows: SortableTableRow[]
+
+  /** Table header cells. Renders a `<thead>` with a single header row. */
+  head?: SortableTableHeadCell[]
+
+  /** Caption text displayed above the table. Useful for accessibility. */
+  caption?: ResolvableString
+
+  /** CSS classes for the caption. */
+  captionClasses?: ResolvableString
+
+  /** If true, the first cell in each row will be rendered as a header (`<th>`) with row scope. */
+  firstCellIsHeader?: boolean
+
+  /** Additional CSS classes for the table element. */
+  classes?: ResolvableString
+
+  /** Custom HTML attributes for the table element. */
+  attributes?: Record<string, any>
 }
+
+/**
+ * MOJ Sortable Table component.
+ * A table with clickable column headers for sorting.
+ *
+ * This is a thin wrapper around the GOV.UK Table that adds the
+ * `data-module="moj-sortable-table"` attribute to enable the MOJ JavaScript enhancement.
+ *
+ * For sorting to work, header cells should contain `<button>` elements.
+ * The JavaScript will handle click events and sort the table rows accordingly.
+ *
+ * @see https://design-patterns.service.justice.gov.uk/components/sortable-table/
+ * @example
+ * ```typescript
+ * MOJSortableTable({
+ *   head: [
+ *     { html: '<button>Name</button>' },
+ *     { html: '<button>Date</button>' },
+ *     { html: '<button>Status</button>' },
+ *   ],
+ *   rows: [
+ *     [{ text: 'John Smith' }, { text: '2024-01-15' }, { text: 'Active' }],
+ *     [{ text: 'Jane Doe' }, { text: '2024-02-20' }, { text: 'Pending' }],
+ *   ],
+ * })
+ * ```
+ */
+export const MOJSortableTable = nunjucksComponent<MOJSortableTable>('mojSortableTable', {
+  render: (props, nunjucksEnv) => {
+    const params: Record<string, any> = {
+      rows: props.rows,
+      head: props.head,
+      caption: props.caption,
+      captionClasses: props.captionClasses,
+      firstCellIsHeader: props.firstCellIsHeader,
+      classes: props.classes,
+      attributes: {
+        ...props.attributes,
+        'data-module': 'moj-sortable-table',
+      },
+    }
+
+    return nunjucksEnv.render('govuk/components/table/template.njk', { params })
+  },
+})

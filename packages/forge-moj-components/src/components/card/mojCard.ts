@@ -1,15 +1,10 @@
-import type nunjucks from 'nunjucks'
-
 import {
-  BasicBlockProps,
   BlockDefinition,
-  ResolvableString,
   ResolvableBoolean,
   ResolvableObject,
-  EvaluatedBlock,
+  ResolvableString,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
  * Heading configuration for the MOJ Card component.
@@ -43,9 +38,10 @@ export interface MOJCardDescription {
 }
 
 /**
- * Props for the MOJCard component.
- * @see https://design-patterns.service.justice.gov.uk/components/card/
+ * MOJ Card component.
+ * A card component for displaying links on dashboards or home pages.
  *
+ * @see https://design-patterns.service.justice.gov.uk/components/card/
  * @example
  * ```typescript
  * MOJCard({
@@ -55,7 +51,7 @@ export interface MOJCardDescription {
  * })
  * ```
  */
-export interface MOJCardProps extends BasicBlockProps {
+export interface MOJCard extends BlockDefinition {
   /**
    * Card heading - can be a simple string or object with additional options.
    * @example 'Search cases'
@@ -84,40 +80,7 @@ export interface MOJCardProps extends BasicBlockProps {
 }
 
 /**
- * MOJ Card Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `MOJCardProps` type or the `MOJCard()` wrapper function instead.
- */
-export interface MOJCard extends BlockDefinition, MOJCardProps {
-  /** Component variant identifier */
-  variant: 'mojCard'
-}
-
-/**
- * Renders an MOJ Card component using Nunjucks template
- */
-function cardRenderer(block: EvaluatedBlock<MOJCard>, nunjucksEnv: nunjucks.Environment): string {
-  const params = {
-    heading: typeof block.heading === 'object' ? block.heading : { text: block.heading },
-    href: block.href,
-    description: block.description
-      ? typeof block.description === 'object'
-        ? block.description
-        : { text: block.description }
-      : undefined,
-    clickable: block.clickable,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('components/card/template.njk', { params })
-}
-
-export const mojCard = buildNunjucksComponent<MOJCard>('mojCard', cardRenderer)
-
-/**
- * Creates an MOJ Card block.
+ * MOJ Card component.
  * A card component for displaying links on dashboards or home pages.
  *
  * @see https://design-patterns.service.justice.gov.uk/components/card/
@@ -130,6 +93,21 @@ export const mojCard = buildNunjucksComponent<MOJCard>('mojCard', cardRenderer)
  * })
  * ```
  */
-export function MOJCard(props: MOJCardProps): MOJCard {
-  return buildBlock<MOJCard>({ ...props, variant: 'mojCard' })
-}
+export const MOJCard = nunjucksComponent<MOJCard>('mojCard', {
+  render: (props, nunjucksEnv) => {
+    const params = {
+      heading: typeof props.heading === 'object' ? props.heading : { text: props.heading },
+      href: props.href,
+      description: props.description
+        ? typeof props.description === 'object'
+          ? props.description
+          : { text: props.description }
+        : undefined,
+      clickable: props.clickable,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('components/card/template.njk', { params })
+  },
+})
