@@ -53,6 +53,27 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.3.5
+
+### For function and component authors
+
+_Conditions, transformers, effects, generators, iterators, component packages_
+
+#### New
+
+- **Single-declaration components.** `component()` - and `nunjucksComponent()`, its
+  Express/Nunjucks form - defines a component from one block interface: the returned value
+  is both the builder authors call with props and the registry entry the framework renders
+  with. Previously a component was four declarations kept in agreement by hand - a props
+  interface, a block interface, a wrapper function and a `buildNunjucksComponent`
+  registration. Field components declare `field: true` and can attach an `inputSchema`,
+  and a `prepare` hook adjusts authored props before the block is built - a date input
+  prepending its ISO formatters, for instance. `nunjucksComponent()` pins the renderer
+  type, so render callbacks get a typed `nunjucks.Environment` with no casting.
+  `buildNunjucksComponent` still works, and its docs now point at the replacement.
+
+---
+
 ## 0.3.4
 
 ### For journey authors
