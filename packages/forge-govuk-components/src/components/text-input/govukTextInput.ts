@@ -1,19 +1,28 @@
 import { z } from 'zod'
 import {
+  FieldBlockDefinition,
   ResolvableBoolean,
   ResolvableString,
-  FieldBlockDefinition,
-  FieldBlockProps,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
 /**
- * Props for the GovUKTextInput component.
+ * GOV.UK Text Input component.
+ * A single-line text input component following the GOV.UK Design System patterns.
+ *
  * @see https://design-system.service.gov.uk/components/text-input/
+ * @example
+ * ```typescript
+ * GovUKTextInput({
+ *   code: 'email',
+ *   label: 'Email address',
+ *   hint: 'We will only use this to contact you about your application',
+ *   autocomplete: 'email',
+ * })
+ * ```
  */
-export interface GovUKTextInputProps extends FieldBlockProps {
+export interface GovUKTextInput extends FieldBlockDefinition {
   /**
    * The ID of the input. Defaults to the value of `code` if not provided.
    * @example 'user-email'
@@ -238,52 +247,8 @@ export interface GovUKTextInputProps extends FieldBlockProps {
   attributes?: Record<string, any>
 }
 
-export const govukTextInput = buildNunjucksComponent<GovUKTextInput>(
-  'govukTextInput',
-  (block, nunjucksEnv) => {
-    const params = {
-      id: block.id ?? block.code,
-      name: block.code,
-      label: normaliseGovukTextParam(block.label),
-      hint: normaliseGovukTextParam(block.hint),
-      value: block.value,
-      type: block.inputType ?? 'text',
-      inputmode: block.inputMode,
-      disabled: block.disabled,
-      autocomplete: block.autocomplete,
-      describedBy: block.describedBy,
-      pattern: block.pattern,
-      spellcheck: block.spellcheck,
-      autocapitalize: block.autocapitalize,
-      prefix: block.prefix,
-      suffix: block.suffix,
-      formGroup: block.formGroup,
-      inputWrapper: block.inputWrapper,
-      classes: block.classes,
-      attributes: block.attributes,
-      errorMessage: normaliseGovukErrorMessage(block.errors),
-    }
-
-    return nunjucksEnv.render('govuk/components/input/template.njk', {
-      params,
-    })
-  },
-  { inputSchema: z.string() },
-)
-
 /**
- * GOV.UK Text Input Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKTextInputProps` type or the `GovUKTextInput()` wrapper function instead.
- */
-export interface GovUKTextInput extends FieldBlockDefinition, GovUKTextInputProps {
-  /** Component variant identifier */
-  variant: 'govukTextInput'
-}
-
-/**
- * Creates a GOV.UK Text Input field.
+ * GOV.UK Text Input component.
  * A single-line text input component following the GOV.UK Design System patterns.
  *
  * @see https://design-system.service.gov.uk/components/text-input/
@@ -297,6 +262,35 @@ export interface GovUKTextInput extends FieldBlockDefinition, GovUKTextInputProp
  * })
  * ```
  */
-export function GovUKTextInput(props: GovUKTextInputProps): GovUKTextInput {
-  return buildField<GovUKTextInput>({ ...props, variant: 'govukTextInput' })
-}
+export const GovUKTextInput = nunjucksComponent<GovUKTextInput>('govukTextInput', {
+  field: true,
+  inputSchema: z.string(),
+  render: (props, nunjucksEnv) => {
+    const params = {
+      id: props.id ?? props.code,
+      name: props.code,
+      label: normaliseGovukTextParam(props.label),
+      hint: normaliseGovukTextParam(props.hint),
+      value: props.value,
+      type: props.inputType ?? 'text',
+      inputmode: props.inputMode,
+      disabled: props.disabled,
+      autocomplete: props.autocomplete,
+      describedBy: props.describedBy,
+      pattern: props.pattern,
+      spellcheck: props.spellcheck,
+      autocapitalize: props.autocapitalize,
+      prefix: props.prefix,
+      suffix: props.suffix,
+      formGroup: props.formGroup,
+      inputWrapper: props.inputWrapper,
+      classes: props.classes,
+      attributes: props.attributes,
+      errorMessage: normaliseGovukErrorMessage(props.errors),
+    }
+
+    return nunjucksEnv.render('govuk/components/input/template.njk', {
+      params,
+    })
+  },
+})

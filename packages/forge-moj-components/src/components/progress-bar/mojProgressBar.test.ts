@@ -1,13 +1,13 @@
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { mojProgressBar } from './mojProgressBar'
+import { MOJProgressBar } from './mojProgressBar'
 
 vi.mock('nunjucks')
 
 describe('mojProgressBar', () => {
   setupComponentTest()
 
-  const helper = new MojComponentTestHelper(mojProgressBar)
+  const helper = new MojComponentTestHelper(MOJProgressBar)
 
   describe('Item data transformation', () => {
     it('should transform item with string label to object format', async () => {

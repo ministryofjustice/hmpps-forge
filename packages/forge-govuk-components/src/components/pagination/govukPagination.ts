@@ -1,14 +1,10 @@
-import type nunjucks from 'nunjucks'
 import {
-  BasicBlockProps,
   BlockDefinition,
   ResolvableArray,
   ResolvableBoolean,
   ResolvableString,
-  EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
  * Pagination link configuration for previous/next navigation.
@@ -66,8 +62,10 @@ export interface PaginationItem {
 }
 
 /**
- * Props for the GovUKPagination component.
- * Provides navigation between pages with previous/next links and numbered page navigation.
+ * GOV.UK Pagination component.
+ *
+ * Use this to navigate between pages. Supports previous/next links with labels, and
+ * numbered page navigation.
  *
  * @see https://design-system.service.gov.uk/components/pagination/
  * @example
@@ -84,7 +82,7 @@ export interface PaginationItem {
  * })
  * ```
  */
-export interface GovUKPaginationProps extends BasicBlockProps {
+export interface GovUKPagination extends BlockDefinition {
   /** Link to the previous page. */
   previous?: PaginationLink
 
@@ -105,37 +103,10 @@ export interface GovUKPaginationProps extends BasicBlockProps {
 }
 
 /**
- * GOV.UK Pagination Component
+ * GOV.UK Pagination component.
  *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKPaginationProps` type or the `GovUKPagination()` wrapper function instead.
- */
-export interface GovUKPagination extends BlockDefinition, GovUKPaginationProps {
-  /** Component variant identifier */
-  variant: 'govukPagination'
-}
-
-/**
- * Renders the GOV.UK Pagination component using the official Nunjucks template.
- */
-function paginationRenderer(block: EvaluatedBlock<GovUKPagination>, nunjucksEnv: nunjucks.Environment): string {
-  const params: Record<string, any> = {
-    previous: block.previous?.visibleWhen === false ? undefined : block.previous,
-    next: block.next?.visibleWhen === false ? undefined : block.next,
-    items: block.items?.filter(item => item.visibleWhen !== false),
-    landmarkLabel: block.landmarkLabel,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('govuk/components/pagination/template.njk', { params })
-}
-
-export const govukPagination = buildNunjucksComponent<GovUKPagination>('govukPagination', paginationRenderer as any)
-
-/**
- * Creates a GOV.UK Pagination for navigating between pages.
- * Supports previous/next links with labels, and numbered page navigation.
+ * Use this to navigate between pages. Supports previous/next links with labels, and
+ * numbered page navigation.
  *
  * @see https://design-system.service.gov.uk/components/pagination/
  * @example
@@ -152,6 +123,17 @@ export const govukPagination = buildNunjucksComponent<GovUKPagination>('govukPag
  * })
  * ```
  */
-export function GovUKPagination(props: GovUKPaginationProps): GovUKPagination {
-  return buildBlock<GovUKPagination>({ ...props, variant: 'govukPagination' })
-}
+export const GovUKPagination = nunjucksComponent<GovUKPagination>('govukPagination', {
+  render: (props, nunjucksEnv) => {
+    const params: Record<string, any> = {
+      previous: props.previous?.visibleWhen === false ? undefined : props.previous,
+      next: props.next?.visibleWhen === false ? undefined : props.next,
+      items: props.items?.filter(item => item.visibleWhen !== false),
+      landmarkLabel: props.landmarkLabel,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('govuk/components/pagination/template.njk', { params })
+  },
+})

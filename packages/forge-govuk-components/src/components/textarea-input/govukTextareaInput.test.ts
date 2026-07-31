@@ -1,13 +1,13 @@
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukTextareaInput } from './govukTextareaInput'
+import { GovUKTextareaInput } from './govukTextareaInput'
 
 vi.mock('nunjucks')
 
 describe('govukTextareaInput', () => {
   setupComponentTest()
 
-  const helper = new GovukComponentTestHelper(govukTextareaInput)
+  const helper = new GovukComponentTestHelper(GovUKTextareaInput)
 
   describe('Data transformation', () => {
     it('sets default values correctly', async () => {

@@ -1,13 +1,17 @@
-import { buildComponent } from '../utils/buildComponent'
-import { block as blockBuilder } from '../../authoring/builders'
+import { component } from '../component'
 import { escapeHtmlEntities } from '../../shared/utils/sanitize'
 import { isRenderedBlock } from '../../authoring/typeguards/structures'
-import type { BasicBlockProps, BlockDefinition, ResolvableString } from '../types/structures.type'
+import type { BlockDefinition, ResolvableString } from '../types/structures.type'
 
 /**
- * Props for the HtmlBlock component.
+ * HTML Block component.
  *
  * Use this to render raw HTML content within forms.
+ *
+ * When `tag` is set, content is wrapped in that element with `classes` and `attributes`
+ * applied directly. When `tag` is not set but `classes`/`attributes` are present, falls
+ * back to a wrapper `<div>`. Content can be a string or an array of rendered blocks
+ * (e.g. from a collection expression), which are concatenated into a single string.
  *
  * **WARNING: XSS Risk — Content is rendered as raw HTML without any sanitization.**
  *
@@ -40,7 +44,7 @@ import type { BasicBlockProps, BlockDefinition, ResolvableString } from '../type
  * })
  * ```
  */
-export interface HtmlBlockProps extends BasicBlockProps {
+export interface HtmlBlock extends BlockDefinition {
   /**
    * HTML tag to render content within. When set, `classes` and `attributes`
    * are applied directly to this element instead of a wrapper `<div>`.
@@ -60,17 +64,6 @@ export interface HtmlBlockProps extends BasicBlockProps {
 
   /** Custom HTML attributes for the element (optional) */
   attributes?: Record<string, any>
-}
-
-/**
- * HTML Block component interface.
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `HtmlBlockProps` type or the `HtmlBlock()` wrapper function instead.
- */
-export interface HtmlBlock extends BlockDefinition, HtmlBlockProps {
-  /** Component variant identifier */
-  variant: 'html'
 }
 
 const VOID_ELEMENTS = new Set([
@@ -102,49 +95,66 @@ const resolveContent = (content: unknown): string => {
 }
 
 /**
- * Renders raw HTML content with an optional element tag.
+ * HTML Block component.
+ *
+ * Use this to render raw HTML content within forms.
  *
  * When `tag` is set, content is wrapped in that element with `classes` and `attributes`
  * applied directly. When `tag` is not set but `classes`/`attributes` are present, falls
- * back to a wrapper `<div>`.
- *
- * Content can be a string or an array of rendered blocks (e.g. from a collection expression),
- * which are concatenated into a single string.
- *
- * **WARNING: Content is embedded directly without sanitization.**
- * Escape any untrusted data with `Transformer.String.EscapeHtml()`.
- */
-export const html = buildComponent<HtmlBlock>('html', block => {
-  const hasAttrs = block.classes || block.attributes
-
-  if (!block.tag && !hasAttrs) {
-    return resolveContent(block.content)
-  }
-
-  const element = block.tag ?? 'div'
-  const classAttr = block.classes ? ` class="${escapeHtmlEntities(block.classes)}"` : ''
-  const customAttrs = block.attributes
-    ? Object.entries(block.attributes)
-        .map(([key, value]) => ` ${escapeHtmlEntities(key)}="${escapeHtmlEntities(String(value))}"`)
-        .join('')
-    : ''
-
-  if (VOID_ELEMENTS.has(element)) {
-    return `<${element}${classAttr}${customAttrs}>`
-  }
-
-  return `<${element}${classAttr}${customAttrs}>${resolveContent(block.content)}</${element}>`
-})
-
-/**
- * Creates an HTML block for rendering raw HTML content.
+ * back to a wrapper `<div>`. Content can be a string or an array of rendered blocks
+ * (e.g. from a collection expression), which are concatenated into a single string.
  *
  * **WARNING: XSS Risk — Content is rendered as raw HTML without any sanitization.**
  *
- * Escape any untrusted data with `Transformer.String.EscapeHtml()` before interpolation.
+ * Any dynamic data interpolated into the content (e.g. via `Format()`, `Data()`, `Item()`)
+ * will be rendered as-is. If that data comes from user input or external sources, it **must**
+ * be escaped using `Transformer.String.EscapeHtml()` to prevent injection attacks.
  *
- * @see {@link HtmlBlockProps} for full documentation and examples.
+ * @example Safe — static developer HTML:
+ * ```typescript
+ * HtmlBlock({
+ *   content: '<p class="govuk-body">Terms of Service</p>',
+ * })
+ * ```
+ *
+ * @example Safe — dynamic data escaped before interpolation:
+ * ```typescript
+ * HtmlBlock({
+ *   content: Format(
+ *     '<p class="govuk-body">%1</p>',
+ *     Data('goalTitle').pipe(Transformer.String.EscapeHtml()),
+ *   ),
+ * })
+ * ```
+ *
+ * @example UNSAFE — dynamic data interpolated without escaping:
+ * ```typescript
+ * // DO NOT do this — vulnerable to XSS if goalTitle contains malicious HTML
+ * HtmlBlock({
+ *   content: Format('<p class="govuk-body">%1</p>', Data('goalTitle')),
+ * })
+ * ```
  */
-export function HtmlBlock(props: HtmlBlockProps): HtmlBlock {
-  return blockBuilder<HtmlBlock>({ ...props, variant: 'html' })
-}
+export const HtmlBlock = component<HtmlBlock>('html', {
+  render: props => {
+    const hasAttrs = props.classes || props.attributes
+
+    if (!props.tag && !hasAttrs) {
+      return resolveContent(props.content)
+    }
+
+    const element = props.tag ?? 'div'
+    const classAttr = props.classes ? ` class="${escapeHtmlEntities(props.classes)}"` : ''
+    const customAttrs = props.attributes
+      ? Object.entries(props.attributes)
+          .map(([key, value]) => ` ${escapeHtmlEntities(key)}="${escapeHtmlEntities(String(value))}"`)
+          .join('')
+      : ''
+
+    if (VOID_ELEMENTS.has(element)) {
+      return `<${element}${classAttr}${customAttrs}>`
+    }
+
+    return `<${element}${classAttr}${customAttrs}>${resolveContent(props.content)}</${element}>`
+  },
+})

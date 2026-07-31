@@ -1,14 +1,10 @@
-import type nunjucks from 'nunjucks'
-
 import {
   BlockDefinition,
   ResolvableString,
   ResolvableBoolean,
   ResolvableArray,
-  EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
  * Navigation item configuration.
@@ -34,69 +30,11 @@ export interface MOJSubNavigationItem {
 }
 
 /**
- * Props for MOJ Sub-Navigation component.
+ * MOJ Sub-Navigation component.
+ * Enables users to navigate secondary sections within a system or service.
  *
- * Based on the MOJ Design Patterns sub-navigation component:
- * https://design-patterns.service.justice.gov.uk/components/sub-navigation/
- *
- * The sub-navigation component enables users to navigate secondary sections
- * within a system or service. Use this component for secondary-level navigation,
- * not for primary or global navigation elements.
- *
- * @example
- * ```typescript
- * MOJSubNavigation({
- *   label: 'Case sections',
- *   items: [
- *     { text: 'Overview', href: '/case/123/overview', active: true },
- *     { text: 'Documents', href: '/case/123/documents' },
- *     { text: 'Timeline', href: '/case/123/timeline' },
- *   ],
- * })
- * ```
- */
-export interface MOJSubNavigationProps {
-  /** The aria-label to add to the navigation container (defaults to "Secondary navigation region") */
-  label?: ResolvableString
-
-  /** Array of navigation items */
-  items: ResolvableArray<MOJSubNavigationItem>
-
-  /** Additional CSS classes for the nav container */
-  classes?: ResolvableString
-
-  /** Additional HTML attributes */
-  attributes?: Record<string, string>
-}
-
-/**
- * MOJ Sub-Navigation component interface.
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use the `MOJSubNavigation()` wrapper function instead.
- */
-export interface MOJSubNavigation extends BlockDefinition, MOJSubNavigationProps {
-  variant: 'mojSubNavigation'
-}
-
-/**
- * Renders an MOJ Sub-Navigation component using Nunjucks template
- */
-function subNavigationRenderer(block: EvaluatedBlock<MOJSubNavigation>, nunjucksEnv: nunjucks.Environment): string {
-  const params = {
-    label: block.label,
-    items: block.items.filter(item => item.visibleWhen !== false),
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('moj/components/sub-navigation/template.njk', { params })
-}
-
-export const mojSubNavigation = buildNunjucksComponent<MOJSubNavigation>('mojSubNavigation', subNavigationRenderer)
-
-/**
- * Creates an MOJ Sub-Navigation component for secondary-level navigation.
+ * Use this component for secondary-level navigation, not for primary or global
+ * navigation elements.
  *
  * @see https://design-patterns.service.justice.gov.uk/components/sub-navigation/
  * @example
@@ -111,6 +49,49 @@ export const mojSubNavigation = buildNunjucksComponent<MOJSubNavigation>('mojSub
  * })
  * ```
  */
-export function MOJSubNavigation(props: MOJSubNavigationProps): MOJSubNavigation {
-  return buildBlock<MOJSubNavigation>({ ...props, variant: 'mojSubNavigation' })
+export interface MOJSubNavigation extends BlockDefinition {
+  /** The aria-label to add to the navigation container (defaults to "Secondary navigation region") */
+  label?: ResolvableString
+
+  /** Array of navigation items */
+  items: ResolvableArray<MOJSubNavigationItem>
+
+  /** Additional CSS classes for the nav container */
+  classes?: ResolvableString
+
+  /** Additional HTML attributes */
+  attributes?: Record<string, string>
 }
+
+/**
+ * MOJ Sub-Navigation component.
+ * Enables users to navigate secondary sections within a system or service.
+ *
+ * Use this component for secondary-level navigation, not for primary or global
+ * navigation elements.
+ *
+ * @see https://design-patterns.service.justice.gov.uk/components/sub-navigation/
+ * @example
+ * ```typescript
+ * MOJSubNavigation({
+ *   label: 'Case sections',
+ *   items: [
+ *     { text: 'Overview', href: '/case/123/overview', active: true },
+ *     { text: 'Documents', href: '/case/123/documents' },
+ *     { text: 'Timeline', href: '/case/123/timeline' },
+ *   ],
+ * })
+ * ```
+ */
+export const MOJSubNavigation = nunjucksComponent<MOJSubNavigation>('mojSubNavigation', {
+  render: (props, nunjucksEnv) => {
+    const params = {
+      label: props.label,
+      items: props.items.filter(item => item.visibleWhen !== false),
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('moj/components/sub-navigation/template.njk', { params })
+  },
+})

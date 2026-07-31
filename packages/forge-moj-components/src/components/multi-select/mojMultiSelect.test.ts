@@ -1,13 +1,13 @@
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { mojMultiSelect } from './mojMultiSelect'
+import { MOJMultiSelect } from './mojMultiSelect'
 
 vi.mock('nunjucks')
 
 describe('mojMultiSelect', () => {
   setupComponentTest()
 
-  const helper = new MojComponentTestHelper(mojMultiSelect)
+  const helper = new MojComponentTestHelper(MOJMultiSelect)
 
   describe('Data transformation', () => {
     it('should pass through rows', async () => {

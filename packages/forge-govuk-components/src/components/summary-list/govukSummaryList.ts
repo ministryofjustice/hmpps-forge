@@ -1,14 +1,11 @@
-import type nunjucks from 'nunjucks'
 import {
-  BasicBlockProps,
   BlockDefinition,
   ResolvableBoolean,
   ResolvableObject,
   ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
@@ -145,113 +142,10 @@ export interface SummaryCard {
 }
 
 /**
- * Props for the GovUKSummaryList component.
+ * GOV.UK Summary List component.
  *
  * Displays a list of key-value pairs, commonly used to summarise information
  * such as form answers in a "check your answers" page.
- *
- * @see https://design-system.service.gov.uk/components/summary-list/
- * @example
- * ```typescript
- * GovUKSummaryList({
- *   rows: [
- *     {
- *       key: { text: 'Name' },
- *       value: { text: 'John Smith' },
- *       actions: {
- *         items: [
- *           { href: '/change-name', text: 'Change', visuallyHiddenText: 'name' },
- *         ],
- *       },
- *     },
- *     {
- *       key: { text: 'Date of birth' },
- *       value: { text: '5 January 1978' },
- *       actions: {
- *         items: [
- *           { href: '/change-dob', text: 'Change', visuallyHiddenText: 'date of birth' },
- *         ],
- *       },
- *     },
- *   ],
- * })
- * ```
- */
-export interface GovUKSummaryListProps extends BasicBlockProps {
-  /** The rows within the summary list. Each row contains a key-value pair. Required. */
-  rows: SummaryListRow[]
-
-  /**
-   * Optional card configuration to wrap the summary list.
-   * If provided, the summary list will be displayed inside a summary card
-   * with an optional title and header actions.
-   */
-  card?: SummaryCard | ResolvableObject<SummaryCard>
-
-  /** Additional CSS classes for the summary list dl element. */
-  classes?: ResolvableString
-
-  /** Custom HTML attributes for the summary list dl element. */
-  attributes?: Record<string, any>
-}
-
-/**
- * GOV.UK Summary List Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKSummaryListProps` type or the `GovUKSummaryList()` wrapper function instead.
- */
-export interface GovUKSummaryList extends BlockDefinition, GovUKSummaryListProps {
-  /** Component variant identifier */
-  variant: 'govukSummaryList'
-}
-
-type EvaluatedSummaryListRow = EvaluatedBlock<GovUKSummaryList>['rows'][number]
-
-/**
- * Renders the GOV.UK Summary List component using the official Nunjucks template.
- */
-function summaryListRenderer(block: EvaluatedBlock<GovUKSummaryList>, nunjucksEnv: nunjucks.Environment): string {
-  const params: Record<string, any> = {
-    rows: block.rows.filter(row => row.visibleWhen !== false).map(normaliseSummaryListRow),
-    card: block.card,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('govuk/components/summary-list/template.njk', { params })
-}
-
-function normaliseSummaryListRow(row: EvaluatedSummaryListRow) {
-  return {
-    ...row,
-    value: normaliseSummaryListValue(row.value),
-  }
-}
-
-function normaliseSummaryListValue(value: EvaluatedSummaryListRow['value'] | undefined) {
-  if (!value) {
-    return undefined
-  }
-
-  const { blocks, ...valueParams } = value
-  const content = normaliseGovukTextHtmlContent({
-    text: value.text,
-    html: value.html,
-    blocks,
-  })
-
-  return {
-    ...valueParams,
-    ...content,
-  }
-}
-
-export const govukSummaryList = buildNunjucksComponent<GovUKSummaryList>('govukSummaryList', summaryListRenderer)
-
-/**
- * Creates a GOV.UK Summary List for displaying key-value pairs.
- * Commonly used on "check your answers" pages to summarise form data.
  *
  * @see https://design-system.service.gov.uk/components/summary-list/
  * @example
@@ -289,6 +183,102 @@ export const govukSummaryList = buildNunjucksComponent<GovUKSummaryList>('govukS
  * })
  * ```
  */
-export function GovUKSummaryList(props: GovUKSummaryListProps): GovUKSummaryList {
-  return buildBlock<GovUKSummaryList>({ ...props, variant: 'govukSummaryList' })
+export interface GovUKSummaryList extends BlockDefinition {
+  /** The rows within the summary list. Each row contains a key-value pair. Required. */
+  rows: SummaryListRow[]
+
+  /**
+   * Optional card configuration to wrap the summary list.
+   * If provided, the summary list will be displayed inside a summary card
+   * with an optional title and header actions.
+   */
+  card?: SummaryCard | ResolvableObject<SummaryCard>
+
+  /** Additional CSS classes for the summary list dl element. */
+  classes?: ResolvableString
+
+  /** Custom HTML attributes for the summary list dl element. */
+  attributes?: Record<string, any>
 }
+
+type EvaluatedSummaryListRow = EvaluatedBlock<GovUKSummaryList>['rows'][number]
+
+function normaliseSummaryListRow(row: EvaluatedSummaryListRow) {
+  return {
+    ...row,
+    value: normaliseSummaryListValue(row.value),
+  }
+}
+
+function normaliseSummaryListValue(value: EvaluatedSummaryListRow['value'] | undefined) {
+  if (!value) {
+    return undefined
+  }
+
+  const { blocks, ...valueParams } = value
+  const content = normaliseGovukTextHtmlContent({
+    text: value.text,
+    html: value.html,
+    blocks,
+  })
+
+  return {
+    ...valueParams,
+    ...content,
+  }
+}
+
+/**
+ * GOV.UK Summary List component.
+ *
+ * Displays a list of key-value pairs, commonly used to summarise information
+ * such as form answers in a "check your answers" page.
+ *
+ * @see https://design-system.service.gov.uk/components/summary-list/
+ * @example
+ * ```typescript
+ * GovUKSummaryList({
+ *   rows: [
+ *     {
+ *       key: { text: 'Name' },
+ *       value: { text: 'John Smith' },
+ *       actions: {
+ *         items: [
+ *           { href: '/change-name', text: 'Change', visuallyHiddenText: 'name' },
+ *         ],
+ *       },
+ *     },
+ *   ],
+ * })
+ * ```
+ *
+ * @example With summary card wrapper
+ * ```typescript
+ * GovUKSummaryList({
+ *   card: {
+ *     title: { text: 'Personal details' },
+ *     actions: {
+ *       items: [
+ *         { href: '/delete', text: 'Delete', visuallyHiddenText: 'personal details' },
+ *       ],
+ *     },
+ *   },
+ *   rows: [
+ *     { key: { text: 'Name' }, value: { text: 'John Smith' } },
+ *     { key: { text: 'Email' }, value: { text: 'john@example.com' } },
+ *   ],
+ * })
+ * ```
+ */
+export const GovUKSummaryList = nunjucksComponent<GovUKSummaryList>('govukSummaryList', {
+  render: (props, nunjucksEnv) => {
+    const params: Record<string, any> = {
+      rows: props.rows.filter(row => row.visibleWhen !== false).map(normaliseSummaryListRow),
+      card: props.card,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('govuk/components/summary-list/template.njk', { params })
+  },
+})

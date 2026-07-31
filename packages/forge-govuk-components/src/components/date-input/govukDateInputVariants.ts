@@ -2,12 +2,11 @@ import { z } from 'zod'
 import {
   ResolvableBoolean,
   ResolvableString,
-  EvaluatedBlock,
   FieldBlockDefinition,
-  FieldBlockProps,
+  ResolvedPropsOf,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { field as buildField, Transformer } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { Transformer } from '@ministryofjustice/hmpps-forge/core/authoring'
 import {
   normaliseGovukErrorMessage,
   normaliseGovukFieldset,
@@ -15,30 +14,9 @@ import {
 } from '../../utils/govukParamNormalisers'
 
 /**
- * Props for GOV.UK Date Input Components.
- *
- * These components provide specialized date input patterns following the GOV.UK Design System.
- * Three variants are available:
- * - Full dates (YYYY-MM-DD) - use `GovUKDateInputFull`
- * - Year-Month combinations (YYYY-MM) - use `GovUKDateInputYearMonth`
- * - Month-Day combinations (MM-DD) for recurring dates - use `GovUKDateInputMonthDay`
- *
- * The wrapper functions automatically add formatters (to convert submitted date parts
- * to an ISO string for storage) and parsers (to convert the stored ISO string back to
- * date parts for display). Enhanced error handling with field-specific error targeting
- * is supported via the `details.field` property.
- *
- * @see https://design-system.service.gov.uk/components/date-input/
- * @example
- * ```typescript
- * GovUKDateInputFull({
- *   code: 'date_of_birth',
- *   label: 'Date of birth',
- *   hint: 'For example, 31 3 1980',
- * })
- * ```
+ * The props shared by every GOV.UK Date Input variant.
  */
-export interface GovUKDateInputProps extends FieldBlockProps {
+export interface GovUKDateInputBase {
   /**
    * The label for the date input component.
    * When using fieldset, this becomes the legend text if no fieldset legend is specified.
@@ -152,38 +130,14 @@ export interface GovUKDateInputProps extends FieldBlockProps {
   attributes?: Record<string, any>
 }
 
-/**
- * GOV.UK Date Input (Day, Month, Year) component interface.
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKDateInputProps` type or the `GovUKDateInputFull()` wrapper function instead.
- */
-export interface GovUKDateInputFull extends FieldBlockDefinition, GovUKDateInputProps {
-  /** Component variant identifier for full date input */
-  variant: 'govukDateInputFull'
-}
+/** GOV.UK Date Input capturing a full date - day, month and year. */
+export interface GovUKDateInputFull extends FieldBlockDefinition, GovUKDateInputBase {}
 
-/**
- * GOV.UK Date Input (Month, Year) component interface.
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKDateInputProps` type or the `GovUKDateInputYearMonth()` wrapper function instead.
- */
-export interface GovUKDateInputYearMonth extends FieldBlockDefinition, GovUKDateInputProps {
-  /** Component variant identifier for year-month input */
-  variant: 'govukDateInputYearMonth'
-}
+/** GOV.UK Date Input capturing a month and year only. */
+export interface GovUKDateInputYearMonth extends FieldBlockDefinition, GovUKDateInputBase {}
 
-/**
- * GOV.UK Date Input (Day, Month) component interface.
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKDateInputProps` type or the `GovUKDateInputMonthDay()` wrapper function instead.
- */
-export interface GovUKDateInputMonthDay extends FieldBlockDefinition, GovUKDateInputProps {
-  /** Component variant identifier for month-day input */
-  variant: 'govukDateInputMonthDay'
-}
+/** GOV.UK Date Input capturing a day and month only. */
+export interface GovUKDateInputMonthDay extends FieldBlockDefinition, GovUKDateInputBase {}
 
 /**
  * Supports field-specific error targeting through validation `details.field` property.
@@ -214,7 +168,7 @@ function combineClasses(...classes: (string | undefined)[]): string | undefined 
  */
 function buildItems(
   fields: Array<{ name: 'day' | 'month' | 'year'; label: string; classes: string }>,
-  block: EvaluatedBlock<GovUKDateInputFull | GovUKDateInputYearMonth | GovUKDateInputMonthDay>,
+  block: ResolvedPropsOf<GovUKDateInputFull | GovUKDateInputYearMonth | GovUKDateInputMonthDay>,
   dateParts: { year?: string; month?: string; day?: string },
   errorDetails?: Record<string, any>,
 ) {
@@ -242,7 +196,7 @@ function buildItems(
  * Creates the parameter object required by the GOV.UK date input template
  */
 function buildParams(
-  block: EvaluatedBlock<GovUKDateInputFull | GovUKDateInputYearMonth | GovUKDateInputMonthDay>,
+  block: ResolvedPropsOf<GovUKDateInputFull | GovUKDateInputYearMonth | GovUKDateInputMonthDay>,
   items: ReturnType<typeof buildItems>,
 ) {
   return {
@@ -256,88 +210,6 @@ function buildParams(
     attributes: block.attributes,
   }
 }
-
-/**
- * Full date input component (YYYY-MM-DD)
- * Renders day, month, and year fields
- */
-export const govukDateInputFull = buildNunjucksComponent<GovUKDateInputFull>(
-  'govukDateInputFull',
-  (block, nunjucksEnv) => {
-    const dateParts = (block.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
-    const errorDetails = block.errors?.[0]?.details
-
-    const items = buildItems(
-      [
-        { name: 'day', label: 'Day', classes: 'govuk-input--width-2' },
-        { name: 'month', label: 'Month', classes: 'govuk-input--width-2' },
-        { name: 'year', label: 'Year', classes: 'govuk-input--width-4' },
-      ],
-      block,
-      dateParts,
-      errorDetails,
-    )
-
-    const params = buildParams(block, items)
-
-    return nunjucksEnv.render('govuk/components/date-input/template.njk', { params })
-  },
-  { inputSchema: z.object({ year: z.string(), month: z.string(), day: z.string() }).partial() },
-)
-
-/**
- * Year and month input component (YYYY-MM)
- * Renders only month and year fields
- */
-export const govukDateInputYearMonth = buildNunjucksComponent<GovUKDateInputYearMonth>(
-  'govukDateInputYearMonth',
-  (block, nunjucksEnv) => {
-    const dateParts = (block.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
-    const errorDetails = block.errors?.[0]?.details
-
-    const items = buildItems(
-      [
-        { name: 'month', label: 'Month', classes: 'govuk-input--width-2' },
-        { name: 'year', label: 'Year', classes: 'govuk-input--width-4' },
-      ],
-      block,
-      dateParts,
-      errorDetails,
-    )
-
-    const params = buildParams(block, items)
-
-    return nunjucksEnv.render('govuk/components/date-input/template.njk', { params })
-  },
-  { inputSchema: z.object({ year: z.string(), month: z.string() }).partial() },
-)
-
-/**
- * Month and day input component (MM-DD)
- * Renders only month and day fields for recurring dates
- */
-export const govukDateInputMonthDay = buildNunjucksComponent<GovUKDateInputMonthDay>(
-  'govukDateInputMonthDay',
-  (block, nunjucksEnv) => {
-    const dateParts = (block.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
-    const errorDetails = block.errors?.[0]?.details
-
-    const items = buildItems(
-      [
-        { name: 'day', label: 'Day', classes: 'govuk-input--width-2' },
-        { name: 'month', label: 'Month', classes: 'govuk-input--width-2' },
-      ],
-      block,
-      dateParts,
-      errorDetails,
-    )
-
-    const params = buildParams(block, items)
-
-    return nunjucksEnv.render('govuk/components/date-input/template.njk', { params })
-  },
-  { inputSchema: z.object({ month: z.string(), day: z.string() }).partial() },
-)
 
 const fullDatePaths = { year: 'year', month: 'month', day: 'day' }
 const yearMonthPaths = { year: 'year', month: 'month' }
@@ -358,14 +230,34 @@ const monthDayPaths = { month: 'month', day: 'day' }
  * })
  * ```
  */
-export function GovUKDateInputFull(props: GovUKDateInputProps): GovUKDateInputFull {
-  return buildField<GovUKDateInputFull>({
+export const GovUKDateInputFull = nunjucksComponent<GovUKDateInputFull>('govukDateInputFull', {
+  field: true,
+  inputSchema: z.object({ year: z.string(), month: z.string(), day: z.string() }).partial(),
+  prepare: props => ({
     ...props,
-    variant: 'govukDateInputFull',
     formatters: [Transformer.Object.ToISO(fullDatePaths), ...(props.formatters ?? [])],
     parsers: [Transformer.Object.FromISO(fullDatePaths), ...(props.parsers ?? [])],
-  })
-}
+  }),
+  render: (props, nunjucksEnv) => {
+    const dateParts = (props.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
+    const errorDetails = props.errors?.[0]?.details
+
+    const items = buildItems(
+      [
+        { name: 'day', label: 'Day', classes: 'govuk-input--width-2' },
+        { name: 'month', label: 'Month', classes: 'govuk-input--width-2' },
+        { name: 'year', label: 'Year', classes: 'govuk-input--width-4' },
+      ],
+      props,
+      dateParts,
+      errorDetails,
+    )
+
+    const params = buildParams(props, items)
+
+    return nunjucksEnv.render('govuk/components/date-input/template.njk', { params })
+  },
+})
 
 /**
  * Creates a GOV.UK Date Input field with month and year only.
@@ -383,14 +275,33 @@ export function GovUKDateInputFull(props: GovUKDateInputProps): GovUKDateInputFu
  * })
  * ```
  */
-export function GovUKDateInputYearMonth(props: GovUKDateInputProps): GovUKDateInputYearMonth {
-  return buildField<GovUKDateInputYearMonth>({
+export const GovUKDateInputYearMonth = nunjucksComponent<GovUKDateInputYearMonth>('govukDateInputYearMonth', {
+  field: true,
+  inputSchema: z.object({ year: z.string(), month: z.string() }).partial(),
+  prepare: props => ({
     ...props,
-    variant: 'govukDateInputYearMonth',
     formatters: [Transformer.Object.ToISO(yearMonthPaths), ...(props.formatters ?? [])],
     parsers: [Transformer.Object.FromISO(yearMonthPaths), ...(props.parsers ?? [])],
-  })
-}
+  }),
+  render: (props, nunjucksEnv) => {
+    const dateParts = (props.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
+    const errorDetails = props.errors?.[0]?.details
+
+    const items = buildItems(
+      [
+        { name: 'month', label: 'Month', classes: 'govuk-input--width-2' },
+        { name: 'year', label: 'Year', classes: 'govuk-input--width-4' },
+      ],
+      props,
+      dateParts,
+      errorDetails,
+    )
+
+    const params = buildParams(props, items)
+
+    return nunjucksEnv.render('govuk/components/date-input/template.njk', { params })
+  },
+})
 
 /**
  * Creates a GOV.UK Date Input field with day and month only.
@@ -408,11 +319,30 @@ export function GovUKDateInputYearMonth(props: GovUKDateInputProps): GovUKDateIn
  * })
  * ```
  */
-export function GovUKDateInputMonthDay(props: GovUKDateInputProps): GovUKDateInputMonthDay {
-  return buildField<GovUKDateInputMonthDay>({
+export const GovUKDateInputMonthDay = nunjucksComponent<GovUKDateInputMonthDay>('govukDateInputMonthDay', {
+  field: true,
+  inputSchema: z.object({ month: z.string(), day: z.string() }).partial(),
+  prepare: props => ({
     ...props,
-    variant: 'govukDateInputMonthDay',
     formatters: [Transformer.Object.ToISO(monthDayPaths), ...(props.formatters ?? [])],
     parsers: [Transformer.Object.FromISO(monthDayPaths), ...(props.parsers ?? [])],
-  })
-}
+  }),
+  render: (props, nunjucksEnv) => {
+    const dateParts = (props.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
+    const errorDetails = props.errors?.[0]?.details
+
+    const items = buildItems(
+      [
+        { name: 'day', label: 'Day', classes: 'govuk-input--width-2' },
+        { name: 'month', label: 'Month', classes: 'govuk-input--width-2' },
+      ],
+      props,
+      dateParts,
+      errorDetails,
+    )
+
+    const params = buildParams(props, items)
+
+    return nunjucksEnv.render('govuk/components/date-input/template.njk', { params })
+  },
+})

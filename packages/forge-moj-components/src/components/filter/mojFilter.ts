@@ -1,15 +1,10 @@
-import type nunjucks from 'nunjucks'
-
 import {
-  BasicBlockProps,
   BlockDefinition,
   ResolvableString,
   ResolvableBoolean,
   ResolvableArray,
-  EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
  * Heading configuration for the filter component.
@@ -87,13 +82,21 @@ export interface MOJFilterSubmit {
 }
 
 /**
- * Props for the MOJFilter component.
+ * MOJ Filter component.
  *
- * The filter component provides a panel for filtering content on a page.
- * It includes a heading, optional display of selected filter tags,
- * and an area for filter form controls.
+ * The filter component displays a panel with filter controls.
+ * It can show currently selected filters as removable tags and
+ * provides an area for form controls to define filter criteria.
  *
  * @see https://design-patterns.service.justice.gov.uk/components/filter
+ * @example
+ * ```typescript
+ * MOJFilter({
+ *   heading: { text: 'Filter' },
+ *   submit: { text: 'Apply filters' },
+ *   optionsHtml: '<div class="govuk-form-group">...filter controls...</div>',
+ * })
+ * ```
  * @example
  * ```typescript
  * MOJFilter({
@@ -116,7 +119,7 @@ export interface MOJFilterSubmit {
  * })
  * ```
  */
-export interface MOJFilterProps extends BasicBlockProps {
+export interface MOJFilter extends BlockDefinition {
   /**
    * Heading for the filter panel.
    * @example { text: 'Filter' }
@@ -159,48 +162,7 @@ export interface MOJFilterProps extends BasicBlockProps {
 }
 
 /**
- * MOJ Filter Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `MOJFilterProps` type or the `MOJFilter()` wrapper function instead.
- */
-export interface MOJFilter extends BlockDefinition, MOJFilterProps {
-  /** Component variant identifier */
-  variant: 'mojFilter'
-}
-
-/**
- * Renders an MOJ Filter component using Nunjucks template
- */
-function filterRenderer(block: EvaluatedBlock<MOJFilter>, nunjucksEnv: nunjucks.Environment): string {
-  const selectedFilters = block.selectedFilters
-    ? {
-        ...block.selectedFilters,
-        categories: block.selectedFilters.categories
-          .filter(category => category.visibleWhen !== false)
-          .map(category => ({
-            ...category,
-            items: category.items.filter(item => item.visibleWhen !== false),
-          })),
-      }
-    : undefined
-
-  const params = {
-    heading: block.heading,
-    selectedFilters,
-    submit: block.submit,
-    optionsHtml: block.optionsHtml,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('moj/components/filter/template.njk', { params })
-}
-
-export const mojFilter = buildNunjucksComponent<MOJFilter>('mojFilter', filterRenderer)
-
-/**
- * Creates an MOJ Filter block for filtering page content.
+ * MOJ Filter component.
  *
  * The filter component displays a panel with filter controls.
  * It can show currently selected filters as removable tags and
@@ -215,7 +177,51 @@ export const mojFilter = buildNunjucksComponent<MOJFilter>('mojFilter', filterRe
  *   optionsHtml: '<div class="govuk-form-group">...filter controls...</div>',
  * })
  * ```
+ * @example
+ * ```typescript
+ * MOJFilter({
+ *   heading: { text: 'Filter' },
+ *   submit: { text: 'Apply filters' },
+ *   optionsHtml: '<div class="govuk-form-group">...filter controls...</div>',
+ *   selectedFilters: {
+ *     heading: { text: 'Selected filters' },
+ *     clearLink: { href: '/clear', text: 'Clear filters' },
+ *     categories: [
+ *       {
+ *         heading: { text: 'Status' },
+ *         items: [
+ *           { text: 'Active', href: '/remove-active' },
+ *           { text: 'Pending', href: '/remove-pending' },
+ *         ],
+ *       },
+ *     ],
+ *   },
+ * })
+ * ```
  */
-export function MOJFilter(props: MOJFilterProps): MOJFilter {
-  return buildBlock<MOJFilter>({ ...props, variant: 'mojFilter' })
-}
+export const MOJFilter = nunjucksComponent<MOJFilter>('mojFilter', {
+  render: (props, nunjucksEnv) => {
+    const selectedFilters = props.selectedFilters
+      ? {
+          ...props.selectedFilters,
+          categories: props.selectedFilters.categories
+            .filter(category => category.visibleWhen !== false)
+            .map(category => ({
+              ...category,
+              items: category.items.filter(item => item.visibleWhen !== false),
+            })),
+        }
+      : undefined
+
+    const params = {
+      heading: props.heading,
+      selectedFilters,
+      submit: props.submit,
+      optionsHtml: props.optionsHtml,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('moj/components/filter/template.njk', { params })
+  },
+})

@@ -1,14 +1,14 @@
 import { StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukAccordion } from './govukAccordion'
+import { GovUKAccordion } from './govukAccordion'
 
 vi.mock('nunjucks')
 
 describe('GOV.UK Accordion Component', () => {
   setupComponentTest()
 
-  const helper = new GovukComponentTestHelper(govukAccordion)
+  const helper = new GovukComponentTestHelper(GovUKAccordion)
 
   describe('Item data transformation', () => {
     it('sets single item with basic heading and content', async () => {

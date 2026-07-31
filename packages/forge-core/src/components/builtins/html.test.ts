@@ -1,4 +1,4 @@
-import { html, HtmlBlock } from './html'
+import { HtmlBlock } from './html'
 import type { EvaluatedBlock } from '../types/structures.type'
 import { StructureType } from '../../authoring/types/enums'
 
@@ -16,7 +16,7 @@ describe('html component', () => {
       content: '<div><p>Test content</p></div>',
     })
 
-    const result = await html.render(block)
+    const result = await HtmlBlock.render(block)
 
     expect(result).toBe('<div><p>Test content</p></div>')
   })
@@ -27,7 +27,7 @@ describe('html component', () => {
       classes: 'custom-class',
     })
 
-    const result = await html.render(block)
+    const result = await HtmlBlock.render(block)
 
     expect(result).toBe('<div class="custom-class"><p>Test content</p></div>')
   })
@@ -41,7 +41,7 @@ describe('html component', () => {
       },
     })
 
-    const result = await html.render(block)
+    const result = await HtmlBlock.render(block)
 
     expect(result).toBe('<div data-test="value" id="test-id"><p>Test content</p></div>')
   })
@@ -55,7 +55,7 @@ describe('html component', () => {
       },
     })
 
-    const result = await html.render(block)
+    const result = await HtmlBlock.render(block)
 
     expect(result).toBe('<div class="custom-class" data-test="value"><p>Test content</p></div>')
   })
@@ -71,7 +71,7 @@ describe('html component', () => {
       `,
     })
 
-    const result = await html.render(block)
+    const result = await HtmlBlock.render(block)
 
     expect(result).toBe(`
         <div>
@@ -83,7 +83,7 @@ describe('html component', () => {
   })
 
   it('should have the correct variant', () => {
-    expect(html.variant).toBe('html')
+    expect(HtmlBlock.variant).toBe('html')
   })
 
   describe('tag element', () => {
@@ -92,7 +92,7 @@ describe('html component', () => {
       const block = mockBlock({ tag: 'p', content: 'Hello world' })
 
       // Act
-      const result = await html.render(block)
+      const result = await HtmlBlock.render(block)
 
       // Assert
       expect(result).toBe('<p>Hello world</p>')
@@ -103,7 +103,7 @@ describe('html component', () => {
       const block = mockBlock({ tag: 'h1', content: 'Title', classes: 'govuk-heading-l' })
 
       // Act
-      const result = await html.render(block)
+      const result = await HtmlBlock.render(block)
 
       // Assert
       expect(result).toBe('<h1 class="govuk-heading-l">Title</h1>')
@@ -114,7 +114,7 @@ describe('html component', () => {
       const block = mockBlock({ tag: 'p', content: 'Text', attributes: { id: 'intro' } })
 
       // Act
-      const result = await html.render(block)
+      const result = await HtmlBlock.render(block)
 
       // Assert
       expect(result).toBe('<p id="intro">Text</p>')
@@ -130,7 +130,7 @@ describe('html component', () => {
       })
 
       // Act
-      const result = await html.render(block)
+      const result = await HtmlBlock.render(block)
 
       // Assert
       expect(result).toBe('<p class="govuk-body" data-test="value">Text</p>')
@@ -141,7 +141,7 @@ describe('html component', () => {
       const block = mockBlock({ tag: 'hr', classes: 'govuk-section-break' })
 
       // Act
-      const result = await html.render(block)
+      const result = await HtmlBlock.render(block)
 
       // Assert
       expect(result).toBe('<hr class="govuk-section-break">')
@@ -152,7 +152,7 @@ describe('html component', () => {
       const block = mockBlock({ tag: 'hr', content: 'should be ignored', classes: 'govuk-section-break' })
 
       // Act
-      const result = await html.render(block)
+      const result = await HtmlBlock.render(block)
 
       // Assert
       expect(result).toBe('<hr class="govuk-section-break">')

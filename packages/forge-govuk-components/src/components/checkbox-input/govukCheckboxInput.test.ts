@@ -1,13 +1,13 @@
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukCheckboxInput } from './govukCheckboxInput'
+import { GovUKCheckboxInput } from './govukCheckboxInput'
 
 vi.mock('nunjucks')
 
 describe('govukCheckboxInput', () => {
   setupComponentTest()
 
-  const helper = new GovukComponentTestHelper(govukCheckboxInput)
+  const helper = new GovukComponentTestHelper(GovUKCheckboxInput)
 
   describe('Data transformation', () => {
     it('sets default values correctly', async () => {
@@ -321,16 +321,16 @@ describe('govukCheckboxInput', () => {
   describe('Registration entry', () => {
     it('should declare an array input schema and force multiple on the entry', () => {
       // Arrange & Act
-      const result = govukCheckboxInput.inputSchema?.safeParse(['email', 'phone'])
+      const result = GovUKCheckboxInput.inputSchema?.safeParse(['email', 'phone'])
 
       // Assert
-      expect(govukCheckboxInput.multiple).toBe(true)
+      expect(GovUKCheckboxInput.multiple).toBe(true)
       expect(result?.success).toBe(true)
     })
 
     it('should reject a scalar string against the array input schema', () => {
       // Arrange & Act
-      const result = govukCheckboxInput.inputSchema?.safeParse('email')
+      const result = GovUKCheckboxInput.inputSchema?.safeParse('email')
 
       // Assert
       expect(result?.success).toBe(false)

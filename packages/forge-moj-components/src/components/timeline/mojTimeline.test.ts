@@ -3,14 +3,14 @@ import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/componen
 
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { mojTimeline } from './mojTimeline'
+import { MOJTimeline } from './mojTimeline'
 
 vi.mock('nunjucks')
 
 describe('mojTimeline', () => {
   setupComponentTest()
 
-  const helper = new MojComponentTestHelper(mojTimeline)
+  const helper = new MojComponentTestHelper(MOJTimeline)
   const renderedBlock = (html: string): RenderedBlock => ({
     block: {
       type: StructureType.BLOCK,

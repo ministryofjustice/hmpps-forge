@@ -1,14 +1,10 @@
-import type nunjucks from 'nunjucks'
-
 import {
-  BasicBlockProps,
   BlockDefinition,
   ResolvableBoolean,
   ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
  * Heading configuration object for card items.
@@ -80,9 +76,10 @@ export interface MOJCardGroupItem {
 }
 
 /**
- * Props for the MOJCardGroup component.
- * @see https://design-patterns.service.justice.gov.uk/components/card/
+ * MOJ Card Group component.
+ * A component for displaying multiple cards in a responsive grid layout.
  *
+ * @see https://design-patterns.service.justice.gov.uk/components/card/
  * @example
  * ```typescript
  * MOJCardGroup({
@@ -90,10 +87,11 @@ export interface MOJCardGroupItem {
  *     { heading: 'Search', href: '/search', description: 'Find records' },
  *     { heading: 'Reports', href: '/reports', description: 'View reports' },
  *   ],
+ *   columns: 2,
  * })
  * ```
  */
-export interface MOJCardGroupProps extends BasicBlockProps {
+export interface MOJCardGroup extends BlockDefinition {
   /** Array of cards to display */
   items: MOJCardGroupItem[]
 
@@ -105,17 +103,6 @@ export interface MOJCardGroupProps extends BasicBlockProps {
 
   /** Additional HTML attributes */
   attributes?: Record<string, string>
-}
-
-/**
- * MOJ Card Group Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `MOJCardGroupProps` type or the `MOJCardGroup()` wrapper function instead.
- */
-export interface MOJCardGroup extends BlockDefinition, MOJCardGroupProps {
-  /** Component variant identifier */
-  variant: 'mojCardGroup'
 }
 
 type EvaluatedMOJCardGroupItem = EvaluatedBlock<MOJCardGroup>['items'][number]
@@ -165,23 +152,7 @@ function isHeadingLevel(value: number | undefined): value is NonNullable<MOJCard
 }
 
 /**
- * Renders an MOJ Card Group component using Nunjucks template
- */
-function cardGroupRenderer(block: EvaluatedBlock<MOJCardGroup>, nunjucksEnv: nunjucks.Environment): string {
-  const params = {
-    items: block.items.filter(item => item.visibleWhen !== false).map(normalizeCardItem),
-    columns: block.columns,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('components/card-group/template.njk', { params })
-}
-
-export const mojCardGroup = buildNunjucksComponent<MOJCardGroup>('mojCardGroup', cardGroupRenderer)
-
-/**
- * Creates an MOJ Card Group block.
+ * MOJ Card Group component.
  * A component for displaying multiple cards in a responsive grid layout.
  *
  * @see https://design-patterns.service.justice.gov.uk/components/card/
@@ -196,6 +167,15 @@ export const mojCardGroup = buildNunjucksComponent<MOJCardGroup>('mojCardGroup',
  * })
  * ```
  */
-export function MOJCardGroup(props: MOJCardGroupProps): MOJCardGroup {
-  return buildBlock<MOJCardGroup>({ ...props, variant: 'mojCardGroup' })
-}
+export const MOJCardGroup = nunjucksComponent<MOJCardGroup>('mojCardGroup', {
+  render: (props, nunjucksEnv) => {
+    const params = {
+      items: props.items.filter(item => item.visibleWhen !== false).map(normalizeCardItem),
+      columns: props.columns,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('components/card-group/template.njk', { params })
+  },
+})

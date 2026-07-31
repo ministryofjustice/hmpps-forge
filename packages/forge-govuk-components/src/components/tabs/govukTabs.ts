@@ -1,13 +1,5 @@
-import type nunjucks from 'nunjucks'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ResolvableBoolean,
-  ResolvableString,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition, ResolvableBoolean, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
@@ -55,108 +47,11 @@ export interface TabItem {
 }
 
 /**
- * Props for the GovUKTabs component.
- * A tabbed content component following GOV.UK Design System patterns.
- * Tabs allow users to navigate between related sections of content, displaying one section at a time.
+ * GOV.UK Tabs component.
  *
- * @see https://design-system.service.gov.uk/components/tabs/
- * @example
- * ```typescript
- * GovUKTabs({
- *   id: 'my-tabs',
- *   items: [
- *     {
- *       id: 'past-day',
- *       label: 'Past day',
- *       panel: { text: 'Content for past day tab' },
- *     },
- *     {
- *       id: 'past-week',
- *       label: 'Past week',
- *       panel: { text: 'Content for past week tab' },
- *     },
- *   ],
- * })
- * ```
- */
-export interface GovUKTabsProps extends BasicBlockProps {
-  /**
-   * Unique ID for the tabs component.
-   * This is used for the main component and to compose the ID attribute for each item.
-   */
-  id: ResolvableString
-
-  /**
-   * Title for the tabs table of contents.
-   * Displayed on mobile where tabs become a table of contents.
-   * Defaults to "Contents".
-   */
-  title?: ResolvableString
-
-  /** The individual tabs within the tabs component. Required. */
-  items: TabItem[]
-
-  /** Additional CSS classes for the tabs element. */
-  classes?: ResolvableString
-
-  /** Custom HTML attributes for the tabs element. */
-  attributes?: Record<string, any>
-}
-
-/**
- * GOV.UK Tabs Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKTabsProps` type or the `GovUKTabs()` wrapper function instead.
- */
-export interface GovUKTabs extends BlockDefinition, GovUKTabsProps {
-  /** Component variant identifier */
-  variant: 'govukTabs'
-}
-
-/**
- * Renders the GOV.UK Tabs component using the official Nunjucks template.
- */
-function tabsRenderer(block: EvaluatedBlock<GovUKTabs>, nunjucksEnv: nunjucks.Environment): string {
-  // Process items, handling child blocks in panel content
-  const processedItems = block.items
-    .filter(item => item.visibleWhen !== false)
-    .map(item => {
-      const panel = normaliseGovukTextHtmlContent({
-        text: item.panel.text,
-        html: item.panel.html,
-        blocks: item.panel.blocks,
-      })
-
-      return {
-        id: item.id,
-        label: item.label,
-        attributes: item.attributes,
-        panel: {
-          text: panel.text,
-          html: panel.html,
-          attributes: item.panel.attributes,
-        },
-      }
-    })
-
-  const params: Record<string, any> = {
-    id: block.id,
-    title: block.title,
-    items: processedItems,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('govuk/components/tabs/template.njk', { params })
-}
-
-export const govukTabs = buildNunjucksComponent<GovUKTabs>('govukTabs', tabsRenderer)
-
-/**
- * Creates a GOV.UK Tabs component with tabbed navigation.
- * Renders as a set of tab buttons that reveal associated content panels.
- * On mobile, tabs are displayed as a table of contents.
+ * Tabs allow users to navigate between related sections of content, displaying one
+ * section at a time. Renders as a set of tab buttons that reveal associated content
+ * panels. On mobile, tabs are displayed as a table of contents.
  *
  * @see https://design-system.service.gov.uk/components/tabs/
  * @example
@@ -197,6 +92,108 @@ export const govukTabs = buildNunjucksComponent<GovUKTabs>('govukTabs', tabsRend
  * })
  * ```
  */
-export function GovUKTabs(props: GovUKTabsProps): GovUKTabs {
-  return buildBlock<GovUKTabs>({ ...props, variant: 'govukTabs' })
+export interface GovUKTabs extends BlockDefinition {
+  /**
+   * Unique ID for the tabs component.
+   * This is used for the main component and to compose the ID attribute for each item.
+   */
+  id: ResolvableString
+
+  /**
+   * Title for the tabs table of contents.
+   * Displayed on mobile where tabs become a table of contents.
+   * Defaults to "Contents".
+   */
+  title?: ResolvableString
+
+  /** The individual tabs within the tabs component. Required. */
+  items: TabItem[]
+
+  /** Additional CSS classes for the tabs element. */
+  classes?: ResolvableString
+
+  /** Custom HTML attributes for the tabs element. */
+  attributes?: Record<string, any>
 }
+
+/**
+ * GOV.UK Tabs component.
+ *
+ * Tabs allow users to navigate between related sections of content, displaying one
+ * section at a time. Renders as a set of tab buttons that reveal associated content
+ * panels. On mobile, tabs are displayed as a table of contents.
+ *
+ * @see https://design-system.service.gov.uk/components/tabs/
+ * @example
+ * ```typescript
+ * GovUKTabs({
+ *   id: 'my-tabs',
+ *   items: [
+ *     {
+ *       id: 'past-day',
+ *       label: 'Past day',
+ *       panel: { text: 'Content for past day tab' },
+ *     },
+ *     {
+ *       id: 'past-week',
+ *       label: 'Past week',
+ *       panel: { text: 'Content for past week tab' },
+ *     },
+ *   ],
+ * })
+ * ```
+ *
+ * @example With child blocks as panel content
+ * ```typescript
+ * GovUKTabs({
+ *   id: 'tabs-with-blocks',
+ *   items: [
+ *     {
+ *       id: 'overview',
+ *       label: 'Overview',
+ *       panel: {
+ *         blocks: [
+ *           GovUKInsetText({ text: 'Important overview information' }),
+ *           GovUKWarningText({ text: 'Warning message' }),
+ *         ],
+ *       },
+ *     },
+ *   ],
+ * })
+ * ```
+ */
+export const GovUKTabs = nunjucksComponent<GovUKTabs>('govukTabs', {
+  render: (props, nunjucksEnv) => {
+    // Process items, handling child blocks in panel content
+    const processedItems = props.items
+      .filter(item => item.visibleWhen !== false)
+      .map(item => {
+        const panel = normaliseGovukTextHtmlContent({
+          text: item.panel.text,
+          html: item.panel.html,
+          blocks: item.panel.blocks,
+        })
+
+        return {
+          id: item.id,
+          label: item.label,
+          attributes: item.attributes,
+          panel: {
+            text: panel.text,
+            html: panel.html,
+            attributes: item.panel.attributes,
+          },
+        }
+      })
+
+    const params: Record<string, any> = {
+      id: props.id,
+      title: props.title,
+      items: processedItems,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('govuk/components/tabs/template.njk', { params })
+  },
+})

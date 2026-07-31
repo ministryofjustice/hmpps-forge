@@ -1,14 +1,11 @@
-import type nunjucks from 'nunjucks'
 import {
-  BasicBlockProps,
   BlockDefinition,
   ResolvableArray,
   ResolvableBoolean,
   ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
@@ -80,8 +77,9 @@ export interface AccordionItem {
 }
 
 /**
- * Props for the GovUKAccordion component.
- * A vertically stacked set of expandable/collapsible sections following GOV.UK Design System patterns.
+ * GOV.UK Accordion component.
+ *
+ * Renders as a vertically stacked set of interactive headings that reveal or hide content.
  *
  * @see https://design-system.service.gov.uk/components/accordion/
  * @example
@@ -101,8 +99,26 @@ export interface AccordionItem {
  *   ],
  * })
  * ```
+ *
+ * @example With child blocks as content
+ * ```typescript
+ * GovUKAccordion({
+ *   id: 'accordion-with-blocks',
+ *   items: [
+ *     {
+ *       heading: { text: 'Section with nested components' },
+ *       content: {
+ *         blocks: [
+ *           GovUKInsetText({ text: 'Important information' }),
+ *           GovUKWarningText({ text: 'Warning message' }),
+ *         ],
+ *       },
+ *     },
+ *   ],
+ * })
+ * ```
  */
-export interface GovUKAccordionProps extends BasicBlockProps {
+export interface GovUKAccordion extends BlockDefinition {
   /**
    * Unique ID for the accordion.
    * Must be unique across the domain if `rememberExpanded` is true, as the expanded state
@@ -147,77 +163,12 @@ export interface GovUKAccordionProps extends BasicBlockProps {
   attributes?: Record<string, any>
 }
 
-/**
- * GOV.UK Accordion Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKAccordionProps` type or the `GovUKAccordion()` wrapper function instead.
- */
-export interface GovUKAccordion extends BlockDefinition, GovUKAccordionProps {
-  /** Component variant identifier */
-  variant: 'govukAccordion'
-}
-
 /** Evaluated accordion item after expression resolution */
 type EvaluatedAccordionItem = EvaluatedBlock<AccordionItem, false>
 
 /**
- * Renders the GOV.UK Accordion component using the official Nunjucks template.
- */
-function accordionRenderer(block: EvaluatedBlock<GovUKAccordion>, nunjucksEnv: nunjucks.Environment): string {
-  // Process items, handling child blocks in content
-  // NOTE: items is typed as ResolvableArray<AccordionItem> which resolves to EvaluatedAccordionItem[] at runtime
-  const items = block.items as EvaluatedAccordionItem[]
-  const processedItems = items
-    .filter(item => item.visibleWhen !== false)
-    .map(item => {
-      const content = normaliseGovukTextHtmlContent({
-        text: item.content.text,
-        html: item.content.html,
-        blocks: item.content.blocks,
-      })
-
-      return {
-        heading: {
-          text: item.heading.html ? undefined : item.heading.text,
-          html: item.heading.html,
-        },
-        summary: item.summary
-          ? {
-              text: item.summary.html ? undefined : item.summary.text,
-              html: item.summary.html,
-            }
-          : undefined,
-        content: {
-          text: content.text,
-          html: content.html,
-        },
-        expanded: item.expanded,
-      }
-    })
-
-  const params: Record<string, any> = {
-    id: block.id,
-    items: processedItems,
-    headingLevel: block.headingLevel,
-    rememberExpanded: block.rememberExpanded,
-    hideAllSectionsText: block.hideAllSectionsText,
-    showAllSectionsText: block.showAllSectionsText,
-    hideSectionText: block.hideSectionText,
-    showSectionText: block.showSectionText,
-    hideSectionAriaLabelText: block.hideSectionAriaLabelText,
-    showSectionAriaLabelText: block.showSectionAriaLabelText,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('govuk/components/accordion/template.njk', { params })
-}
-
-export const govukAccordion = buildNunjucksComponent<GovUKAccordion>('govukAccordion', accordionRenderer)
-
-/**
- * Creates a GOV.UK Accordion with expandable/collapsible sections.
+ * GOV.UK Accordion component.
+ *
  * Renders as a vertically stacked set of interactive headings that reveal or hide content.
  *
  * @see https://design-system.service.gov.uk/components/accordion/
@@ -257,6 +208,54 @@ export const govukAccordion = buildNunjucksComponent<GovUKAccordion>('govukAccor
  * })
  * ```
  */
-export function GovUKAccordion(props: GovUKAccordionProps): GovUKAccordion {
-  return buildBlock<GovUKAccordion>({ ...props, variant: 'govukAccordion' })
-}
+export const GovUKAccordion = nunjucksComponent<GovUKAccordion>('govukAccordion', {
+  render: (props, nunjucksEnv) => {
+    // Process items, handling child blocks in content
+    // NOTE: items is typed as ResolvableArray<AccordionItem> which resolves to EvaluatedAccordionItem[] at runtime
+    const items = props.items as EvaluatedAccordionItem[]
+    const processedItems = items
+      .filter(item => item.visibleWhen !== false)
+      .map(item => {
+        const content = normaliseGovukTextHtmlContent({
+          text: item.content.text,
+          html: item.content.html,
+          blocks: item.content.blocks,
+        })
+
+        return {
+          heading: {
+            text: item.heading.html ? undefined : item.heading.text,
+            html: item.heading.html,
+          },
+          summary: item.summary
+            ? {
+                text: item.summary.html ? undefined : item.summary.text,
+                html: item.summary.html,
+              }
+            : undefined,
+          content: {
+            text: content.text,
+            html: content.html,
+          },
+          expanded: item.expanded,
+        }
+      })
+
+    const params: Record<string, any> = {
+      id: props.id,
+      items: processedItems,
+      headingLevel: props.headingLevel,
+      rememberExpanded: props.rememberExpanded,
+      hideAllSectionsText: props.hideAllSectionsText,
+      showAllSectionsText: props.showAllSectionsText,
+      hideSectionText: props.hideSectionText,
+      showSectionText: props.showSectionText,
+      hideSectionAriaLabelText: props.hideSectionAriaLabelText,
+      showSectionAriaLabelText: props.showSectionAriaLabelText,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('govuk/components/accordion/template.njk', { params })
+  },
+})

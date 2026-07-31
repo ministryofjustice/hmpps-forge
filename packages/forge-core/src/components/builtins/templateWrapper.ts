@@ -1,11 +1,10 @@
-import { buildComponent } from '../utils/buildComponent'
-import { block as blockBuilder } from '../../authoring/builders'
+import { component } from '../component'
 import { isRenderedBlock } from '../../authoring/typeguards/structures'
 import { escapeHtmlEntities } from '../../shared/utils/sanitize'
-import type { BasicBlockProps, BlockDefinition, ResolvableString, EvaluatedBlock } from '../types/structures.type'
+import type { BlockDefinition, ResolvableString } from '../types/structures.type'
 
 /**
- * Props for the TemplateWrapper component.
+ * TemplateWrapper component.
  *
  * Template wrapper allows wrapping child blocks in an HTML template.
  * Slots in the template use the syntax `{{slot:slotName}}` and will be replaced
@@ -37,7 +36,7 @@ import type { BasicBlockProps, BlockDefinition, ResolvableString, EvaluatedBlock
  * })
  * ```
  */
-export interface TemplateWrapperProps extends BasicBlockProps {
+export interface TemplateWrapper extends BlockDefinition {
   /**
    * HTML template with slot markers ({{slot:name}}) and value markers ({{name}}).
    *
@@ -89,17 +88,6 @@ export interface TemplateWrapperProps extends BasicBlockProps {
 }
 
 /**
- * TemplateWrapper Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `TemplateWrapperProps` type or the `TemplateWrapper()` wrapper function instead.
- */
-export interface TemplateWrapper extends BlockDefinition, TemplateWrapperProps {
-  /** Component variant identifier */
-  variant: 'templateWrapper'
-}
-
-/**
  * Extracts a string value from a value that could be:
  * - A plain string
  * - A rendered block (with .html and .block properties)
@@ -118,69 +106,80 @@ const extractStringValue = (value: unknown): string => {
 }
 
 /**
- * Renders the template wrapper by replacing slot markers with rendered block HTML
- * and value markers with their corresponding values.
- */
-const renderTemplateWrapper = (block: EvaluatedBlock<TemplateWrapper>): string => {
-  let content = block.template
-
-  // Replace value markers: {{valueName}}
-  // Values are developer-controlled (not user input), so no escaping needed.
-  // User input flows through form fields and is escaped by Nunjucks at render time.
-  if (block.values) {
-    Object.entries(block.values).forEach(([key, value]) => {
-      const marker = `{{${key}}}`
-      const stringValue = extractStringValue(value)
-      content = content.split(marker).join(stringValue)
-    })
-  }
-
-  // Replace slot markers: {{slot:slotName}}
-  if (block.slots) {
-    Object.entries(block.slots).forEach(([slotName, renderedBlocks]) => {
-      const marker = `{{slot:${slotName}}}`
-      const slotHtml = renderedBlocks.map(b => b.html).join('')
-      content = content.split(marker).join(slotHtml)
-    })
-  }
-
-  // Clean up any unreplaced markers (slots/values that weren't provided)
-  content = content.replace(/\{\{slot:[^}]+}}/g, '')
-  content = content.replace(/\{\{[^}]+}}/g, '')
-
-  const hasWrapper = block.tag || block.classes || block.attributes
-
-  if (hasWrapper) {
-    const element = block.tag ?? 'div'
-    const classAttr = block.classes ? ` class="${escapeHtmlEntities(block.classes)}"` : ''
-    const customAttrs = block.attributes
-      ? Object.entries(block.attributes)
-          .map(([key, value]) => ` ${escapeHtmlEntities(key)}="${escapeHtmlEntities(String(value))}"`)
-          .join('')
-      : ''
-
-    return `<${element}${classAttr}${customAttrs}>${content}</${element}>`
-  }
-
-  return content
-}
-
-export const templateWrapper = buildComponent<TemplateWrapper>('templateWrapper', renderTemplateWrapper as any)
-
-/**
- * Creates a TemplateWrapper block.
- * Wraps child blocks in an HTML template with slot and value substitution.
+ * TemplateWrapper component.
+ *
+ * Template wrapper allows wrapping child blocks in an HTML template.
+ * Slots in the template use the syntax `{{slot:slotName}}` and will be replaced
+ * with the rendered HTML of the corresponding blocks in the `slots` property.
+ *
+ * Values in the template use the syntax `{{valueName}}` and will be replaced
+ * with the corresponding string value from the `values` property.
  *
  * @example
  * ```typescript
  * TemplateWrapper({
- *   template: '<div class="card">{{slot:content}}</div>',
+ *   template: `
+ *     <section class="govuk-section">
+ *       <h2 class="govuk-heading-m">{{title}}</h2>
+ *       {{slot:content}}
+ *       <p class="govuk-body-s">{{footer}}</p>
+ *     </section>
+ *   `,
+ *   values: {
+ *     title: 'Journey Configuration',
+ *     footer: 'See the next page for step configuration.'
+ *   },
  *   slots: {
- *     content: [HtmlBlock({ content: '<p>Card content</p>' })]
+ *     content: [
+ *       HtmlBlock({ content: '<p>Explanation...</p>' }),
+ *       GovUKCodeBlock({ code: '...' }),
+ *     ]
  *   }
  * })
  * ```
  */
-export function TemplateWrapper(props: TemplateWrapperProps): TemplateWrapper {
-  return blockBuilder<TemplateWrapper>({ ...props, variant: 'templateWrapper' })
-}
+export const TemplateWrapper = component<TemplateWrapper>('templateWrapper', {
+  render: props => {
+    let content = props.template
+
+    // Replace value markers: {{valueName}}
+    // Values are developer-controlled (not user input), so no escaping needed.
+    // User input flows through form fields and is escaped by Nunjucks at render time.
+    if (props.values) {
+      Object.entries(props.values).forEach(([key, value]) => {
+        const marker = `{{${key}}}`
+        const stringValue = extractStringValue(value)
+        content = content.split(marker).join(stringValue)
+      })
+    }
+
+    // Replace slot markers: {{slot:slotName}}
+    if (props.slots) {
+      Object.entries(props.slots).forEach(([slotName, renderedBlocks]) => {
+        const marker = `{{slot:${slotName}}}`
+        const slotHtml = renderedBlocks.map(b => b.html).join('')
+        content = content.split(marker).join(slotHtml)
+      })
+    }
+
+    // Clean up any unreplaced markers (slots/values that weren't provided)
+    content = content.replace(/\{\{slot:[^}]+}}/g, '')
+    content = content.replace(/\{\{[^}]+}}/g, '')
+
+    const hasWrapper = props.tag || props.classes || props.attributes
+
+    if (hasWrapper) {
+      const element = props.tag ?? 'div'
+      const classAttr = props.classes ? ` class="${escapeHtmlEntities(props.classes)}"` : ''
+      const customAttrs = props.attributes
+        ? Object.entries(props.attributes)
+            .map(([key, value]) => ` ${escapeHtmlEntities(key)}="${escapeHtmlEntities(String(value))}"`)
+            .join('')
+        : ''
+
+      return `<${element}${classAttr}${customAttrs}>${content}</${element}>`
+    }
+
+    return content
+  },
+})

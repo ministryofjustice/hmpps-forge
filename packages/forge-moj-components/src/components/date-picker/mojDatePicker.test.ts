@@ -1,19 +1,19 @@
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { mojDatePicker } from './mojDatePicker'
+import { MOJDatePicker } from './mojDatePicker'
 
 vi.mock('nunjucks')
 
 describe('mojDatePicker', () => {
   setupComponentTest()
 
-  const helper = new MojComponentTestHelper(mojDatePicker)
+  const helper = new MojComponentTestHelper(MOJDatePicker)
 
   describe('Registration entry', () => {
     it('should accept a scalar string and reject an array against the input schema', () => {
       // Arrange & Act
-      const scalar = mojDatePicker.inputSchema?.safeParse('17/05/2024')
-      const array = mojDatePicker.inputSchema?.safeParse(['17/05/2024'])
+      const scalar = MOJDatePicker.inputSchema?.safeParse('17/05/2024')
+      const array = MOJDatePicker.inputSchema?.safeParse(['17/05/2024'])
 
       // Assert
       expect(scalar?.success).toBe(true)
