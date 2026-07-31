@@ -19,6 +19,10 @@ export type NunjucksComponentRenderer<T extends BlockDefinition> = (
 /**
  * Creates a Nunjucks component that receives its renderer at render time.
  *
+ * Prefer `nunjucksComponent` for new components - one block interface plus one call
+ * replaces the props interface, block interface, wrapper function and this registration.
+ * This function will be deprecated once the built-in components have moved over.
+ *
  * @param variant - The block variant identifier
  * @param render - Render function that receives (block, nunjucksEnv)
  * @param options - Optional input schema and fixed-shape `multiple` override for the entry
