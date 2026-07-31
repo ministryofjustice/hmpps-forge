@@ -1,17 +1,17 @@
 import { z } from 'zod'
 import {
+  FieldBlockDefinition,
   ResolvableBoolean,
   ResolvableNumber,
   ResolvableString,
-  FieldBlockDefinition,
-  FieldBlockProps,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
 /**
- * Props for the GovUKTextareaInput component.
+ * GOV.UK Textarea component.
+ * A multi-line text input field.
+ *
  * @see https://design-system.service.gov.uk/components/textarea/
  * @example
  * ```typescript
@@ -23,7 +23,7 @@ import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils
  * })
  * ```
  */
-export interface GovUKTextareaInputProps extends FieldBlockProps {
+export interface GovUKTextareaInput extends FieldBlockDefinition {
   /**
    * The ID of the textarea. Defaults to the value of `code` if not provided.
    *
@@ -160,46 +160,9 @@ export interface GovUKTextareaInputProps extends FieldBlockProps {
   attributes?: Record<string, any>
 }
 
-export const govukTextareaInput = buildNunjucksComponent<GovUKTextareaInput>(
-  'govukTextarea',
-  (block, nunjucksEnv) => {
-    const params = {
-      id: block.id ?? block.code,
-      name: block.code,
-      spellcheck: block.spellcheck,
-      rows: block.rows || '5',
-      value: block.value,
-      disabled: block.disabled,
-      label: normaliseGovukTextParam(block.label),
-      hint: normaliseGovukTextParam(block.hint),
-      errorMessage: normaliseGovukErrorMessage(block.errors),
-      formGroup: block.formGroup,
-      classes: block.classes,
-      autocomplete: block.autocomplete,
-      describedBy: block.describedBy,
-      attributes: block.attributes,
-    }
-
-    return nunjucksEnv.render('govuk/components/textarea/template.njk', {
-      params,
-    })
-  },
-  { inputSchema: z.string() },
-)
-
 /**
- * GOV.UK Textarea Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKTextareaInputProps` type or the `GovUKTextareaInput()` wrapper function instead.
- */
-export interface GovUKTextareaInput extends FieldBlockDefinition, GovUKTextareaInputProps {
-  /** Component variant identifier */
-  variant: 'govukTextarea'
-}
-
-/**
- * Creates a GOV.UK Textarea field for multi-line text input.
+ * GOV.UK Textarea component.
+ * A multi-line text input field.
  *
  * @see https://design-system.service.gov.uk/components/textarea/
  * @example
@@ -212,6 +175,29 @@ export interface GovUKTextareaInput extends FieldBlockDefinition, GovUKTextareaI
  * })
  * ```
  */
-export function GovUKTextareaInput(props: GovUKTextareaInputProps): GovUKTextareaInput {
-  return buildField<GovUKTextareaInput>({ ...props, variant: 'govukTextarea' })
-}
+export const GovUKTextareaInput = nunjucksComponent<GovUKTextareaInput>('govukTextarea', {
+  field: true,
+  inputSchema: z.string(),
+  render: (props, nunjucksEnv) => {
+    const params = {
+      id: props.id ?? props.code,
+      name: props.code,
+      spellcheck: props.spellcheck,
+      rows: props.rows || '5',
+      value: props.value,
+      disabled: props.disabled,
+      label: normaliseGovukTextParam(props.label),
+      hint: normaliseGovukTextParam(props.hint),
+      errorMessage: normaliseGovukErrorMessage(props.errors),
+      formGroup: props.formGroup,
+      classes: props.classes,
+      autocomplete: props.autocomplete,
+      describedBy: props.describedBy,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('govuk/components/textarea/template.njk', {
+      params,
+    })
+  },
+})

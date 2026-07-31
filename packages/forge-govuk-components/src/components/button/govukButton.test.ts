@@ -1,6 +1,6 @@
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukButton, govukLinkButton } from './govukButton'
+import { GovUKButton, GovUKLinkButton } from './govukButton'
 
 vi.mock('nunjucks')
 
@@ -8,7 +8,7 @@ describe('GOV.UK Button Components', () => {
   setupComponentTest()
 
   describe('govukButton - Standard Button', () => {
-    const helper = new GovukComponentTestHelper(govukButton)
+    const helper = new GovukComponentTestHelper(GovUKButton)
 
     describe('Data transformation', () => {
       it('sets default values correctly', async () => {
@@ -151,7 +151,7 @@ describe('GOV.UK Button Components', () => {
   })
 
   describe('govukLinkButton - Link Button', () => {
-    const helper = new GovukComponentTestHelper(govukLinkButton)
+    const helper = new GovukComponentTestHelper(GovUKLinkButton)
 
     describe('Data transformation', () => {
       it('sets link button defaults correctly', async () => {

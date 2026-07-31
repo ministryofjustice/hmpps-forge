@@ -1,13 +1,13 @@
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukCharacterCount } from './govukCharacterCount'
+import { GovUKCharacterCount } from './govukCharacterCount'
 
 vi.mock('nunjucks')
 
 describe('govukCharacterCount', () => {
   setupComponentTest()
 
-  const helper = new GovukComponentTestHelper(govukCharacterCount)
+  const helper = new GovukComponentTestHelper(GovUKCharacterCount)
 
   describe('Data transformation', () => {
     it('sets default values correctly', async () => {

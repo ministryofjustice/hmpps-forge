@@ -1,17 +1,17 @@
 import { z } from 'zod'
 import {
+  FieldBlockDefinition,
   ResolvableBoolean,
   ResolvableNumber,
   ResolvableString,
-  FieldBlockDefinition,
-  FieldBlockProps,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
 /**
- * Props for the GovUKCharacterCount component.
+ * GOV.UK Character Count component.
+ * Extends textarea with live feedback about remaining characters or words.
+ *
  * @see https://design-system.service.gov.uk/components/character-count/
  * @example
  * ```typescript
@@ -23,7 +23,7 @@ import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils
  * })
  * ```
  */
-export interface GovUKCharacterCountProps extends FieldBlockProps {
+export interface GovUKCharacterCount extends FieldBlockDefinition {
   /**
    * The ID of the textarea. Defaults to the value of `code` if not provided.
    * @example 'feedback-textarea'
@@ -224,56 +224,8 @@ export interface GovUKCharacterCountProps extends FieldBlockProps {
   }
 }
 
-export const govukCharacterCount = buildNunjucksComponent<GovUKCharacterCount>(
-  'govukCharacterCount',
-  (block, nunjucksEnv) => {
-    const id = block.id ?? block.code
-
-    const params = {
-      id,
-      name: block.code,
-      rows: block.rows || '5',
-      value: block.value,
-      maxlength: block.maxWords ? undefined : block.maxLength,
-      maxwords: block.maxWords,
-      threshold: block.threshold,
-      label: normaliseGovukTextParam(block.label),
-      hint: normaliseGovukTextParam(block.hint),
-      errorMessage: normaliseGovukErrorMessage(block.errors),
-      formGroup: block.formGroup,
-      classes: block.classes,
-      attributes: block.attributes,
-      spellcheck: block.spellcheck,
-      countMessage: block.countMessage,
-      textareaDescriptionText: block.textareaDescriptionText,
-      charactersUnderLimitText: block.charactersUnderLimitText,
-      charactersAtLimitText: block.charactersAtLimitText,
-      charactersOverLimitText: block.charactersOverLimitText,
-      wordsUnderLimitText: block.wordsUnderLimitText,
-      wordsAtLimitText: block.wordsAtLimitText,
-      wordsOverLimitText: block.wordsOverLimitText,
-    }
-
-    return nunjucksEnv.render('govuk/components/character-count/template.njk', {
-      params,
-    })
-  },
-  { inputSchema: z.string() },
-)
-
 /**
- * GOV.UK Character Count Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKCharacterCountProps` type or the `GovUKCharacterCount()` wrapper function instead.
- */
-export interface GovUKCharacterCount extends FieldBlockDefinition, GovUKCharacterCountProps {
-  /** Component variant identifier */
-  variant: 'govukCharacterCount'
-}
-
-/**
- * Creates a GOV.UK Character Count textarea field.
+ * GOV.UK Character Count component.
  * Extends textarea with live feedback about remaining characters or words.
  *
  * @see https://design-system.service.gov.uk/components/character-count/
@@ -287,6 +239,39 @@ export interface GovUKCharacterCount extends FieldBlockDefinition, GovUKCharacte
  * })
  * ```
  */
-export function GovUKCharacterCount(props: GovUKCharacterCountProps): GovUKCharacterCount {
-  return buildField<GovUKCharacterCount>({ ...props, variant: 'govukCharacterCount' })
-}
+export const GovUKCharacterCount = nunjucksComponent<GovUKCharacterCount>('govukCharacterCount', {
+  field: true,
+  inputSchema: z.string(),
+  render: (props, nunjucksEnv) => {
+    const id = props.id ?? props.code
+
+    const params = {
+      id,
+      name: props.code,
+      rows: props.rows || '5',
+      value: props.value,
+      maxlength: props.maxWords ? undefined : props.maxLength,
+      maxwords: props.maxWords,
+      threshold: props.threshold,
+      label: normaliseGovukTextParam(props.label),
+      hint: normaliseGovukTextParam(props.hint),
+      errorMessage: normaliseGovukErrorMessage(props.errors),
+      formGroup: props.formGroup,
+      classes: props.classes,
+      attributes: props.attributes,
+      spellcheck: props.spellcheck,
+      countMessage: props.countMessage,
+      textareaDescriptionText: props.textareaDescriptionText,
+      charactersUnderLimitText: props.charactersUnderLimitText,
+      charactersAtLimitText: props.charactersAtLimitText,
+      charactersOverLimitText: props.charactersOverLimitText,
+      wordsUnderLimitText: props.wordsUnderLimitText,
+      wordsAtLimitText: props.wordsAtLimitText,
+      wordsOverLimitText: props.wordsOverLimitText,
+    }
+
+    return nunjucksEnv.render('govuk/components/character-count/template.njk', {
+      params,
+    })
+  },
+})

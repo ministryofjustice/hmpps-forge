@@ -1,18 +1,11 @@
-import type nunjucks from 'nunjucks'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ResolvableString,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
- * Props for the GovUKBackLink component.
+ * GOV.UK Back Link component.
  *
  * Use this to help users go back to the previous page in a multi-page transaction.
- * The back link should be placed at the top of the page, before the main content.
+ * Should be placed at the top of the page, before the main content.
  *
  * @see https://design-system.service.gov.uk/components/back-link/
  * @example
@@ -20,9 +13,15 @@ import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authori
  * GovUKBackLink({
  *   href: '/previous-page',
  * })
+ *
+ * // With custom text
+ * GovUKBackLink({
+ *   href: '/dashboard',
+ *   text: 'Return to dashboard',
+ * })
  * ```
  */
-export interface GovUKBackLinkProps extends BasicBlockProps {
+export interface GovUKBackLink extends BlockDefinition {
   /**
    * The value of the link's `href` attribute.
    * This is the URL that the user will be taken to when they click the back link.
@@ -57,35 +56,9 @@ export interface GovUKBackLinkProps extends BasicBlockProps {
 }
 
 /**
- * GOV.UK Back Link component interface.
+ * GOV.UK Back Link component.
  *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKBackLinkProps` type or the `GovUKBackLink()` wrapper function instead.
- */
-export interface GovUKBackLink extends BlockDefinition, GovUKBackLinkProps {
-  /** Component variant identifier */
-  variant: 'govukBackLink'
-}
-
-/**
- * Renders the GOV.UK Back Link component using the official Nunjucks template.
- */
-function backLinkRenderer(block: EvaluatedBlock<GovUKBackLink>, nunjucksEnv: nunjucks.Environment): string {
-  const params: Record<string, any> = {
-    href: block.href,
-    text: block.html ? undefined : block.text,
-    html: block.html,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('govuk/components/back-link/template.njk', { params })
-}
-
-export const govukBackLink = buildNunjucksComponent<GovUKBackLink>('govukBackLink', backLinkRenderer)
-
-/**
- * Creates a GOV.UK Back Link block for helping users navigate to the previous page.
+ * Use this to help users go back to the previous page in a multi-page transaction.
  * Should be placed at the top of the page, before the main content.
  *
  * @see https://design-system.service.gov.uk/components/back-link/
@@ -102,6 +75,16 @@ export const govukBackLink = buildNunjucksComponent<GovUKBackLink>('govukBackLin
  * })
  * ```
  */
-export function GovUKBackLink(props: GovUKBackLinkProps): GovUKBackLink {
-  return buildBlock<GovUKBackLink>({ ...props, variant: 'govukBackLink' })
-}
+export const GovUKBackLink = nunjucksComponent<GovUKBackLink>('govukBackLink', {
+  render: (props, nunjucksEnv) => {
+    const params: Record<string, any> = {
+      href: props.href,
+      text: props.html ? undefined : props.text,
+      html: props.html,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('govuk/components/back-link/template.njk', { params })
+  },
+})

@@ -1,19 +1,12 @@
-import type nunjucks from 'nunjucks'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ResolvableString,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
- * Props for the GovUKPanel component.
+ * GOV.UK Panel component.
  *
  * Use this to display a confirmation panel, typically shown on confirmation pages
- * at the end of a transaction. The panel has a turquoise background with white text.
+ * at the end of a transaction. Renders with a turquoise background and white text.
  *
  * @see https://design-system.service.gov.uk/components/panel/
  * @example
@@ -24,7 +17,7 @@ import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers
  * })
  * ```
  */
-export interface GovUKPanelProps extends BasicBlockProps {
+export interface GovUKPanel extends BlockDefinition {
   /**
    * Plain text to use within the panel title.
    * Required unless `titleHtml` is provided.
@@ -77,44 +70,10 @@ export interface GovUKPanelProps extends BasicBlockProps {
 }
 
 /**
- * GOV.UK Panel component interface.
+ * GOV.UK Panel component.
  *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKPanelProps` type or the `GovUKPanel()` wrapper function instead.
- */
-export interface GovUKPanel extends BlockDefinition, GovUKPanelProps {
-  /** Component variant identifier */
-  variant: 'govukPanel'
-}
-
-/**
- * Renders the GOV.UK Panel component using the official Nunjucks template.
- */
-function panelRenderer(block: EvaluatedBlock<GovUKPanel>, nunjucksEnv: nunjucks.Environment): string {
-  const content = normaliseGovukTextHtmlContent({
-    text: block.text,
-    html: block.html,
-    blocks: block.blocks,
-  })
-  const params: Record<string, any> = {
-    titleText: block.titleHtml ? undefined : block.titleText,
-    titleHtml: block.titleHtml,
-    headingLevel: block.headingLevel,
-    text: content.text,
-    html: content.html,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('govuk/components/panel/template.njk', { params })
-}
-
-export const govukPanel = buildNunjucksComponent<GovUKPanel>('govukPanel', panelRenderer)
-
-/**
- * Creates a GOV.UK Panel block for displaying confirmation messages.
- * Typically used on confirmation pages at the end of a transaction.
- * Renders with a turquoise background and white text.
+ * Use this to display a confirmation panel, typically shown on confirmation pages
+ * at the end of a transaction. Renders with a turquoise background and white text.
  *
  * @see https://design-system.service.gov.uk/components/panel/
  * @example
@@ -125,6 +84,23 @@ export const govukPanel = buildNunjucksComponent<GovUKPanel>('govukPanel', panel
  * })
  * ```
  */
-export function GovUKPanel(props: GovUKPanelProps): GovUKPanel {
-  return buildBlock<GovUKPanel>({ ...props, variant: 'govukPanel' })
-}
+export const GovUKPanel = nunjucksComponent<GovUKPanel>('govukPanel', {
+  render: (props, nunjucksEnv) => {
+    const content = normaliseGovukTextHtmlContent({
+      text: props.text,
+      html: props.html,
+      blocks: props.blocks,
+    })
+    const params: Record<string, any> = {
+      titleText: props.titleHtml ? undefined : props.titleText,
+      titleHtml: props.titleHtml,
+      headingLevel: props.headingLevel,
+      text: content.text,
+      html: content.html,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('govuk/components/panel/template.njk', { params })
+  },
+})

@@ -3,14 +3,14 @@ import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/componen
 
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukInsetText } from './govukInsetText'
+import { GovUKInsetText } from './govukInsetText'
 
 vi.mock('nunjucks')
 
 describe('GOV.UK Inset Text Component', () => {
   setupComponentTest()
 
-  const helper = new GovukComponentTestHelper(govukInsetText)
+  const helper = new GovukComponentTestHelper(GovUKInsetText)
   const renderedBlock = (html: string): RenderedBlock => ({
     block: {
       type: StructureType.BLOCK,

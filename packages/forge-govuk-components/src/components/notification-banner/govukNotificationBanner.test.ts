@@ -1,14 +1,14 @@
 import { StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukNotificationBanner } from './govukNotificationBanner'
+import { GovUKNotificationBanner } from './govukNotificationBanner'
 
 vi.mock('nunjucks')
 
 describe('GOV.UK Notification Banner Component', () => {
   setupComponentTest()
 
-  const helper = new GovukComponentTestHelper(govukNotificationBanner)
+  const helper = new GovukComponentTestHelper(GovUKNotificationBanner)
 
   describe('Content transformation', () => {
     it('sets text content correctly', async () => {

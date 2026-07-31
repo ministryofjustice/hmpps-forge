@@ -1,13 +1,13 @@
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukTag } from './govukTag'
+import { GovUKTag } from './govukTag'
 
 vi.mock('nunjucks')
 
 describe('GOV.UK Tag Component', () => {
   setupComponentTest()
 
-  const helper = new GovukComponentTestHelper(govukTag)
+  const helper = new GovukComponentTestHelper(GovUKTag)
 
   describe('Data transformation', () => {
     it('sets text content correctly', async () => {

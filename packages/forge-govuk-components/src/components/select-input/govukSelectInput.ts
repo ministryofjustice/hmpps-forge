@@ -1,13 +1,11 @@
 import { z } from 'zod'
 import {
+  FieldBlockDefinition,
   ResolvableArray,
   ResolvableBoolean,
   ResolvableString,
-  FieldBlockDefinition,
-  FieldBlockProps,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
 /**
@@ -29,9 +27,9 @@ export interface SelectItem {
 }
 
 /**
- * Props for the GovUKSelectInput component.
- * @see https://design-system.service.gov.uk/components/select/
+ * GOV.UK Select Input component.
  *
+ * @see https://design-system.service.gov.uk/components/select/
  * @example
  * ```typescript
  * GovUKSelectInput({
@@ -40,11 +38,12 @@ export interface SelectItem {
  *   items: [
  *     { value: '', text: 'Choose an option' },
  *     { value: 'gb', text: 'United Kingdom' },
+ *     { value: 'fr', text: 'France' },
  *   ],
  * })
  * ```
  */
-export interface GovUKSelectInputProps extends FieldBlockProps {
+export interface GovUKSelectInput extends FieldBlockDefinition {
   /**
    * The ID of the select. Defaults to the value of `code` if not provided.
    * @example 'country-select'
@@ -156,44 +155,8 @@ export interface GovUKSelectInputProps extends FieldBlockProps {
   attributes?: Record<string, any>
 }
 
-export const govukSelectInput = buildNunjucksComponent<GovUKSelectInput>(
-  'govukSelectInput',
-  (block, nunjucksEnv) => {
-    const params = {
-      id: block.id ?? block.code,
-      name: block.code,
-      items: block.items.filter(item => item.visibleWhen !== false),
-      label: normaliseGovukTextParam(block.label),
-      hint: normaliseGovukTextParam(block.hint),
-      value: block.value,
-      disabled: block.disabled,
-      describedBy: block.describedBy,
-      formGroup: block.formGroup,
-      classes: block.classes,
-      attributes: block.attributes,
-      errorMessage: normaliseGovukErrorMessage(block.errors),
-    }
-
-    return nunjucksEnv.render('govuk/components/select/template.njk', {
-      params,
-    })
-  },
-  { inputSchema: z.string() },
-)
-
 /**
- * GOV.UK Select Input Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKSelectInputProps` type or the `GovUKSelectInput()` wrapper function instead.
- */
-export interface GovUKSelectInput extends FieldBlockDefinition, GovUKSelectInputProps {
-  /** Component variant identifier */
-  variant: 'govukSelectInput'
-}
-
-/**
- * Creates a GOV.UK Select Input (dropdown) field.
+ * GOV.UK Select Input component.
  *
  * @see https://design-system.service.gov.uk/components/select/
  * @example
@@ -209,6 +172,27 @@ export interface GovUKSelectInput extends FieldBlockDefinition, GovUKSelectInput
  * })
  * ```
  */
-export function GovUKSelectInput(props: GovUKSelectInputProps): GovUKSelectInput {
-  return buildField<GovUKSelectInput>({ ...props, variant: 'govukSelectInput' })
-}
+export const GovUKSelectInput = nunjucksComponent<GovUKSelectInput>('govukSelectInput', {
+  field: true,
+  inputSchema: z.string(),
+  render: (props, nunjucksEnv) => {
+    const params = {
+      id: props.id ?? props.code,
+      name: props.code,
+      items: props.items.filter(item => item.visibleWhen !== false),
+      label: normaliseGovukTextParam(props.label),
+      hint: normaliseGovukTextParam(props.hint),
+      value: props.value,
+      disabled: props.disabled,
+      describedBy: props.describedBy,
+      formGroup: props.formGroup,
+      classes: props.classes,
+      attributes: props.attributes,
+      errorMessage: normaliseGovukErrorMessage(props.errors),
+    }
+
+    return nunjucksEnv.render('govuk/components/select/template.njk', {
+      params,
+    })
+  },
+})

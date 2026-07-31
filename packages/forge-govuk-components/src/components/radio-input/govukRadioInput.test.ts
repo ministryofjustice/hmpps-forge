@@ -2,14 +2,14 @@ import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/au
 import { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukRadioInput } from './govukRadioInput'
+import { GovUKRadioInput } from './govukRadioInput'
 
 vi.mock('nunjucks')
 
 describe('govukRadioInput', () => {
   setupComponentTest()
 
-  const helper = new GovukComponentTestHelper(govukRadioInput)
+  const helper = new GovukComponentTestHelper(GovUKRadioInput)
 
   describe('Data transformation', () => {
     it('sets default values correctly', async () => {

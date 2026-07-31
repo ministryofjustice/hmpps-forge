@@ -1,6 +1,7 @@
+import { Transformer } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukDateInputFull, govukDateInputYearMonth, govukDateInputMonthDay } from './govukDateInputVariants'
+import { GovUKDateInputFull, GovUKDateInputYearMonth, GovUKDateInputMonthDay } from './govukDateInputVariants'
 
 vi.mock('nunjucks')
 
@@ -8,7 +9,33 @@ describe('govukDateInputVariants', () => {
   setupComponentTest()
 
   describe('govukDateInputFull', () => {
-    const helper = new GovukComponentTestHelper(govukDateInputFull)
+    const helper = new GovukComponentTestHelper(GovUKDateInputFull)
+
+    describe('Field building', () => {
+      it('injects the ISO formatter and parser for the full date parts', () => {
+        const datePaths = { year: 'year', month: 'month', day: 'day' }
+
+        const built = GovUKDateInputFull({ code: 'test-date', label: 'Date of birth' })
+
+        expect(built.formatters?.[0]).toEqual(Transformer.Object.ToISO(datePaths))
+        expect(built.parsers?.[0]).toEqual(Transformer.Object.FromISO(datePaths))
+      })
+
+      it('keeps author-supplied formatters after the injected one', () => {
+        const authorFormatter = Transformer.String.Trim()
+
+        const built = GovUKDateInputFull({
+          code: 'test-date',
+          label: 'Date of birth',
+          formatters: [authorFormatter],
+        })
+
+        expect(built.formatters).toEqual([
+          Transformer.Object.ToISO({ year: 'year', month: 'month', day: 'day' }),
+          authorFormatter,
+        ])
+      })
+    })
 
     describe('Data transformation', () => {
       it('sets default values correctly', async () => {
@@ -231,7 +258,7 @@ describe('govukDateInputVariants', () => {
   })
 
   describe('govukDateInputYearMonth', () => {
-    const helper = new GovukComponentTestHelper(govukDateInputYearMonth)
+    const helper = new GovukComponentTestHelper(GovUKDateInputYearMonth)
 
     describe('Data transformation', () => {
       it('creates only month and year fields', async () => {
@@ -311,7 +338,7 @@ describe('govukDateInputVariants', () => {
   })
 
   describe('govukDateInputMonthDay', () => {
-    const helper = new GovukComponentTestHelper(govukDateInputMonthDay)
+    const helper = new GovukComponentTestHelper(GovUKDateInputMonthDay)
 
     describe('Data transformation', () => {
       it('creates only day and month fields', async () => {

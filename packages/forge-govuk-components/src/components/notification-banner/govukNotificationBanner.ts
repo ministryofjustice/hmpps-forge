@@ -1,20 +1,12 @@
-import type nunjucks from 'nunjucks'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ResolvableBoolean,
-  ResolvableString,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition, ResolvableBoolean, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
- * Props for the GovUKNotificationBanner component.
+ * GOV.UK Notification Banner component.
  *
  * Use this to display important notifications to users, such as success messages
- * or important information they need to know about. Follows the GOV.UK Design System patterns.
+ * or important information they need to know about.
  *
  * @see https://design-system.service.gov.uk/components/notification-banner/
  * @example
@@ -29,9 +21,15 @@ import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers
  *   bannerType: 'success',
  *   text: 'Training outcome recorded and trainee withdrawn',
  * })
+ *
+ * // With custom title
+ * GovUKNotificationBanner({
+ *   titleText: 'Application received',
+ *   text: 'We will review your application and get back to you within 5 working days.',
+ * })
  * ```
  */
-export interface GovUKNotificationBannerProps extends BasicBlockProps {
+export interface GovUKNotificationBanner extends BlockDefinition {
   /**
    * The text that displays in the notification banner.
    * You can use any string with this option.
@@ -121,53 +119,10 @@ export interface GovUKNotificationBannerProps extends BasicBlockProps {
 }
 
 /**
- * GOV.UK Notification Banner component interface.
+ * GOV.UK Notification Banner component.
  *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKNotificationBannerProps` type or the `GovUKNotificationBanner()` wrapper function instead.
- */
-export interface GovUKNotificationBanner extends BlockDefinition, GovUKNotificationBannerProps {
-  /** Component variant identifier */
-  variant: 'govukNotificationBanner'
-}
-
-/**
- * Renders the GOV.UK Notification Banner component using the official Nunjucks template.
- */
-function notificationBannerRenderer(
-  block: EvaluatedBlock<GovUKNotificationBanner>,
-  nunjucksEnv: nunjucks.Environment,
-): string {
-  const content = normaliseGovukTextHtmlContent({
-    text: block.text,
-    html: block.html,
-    blocks: block.content,
-  })
-  const params: Record<string, any> = {
-    text: content.text,
-    html: content.html,
-    titleText: block.titleHtml ? undefined : block.titleText,
-    titleHtml: block.titleHtml,
-    titleHeadingLevel: block.titleHeadingLevel,
-    type: block.bannerType,
-    role: block.role,
-    titleId: block.titleId,
-    disableAutoFocus: block.disableAutoFocus,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('govuk/components/notification-banner/template.njk', { params })
-}
-
-export const govukNotificationBanner = buildNunjucksComponent<GovUKNotificationBanner>(
-  'govukNotificationBanner',
-  notificationBannerRenderer as any,
-)
-
-/**
- * Creates a GOV.UK Notification Banner block for displaying important notifications.
- * Use this to show success messages or important information to users.
+ * Use this to display important notifications to users, such as success messages
+ * or important information they need to know about.
  *
  * @see https://design-system.service.gov.uk/components/notification-banner/
  * @example
@@ -190,6 +145,27 @@ export const govukNotificationBanner = buildNunjucksComponent<GovUKNotificationB
  * })
  * ```
  */
-export function GovUKNotificationBanner(props: GovUKNotificationBannerProps): GovUKNotificationBanner {
-  return buildBlock<GovUKNotificationBanner>({ ...props, variant: 'govukNotificationBanner' })
-}
+export const GovUKNotificationBanner = nunjucksComponent<GovUKNotificationBanner>('govukNotificationBanner', {
+  render: (props, nunjucksEnv) => {
+    const content = normaliseGovukTextHtmlContent({
+      text: props.text,
+      html: props.html,
+      blocks: props.content,
+    })
+    const params: Record<string, any> = {
+      text: content.text,
+      html: content.html,
+      titleText: props.titleHtml ? undefined : props.titleText,
+      titleHtml: props.titleHtml,
+      titleHeadingLevel: props.titleHeadingLevel,
+      type: props.bannerType,
+      role: props.role,
+      titleId: props.titleId,
+      disableAutoFocus: props.disableAutoFocus,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('govuk/components/notification-banner/template.njk', { params })
+  },
+})
