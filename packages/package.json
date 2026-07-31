@@ -69,6 +69,24 @@
       "require": "./dist/moj-components/index.cjs",
       "default": "./dist/moj-components/index.mjs"
     },
+    "./jsx-components": {
+      "types": "./dist/jsx-components/index.d.ts",
+      "import": "./dist/jsx-components/index.mjs",
+      "require": "./dist/jsx-components/index.cjs",
+      "default": "./dist/jsx-components/index.mjs"
+    },
+    "./jsx-components/jsx-runtime": {
+      "types": "./dist/jsx-components/jsx-runtime/index.d.ts",
+      "import": "./dist/jsx-components/jsx-runtime/index.mjs",
+      "require": "./dist/jsx-components/jsx-runtime/index.cjs",
+      "default": "./dist/jsx-components/jsx-runtime/index.mjs"
+    },
+    "./jsx-components/jsx-dev-runtime": {
+      "types": "./dist/jsx-components/jsx-dev-runtime/index.d.ts",
+      "import": "./dist/jsx-components/jsx-dev-runtime/index.mjs",
+      "require": "./dist/jsx-components/jsx-dev-runtime/index.cjs",
+      "default": "./dist/jsx-components/jsx-dev-runtime/index.mjs"
+    },
     "./devtools": {
       "types": "./dist/devtools/index.d.ts",
       "import": "./dist/devtools/index.mjs",
