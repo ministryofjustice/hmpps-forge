@@ -8,38 +8,40 @@ import { ExpressionType } from '../types/enums'
 export type BranchValue = string | ResolvableValue
 
 /**
- * Fluent builder for creating conditional expressions.
+ * Immutable fluent builder for creating conditional expressions.
  * Allows chaining of then/else branches after a predicate condition.
+ * Each method returns a NEW instance, so partially-built conditionals
+ * can be safely reused and forked.
  */
 export class ConditionalExprBuilder {
   private readonly predicate: PredicateExpr
 
-  private thenValue: BranchValue = true
+  private readonly thenValue: BranchValue
 
-  private elseValue: BranchValue = false
+  private readonly elseValue: BranchValue
 
-  constructor(predicate: PredicateExpr) {
+  constructor(predicate: PredicateExpr, thenValue: BranchValue = true, elseValue: BranchValue = false) {
     this.predicate = predicate
+    this.thenValue = thenValue
+    this.elseValue = elseValue
   }
 
   /**
    * Sets the value to return when the predicate evaluates to true.
    * @param value - The value or expression to return
-   * @returns This builder for method chaining
+   * @returns A new builder with the then branch set
    */
-  then(value: BranchValue): this {
-    this.thenValue = value
-    return this
+  then(value: BranchValue): ConditionalExprBuilder {
+    return new ConditionalExprBuilder(this.predicate, value, this.elseValue)
   }
 
   /**
    * Sets the value to return when the predicate evaluates to false.
    * @param value - The value or expression to return
-   * @returns This builder for method chaining
+   * @returns A new builder with the else branch set
    */
-  else(value: BranchValue): this {
-    this.elseValue = value
-    return this
+  else(value: BranchValue): ConditionalExprBuilder {
+    return new ConditionalExprBuilder(this.predicate, this.thenValue, value)
   }
 
   /**
@@ -118,13 +120,7 @@ export interface ConditionalOptions {
  * })
  */
 export const Conditional = (options: ConditionalOptions): ConditionalExprBuilder => {
-  const builder = new ConditionalExprBuilder(options.when)
+  const builder = new ConditionalExprBuilder(options.when).then(options.then)
 
-  builder.then(options.then)
-
-  if (options.else !== undefined) {
-    builder.else(options.else)
-  }
-
-  return builder
+  return options.else !== undefined ? builder.else(options.else) : builder
 }
