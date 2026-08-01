@@ -191,8 +191,14 @@ export type ComponentOptions<
  * What `component()` returns: a builder an author calls with props to create a block,
  * which is simultaneously the registry entry the framework renders with.
  *
+ * When every prop is optional the props argument is too, so an all-defaults component
+ * can be built with a bare call - `GovUKSectionBreak()`.
+ *
  * @typeParam TBlock - The component's block definition interface
  * @typeParam TOutput - What the component's render produces
  */
-export type ForgeComponent<TBlock extends BlockDefinition, TOutput = string> = ((props: PropsOf<TBlock>) => TBlock) &
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- `{} extends X` is the every-prop-optional test
+export type ForgeComponent<TBlock extends BlockDefinition, TOutput = string> = ({} extends PropsOf<TBlock>
+  ? (props?: PropsOf<TBlock>) => TBlock
+  : (props: PropsOf<TBlock>) => TBlock) &
   ComponentRegistryEntry<TBlock, TOutput>
