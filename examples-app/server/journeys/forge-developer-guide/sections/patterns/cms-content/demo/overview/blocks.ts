@@ -28,7 +28,7 @@ export const showsList = GovUKList({
     'Rendering dynamic HTML content with CollectionBlock and HtmlBlock',
     'Session-based content storage for a multi-step authoring flow',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const startButton = GovUKLinkButton({

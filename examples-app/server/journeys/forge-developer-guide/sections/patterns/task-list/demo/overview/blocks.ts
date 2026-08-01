@@ -28,7 +28,7 @@ export const showsList = GovUKList({
     'Each section redirects back to the task list after completion',
     'A gated "Check and submit" task that only unlocks when all others are done',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const startButton = GovUKLinkButton({

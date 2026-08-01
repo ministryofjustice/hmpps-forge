@@ -30,7 +30,7 @@ export const showsList = GovUKList({
     'A summary list that formats the date and renders the address as multi-line output',
     'Optional fields that only contribute to the composed display when filled in',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const startButton = GovUKLinkButton({
