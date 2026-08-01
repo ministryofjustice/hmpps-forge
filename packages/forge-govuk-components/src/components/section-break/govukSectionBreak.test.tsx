@@ -8,7 +8,7 @@ describe('GovUKSectionBreak', () => {
   describe('block building', () => {
     it('should stamp the govukSectionBreak variant when called as a builder', () => {
       // Arrange & Act
-      const built = GovUKSectionBreak({})
+      const built = GovUKSectionBreak()
 
       // Assert
       expect(built.variant).toBe('govukSectionBreak')

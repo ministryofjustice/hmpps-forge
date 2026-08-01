@@ -11,7 +11,7 @@ type SectionBreakSize = 'xl' | 'l' | 'm'
  * ```typescript
  * GovUKSectionBreak({ size: 'l', visible: true })
  * GovUKSectionBreak({ size: 'xl' })
- * GovUKSectionBreak({})
+ * GovUKSectionBreak()
  * ```
  */
 export interface GovUKSectionBreak extends BlockDefinition {
@@ -35,7 +35,7 @@ export interface GovUKSectionBreak extends BlockDefinition {
  * @example
  * ```typescript
  * GovUKSectionBreak({ size: 'l', visible: true })
- * GovUKSectionBreak({})
+ * GovUKSectionBreak()
  * ```
  */
 export const GovUKSectionBreak = jsxComponent<GovUKSectionBreak>('govukSectionBreak', {
