@@ -81,6 +81,12 @@ _Definitions, expressions, hooks, navigation, reachability_
   entry. Whether all values are kept is now solely the component's decision - setting
   `multiple` on a field block is a type error, so just remove it. ([#206])
 
+#### New
+
+- **List items can be blocks.** `GovUKList` items may now mix strings with child blocks -
+  `items: ['Plain text', GovUKBody({ ... }), HtmlBlock({ ... })]` renders each block
+  inside its own `<li>`. Previously items were strings only.
+
 [#206]: https://github.com/ministryofjustice/hmpps-forge/pull/206
 
 ---

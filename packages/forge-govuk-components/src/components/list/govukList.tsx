@@ -1,22 +1,27 @@
 import { BlockDefinition, ResolvableArray, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
-import { jsxComponent } from '@ministryofjustice/hmpps-forge/jsx-components'
+import { jsxComponent, raw } from '@ministryofjustice/hmpps-forge/jsx-components'
 
 type ListType = 'bullet' | 'number'
 
 /**
- * GOV.UK styled list rendered from an array of string values.
+ * GOV.UK styled list. Items can be strings, child blocks, or a mix of the two.
  *
  * @see https://design-system.service.gov.uk/styles/lists/
  * @example
  * ```typescript
  * GovUKList({ items: Data('suggestions'), style: 'bullet' })
  * GovUKList({ items: Data('steps'), style: 'number', spaced: true })
- * GovUKList({ items: Data('areas').each(Iterator.Map(Item().path('name'))) })
+ * GovUKList({
+ *   items: [
+ *     GovUKBody({ text: 'A paragraph item' }),
+ *     HtmlBlock({ tag: 'a', attributes: { href: '/help' }, content: 'A link item' }),
+ *   ],
+ * })
  * ```
  */
 export interface GovUKList extends BlockDefinition {
-  /** The list items. An array of strings, or a dynamic expression that evaluates to one. */
-  items: ResolvableArray<ResolvableString>
+  /** The list items - strings, child blocks, or a dynamic expression evaluating to an array. */
+  items: ResolvableArray<ResolvableString | BlockDefinition>
 
   /** List style. 'bullet' for unordered, 'number' for ordered. Omit for plain list. */
   style?: ListType
@@ -32,13 +37,13 @@ export interface GovUKList extends BlockDefinition {
 }
 
 /**
- * GOV.UK styled list rendered from an array of string values.
+ * GOV.UK styled list. Items can be strings, child blocks, or a mix of the two.
  *
  * @see https://design-system.service.gov.uk/styles/lists/
  * @example
  * ```typescript
  * GovUKList({ items: Data('suggestions'), style: 'bullet' })
- * GovUKList({ items: ['First step', 'Second step'], style: 'number' })
+ * GovUKList({ items: ['First step', GovUKBody({ text: 'Second step' })], style: 'number' })
  * ```
  */
 export const GovUKList = jsxComponent<GovUKList>('govukList', {
@@ -53,7 +58,7 @@ export const GovUKList = jsxComponent<GovUKList>('govukList', {
     return (
       <Tag class={className} {...props.attributes}>
         {props.items.map(item => (
-          <li>{item}</li>
+          <li>{typeof item === 'object' && item !== null ? raw(item.html) : item}</li>
         ))}
       </Tag>
     )

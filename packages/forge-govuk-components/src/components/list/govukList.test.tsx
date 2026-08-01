@@ -56,6 +56,27 @@ describe('GovUKList', () => {
       expect(output).toBe('<ul class="govuk-list app-list" data-qa="suggestions"></ul>')
     })
 
+    it('should embed rendered child blocks verbatim as items', () => {
+      // Arrange
+      const items = [
+        'A plain string',
+        { block: { variant: 'govukBody' }, html: '<p class="govuk-body">A block item</p>' },
+        { block: { variant: 'html' }, html: '<a href="/help">A link item</a>' },
+      ]
+
+      // Act
+      const output = render({ items })
+
+      // Assert
+      expect(output).toBe(
+        '<ul class="govuk-list">' +
+          '<li>A plain string</li>' +
+          '<li><p class="govuk-body">A block item</p></li>' +
+          '<li><a href="/help">A link item</a></li>' +
+          '</ul>',
+      )
+    })
+
     it('should escape HTML in the items', () => {
       // Arrange & Act
       const output = render({ items: ['a < b'] })

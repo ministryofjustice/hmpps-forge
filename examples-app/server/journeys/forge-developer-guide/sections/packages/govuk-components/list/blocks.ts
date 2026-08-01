@@ -1,6 +1,7 @@
 import { Data, Literal } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GovUKList } from '@ministryofjustice/hmpps-forge/govuk-components'
+import { GovUKBody, GovUKList } from '@ministryofjustice/hmpps-forge/govuk-components'
 import {
+  HtmlBlock,
   TemplateWrapper,
   type BlockDefinition,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -30,6 +31,15 @@ const numberedExample = GovUKList({
   style: 'number',
 })
 
+const blockItemsExample = GovUKList({
+  items: [
+    'A plain string item',
+    GovUKBody({ text: 'A paragraph item' }),
+    HtmlBlock({ tag: 'a', attributes: { href: '/help' }, content: 'A link item' }),
+  ],
+  style: 'bullet',
+})
+
 export const content = GovUKMarkdownBlock({
   content: Data('content'),
   slots: {
@@ -37,5 +47,6 @@ export const content = GovUKMarkdownBlock({
     'basic-example': [liveDisplay([basicExample])],
     'bullet-example': [liveDisplay([bulletExample])],
     'numbered-example': [liveDisplay([numberedExample])],
+    'block-items-example': [liveDisplay([blockItemsExample])],
   },
 })

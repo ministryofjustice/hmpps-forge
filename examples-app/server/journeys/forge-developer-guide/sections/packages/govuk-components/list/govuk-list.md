@@ -87,6 +87,26 @@ GovUKList({
 
 ---
 
+## Block items
+
+Items can be child blocks instead of strings - or a mix of the two. Each block renders
+inside its own `<li>`.
+
+{{slot:block-items-example}}
+
+```typescript
+GovUKList({
+  items: [
+    'A plain string item',
+    GovUKBody({ text: 'A paragraph item' }),
+    HtmlBlock({ tag: 'a', attributes: { href: '/help' }, content: 'A link item' }),
+  ],
+  style: 'bullet',
+})
+```
+
+---
+
 ## Dynamic items
 
 Use `Data()` to render items from loaded data.
