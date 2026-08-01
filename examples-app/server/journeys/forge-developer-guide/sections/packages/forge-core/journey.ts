@@ -2,6 +2,7 @@ import { journey } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { forgeCoreOverviewStep } from './overview/step'
 import { forgeClassStep } from './forge-class/step'
 import { collectionBlockStep } from './collection-block/step'
+import { fragmentStep } from './fragment/step'
 import { htmlBlockStep } from './html-block/step'
 import { templateWrapperStep } from './template-wrapper/step'
 import { conditionsAddressStep } from './conditions-address/step'
@@ -32,6 +33,7 @@ export const forgeCoreJourney = journey({
     forgeCoreOverviewStep,
     forgeClassStep,
     collectionBlockStep,
+    fragmentStep,
     htmlBlockStep,
     templateWrapperStep,
     conditionsAddressStep,

@@ -1,14 +1,14 @@
 import { StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukTabs } from './govukTabs'
+import { GovUKTabs } from './govukTabs'
 
 vi.mock('nunjucks')
 
 describe('GOV.UK Tabs Component', () => {
   setupComponentTest()
 
-  const helper = new GovukComponentTestHelper(govukTabs)
+  const helper = new GovukComponentTestHelper(GovUKTabs)
 
   describe('Item data transformation', () => {
     it('sets single item with basic id, label, and panel text', async () => {

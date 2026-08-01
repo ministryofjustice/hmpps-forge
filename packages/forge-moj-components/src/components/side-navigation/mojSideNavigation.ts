@@ -1,15 +1,10 @@
-import type nunjucks from 'nunjucks'
-
 import {
-  BasicBlockProps,
   BlockDefinition,
   ResolvableString,
   ResolvableBoolean,
   ResolvableArray,
-  EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
  * Heading configuration for a side navigation section.
@@ -69,9 +64,9 @@ export interface MOJSideNavigationSection {
 }
 
 /**
- * Props for the MOJSideNavigation component.
+ * MOJ Side Navigation component.
+ * A vertical navigation menu component following the MOJ Design Patterns.
  *
- * The side navigation component provides a vertical navigation menu.
  * It can be used in simple mode with just items, or in sectioned mode
  * with grouped items under headings.
  *
@@ -109,7 +104,7 @@ export interface MOJSideNavigationSection {
  * })
  * ```
  */
-export interface MOJSideNavigationProps extends BasicBlockProps {
+export interface MOJSideNavigation extends BlockDefinition {
   /**
    * The aria-label to add to the navigation container.
    * @example 'Side navigation'
@@ -142,57 +137,64 @@ export interface MOJSideNavigationProps extends BasicBlockProps {
 }
 
 /**
- * MOJ Side Navigation Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `MOJSideNavigationProps` type or the `MOJSideNavigation()` wrapper function instead.
- */
-export interface MOJSideNavigation extends BlockDefinition, MOJSideNavigationProps {
-  /** Component variant identifier */
-  variant: 'mojSideNavigation'
-}
-
-/**
- * Renders an MOJ Side Navigation component using Nunjucks template
- */
-function sideNavigationRenderer(block: EvaluatedBlock<MOJSideNavigation>, nunjucksEnv: nunjucks.Environment): string {
-  const items = block.items?.filter(item => item.visibleWhen !== false)
-  const sections = block.sections
-    ?.filter(section => section.visibleWhen !== false)
-    .map(section => ({
-      ...section,
-      items: section.items.filter(item => item.visibleWhen !== false),
-    }))
-
-  const params = {
-    label: block.label,
-    items,
-    sections,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('moj/components/side-navigation/template.njk', { params })
-}
-
-export const mojSideNavigation = buildNunjucksComponent<MOJSideNavigation>('mojSideNavigation', sideNavigationRenderer)
-
-/**
- * Creates an MOJ Side Navigation block.
+ * MOJ Side Navigation component.
  * A vertical navigation menu component following the MOJ Design Patterns.
+ *
+ * It can be used in simple mode with just items, or in sectioned mode
+ * with grouped items under headings.
  *
  * @see https://design-patterns.service.justice.gov.uk/components/side-navigation
  * @example
  * ```typescript
+ * // Simple form - flat list of items
  * MOJSideNavigation({
  *   label: 'Side navigation',
  *   items: [
  *     { text: 'Nav item 1', href: '#1', active: true },
  *     { text: 'Nav item 2', href: '#2' },
+ *     { text: 'Nav item 3', href: '#3' },
+ *   ],
+ * })
+ *
+ * // Sectioned form - items grouped under headings
+ * MOJSideNavigation({
+ *   label: 'Side navigation',
+ *   sections: [
+ *     {
+ *       heading: { text: 'Section 1' },
+ *       items: [
+ *         { text: 'Item 1.1', href: '#1-1', active: true },
+ *         { text: 'Item 1.2', href: '#1-2' },
+ *       ],
+ *     },
+ *     {
+ *       heading: { text: 'Section 2', headingLevel: 3 },
+ *       items: [
+ *         { text: 'Item 2.1', href: '#2-1' },
+ *       ],
+ *     },
  *   ],
  * })
  * ```
  */
-export function MOJSideNavigation(props: MOJSideNavigationProps): MOJSideNavigation {
-  return buildBlock<MOJSideNavigation>({ ...props, variant: 'mojSideNavigation' })
-}
+export const MOJSideNavigation = nunjucksComponent<MOJSideNavigation>('mojSideNavigation', {
+  render: (props, nunjucksEnv) => {
+    const items = props.items?.filter(item => item.visibleWhen !== false)
+    const sections = props.sections
+      ?.filter(section => section.visibleWhen !== false)
+      .map(section => ({
+        ...section,
+        items: section.items.filter(item => item.visibleWhen !== false),
+      }))
+
+    const params = {
+      label: props.label,
+      items,
+      sections,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('moj/components/side-navigation/template.njk', { params })
+  },
+})

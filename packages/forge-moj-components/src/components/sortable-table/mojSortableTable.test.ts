@@ -1,13 +1,13 @@
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { mojSortableTable } from './mojSortableTable'
+import { MOJSortableTable } from './mojSortableTable'
 
 vi.mock('nunjucks')
 
 describe('mojSortableTable', () => {
   setupComponentTest()
 
-  const helper = new MojComponentTestHelper(mojSortableTable)
+  const helper = new MojComponentTestHelper(MOJSortableTable)
 
   describe('Rows transformation', () => {
     it('should pass through rows unchanged', async () => {

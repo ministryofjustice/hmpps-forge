@@ -1,13 +1,13 @@
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { mojSubNavigation } from './mojSubNavigation'
+import { MOJSubNavigation } from './mojSubNavigation'
 
 vi.mock('nunjucks')
 
 describe('mojSubNavigation', () => {
   setupComponentTest()
 
-  const helper = new MojComponentTestHelper(mojSubNavigation)
+  const helper = new MojComponentTestHelper(MOJSubNavigation)
 
   describe('Label transformation', () => {
     it('should pass through label unchanged', async () => {

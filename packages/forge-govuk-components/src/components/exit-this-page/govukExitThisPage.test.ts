@@ -1,13 +1,13 @@
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukExitThisPage } from './govukExitThisPage'
+import { GovUKExitThisPage } from './govukExitThisPage'
 
 vi.mock('nunjucks')
 
 describe('GOV.UK Exit This Page Component', () => {
   setupComponentTest()
 
-  const helper = new GovukComponentTestHelper(govukExitThisPage)
+  const helper = new GovukComponentTestHelper(GovUKExitThisPage)
 
   describe('Data transformation', () => {
     it('sets minimal defaults correctly', async () => {

@@ -1,13 +1,15 @@
-import { html } from './html'
-import { collectionBlock } from './collectionBlock'
-import { templateWrapper } from './templateWrapper'
+import { HtmlBlock } from './html'
+import { CollectionBlock } from './collectionBlock'
+import { TemplateWrapper } from './templateWrapper'
+import { Fragment } from './fragment'
 
-export const coreComponents = [html, collectionBlock, templateWrapper]
+export const coreComponents = [HtmlBlock, CollectionBlock, TemplateWrapper, Fragment]
 
-// Re-export types only (for types that don't have wrapper functions)
+// Re-export supporting types
 export type { EvaluatedCollectionBlock } from './collectionBlock'
 
-// Re-export wrapper functions (types are exported implicitly with the functions)
+// Re-export the components (each const is both the block builder and the registry entry)
 export { HtmlBlock } from './html'
 export { CollectionBlock } from './collectionBlock'
 export { TemplateWrapper } from './templateWrapper'
+export { Fragment } from './fragment'

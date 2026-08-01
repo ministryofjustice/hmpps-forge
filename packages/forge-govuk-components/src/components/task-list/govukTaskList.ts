@@ -1,14 +1,10 @@
-import type nunjucks from 'nunjucks'
 import {
-  BasicBlockProps,
   BlockDefinition,
   ResolvableBoolean,
   ResolvableObject,
   ResolvableString,
-  EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
  * Tag configuration for task status.
@@ -133,89 +129,9 @@ export interface TaskListItem {
 }
 
 /**
- * Props for the GovUKTaskList component.
+ * GOV.UK Task List component.
  *
  * Displays a list of tasks with their completion status.
- * Commonly used to show users a list of tasks they need to complete
- * as part of a multi-step process.
- *
- * @see https://design-system.service.gov.uk/components/task-list/
- * @example
- * ```typescript
- * GovUKTaskList({
- *   items: [
- *     {
- *       title: { text: 'Company information' },
- *       href: '/company-info',
- *       status: {
- *         tag: { text: 'Completed', classes: 'govuk-tag--blue' },
- *       },
- *     },
- *     {
- *       title: { text: 'Contact details' },
- *       hint: { text: 'Include email and phone number' },
- *       href: '/contact-details',
- *       status: {
- *         tag: { text: 'In progress', classes: 'govuk-tag--blue' },
- *       },
- *     },
- *     {
- *       title: { text: 'Submit application' },
- *       status: {
- *         text: 'Cannot start yet',
- *       },
- *     },
- *   ],
- * })
- * ```
- */
-export interface GovUKTaskListProps extends BasicBlockProps {
-  /** The items within the task list. Each item represents a single task. Required. */
-  items: TaskListItem[]
-
-  /** Additional CSS classes for the task list ul element. */
-  classes?: ResolvableString
-
-  /** Custom HTML attributes for the task list ul element. */
-  attributes?: Record<string, any>
-
-  /**
-   * Optional prefix for id attributes.
-   * Used to prefix the id attribute for task list item tags and hints.
-   * Defaults to "task-list".
-   */
-  idPrefix?: ResolvableString
-}
-
-/**
- * GOV.UK Task List Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKTaskListProps` type or the `GovUKTaskList()` wrapper function instead.
- */
-export interface GovUKTaskList extends BlockDefinition, GovUKTaskListProps {
-  /** Component variant identifier */
-  variant: 'govukTaskList'
-}
-
-/**
- * Renders the GOV.UK Task List component using the official Nunjucks template.
- */
-function taskListRenderer(block: EvaluatedBlock<GovUKTaskList>, nunjucksEnv: nunjucks.Environment): string {
-  const params: Record<string, any> = {
-    items: block.items.filter(item => item.visibleWhen !== false),
-    classes: block.classes,
-    attributes: block.attributes,
-    idPrefix: block.idPrefix,
-  }
-
-  return nunjucksEnv.render('govuk/components/task-list/template.njk', { params })
-}
-
-export const govukTaskList = buildNunjucksComponent<GovUKTaskList>('govukTaskList', taskListRenderer)
-
-/**
- * Creates a GOV.UK Task List for displaying tasks with their completion status.
  * Commonly used to show users a list of tasks they need to complete
  * as part of a multi-step process, such as applying for something or registering.
  *
@@ -263,6 +179,84 @@ export const govukTaskList = buildNunjucksComponent<GovUKTaskList>('govukTaskLis
  * })
  * ```
  */
-export function GovUKTaskList(props: GovUKTaskListProps): GovUKTaskList {
-  return buildBlock<GovUKTaskList>({ ...props, variant: 'govukTaskList' })
+export interface GovUKTaskList extends BlockDefinition {
+  /** The items within the task list. Each item represents a single task. Required. */
+  items: TaskListItem[]
+
+  /** Additional CSS classes for the task list ul element. */
+  classes?: ResolvableString
+
+  /** Custom HTML attributes for the task list ul element. */
+  attributes?: Record<string, any>
+
+  /**
+   * Optional prefix for id attributes.
+   * Used to prefix the id attribute for task list item tags and hints.
+   * Defaults to "task-list".
+   */
+  idPrefix?: ResolvableString
 }
+
+/**
+ * GOV.UK Task List component.
+ *
+ * Displays a list of tasks with their completion status.
+ * Commonly used to show users a list of tasks they need to complete
+ * as part of a multi-step process, such as applying for something or registering.
+ *
+ * @see https://design-system.service.gov.uk/components/task-list/
+ * @example
+ * ```typescript
+ * GovUKTaskList({
+ *   items: [
+ *     {
+ *       title: { text: 'Company information' },
+ *       href: '/company-info',
+ *       status: {
+ *         tag: { text: 'Completed', classes: 'govuk-tag--blue' },
+ *       },
+ *     },
+ *     {
+ *       title: { text: 'Contact details' },
+ *       hint: { text: 'Include email and phone number' },
+ *       href: '/contact-details',
+ *       status: {
+ *         tag: { text: 'In progress', classes: 'govuk-tag--blue' },
+ *       },
+ *     },
+ *     {
+ *       title: { text: 'Submit application' },
+ *       status: {
+ *         text: 'Cannot start yet',
+ *       },
+ *     },
+ *   ],
+ * })
+ * ```
+ *
+ * @example With custom id prefix
+ * ```typescript
+ * GovUKTaskList({
+ *   idPrefix: 'registration',
+ *   items: [
+ *     {
+ *       title: { text: 'Personal details' },
+ *       href: '/personal-details',
+ *       status: { tag: { text: 'Completed' } },
+ *     },
+ *   ],
+ * })
+ * ```
+ */
+export const GovUKTaskList = nunjucksComponent<GovUKTaskList>('govukTaskList', {
+  render: (props, nunjucksEnv) => {
+    const params: Record<string, any> = {
+      items: props.items.filter(item => item.visibleWhen !== false),
+      classes: props.classes,
+      attributes: props.attributes,
+      idPrefix: props.idPrefix,
+    }
+
+    return nunjucksEnv.render('govuk/components/task-list/template.njk', { params })
+  },
+})

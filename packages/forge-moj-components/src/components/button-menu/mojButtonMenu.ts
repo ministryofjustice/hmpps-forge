@@ -1,15 +1,10 @@
-import type nunjucks from 'nunjucks'
-
 import {
-  BasicBlockProps,
   BlockDefinition,
   ResolvableString,
   ResolvableBoolean,
   ResolvableArray,
-  EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
  * Menu alignment options for the button menu dropdown.
@@ -139,10 +134,11 @@ export interface MOJButtonMenuItem {
 }
 
 /**
- * Props for the MOJButtonMenu component.
+ * MOJ Button Menu component.
+ * A dropdown button that reveals a menu of actions.
  *
- * The button menu component displays a dropdown button that reveals a menu
- * of actions. It's useful for grouping secondary actions to reduce clutter.
+ * The button menu component is useful for grouping secondary actions together
+ * to reduce visual clutter while keeping them easily accessible.
  *
  * @see https://design-patterns.service.justice.gov.uk/components/button-menu
  * @example
@@ -161,7 +157,7 @@ export interface MOJButtonMenuItem {
  * })
  * ```
  */
-export interface MOJButtonMenuProps extends BasicBlockProps {
+export interface MOJButtonMenu extends BlockDefinition {
   /**
    * Configuration for the toggle button.
    * Sets the text and styling of the button that opens the menu.
@@ -202,35 +198,8 @@ export interface MOJButtonMenuProps extends BasicBlockProps {
 }
 
 /**
- * MOJ Button Menu Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `MOJButtonMenuProps` type or the `MOJButtonMenu()` wrapper function instead.
- */
-export interface MOJButtonMenu extends BlockDefinition, MOJButtonMenuProps {
-  /** Component variant identifier */
-  variant: 'mojButtonMenu'
-}
-
-/**
- * Renders an MOJ Button Menu component using Nunjucks template
- */
-function buttonMenuRenderer(block: EvaluatedBlock<MOJButtonMenu>, nunjucksEnv: nunjucks.Environment): string {
-  const params = {
-    button: block.button,
-    alignMenu: block.alignMenu,
-    items: block.items.filter(item => item.visibleWhen !== false),
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('moj/components/button-menu/template.njk', { params })
-}
-
-export const mojButtonMenu = buildNunjucksComponent<MOJButtonMenu>('mojButtonMenu', buttonMenuRenderer)
-
-/**
- * Creates an MOJ Button Menu block for displaying a dropdown menu of actions.
+ * MOJ Button Menu component.
+ * A dropdown button that reveals a menu of actions.
  *
  * The button menu component is useful for grouping secondary actions together
  * to reduce visual clutter while keeping them easily accessible.
@@ -252,6 +221,16 @@ export const mojButtonMenu = buildNunjucksComponent<MOJButtonMenu>('mojButtonMen
  * })
  * ```
  */
-export function MOJButtonMenu(props: MOJButtonMenuProps): MOJButtonMenu {
-  return buildBlock<MOJButtonMenu>({ ...props, variant: 'mojButtonMenu' })
-}
+export const MOJButtonMenu = nunjucksComponent<MOJButtonMenu>('mojButtonMenu', {
+  render: (props, nunjucksEnv) => {
+    const params = {
+      button: props.button,
+      alignMenu: props.alignMenu,
+      items: props.items.filter(item => item.visibleWhen !== false),
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('moj/components/button-menu/template.njk', { params })
+  },
+})

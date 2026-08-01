@@ -5,10 +5,8 @@ import {
   ResolvableString,
   EvaluatedBlock,
   FieldBlockDefinition,
-  FieldBlockProps,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import {
   normaliseGovukErrorMessage,
   normaliseGovukFieldset,
@@ -18,9 +16,10 @@ import {
 } from '../../utils/govukParamNormalisers'
 
 /**
- * Props for the GovUKRadioInput component.
- * @see https://design-system.service.gov.uk/components/radios/
+ * GOV.UK Radio Input component.
+ * Allows users to select a single option from a list of mutually exclusive choices.
  *
+ * @see https://design-system.service.gov.uk/components/radios/
  * @example
  * ```typescript
  * GovUKRadioInput({
@@ -29,11 +28,12 @@ import {
  *   items: [
  *     { value: 'email', text: 'Email' },
  *     { value: 'phone', text: 'Phone' },
+ *     { value: 'text', text: 'Text message' },
  *   ],
  * })
  * ```
  */
-export interface GovUKRadioInputProps extends FieldBlockProps {
+export interface GovUKRadioInput extends FieldBlockDefinition {
   /**
    * The label for the radio group.
    * When using fieldset, this becomes the legend text if no fieldset legend is specified.
@@ -260,32 +260,50 @@ interface GovUKRadioInputDivider {
   visibleWhen?: ResolvableBoolean
 }
 
-export const govukRadioInput = buildNunjucksComponent<GovUKRadioInput>(
-  'govukRadioInput',
-  (block, nunjucksEnv) => {
-    const items = block.items
+/**
+ * GOV.UK Radio Input component.
+ * Allows users to select a single option from a list of mutually exclusive choices.
+ *
+ * @see https://design-system.service.gov.uk/components/radios/
+ * @example
+ * ```typescript
+ * GovUKRadioInput({
+ *   code: 'contact_method',
+ *   label: 'How would you like to be contacted?',
+ *   items: [
+ *     { value: 'email', text: 'Email' },
+ *     { value: 'phone', text: 'Phone' },
+ *     { value: 'text', text: 'Text message' },
+ *   ],
+ * })
+ * ```
+ */
+export const GovUKRadioInput = nunjucksComponent<GovUKRadioInput>('govukRadioInput', {
+  field: true,
+  inputSchema: z.string(),
+  render: (props, nunjucksEnv) => {
+    const items = props.items
       .filter(option => option.visibleWhen !== false)
-      .map(option => makeOption(option, block.value as string))
+      .map(option => makeOption(option, props.value as string))
 
     const params = {
-      fieldset: normaliseGovukFieldset(block.fieldset, block.label),
-      idPrefix: block.idPrefix || block.code,
-      name: block.code,
-      value: block.value,
-      formGroup: block.formGroup,
-      hint: normaliseGovukTextParam(block.hint),
+      fieldset: normaliseGovukFieldset(props.fieldset, props.label),
+      idPrefix: props.idPrefix || props.code,
+      name: props.code,
+      value: props.value,
+      formGroup: props.formGroup,
+      hint: normaliseGovukTextParam(props.hint),
       items,
-      classes: block.classes,
-      attributes: block.attributes,
-      errorMessage: normaliseGovukErrorMessage(block.errors),
+      classes: props.classes,
+      attributes: props.attributes,
+      errorMessage: normaliseGovukErrorMessage(props.errors),
     }
 
     return nunjucksEnv.render('govuk/components/radios/template.njk', {
       params,
     })
   },
-  { inputSchema: z.string() },
-)
+})
 
 const getConditionalContent = (block: GovukRenderedBlockContent) => {
   const html = renderGovukBlocksToHtml(block)
@@ -323,37 +341,4 @@ function isRadioDivider(
 ): option is EvaluatedBlock<GovUKRadioInputDivider>
 function isRadioDivider(option: any): option is GovUKRadioInputDivider {
   return option != null && typeof option === 'object' && 'divider' in option && !('value' in option) // prefer Divider if both accidentally exist
-}
-
-/**
- * GOV.UK Radio Input Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKRadioInputProps` type or the `GovUKRadioInput()` wrapper function instead.
- */
-export interface GovUKRadioInput extends FieldBlockDefinition, GovUKRadioInputProps {
-  /** Component variant identifier */
-  variant: 'govukRadioInput'
-}
-
-/**
- * Creates a GOV.UK Radio Input field.
- * Allows users to select a single option from a list of mutually exclusive choices.
- *
- * @see https://design-system.service.gov.uk/components/radios/
- * @example
- * ```typescript
- * GovUKRadioInput({
- *   code: 'contact_method',
- *   label: 'How would you like to be contacted?',
- *   items: [
- *     { value: 'email', text: 'Email' },
- *     { value: 'phone', text: 'Phone' },
- *     { value: 'text', text: 'Text message' },
- *   ],
- * })
- * ```
- */
-export function GovUKRadioInput(props: GovUKRadioInputProps): GovUKRadioInput {
-  return buildField<GovUKRadioInput>({ ...props, variant: 'govukRadioInput' })
 }

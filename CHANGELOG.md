@@ -53,6 +53,70 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.3.5
+
+This release we focused on improving the experience for building components - defining
+one is now a single `component()` declaration, and there's an experimental JSX runtime
+for writing renders in real markup. There's also a new `Fragment` core component for
+grouping blocks without adding a wrapper element.
+
+### For journey authors
+
+_Definitions, expressions, hooks, navigation, reachability_
+
+#### New
+
+- **Fragment component.** Groups child blocks without adding a wrapper element - the
+  blocks render back-to-back exactly as they would as siblings. Previously anywhere
+  expecting a single block (most commonly the template of an `Iterator.Map()`) meant
+  wrapping multiple components in an `HtmlBlock` and taking an extra `<div>` with it.
+  Now `Fragment({ blocks: [...] })` outputs them all with nothing extra, and
+  `visibleWhen` on the fragment shows or hides the whole group. ([#204])
+
+---
+
+### For function and component authors
+
+_Conditions, transformers, effects, generators, iterators, component packages_
+
+#### New
+
+- **Single-declaration components.** `component()` - and `nunjucksComponent()`, its
+  Express/Nunjucks form - defines a component from one block interface: the returned value
+  is both the builder authors call with props and the registry entry the framework renders
+  with. Previously a component was four declarations kept in agreement by hand - a props
+  interface, a block interface, a wrapper function and a `buildNunjucksComponent`
+  registration. Field components declare `field: true` and can attach an `inputSchema`,
+  and a `prepare` hook adjusts authored props before the block is built - a date input
+  prepending its ISO formatters, for instance. `nunjucksComponent()` pins the renderer
+  type, so render callbacks get a typed `nunjucks.Environment` with no casting.
+  `buildNunjucksComponent` still works, and its docs now point at the replacement.
+  ([#199], [#200])
+
+- **JSX components (experimental).** `jsxComponent()` in the new
+  `@ministryofjustice/hmpps-forge/jsx-components` package defines a component whose render
+  is written in JSX - compiled to plain escaped HTML strings by the package's own runtime,
+  no React or other framework underneath. Point TypeScript at it (`"jsx": "react-jsx"`,
+  `"jsxImportSource": "@ministryofjustice/hmpps-forge/jsx-components"`) and render
+  callbacks write real markup with typed HTML attributes (`class`, `for`) instead of
+  template strings. Dynamic values are escaped by default; `raw()` marks already-rendered
+  HTML - a child block's output, say - as safe to embed. The whole package is
+  experimental: it may change or be removed in a minor release. ([#201])
+
+#### Improvements
+
+- **All-optional builders can be called bare.** A `component()` builder whose props are
+  all optional no longer needs an empty object - an all-defaults block is just
+  `MyDivider()`. Builders with any required prop still require the argument. ([#202])
+
+[#199]: https://github.com/ministryofjustice/hmpps-forge/pull/199
+[#200]: https://github.com/ministryofjustice/hmpps-forge/pull/200
+[#201]: https://github.com/ministryofjustice/hmpps-forge/pull/201
+[#202]: https://github.com/ministryofjustice/hmpps-forge/pull/202
+[#204]: https://github.com/ministryofjustice/hmpps-forge/pull/204
+
+---
+
 ## 0.3.4
 
 ### For journey authors

@@ -1,14 +1,14 @@
 import { StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukDetails } from './govukDetails'
+import { GovUKDetails } from './govukDetails'
 
 vi.mock('nunjucks')
 
 describe('GOV.UK Details Component', () => {
   setupComponentTest()
 
-  const helper = new GovukComponentTestHelper(govukDetails)
+  const helper = new GovukComponentTestHelper(GovUKDetails)
 
   describe('Data transformation', () => {
     it('sets basic values correctly', async () => {

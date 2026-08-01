@@ -3,6 +3,7 @@ import forgeCore from './forge-core/eslint.config.mjs'
 import forgeExpressNunjucks from './forge-express-nunjucks/eslint.config.mjs'
 import forgeGovukComponents from './forge-govuk-components/eslint.config.mjs'
 import forgeMojComponents from './forge-moj-components/eslint.config.mjs'
+import forgeJsxComponents from './forge-jsx-components/eslint.config.mjs'
 import forgeDevtools from './forge-devtools/eslint.config.mjs'
 
 const forgePackages = [
@@ -10,6 +11,7 @@ const forgePackages = [
   { dir: 'forge-express-nunjucks', subpath: 'express-nunjucks' },
   { dir: 'forge-govuk-components', subpath: 'govuk-components' },
   { dir: 'forge-moj-components', subpath: 'moj-components' },
+  { dir: 'forge-jsx-components', subpath: 'jsx-components' },
   { dir: 'forge-devtools', subpath: 'devtools' },
 ]
 
@@ -76,6 +78,7 @@ export default [
   ...forgeExpressNunjucks,
   ...forgeGovukComponents,
   ...forgeMojComponents,
+  ...forgeJsxComponents,
   ...forgeDevtools,
   {
     name: 'prettier-overrides',

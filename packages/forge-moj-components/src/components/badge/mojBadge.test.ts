@@ -1,13 +1,13 @@
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { mojBadge } from './mojBadge'
+import { MOJBadge } from './mojBadge'
 
 vi.mock('nunjucks')
 
 describe('mojBadge', () => {
   setupComponentTest()
 
-  const helper = new MojComponentTestHelper(mojBadge)
+  const helper = new MojComponentTestHelper(MOJBadge)
 
   describe('Data transformation', () => {
     it('should pass through text content', async () => {

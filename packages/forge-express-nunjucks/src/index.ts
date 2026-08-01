@@ -33,5 +33,6 @@ export type { NunjucksRendererOptions } from './renderer/NunjucksRenderer'
 export type { TemplateBlock } from './renderer/types'
 export { buildNunjucksComponent } from './utils/buildNunjucksComponent'
 export type { NunjucksComponentRenderer } from './utils/buildNunjucksComponent'
+export { nunjucksComponent } from './utils/nunjucksComponent'
 
 export { NunjucksGenerators, nunjucksFunctions } from './generators/nunjucksGenerators'

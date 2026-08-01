@@ -1,15 +1,10 @@
-import type nunjucks from 'nunjucks'
-
 import {
-  BasicBlockProps,
   BlockDefinition,
   ResolvableString,
   ResolvableBoolean,
   ResolvableObject,
-  EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 /**
  * Label configuration for a progress bar item.
@@ -72,7 +67,11 @@ export interface MOJProgressBarItem {
 }
 
 /**
- * Props for the MOJProgressBar component.
+ * MOJ Progress Bar component.
+ *
+ * The progress bar component shows users where they are in a linear process
+ * with multiple steps. It displays completed steps, the current step, and
+ * upcoming steps.
  *
  * @see https://design-patterns.service.justice.gov.uk/components/progress-bar
  * @example
@@ -87,7 +86,7 @@ export interface MOJProgressBarItem {
  * })
  * ```
  */
-export interface MOJProgressBarProps extends BasicBlockProps {
+export interface MOJProgressBar extends BlockDefinition {
   /**
    * Unique identifier for the progress bar.
    * Defaults to "progress" if not provided.
@@ -136,44 +135,7 @@ export interface MOJProgressBarProps extends BasicBlockProps {
 }
 
 /**
- * MOJ Progress Bar Component
- *
- * Full interface including forge discriminator properties.
- * For most use cases, use `MOJProgressBarProps` type or the `MOJProgressBar()` wrapper function instead.
- */
-export interface MOJProgressBar extends BlockDefinition, MOJProgressBarProps {
-  /** Component variant identifier */
-  variant: 'mojProgressBar'
-}
-
-/**
- * Renders an MOJ Progress Bar component using Nunjucks template
- */
-function progressBarRenderer(block: EvaluatedBlock<MOJProgressBar>, nunjucksEnv: nunjucks.Environment): string {
-  const params = {
-    id: block.id,
-    label: block.label,
-    items: block.items
-      .filter(item => item.visibleWhen !== false)
-      .map(item => ({
-        id: item.id,
-        label: typeof item.label === 'object' ? item.label : { text: item.label },
-        active: item.active,
-        complete: item.complete,
-        classes: item.classes,
-        attributes: item.attributes,
-      })),
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('moj/components/progress-bar/template.njk', { params })
-}
-
-export const mojProgressBar = buildNunjucksComponent<MOJProgressBar>('mojProgressBar', progressBarRenderer)
-
-/**
- * Creates an MOJ Progress Bar block for displaying progress through a multi-step journey.
+ * MOJ Progress Bar component.
  *
  * The progress bar component shows users where they are in a linear process
  * with multiple steps. It displays completed steps, the current step, and
@@ -192,6 +154,25 @@ export const mojProgressBar = buildNunjucksComponent<MOJProgressBar>('mojProgres
  * })
  * ```
  */
-export function MOJProgressBar(props: MOJProgressBarProps): MOJProgressBar {
-  return buildBlock<MOJProgressBar>({ ...props, variant: 'mojProgressBar' })
-}
+export const MOJProgressBar = nunjucksComponent<MOJProgressBar>('mojProgressBar', {
+  render: (props, nunjucksEnv) => {
+    const params = {
+      id: props.id,
+      label: props.label,
+      items: props.items
+        .filter(item => item.visibleWhen !== false)
+        .map(item => ({
+          id: item.id,
+          label: typeof item.label === 'object' ? item.label : { text: item.label },
+          active: item.active,
+          complete: item.complete,
+          classes: item.classes,
+          attributes: item.attributes,
+        })),
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('moj/components/progress-bar/template.njk', { params })
+  },
+})

@@ -1,19 +1,19 @@
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukTextInput } from './govukTextInput'
+import { GovUKTextInput } from './govukTextInput'
 
 vi.mock('nunjucks')
 
 describe('govukTextInput', () => {
   setupComponentTest()
 
-  const helper = new GovukComponentTestHelper(govukTextInput)
+  const helper = new GovukComponentTestHelper(GovUKTextInput)
 
   describe('Registration entry', () => {
     it('should accept a scalar string and reject an array against the input schema', () => {
       // Arrange & Act
-      const scalar = govukTextInput.inputSchema?.safeParse('hello')
-      const array = govukTextInput.inputSchema?.safeParse(['hello'])
+      const scalar = GovUKTextInput.inputSchema?.safeParse('hello')
+      const array = GovUKTextInput.inputSchema?.safeParse(['hello'])
 
       // Assert
       expect(scalar?.success).toBe(true)

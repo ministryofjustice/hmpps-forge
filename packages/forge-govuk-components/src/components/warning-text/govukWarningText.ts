@@ -1,19 +1,12 @@
-import type nunjucks from 'nunjucks'
-import {
-  BasicBlockProps,
-  BlockDefinition,
-  ResolvableString,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { block as buildBlock } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**
- * Props for the GovUKWarningText component.
+ * GOV.UK Warning Text component.
  *
- * Use this to display important warnings to users with an exclamation mark icon
- * and bold text styling following the GOV.UK Design System.
+ * Use this to display important warnings to users. Renders with an exclamation mark
+ * icon and bold text styling following the GOV.UK Design System.
  *
  * @see https://design-system.service.gov.uk/components/warning-text/
  * @example
@@ -23,7 +16,7 @@ import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers
  * })
  * ```
  */
-export interface GovUKWarningTextProps extends BasicBlockProps {
+export interface GovUKWarningText extends BlockDefinition {
   /** Plain text content for the warning. Required unless html is provided. */
   text?: ResolvableString
 
@@ -44,41 +37,10 @@ export interface GovUKWarningTextProps extends BasicBlockProps {
 }
 
 /**
- * GOV.UK Warning Text component interface.
+ * GOV.UK Warning Text component.
  *
- * Full interface including forge discriminator properties.
- * For most use cases, use `GovUKWarningTextProps` type or the `GovUKWarningText()` wrapper function instead.
- */
-export interface GovUKWarningText extends BlockDefinition, GovUKWarningTextProps {
-  /** Component variant identifier */
-  variant: 'govukWarningText'
-}
-
-/**
- * Renders the GOV.UK Warning Text component using the official Nunjucks template.
- */
-function warningTextRenderer(block: EvaluatedBlock<GovUKWarningText>, nunjucksEnv: nunjucks.Environment): string {
-  const content = normaliseGovukTextHtmlContent({
-    text: block.text,
-    html: block.html,
-    blocks: block.blocks,
-  })
-  const params: Record<string, any> = {
-    text: content.text,
-    html: content.html,
-    iconFallbackText: block.iconFallbackText,
-    classes: block.classes,
-    attributes: block.attributes,
-  }
-
-  return nunjucksEnv.render('govuk/components/warning-text/template.njk', { params })
-}
-
-export const govukWarningText = buildNunjucksComponent<GovUKWarningText>('govukWarningText', warningTextRenderer)
-
-/**
- * Creates a GOV.UK Warning Text block for displaying important warnings.
- * Renders with an exclamation mark icon and bold text styling.
+ * Use this to display important warnings to users. Renders with an exclamation mark
+ * icon and bold text styling following the GOV.UK Design System.
  *
  * @see https://design-system.service.gov.uk/components/warning-text/
  * @example
@@ -88,6 +50,21 @@ export const govukWarningText = buildNunjucksComponent<GovUKWarningText>('govukW
  * })
  * ```
  */
-export function GovUKWarningText(props: GovUKWarningTextProps): GovUKWarningText {
-  return buildBlock<GovUKWarningText>({ ...props, variant: 'govukWarningText' })
-}
+export const GovUKWarningText = nunjucksComponent<GovUKWarningText>('govukWarningText', {
+  render: (props, nunjucksEnv) => {
+    const content = normaliseGovukTextHtmlContent({
+      text: props.text,
+      html: props.html,
+      blocks: props.blocks,
+    })
+    const params: Record<string, any> = {
+      text: content.text,
+      html: content.html,
+      iconFallbackText: props.iconFallbackText,
+      classes: props.classes,
+      attributes: props.attributes,
+    }
+
+    return nunjucksEnv.render('govuk/components/warning-text/template.njk', { params })
+  },
+})

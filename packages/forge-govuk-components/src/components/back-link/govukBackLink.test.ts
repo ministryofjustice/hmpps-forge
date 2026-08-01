@@ -1,13 +1,13 @@
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { govukBackLink } from './govukBackLink'
+import { GovUKBackLink } from './govukBackLink'
 
 vi.mock('nunjucks')
 
 describe('GOV.UK Back Link Component', () => {
   setupComponentTest()
 
-  const helper = new GovukComponentTestHelper(govukBackLink)
+  const helper = new GovukComponentTestHelper(GovUKBackLink)
 
   describe('Data transformation', () => {
     it('sets href correctly', async () => {

@@ -1,13 +1,13 @@
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
-import { mojCard } from './mojCard'
+import { MOJCard } from './mojCard'
 
 vi.mock('nunjucks')
 
 describe('mojCard', () => {
   setupComponentTest()
 
-  const helper = new MojComponentTestHelper(mojCard)
+  const helper = new MojComponentTestHelper(MOJCard)
 
   describe('Heading transformation', () => {
     it('should convert string heading to object format', async () => {
