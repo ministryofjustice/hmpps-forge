@@ -2,8 +2,14 @@ import { BlockDefinition, ComponentRegistryEntry } from '@ministryofjustice/hmpp
 
 import { GovUKAccordion } from './accordion/govukAccordion'
 import { GovUKBackLink } from './back-link/govukBackLink'
+import { GovUKBody } from './body/govukBody'
 import { GovUKBreadcrumbs } from './breadcrumbs/govukBreadcrumbs'
 import { GovUKButton, GovUKLinkButton } from './button/govukButton'
+import { GovUKButtonGroup } from './button-group/govukButtonGroup'
+import { GovUKGridRow } from './grid-row/govukGridRow'
+import { GovUKHeading } from './heading/govukHeading'
+import { GovUKList } from './list/govukList'
+import { GovUKSectionBreak } from './section-break/govukSectionBreak'
 import { GovUKTextInput } from './text-input/govukTextInput'
 import { GovUKPasswordInput } from './password-input/govukPasswordInput'
 import { GovUKSelectInput } from './select-input/govukSelectInput'
@@ -61,8 +67,15 @@ export type {
 // Re-export the components (each const is both the block builder and the registry entry)
 export { GovUKAccordion } from './accordion/govukAccordion'
 export { GovUKBackLink } from './back-link/govukBackLink'
+export { GovUKBody } from './body/govukBody'
 export { GovUKBreadcrumbs } from './breadcrumbs/govukBreadcrumbs'
 export { GovUKButton, GovUKLinkButton } from './button/govukButton'
+export { GovUKButtonGroup } from './button-group/govukButtonGroup'
+export { GovUKGridRow } from './grid-row/govukGridRow'
+export type { GovUKGridColumn } from './grid-row/govukGridRow'
+export { GovUKHeading } from './heading/govukHeading'
+export { GovUKList } from './list/govukList'
+export { GovUKSectionBreak } from './section-break/govukSectionBreak'
 export { GovUKTextInput } from './text-input/govukTextInput'
 export { GovUKPasswordInput } from './password-input/govukPasswordInput'
 export { GovUKSelectInput } from './select-input/govukSelectInput'
@@ -92,9 +105,15 @@ export { GovUKWarningText } from './warning-text/govukWarningText'
 export const govukComponents: ComponentRegistryEntry<BlockDefinition, string>[] = [
   GovUKAccordion,
   GovUKBackLink,
+  GovUKBody,
   GovUKBreadcrumbs,
   GovUKButton,
   GovUKLinkButton,
+  GovUKButtonGroup,
+  GovUKGridRow,
+  GovUKHeading,
+  GovUKList,
+  GovUKSectionBreak,
   GovUKTextInput,
   GovUKPasswordInput,
   GovUKSelectInput,

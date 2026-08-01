@@ -27,7 +27,7 @@ export const showsList = GovUKList({
     'Fresh data on each page load, simulating a real API call',
     'A grid layout displaying the loaded values as a dashboard',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const startButton = GovUKLinkButton({

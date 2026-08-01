@@ -23,15 +23,15 @@ supports dynamic items from data.
 ## How to use it
 
 Import `GovUKList` from the GOV.UK components package. The `items`
-property accepts a data source that resolves to an array of strings.
+property accepts an array of strings or child blocks, or a data source
+that resolves to one.
 
 ```typescript
 import { GovUKList } from '@ministryofjustice/hmpps-forge/govuk-components'
-import { Literal } from '@ministryofjustice/hmpps-forge/core/authoring'
 
 GovUKList({
-  items: Literal(['First item', 'Second item', 'Third item']),
-  type: 'bullet',
+  items: ['First item', 'Second item', 'Third item'],
+  style: 'bullet',
 })
 ```
 
@@ -45,8 +45,8 @@ GovUKList({
 
 ```typescript
 GovUKList({
-  items: Literal(['Design', 'Build', 'Test']),
-  type: 'bullet',
+  items: ['Design', 'Build', 'Test'],
+  style: 'bullet',
 })
 ```
 
@@ -56,18 +56,18 @@ GovUKList({
 
 ```typescript
 GovUKList({
-  items: Literal(['Check eligibility', 'Gather documents', 'Submit application']),
-  type: 'number',
+  items: ['Check eligibility', 'Gather documents', 'Submit application'],
+  style: 'number',
 })
 ```
 
 ### Plain list
 
-Omit `type` for a plain list with no markers.
+Omit `style` for a plain list with no markers.
 
 ```typescript
 GovUKList({
-  items: Literal(['support@example.com', '0800 123 4567']),
+  items: ['support@example.com', '0800 123 4567'],
 })
 ```
 
@@ -79,9 +79,29 @@ Set `spaced: true` to add extra vertical spacing between items.
 
 ```typescript
 GovUKList({
-  items: Literal(['First item', 'Second item', 'Third item']),
-  type: 'bullet',
+  items: ['First item', 'Second item', 'Third item'],
+  style: 'bullet',
   spaced: true,
+})
+```
+
+---
+
+## Block items
+
+Items can be child blocks instead of strings - or a mix of the two. Each block renders
+inside its own `<li>`.
+
+{{slot:block-items-example}}
+
+```typescript
+GovUKList({
+  items: [
+    'A plain string item',
+    GovUKBody({ text: 'A paragraph item' }),
+    HtmlBlock({ tag: 'a', attributes: { href: '/help' }, content: 'A link item' }),
+  ],
+  style: 'bullet',
 })
 ```
 
@@ -94,6 +114,6 @@ Use `Data()` to render items from loaded data.
 ```typescript
 GovUKList({
   items: Data('errorMessages'),
-  type: 'bullet',
+  style: 'bullet',
 })
 ```

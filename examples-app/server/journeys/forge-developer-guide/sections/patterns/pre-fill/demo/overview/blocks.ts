@@ -27,7 +27,7 @@ export const showsList = GovUKList({
     'Letting the user review and override pre-filled values before continuing',
     'Separating the lookup trigger from the main form submission',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const startButton = GovUKLinkButton({

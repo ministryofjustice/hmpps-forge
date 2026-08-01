@@ -1,6 +1,7 @@
-import { Data, Literal } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { GovUKList } from '@ministryofjustice/hmpps-forge/govuk-components'
+import { Data } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { GovUKBody, GovUKList } from '@ministryofjustice/hmpps-forge/govuk-components'
 import {
+  HtmlBlock,
   TemplateWrapper,
   type BlockDefinition,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -16,18 +17,27 @@ function liveDisplay(blocks: BlockDefinition[]) {
 }
 
 const basicExample = GovUKList({
-  items: Literal(['Design', 'Build', 'Test', 'Deploy']),
-  type: 'bullet',
+  items: ['Design', 'Build', 'Test', 'Deploy'],
+  style: 'bullet',
 })
 
 const bulletExample = GovUKList({
-  items: Literal(['Design', 'Build', 'Test']),
-  type: 'bullet',
+  items: ['Design', 'Build', 'Test'],
+  style: 'bullet',
 })
 
 const numberedExample = GovUKList({
-  items: Literal(['Check eligibility', 'Gather documents', 'Submit application']),
-  type: 'number',
+  items: ['Check eligibility', 'Gather documents', 'Submit application'],
+  style: 'number',
+})
+
+const blockItemsExample = GovUKList({
+  items: [
+    'A plain string item',
+    GovUKBody({ text: 'A paragraph item' }),
+    HtmlBlock({ tag: 'a', attributes: { href: '/help' }, content: 'A link item' }),
+  ],
+  style: 'bullet',
 })
 
 export const content = GovUKMarkdownBlock({
@@ -37,5 +47,6 @@ export const content = GovUKMarkdownBlock({
     'basic-example': [liveDisplay([basicExample])],
     'bullet-example': [liveDisplay([bulletExample])],
     'numbered-example': [liveDisplay([numberedExample])],
+    'block-items-example': [liveDisplay([blockItemsExample])],
   },
 })

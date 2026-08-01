@@ -30,7 +30,7 @@ export const showsList = GovUKList({
     'A summary whose key, value, and change link adapt to the branch the user took',
     'A confirmation panel that resets the pattern when revisited',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const startButton = GovUKLinkButton({

@@ -29,7 +29,7 @@ export const showsList = GovUKList({
     'Pre-loaded record data seeded at login and persisted through draft answers',
     'Composing authentication and role guards with conditional rendering',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const startButton = GovUKLinkButton({

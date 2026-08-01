@@ -27,7 +27,7 @@ export const showsList = GovUKList({
     'An iterate that yields validation() expressions for per-item error messages',
     'Mixing standard field validation with data-driven collection validation on the same field',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const startButton = GovUKLinkButton({
