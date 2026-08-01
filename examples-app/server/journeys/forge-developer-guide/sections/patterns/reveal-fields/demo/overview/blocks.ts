@@ -28,7 +28,7 @@ export const showsList = GovUKList({
     'A single step that captures the choice and the follow-up together',
     'A summary that shows the follow-up answer only when it applies',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const startButton = GovUKLinkButton({

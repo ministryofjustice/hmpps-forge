@@ -32,7 +32,7 @@ export const showsList = GovUKList({
     'A `resumeWhen` condition that triggers resume when the user returns with `?resume=true`',
     'Question steps that define where the user goes next after answering',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const resumePanel = GovUKInsetText({

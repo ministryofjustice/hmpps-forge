@@ -28,7 +28,7 @@ export const showsList = GovUKList({
     'A remove submit hook that splices an item and re-indexes the remaining fields',
     'Session-backed collection state that survives page reloads',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const startButton = GovUKLinkButton({

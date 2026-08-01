@@ -28,7 +28,7 @@ export const showsList = GovUKList({
     'A summary page with "Change" links that return the user to the original step',
     'A final confirmation panel after submission',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const startButton = GovUKLinkButton({

@@ -29,7 +29,7 @@ export const showsList = GovUKList({
     'A summary page with the GOV.UK summary list and change links',
     'Confirmation and reset after submission',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const startButton = GovUKLinkButton({

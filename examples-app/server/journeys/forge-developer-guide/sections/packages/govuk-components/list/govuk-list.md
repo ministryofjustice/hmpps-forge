@@ -31,7 +31,7 @@ import { Literal } from '@ministryofjustice/hmpps-forge/core/authoring'
 
 GovUKList({
   items: Literal(['First item', 'Second item', 'Third item']),
-  type: 'bullet',
+  style: 'bullet',
 })
 ```
 
@@ -46,7 +46,7 @@ GovUKList({
 ```typescript
 GovUKList({
   items: Literal(['Design', 'Build', 'Test']),
-  type: 'bullet',
+  style: 'bullet',
 })
 ```
 
@@ -57,13 +57,13 @@ GovUKList({
 ```typescript
 GovUKList({
   items: Literal(['Check eligibility', 'Gather documents', 'Submit application']),
-  type: 'number',
+  style: 'number',
 })
 ```
 
 ### Plain list
 
-Omit `type` for a plain list with no markers.
+Omit `style` for a plain list with no markers.
 
 ```typescript
 GovUKList({
@@ -80,7 +80,7 @@ Set `spaced: true` to add extra vertical spacing between items.
 ```typescript
 GovUKList({
   items: Literal(['First item', 'Second item', 'Third item']),
-  type: 'bullet',
+  style: 'bullet',
   spaced: true,
 })
 ```
@@ -94,6 +94,6 @@ Use `Data()` to render items from loaded data.
 ```typescript
 GovUKList({
   items: Data('errorMessages'),
-  type: 'bullet',
+  style: 'bullet',
 })
 ```

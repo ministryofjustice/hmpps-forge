@@ -17,17 +17,17 @@ function liveDisplay(blocks: BlockDefinition[]) {
 
 const basicExample = GovUKList({
   items: Literal(['Design', 'Build', 'Test', 'Deploy']),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 const bulletExample = GovUKList({
   items: Literal(['Design', 'Build', 'Test']),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 const numberedExample = GovUKList({
   items: Literal(['Check eligibility', 'Gather documents', 'Submit application']),
-  type: 'number',
+  style: 'number',
 })
 
 export const content = GovUKMarkdownBlock({
