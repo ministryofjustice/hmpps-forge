@@ -33,6 +33,12 @@
       ]
     }
   },
-  "include": ["./**/src/**/*.ts", "./forge-jsx-components/src/**/*.tsx", "./vitest.d.ts", "./vitest.config.ts"],
+  "include": [
+    "./**/src/**/*.ts",
+    "./forge-jsx-components/src/**/*.tsx",
+    "./forge-govuk-components/src/**/*.tsx",
+    "./vitest.d.ts",
+    "./vitest.config.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }
