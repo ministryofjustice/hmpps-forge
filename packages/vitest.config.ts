@@ -33,6 +33,18 @@ export default defineConfig({
         find: /^@ministryofjustice\/hmpps-forge\/moj-components$/,
         replacement: resolve(import.meta.dirname, './forge-moj-components/src/index.ts'),
       },
+      {
+        find: /^@ministryofjustice\/hmpps-forge\/jsx-components$/,
+        replacement: resolve(import.meta.dirname, './forge-jsx-components/src/index.ts'),
+      },
+      {
+        find: /^@ministryofjustice\/hmpps-forge\/jsx-components\/jsx-runtime$/,
+        replacement: resolve(import.meta.dirname, './forge-jsx-components/src/runtime/jsx-runtime.ts'),
+      },
+      {
+        find: /^@ministryofjustice\/hmpps-forge\/jsx-components\/jsx-dev-runtime$/,
+        replacement: resolve(import.meta.dirname, './forge-jsx-components/src/runtime/jsx-runtime.ts'),
+      },
     ],
   },
   test: {
