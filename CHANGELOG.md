@@ -55,6 +55,21 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ## 0.3.5
 
+### For journey authors
+
+_Definitions, expressions, hooks, navigation, reachability_
+
+#### New
+
+- **Fragment component.** Groups child blocks without adding a wrapper element - the
+  blocks render back-to-back exactly as they would as siblings. Previously anywhere
+  expecting a single block (most commonly the template of an `Iterator.Map()`) meant
+  wrapping multiple components in an `HtmlBlock` and taking an extra `<div>` with it.
+  Now `Fragment({ blocks: [...] })` outputs them all with nothing extra, and
+  `visibleWhen` on the fragment shows or hides the whole group. ([#204])
+
+---
+
 ### For function and component authors
 
 _Conditions, transformers, effects, generators, iterators, component packages_
@@ -83,6 +98,7 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   experimental: it may change or be removed in a minor release. ([#201])
 
 [#201]: https://github.com/ministryofjustice/hmpps-forge/pull/201
+[#204]: https://github.com/ministryofjustice/hmpps-forge/pull/204
 
 ---
 
