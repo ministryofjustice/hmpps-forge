@@ -131,16 +131,6 @@ export interface FieldBlockProps extends BasicBlockProps {
    * dependentWhen: Answer('appointmentType').match(Condition.Equals('phone'))
    */
   dependentWhen?: PredicateExpr
-
-  /**
-   * Whether to keep all values when an array is returned (e.g., checkboxes).
-   * When false (default), only the first non-empty value is used.
-   * When true, all values in the array are kept.
-   *
-   * @default false
-   * @example true // For checkbox groups
-   */
-  multiple?: boolean
 }
 
 /**

@@ -481,32 +481,6 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(ctx.answers.colour.current).toBe('red')
     })
 
-    it('should keep full array for multiple: true fields', async () => {
-      // Arrange
-      const block = createFieldBlock('tags', { multiple: true })
-      const ctx = createCtx({ post: { tags: ['a', 'b', 'c'] as unknown as string } })
-
-      // Act
-      const source = compiler.generateSource([block])
-      await runGeneratedSource(source, ctx)
-
-      // Assert
-      expect(ctx.answers.tags.current).toEqual(['a', 'b', 'c'])
-    })
-
-    it('should normalize single value to array for multiple: true', async () => {
-      // Arrange
-      const block = createFieldBlock('tags', { multiple: true })
-      const ctx = createCtx({ post: { tags: 'single' } })
-
-      // Act
-      const source = compiler.generateSource([block])
-      await runGeneratedSource(source, ctx)
-
-      // Assert
-      expect(ctx.answers.tags.current).toEqual(['single'])
-    })
-
     it('should push mutation with undefined when field not in POST data', async () => {
       // Arrange
       const block = createFieldBlock('missing')
@@ -523,7 +497,7 @@ describe('StepAnswerPreparationCompiler', () => {
   })
 
   describe('component input schema', () => {
-    it('should keep the full array when the component entry declares multiple with no field flag', async () => {
+    it('should keep the full array when the component entry declares multiple', async () => {
       // Arrange
       const componentRegistry = createComponentRegistry({ variant: 'checkbox', multiple: true })
       const localCompiler = createComponentCompiler(componentRegistry)
@@ -538,22 +512,19 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(ctx.answers.tags.current).toEqual(['a', 'b', 'c'])
     })
 
-    it('should honour the field-level multiple flag when the entry does not declare multiple', async () => {
+    it('should normalize a single value to an array when the component entry declares multiple', async () => {
       // Arrange
-      const componentRegistry = createComponentRegistry({
-        variant: 'select',
-        inputSchema: z.union([z.string(), z.array(z.string())]),
-      })
+      const componentRegistry = createComponentRegistry({ variant: 'checkbox', multiple: true })
       const localCompiler = createComponentCompiler(componentRegistry)
-      const block = createFieldBlock('tags', { multiple: true }, 'select')
-      const ctx = createCtx({ post: { tags: ['a', 'b'] as unknown as string }, components: componentRegistry })
+      const block = createFieldBlock('tags', {}, 'checkbox')
+      const ctx = createCtx({ post: { tags: 'single' }, components: componentRegistry })
 
       // Act
       const source = localCompiler.generateSource([block])
       await runGeneratedSource(source, ctx)
 
       // Assert
-      expect(ctx.answers.tags.current).toEqual(['a', 'b'])
+      expect(ctx.answers.tags.current).toEqual(['single'])
     })
 
     it('should emit a checkComponentInputValue call for a variant that declares an input schema', () => {

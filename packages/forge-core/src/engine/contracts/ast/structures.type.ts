@@ -92,7 +92,6 @@ export interface FieldBlockASTNode extends ASTNode {
     validWhen?: unknown
     dependentWhen?: ASTNode
     metadata?: Record<string, any>
-    multiple?: boolean
 
     // Component-specific arbitrary parameters
     [key: string]: any
