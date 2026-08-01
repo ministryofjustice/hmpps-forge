@@ -191,7 +191,7 @@ export default class StepAnswerPreparationCompiler {
       `${GENERATED_FUNCTION_HELPERS_PARAM}.ensureAnswerHistory(ctx, ${codeExpr})`,
     )
     const entry = this.componentRegistry.get(variant)
-    const multipleLiteral = String(entry?.multiple ?? properties.multiple === true)
+    const multipleLiteral = String(entry?.multiple === true)
     const rawVar = emitter.let(
       'rawValue',
       `${GENERATED_FUNCTION_HELPERS_PARAM}.normalizePostValue(ctx.post[${codeExpr}], ${multipleLiteral})`,

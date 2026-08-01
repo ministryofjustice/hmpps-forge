@@ -53,6 +53,24 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.4.0
+
+### For journey authors
+
+_Definitions, expressions, hooks, navigation, reachability_
+
+#### Breaking changes
+
+- **The field-level `multiple` flag is gone.** Field blocks could set `multiple: true` to
+  keep every value when a POST returns an array, overlapping with the component-level
+  flag that array-shaped components like checkboxes already declare on their registry
+  entry. Whether all values are kept is now solely the component's decision - setting
+  `multiple` on a field block is a type error, so just remove it. ([#206])
+
+[#206]: https://github.com/ministryofjustice/hmpps-forge/pull/206
+
+---
+
 ## 0.3.6
 
 A typing-focused release - registered function handles now know what their arguments
