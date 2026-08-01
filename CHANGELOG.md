@@ -55,11 +55,25 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ## 0.4.0
 
+The GOV.UK utility wrappers became real registered components, rendered with the
+experimental JSX API.
+
 ### For journey authors
 
 _Definitions, expressions, hooks, navigation, reachability_
 
 #### Breaking changes
+
+- **The GOV.UK utility wrappers are now real components.** `GovUKBody`, `GovUKHeading`,
+  `GovUKList`, `GovUKGridRow`, `GovUKSectionBreak` and `GovUKButtonGroup` were authoring
+  functions that expanded into generic `html`/`template` blocks - they now register and
+  render like every other component, with their renders written in the experimental JSX
+  API. Builder names and props are unchanged, with one exception: `GovUKList`'s `type`
+  prop is now `style` (`type` is the engine's structure discriminator on real components).
+  The standalone `GovUK*Props` interfaces are gone - each component's single interface
+  (`GovUKBody`, `GovUKList`, ...) is both the props and the block type. If you register
+  `govukComponents` wholesale nothing else changes; if you cherry-pick registry entries,
+  add the six new ones.
 
 - **The field-level `multiple` flag is gone.** Field blocks could set `multiple: true` to
   keep every value when a POST returns an array, overlapping with the component-level
