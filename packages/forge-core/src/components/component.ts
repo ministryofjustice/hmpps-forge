@@ -45,8 +45,9 @@ export function component<TBlock extends BlockDefinition, TOutput = string, TRen
   > &
     Partial<FieldComponentOptions<TBlock, TOutput, TRenderer>>
 
-  const buildDefinition = (props: PropsOf<TBlock>): TBlock => {
-    const prepared = prepare ? prepare(props) : props
+  const buildDefinition = (props?: PropsOf<TBlock>): TBlock => {
+    const authored = props ?? ({} as PropsOf<TBlock>)
+    const prepared = prepare ? prepare(authored) : authored
 
     // The field props are only present on a field component; the cast lets both builders
     // share one definition, and the declared `field` option picks the right one.

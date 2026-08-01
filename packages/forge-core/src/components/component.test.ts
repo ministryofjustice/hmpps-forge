@@ -33,6 +33,15 @@ const TestField = component<TestField>('testField', {
   inputSchema: z.string(),
 })
 
+interface TestDivider extends BlockDefinition {
+  /** Optional modifier class */
+  classes?: string
+}
+
+const TestDivider = component<TestDivider>('testDivider', {
+  render: divider => `<hr class="${divider.classes ?? 'divider'}">`,
+})
+
 const evaluatedCard = {
   type: StructureType.BLOCK,
   variant: 'testCard',
@@ -53,6 +62,34 @@ describe('component()', () => {
         variant: 'testCard',
         title: 'Card title',
       })
+    })
+
+    it('should build with no arguments when every prop is optional', () => {
+      // Arrange & Act
+      const built = TestDivider()
+
+      // Assert
+      expect(built).toEqual({
+        type: StructureType.BLOCK,
+        blockType: BlockType.BASIC,
+        variant: 'testDivider',
+      })
+    })
+
+    it('should still run prepare on a bare call', () => {
+      // Arrange
+      const prepare = vi.fn((props: PropsOf<TestDivider>) => ({ ...props, classes: 'prepared' }))
+      const PreparedDivider = component<TestDivider>('preparedDivider', {
+        render: divider => `<hr class="${divider.classes}">`,
+        prepare,
+      })
+
+      // Act
+      const built = PreparedDivider()
+
+      // Assert
+      expect(prepare).toHaveBeenCalledWith({})
+      expect(built.classes).toBe('prepared')
     })
 
     it('should stamp a field block when the options declare a field component', () => {
@@ -196,6 +233,12 @@ describe('component()', () => {
     it('should expose only the writable props on the builder parameter', () => {
       expectTypeOf<keyof PropsOf<TestCard>>().toEqualTypeOf<'visibleWhen' | 'metadata' | 'title' | 'hint'>()
       expectTypeOf<Parameters<typeof TestCard>[0]>().toEqualTypeOf<PropsOf<TestCard>>()
+    })
+
+    it('should require the props argument only when a prop is required', () => {
+      expectTypeOf<Parameters<typeof TestDivider>[0]>().toEqualTypeOf<PropsOf<TestDivider> | undefined>()
+      // @ts-expect-error - TestCard has a required title prop, so a bare call is rejected
+      expectTypeOf<typeof TestCard>().toBeCallableWith()
     })
 
     it('should drop the engine-consumed keys from the props render receives', () => {
