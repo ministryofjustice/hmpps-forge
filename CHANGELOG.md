@@ -80,7 +80,9 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   callbacks write real markup with typed HTML attributes (`class`, `for`) instead of
   template strings. Dynamic values are escaped by default; `raw()` marks already-rendered
   HTML - a child block's output, say - as safe to embed. The whole package is
-  experimental: it may change or be removed in a minor release.
+  experimental: it may change or be removed in a minor release. ([#201])
+
+[#201]: https://github.com/ministryofjustice/hmpps-forge/pull/201
 
 ---
 
