@@ -73,7 +73,7 @@ _Definitions, expressions, hooks, navigation, reachability_
   The standalone `GovUK*Props` interfaces are gone - each component's single interface
   (`GovUKBody`, `GovUKList`, ...) is both the props and the block type. If you register
   `govukComponents` wholesale nothing else changes; if you cherry-pick registry entries,
-  add the six new ones.
+  add the six new ones. ([#203])
 
 - **The field-level `multiple` flag is gone.** Field blocks could set `multiple: true` to
   keep every value when a POST returns an array, overlapping with the component-level
@@ -85,8 +85,9 @@ _Definitions, expressions, hooks, navigation, reachability_
 
 - **List items can be blocks.** `GovUKList` items may now mix strings with child blocks -
   `items: ['Plain text', GovUKBody({ ... }), HtmlBlock({ ... })]` renders each block
-  inside its own `<li>`. Previously items were strings only.
+  inside its own `<li>`. Previously items were strings only. ([#203])
 
+[#203]: https://github.com/ministryofjustice/hmpps-forge/pull/203
 [#206]: https://github.com/ministryofjustice/hmpps-forge/pull/206
 
 ---
