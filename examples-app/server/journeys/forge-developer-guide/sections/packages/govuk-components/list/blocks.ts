@@ -1,4 +1,4 @@
-import { Data, Literal } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { Data } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovUKBody, GovUKList } from '@ministryofjustice/hmpps-forge/govuk-components'
 import {
   HtmlBlock,
@@ -17,17 +17,17 @@ function liveDisplay(blocks: BlockDefinition[]) {
 }
 
 const basicExample = GovUKList({
-  items: Literal(['Design', 'Build', 'Test', 'Deploy']),
+  items: ['Design', 'Build', 'Test', 'Deploy'],
   style: 'bullet',
 })
 
 const bulletExample = GovUKList({
-  items: Literal(['Design', 'Build', 'Test']),
+  items: ['Design', 'Build', 'Test'],
   style: 'bullet',
 })
 
 const numberedExample = GovUKList({
-  items: Literal(['Check eligibility', 'Gather documents', 'Submit application']),
+  items: ['Check eligibility', 'Gather documents', 'Submit application'],
   style: 'number',
 })
 

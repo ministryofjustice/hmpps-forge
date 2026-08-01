@@ -23,14 +23,14 @@ supports dynamic items from data.
 ## How to use it
 
 Import `GovUKList` from the GOV.UK components package. The `items`
-property accepts a data source that resolves to an array of strings.
+property accepts an array of strings or child blocks, or a data source
+that resolves to one.
 
 ```typescript
 import { GovUKList } from '@ministryofjustice/hmpps-forge/govuk-components'
-import { Literal } from '@ministryofjustice/hmpps-forge/core/authoring'
 
 GovUKList({
-  items: Literal(['First item', 'Second item', 'Third item']),
+  items: ['First item', 'Second item', 'Third item'],
   style: 'bullet',
 })
 ```
@@ -45,7 +45,7 @@ GovUKList({
 
 ```typescript
 GovUKList({
-  items: Literal(['Design', 'Build', 'Test']),
+  items: ['Design', 'Build', 'Test'],
   style: 'bullet',
 })
 ```
@@ -56,7 +56,7 @@ GovUKList({
 
 ```typescript
 GovUKList({
-  items: Literal(['Check eligibility', 'Gather documents', 'Submit application']),
+  items: ['Check eligibility', 'Gather documents', 'Submit application'],
   style: 'number',
 })
 ```
@@ -67,7 +67,7 @@ Omit `style` for a plain list with no markers.
 
 ```typescript
 GovUKList({
-  items: Literal(['support@example.com', '0800 123 4567']),
+  items: ['support@example.com', '0800 123 4567'],
 })
 ```
 
@@ -79,7 +79,7 @@ Set `spaced: true` to add extra vertical spacing between items.
 
 ```typescript
 GovUKList({
-  items: Literal(['First item', 'Second item', 'Third item']),
+  items: ['First item', 'Second item', 'Third item'],
   style: 'bullet',
   spaced: true,
 })
