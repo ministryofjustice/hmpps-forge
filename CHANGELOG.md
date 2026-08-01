@@ -55,6 +55,10 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ## 0.3.5
 
+The components release - defining a component is now a single `component()` declaration,
+there's an experimental JSX runtime for writing renders in real markup, and a new
+`Fragment` core component groups blocks without adding a wrapper element.
+
 ### For journey authors
 
 _Definitions, expressions, hooks, navigation, reachability_
