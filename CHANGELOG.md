@@ -86,6 +86,7 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   prepending its ISO formatters, for instance. `nunjucksComponent()` pins the renderer
   type, so render callbacks get a typed `nunjucks.Environment` with no casting.
   `buildNunjucksComponent` still works, and its docs now point at the replacement.
+  ([#199], [#200])
 
 - **JSX components (experimental).** `jsxComponent()` in the new
   `@ministryofjustice/hmpps-forge/jsx-components` package defines a component whose render
@@ -97,7 +98,16 @@ _Conditions, transformers, effects, generators, iterators, component packages_
   HTML - a child block's output, say - as safe to embed. The whole package is
   experimental: it may change or be removed in a minor release. ([#201])
 
+#### Improvements
+
+- **All-optional builders can be called bare.** A `component()` builder whose props are
+  all optional no longer needs an empty object - an all-defaults block is just
+  `MyDivider()`. Builders with any required prop still require the argument. ([#202])
+
+[#199]: https://github.com/ministryofjustice/hmpps-forge/pull/199
+[#200]: https://github.com/ministryofjustice/hmpps-forge/pull/200
 [#201]: https://github.com/ministryofjustice/hmpps-forge/pull/201
+[#202]: https://github.com/ministryofjustice/hmpps-forge/pull/202
 [#204]: https://github.com/ministryofjustice/hmpps-forge/pull/204
 
 ---
