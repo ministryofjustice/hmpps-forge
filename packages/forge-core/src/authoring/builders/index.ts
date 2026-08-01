@@ -40,7 +40,7 @@ export { IterableBuilder } from './IterableBuilder'
 export { Iterator } from './IteratorBuilder'
 
 // Re-export predicate combinators
-export { and, or, xor, not } from './PredicateTestExprBuilder'
+export { and, or, xor, not } from './combinators'
 
 // Re-export conditional builders
 export { when, Conditional } from './ConditionalExprBuilder'

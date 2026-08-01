@@ -10,7 +10,6 @@ import {
   MatchExpr,
   ResolvableValue,
 } from '../../authoring/types/expressions.type'
-import { PredicateTestExprBuilder } from '../../authoring/builders/PredicateTestExprBuilder'
 import { ConditionalExprBuilder } from '../../authoring/builders/ConditionalExprBuilder'
 import { MatchExprBuilder } from '../../authoring/builders/MatchExprBuilder'
 import { GeneratorBuilder } from '../../authoring/builders/GeneratorBuilder'
@@ -153,7 +152,7 @@ type DynamicExpression =
 
 export type ResolvableString = string | DynamicExpression
 
-export type ResolvableBoolean = boolean | DynamicExpression | PredicateExpr | PredicateTestExprBuilder
+export type ResolvableBoolean = boolean | DynamicExpression | PredicateExpr
 
 export type ResolvableNumber = number | DynamicExpression
 
@@ -165,7 +164,7 @@ export type RenderedBlock<TOutput = string> = {
   block: BlockDefinition
 } & ([TOutput] extends [string] ? { html: string } : { output: TOutput })
 
-type Resolved<T> = Exclude<T, DynamicExpression | ChainableIterable | PredicateExpr | PredicateTestExprBuilder>
+type Resolved<T> = Exclude<T, DynamicExpression | ChainableIterable | PredicateExpr>
 
 export type EvaluatedBlock<T, IsRoot extends boolean = true, TRenderedBlock = RenderedBlock> =
   Resolved<T> extends infer R

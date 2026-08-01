@@ -1,6 +1,6 @@
 import { Answer, Data, Item } from './index'
 import { MatchExprBuilder, match } from './MatchExprBuilder'
-import { and, not, or } from './PredicateTestExprBuilder'
+import { and, not, or } from './combinators'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import { MatchExpr } from '../types/expressions.type'
 import { Condition } from '../conditions'

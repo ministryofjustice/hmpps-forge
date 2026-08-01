@@ -28,7 +28,6 @@ export { StructureType, BlockType, FunctionType, ExpressionType, ConditionCombin
 export { ConditionalExprBuilder } from './builders/ConditionalExprBuilder'
 export { GeneratorBuilder } from './builders/GeneratorBuilder'
 export { MatchExprBuilder } from './builders/MatchExprBuilder'
-export { PredicateTestExprBuilder } from './builders/PredicateTestExprBuilder'
 
 export type { ForgePackage } from './types/package.type'
 export type { FunctionEvaluator, FunctionRegistryEntry, FunctionRegistryObject } from './types/functions.type'
