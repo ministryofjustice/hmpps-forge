@@ -12,6 +12,8 @@
     "rootDir": ".",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@ministryofjustice/hmpps-forge/jsx-components",
     "types": ["node", "chrome"],
     "paths": {
       "@ministryofjustice/hmpps-forge/core": ["./forge-core/src/index.ts"],
@@ -21,9 +23,16 @@
       "@ministryofjustice/hmpps-forge/devtools": ["./forge-devtools/src/index.ts"],
       "@ministryofjustice/hmpps-forge/express-nunjucks": ["./forge-express-nunjucks/src/index.ts"],
       "@ministryofjustice/hmpps-forge/govuk-components": ["./forge-govuk-components/src/index.ts"],
-      "@ministryofjustice/hmpps-forge/moj-components": ["./forge-moj-components/src/index.ts"]
+      "@ministryofjustice/hmpps-forge/moj-components": ["./forge-moj-components/src/index.ts"],
+      "@ministryofjustice/hmpps-forge/jsx-components": ["./forge-jsx-components/src/index.ts"],
+      "@ministryofjustice/hmpps-forge/jsx-components/jsx-runtime": [
+        "./forge-jsx-components/src/runtime/jsx-runtime.ts"
+      ],
+      "@ministryofjustice/hmpps-forge/jsx-components/jsx-dev-runtime": [
+        "./forge-jsx-components/src/runtime/jsx-runtime.ts"
+      ]
     }
   },
-  "include": ["./**/src/**/*.ts", "./vitest.d.ts", "./vitest.config.ts"],
+  "include": ["./**/src/**/*.ts", "./forge-jsx-components/src/**/*.tsx", "./vitest.d.ts", "./vitest.config.ts"],
   "exclude": ["node_modules", "dist"]
 }
