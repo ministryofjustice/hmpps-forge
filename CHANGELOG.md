@@ -55,9 +55,6 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ## 0.4.0
 
-The GOV.UK utility wrappers became real registered components, rendered with the
-experimental JSX API.
-
 ### For journey authors
 
 _Definitions, expressions, hooks, navigation, reachability_
