@@ -241,4 +241,31 @@ describe('Render work handlers', () => {
     // Assert
     expect(result.output).toEqual(['<known>'])
   })
+
+  it('should render a Fragment as its nested blocks concatenated with no wrapper', async () => {
+    // Arrange - a renderer matching the real contract: renderBlock invokes the
+    // component's own render, wrapNestedBlock produces a RenderedBlock
+    const executor = new WorkExecutor()
+    const renderer: ForgeRenderer<string> = {
+      renderBlock: (entry, block) => entry.render(block) as string,
+      wrapNestedBlock: (block: BlockDefinition, output: string) => ({ block, html: output }),
+      assemblePage: (_context, renderedBlocks) => renderedBlocks.join(''),
+    }
+    const componentRegistry = new ComponentRegistry()
+    componentRegistry.registerBuiltInComponents()
+    componentRegistry.registerMany([buildComponent('child', block => `<p>${(block as { text?: string }).text}</p>`)])
+    const fragment = createRenderBlock('fragment', {
+      blocks: [
+        createRenderBlock('child', { text: 'one' }, 'compile_ast:child1'),
+        createRenderBlock('child', { text: 'two' }, 'compile_ast:child2'),
+      ],
+    })
+    const task = WorkTaskFactory.renderBlocks([fragment], renderer, componentRegistry)
+
+    // Act
+    const result = await executor.execute(task, new WorkContext(createRequestContext()))
+
+    // Assert
+    expect(result.output).toEqual(['<p>one</p><p>two</p>'])
+  })
 })
