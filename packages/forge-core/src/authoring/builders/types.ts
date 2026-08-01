@@ -3,12 +3,26 @@ import {
   FilterIteratorConfig,
   FindIteratorConfig,
   MapIteratorConfig,
-  PipelineExpr,
   PredicateTestExpr,
-  ReferenceExpr,
   TransformerFunctionExpr,
-  ResolvableValue,
 } from '../types/expressions.type'
+
+/**
+ * Public interface for a negated chain position, reached via `.not`.
+ * Negation only applies to a condition test, so the only continuations
+ * are `.match()` and a further `.not` to toggle the negation back.
+ */
+export interface ChainableNegation {
+  /**
+   * Test the value against a condition, negated.
+   */
+  match(condition: ConditionFunctionExpr<any>): PredicateTestExpr
+
+  /**
+   * Toggle the negation back off.
+   */
+  readonly not: ChainableNegation
+}
 
 /**
  * Public interface for chainable iterable expressions.
@@ -19,7 +33,7 @@ export interface ChainableIterable {
    * Chain a Find iterator.
    * Returns a ChainableExpr since Find returns a single item, not an array.
    */
-  each(iterator: FindIteratorConfig): ChainableExpr<ReferenceExpr>
+  each(iterator: FindIteratorConfig): ChainableExpr
 
   /**
    * Chain a Map or Filter iterator.
@@ -30,12 +44,12 @@ export interface ChainableIterable {
    * Navigate into a property of the iteration result.
    * Useful after Iterator.Find() to extract a specific property from the found item.
    */
-  path(key: string): ChainableExpr<ReferenceExpr>
+  path(key: string): ChainableExpr
 
   /**
    * Transform the output array through a pipeline.
    */
-  pipe(...steps: TransformerFunctionExpr[]): ChainableExpr<PipelineExpr>
+  pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
 
   /**
    * Test the output array against a condition.
@@ -45,30 +59,30 @@ export interface ChainableIterable {
   /**
    * Negate the next condition test.
    */
-  readonly not: ChainableIterable
+  readonly not: ChainableNegation
 }
 
 /**
  * Public interface for chainable value expressions.
  * Only exposes the fluent API methods - internal methods like build() are hidden.
  */
-export interface ChainableExpr<T extends ResolvableValue> {
+export interface ChainableExpr {
   /**
    * Navigate into a property of the expression result.
    * Creates a reference with this expression as its base.
    */
-  path(key: string): ChainableExpr<ReferenceExpr>
+  path(key: string): ChainableExpr
 
   /**
    * Transform the value through a pipeline of transformers.
    */
-  pipe(...steps: TransformerFunctionExpr[]): ChainableExpr<PipelineExpr>
+  pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
 
   /**
    * Enter per-item iteration mode with a Find iterator.
    * Returns a ChainableExpr since Find returns a single item, not an array.
    */
-  each(iterator: FindIteratorConfig): ChainableExpr<ReferenceExpr>
+  each(iterator: FindIteratorConfig): ChainableExpr
 
   /**
    * Enter per-item iteration mode with a Map or Filter iterator.
@@ -83,7 +97,7 @@ export interface ChainableExpr<T extends ResolvableValue> {
   /**
    * Negate the next condition test.
    */
-  readonly not: ChainableExpr<T>
+  readonly not: ChainableNegation
 }
 
 /**
@@ -100,13 +114,13 @@ export interface ChainableRef {
   /**
    * Transform the value through a pipeline of transformers.
    */
-  pipe(...steps: TransformerFunctionExpr[]): ChainableExpr<PipelineExpr>
+  pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
 
   /**
    * Enter per-item iteration mode with a Find iterator.
    * Returns a ChainableExpr since Find returns a single item.
    */
-  each(iterator: FindIteratorConfig): ChainableExpr<ReferenceExpr>
+  each(iterator: FindIteratorConfig): ChainableExpr
 
   /**
    * Enter per-item iteration mode with a Map or Filter iterator.
@@ -121,7 +135,7 @@ export interface ChainableRef {
   /**
    * Negate the next condition test.
    */
-  readonly not: ChainableRef
+  readonly not: ChainableNegation
 }
 
 /**

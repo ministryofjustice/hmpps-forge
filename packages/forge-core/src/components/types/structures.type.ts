@@ -148,7 +148,7 @@ type DynamicExpression =
   | GeneratorFunctionExpr
   | GeneratorBuilder<ResolvableValue[]>
   | ChainableRef
-  | ChainableExpr<any>
+  | ChainableExpr
 
 export type ResolvableString = string | DynamicExpression
 

@@ -27,7 +27,14 @@ import { BlockType, ExpressionType, OutcomeType, StructureType, HookType, Functi
 import { FORMAT_STRING_GENERATOR_NAME } from '../generators/formatGenerators'
 
 // Re-export public interfaces (for type annotations)
-export type { ChainableExpr, ChainableLoopRef, ChainableRef, ChainableScopedRef, ChainableIterable } from './types'
+export type {
+  ChainableExpr,
+  ChainableLoopRef,
+  ChainableNegation,
+  ChainableRef,
+  ChainableScopedRef,
+  ChainableIterable,
+} from './types'
 
 // Re-export builder classes (for advanced use cases)
 export { ExpressionBuilder } from './ExpressionBuilder'
@@ -383,6 +390,6 @@ export function Format(template: string, ...args: ResolvableString[]): Generator
  * // Use with .each() for iteration
  * Literal([1, 2, 3]).each(Iterator.Map(Item().value()))
  */
-export function Literal<T extends ResolvableValue>(value: T): ChainableExpr<T> {
+export function Literal(value: ResolvableValue): ChainableExpr {
   return ExpressionBuilder.from(value)
 }
