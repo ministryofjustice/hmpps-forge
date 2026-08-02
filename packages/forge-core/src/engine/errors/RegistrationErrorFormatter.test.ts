@@ -39,4 +39,40 @@ describe('RegistrationErrorFormatter', () => {
       }
     }
   })
+
+  it('should include a Defined at line pointing at the author callsite for schema validation errors', () => {
+    // Arrange
+    const badJourney = journey({
+      code: 'schema-callsite-journey',
+      title: 'Schema Callsite Journey',
+      path: '/schema-callsite-journey',
+      reachability: { disableReachabilityChecks: true },
+      steps: [
+        step({
+          code: 'step-one',
+          title: 123 as unknown as string,
+          path: '/step-one',
+          blocks: [field({ variant: 'GovUKInput', code: 'field1' })],
+        }),
+      ],
+    })
+    const engine = new Forge({})
+
+    // Act
+    const act = () => engine.registerPackage(createForgePackage({ journey: badJourney }))
+
+    // Assert
+    expect(act).toThrow(ForgeRegistrationError)
+
+    try {
+      act()
+    } catch (error) {
+      expect(error).toBeInstanceOf(ForgeRegistrationError)
+
+      if (error instanceof ForgeRegistrationError) {
+        expect(error.message).toContain('Defined at: ')
+        expect(error.message).toContain('RegistrationErrorFormatter.test.ts')
+      }
+    }
+  })
 })
