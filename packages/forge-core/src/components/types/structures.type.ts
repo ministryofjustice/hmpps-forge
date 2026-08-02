@@ -158,7 +158,7 @@ export type ResolvableBoolean = boolean | DynamicExpression | PredicateExpr
 
 export type ResolvableNumber = number | DynamicExpression
 
-export type ResolvableArray<T> = T[] | DynamicExpression | ChainableIterable
+export type ResolvableArray<T> = T[] | DynamicExpression | IterateExpr | ChainableIterable
 
 export type ResolvableObject<T extends object> = T | DynamicExpression
 
@@ -166,7 +166,7 @@ export type RenderedBlock<TOutput = string> = {
   block: BlockDefinition
 } & ([TOutput] extends [string] ? { html: string } : { output: TOutput })
 
-type Resolved<T> = Exclude<T, DynamicExpression | ChainableIterable | PredicateExpr>
+type Resolved<T> = Exclude<T, DynamicExpression | IterateExpr | ChainableIterable | PredicateExpr>
 
 export type EvaluatedBlock<T, IsRoot extends boolean = true, TRenderedBlock = RenderedBlock> =
   Resolved<T> extends infer R

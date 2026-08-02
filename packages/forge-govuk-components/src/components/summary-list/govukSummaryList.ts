@@ -92,7 +92,7 @@ export interface SummaryListRow {
   value?: SummaryListValue
 
   /** Optional action links for this row (e.g., "Change", "Remove"). */
-  actions?: SummaryListActions | ResolvableObject<SummaryListActions>
+  actions?: ResolvableObject<SummaryListActions>
 
   /** Additional CSS classes for the row div element. */
   classes?: ResolvableString
@@ -132,7 +132,7 @@ export interface SummaryCard {
   title?: SummaryCardTitle
 
   /** Action links displayed in the card header. */
-  actions?: SummaryListActions | ResolvableObject<SummaryListActions>
+  actions?: ResolvableObject<SummaryListActions>
 
   /** Additional CSS classes for the card container. */
   classes?: ResolvableString
@@ -192,7 +192,7 @@ export interface GovUKSummaryList extends BlockDefinition {
    * If provided, the summary list will be displayed inside a summary card
    * with an optional title and header actions.
    */
-  card?: SummaryCard | ResolvableObject<SummaryCard>
+  card?: ResolvableObject<SummaryCard>
 
   /** Additional CSS classes for the summary list dl element. */
   classes?: ResolvableString

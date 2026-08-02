@@ -57,7 +57,7 @@ export interface MOJCard extends BlockDefinition {
    * @example 'Search cases'
    * @example { text: 'Search cases', level: 3 }
    */
-  heading: ResolvableString | MOJCardHeading | ResolvableObject<MOJCardHeading>
+  heading: ResolvableString | ResolvableObject<MOJCardHeading>
 
   /** Link URL for the card heading */
   href: ResolvableString
@@ -67,7 +67,7 @@ export interface MOJCard extends BlockDefinition {
    * @example 'Find and manage case records'
    * @example { html: '<strong>Find</strong> records' }
    */
-  description?: ResolvableString | MOJCardDescription | ResolvableObject<MOJCardDescription>
+  description?: ResolvableString | ResolvableObject<MOJCardDescription>
 
   /** Makes the entire card clickable via CSS (default: true) */
   clickable?: ResolvableBoolean
