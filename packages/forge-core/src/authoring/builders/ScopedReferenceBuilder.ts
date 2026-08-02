@@ -24,6 +24,8 @@ import { splitKey } from './utils/splitKey'
  * @internal Exposed to authors via the ChainableScopedRef interface.
  */
 export class ScopedReferenceBuilder {
+  readonly nodeKind = 'forge-builder' as const
+
   private readonly level: number
 
   private constructor(level: number) {

@@ -9,6 +9,8 @@ import { ReferenceBuilder } from './ReferenceBuilder'
  * @internal Exposed to authors via the ChainableLoopRef interface.
  */
 export class LoopReferenceBuilder {
+  readonly nodeKind = 'forge-builder' as const
+
   private readonly level: number
 
   private constructor(level: number) {

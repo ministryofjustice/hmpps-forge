@@ -128,6 +128,19 @@ describe('finaliseBuilders', () => {
     expect(result.value).toEqual({ type: ExpressionType.REFERENCE, path: ['data', 'firstName'] })
   })
 
+  it('should pass through an object with a build function but no builder marker untouched', () => {
+    // Arrange
+    const build = () => 'built'
+    const input = { value: { build, label: 'not a builder' } }
+
+    // Act
+    const result = finaliseBuilders(input) as Record<string, any>
+
+    // Assert
+    expect(result.value.build).toBe(build)
+    expect(result.value.label).toBe('not a builder')
+  })
+
   describe('callsite stamps', () => {
     it('should give field() output a callsite that names the calling file', () => {
       // Act

@@ -12,6 +12,8 @@ import { captureCallsite, stampCallsite } from './utils/captureCallsite'
  * @internal Exposed to authors via the ChainableConditional interface.
  */
 export class ConditionalExprBuilder implements ChainableConditional {
+  readonly nodeKind = 'forge-builder' as const
+
   private readonly predicate: PredicateExpr
 
   private readonly thenValue: BranchValue

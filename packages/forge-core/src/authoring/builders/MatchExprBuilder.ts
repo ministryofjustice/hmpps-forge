@@ -14,6 +14,8 @@ import { captureCallsite, stampCallsite } from './utils/captureCallsite'
  * @internal Exposed to authors via the ChainableMatch interface.
  */
 export class MatchExprBuilder implements ChainableMatch {
+  readonly nodeKind = 'forge-builder' as const
+
   private readonly subject: ResolvableValue
 
   private readonly branches: ReadonlyArray<{ condition: ConditionBranchExpr; value: BranchValue }>
