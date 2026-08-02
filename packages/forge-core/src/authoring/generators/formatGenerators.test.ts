@@ -1,11 +1,6 @@
 import { FunctionType } from '../types/enums'
 import { ResolvableValue } from '../types/expressions.type'
-import {
-  FORMAT_STRING_GENERATOR_NAME,
-  FormatGenerators,
-  formatGeneratorsRegistry,
-  formatString,
-} from './formatGenerators'
+import { FORMAT_STRING_GENERATOR_NAME, FormatGenerators, formatGeneratorsRegistry } from './formatGenerators'
 import { FunctionRegistryTestHarness } from '../../testing/FunctionRegistryTestHarness'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
 
@@ -52,7 +47,7 @@ describe('FormatGenerators', () => {
       const template = '%1 %2'
 
       // Act
-      const result = formatString(template, ['$&', '%1'])
+      const result = harness.evaluate(FormatGenerators.FormatString(template, '$&', '%1'))
 
       // Assert
       expect(result).toBe('$& %1')
@@ -63,7 +58,7 @@ describe('FormatGenerators', () => {
       const template = 123
 
       // Act / Assert
-      expect(() => harness.evaluate(FormatGenerators.FormatString(template))).toThrow(TypeError)
+      expect(() => harness.evaluate(FormatGenerators.FormatString(template as unknown as string))).toThrow(TypeError)
     })
 
     it('should build correct generator expression', () => {

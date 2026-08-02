@@ -1,9 +1,8 @@
 import { ExpressionBuilder } from './ExpressionBuilder'
-import { ChainableExpr } from './types'
-import { GeneratorFunctionExpr, ResolvableValue } from '../types/expressions.type'
+import { ChainableExpr, ChainableGenerator } from './types'
+import { ResolvableValue } from '../types/expressions.type'
 import { ResolvableString } from '../../components/types/structures.type'
-import { FunctionType } from '../types/enums'
-import { FORMAT_STRING_GENERATOR_NAME } from '../generators/formatGenerators'
+import { FormatGenerators } from '../generators/formatGenerators'
 
 /**
  * Creates a string formatting expression with placeholder substitution.
@@ -13,12 +12,8 @@ import { FORMAT_STRING_GENERATOR_NAME } from '../generators/formatGenerators'
  * Format('Hello %1!', Answer('name'))
  * Format('%1 %2', Answer('firstName'), Answer('lastName'))
  */
-export function Format(template: string, ...args: ResolvableString[]): GeneratorFunctionExpr {
-  return {
-    type: FunctionType.GENERATOR,
-    name: FORMAT_STRING_GENERATOR_NAME,
-    arguments: [template, ...args],
-  }
+export function Format(template: string, ...args: ResolvableString[]): ChainableGenerator {
+  return FormatGenerators.FormatString(template, ...args)
 }
 
 /**
