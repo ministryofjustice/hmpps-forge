@@ -51,7 +51,7 @@ export default class CompilationPipeline {
 
   private buildAstTree(journeyDef: JourneyDefinition): AstContext {
     const nodeIdGenerator = new NodeIDGenerator()
-    const nodeFactory = new NodeFactory(nodeIdGenerator, journeyDef)
+    const nodeFactory = new NodeFactory(nodeIdGenerator)
     const nodeRegistry = new ASTNodeIndex()
 
     const rootNode = nodeFactory.createNode(journeyDef) as JourneyASTNode

@@ -25,8 +25,7 @@ import UnknownNodeTypeError from '../../../errors/UnknownNodeTypeError'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
 import type { ASTNode } from '../../../contracts/ast/engine.type'
 import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
-import DSLSourceLocator from '../../../../shared/diagnostics/DSLSourceLocator'
-import type { ASTNodeDiagnostics, DSLPathSegment } from '../../../../shared/diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics, DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
 import JourneyFactory from './structures/journey/JourneyFactory'
 import StepFactory from './structures/step/StepFactory'
 import BlockFactory from './structures/block/BlockFactory'
@@ -53,6 +52,11 @@ import ThrowErrorOutcomeFactory from './outcomes/throw-error/ThrowErrorOutcomeFa
  *
  * This factory acts as a dispatcher, routing JSON definitions to specialized
  * per-node factories based on node type.
+ *
+ * Source diagnostics are read off the non-enumerable `__source` (and
+ * `__callsite`) stamps that finaliseBuilders attaches to every object node of
+ * finalised configuration. Unstamped input compiles without diagnostics;
+ * downstream consumers fall back to 'unknown'.
  */
 export class NodeFactory {
   private readonly journeyFactory: JourneyFactory
@@ -95,18 +99,7 @@ export class NodeFactory {
 
   private readonly throwErrorOutcomeFactory: ThrowErrorOutcomeFactory
 
-  private sourceLocator: DSLSourceLocator | undefined
-
-  private currentPath: readonly DSLPathSegment[] = []
-
-  constructor(
-    private readonly nodeIDGenerator: NodeIDGenerator,
-    sourceRoot?: unknown,
-  ) {
-    if (sourceRoot !== undefined) {
-      this.sourceLocator = new DSLSourceLocator(sourceRoot)
-    }
-
+  constructor(private readonly nodeIDGenerator: NodeIDGenerator) {
     this.journeyFactory = new JourneyFactory(this.nodeIDGenerator, this)
     this.stepFactory = new StepFactory(this.nodeIDGenerator, this)
     this.blockFactory = new BlockFactory(this.nodeIDGenerator, this)
@@ -133,7 +126,7 @@ export class NodeFactory {
    * Main entry point for transformation
    * Sets up error boundary and routes to appropriate factory
    */
-  createNode(json: unknown, path: readonly DSLPathSegment[] = []): ASTNode {
+  createNode(json: unknown): ASTNode {
     if (!json || typeof json !== 'object') {
       throw new InvalidNodeError({
         message: `Invalid node: expected object, got ${typeof json}`,
@@ -143,99 +136,95 @@ export class NodeFactory {
       })
     }
 
-    const sourceLocator = this.ensureSourceLocator(json)
+    // Structure nodes: Journey, Step, Block
+    if (isJourneyDefinition(json)) {
+      return this.withDiagnostics(this.journeyFactory.create(json), json)
+    }
 
-    return this.withCurrentPath(path, () => {
-      // Structure nodes: Journey, Step, Block
-      if (isJourneyDefinition(json)) {
-        return this.withDiagnostics(this.journeyFactory.create(json), path, sourceLocator)
-      }
+    if (isStepDefinition(json)) {
+      return this.withDiagnostics(this.stepFactory.create(json), json)
+    }
 
-      if (isStepDefinition(json)) {
-        return this.withDiagnostics(this.stepFactory.create(json), path, sourceLocator)
-      }
+    if (isBlockDefinition(json)) {
+      return this.withDiagnostics(this.blockFactory.create(json), json)
+    }
 
-      if (isBlockDefinition(json)) {
-        return this.withDiagnostics(this.blockFactory.create(json), path, sourceLocator)
-      }
+    // Logic nodes: Conditionals and Predicates
+    if (isConditionalExpr(json)) {
+      return this.withDiagnostics(this.conditionalFactory.create(json), json)
+    }
 
-      // Logic nodes: Conditionals and Predicates
-      if (isConditionalExpr(json)) {
-        return this.withDiagnostics(this.conditionalFactory.create(json), path, sourceLocator)
-      }
+    if (isMatchExpr(json)) {
+      return this.withDiagnostics(this.matchFactory.create(json), json)
+    }
 
-      if (isMatchExpr(json)) {
-        return this.withDiagnostics(this.matchFactory.create(json), path, sourceLocator)
-      }
+    if (isPredicateTestExpr(json)) {
+      return this.withDiagnostics(this.testFactory.create(json), json)
+    }
 
-      if (isPredicateTestExpr(json)) {
-        return this.withDiagnostics(this.testFactory.create(json), path, sourceLocator)
-      }
+    if (isPredicateNotExpr(json)) {
+      return this.withDiagnostics(this.notFactory.create(json), json)
+    }
 
-      if (isPredicateNotExpr(json)) {
-        return this.withDiagnostics(this.notFactory.create(json), path, sourceLocator)
-      }
+    if (isPredicateAndExpr(json)) {
+      return this.withDiagnostics(this.andFactory.create(json), json)
+    }
 
-      if (isPredicateAndExpr(json)) {
-        return this.withDiagnostics(this.andFactory.create(json), path, sourceLocator)
-      }
+    if (isPredicateOrExpr(json)) {
+      return this.withDiagnostics(this.orFactory.create(json), json)
+    }
 
-      if (isPredicateOrExpr(json)) {
-        return this.withDiagnostics(this.orFactory.create(json), path, sourceLocator)
-      }
+    if (isPredicateXorExpr(json)) {
+      return this.withDiagnostics(this.xorFactory.create(json), json)
+    }
 
-      if (isPredicateXorExpr(json)) {
-        return this.withDiagnostics(this.xorFactory.create(json), path, sourceLocator)
-      }
+    // Expression nodes: References, Pipelines, Iterate, Validations, TieBreaker, Functions
+    if (isReferenceExpr(json)) {
+      return this.withDiagnostics(this.referenceFactory.create(json), json)
+    }
 
-      // Expression nodes: References, Pipelines, Iterate, Validations, TieBreaker, Functions
-      if (isReferenceExpr(json)) {
-        return this.withDiagnostics(this.referenceFactory.create(json), path, sourceLocator)
-      }
+    if (isPipelineExpr(json)) {
+      return this.withDiagnostics(this.pipelineFactory.create(json), json)
+    }
 
-      if (isPipelineExpr(json)) {
-        return this.withDiagnostics(this.pipelineFactory.create(json), path, sourceLocator)
-      }
+    if (isIterateExpr(json)) {
+      return this.withDiagnostics(this.iterateFactory.create(json), json)
+    }
 
-      if (isIterateExpr(json)) {
-        return this.withDiagnostics(this.iterateFactory.create(json), path, sourceLocator)
-      }
+    if (isValidationExpr(json)) {
+      return this.withDiagnostics(this.validationFactory.create(json), json)
+    }
 
-      if (isValidationExpr(json)) {
-        return this.withDiagnostics(this.validationFactory.create(json), path, sourceLocator)
-      }
+    if (isTieBreaker(json)) {
+      return this.withDiagnostics(this.tieBreakerFactory.create(json), json)
+    }
 
-      if (isTieBreaker(json)) {
-        return this.withDiagnostics(this.tieBreakerFactory.create(json), path, sourceLocator)
-      }
+    if (isFunctionExpr(json)) {
+      return this.withDiagnostics(this.functionFactory.create(json), json)
+    }
 
-      if (isFunctionExpr(json)) {
-        return this.withDiagnostics(this.functionFactory.create(json), path, sourceLocator)
-      }
+    // Outcome nodes: Redirect, ThrowError
+    if (isRedirectOutcome(json)) {
+      return this.withDiagnostics(this.redirectOutcomeFactory.create(json), json)
+    }
 
-      // Outcome nodes: Redirect, ThrowError
-      if (isRedirectOutcome(json)) {
-        return this.withDiagnostics(this.redirectOutcomeFactory.create(json), path, sourceLocator)
-      }
+    if (isThrowErrorOutcome(json)) {
+      return this.withDiagnostics(this.throwErrorOutcomeFactory.create(json), json)
+    }
 
-      if (isThrowErrorOutcome(json)) {
-        return this.withDiagnostics(this.throwErrorOutcomeFactory.create(json), path, sourceLocator)
-      }
+    // Hook nodes: Access, Submit
+    if (isAccessHook(json)) {
+      return this.withDiagnostics(this.accessFactory.create(json), json)
+    }
 
-      // Hook nodes: Access, Submit
-      if (isAccessHook(json)) {
-        return this.withDiagnostics(this.accessFactory.create(json), path, sourceLocator)
-      }
+    if (isSubmitHook(json)) {
+      return this.withDiagnostics(this.submitFactory.create(json), json)
+    }
 
-      if (isSubmitHook(json)) {
-        return this.withDiagnostics(this.submitFactory.create(json), path, sourceLocator)
-      }
-
-      throw new UnknownNodeTypeError({
-        nodeType: this.getNodeType(json),
-        node: json,
-        validTypes: ['Journey', 'Step', 'Block', 'Expression', 'Logic', 'Outcome', 'Access', 'Submit'],
-      })
+    throw new UnknownNodeTypeError({
+      nodeType: this.getNodeType(json),
+      node: json,
+      validTypes: ['Journey', 'Step', 'Block', 'Expression', 'Logic', 'Outcome', 'Access', 'Submit'],
     })
   }
 
@@ -243,7 +232,7 @@ export class NodeFactory {
    * Transform value: Recursive processor for any JSON value
    * Detects and transforms nested nodes while preserving primitives
    */
-  transformValue<T = unknown>(value: unknown, path: readonly DSLPathSegment[] = []): T {
+  transformValue<T = unknown>(value: unknown): T {
     // Preserve null/undefined as-is
     if (value === null || value === undefined) {
       return value as T
@@ -256,15 +245,12 @@ export class NodeFactory {
 
     // Arrays: Transform each element recursively
     if (Array.isArray(value)) {
-      return value.map((item, index) => {
-        // Recursively transform each array item
-        return this.transformValue(item, [...path, index])
-      }) as T
+      return value.map(item => this.transformValue(item)) as T
     }
 
     // Detect AST nodes and transform them
     if (this.isNode(value)) {
-      return this.createNode(value, path) as T
+      return this.createNode(value) as T
     }
 
     // Plain objects: Recursively check properties for nested nodes
@@ -272,64 +258,45 @@ export class NodeFactory {
     const result: Record<string, unknown> = {}
 
     Object.entries(value).forEach(([key, val]) => {
-      result[key] = this.transformValue(val, [...path, key])
+      result[key] = this.transformValue(val)
     })
 
     return result as T
   }
 
-  createDiagnostics(path: readonly DSLPathSegment[]): ASTNodeDiagnostics {
+  /**
+   * Derive AST node diagnostics from the source stamps on a JSON node.
+   * Returns undefined for unstamped input.
+   */
+  diagnosticsFor(json: unknown): ASTNodeDiagnostics | undefined {
+    if (json === null || typeof json !== 'object') {
+      return undefined
+    }
+
+    const source = Object.getOwnPropertyDescriptor(json, '__source')?.value as DSLSourceLocation | undefined
+
+    if (!source) {
+      return undefined
+    }
+
+    const callsite = Object.getOwnPropertyDescriptor(json, '__callsite')?.value as { stack?: string } | undefined
+
     return {
-      source: this.ensureSourceLocator(undefined).fromPath(path),
+      source,
+      ...(callsite && { callsite }),
     }
   }
 
-  createChildDiagnostics(...segments: DSLPathSegment[]): ASTNodeDiagnostics {
-    return this.createDiagnostics(this.getChildPath(segments))
-  }
+  private withDiagnostics<TNode extends ASTNode>(node: TNode, json: unknown): TNode {
+    const diagnostics = this.diagnosticsFor(json)
 
-  createChildNode(value: unknown, ...segments: DSLPathSegment[]): ASTNode {
-    return this.createNode(value, this.getChildPath(segments))
-  }
-
-  transformChild<T = unknown>(value: unknown, ...segments: DSLPathSegment[]): T {
-    return this.transformValue<T>(value, this.getChildPath(segments))
-  }
-
-  private getChildPath(segments: readonly DSLPathSegment[]): readonly DSLPathSegment[] {
-    return [...this.currentPath, ...segments]
-  }
-
-  private withCurrentPath<T>(path: readonly DSLPathSegment[], build: () => T): T {
-    const previousPath = this.currentPath
-
-    this.currentPath = path
-
-    try {
-      return build()
-    } finally {
-      this.currentPath = previousPath
-    }
-  }
-
-  private ensureSourceLocator(root: unknown): DSLSourceLocator {
-    if (this.sourceLocator === undefined) {
-      this.sourceLocator = new DSLSourceLocator(root)
+    if (!diagnostics) {
+      return node
     }
 
-    return this.sourceLocator
-  }
-
-  private withDiagnostics<TNode extends ASTNode>(
-    node: TNode,
-    path: readonly DSLPathSegment[],
-    sourceLocator: DSLSourceLocator,
-  ): TNode {
     return {
       ...node,
-      diagnostics: {
-        source: sourceLocator.fromPath(path),
-      },
+      diagnostics,
     } as TNode
   }
 

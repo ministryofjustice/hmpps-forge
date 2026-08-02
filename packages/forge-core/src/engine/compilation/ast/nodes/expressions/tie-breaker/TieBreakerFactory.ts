@@ -17,7 +17,7 @@ export default class TieBreakerFactory {
     }
 
     if (json.when !== undefined) {
-      properties.when = this.nodeFactory.createChildNode(json.when, 'when')
+      properties.when = this.nodeFactory.createNode(json.when)
     }
 
     return {

@@ -37,9 +37,9 @@ export default class ConditionalFactory {
       type: ASTNodeType.EXPRESSION,
       expressionType: ExpressionType.CONDITIONAL,
       properties: {
-        predicate: this.nodeFactory.createChildNode(json.predicate, 'predicate'),
-        thenValue: json.thenValue !== undefined ? this.nodeFactory.transformChild(json.thenValue, 'thenValue') : true,
-        elseValue: json.elseValue !== undefined ? this.nodeFactory.transformChild(json.elseValue, 'elseValue') : false,
+        predicate: this.nodeFactory.createNode(json.predicate),
+        thenValue: json.thenValue !== undefined ? this.nodeFactory.transformValue(json.thenValue) : true,
+        elseValue: json.elseValue !== undefined ? this.nodeFactory.transformValue(json.elseValue) : false,
       },
     }
   }

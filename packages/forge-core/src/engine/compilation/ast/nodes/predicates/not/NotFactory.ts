@@ -35,7 +35,7 @@ export default class NotFactory {
       type: ASTNodeType.PREDICATE,
       predicateType: PredicateType.NOT,
       properties: {
-        operand: this.nodeFactory.createChildNode(json.operand, 'operand'),
+        operand: this.nodeFactory.createNode(json.operand),
       },
     }
   }

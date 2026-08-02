@@ -35,7 +35,7 @@ export default class BlockFactory {
     const properties: BasicBlockASTNode['properties'] = {}
 
     Object.entries(dataProperties).forEach(([key, value]) => {
-      properties[key] = this.nodeFactory.transformChild(value, key)
+      properties[key] = this.nodeFactory.transformValue(value)
     })
 
     if (dataProperties.metadata !== undefined) {
@@ -66,7 +66,7 @@ export default class BlockFactory {
     const properties: FieldBlockASTNode['properties'] = {}
 
     Object.entries(dataProperties).forEach(([key, value]) => {
-      properties[key] = this.nodeFactory.transformChild(value, key)
+      properties[key] = this.nodeFactory.transformValue(value)
     })
 
     // Override properties that should not be transformed

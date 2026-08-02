@@ -26,19 +26,15 @@ export default class AccessFactory {
     const properties: AccessHookASTNode['properties'] = {}
 
     if (json.when) {
-      properties.when = this.nodeFactory.createChildNode(json.when, 'when')
+      properties.when = this.nodeFactory.createNode(json.when)
     }
 
     if (Array.isArray(json.effects)) {
-      properties.effects = json.effects.map((effect: unknown, index) =>
-        this.nodeFactory.createChildNode(effect, 'effects', index),
-      )
+      properties.effects = json.effects.map((effect: unknown) => this.nodeFactory.createNode(effect))
     }
 
     if (Array.isArray(json.next)) {
-      properties.next = json.next.map((outcome: unknown, index) =>
-        this.nodeFactory.createChildNode(outcome, 'next', index),
-      )
+      properties.next = json.next.map((outcome: unknown) => this.nodeFactory.createNode(outcome))
     }
 
     return {

@@ -23,7 +23,7 @@ export default class FunctionFactory {
     const funcType = json.type
 
     // Transform arguments recursively
-    const args = json.arguments.map((arg: unknown, index) => this.nodeFactory.transformChild(arg, 'arguments', index))
+    const args = json.arguments.map((arg: unknown) => this.nodeFactory.transformValue(arg))
 
     return {
       id: this.nodeIDGenerator.nextAstNodeId(),

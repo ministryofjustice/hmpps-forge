@@ -29,7 +29,7 @@ export default class ReferenceFactory {
    */
   create(json: ReferenceExpr): ReferenceASTNode {
     // Transform base expression if present
-    const base = json.base ? this.nodeFactory.transformChild<ASTNode>(json.base, 'base') : undefined
+    const base = json.base ? this.nodeFactory.transformValue<ASTNode>(json.base) : undefined
 
     // Build path - allow empty path when base is present
     const referencePath = this.buildReferencePath(json.path, !!base)
@@ -59,10 +59,8 @@ export default class ReferenceFactory {
     }
 
     // Transform any expressions in the path (e.g., dynamic keys)
-    return path.map((segment, index) =>
-      isExpression(segment)
-        ? this.nodeFactory.transformChild(segment, 'path', index)
-        : this.assertReferenceSegment(segment),
+    return path.map(segment =>
+      isExpression(segment) ? this.nodeFactory.transformValue(segment) : this.assertReferenceSegment(segment),
     )
   }
 

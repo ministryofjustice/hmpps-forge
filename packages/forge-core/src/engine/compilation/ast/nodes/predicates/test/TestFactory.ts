@@ -46,8 +46,8 @@ export default class TestFactory {
       predicateType: PredicateType.TEST,
       properties: {
         // Use transformValue to support both AST nodes and literals
-        subject: this.nodeFactory.transformChild(json.subject, 'subject'),
-        condition: this.nodeFactory.createChildNode(json.condition, 'condition'),
+        subject: this.nodeFactory.transformValue(json.subject),
+        condition: this.nodeFactory.createNode(json.condition),
         negate: json.negate ?? false,
       },
     }

@@ -22,6 +22,7 @@ import UnregisteredFunctionError from '../../errors/UnregisteredFunctionError'
 import UnregisteredComponentError from '../../errors/UnregisteredComponentError'
 import FunctionArityError from '../../errors/FunctionArityError'
 import CompilationPipeline from '../CompilationPipeline'
+import { finaliseBuilders } from '../../../authoring/builders/utils/finaliseBuilders'
 
 function compileJourney(
   journey: JourneyDefinition,
@@ -30,7 +31,7 @@ function compileJourney(
 ): void {
   const pipeline = new CompilationPipeline({ functionRegistry, componentRegistry })
 
-  pipeline.compile(journey)
+  pipeline.compile(finaliseBuilders(journey) as JourneyDefinition)
 }
 
 describe('ASTSemanticValidator', () => {

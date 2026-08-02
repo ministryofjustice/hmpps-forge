@@ -7,4 +7,5 @@ export interface DSLSourceLocation {
 
 export interface ASTNodeDiagnostics {
   readonly source: DSLSourceLocation
+  readonly callsite?: { readonly stack?: string }
 }

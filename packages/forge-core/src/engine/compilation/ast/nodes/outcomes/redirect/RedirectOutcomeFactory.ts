@@ -23,11 +23,11 @@ export default class RedirectOutcomeFactory {
    */
   create(json: RedirectOutcome): RedirectOutcomeASTNode {
     const properties: { when?: ASTNode; goto: ASTNode | string } = {
-      goto: this.nodeFactory.transformChild(json.goto, 'goto'),
+      goto: this.nodeFactory.transformValue(json.goto),
     }
 
     if (json.when) {
-      properties.when = this.nodeFactory.createChildNode(json.when, 'when')
+      properties.when = this.nodeFactory.createNode(json.when)
     }
 
     return {

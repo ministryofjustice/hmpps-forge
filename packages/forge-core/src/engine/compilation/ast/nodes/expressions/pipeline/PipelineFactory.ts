@@ -23,10 +23,10 @@ export default class PipelineFactory {
    */
   create(json: PipelineExpr): PipelineASTNode {
     // Initial value to transform - use transformValue to support both AST nodes and literals
-    const input = this.nodeFactory.transformChild(json.input, 'input')
+    const input = this.nodeFactory.transformValue(json.input)
 
     // Transform each pipeline step
-    const steps = json.steps.map((arg: unknown, index) => this.nodeFactory.transformChild<ASTNode>(arg, 'steps', index))
+    const steps = json.steps.map((arg: unknown) => this.nodeFactory.transformValue<ASTNode>(arg))
 
     return {
       id: this.nodeIDGenerator.nextAstNodeId(),
