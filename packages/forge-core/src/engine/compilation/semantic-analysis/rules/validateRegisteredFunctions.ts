@@ -17,7 +17,7 @@ function buildError(
 
   return new UnregisteredFunctionError({
     path: source?.path ? [...source.path] : [],
-    formattedPath: source?.formattedPath,
+    formattedPath: source?.formattedPath ?? 'unknown',
     functionName: name,
     functionType,
     callsite: diagnostics?.callsite,

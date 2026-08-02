@@ -64,7 +64,7 @@ function buildError(
 
   return new FunctionArityError({
     path: source?.path ? [...source.path] : [],
-    formattedPath: source?.formattedPath,
+    formattedPath: source?.formattedPath ?? 'unknown',
     functionName: name,
     functionType,
     expected,
