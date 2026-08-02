@@ -1,6 +1,7 @@
 import { ConditionBranchExpr, MatchExpr, ResolvableValue } from '../types/expressions.type'
 import { ExpressionType } from '../types/enums'
 import { BranchValue, ChainableMatch } from './types'
+import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 
 /**
  * Immutable fluent builder for creating match expressions.
@@ -83,5 +84,7 @@ export class MatchExprBuilder implements ChainableMatch {
  *   .otherwise('Unknown')
  */
 export const match = (subject: BranchValue): ChainableMatch => {
-  return new MatchExprBuilder(subject)
+  const builder = new MatchExprBuilder(subject)
+  stampCallsite(builder, captureCallsite(match))
+  return builder
 }

@@ -1,10 +1,16 @@
-import { Data } from '../index'
+import { Data, field } from '../index'
 import { finaliseBuilders } from './finaliseBuilders'
 import { BlockType, ExpressionType, StructureType } from '../../types/enums'
+import { FormatGenerators } from '../../generators/formatGenerators'
+import { Condition } from '../../conditions'
+import type { Callsite } from './captureCallsite'
 import type { DSLSourceLocation } from '../../../shared/diagnostics/sourceLocation.type'
 
 const sourceOf = (value: unknown): DSLSourceLocation =>
   Object.getOwnPropertyDescriptor(value, '__source')?.value as DSLSourceLocation
+
+const callsiteOf = (value: unknown): Callsite | undefined =>
+  Object.getOwnPropertyDescriptor(value, '__callsite')?.value as Callsite | undefined
 
 const journeyInput = () => ({
   type: StructureType.JOURNEY,
@@ -120,5 +126,64 @@ describe('finaliseBuilders', () => {
 
     // Assert
     expect(result.value).toEqual({ type: ExpressionType.REFERENCE, path: ['data', 'firstName'] })
+  })
+
+  describe('callsite stamps', () => {
+    it('should give field() output a callsite that names the calling file', () => {
+      // Act
+      const block = field({ variant: 'GovUKInput', code: 'firstName' })
+
+      // Assert
+      expect(callsiteOf(block)?.stack).toContain('finaliseBuilders.test.ts')
+      expect(callsiteOf(block)?.stack).not.toContain('structures.ts')
+    })
+
+    it('should carry a callsite stamp through an enclosing walk copy', () => {
+      // Arrange
+      const block = field({ variant: 'GovUKInput', code: 'firstName' })
+
+      // Act
+      const result = finaliseBuilders({ blocks: [block] }) as Record<string, any>
+
+      // Assert
+      expect(result.blocks[0]).not.toBe(block)
+      expect(callsiteOf(result.blocks[0])?.stack).toContain('finaliseBuilders.test.ts')
+    })
+
+    it('should stamp a generator handle output and carry it through build()', () => {
+      // Arrange
+      const generator = FormatGenerators.FormatString('Hello %1', Data('firstName'))
+      expect(callsiteOf(generator)?.stack).toContain('finaliseBuilders.test.ts')
+
+      // Act
+      const result = finaliseBuilders({ value: generator }) as Record<string, any>
+
+      // Assert
+      expect(callsiteOf(result.value)?.stack).toContain('finaliseBuilders.test.ts')
+    })
+
+    it('should stamp a condition handle output and carry it through the walk', () => {
+      // Arrange
+      const condition = Condition.Equals('x')
+      expect(callsiteOf(condition)?.stack).toContain('finaliseBuilders.test.ts')
+
+      // Act
+      const result = finaliseBuilders({ when: condition }) as Record<string, any>
+
+      // Assert
+      expect(callsiteOf(result.when)?.stack).toContain('finaliseBuilders.test.ts')
+    })
+
+    it('should keep callsite stamps invisible to JSON serialisation', () => {
+      // Arrange
+      const block = field({ variant: 'GovUKInput', code: 'firstName', visibleWhen: Data('show') })
+
+      // Act
+      const result = finaliseBuilders({ blocks: [block], value: FormatGenerators.FormatString('Hi %1', 'x') })
+
+      // Assert
+      expect(JSON.stringify(result)).not.toContain('__callsite')
+      expect(JSON.stringify(block)).not.toContain('__callsite')
+    })
   })
 })

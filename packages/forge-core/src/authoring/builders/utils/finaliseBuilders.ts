@@ -1,5 +1,14 @@
 import DSLSourceLocator from '../../../shared/diagnostics/DSLSourceLocator'
 import type { DSLPathSegment } from '../../../shared/diagnostics/sourceLocation.type'
+import { stampCallsite } from './captureCallsite'
+
+const carryCallsite = (from: object, to: unknown): void => {
+  const callsite = Object.getOwnPropertyDescriptor(from, '__callsite')?.value
+
+  if (callsite) {
+    stampCallsite(to, callsite)
+  }
+}
 
 interface Buildable {
   build(): unknown
@@ -32,13 +41,16 @@ const finalise = (value: unknown, path: DSLPathSegment[], ancestors: Set<object>
     if (isBuildable(value)) {
       // Recurse into the built output at the same path so shared builder
       // instances produce a fresh copy per tree position.
-      return finalise(value.build(), path, ancestors)
+      const built = value.build()
+      carryCallsite(value, built)
+      return finalise(built, path, ancestors)
     }
 
     const result: Record<string, unknown> = {}
     Object.entries(value).forEach(([key, entry]) => {
       result[key] = finalise(entry, [...path, key], ancestors)
     })
+    carryCallsite(value, result)
     return result
   } finally {
     ancestors.delete(value)

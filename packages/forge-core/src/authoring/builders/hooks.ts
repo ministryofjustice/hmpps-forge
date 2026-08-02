@@ -1,4 +1,5 @@
 import { finaliseBuilders } from './utils/finaliseBuilders'
+import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { TieBreaker, TieBreakerProps, ValidationExpr, ValidationProps } from '../types/structures.type'
 import { AccessHook, RedirectOutcome, SubmitHook, ThrowErrorOutcome } from '../types/expressions.type'
 import { ExpressionType, HookType, OutcomeType } from '../types/enums'
@@ -8,7 +9,9 @@ import { ExpressionType, HookType, OutcomeType } from '../types/enums'
  * Use this in the onSubmission array of steps.
  */
 export function submit(definition: Omit<SubmitHook, 'type'>): SubmitHook {
-  return finaliseBuilders({ ...definition, type: HookType.SUBMIT }) as SubmitHook
+  const result = finaliseBuilders({ ...definition, type: HookType.SUBMIT }) as SubmitHook
+  stampCallsite(result, captureCallsite(submit))
+  return result
 }
 
 /**
@@ -16,7 +19,9 @@ export function submit(definition: Omit<SubmitHook, 'type'>): SubmitHook {
  * Use this in the onAccess array of journeys or steps.
  */
 export function access(definition: Omit<AccessHook, 'type'>): AccessHook {
-  return finaliseBuilders({ ...definition, type: HookType.ACCESS }) as AccessHook
+  const result = finaliseBuilders({ ...definition, type: HookType.ACCESS }) as AccessHook
+  stampCallsite(result, captureCallsite(access))
+  return result
 }
 
 /**
@@ -24,10 +29,12 @@ export function access(definition: Omit<AccessHook, 'type'>): AccessHook {
  * Add to the `validWhen` array - rules are checked in order.
  */
 export function validation(definition: ValidationProps): ValidationExpr {
-  return finaliseBuilders({
+  const result = finaliseBuilders({
     ...definition,
     type: ExpressionType.VALIDATION,
   }) as ValidationExpr
+  stampCallsite(result, captureCallsite(validation))
+  return result
 }
 
 /**
@@ -39,10 +46,12 @@ export function validation(definition: ValidationProps): ValidationExpr {
  * tieBreaker({ priority: 100, when: Answer('income_started').match(true) })
  */
 export function tieBreaker(definition: TieBreakerProps): TieBreaker {
-  return finaliseBuilders({
+  const result = finaliseBuilders({
     ...definition,
     type: ExpressionType.TIE_BREAKER,
   }) as TieBreaker
+  stampCallsite(result, captureCallsite(tieBreaker))
+  return result
 }
 
 /**
@@ -61,10 +70,12 @@ export function tieBreaker(definition: TieBreakerProps): TieBreaker {
  * })
  */
 export function redirect(definition: Omit<RedirectOutcome, 'type'>): RedirectOutcome {
-  return finaliseBuilders({
+  const result = finaliseBuilders({
     ...definition,
     type: OutcomeType.REDIRECT,
   }) as RedirectOutcome
+  stampCallsite(result, captureCallsite(redirect))
+  return result
 }
 
 /**
@@ -88,8 +99,10 @@ export function redirect(definition: Omit<RedirectOutcome, 'type'>): RedirectOut
  * })
  */
 export function throwError(definition: Omit<ThrowErrorOutcome, 'type'>): ThrowErrorOutcome {
-  return finaliseBuilders({
+  const result = finaliseBuilders({
     ...definition,
     type: OutcomeType.THROW_ERROR,
   }) as ThrowErrorOutcome
+  stampCallsite(result, captureCallsite(throwError))
+  return result
 }

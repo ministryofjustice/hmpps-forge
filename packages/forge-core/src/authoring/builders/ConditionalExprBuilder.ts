@@ -1,6 +1,7 @@
 import { ConditionalExpr, PredicateExpr, PredicateTestExpr } from '../types/expressions.type'
 import { ExpressionType } from '../types/enums'
 import { BranchValue, ChainableConditional } from './types'
+import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 
 /**
  * Immutable fluent builder for creating conditional expressions.
@@ -69,7 +70,9 @@ export class ConditionalExprBuilder implements ChainableConditional {
  *   .else('child')
  */
 export const when = (predicate: PredicateExpr | PredicateTestExpr): ChainableConditional => {
-  return new ConditionalExprBuilder(predicate)
+  const builder = new ConditionalExprBuilder(predicate)
+  stampCallsite(builder, captureCallsite(when))
+  return builder
 }
 
 /**
@@ -118,6 +121,7 @@ export interface ConditionalOptions {
  */
 export const Conditional = (options: ConditionalOptions): ChainableConditional => {
   const builder = new ConditionalExprBuilder(options.when).then(options.then)
-
-  return options.else !== undefined ? builder.else(options.else) : builder
+  const result = options.else !== undefined ? builder.else(options.else) : builder
+  stampCallsite(result, captureCallsite(Conditional))
+  return result
 }
