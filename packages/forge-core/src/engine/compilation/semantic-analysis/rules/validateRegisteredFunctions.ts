@@ -2,7 +2,7 @@ import { FunctionType, ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { FunctionASTNode, IterateASTNode } from '../../../contracts/ast/expressions.type'
 import UnregisteredFunctionError from '../../../errors/UnregisteredFunctionError'
-import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 
@@ -11,13 +11,16 @@ const FUNCTION_TYPES = Object.values(FunctionType)
 function buildError(
   name: string,
   functionType: string,
-  source: DSLSourceLocation | undefined,
+  diagnostics: ASTNodeDiagnostics | undefined,
 ): UnregisteredFunctionError {
+  const source = diagnostics?.source
+
   return new UnregisteredFunctionError({
     path: source?.path ? [...source.path] : [],
     formattedPath: source?.formattedPath,
     functionName: name,
     functionType,
+    callsite: diagnostics?.callsite,
   })
 }
 
@@ -30,7 +33,7 @@ export const validateRegisteredFunctions: ASTValidationRule = (context: ASTValid
 
     functionNodes.forEach(node => {
       if (!functionRegistry.has(node.properties.name)) {
-        errors.push(buildError(node.properties.name, functionType, node.diagnostics?.source))
+        errors.push(buildError(node.properties.name, functionType, node.diagnostics))
       }
     })
   })

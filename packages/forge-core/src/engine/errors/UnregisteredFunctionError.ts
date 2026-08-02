@@ -9,6 +9,8 @@ interface UnregisteredFunctionErrorOptions {
   functionType: string
   /** Human-readable path through the journey DSL */
   formattedPath?: string
+  /** Author callsite captured where the offending node was defined */
+  callsite?: { readonly stack?: string }
 }
 
 export default class UnregisteredFunctionError extends Error {
@@ -20,6 +22,8 @@ export default class UnregisteredFunctionError extends Error {
 
   readonly formattedPath?: string
 
+  readonly callsite?: { readonly stack?: string }
+
   constructor(options: UnregisteredFunctionErrorOptions) {
     super(`Function "${options.functionName}" (${options.functionType}) is not registered`)
     this.name = new.target.name
@@ -27,6 +31,7 @@ export default class UnregisteredFunctionError extends Error {
     this.functionName = options.functionName
     this.functionType = options.functionType
     this.formattedPath = options.formattedPath
+    this.callsite = options.callsite
   }
 
   toString() {

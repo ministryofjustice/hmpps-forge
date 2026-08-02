@@ -2,17 +2,20 @@ import { FunctionType, ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { FunctionASTNode, IterateASTNode } from '../../../contracts/ast/expressions.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
-import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTNode } from '../../../contracts/ast/engine.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 
-function buildError(name: string, source: DSLSourceLocation | undefined): ForgeConfigurationReferenceScopeError {
+function buildError(name: string, diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigurationReferenceScopeError {
+  const source = diagnostics?.source
+
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: `Effect "${name}" can only be used inside a hook (onAccess or onSubmission)`,
     code: 'effect_outside_hook',
     formattedPath: source?.formattedPath ?? 'unknown',
+    callsite: diagnostics?.callsite,
   })
 }
 
@@ -38,7 +41,7 @@ export const validateEffectScope: ASTValidationRule = (context: ASTValidationCon
 
   effectNodes.forEach(node => {
     if (!hasHookAncestor(node)) {
-      errors.push(buildError(node.properties.name, node.diagnostics?.source))
+      errors.push(buildError(node.properties.name, node.diagnostics))
     }
   })
 

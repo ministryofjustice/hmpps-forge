@@ -13,6 +13,8 @@ interface FunctionArityErrorOptions {
   received: number
   /** Human-readable path through the journey DSL */
   formattedPath?: string
+  /** Author callsite captured where the offending node was defined */
+  callsite?: { readonly stack?: string }
 }
 
 export default class FunctionArityError extends Error {
@@ -28,6 +30,8 @@ export default class FunctionArityError extends Error {
 
   readonly formattedPath?: string
 
+  readonly callsite?: { readonly stack?: string }
+
   constructor(options: FunctionArityErrorOptions) {
     super(
       `Function "${options.functionName}" expects ${options.expected} ${options.expected === '1' ? 'argument' : 'arguments'} but received ${options.received}`,
@@ -39,6 +43,7 @@ export default class FunctionArityError extends Error {
     this.expected = options.expected
     this.received = options.received
     this.formattedPath = options.formattedPath
+    this.callsite = options.callsite
   }
 
   toString() {

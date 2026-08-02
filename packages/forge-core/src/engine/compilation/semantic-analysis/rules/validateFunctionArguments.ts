@@ -2,7 +2,7 @@ import { FunctionType, ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
-import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import { isTemplateNode } from '../../../contracts/ast/nodes'
 import type { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
 import type { ASTNode } from '../../../contracts/ast/engine.type'
@@ -10,12 +10,15 @@ import type { ASTValidationContext, ASTValidationRule } from './types'
 
 const FUNCTION_TYPES: readonly string[] = Object.values(FunctionType)
 
-function buildError(source: DSLSourceLocation | undefined): ForgeConfigurationReferenceScopeError {
+function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigurationReferenceScopeError {
+  const source = diagnostics?.source
+
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: 'Block definitions cannot be used as function arguments',
     code: 'block_in_function_arguments',
     formattedPath: source?.formattedPath ?? 'unknown',
+    callsite: diagnostics?.callsite,
   })
 }
 
@@ -61,7 +64,7 @@ function walkTemplateForBlocks(value: TemplateValue, insideFunction: boolean, er
     const nextInsideFunction = insideFunction || isFunctionTemplateNode(value)
 
     if (insideFunction && value.originalType === ASTNodeType.BLOCK) {
-      errors.push(buildError(value.diagnostics?.source))
+      errors.push(buildError(value.diagnostics))
     }
 
     if (value.properties) {
@@ -92,7 +95,7 @@ export const validateFunctionArguments: ASTValidationRule = (context: ASTValidat
 
   nodeIndex.findByType(ASTNodeType.BLOCK).forEach(node => {
     if (hasFunctionAncestor(node)) {
-      errors.push(buildError(node.diagnostics?.source))
+      errors.push(buildError(node.diagnostics))
     }
   })
 

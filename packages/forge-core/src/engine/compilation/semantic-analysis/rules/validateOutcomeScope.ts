@@ -3,16 +3,19 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { NodeId, ASTNode } from '../../../contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
-import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 
-function buildError(source: DSLSourceLocation | undefined): ForgeConfigurationReferenceScopeError {
+function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigurationReferenceScopeError {
+  const source = diagnostics?.source
+
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: 'Outcomes can only be used inside a hook (onAccess or onSubmission)',
     code: 'outcome_outside_hook',
     formattedPath: source?.formattedPath ?? 'unknown',
+    callsite: diagnostics?.callsite,
   })
 }
 
@@ -42,7 +45,7 @@ export const validateOutcomeScope: ASTValidationRule = (context: ASTValidationCo
     const parent = node.parent
 
     if (!parent || parent.type !== ASTNodeType.HOOK) {
-      errors.push(buildError(node.diagnostics?.source))
+      errors.push(buildError(node.diagnostics))
 
       return
     }
@@ -57,7 +60,7 @@ export const validateOutcomeScope: ASTValidationRule = (context: ASTValidationCo
       containsNode(parent.properties?.onInvalid?.next, node.id)
 
     if (!inHookNext) {
-      errors.push(buildError(node.diagnostics?.source))
+      errors.push(buildError(node.diagnostics))
     }
   })
 

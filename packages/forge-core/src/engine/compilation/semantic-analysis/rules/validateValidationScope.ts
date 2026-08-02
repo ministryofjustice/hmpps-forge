@@ -3,18 +3,21 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { ValidationASTNode, IterateASTNode } from '../../../contracts/ast/expressions.type'
 import type { FieldBlockASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
-import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import { isTemplateNode } from '../../../contracts/ast/nodes'
 import type { TemplateValue } from '../../../contracts/ast/template.type'
 import type { ASTNode } from '../../../contracts/ast/engine.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 
-function buildError(source: DSLSourceLocation | undefined): ForgeConfigurationReferenceScopeError {
+function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigurationReferenceScopeError {
+  const source = diagnostics?.source
+
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: 'Validation rules can only be used inside validWhen on a field block or step',
     code: 'validation_outside_valid_when',
     formattedPath: source?.formattedPath ?? 'unknown',
+    callsite: diagnostics?.callsite,
   })
 }
 
@@ -52,7 +55,7 @@ function walkTemplateForValidationScope(value: TemplateValue, insideValidWhen: b
       const expressionType = (value as Record<string, unknown>).expressionType as string | undefined
 
       if (expressionType === ExpressionType.VALIDATION && !insideValidWhen) {
-        errors.push(buildError(value.diagnostics?.source))
+        errors.push(buildError(value.diagnostics))
       }
     }
 
@@ -118,7 +121,7 @@ export const validateValidationScope: ASTValidationRule = (context: ASTValidatio
 
   nodeIndex.findByType<ValidationASTNode>(ExpressionType.VALIDATION).forEach(node => {
     if (!validWhenEntryIds.has(node.id)) {
-      errors.push(buildError(node.diagnostics?.source))
+      errors.push(buildError(node.diagnostics))
     }
   })
 
