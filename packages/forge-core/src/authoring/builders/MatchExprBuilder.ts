@@ -1,6 +1,6 @@
 import { ConditionBranchExpr, MatchExpr, ResolvableValue } from '../types/expressions.type'
 import { ExpressionType } from '../types/enums'
-import { BranchValue } from './ConditionalExprBuilder'
+import { BranchValue, ChainableMatch } from './types'
 
 /**
  * Immutable fluent builder for creating match expressions.
@@ -9,8 +9,10 @@ import { BranchValue } from './ConditionalExprBuilder'
  * with the subject applied to every condition leaf.
  * Each method returns a NEW instance, so partially-built matches
  * can be safely reused and forked.
+ *
+ * @internal Exposed to authors via the ChainableMatch interface.
  */
-export class MatchExprBuilder {
+export class MatchExprBuilder implements ChainableMatch {
   private readonly subject: ResolvableValue
 
   private readonly branches: ReadonlyArray<{ condition: ConditionBranchExpr; value: BranchValue }>
@@ -71,7 +73,7 @@ export class MatchExprBuilder {
  * and()/or()/xor()/not(); the subject is applied to every condition leaf.
  *
  * @param subject - The value to match against
- * @returns A MatchExprBuilder for fluent branch building
+ * @returns A chainable match for fluent branch building
  *
  * @example
  * match(Item().path('status'))
@@ -80,6 +82,6 @@ export class MatchExprBuilder {
  *   .branch(or(Condition.Equals('COMPLETED'), Condition.Equals('APPROVED')), 'Completed')
  *   .otherwise('Unknown')
  */
-export const match = (subject: BranchValue): MatchExprBuilder => {
+export const match = (subject: BranchValue): ChainableMatch => {
   return new MatchExprBuilder(subject)
 }

@@ -1,11 +1,19 @@
 import {
+  ConditionBranchExpr,
   ConditionFunctionExpr,
   FilterIteratorConfig,
   FindIteratorConfig,
   MapIteratorConfig,
   PredicateTestExpr,
+  ResolvableValue,
   TransformerFunctionExpr,
 } from '../types/expressions.type'
+
+/**
+ * A value that can be returned from a conditional or match branch.
+ * Can be a literal string or a value expression.
+ */
+export type BranchValue = string | ResolvableValue
 
 /**
  * Public interface for a negated chain position, reached via `.not`.
@@ -129,6 +137,61 @@ export interface ChainableRef {
 
   /**
    * Test the value against a condition.
+   */
+  match(condition: ConditionFunctionExpr<any>): PredicateTestExpr
+
+  /**
+   * Negate the next condition test.
+   */
+  readonly not: ChainableNegation
+}
+
+/**
+ * Public interface for conditional expressions, returned by when() and Conditional().
+ * The chain continues with .then() and .else(); the finished conditional is
+ * assignable anywhere a Resolvable* value is accepted.
+ */
+export interface ChainableConditional {
+  /**
+   * Sets the value to return when the predicate evaluates to true.
+   */
+  then(value: BranchValue): ChainableConditional
+
+  /**
+   * Sets the value to return when the predicate evaluates to false.
+   */
+  else(value: BranchValue): ChainableConditional
+}
+
+/**
+ * Public interface for match expressions, returned by match().
+ * The chain continues with .branch() and .otherwise(); the finished match is
+ * assignable anywhere a Resolvable* value is accepted.
+ */
+export interface ChainableMatch {
+  /**
+   * Adds a branch: when the condition matches the subject, the value is returned.
+   */
+  branch(condition: ConditionBranchExpr, value: BranchValue): ChainableMatch
+
+  /**
+   * Sets the fallback value when no branch matches.
+   */
+  otherwise(value: BranchValue): ChainableMatch
+}
+
+/**
+ * Public interface for generator expressions, returned by registered
+ * generator functions (e.g. Generator.Date.Now()).
+ */
+export interface ChainableGenerator {
+  /**
+   * Transform the generated value through a pipeline of transformers.
+   */
+  pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
+
+  /**
+   * Test the generated value against a condition.
    */
   match(condition: ConditionFunctionExpr<any>): PredicateTestExpr
 

@@ -8,7 +8,7 @@ import {
   ResolvableValue,
 } from '../types/expressions.type'
 import { ExpressionBuilder } from './ExpressionBuilder'
-import { ChainableNegation } from './types'
+import { ChainableGenerator, ChainableNegation } from './types'
 
 /**
  * Immutable builder for creating generator function expressions.
@@ -29,8 +29,10 @@ import { ChainableNegation } from './types'
  * Generator.Date.Now().match(Condition.Date.IsFutureDate())
  *
  * @template A - The argument types for the generator function
+ *
+ * @internal Exposed to authors via the ChainableGenerator interface.
  */
-export class GeneratorBuilder<A extends ResolvableValue[]> {
+export class GeneratorBuilder<A extends ResolvableValue[]> implements ChainableGenerator {
   private readonly expression: GeneratorFunctionExpr<A>
 
   private readonly negated: boolean

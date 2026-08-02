@@ -1,4 +1,5 @@
 import { FunctionType } from '../types/enums'
+import { ResolvableValue } from '../types/expressions.type'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   FormatGenerators,
@@ -6,6 +7,7 @@ import {
   formatString,
 } from './formatGenerators'
 import { FunctionRegistryTestHarness } from '../../testing/FunctionRegistryTestHarness'
+import { GeneratorBuilder } from '../builders/GeneratorBuilder'
 
 describe('FormatGenerators', () => {
   const registry = formatGeneratorsRegistry.build()
@@ -66,7 +68,7 @@ describe('FormatGenerators', () => {
 
     it('should build correct generator expression', () => {
       // Arrange / Act
-      const builder = FormatGenerators.FormatString('Hello %1', 'Ada')
+      const builder = FormatGenerators.FormatString('Hello %1', 'Ada') as GeneratorBuilder<ResolvableValue[]>
 
       // Assert
       expect(builder.expr).toEqual({

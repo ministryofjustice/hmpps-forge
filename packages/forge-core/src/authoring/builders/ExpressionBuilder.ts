@@ -12,13 +12,7 @@ import {
 } from '../types/expressions.type'
 import { ExpressionType, IteratorType, PredicateType } from '../types/enums'
 import { IterableBuilder } from './IterableBuilder'
-
-/**
- * Split a key string into path segments.
- * 'user.name' -> ['user', 'name']
- * 'simple' -> ['simple']
- */
-const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') : [key])
+import { splitKey } from './utils/splitKey'
 
 /**
  * Immutable builder for creating chainable value expressions.
@@ -32,6 +26,8 @@ const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') 
  * - Immutable: Each method returns a NEW instance
  * - Type-safe: Full TypeScript inference throughout chains
  * - Buildable: Implements build() for automatic finalization via finaliseBuilders()
+ *
+ * @internal Exposed to authors via the ChainableExpr interface.
  */
 export class ExpressionBuilder<T extends ResolvableValue> {
   private readonly expression: T
