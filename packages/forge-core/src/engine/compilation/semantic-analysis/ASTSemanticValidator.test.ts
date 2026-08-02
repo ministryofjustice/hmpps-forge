@@ -11,7 +11,7 @@ import {
 } from '../../../authoring/types/enums'
 import type { ReferenceExpr } from '../../../authoring/types/expressions.type'
 import type { JourneyDefinition, StepDefinition } from '../../../authoring/types/structures.type'
-import type { FieldBlockDefinition, BlockDefinition } from '../../../components/types/structures.type'
+import type { FieldBlockDefinition, BlockDefinition, ResolvableString } from '../../../components/types/structures.type'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import ComponentRegistry from '../../registries/ComponentRegistry'
 import ConditionRegistry from '../../../authoring/registries/ConditionRegistry'
@@ -93,7 +93,7 @@ describe('ASTSemanticValidator', () => {
             blocks: [
               createFieldBlock({
                 code: 'firstName',
-                defaultValue: createReference(['@scope', '0', 'firstName']),
+                defaultValue: createReference(['@scope', '0', 'firstName']) as unknown as ResolvableString,
               }),
             ],
           } as StepDefinition,
@@ -227,7 +227,7 @@ describe('ASTSemanticValidator', () => {
             blocks: [
               createFieldBlock({
                 code: 'firstName',
-                defaultValue: createReference(['@scope', 'banana', 'firstName']),
+                defaultValue: createReference(['@scope', 'banana', 'firstName']) as unknown as ResolvableString,
                 label: { text: createReference(['@loop', '0', 'index0']) },
               }),
             ],

@@ -9,7 +9,7 @@ import {
   IteratorType,
 } from '../../authoring/types/enums'
 import type { JourneyDefinition, StepDefinition } from '../../authoring/types/structures.type'
-import type { FieldBlockDefinition } from '../../components/types/structures.type'
+import type { FieldBlockDefinition, ResolvableBoolean } from '../../components/types/structures.type'
 import ForgeConfigurationSerialisationError from '../errors/ForgeConfigurationSerialisationError'
 import ForgeConfigurationSchemaError from '../errors/ForgeConfigurationSchemaError'
 import { DSLValidator } from './DSLValidator'
@@ -144,7 +144,10 @@ describe('FormValidator', () => {
         code: 'test-journey',
         title: 'Test Journey',
         reachability: {
-          resumeWhen: { type: ExpressionType.REFERENCE, path: ['data', 'resumeActive'] },
+          resumeWhen: {
+            type: ExpressionType.REFERENCE,
+            path: ['data', 'resumeActive'],
+          } as unknown as ResolvableBoolean,
         },
         steps: [
           {
@@ -194,7 +197,10 @@ describe('FormValidator', () => {
                 type: StructureType.BLOCK,
                 blockType: BlockType.BASIC,
                 variant: 'GovUKPanel',
-                visibleWhen: { type: ExpressionType.REFERENCE, path: ['data', 'showBlock'] },
+                visibleWhen: {
+                  type: ExpressionType.REFERENCE,
+                  path: ['data', 'showBlock'],
+                } as unknown as ResolvableBoolean,
               },
             ],
           } as StepDefinition,
@@ -324,7 +330,10 @@ describe('FormValidator', () => {
             title: 'Step 1',
             blocks: [],
             reachability: {
-              entryWhen: { type: ExpressionType.REFERENCE, path: ['data', 'entryActive'] },
+              entryWhen: {
+                type: ExpressionType.REFERENCE,
+                path: ['data', 'entryActive'],
+              } as unknown as ResolvableBoolean,
             },
           } as StepDefinition,
         ],
@@ -450,7 +459,10 @@ describe('FormValidator', () => {
             validateOnEntry: [
               {
                 groups: ['personal-details'],
-                when: { type: ExpressionType.REFERENCE, path: ['data', 'entryValidation'] },
+                when: {
+                  type: ExpressionType.REFERENCE,
+                  path: ['data', 'entryValidation'],
+                } as unknown as ResolvableBoolean,
               },
             ],
           } as StepDefinition,
@@ -544,7 +556,7 @@ describe('FormValidator', () => {
             blocks: [],
           },
         ],
-      } satisfies JourneyDefinition
+      } as unknown as JourneyDefinition
 
       // Act / Assert
       expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
