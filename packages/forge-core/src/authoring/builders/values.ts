@@ -13,12 +13,10 @@ import { FormatGenerators } from '../generators/formatGenerators'
  * Format('Hello %1!', Answer('name'))
  * Format('%1 %2', Answer('firstName'), Answer('lastName'))
  */
-export function Format(template: string, ...args: ResolvableString[]): ChainableGenerator {
-  const generator = FormatGenerators.FormatString(template, ...args)
-  // Re-stamp over the registry handle's callsite so it points at the Format() call, not this file
-  stampCallsite(generator, captureCallsite(Format))
-  return generator
-}
+export const Format = FormatGenerators.FormatString as (
+  template: ResolvableString,
+  ...args: ResolvableString[]
+) => ChainableGenerator
 
 /**
  * Wraps a static/literal value to make it chainable with .pipe() and .match().
