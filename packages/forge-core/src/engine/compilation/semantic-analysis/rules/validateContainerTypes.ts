@@ -3,7 +3,7 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { AccessHookASTNode, SubmitHookASTNode } from '../../../contracts/ast/expressions.type'
 import type { StepASTNode, JourneyASTNode } from '../../../contracts/ast/structures.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
-import type { DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
+import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 
 function isObject(value: unknown): value is Record<string, unknown> {

@@ -12,7 +12,7 @@ import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import { TemplateValue } from '../../../../../contracts/ast/template.type'
 import TemplateFactory from '../../template/TemplateFactory'
-import type { DSLPathSegment } from '../../../../../diagnostics/sourceLocation.type'
+import type { DSLPathSegment } from '../../../../../../shared/diagnostics/sourceLocation.type'
 
 /**
  * IterateFactory: Creates Iterate expression AST nodes

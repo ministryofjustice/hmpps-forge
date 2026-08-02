@@ -1,5 +1,5 @@
 import { ASTNodeType } from './enums'
-import type { ASTNodeDiagnostics } from '../../diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics } from '../../../shared/diagnostics/sourceLocation.type'
 
 /**
  * Template literal types for enforcing NodeID structure

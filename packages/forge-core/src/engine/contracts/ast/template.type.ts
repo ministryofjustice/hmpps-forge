@@ -1,6 +1,6 @@
 import { ASTNodeType } from './enums'
 import { TemplateNodeId } from './ast.type'
-import type { ASTNodeDiagnostics } from '../../diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics } from '../../../shared/diagnostics/sourceLocation.type'
 
 /**
  * A template node preserves the shape of an AST node but with:
