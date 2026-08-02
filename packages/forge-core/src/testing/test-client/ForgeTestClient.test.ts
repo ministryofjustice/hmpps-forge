@@ -1,4 +1,4 @@
-import { journey, step } from '../../authoring/builders'
+import { createForgePackage, journey, step } from '../../authoring/builders'
 import { ForgeTestHarness } from '../ForgeTestHarness'
 
 const testJourney = journey({
@@ -18,7 +18,7 @@ const testJourney = journey({
 
 function createClient() {
   return new ForgeTestHarness()
-    .registerPackage({ journey: testJourney })
+    .registerPackage(createForgePackage({ journey: testJourney }))
     .createClient()
 }
 

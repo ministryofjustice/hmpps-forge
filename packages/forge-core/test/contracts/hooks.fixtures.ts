@@ -19,6 +19,7 @@ import {
   Data,
   Self,
   Condition,
+  createForgePackage,
 } from '../../src/authoring'
 import { ForgeTestHarness, type RequestTraceEvent } from '../../src/testing'
 import { Effects, effectImplementations, type ContractSession } from './contractHelpers'
@@ -208,10 +209,12 @@ const { effects: HooksEffects, implementations: hooksEffectImplementations } = d
 export function createHooksClient(journeyDef: ReturnType<typeof journey>) {
   return new ForgeTestHarness()
     .registerGlobalComponents(govukComponents)
-    .registerPackage({
-      journey: journeyDef,
-      functions: { ...effectImplementations, ...hooksEffectImplementations },
-    })
+    .registerPackage(
+      createForgePackage({
+        journey: journeyDef,
+        functions: { ...effectImplementations, ...hooksEffectImplementations },
+      }),
+    )
     .createClient()
 }
 
@@ -226,10 +229,12 @@ export function createTracedHooksClient(journeyDef: ReturnType<typeof journey>, 
       },
     })
       .registerGlobalComponents(govukComponents)
-      .registerPackage({
-        journey: journeyDef,
-        functions: { ...effectImplementations, ...hooksEffectImplementations },
-      })
+      .registerPackage(
+        createForgePackage({
+          journey: journeyDef,
+          functions: { ...effectImplementations, ...hooksEffectImplementations },
+        }),
+      )
       .createClient()
 }
 

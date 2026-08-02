@@ -27,7 +27,7 @@ export interface ForgeTestHarnessOptions {
  * ```typescript
  * const client = new ForgeTestHarness()
  *   .registerGlobalComponents(govukComponents)
- *   .registerPackage({ journey: myJourney, functions: myEffects }, deps)
+ *   .registerPackage(createForgePackage({ journey: myJourney, functions: myEffects }), deps)
  *   .createClient()
  *
  * const result = await client.get('/my-journey/step-one', { session: {} })

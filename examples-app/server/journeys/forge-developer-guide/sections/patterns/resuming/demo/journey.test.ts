@@ -1,3 +1,4 @@
+import { createForgePackage } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { ForgeTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { describe, expect, it, vi } from 'vitest'
@@ -5,10 +6,10 @@ import type { GuideDeps } from '../../../../effects'
 import { patternEffectRegistry } from '../../effects'
 import { resumingDemoJourney } from './journey'
 
-const basePackage = {
+const basePackage = createForgePackage({
   journey: resumingDemoJourney,
   functions: patternEffectRegistry,
-}
+})
 
 const mockFormDataStore = {
   get: vi.fn().mockResolvedValue(undefined),

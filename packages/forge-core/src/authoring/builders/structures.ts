@@ -2,7 +2,7 @@ import { finaliseBuilders } from './utils/finaliseBuilders'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { BlockDefinition, FieldBlockDefinition } from '../../components/types/structures.type'
 import { JourneyDefinition, StepDefinition } from '../types/structures.type'
-import { ForgePackage } from '../types/package.type'
+import { ForgePackage, RegisteredForgePackage } from '../types/package.type'
 import { BlockType, StructureType } from '../types/enums'
 
 /**
@@ -62,8 +62,12 @@ export function journey<D extends JourneyDefinition>(definition: Omit<D, 'type'>
 /**
  * Create a forge package that bundles a journey with its custom functions and components.
  *
+ * This is the mandatory gate into Forge: it parses string journeys, finalises
+ * any builders in the journey tree (stamping source locations for diagnostics),
+ * and brands the result so `Forge.registerPackage()` accepts it.
+ *
  * @param pkg - The forge package configuration
- * @returns The same package with proper typing
+ * @returns The package with a finalised journey, branded for registration
  *
  * @example
  * ```typescript
@@ -82,6 +86,16 @@ export function journey<D extends JourneyDefinition>(definition: Omit<D, 'type'>
  * })
  * ```
  */
-export function createForgePackage<TDeps = Record<string, never>>(pkg: ForgePackage<TDeps>): ForgePackage<TDeps> {
-  return pkg
+export function createForgePackage<TDeps = Record<string, never>>(
+  pkg: ForgePackage<TDeps>,
+): RegisteredForgePackage<TDeps> {
+  const parsed: unknown = typeof pkg.journey === 'string' ? JSON.parse(pkg.journey) : pkg.journey
+
+  const result: RegisteredForgePackage<TDeps> = {
+    ...pkg,
+    journey: finaliseBuilders(parsed) as JourneyDefinition,
+    forgePackage: true,
+  }
+  stampCallsite(result, captureCallsite(createForgePackage))
+  return result
 }

@@ -211,6 +211,17 @@ export default class Forge {
    * ```
    */
   registerPackage<TDeps>(pkg: ForgePackageRegistration<TDeps>, deps?: TDeps): this {
+    if (!pkg || (pkg as { forgePackage?: unknown }).forgePackage !== true) {
+      this.handleRegistrationError(
+        new Error(
+          'Packages must be created with createForgePackage(...) before registration. ' +
+            'Wrap your package definition: registerPackage(createForgePackage({ journey, ... }))',
+        ),
+      )
+
+      return this
+    }
+
     if (pkg.enabled === false) {
       return this
     }
