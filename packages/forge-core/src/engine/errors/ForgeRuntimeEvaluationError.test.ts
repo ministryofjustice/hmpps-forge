@@ -34,6 +34,32 @@ describe('ForgeRuntimeEvaluationError', () => {
         ].join('\n'),
       )
     })
+
+    it('should include the defined-at frame after the function type', () => {
+      // Arrange
+      const error = new ForgeRuntimeEvaluationError({
+        phase: 'render',
+        functionName: 'explode',
+        functionType: 'FunctionType.Generator',
+        definedAt: 'myJourney (/app/journeys/goals.journey.ts:12:5)',
+        cause: new Error('boom'),
+      })
+
+      // Act
+      const result = error.toString()
+
+      // Assert
+      expect(result).toBe(
+        [
+          'ForgeRuntimeEvaluationError: Failed to evaluate compiled Forge render function',
+          '  Phase: render',
+          '  Function: explode',
+          '  Type: FunctionType.Generator',
+          '  Defined at: myJourney (/app/journeys/goals.journey.ts:12:5)',
+          '  Cause: Error: boom',
+        ].join('\n'),
+      )
+    })
   })
 
   describe('stack', () => {
@@ -57,6 +83,23 @@ describe('ForgeRuntimeEvaluationError', () => {
       expect(stack).toContain('Node: compile_ast:1')
       expect(stack).toContain('Function: explode')
       expect(stack).toContain('Type: FunctionType.Generator')
+    })
+
+    it('should include the defined-at frame in the appended diagnostics block', () => {
+      // Arrange
+      const error = new ForgeRuntimeEvaluationError({
+        phase: 'render',
+        functionName: 'explode',
+        definedAt: 'myJourney (/app/journeys/goals.journey.ts:12:5)',
+        cause: new Error('boom'),
+      })
+
+      // Act
+      const stack = error.stack
+
+      // Assert
+      expect(stack).toContain('Forge diagnostics:')
+      expect(stack).toContain('Defined at: myJourney (/app/journeys/goals.journey.ts:12:5)')
     })
   })
 

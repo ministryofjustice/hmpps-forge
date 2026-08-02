@@ -1299,6 +1299,7 @@ describe('StepResolveCompiler', () => {
           path: ['steps', 0, 'blocks', 0, 'items', 0, 'text'],
           formattedPath: 'journey > step > blocks[0] (mojSubNavigation) > items[0] > text',
         },
+        callsite: { stack: 'Error\n    at journeyAuthor (/app/journeys/goals.journey.ts:12:5)' },
       }
 
       const currentText = ASTTestFactory.formatExpression('Goals to work on now (%1)', [throwingCount])
@@ -1350,8 +1351,10 @@ describe('StepResolveCompiler', () => {
         functionName: 'throwingCount',
         functionType: FunctionType.GENERATOR,
         formattedPath: 'journey > step > blocks[0] (mojSubNavigation) > items[0] > text',
+        definedAt: 'journeyAuthor (/app/journeys/goals.journey.ts:12:5)',
       })
       expect(thrown.stack).toContain('Forge diagnostics:')
+      expect(thrown.stack).toContain('Defined at: ')
     })
   })
 })

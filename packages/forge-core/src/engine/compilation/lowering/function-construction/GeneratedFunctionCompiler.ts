@@ -19,6 +19,7 @@ interface RuntimeDiagnosticState {
   readonly formattedPath?: string
   readonly functionName?: string
   readonly functionType?: string
+  readonly definedAt?: string
 }
 
 interface RuntimeEvaluationDiagnostics {
@@ -30,6 +31,7 @@ interface RuntimeEvaluationDiagnostics {
     formattedPath?: string,
     functionName?: string,
     functionType?: string,
+    definedAt?: string,
   ) => unknown
 }
 
@@ -125,7 +127,7 @@ export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
 const createRuntimeDiagnostics = (phase: string): RuntimeEvaluationDiagnostics => {
   const diagnostics: RuntimeEvaluationDiagnostics = {
     current: undefined,
-    wrap: (error, nodeId, path, formattedPath, functionName, functionType) => {
+    wrap: (error, nodeId, path, formattedPath, functionName, functionType, definedAt) => {
       if (error instanceof ForgeRuntimeEvaluationError) {
         return error
       }
@@ -138,6 +140,7 @@ const createRuntimeDiagnostics = (phase: string): RuntimeEvaluationDiagnostics =
         formattedPath: formattedPath ?? current?.formattedPath,
         functionName: functionName ?? current?.functionName,
         functionType: functionType ?? current?.functionType,
+        definedAt: definedAt ?? current?.definedAt,
       }
 
       if (error instanceof Error) {

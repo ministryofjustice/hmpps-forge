@@ -1,4 +1,5 @@
 import { FunctionType } from '../../../../authoring/types/enums'
+import { formatCallsite } from '../../../../shared/diagnostics/formatCallsite'
 import type { DSLPathSegment, DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
 
 interface DiagnosticMetadata {
@@ -7,6 +8,7 @@ interface DiagnosticMetadata {
   readonly formattedPath?: string
   readonly functionName?: string
   readonly functionType?: string
+  readonly definedAt?: string
 }
 
 const GENERATED_FUNCTION_HELPERS_PARAM = '_forgeHelpers'
@@ -56,6 +58,7 @@ export default class DiagnosticEmitter {
       sourceDiagnostics.nodeId === undefined &&
       sourceDiagnostics.path === undefined &&
       sourceDiagnostics.formattedPath === undefined &&
+      sourceDiagnostics.definedAt === undefined &&
       resolvedFunctionName === undefined &&
       functionType === undefined
     ) {
@@ -71,11 +74,13 @@ export default class DiagnosticEmitter {
 
   private getSourceDiagnostics(source: unknown): DiagnosticMetadata {
     const sourceLocation = this.getSourceLocation(source)
+    const definedAt = this.getDefinedAt(source)
 
     if (!isRecord(source)) {
       return {
         path: sourceLocation?.path,
         formattedPath: sourceLocation?.formattedPath,
+        definedAt,
       }
     }
 
@@ -83,7 +88,34 @@ export default class DiagnosticEmitter {
       nodeId: typeof source.id === 'string' ? source.id : undefined,
       path: sourceLocation?.path,
       formattedPath: sourceLocation?.formattedPath,
+      definedAt,
     }
+  }
+
+  private getDefinedAt(source: unknown): string | undefined {
+    if (!isRecord(source)) {
+      return undefined
+    }
+
+    const diagnostics = source.diagnostics
+
+    if (!isRecord(diagnostics)) {
+      return undefined
+    }
+
+    const callsite = diagnostics.callsite
+
+    if (!isRecord(callsite)) {
+      return undefined
+    }
+
+    const { stack } = callsite
+
+    if (stack !== undefined && typeof stack !== 'string') {
+      return undefined
+    }
+
+    return formatCallsite({ stack })
   }
 
   private getSourceLocation(source: unknown): DSLSourceLocation | undefined {
@@ -179,7 +211,8 @@ export default class DiagnosticEmitter {
           `path: ${toSourceLiteral(metadata.path)},`,
           `formattedPath: ${toSourceLiteral(metadata.formattedPath)},`,
           `functionName: ${toSourceLiteral(metadata.functionName)},`,
-          `functionType: ${toSourceLiteral(metadata.functionType)}`,
+          `functionType: ${toSourceLiteral(metadata.functionType)},`,
+          `definedAt: ${toSourceLiteral(metadata.definedAt)}`,
         ].join('\n'),
       ),
       '}',
