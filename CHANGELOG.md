@@ -53,6 +53,45 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.3.6
+
+A typing-focused release - registered function handles now know what their arguments
+are, and IDE hovers show it.
+
+### For journey authors
+
+_Definitions, expressions, hooks, navigation, reachability_
+
+#### Improvements
+
+- **Function arguments are typed, and still take expressions.** Where a function's
+  evaluator declares its argument types, the handle now shows and checks them -
+  `Condition.Text.HasMinLength` hovers as `(min: Resolvable<number>) =>
+  ConditionFunctionExpr`, and `HasMinLength('5')` is a type error. Every argument
+  still accepts an expression in place of the literal -
+  `HasMinLength(Answer('minimumLength'))` - which previously was rejected outright
+  on functions with annotated evaluators. ([#213])
+
+---
+
+### For function and component authors
+
+_Conditions, transformers, effects, generators, iterators, component packages_
+
+#### Improvements
+
+- **Evaluator annotations drive handle types.** Annotate your evaluator's parameters -
+  `(value: string, min: number) => ...` - and `register()` returns a handle typed
+  `(min: Resolvable<number>)`: literals are checked against the declared type, and
+  references, pipelines, iterations, and generator chains are accepted through the
+  new `ResolvableExpression` marker. `Resolvable` and `ResolvableExpression` are
+  exported for use in your own signatures. Unannotated evaluators behave exactly as
+  before. ([#213])
+
+[#213]: https://github.com/ministryofjustice/hmpps-forge/pull/213
+
+---
+
 ## 0.3.5
 
 This release we focused on improving the experience for building components - defining
