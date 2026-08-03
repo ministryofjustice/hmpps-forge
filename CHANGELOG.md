@@ -129,6 +129,21 @@ _Conditions, transformers, effects, generators, iterators, component packages_
 
 ---
 
+### For adapter and renderer developers
+
+_Express adapter, Nunjucks renderer, test harness, framework integration_
+
+#### Breaking changes
+
+- **`core/framework` is types-only now.** The path utilities (`extractPathname`,
+  `resolvePathParams`, `joinPaths`, `normalizeBasePath`, `normalizeRelativePath`,
+  `resolveMountedPath`) are no longer exported - they were engine internals leaking
+  through the barrel, and the express adapter now carries its own copies of the two it
+  used. If you used any of them, copy them into your adapter - they're a few lines
+  each. ([#212])
+
+---
+
 ### For engine / internal developers
 
 _Compilation, runtime, contracts, diagnostics, instrumentation_
@@ -159,6 +174,15 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
   too: `Forge`'s constructor registers the built-ins through the ordinary
   `register()`/`registerMany()` path, leaving the registry classes content-agnostic. ([#211])
 
+- `routePath.ts` lives in `shared/utils` now, trimmed to the four functions the engine
+  uses - `resolveMountedPath` had no callers at all and is deleted. The express adapter
+  and the test client each carry their own `extractPathname`: turning a raw URL into
+  snapshot terms is the adapter role's job, whichever side plays it. ([#212])
+
+- The framework types are one folder now - `rendering/types.ts` became
+  `types/rendering.type.ts` to match its siblings, with the route tree types split out
+  into `types/routeTree.type.ts`. Public exports are unchanged. ([#212])
+
 #### Fixes
 
 - **Sharing a partially built expression chain no longer cross-contaminates.**
@@ -182,6 +206,7 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
 [#209]: https://github.com/ministryofjustice/hmpps-forge/pull/209
 [#210]: https://github.com/ministryofjustice/hmpps-forge/pull/210
 [#211]: https://github.com/ministryofjustice/hmpps-forge/pull/211
+[#212]: https://github.com/ministryofjustice/hmpps-forge/pull/212
 
 ---
 
