@@ -25,6 +25,7 @@ import {
   Format,
   Self,
   Condition,
+  createForgePackage,
 } from '../../src/authoring'
 import { ForgeTestHarness } from '../../src/testing'
 import { Effects, effectImplementations } from './contractHelpers'
@@ -54,14 +55,16 @@ const { conditions: NavigationConditions, implementations: navigationConditionIm
 export function createNavigationClient(journeyDef: ReturnType<typeof journey>) {
   return new ForgeTestHarness()
     .registerGlobalComponents(govukComponents)
-    .registerPackage({
-      journey: journeyDef,
-      functions: {
-        ...effectImplementations,
-        ...navigationEffectImplementations,
-        ...navigationConditionImplementations,
-      },
-    })
+    .registerPackage(
+      createForgePackage({
+        journey: journeyDef,
+        functions: {
+          ...effectImplementations,
+          ...navigationEffectImplementations,
+          ...navigationConditionImplementations,
+        },
+      }),
+    )
     .createClient()
 }
 

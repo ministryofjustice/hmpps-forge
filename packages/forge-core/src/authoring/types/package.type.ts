@@ -15,8 +15,11 @@ import type { JourneyDefinition } from './structures.type'
  * @see {@link createForgePackage} for the recommended way to create forge packages
  */
 export interface ForgePackage<TDeps = Record<string, never>> {
-  /** The root journey definition this package mounts, compiled at registration. */
-  journey: JourneyDefinition
+  /**
+   * The root journey definition this package mounts, compiled at registration.
+   * Accepts a JSON string, which {@link createForgePackage} parses.
+   */
+  journey: string | JourneyDefinition
 
   /**
    * Custom functions for this package, layered over the global function
@@ -55,4 +58,21 @@ export interface ForgePackage<TDeps = Record<string, never>> {
    * ```
    */
   enabled?: boolean
+}
+
+/**
+ * A forge package that has been finalised by {@link createForgePackage}.
+ *
+ * The journey is guaranteed to be a parsed, builder-free definition, and the
+ * `forgePackage` brand marks the package as safe for `Forge.registerPackage()`,
+ * which rejects packages that have not passed through `createForgePackage()`.
+ *
+ * @typeParam TDeps - Dependencies required to create the function registries
+ */
+export interface RegisteredForgePackage<TDeps = Record<string, never>> extends Omit<ForgePackage<TDeps>, 'journey'> {
+  /** The parsed, finalised journey definition this package mounts. */
+  journey: JourneyDefinition
+
+  /** Brand stamped by {@link createForgePackage}; registration requires it. */
+  forgePackage: true
 }

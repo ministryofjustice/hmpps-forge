@@ -22,7 +22,7 @@ import { BlockASTNode, JourneyASTNode, StepASTNode } from '../../../contracts/as
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import { PredicateASTNode } from '../../../contracts/ast/predicates.type'
 import { FORMAT_STRING_GENERATOR_NAME } from '../../../../authoring/generators/formatGenerators'
-import type { ASTNodeDiagnostics, DSLPathSegment } from '../../../diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics, DSLPathSegment } from '../../../../shared/diagnostics/sourceLocation.type'
 
 type PredicateBuilderConfig = {
   subject?: ExpressionASTNode

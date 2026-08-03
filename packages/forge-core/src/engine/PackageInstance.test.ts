@@ -1,4 +1,5 @@
 import { buildComponent } from '../components/utils/buildComponent'
+import { createForgePackage } from '../authoring/builders'
 import { StructureType } from '../authoring/types/enums'
 import type { JourneyDefinition } from '../authoring/types/structures.type'
 import type { CompiledPackage } from './contracts/plans/compilationArtefacts.type'
@@ -24,10 +25,11 @@ describe('PackageInstance', () => {
       mockCompilation()
 
       // Act
-      const instance = new PackageInstance(
-        { journey: createJourneyDefinition() },
-        { functionRegistry, componentRegistry, instrumentation: new ForgeTraceSinkDispatcher() },
-      )
+      const instance = new PackageInstance(createForgePackage({ journey: createJourneyDefinition() }), {
+        functionRegistry,
+        componentRegistry,
+        instrumentation: new ForgeTraceSinkDispatcher(),
+      })
 
       // Assert
       expect(instance.getDependencies().functionRegistry).toBe(functionRegistry)
@@ -50,12 +52,12 @@ describe('PackageInstance', () => {
 
       // Act
       const instance = new PackageInstance(
-        {
+        createForgePackage({
           journey: createJourneyDefinition(),
           functions: {
             WithPrefix: (deps: { prefix: string }) => (value: unknown) => `${deps.prefix}${String(value)}`,
           },
-        },
+        }),
         {
           functionRegistry,
           componentRegistry,
@@ -85,10 +87,10 @@ describe('PackageInstance', () => {
 
       // Act
       const instance = new PackageInstance(
-        {
+        createForgePackage({
           journey: createJourneyDefinition(),
           components: [packageComponent],
-        },
+        }),
         { functionRegistry, componentRegistry, instrumentation: new ForgeTraceSinkDispatcher() },
       )
 

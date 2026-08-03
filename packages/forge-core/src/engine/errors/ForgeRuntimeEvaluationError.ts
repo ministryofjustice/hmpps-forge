@@ -1,5 +1,5 @@
 import DiagnosticErrorFormatter from '../diagnostics/DiagnosticErrorFormatter'
-import type { DSLPathSegment } from '../diagnostics/sourceLocation.type'
+import type { DSLPathSegment } from '../../shared/diagnostics/sourceLocation.type'
 
 interface ForgeRuntimeEvaluationErrorOptions {
   readonly phase: string

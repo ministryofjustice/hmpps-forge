@@ -7,7 +7,6 @@ import { NodeFactory } from '../../NodeFactory'
 import type { ASTNode } from '../../../../../contracts/ast/ast.type'
 
 type SubmitBranch = NonNullable<SubmitHook['onAlways']>
-type SubmitBranchName = 'onAlways' | 'onValid' | 'onInvalid'
 type SubmitBranchAST = {
   effects?: ASTNode[]
   next?: ASTNode[]
@@ -34,23 +33,23 @@ export default class SubmitFactory {
     }
 
     if (json.when) {
-      properties.when = this.nodeFactory.createChildNode(json.when, 'when')
+      properties.when = this.nodeFactory.createNode(json.when)
     }
 
     if (json.guards) {
-      properties.guards = this.nodeFactory.createChildNode(json.guards, 'guards')
+      properties.guards = this.nodeFactory.createNode(json.guards)
     }
 
     if (json.onAlways) {
-      properties.onAlways = this.transformBranch(json.onAlways, 'onAlways')
+      properties.onAlways = this.transformBranch(json.onAlways)
     }
 
     if (json.onValid) {
-      properties.onValid = this.transformBranch(json.onValid, 'onValid')
+      properties.onValid = this.transformBranch(json.onValid)
     }
 
     if (json.onInvalid) {
-      properties.onInvalid = this.transformBranch(json.onInvalid, 'onInvalid')
+      properties.onInvalid = this.transformBranch(json.onInvalid)
     }
 
     return {
@@ -73,17 +72,15 @@ export default class SubmitFactory {
     return validate.groups
   }
 
-  private transformBranch(branch: SubmitBranch, branchName: SubmitBranchName): SubmitBranchAST {
+  private transformBranch(branch: SubmitBranch): SubmitBranchAST {
     const result: SubmitBranchAST = {}
 
     if (Array.isArray(branch.effects)) {
-      result.effects = branch.effects.map((effect, index) =>
-        this.nodeFactory.createChildNode(effect, branchName, 'effects', index),
-      )
+      result.effects = branch.effects.map(effect => this.nodeFactory.createNode(effect))
     }
 
     if (Array.isArray(branch.next)) {
-      result.next = branch.next.map((next, index) => this.nodeFactory.createChildNode(next, branchName, 'next', index))
+      result.next = branch.next.map(next => this.nodeFactory.createNode(next))
     }
 
     return result

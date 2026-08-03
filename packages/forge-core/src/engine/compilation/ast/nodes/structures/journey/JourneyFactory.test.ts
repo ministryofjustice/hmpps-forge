@@ -1,7 +1,7 @@
 import { ASTNodeType } from '../../../../../contracts/ast/enums'
 import { ExpressionType, StructureType } from '../../../../../../authoring/types/enums'
 import type { JourneyDefinition, StepDefinition } from '../../../../../../authoring/types/structures.type'
-import type { BlockDefinition } from '../../../../../../components/types/structures.type'
+import type { BlockDefinition, ResolvableBoolean } from '../../../../../../components/types/structures.type'
 import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { StepASTNode } from '../../../../../contracts/ast/structures.type'
 import { NodeFactory } from '../../NodeFactory'
@@ -162,7 +162,10 @@ describe('JourneyFactory', () => {
         path: 'test-journey',
         title: 'Test Journey',
         reachability: {
-          resumeWhen: { type: ExpressionType.REFERENCE, path: ['data', 'resumeActive'] },
+          resumeWhen: {
+            type: ExpressionType.REFERENCE,
+            path: ['data', 'resumeActive'],
+          } as unknown as ResolvableBoolean,
         },
         steps: [] as StepDefinition[],
       } satisfies JourneyDefinition

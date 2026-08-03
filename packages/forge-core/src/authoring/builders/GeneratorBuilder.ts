@@ -33,6 +33,8 @@ import { ChainableGenerator, ChainableNegation } from './types'
  * @internal Exposed to authors via the ChainableGenerator interface.
  */
 export class GeneratorBuilder<A extends ResolvableValue[]> implements ChainableGenerator {
+  readonly nodeKind = 'forge-builder' as const
+
   // The marker must exist on the class type so builders pass the weak-type
   // check on Resolvable<T> argument slots; it is type-only and never set.
   declare readonly __resolves?: any

@@ -1,15 +1,20 @@
 import { BlockType, ExpressionType, FunctionType, IteratorType, StructureType } from '../../authoring/types/enums'
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
-import type { FunctionASTNode, IterateASTNode, MatchASTNode } from '../contracts/ast/expressions.type'
-import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../contracts/ast/structures.type'
-import type { TestPredicateASTNode } from '../contracts/ast/predicates.type'
-import type { TemplateNode } from '../contracts/ast/template.type'
-import { NodeIDGenerator } from '../compilation/ast/ast-state/NodeIDGenerator'
-import { NodeFactory } from '../compilation/ast/nodes/NodeFactory'
-import { ASTNodeType } from '../contracts/ast/enums'
+import type { FunctionASTNode, IterateASTNode, MatchASTNode } from '../../engine/contracts/ast/expressions.type'
+import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../../engine/contracts/ast/structures.type'
+import type { TestPredicateASTNode } from '../../engine/contracts/ast/predicates.type'
+import type { TemplateNode } from '../../engine/contracts/ast/template.type'
+import { NodeIDGenerator } from '../../engine/compilation/ast/ast-state/NodeIDGenerator'
+import { NodeFactory } from '../../engine/compilation/ast/nodes/NodeFactory'
+import { ASTNodeType } from '../../engine/contracts/ast/enums'
+import { finaliseBuilders } from '../../authoring/builders/utils/finaliseBuilders'
 import DSLSourceLocator from './DSLSourceLocator'
 
-const createFactory = (journey: JourneyDefinition): NodeFactory => new NodeFactory(new NodeIDGenerator(), journey)
+const compileJourney = (journey: JourneyDefinition): JourneyASTNode => {
+  const factory = new NodeFactory(new NodeIDGenerator())
+
+  return factory.createNode(finaliseBuilders(journey)) as JourneyASTNode
+}
 
 describe('DSLSourceLocator', () => {
   describe('fromPath()', () => {
@@ -70,10 +75,9 @@ describe('DSLSourceLocator', () => {
           },
         ],
       } as unknown as JourneyDefinition
-      const factory = createFactory(journey)
 
       // Act
-      const root = factory.createNode(journey) as JourneyASTNode
+      const root = compileJourney(journey)
       const step = root.properties.steps![0] as StepASTNode
       const block = step.properties.blocks![0] as FieldBlockASTNode
       const defaultValue = block.properties.defaultValue as FunctionASTNode
@@ -122,10 +126,9 @@ describe('DSLSourceLocator', () => {
           },
         ],
       } as unknown as JourneyDefinition
-      const factory = createFactory(journey)
 
       // Act
-      const root = factory.createNode(journey) as JourneyASTNode
+      const root = compileJourney(journey)
       const step = root.properties.steps![0] as StepASTNode
       const block = step.properties.blocks![0]
       const iterate = block.properties.items as IterateASTNode
@@ -176,10 +179,9 @@ describe('DSLSourceLocator', () => {
           },
         ],
       } as unknown as JourneyDefinition
-      const factory = createFactory(journey)
 
       // Act
-      const root = factory.createNode(journey) as JourneyASTNode
+      const root = compileJourney(journey)
       const step = root.properties.steps![0] as StepASTNode
       const block = step.properties.blocks![0]
       const match = block.properties.content as MatchASTNode

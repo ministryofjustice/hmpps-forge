@@ -24,12 +24,11 @@ export default class ThrowErrorOutcomeFactory {
   create(json: ThrowErrorOutcome): ThrowErrorOutcomeASTNode {
     const properties: { when?: ASTNode; status: number; message: ASTNode | string } = {
       status: json.status,
-      message:
-        typeof json.message === 'string' ? json.message : this.nodeFactory.transformChild(json.message, 'message'),
+      message: typeof json.message === 'string' ? json.message : this.nodeFactory.transformValue(json.message),
     }
 
     if (json.when) {
-      properties.when = this.nodeFactory.createChildNode(json.when, 'when')
+      properties.when = this.nodeFactory.createNode(json.when)
     }
 
     return {

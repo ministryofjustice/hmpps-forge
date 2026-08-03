@@ -35,9 +35,7 @@ export default class XorFactory {
       type: ASTNodeType.PREDICATE,
       predicateType: PredicateType.XOR,
       properties: {
-        operands: json.operands.map((operand: unknown, index) =>
-          this.nodeFactory.createChildNode(operand, 'operands', index),
-        ) as PredicateASTNode[],
+        operands: json.operands.map((operand: unknown) => this.nodeFactory.createNode(operand)) as PredicateASTNode[],
       },
     }
   }

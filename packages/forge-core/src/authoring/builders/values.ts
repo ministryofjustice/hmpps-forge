@@ -1,4 +1,5 @@
 import { ExpressionBuilder } from './ExpressionBuilder'
+import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { ChainableExpr, ChainableGenerator } from './types'
 import { ResolvableValue } from '../types/expressions.type'
 import { ResolvableString } from '../../components/types/structures.type'
@@ -13,7 +14,10 @@ import { FormatGenerators } from '../generators/formatGenerators'
  * Format('%1 %2', Answer('firstName'), Answer('lastName'))
  */
 export function Format(template: string, ...args: ResolvableString[]): ChainableGenerator {
-  return FormatGenerators.FormatString(template, ...args)
+  const generator = FormatGenerators.FormatString(template, ...args)
+  // Re-stamp over the registry handle's callsite so it points at the Format() call, not this file
+  stampCallsite(generator, captureCallsite(Format))
+  return generator
 }
 
 /**
@@ -36,5 +40,7 @@ export function Format(template: string, ...args: ResolvableString[]): Chainable
  * Literal([1, 2, 3]).each(Iterator.Map(Item().value()))
  */
 export function Literal(value: ResolvableValue): ChainableExpr {
-  return ExpressionBuilder.from(value)
+  const expr = ExpressionBuilder.from(value)
+  stampCallsite(expr, captureCallsite(Literal))
+  return expr
 }

@@ -11,6 +11,7 @@ import {
   PredicateNotExpr,
 } from '../types/expressions.type'
 import { ConditionCombinatorType, FunctionType, PredicateType } from '../types/enums'
+import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 
 /** A single operand of a combinator: a bare condition branch, or a predicate. */
 type CombinatorOperand = ConditionBranchExpr | PredicateExpr
@@ -80,17 +81,18 @@ export function and(...c: [ConditionBranchExpr, ConditionBranchExpr, ...Conditio
 export function and(...args: CombinatorArgs): PredicateAndExpr | ConditionAndExpr {
   const classified = classifyOperands('and', args)
 
-  if (classified.kind === OperandKind.CONDITION) {
-    return {
-      type: ConditionCombinatorType.AND,
-      operands: classified.operands as [ConditionBranchExpr, ConditionBranchExpr, ...ConditionBranchExpr[]],
-    }
-  }
-
-  return {
-    type: PredicateType.AND,
-    operands: classified.operands as [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
-  }
+  const expr: PredicateAndExpr | ConditionAndExpr =
+    classified.kind === OperandKind.CONDITION
+      ? {
+          type: ConditionCombinatorType.AND,
+          operands: classified.operands as [ConditionBranchExpr, ConditionBranchExpr, ...ConditionBranchExpr[]],
+        }
+      : {
+          type: PredicateType.AND,
+          operands: classified.operands as [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
+        }
+  stampCallsite(expr, captureCallsite(and))
+  return expr
 }
 
 /**
@@ -108,17 +110,18 @@ export function or(...c: [ConditionBranchExpr, ConditionBranchExpr, ...Condition
 export function or(...args: CombinatorArgs): PredicateOrExpr | ConditionOrExpr {
   const classified = classifyOperands('or', args)
 
-  if (classified.kind === OperandKind.CONDITION) {
-    return {
-      type: ConditionCombinatorType.OR,
-      operands: classified.operands as [ConditionBranchExpr, ConditionBranchExpr, ...ConditionBranchExpr[]],
-    }
-  }
-
-  return {
-    type: PredicateType.OR,
-    operands: classified.operands as [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
-  }
+  const expr: PredicateOrExpr | ConditionOrExpr =
+    classified.kind === OperandKind.CONDITION
+      ? {
+          type: ConditionCombinatorType.OR,
+          operands: classified.operands as [ConditionBranchExpr, ConditionBranchExpr, ...ConditionBranchExpr[]],
+        }
+      : {
+          type: PredicateType.OR,
+          operands: classified.operands as [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
+        }
+  stampCallsite(expr, captureCallsite(or))
+  return expr
 }
 
 /**
@@ -136,17 +139,18 @@ export function xor(...c: [ConditionBranchExpr, ConditionBranchExpr, ...Conditio
 export function xor(...args: CombinatorArgs): PredicateXorExpr | ConditionXorExpr {
   const classified = classifyOperands('xor', args)
 
-  if (classified.kind === OperandKind.CONDITION) {
-    return {
-      type: ConditionCombinatorType.XOR,
-      operands: classified.operands as [ConditionBranchExpr, ConditionBranchExpr, ...ConditionBranchExpr[]],
-    }
-  }
-
-  return {
-    type: PredicateType.XOR,
-    operands: classified.operands as [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
-  }
+  const expr: PredicateXorExpr | ConditionXorExpr =
+    classified.kind === OperandKind.CONDITION
+      ? {
+          type: ConditionCombinatorType.XOR,
+          operands: classified.operands as [ConditionBranchExpr, ConditionBranchExpr, ...ConditionBranchExpr[]],
+        }
+      : {
+          type: PredicateType.XOR,
+          operands: classified.operands as [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
+        }
+  stampCallsite(expr, captureCallsite(xor))
+  return expr
 }
 
 /**
@@ -160,15 +164,15 @@ export function xor(...args: CombinatorArgs): PredicateXorExpr | ConditionXorExp
 export function not(p: PredicateExpr): PredicateNotExpr
 export function not(c: ConditionBranchExpr): ConditionNotExpr
 export function not(operand: CombinatorOperand): PredicateNotExpr | ConditionNotExpr {
-  if (isConditionBranch(operand)) {
-    return {
-      type: ConditionCombinatorType.NOT,
-      operand,
-    }
-  }
-
-  return {
-    type: PredicateType.NOT,
-    operand,
-  }
+  const expr: PredicateNotExpr | ConditionNotExpr = isConditionBranch(operand)
+    ? {
+        type: ConditionCombinatorType.NOT,
+        operand,
+      }
+    : {
+        type: PredicateType.NOT,
+        operand,
+      }
+  stampCallsite(expr, captureCallsite(not))
+  return expr
 }

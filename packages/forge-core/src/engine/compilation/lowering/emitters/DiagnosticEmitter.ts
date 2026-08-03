@@ -1,5 +1,5 @@
 import { FunctionType } from '../../../../authoring/types/enums'
-import type { DSLPathSegment, DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
+import type { DSLPathSegment, DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
 
 interface DiagnosticMetadata {
   readonly nodeId?: string

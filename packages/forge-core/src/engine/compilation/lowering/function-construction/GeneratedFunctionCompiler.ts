@@ -6,7 +6,7 @@ import ForgeRuntimeEvaluationError, {
   decorateForgeRuntimeEvaluationError,
   type ForgeRuntimeEvaluationDiagnostics,
 } from '../../../errors/ForgeRuntimeEvaluationError'
-import type { DSLPathSegment } from '../../../diagnostics/sourceLocation.type'
+import type { DSLPathSegment } from '../../../../shared/diagnostics/sourceLocation.type'
 
 interface CompileOptions {
   forceAsync?: boolean

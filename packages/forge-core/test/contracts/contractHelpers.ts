@@ -1,5 +1,5 @@
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
-import { journey, defineEffectFunctions, type EffectFunctionExpr } from '../../src/authoring'
+import { createForgePackage, journey, defineEffectFunctions, type EffectFunctionExpr } from '../../src/authoring'
 import { ForgeTestHarness, type RequestTraceEvent } from '../../src/testing'
 import type { ForgeRenderer } from '../../src/framework/rendering/types'
 import type { ComponentRegistryEntry } from '../../src/components/types/components.type'
@@ -75,7 +75,7 @@ export function answerOf(answers: Record<string, unknown>, code: string): Answer
 export function createClient(journeyDef: ReturnType<typeof journey>) {
   return new ForgeTestHarness()
     .registerGlobalComponents(govukComponents)
-    .registerPackage({ journey: journeyDef, functions: effectImplementations })
+    .registerPackage(createForgePackage({ journey: journeyDef, functions: effectImplementations }))
     .createClient()
 }
 
@@ -90,7 +90,7 @@ export function createTracedClient(journeyDef: ReturnType<typeof journey>, trace
       },
     })
       .registerGlobalComponents(govukComponents)
-      .registerPackage({ journey: journeyDef, functions: effectImplementations })
+      .registerPackage(createForgePackage({ journey: journeyDef, functions: effectImplementations }))
       .createClient()
 }
 
@@ -101,7 +101,7 @@ export function createRenderClient(
 ) {
   return new ForgeTestHarness()
     .registerGlobalComponents(components)
-    .registerPackage({ journey: journeyDef, functions: effectImplementations })
+    .registerPackage(createForgePackage({ journey: journeyDef, functions: effectImplementations }))
     .createClient(renderer)
 }
 
@@ -121,7 +121,7 @@ export function createTracedRenderClient(
       },
     })
       .registerGlobalComponents(components)
-      .registerPackage({ journey: journeyDef, functions: effectImplementations })
+      .registerPackage(createForgePackage({ journey: journeyDef, functions: effectImplementations }))
       .createClient(renderer)
 }
 
