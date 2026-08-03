@@ -57,6 +57,44 @@ describe('GeneratedFunctionCompiler', () => {
       }
     })
 
+    it('should carry definedAt from emitted metadata into Forge diagnostics', () => {
+      // Arrange
+      const expr = new ExpressionDispatcher(dependencies)
+      const fn = compileGeneratedFunction<GeneratedFunction>(
+        expr,
+        ['ctx'],
+        () =>
+          [
+            'return _forgeHelpers.evaluateTracked(',
+            '  _forgeRuntimeDiagnostics,',
+            '  { definedAt: "myJourney (/app/journeys/goals.journey.ts:12:5)" },',
+            '  function() { throw new Error("boom"); }',
+            ');',
+          ].join('\n'),
+        { phase: 'render' },
+      )
+
+      // Act
+      const evaluate = () => Reflect.apply(fn, undefined, [{}])
+
+      // Assert
+      try {
+        evaluate()
+        throw new Error('Expected generated function to throw')
+      } catch (error) {
+        if (!(error instanceof Error)) {
+          throw new Error('Expected generated function to throw the original Error')
+        }
+
+        expect(error.message).toBe('boom')
+        expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
+          phase: 'render',
+          definedAt: 'myJourney (/app/journeys/goals.journey.ts:12:5)',
+        })
+        expect(error.stack).toContain('Defined at: ')
+      }
+    })
+
     it('should wrap non-Error runtime failures in ForgeRuntimeEvaluationError', () => {
       // Arrange
       const expr = new ExpressionDispatcher(dependencies)

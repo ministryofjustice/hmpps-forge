@@ -20,6 +20,7 @@ export class DSLValidator {
           formattedPath: sourceLocator.fromPath(path).formattedPath,
           expected: 'expected' in issue && typeof issue.expected === 'string' ? issue.expected : undefined,
           code: issue.code,
+          callsite: sourceLocator.callsiteFromPath(path),
         })
       })
 
@@ -41,7 +42,8 @@ export class DSLValidator {
       })
     }
 
-    const errors = this.checkSerializableTypes(input, [], new DSLSourceLocator(input))
+    const sourceLocator = new DSLSourceLocator(input)
+    const errors = this.checkSerializableTypes(input, [], sourceLocator)
 
     if (errors.length > 0) {
       throw new AggregateError(errors, 'JSON validation failed due to non-serializable types')
@@ -54,8 +56,9 @@ export class DSLValidator {
       throw new ForgeConfigurationSerialisationError({
         path: [],
         message: `JSON serialization failed: ${(error as Error).message}`,
-        formattedPath: new DSLSourceLocator(input).fromPath([]).formattedPath,
+        formattedPath: sourceLocator.fromPath([]).formattedPath,
         type: 'json_error',
+        callsite: sourceLocator.callsiteFromPath([]),
       })
     }
   }
@@ -74,6 +77,7 @@ export class DSLValidator {
           type: 'Undefined value',
           path,
           formattedPath: sourceLocator.fromPath(path).formattedPath,
+          callsite: sourceLocator.callsiteFromPath(path),
         }),
       )
     } else if (typeof obj === 'function') {
@@ -82,6 +86,7 @@ export class DSLValidator {
           type: 'Function',
           path,
           formattedPath: sourceLocator.fromPath(path).formattedPath,
+          callsite: sourceLocator.callsiteFromPath(path),
         }),
       )
     } else if (typeof obj === 'symbol') {
@@ -90,6 +95,7 @@ export class DSLValidator {
           type: 'Symbol',
           path,
           formattedPath: sourceLocator.fromPath(path).formattedPath,
+          callsite: sourceLocator.callsiteFromPath(path),
         }),
       )
     } else if (typeof obj === 'bigint') {
@@ -98,6 +104,7 @@ export class DSLValidator {
           type: 'BigInt',
           path,
           formattedPath: sourceLocator.fromPath(path).formattedPath,
+          callsite: sourceLocator.callsiteFromPath(path),
         }),
       )
     } else if (obj instanceof Date) {
@@ -106,6 +113,7 @@ export class DSLValidator {
           type: 'Date object',
           path,
           formattedPath: sourceLocator.fromPath(path).formattedPath,
+          callsite: sourceLocator.callsiteFromPath(path),
         }),
       )
     } else if (obj && typeof obj === 'object') {

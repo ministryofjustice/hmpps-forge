@@ -11,6 +11,8 @@ interface ForgeConfigurationSerialisationErrorOptions {
   code?: string
   /** Human-readable path through the journey DSL */
   formattedPath?: string
+  /** Captured author callsite for the offending node, when available */
+  callsite?: { readonly stack?: string }
 }
 
 export default class ForgeConfigurationSerialisationError extends Error {
@@ -21,6 +23,8 @@ export default class ForgeConfigurationSerialisationError extends Error {
   readonly formattedPath?: string
 
   readonly type: string
+
+  readonly callsite?: { readonly stack?: string }
 
   constructor(options: ForgeConfigurationSerialisationErrorOptions) {
     const message =
@@ -33,6 +37,7 @@ export default class ForgeConfigurationSerialisationError extends Error {
     this.formattedPath = options.formattedPath
     this.type = options.type
     this.code = options.code
+    this.callsite = options.callsite
     this.message = message
   }
 

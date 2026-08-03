@@ -9,6 +9,7 @@ interface ForgeRuntimeEvaluationErrorOptions {
   readonly formattedPath?: string
   readonly functionName?: string
   readonly functionType?: string
+  readonly definedAt?: string
 }
 
 export interface ForgeRuntimeEvaluationDiagnostics {
@@ -18,6 +19,7 @@ export interface ForgeRuntimeEvaluationDiagnostics {
   readonly formattedPath?: string
   readonly functionName?: string
   readonly functionType?: string
+  readonly definedAt?: string
 }
 
 export const FORGE_RUNTIME_EVALUATION_DIAGNOSTICS = Symbol.for('hmpps-forge.runtimeEvaluationDiagnostics')
@@ -35,6 +37,8 @@ export default class ForgeRuntimeEvaluationError extends Error {
 
   readonly functionType?: string
 
+  readonly definedAt?: string
+
   readonly cause: unknown
 
   constructor(options: ForgeRuntimeEvaluationErrorOptions) {
@@ -46,6 +50,7 @@ export default class ForgeRuntimeEvaluationError extends Error {
     this.formattedPath = options.formattedPath
     this.functionName = options.functionName
     this.functionType = options.functionType
+    this.definedAt = options.definedAt
     this.cause = options.cause
     this.stack = DiagnosticErrorFormatter.appendRuntimeDiagnostics(this.stack, {
       phase: this.phase,
@@ -54,6 +59,7 @@ export default class ForgeRuntimeEvaluationError extends Error {
       formattedPath: this.formattedPath,
       functionName: this.functionName,
       functionType: this.functionType,
+      definedAt: this.definedAt,
     })
   }
 
@@ -64,6 +70,7 @@ export default class ForgeRuntimeEvaluationError extends Error {
       { label: 'Node', value: this.nodeId },
       { label: 'Function', value: this.functionName },
       { label: 'Type', value: this.functionType },
+      { label: 'Defined at', value: this.definedAt },
       { label: 'Cause', value: DiagnosticErrorFormatter.formatCause(this.cause) },
     ])
   }

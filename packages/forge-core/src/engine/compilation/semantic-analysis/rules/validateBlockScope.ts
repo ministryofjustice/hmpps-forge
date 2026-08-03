@@ -1,15 +1,18 @@
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { NodeId } from '../../../contracts/ast/engine.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
-import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 
-function buildError(source: DSLSourceLocation | undefined): ForgeConfigurationReferenceScopeError {
+function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigurationReferenceScopeError {
+  const source = diagnostics?.source
+
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: 'Blocks can only be defined in a step blocks array or nested within another block',
     code: 'block_outside_blocks',
     formattedPath: source?.formattedPath ?? 'unknown',
+    callsite: diagnostics?.callsite,
   })
 }
 
@@ -35,7 +38,7 @@ export const validateBlockScope: ASTValidationRule = (context: ASTValidationCont
       return
     }
 
-    errors.push(buildError(node.diagnostics?.source))
+    errors.push(buildError(node.diagnostics))
   })
 
   return errors

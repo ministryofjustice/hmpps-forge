@@ -3,14 +3,14 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { AccessHookASTNode, SubmitHookASTNode } from '../../../contracts/ast/expressions.type'
 import type { StepASTNode, JourneyASTNode } from '../../../contracts/ast/structures.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
-import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object'
 }
 
-function getSource(value: unknown): DSLSourceLocation | undefined {
+function getDiagnostics(value: unknown): ASTNodeDiagnostics | undefined {
   if (!isObject(value) || !isObject(value.diagnostics) || !isObject(value.diagnostics.source)) {
     return undefined
   }
@@ -25,7 +25,11 @@ function getSource(value: unknown): DSLSourceLocation | undefined {
     return undefined
   }
 
-  return { path, formattedPath }
+  const callsite = isObject(value.diagnostics.callsite)
+    ? (value.diagnostics.callsite as { readonly stack?: string })
+    : undefined
+
+  return { source: { path, formattedPath }, callsite }
 }
 
 interface ContainerCheck {
@@ -36,20 +40,23 @@ interface ContainerCheck {
 
 function buildError(
   check: ContainerCheck,
-  source: DSLSourceLocation | undefined,
+  diagnostics: ASTNodeDiagnostics | undefined,
 ): ForgeConfigurationReferenceScopeError {
+  const source = diagnostics?.source
+
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: check.message,
     code: check.code,
     formattedPath: source?.formattedPath ?? 'unknown',
+    callsite: diagnostics?.callsite,
   })
 }
 
 function checkEntries(
   entries: unknown,
   check: ContainerCheck,
-  containerSource: DSLSourceLocation | undefined,
+  containerDiagnostics: ASTNodeDiagnostics | undefined,
   errors: Error[],
 ): void {
   if (!Array.isArray(entries)) {
@@ -61,7 +68,7 @@ function checkEntries(
       return
     }
 
-    errors.push(buildError(check, getSource(entry) ?? containerSource))
+    errors.push(buildError(check, getDiagnostics(entry) ?? containerDiagnostics))
   })
 }
 
@@ -117,15 +124,15 @@ const NEXT: ContainerCheck = {
 
 function checkHookBranch(
   branch: { effects?: unknown[]; next?: unknown[] } | undefined,
-  containerSource: DSLSourceLocation | undefined,
+  containerDiagnostics: ASTNodeDiagnostics | undefined,
   errors: Error[],
 ): void {
   if (!branch) {
     return
   }
 
-  checkEntries(branch.effects, EFFECTS, containerSource, errors)
-  checkEntries(branch.next, NEXT, containerSource, errors)
+  checkEntries(branch.effects, EFFECTS, containerDiagnostics, errors)
+  checkEntries(branch.next, NEXT, containerDiagnostics, errors)
 }
 
 export const validateContainerTypes: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
@@ -133,30 +140,30 @@ export const validateContainerTypes: ASTValidationRule = (context: ASTValidation
   const errors: Error[] = []
 
   nodeIndex.findByType<StepASTNode>(ASTNodeType.STEP).forEach(step => {
-    const source = step.diagnostics?.source
+    const diagnostics = step.diagnostics
 
-    checkEntries(step.properties.onAccess, ON_ACCESS, source, errors)
-    checkEntries(step.properties.onSubmission, ON_SUBMISSION, source, errors)
-    checkEntries(step.properties.blocks, BLOCKS, source, errors)
+    checkEntries(step.properties.onAccess, ON_ACCESS, diagnostics, errors)
+    checkEntries(step.properties.onSubmission, ON_SUBMISSION, diagnostics, errors)
+    checkEntries(step.properties.blocks, BLOCKS, diagnostics, errors)
   })
 
   nodeIndex.findByType<JourneyASTNode>(ASTNodeType.JOURNEY).forEach(journey => {
-    checkEntries(journey.properties.onAccess, ON_ACCESS, journey.diagnostics?.source, errors)
+    checkEntries(journey.properties.onAccess, ON_ACCESS, journey.diagnostics, errors)
   })
 
   nodeIndex.findByType<AccessHookASTNode>(HookType.ACCESS).forEach(hook => {
-    const source = hook.diagnostics?.source
+    const diagnostics = hook.diagnostics
 
-    checkEntries(hook.properties.effects, EFFECTS, source, errors)
-    checkEntries(hook.properties.next, NEXT, source, errors)
+    checkEntries(hook.properties.effects, EFFECTS, diagnostics, errors)
+    checkEntries(hook.properties.next, NEXT, diagnostics, errors)
   })
 
   nodeIndex.findByType<SubmitHookASTNode>(HookType.SUBMIT).forEach(hook => {
-    const source = hook.diagnostics?.source
+    const diagnostics = hook.diagnostics
 
-    checkHookBranch(hook.properties.onAlways, source, errors)
-    checkHookBranch(hook.properties.onValid, source, errors)
-    checkHookBranch(hook.properties.onInvalid, source, errors)
+    checkHookBranch(hook.properties.onAlways, diagnostics, errors)
+    checkHookBranch(hook.properties.onValid, diagnostics, errors)
+    checkHookBranch(hook.properties.onInvalid, diagnostics, errors)
   })
 
   return errors

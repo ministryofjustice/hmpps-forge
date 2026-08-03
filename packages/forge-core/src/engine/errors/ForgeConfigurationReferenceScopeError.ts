@@ -9,6 +9,8 @@ interface ForgeConfigurationReferenceScopeErrorOptions {
   code: string
   /** Human-readable path through the journey DSL */
   formattedPath: string
+  /** Author callsite captured where the offending node was defined */
+  callsite?: { readonly stack?: string }
 }
 
 export default class ForgeConfigurationReferenceScopeError extends Error {
@@ -18,6 +20,8 @@ export default class ForgeConfigurationReferenceScopeError extends Error {
 
   readonly formattedPath: string
 
+  readonly callsite?: { readonly stack?: string }
+
   constructor(options: ForgeConfigurationReferenceScopeErrorOptions) {
     super(options.message)
     this.name = new.target.name
@@ -25,6 +29,7 @@ export default class ForgeConfigurationReferenceScopeError extends Error {
     this.code = options.code
     this.path = options.path
     this.formattedPath = options.formattedPath
+    this.callsite = options.callsite
   }
 
   toString() {

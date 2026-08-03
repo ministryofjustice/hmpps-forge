@@ -3,25 +3,31 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { AstNodeId } from '../../../contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
-import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 
-function buildStepError(source: DSLSourceLocation | undefined): ForgeConfigurationReferenceScopeError {
+function buildStepError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigurationReferenceScopeError {
+  const source = diagnostics?.source
+
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: 'Steps can only be defined in a journey steps array',
     code: 'step_outside_journey_steps',
     formattedPath: source?.formattedPath ?? 'unknown',
+    callsite: diagnostics?.callsite,
   })
 }
 
-function buildJourneyError(source: DSLSourceLocation | undefined): ForgeConfigurationReferenceScopeError {
+function buildJourneyError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigurationReferenceScopeError {
+  const source = diagnostics?.source
+
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: 'Journeys can only be defined at the root or in a journey children array',
     code: 'journey_outside_journey_children',
     formattedPath: source?.formattedPath ?? 'unknown',
+    callsite: diagnostics?.callsite,
   })
 }
 
@@ -37,7 +43,7 @@ export const validateStructureScope: ASTValidationRule = (context: ASTValidation
     const parent = node.parent
 
     if (!parent || parent.type !== ASTNodeType.JOURNEY || !containsNode(parent.properties?.steps, node.id)) {
-      errors.push(buildStepError(node.diagnostics?.source))
+      errors.push(buildStepError(node.diagnostics))
     }
   })
 
@@ -49,7 +55,7 @@ export const validateStructureScope: ASTValidationRule = (context: ASTValidation
     }
 
     if (parent.type !== ASTNodeType.JOURNEY || !containsNode(parent.properties?.children, node.id)) {
-      errors.push(buildJourneyError(node.diagnostics?.source))
+      errors.push(buildJourneyError(node.diagnostics))
     }
   })
 

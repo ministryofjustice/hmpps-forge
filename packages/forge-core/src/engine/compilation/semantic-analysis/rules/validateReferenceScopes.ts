@@ -2,7 +2,7 @@ import { ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode, ReferenceASTNode } from '../../../contracts/ast/expressions.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
-import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 import type { TemplateNode } from '../../../contracts/ast/template.type'
@@ -19,15 +19,18 @@ const LOOP_PROPERTIES: ReadonlySet<string> = new Set([
 ])
 
 function createError(
-  source: DSLSourceLocation | undefined,
+  diagnostics: ASTNodeDiagnostics | undefined,
   message: string,
   code: string,
 ): ForgeConfigurationReferenceScopeError {
+  const source = diagnostics?.source
+
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message,
     code,
     formattedPath: source?.formattedPath ?? 'unknown',
+    callsite: diagnostics?.callsite,
   })
 }
 
@@ -44,12 +47,12 @@ function parseReferenceLevel(value: unknown): number | undefined {
 function validateItemReference(
   path: (ASTNode | string | number)[],
   iteratorDepth: number,
-  source: DSLSourceLocation | undefined,
+  diagnostics: ASTNodeDiagnostics | undefined,
 ): readonly Error[] {
   const level = parseReferenceLevel(path[1])
 
   if (level === undefined) {
-    return [createError(source, 'Item() reference level must be a non-negative integer', 'item_invalid_level')]
+    return [createError(diagnostics, 'Item() reference level must be a non-negative integer', 'item_invalid_level')]
   }
 
   if (level >= iteratorDepth) {
@@ -58,7 +61,7 @@ function validateItemReference(
         ? 'Item() can only be used inside an iterator'
         : `Item().parent references level ${level}, but only ${iteratorDepth} iterator scope is available`
 
-    return [createError(source, message, 'item_outside_iterator_scope')]
+    return [createError(diagnostics, message, 'item_outside_iterator_scope')]
   }
 
   return []
@@ -67,13 +70,13 @@ function validateItemReference(
 function validateLoopReference(
   path: (ASTNode | string | number)[],
   iteratorDepth: number,
-  source: DSLSourceLocation | undefined,
+  diagnostics: ASTNodeDiagnostics | undefined,
 ): readonly Error[] {
   const errors: Error[] = []
   const level = parseReferenceLevel(path[1])
 
   if (level === undefined) {
-    return [createError(source, 'Loop reference level must be a non-negative integer', 'loop_invalid_level')]
+    return [createError(diagnostics, 'Loop reference level must be a non-negative integer', 'loop_invalid_level')]
   }
 
   if (level >= iteratorDepth) {
@@ -82,7 +85,7 @@ function validateLoopReference(
         ? 'Loop can only be used inside an iterator'
         : `Loop.Parent references level ${level}, but only ${iteratorDepth} iterator scope is available`
 
-    errors.push(createError(source, message, 'loop_outside_iterator_scope'))
+    errors.push(createError(diagnostics, message, 'loop_outside_iterator_scope'))
   }
 
   const property = path[2]
@@ -90,7 +93,7 @@ function validateLoopReference(
   if (typeof property !== 'string' || !LOOP_PROPERTIES.has(property)) {
     errors.push(
       createError(
-        source,
+        diagnostics,
         'Loop reference property must be one of index, index0, revindex, revindex0, first, last, length',
         'loop_invalid_property',
       ),
@@ -107,11 +110,11 @@ function validateRegisteredReference(node: ReferenceASTNode): readonly Error[] {
   // Iterator bodies are lifted into templates at AST build, so any reference still
   // in the registered tree sits outside every iterator scope: its depth is always 0.
   if (namespace === '@scope') {
-    return validateItemReference(path, 0, node.diagnostics?.source)
+    return validateItemReference(path, 0, node.diagnostics)
   }
 
   if (namespace === '@loop') {
-    return validateLoopReference(path, 0, node.diagnostics?.source)
+    return validateLoopReference(path, 0, node.diagnostics)
   }
 
   return []
@@ -128,7 +131,7 @@ function walkIterateTemplateReferences(
 
   templates.forEach(template => {
     const visitor = {
-      onTemplateNode(templateNode: TemplateNode, templateSource: DSLSourceLocation | undefined): boolean | void {
+      onTemplateNode(templateNode: TemplateNode, templateMetadata: ASTNodeDiagnostics | undefined): boolean | void {
         if (templateNode.originalType !== ASTNodeType.EXPRESSION) {
           return undefined
         }
@@ -165,11 +168,11 @@ function walkIterateTemplateReferences(
         const namespace = templateRefPath[0]
 
         if (namespace === '@scope') {
-          errors.push(...validateItemReference(templateRefPath, currentDepth, templateSource))
+          errors.push(...validateItemReference(templateRefPath, currentDepth, templateMetadata))
         }
 
         if (namespace === '@loop') {
-          errors.push(...validateLoopReference(templateRefPath, currentDepth, templateSource))
+          errors.push(...validateLoopReference(templateRefPath, currentDepth, templateMetadata))
         }
 
         return undefined

@@ -3,15 +3,18 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import type { BlockASTNode } from '../../../contracts/ast/structures.type'
 import UnregisteredComponentError from '../../../errors/UnregisteredComponentError'
-import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 
-function buildError(variant: string, source: DSLSourceLocation | undefined): UnregisteredComponentError {
+function buildError(variant: string, diagnostics: ASTNodeDiagnostics | undefined): UnregisteredComponentError {
+  const source = diagnostics?.source
+
   return new UnregisteredComponentError({
     path: source?.path ? [...source.path] : [],
     formattedPath: source?.formattedPath ?? 'unknown',
     variant,
+    callsite: diagnostics?.callsite,
   })
 }
 
@@ -26,7 +29,7 @@ export const validateRegisteredComponents: ASTValidationRule = (context: ASTVali
       return
     }
 
-    errors.push(buildError(node.variant, node.diagnostics?.source))
+    errors.push(buildError(node.variant, node.diagnostics))
   })
 
   const iterateNodes = nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE)

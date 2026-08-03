@@ -3,16 +3,19 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { NodeId } from '../../../contracts/ast/engine.type'
 import type { IterateASTNode, TieBreakerASTNode } from '../../../contracts/ast/expressions.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
-import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 
-function buildError(source: DSLSourceLocation | undefined): ForgeConfigurationReferenceScopeError {
+function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigurationReferenceScopeError {
+  const source = diagnostics?.source
+
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: "Tie-breakers can only be used in a step's reachability configuration",
     code: 'tiebreaker_outside_step_reachability',
     formattedPath: source?.formattedPath ?? 'unknown',
+    callsite: diagnostics?.callsite,
   })
 }
 
@@ -28,13 +31,13 @@ export const validateTieBreakerScope: ASTValidationRule = (context: ASTValidatio
     const parent = node.parent
 
     if (!parent || parent.type !== ASTNodeType.STEP) {
-      errors.push(buildError(node.diagnostics?.source))
+      errors.push(buildError(node.diagnostics))
 
       return
     }
 
     if (!containsNode(parent.properties?.reachability?.tieBreakers, node.id)) {
-      errors.push(buildError(node.diagnostics?.source))
+      errors.push(buildError(node.diagnostics))
     }
   })
 

@@ -1,10 +1,10 @@
 import type { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
 import { isTemplateNode } from '../../../contracts/ast/nodes'
-import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 
 export interface TemplateVisitor {
   /** Return false to skip walking this node's children. */
-  onTemplateNode(node: TemplateNode, source: DSLSourceLocation | undefined): boolean | void
+  onTemplateNode(node: TemplateNode, diagnostics: ASTNodeDiagnostics | undefined): boolean | void
 }
 
 export function walkTemplateValue(value: TemplateValue, visitor: TemplateVisitor): void {
@@ -19,7 +19,7 @@ export function walkTemplateValue(value: TemplateValue, visitor: TemplateVisitor
   }
 
   if (isTemplateNode(value)) {
-    const shouldWalkChildren = visitor.onTemplateNode(value, value.diagnostics?.source)
+    const shouldWalkChildren = visitor.onTemplateNode(value, value.diagnostics)
 
     if (shouldWalkChildren !== false) {
       walkTemplateProperties(value, visitor)
