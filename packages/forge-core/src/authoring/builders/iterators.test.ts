@@ -1,4 +1,4 @@
-import { Iterator } from './IteratorBuilder'
+import { Iterator } from './iterators'
 import { IteratorType, PredicateType } from '../types/enums'
 import { PredicateTestExpr } from '../types/expressions.type'
 

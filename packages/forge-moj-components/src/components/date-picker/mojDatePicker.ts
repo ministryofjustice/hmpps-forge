@@ -87,14 +87,14 @@ export interface MOJDatePicker extends FieldBlockDefinition {
    * @example 'Select a date'
    * @example { text: 'Select a date', classes: 'govuk-label--l' }
    */
-  label: ResolvableString | MOJDatePickerLabel | ResolvableObject<MOJDatePickerLabel>
+  label: ResolvableString | ResolvableObject<MOJDatePickerLabel>
 
   /**
    * Optional hint text - can be a simple string or object with additional options.
    * @example 'For example, 17/5/2024'
    * @example { html: 'Enter the date in <strong>dd/mm/yyyy</strong> format' }
    */
-  hint?: ResolvableString | MOJDatePickerHint | ResolvableObject<MOJDatePickerHint>
+  hint?: ResolvableString | ResolvableObject<MOJDatePickerHint>
 
   /**
    * Earliest date that can be selected (format: dd/mm/yyyy).

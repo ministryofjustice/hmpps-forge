@@ -1,5 +1,5 @@
 import { IterableBuilder } from './IterableBuilder'
-import { Iterator } from './IteratorBuilder'
+import { Iterator } from './iterators'
 import {
   ConditionFunctionExpr,
   IterateExpr,

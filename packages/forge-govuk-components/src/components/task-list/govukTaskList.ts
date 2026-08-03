@@ -40,7 +40,7 @@ export interface TaskListStatus {
    * Use this for statuses that should be visually prominent.
    * If provided, text and html are ignored.
    */
-  tag?: TaskListStatusTag | ResolvableObject<TaskListStatusTag>
+  tag?: ResolvableObject<TaskListStatusTag>
 
   /**
    * Plain text for the status.

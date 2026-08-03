@@ -1,45 +1,44 @@
-import { ConditionalExpr, PredicateExpr, PredicateTestExpr, ResolvableValue } from '../types/expressions.type'
+import { ConditionalExpr, PredicateExpr, PredicateTestExpr } from '../types/expressions.type'
 import { ExpressionType } from '../types/enums'
+import { BranchValue, ChainableConditional } from './types'
 
 /**
- * Represents a value that can be returned from a conditional branch.
- * Can be a literal string or a value expression.
- */
-export type BranchValue = string | ResolvableValue
-
-/**
- * Fluent builder for creating conditional expressions.
+ * Immutable fluent builder for creating conditional expressions.
  * Allows chaining of then/else branches after a predicate condition.
+ * Each method returns a NEW instance, so partially-built conditionals
+ * can be safely reused and forked.
+ *
+ * @internal Exposed to authors via the ChainableConditional interface.
  */
-export class ConditionalExprBuilder {
+export class ConditionalExprBuilder implements ChainableConditional {
   private readonly predicate: PredicateExpr
 
-  private thenValue: BranchValue = true
+  private readonly thenValue: BranchValue
 
-  private elseValue: BranchValue = false
+  private readonly elseValue: BranchValue
 
-  constructor(predicate: PredicateExpr) {
+  constructor(predicate: PredicateExpr, thenValue: BranchValue = true, elseValue: BranchValue = false) {
     this.predicate = predicate
+    this.thenValue = thenValue
+    this.elseValue = elseValue
   }
 
   /**
    * Sets the value to return when the predicate evaluates to true.
    * @param value - The value or expression to return
-   * @returns This builder for method chaining
+   * @returns A new builder with the then branch set
    */
-  then(value: BranchValue): this {
-    this.thenValue = value
-    return this
+  then(value: BranchValue): ConditionalExprBuilder {
+    return new ConditionalExprBuilder(this.predicate, value, this.elseValue)
   }
 
   /**
    * Sets the value to return when the predicate evaluates to false.
    * @param value - The value or expression to return
-   * @returns This builder for method chaining
+   * @returns A new builder with the else branch set
    */
-  else(value: BranchValue): this {
-    this.elseValue = value
-    return this
+  else(value: BranchValue): ConditionalExprBuilder {
+    return new ConditionalExprBuilder(this.predicate, this.thenValue, value)
   }
 
   /**
@@ -62,14 +61,14 @@ export class ConditionalExprBuilder {
  * Use this for fluent chained conditional building.
  *
  * @param predicate - The condition to evaluate
- * @returns A ConditionalExprBuilder for fluent conditional building
+ * @returns A chainable conditional for fluent then/else building
  *
  * @example
  * when(Answer('age').match(Condition.GreaterThan(18)))
  *   .then('adult')
  *   .else('child')
  */
-export const when = (predicate: PredicateExpr | PredicateTestExpr): ConditionalExprBuilder => {
+export const when = (predicate: PredicateExpr | PredicateTestExpr): ChainableConditional => {
   return new ConditionalExprBuilder(predicate)
 }
 
@@ -90,7 +89,7 @@ export interface ConditionalOptions {
  * Alternative to the fluent `when().then().else()` builder.
  *
  * @param options - Object with when, then, and optional else properties
- * @returns A ConditionalExprBuilder that will be finalised during form processing
+ * @returns A chainable conditional that will be finalised during form processing
  *
  * @example
  * // Basic usage
@@ -117,14 +116,8 @@ export interface ConditionalOptions {
  *   }),
  * })
  */
-export const Conditional = (options: ConditionalOptions): ConditionalExprBuilder => {
-  const builder = new ConditionalExprBuilder(options.when)
+export const Conditional = (options: ConditionalOptions): ChainableConditional => {
+  const builder = new ConditionalExprBuilder(options.when).then(options.then)
 
-  builder.then(options.then)
-
-  if (options.else !== undefined) {
-    builder.else(options.else)
-  }
-
-  return builder
+  return options.else !== undefined ? builder.else(options.else) : builder
 }

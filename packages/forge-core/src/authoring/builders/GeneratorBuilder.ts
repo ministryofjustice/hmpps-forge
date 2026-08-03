@@ -4,11 +4,11 @@ import {
   GeneratorFunctionExpr,
   PipelineExpr,
   PredicateTestExpr,
-  ResolvableExpression,
   TransformerFunctionExpr,
   ResolvableValue,
 } from '../types/expressions.type'
 import { ExpressionBuilder } from './ExpressionBuilder'
+import { ChainableGenerator, ChainableNegation } from './types'
 
 /**
  * Immutable builder for creating generator function expressions.
@@ -29,8 +29,10 @@ import { ExpressionBuilder } from './ExpressionBuilder'
  * Generator.Date.Now().match(Condition.Date.IsFutureDate())
  *
  * @template A - The argument types for the generator function
+ *
+ * @internal Exposed to authors via the ChainableGenerator interface.
  */
-export class GeneratorBuilder<A extends ResolvableValue[]> implements ResolvableExpression {
+export class GeneratorBuilder<A extends ResolvableValue[]> implements ChainableGenerator {
   // The marker must exist on the class type so builders pass the weak-type
   // check on Resolvable<T> argument slots; it is type-only and never set.
   declare readonly __resolves?: any
@@ -116,7 +118,7 @@ export class GeneratorBuilder<A extends ResolvableValue[]> implements Resolvable
    * @example
    * Generator.Date.Now().not.match(Condition.Date.IsPast())
    */
-  get not(): GeneratorBuilder<A> {
+  get not(): ChainableNegation {
     return new GeneratorBuilder(this.expression, !this.negated)
   }
 }

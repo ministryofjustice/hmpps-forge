@@ -6,6 +6,7 @@ export const FORMAT_STRING_GENERATOR_NAME = 'FormatString'
 const formatGenerators = new GeneratorRegistry()
 
 export const FormatGenerators = {
+  /** Generates a string from a template with %1-style positional placeholders */
   FormatString: formatGenerators.register(FORMAT_STRING_GENERATOR_NAME, {
     argumentsSchema: z.tuple([z.string()], z.unknown()),
     factory:

@@ -56,7 +56,7 @@ export interface GovUKSelectInput extends FieldBlockDefinition {
    *
    * @example [{ value: '', text: 'Choose an option' }, { value: 'uk', text: 'United Kingdom' }]
    */
-  items: SelectItem[] | ResolvableArray<SelectItem>
+  items: ResolvableArray<SelectItem>
 
   /**
    * The label used by the select component.

@@ -1,5 +1,5 @@
 import { FunctionEvaluator } from '../../types/functions.type'
-import { GeneratorBuilder } from '../../builders/GeneratorBuilder'
+import type { ChainableGenerator } from '../../builders/types'
 import type { EffectFunctionContext } from '../../../engine/runtime/evaluation/context/EffectFunctionContext'
 import {
   ConditionFunctionExpr,
@@ -152,5 +152,5 @@ export type EffectFunctions<TShapes extends FunctionShapeMap> = {
 
 /** @deprecated Use GeneratorRegistry instead. */
 export type GeneratorFunctions<TShapes extends FunctionShapeMap> = {
-  [K in keyof TShapes]: (...args: GeneratorArguments<TShapes[K]>) => GeneratorBuilder<GeneratorArguments<TShapes[K]>>
+  [K in keyof TShapes]: (...args: GeneratorArguments<TShapes[K]>) => ChainableGenerator
 }

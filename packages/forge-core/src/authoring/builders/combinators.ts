@@ -1,5 +1,4 @@
 import {
-  ConditionFunctionExpr,
   ConditionBranchExpr,
   ConditionAndExpr,
   ConditionOrExpr,
@@ -10,64 +9,8 @@ import {
   PredicateOrExpr,
   PredicateXorExpr,
   PredicateNotExpr,
-  PredicateTestExpr,
-  ResolvableValue,
 } from '../types/expressions.type'
 import { ConditionCombinatorType, FunctionType, PredicateType } from '../types/enums'
-
-/**
- * Fluent builder for creating predicate test expressions.
- * Allows chaining of negation and condition matching against a subject value.
- */
-export class PredicateTestExprBuilder {
-  private readonly subject: ResolvableValue
-
-  private negateNext = false
-
-  constructor(subject: ResolvableValue) {
-    this.subject = subject
-  }
-
-  /**
-   * Negates the next condition test.
-   * Can be chained: `value(ref).not.match(condition)`
-   */
-  get not(): this {
-    this.negateNext = !this.negateNext
-    return this
-  }
-
-  private buildTest(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
-    const test: PredicateTestExpr = {
-      type: PredicateType.TEST,
-      subject: this.subject,
-      negate: this.negateNext,
-      condition,
-    }
-    this.negateNext = false
-    return test
-  }
-
-  /**
-   * Creates a test predicate that checks if the subject matches the given condition.
-   * @param condition - The condition function to test against
-   * @returns A predicate test expression
-   */
-  match(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
-    return this.buildTest(condition)
-  }
-}
-
-/**
- * Converts a predicate input to a resolved predicate expression.
- * Ensures PredicateBuilder instances have called .match() before use.
- */
-function resolvePredicate(p: PredicateExpr | PredicateTestExprBuilder | PredicateTestExpr): PredicateExpr {
-  if (p instanceof PredicateTestExprBuilder) {
-    throw new Error('PredicateBuilder must call .match() before use')
-  }
-  return p
-}
 
 /** A single operand of a combinator: a bare condition branch, or a predicate. */
 type CombinatorOperand = ConditionBranchExpr | PredicateExpr
@@ -110,7 +53,7 @@ function classifyOperands(fnName: string, args: CombinatorArgs): ClassifiedOpera
   const predicates = operands.filter((operand): operand is PredicateExpr => !isConditionBranch(operand))
 
   if (conditions.length === 0) {
-    return { kind: OperandKind.PREDICATE, operands: predicates.map(resolvePredicate) }
+    return { kind: OperandKind.PREDICATE, operands: predicates }
   }
 
   if (predicates.length > 0) {
@@ -226,6 +169,6 @@ export function not(operand: CombinatorOperand): PredicateNotExpr | ConditionNot
 
   return {
     type: PredicateType.NOT,
-    operand: resolvePredicate(operand),
+    operand,
   }
 }

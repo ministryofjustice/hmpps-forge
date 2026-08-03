@@ -1,11 +1,11 @@
 import { BaseFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
 import { GeneratorBuilder } from '../authoring/builders/GeneratorBuilder'
+import type { ChainableGenerator } from '../authoring/builders/types'
 import { FunctionType } from '../authoring/types/enums'
 import type {
   ConditionFunctionExpr,
   EffectFunctionExpr,
   GeneratorFunctionExpr,
-  ResolvableValue,
   TransformerFunctionExpr,
 } from '../authoring/types/expressions.type'
 import type { FunctionRegistryEntry } from '../authoring/types/functions.type'
@@ -65,7 +65,7 @@ export class FunctionRegistryTestHarness<TDeps = Record<string, never>> {
     })
   }
 
-  evaluate(expr: GeneratorFunctionExpr | GeneratorBuilder<ResolvableValue[]>): unknown
+  evaluate(expr: GeneratorFunctionExpr | ChainableGenerator): unknown
 
   evaluate(expr: ConditionFunctionExpr): { withInput(value: unknown): unknown }
 
@@ -76,12 +76,13 @@ export class FunctionRegistryTestHarness<TDeps = Record<string, never>> {
   evaluate(
     expr:
       | GeneratorFunctionExpr
-      | GeneratorBuilder<ResolvableValue[]>
+      | ChainableGenerator
       | ConditionFunctionExpr
       | TransformerFunctionExpr
       | EffectFunctionExpr,
   ): unknown {
-    const functionExpr = expr instanceof GeneratorBuilder ? expr.build() : expr
+    const functionExpr =
+      expr instanceof GeneratorBuilder ? expr.build() : (expr as Exclude<typeof expr, ChainableGenerator>)
     const entry = this.lookup(functionExpr.name)
 
     if (functionExpr.type === FunctionType.EFFECT) {
