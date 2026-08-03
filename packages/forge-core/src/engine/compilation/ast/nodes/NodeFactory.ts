@@ -1,57 +1,146 @@
-import { isJourneyDefinition, isStepDefinition, isBlockDefinition } from '../../../../authoring/typeguards/structures'
-import {
-  isExpression,
-  isConditionalExpr,
-  isMatchExpr,
-  isReferenceExpr,
-  isPipelineExpr,
-  isIterateExpr,
-  isTieBreaker,
-  isValidationExpr,
-  isRedirectOutcome,
-  isThrowErrorOutcome,
-  isHookOutcome,
-} from '../../../../authoring/typeguards/expressions'
-import { isFunctionExpr } from '../../../../authoring/typeguards/functions'
-import {
-  isPredicateTestExpr,
-  isPredicateNotExpr,
-  isPredicateAndExpr,
-  isPredicateOrExpr,
-  isPredicateXorExpr,
-} from '../../../../authoring/typeguards/predicates'
-import { isAccessHook, isSubmitHook } from '../../../../authoring/typeguards/hooks'
 import UnknownNodeTypeError from '../../../errors/UnknownNodeTypeError'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
-import type { ASTNode } from '../../../contracts/ast/engine.type'
+import type { ASTNode, AstNodeId } from '../../../contracts/ast/engine.type'
 import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
+import type { TemplateValue } from '../../../contracts/ast/template.type'
 import type { ASTNodeDiagnostics, DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
-import JourneyFactory from './structures/journey/JourneyFactory'
-import StepFactory from './structures/step/StepFactory'
-import BlockFactory from './structures/block/BlockFactory'
-import AccessFactory from './hooks/access/AccessFactory'
-import SubmitFactory from './hooks/submit/SubmitFactory'
-import ConditionalFactory from './expressions/conditional/ConditionalFactory'
-import MatchFactory from './expressions/match/MatchFactory'
-import TestFactory from './predicates/test/TestFactory'
-import NotFactory from './predicates/not/NotFactory'
-import AndFactory from './predicates/and/AndFactory'
-import OrFactory from './predicates/or/OrFactory'
-import XorFactory from './predicates/xor/XorFactory'
-import ReferenceFactory from './expressions/reference/ReferenceFactory'
-import PipelineFactory from './expressions/pipeline/PipelineFactory'
-import IterateFactory from './expressions/iterate/IterateFactory'
-import ValidationFactory from './expressions/validation/ValidationFactory'
-import TieBreakerFactory from './expressions/tie-breaker/TieBreakerFactory'
-import FunctionFactory from './expressions/function/FunctionFactory'
-import RedirectOutcomeFactory from './outcomes/redirect/RedirectOutcomeFactory'
-import ThrowErrorOutcomeFactory from './outcomes/throw-error/ThrowErrorOutcomeFactory'
+import { compileTemplate } from './template'
+import {
+  ConditionCombinatorType,
+  ExpressionType,
+  FunctionType,
+  HookType,
+  IteratorType,
+  OutcomeType,
+  PredicateType,
+  StructureType,
+} from '../../../../authoring/types/enums'
+import { createBlockNode, createJourneyNode, createStepNode } from './structures'
+import {
+  createConditionalNode,
+  createFunctionNode,
+  createIterateNode,
+  createMatchNode,
+  createPipelineNode,
+  createReferenceNode,
+  createTieBreakerNode,
+  createValidationNode,
+} from './expressions'
+import { createNotPredicateNode, createTestPredicateNode, naryPredicateCreator } from './predicates'
+import { createAccessHookNode, createSubmitHookNode } from './hooks'
+import { createRedirectOutcomeNode, createThrowErrorOutcomeNode } from './outcomes'
+
+/**
+ * The services a node creator borrows from the walker: ID allocation,
+ * recursion back into node creation, value transformation, iterator template
+ * compilation, and source diagnostics lookup.
+ *
+ * Passed at call time rather than construction time, so creators are plain
+ * functions and there is no circular wiring between the walker and the
+ * creators it dispatches to.
+ */
+export interface NodeBuildContext {
+  nextId(): AstNodeId
+  createNode(json: unknown): ASTNode
+  transformValue<T = unknown>(value: unknown): T
+  compileTemplate(value: unknown): TemplateValue
+  diagnosticsFor(json: unknown): ASTNodeDiagnostics | undefined
+}
+
+/**
+ * A node creator turns one authored definition into its AST node. Creators
+ * are selected from the `creatorsByType` table below by the `type`
+ * discriminant, so a creator can assume the input already carries its type.
+ */
+
+export type NodeCreator<TIn = any> = (json: TIn, ctx: NodeBuildContext) => ASTNode
+
+/**
+ * Some authored objects carry a `type` discriminant but are not standalone AST
+ * nodes - they're consumed inline by the creator of their parent node. A stray
+ * one anywhere else is an authoring mistake, so its creator always throws,
+ * saying where the object actually belongs.
+ */
+const notConstructible =
+  (reason: string): NodeCreator =>
+  (json: unknown) => {
+    throw new InvalidNodeError({
+      message: reason,
+      node: json,
+      actual: (json as { type?: string }).type,
+    })
+  }
+
+const COMBINATOR_PLACEMENT = 'Condition combinators can only appear inside a match expression branch condition'
+const ITERATOR_PLACEMENT = 'Iterator configurations can only appear inside the iterator of an Iterate expression'
+
+/**
+ * The complete registry of every `type` discriminant the DSL can emit - one
+ * row per enum value. Discriminant values are namespaced strings
+ * ('StructureType.Journey', 'PredicateType.And', ...), so they are globally
+ * unique and one flat map covers every node family.
+ *
+ * This map is the single source for dispatch (`createNode`), node detection
+ * (`isNode`), and the valid-types list in `UnknownNodeTypeError`. Adding a
+ * node type means adding a creator and a row here; the completeness test in
+ * `NodeFactory.test.ts` fails if an enum value has no row.
+ *
+ * `ExpressionType.NEXT` is deliberately absent: nothing in the authoring
+ * surface produces it and no factory ever created it (its `NextASTNode`
+ * contract is equally unreferenced).
+ */
+export const creatorsByType: ReadonlyMap<string, NodeCreator> = new Map<string, NodeCreator>([
+  // Structures
+  [StructureType.JOURNEY, createJourneyNode],
+  [StructureType.STEP, createStepNode],
+  [StructureType.BLOCK, createBlockNode],
+
+  // Expressions
+  [ExpressionType.REFERENCE, createReferenceNode],
+  [ExpressionType.PIPELINE, createPipelineNode],
+  [ExpressionType.CONDITIONAL, createConditionalNode],
+  [ExpressionType.MATCH, createMatchNode],
+  [ExpressionType.ITERATE, createIterateNode],
+  [ExpressionType.VALIDATION, createValidationNode],
+  [ExpressionType.TIE_BREAKER, createTieBreakerNode],
+
+  // Predicates
+  [PredicateType.TEST, createTestPredicateNode],
+  [PredicateType.NOT, createNotPredicateNode],
+  [PredicateType.AND, naryPredicateCreator(PredicateType.AND)],
+  [PredicateType.OR, naryPredicateCreator(PredicateType.OR)],
+  [PredicateType.XOR, naryPredicateCreator(PredicateType.XOR)],
+
+  // Registered function calls
+  [FunctionType.CONDITION, createFunctionNode],
+  [FunctionType.TRANSFORMER, createFunctionNode],
+  [FunctionType.GENERATOR, createFunctionNode],
+  [FunctionType.EFFECT, createFunctionNode],
+
+  // Hooks
+  [HookType.ACCESS, createAccessHookNode],
+  [HookType.SUBMIT, createSubmitHookNode],
+
+  // Hook outcomes
+  [OutcomeType.REDIRECT, createRedirectOutcomeNode],
+  [OutcomeType.THROW_ERROR, createThrowErrorOutcomeNode],
+
+  // Inline-only types - recognised, but never standalone AST nodes
+  [ConditionCombinatorType.AND, notConstructible(COMBINATOR_PLACEMENT)],
+  [ConditionCombinatorType.OR, notConstructible(COMBINATOR_PLACEMENT)],
+  [ConditionCombinatorType.XOR, notConstructible(COMBINATOR_PLACEMENT)],
+  [ConditionCombinatorType.NOT, notConstructible(COMBINATOR_PLACEMENT)],
+  [IteratorType.MAP, notConstructible(ITERATOR_PLACEMENT)],
+  [IteratorType.FILTER, notConstructible(ITERATOR_PLACEMENT)],
+  [IteratorType.FIND, notConstructible(ITERATOR_PLACEMENT)],
+])
 
 /**
  * NodeFactory: Main entry point for creating AST nodes
  *
- * This factory acts as a dispatcher, routing JSON definitions to specialized
- * per-node factories based on node type.
+ * A walker over authored definitions. Node creation dispatches through the
+ * `creatorsByType` table keyed on the `type` discriminant; the creators call
+ * back in through `NodeBuildContext` for IDs, recursion, and diagnostics.
  *
  * Source diagnostics are read off the non-enumerable `__source` (and
  * `__callsite`) stamps that finaliseBuilders attaches to every object node of
@@ -59,72 +148,22 @@ import ThrowErrorOutcomeFactory from './outcomes/throw-error/ThrowErrorOutcomeFa
  * downstream consumers fall back to 'unknown'.
  */
 export class NodeFactory {
-  private readonly journeyFactory: JourneyFactory
-
-  private readonly stepFactory: StepFactory
-
-  private readonly blockFactory: BlockFactory
-
-  private readonly accessFactory: AccessFactory
-
-  private readonly submitFactory: SubmitFactory
-
-  private readonly conditionalFactory: ConditionalFactory
-
-  private readonly matchFactory: MatchFactory
-
-  private readonly testFactory: TestFactory
-
-  private readonly notFactory: NotFactory
-
-  private readonly andFactory: AndFactory
-
-  private readonly orFactory: OrFactory
-
-  private readonly xorFactory: XorFactory
-
-  private readonly referenceFactory: ReferenceFactory
-
-  private readonly pipelineFactory: PipelineFactory
-
-  private readonly iterateFactory: IterateFactory
-
-  private readonly validationFactory: ValidationFactory
-
-  private readonly tieBreakerFactory: TieBreakerFactory
-
-  private readonly functionFactory: FunctionFactory
-
-  private readonly redirectOutcomeFactory: RedirectOutcomeFactory
-
-  private readonly throwErrorOutcomeFactory: ThrowErrorOutcomeFactory
+  /** The services creators borrow from the walker. Public so tests can call creators directly. */
+  readonly context: NodeBuildContext
 
   constructor(private readonly nodeIDGenerator: NodeIDGenerator) {
-    this.journeyFactory = new JourneyFactory(this.nodeIDGenerator, this)
-    this.stepFactory = new StepFactory(this.nodeIDGenerator, this)
-    this.blockFactory = new BlockFactory(this.nodeIDGenerator, this)
-    this.accessFactory = new AccessFactory(this.nodeIDGenerator, this)
-    this.submitFactory = new SubmitFactory(this.nodeIDGenerator, this)
-    this.conditionalFactory = new ConditionalFactory(this.nodeIDGenerator, this)
-    this.matchFactory = new MatchFactory(this.nodeIDGenerator, this)
-    this.testFactory = new TestFactory(this.nodeIDGenerator, this)
-    this.notFactory = new NotFactory(this.nodeIDGenerator, this)
-    this.andFactory = new AndFactory(this.nodeIDGenerator, this)
-    this.orFactory = new OrFactory(this.nodeIDGenerator, this)
-    this.xorFactory = new XorFactory(this.nodeIDGenerator, this)
-    this.referenceFactory = new ReferenceFactory(this.nodeIDGenerator, this)
-    this.pipelineFactory = new PipelineFactory(this.nodeIDGenerator, this)
-    this.iterateFactory = new IterateFactory(this.nodeIDGenerator, this)
-    this.validationFactory = new ValidationFactory(this.nodeIDGenerator, this)
-    this.tieBreakerFactory = new TieBreakerFactory(this.nodeIDGenerator, this)
-    this.functionFactory = new FunctionFactory(this.nodeIDGenerator, this)
-    this.redirectOutcomeFactory = new RedirectOutcomeFactory(this.nodeIDGenerator, this)
-    this.throwErrorOutcomeFactory = new ThrowErrorOutcomeFactory(this.nodeIDGenerator, this)
+    this.context = {
+      nextId: () => this.nodeIDGenerator.nextAstNodeId(),
+      createNode: json => this.createNode(json),
+      transformValue: <T>(value: unknown): T => this.transformValue(value),
+      compileTemplate: value => compileTemplate(value, this.nodeIDGenerator),
+      diagnosticsFor: json => this.diagnosticsFor(json),
+    }
   }
 
   /**
    * Main entry point for transformation
-   * Sets up error boundary and routes to appropriate factory
+   * Looks up the node's creator by its `type` discriminant and runs it
    */
   createNode(json: unknown): ASTNode {
     if (!json || typeof json !== 'object') {
@@ -136,96 +175,18 @@ export class NodeFactory {
       })
     }
 
-    // Structure nodes: Journey, Step, Block
-    if (isJourneyDefinition(json)) {
-      return this.withDiagnostics(this.journeyFactory.create(json), json)
+    const nodeType = this.getNodeType(json)
+    const create = nodeType === undefined ? undefined : creatorsByType.get(nodeType)
+
+    if (!create) {
+      throw new UnknownNodeTypeError({
+        nodeType,
+        node: json,
+        validTypes: [...creatorsByType.keys()],
+      })
     }
 
-    if (isStepDefinition(json)) {
-      return this.withDiagnostics(this.stepFactory.create(json), json)
-    }
-
-    if (isBlockDefinition(json)) {
-      return this.withDiagnostics(this.blockFactory.create(json), json)
-    }
-
-    // Logic nodes: Conditionals and Predicates
-    if (isConditionalExpr(json)) {
-      return this.withDiagnostics(this.conditionalFactory.create(json), json)
-    }
-
-    if (isMatchExpr(json)) {
-      return this.withDiagnostics(this.matchFactory.create(json), json)
-    }
-
-    if (isPredicateTestExpr(json)) {
-      return this.withDiagnostics(this.testFactory.create(json), json)
-    }
-
-    if (isPredicateNotExpr(json)) {
-      return this.withDiagnostics(this.notFactory.create(json), json)
-    }
-
-    if (isPredicateAndExpr(json)) {
-      return this.withDiagnostics(this.andFactory.create(json), json)
-    }
-
-    if (isPredicateOrExpr(json)) {
-      return this.withDiagnostics(this.orFactory.create(json), json)
-    }
-
-    if (isPredicateXorExpr(json)) {
-      return this.withDiagnostics(this.xorFactory.create(json), json)
-    }
-
-    // Expression nodes: References, Pipelines, Iterate, Validations, TieBreaker, Functions
-    if (isReferenceExpr(json)) {
-      return this.withDiagnostics(this.referenceFactory.create(json), json)
-    }
-
-    if (isPipelineExpr(json)) {
-      return this.withDiagnostics(this.pipelineFactory.create(json), json)
-    }
-
-    if (isIterateExpr(json)) {
-      return this.withDiagnostics(this.iterateFactory.create(json), json)
-    }
-
-    if (isValidationExpr(json)) {
-      return this.withDiagnostics(this.validationFactory.create(json), json)
-    }
-
-    if (isTieBreaker(json)) {
-      return this.withDiagnostics(this.tieBreakerFactory.create(json), json)
-    }
-
-    if (isFunctionExpr(json)) {
-      return this.withDiagnostics(this.functionFactory.create(json), json)
-    }
-
-    // Outcome nodes: Redirect, ThrowError
-    if (isRedirectOutcome(json)) {
-      return this.withDiagnostics(this.redirectOutcomeFactory.create(json), json)
-    }
-
-    if (isThrowErrorOutcome(json)) {
-      return this.withDiagnostics(this.throwErrorOutcomeFactory.create(json), json)
-    }
-
-    // Hook nodes: Access, Submit
-    if (isAccessHook(json)) {
-      return this.withDiagnostics(this.accessFactory.create(json), json)
-    }
-
-    if (isSubmitHook(json)) {
-      return this.withDiagnostics(this.submitFactory.create(json), json)
-    }
-
-    throw new UnknownNodeTypeError({
-      nodeType: this.getNodeType(json),
-      node: json,
-      validTypes: ['Journey', 'Step', 'Block', 'Expression', 'Logic', 'Outcome', 'Access', 'Submit'],
-    })
+    return this.withDiagnostics(create(json, this.context), json)
   }
 
   /**
@@ -310,31 +271,11 @@ export class NodeFactory {
 
   /**
    * Node detection: Identifies objects that are AST nodes
-   * Nodes have a 'type' field and match known patterns
+   * An object is a node when its `type` discriminant has a creator
    */
-  private isNode(value: unknown): boolean {
-    // Must be an object
-    if (!value || typeof value !== 'object') {
-      return false
-    }
+  private isNode(value: object): boolean {
+    const nodeType = this.getNodeType(value)
 
-    // Arrays are not nodes (but may contain nodes)
-    if (Array.isArray(value)) {
-      return false
-    }
-
-    // Nodes must have a string type field
-    if (!('type' in value) || typeof value.type !== 'string') {
-      return false
-    }
-
-    // Check against all known node types
-    return isJourneyDefinition(value) ||
-      isStepDefinition(value) ||
-      isBlockDefinition(value) ||
-      isExpression(value) ||
-      isHookOutcome(value) ||
-      isAccessHook(value) ||
-      isSubmitHook(value)
+    return nodeType !== undefined && creatorsByType.has(nodeType)
   }
 }

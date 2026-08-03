@@ -1,5 +1,5 @@
 import { component } from '../../components/component'
-import { isRenderedBlock } from '../../authoring/typeguards/structures'
+import { isRenderedBlock } from '../../components/typeguards'
 import type { BlockDefinition, ResolvableArray } from '../../components/types/structures.type'
 
 /**

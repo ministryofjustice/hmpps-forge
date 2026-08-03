@@ -1,4 +1,4 @@
-import { isFieldBlockDefinition } from '../typeguards/structures'
+import { isFieldBlockDefinition } from '../../components/typeguards'
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { ScopedReferenceBuilder } from './ScopedReferenceBuilder'
 import { LoopReferenceBuilder } from './LoopReferenceBuilder'

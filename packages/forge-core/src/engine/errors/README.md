@@ -12,7 +12,7 @@ evaluation failures without parsing message strings.
 | [`ForgeCompilationError`](./ForgeCompilationError.ts) | Generated source can't be compiled into a function during codegen (`new Function`) |
 | [`ForgeRuntimeEvaluationError`](./ForgeRuntimeEvaluationError.ts) | A compiled function throws at request time and carries diagnostic context such as node id and DSL path |
 | [`InvalidNodeError`](./InvalidNodeError.ts) | An AST node has an unexpected shape or missing properties |
-| [`UnknownNodeTypeError`](./UnknownNodeTypeError.ts) | `NodeFactory` encounters a type it has no factory for |
+| [`UnknownNodeTypeError`](./UnknownNodeTypeError.ts) | `NodeFactory` encounters a type the creator table has no row for |
 | [`DuplicateRouteError`](./DuplicateRouteError.ts) | Two steps or journeys declare the same route path |
 | [`RegistryDuplicateError`](./RegistryDuplicateError.ts) | A function or component is registered with a name that already exists |
 | [`RegistryValidationError`](./RegistryValidationError.ts) | A registry entry is malformed (e.g. missing `evaluate` or `variant`) |

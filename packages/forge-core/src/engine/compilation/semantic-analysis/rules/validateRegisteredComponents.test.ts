@@ -5,7 +5,7 @@ import type { TemplateValue } from '../../../contracts/ast/template.type'
 import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
 import { NodeIDGenerator } from '../../ast/ast-state/NodeIDGenerator'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
-import TemplateFactory from '../../ast/nodes/template/TemplateFactory'
+import { compileTemplate } from '../../ast/nodes/template'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import UnregisteredComponentError from '../../../errors/UnregisteredComponentError'
@@ -33,7 +33,7 @@ function buildContext(nodes: ASTNode[], registeredVariants: string[]): ASTValida
 function compileBlockTemplate(variant: string): TemplateValue {
   const block = ASTTestFactory.block(variant, BlockType.FIELD).withCode('field').build()
 
-  return new TemplateFactory(new NodeIDGenerator()).compile(block)
+  return compileTemplate(block, new NodeIDGenerator())
 }
 
 function iterateNodeWithYield(yieldTemplate: TemplateValue): IterateASTNode {
@@ -102,8 +102,9 @@ describe('validateRegisteredComponents', () => {
 
   it('should return no errors when an iterator template contains no blocks', () => {
     // Arrange
-    const templateWithoutBlocks = new TemplateFactory(new NodeIDGenerator()).compile(
+    const templateWithoutBlocks = compileTemplate(
       ASTTestFactory.reference(['@scope', '0', 'name']),
+      new NodeIDGenerator(),
     )
     const iterateNode = iterateNodeWithYield(templateWithoutBlocks)
     const context = buildContext([iterateNode], [])

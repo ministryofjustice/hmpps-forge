@@ -1,5 +1,5 @@
 import { component } from '../../components/component'
-import { isRenderedBlock } from '../../authoring/typeguards/structures'
+import { isRenderedBlock } from '../../components/typeguards'
 import { escapeHtmlEntities } from '../../shared/utils/sanitize'
 import type { BlockDefinition, ResolvableString } from '../../components/types/structures.type'
 

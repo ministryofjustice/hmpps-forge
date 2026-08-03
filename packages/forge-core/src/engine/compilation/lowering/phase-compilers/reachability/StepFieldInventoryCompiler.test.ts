@@ -4,7 +4,7 @@ import { BlockType, ExpressionType, FunctionType, IteratorType } from '../../../
 import { FieldBlockASTNode } from '../../../../contracts/ast/structures.type'
 import { FunctionASTNode, IterateASTNode, ReferenceASTNode } from '../../../../contracts/ast/expressions.type'
 import { TemplateValue } from '../../../../contracts/ast/template.type'
-import TemplateFactory from '../../../ast/nodes/template/TemplateFactory'
+import { compileTemplate } from '../../../ast/nodes/template'
 import { NodeIDGenerator } from '../../../ast/ast-state/NodeIDGenerator'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../../registries/ComponentRegistry'
@@ -37,7 +37,7 @@ function createGeneratorFunction(name: string, args: unknown[] = []): FunctionAS
 }
 
 function createTemplate(value: unknown): TemplateValue {
-  return new TemplateFactory(new NodeIDGenerator()).compile(value)
+  return compileTemplate(value, new NodeIDGenerator())
 }
 
 function createIterateNode(input: unknown, yieldTemplate: TemplateValue): IterateASTNode {
