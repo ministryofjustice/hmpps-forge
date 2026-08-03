@@ -168,7 +168,7 @@ describe('typed function wrappers', () => {
       PrefixedId: () => (prefix: string) => `${prefix}123`,
     })
     const registry = createFunctionsRegistry(implementations)
-    const expr = generators.PrefixedId('id-').build()
+    const expr = (generators.PrefixedId('id-') as GeneratorBuilder<[string]>).build()
 
     expect(expr).toEqual({
       type: FunctionType.GENERATOR,
@@ -324,7 +324,7 @@ describe('factory prepare hook', () => {
     })
 
     // Act
-    const expr = generators.PrefixedId('id-').build()
+    const expr = (generators.PrefixedId('id-') as GeneratorBuilder<[string]>).build()
     const registry = createFunctionsRegistry(implementations)
 
     // Assert

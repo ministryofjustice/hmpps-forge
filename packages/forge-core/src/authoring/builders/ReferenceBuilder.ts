@@ -12,13 +12,7 @@ import {
 import { ExpressionType, IteratorType, PredicateType } from '../types/enums'
 import { ExpressionBuilder } from './ExpressionBuilder'
 import { IterableBuilder } from './IterableBuilder'
-
-/**
- * Split a key string into path segments.
- * 'user.name' -> ['user', 'name']
- * 'simple' -> ['simple']
- */
-const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') : [key])
+import { splitKey } from './utils/splitKey'
 
 /**
  * Immutable builder for ReferenceExpr with path navigation support.
@@ -29,6 +23,8 @@ const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') 
  * @example
  * Data('user').path('address.city')  // path: ['data', 'user', 'address', 'city']
  * Answer('email').pipe(Transformer.String.Trim).match(Condition.IsRequired())
+ *
+ * @internal Exposed to authors via the ChainableRef interface.
  */
 export class ReferenceBuilder {
   private readonly reference: ReferenceExpr

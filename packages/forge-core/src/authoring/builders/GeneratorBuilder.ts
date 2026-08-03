@@ -8,6 +8,7 @@ import {
   ResolvableValue,
 } from '../types/expressions.type'
 import { ExpressionBuilder } from './ExpressionBuilder'
+import { ChainableGenerator, ChainableNegation } from './types'
 
 /**
  * Immutable builder for creating generator function expressions.
@@ -28,8 +29,10 @@ import { ExpressionBuilder } from './ExpressionBuilder'
  * Generator.Date.Now().match(Condition.Date.IsFutureDate())
  *
  * @template A - The argument types for the generator function
+ *
+ * @internal Exposed to authors via the ChainableGenerator interface.
  */
-export class GeneratorBuilder<A extends ResolvableValue[]> {
+export class GeneratorBuilder<A extends ResolvableValue[]> implements ChainableGenerator {
   private readonly expression: GeneratorFunctionExpr<A>
 
   private readonly negated: boolean
@@ -111,7 +114,7 @@ export class GeneratorBuilder<A extends ResolvableValue[]> {
    * @example
    * Generator.Date.Now().not.match(Condition.Date.IsPast())
    */
-  get not(): GeneratorBuilder<A> {
+  get not(): ChainableNegation {
     return new GeneratorBuilder(this.expression, !this.negated)
   }
 }

@@ -25,10 +25,6 @@ export type { FunctionImplementations, FunctionShapeMap } from './utils/deprecat
 export { EffectFunctionContext } from '../engine/runtime/evaluation/context/EffectFunctionContext'
 
 export { StructureType, BlockType, FunctionType, ExpressionType, ConditionCombinatorType } from './types/enums'
-export { ConditionalExprBuilder } from './builders/ConditionalExprBuilder'
-export { GeneratorBuilder } from './builders/GeneratorBuilder'
-export { MatchExprBuilder } from './builders/MatchExprBuilder'
-export { PredicateTestExprBuilder } from './builders/PredicateTestExprBuilder'
 
 export type { ForgePackage } from './types/package.type'
 export type { FunctionEvaluator, FunctionRegistryEntry, FunctionRegistryObject } from './types/functions.type'
@@ -46,23 +42,19 @@ export type {
 } from './types/structures.type'
 export type {
   AccessHook,
-  ConditionalExpr,
-  ConditionAndExpr,
-  ConditionBranchExpr,
-  ConditionCombinatorExpr,
-  ConditionFunctionExpr,
-  ConditionNotExpr,
-  ConditionOrExpr,
-  ConditionXorExpr,
-  EffectFunctionExpr,
-  FunctionExpr,
-  GeneratorFunctionExpr,
-  IterateExpr,
-  MatchExpr,
-  PipelineExpr,
-  PredicateExpr,
-  ReferenceExpr,
   SubmitHook,
-  TransformerFunctionExpr,
+  RedirectOutcome,
+  ThrowErrorOutcome,
+  PredicateExpr,
   ResolvableValue,
+  ReferenceExpr,
+  PipelineExpr,
+  ConditionalExpr,
+  MatchExpr,
+  IterateExpr,
+  FunctionExpr,
+  ConditionFunctionExpr,
+  TransformerFunctionExpr,
+  EffectFunctionExpr,
+  GeneratorFunctionExpr,
 } from './types/expressions.type'

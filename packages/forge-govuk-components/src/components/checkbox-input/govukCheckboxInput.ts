@@ -1,7 +1,7 @@
 import { z } from 'zod'
-import { ChainableExpr } from '@ministryofjustice/hmpps-forge/core/authoring'
 import {
   BlockDefinition,
+  ResolvableArray,
   ResolvableBoolean,
   ResolvableString,
   EvaluatedBlock,
@@ -180,9 +180,7 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition {
    * // Dynamic items using Iterator
    * Data('areas').each(Iterator.Map({ value: Item().path('value'), text: Item().path('text') }))
    */
-  items:
-    | (GovUKCheckboxInputItem | GovUKCheckboxInputDivider)[]
-    | ChainableExpr<(GovUKCheckboxInputItem | GovUKCheckboxInputDivider)[]>
+  items: ResolvableArray<GovUKCheckboxInputItem | GovUKCheckboxInputDivider>
 }
 
 /**

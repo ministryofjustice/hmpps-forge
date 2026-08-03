@@ -1,155 +1,6 @@
-import { PredicateTestExprBuilder, and, or, xor, not } from './PredicateTestExprBuilder'
-import { ResolvableValue, ConditionFunctionExpr, PredicateTestExpr } from '../types/expressions.type'
+import { and, or, xor, not } from './combinators'
+import { ConditionFunctionExpr, PredicateTestExpr } from '../types/expressions.type'
 import { ConditionCombinatorType, FunctionType, PredicateType } from '../types/enums'
-
-describe('PredicateTestExprBuilder', () => {
-  // Helper function to create a mock condition
-  const mockCondition = (name: string): ConditionFunctionExpr<any> => ({
-    type: FunctionType.CONDITION,
-    name,
-    arguments: [],
-  })
-
-  // Helper function to create a mock value
-  const mockValue = (value: any): ResolvableValue => value
-
-  describe('constructor', () => {
-    test('should create a builder with the given subject', () => {
-      const subject = mockValue('test')
-      const builder = new PredicateTestExprBuilder(subject)
-
-      const result = builder.match(mockCondition('isRequired'))
-      expect(result.subject).toBe(subject)
-    })
-  })
-
-  describe('match', () => {
-    test('should create a basic test expression', () => {
-      const subject = mockValue('test')
-      const condition = mockCondition('isRequired')
-      const builder = new PredicateTestExprBuilder(subject)
-
-      const result = builder.match(condition)
-
-      expect(result).toEqual({
-        type: PredicateType.TEST,
-        subject,
-        negate: false,
-        condition,
-      })
-    })
-
-    test('should work with different subject types', () => {
-      const subjects = [
-        mockValue('string'),
-        mockValue(123),
-        mockValue(true),
-        mockValue(null),
-        mockValue(undefined),
-        mockValue(['array']),
-        mockValue({ object: true }),
-      ]
-
-      subjects.forEach(subject => {
-        const builder = new PredicateTestExprBuilder(subject)
-        const result = builder.match(mockCondition('test'))
-
-        expect(result.subject).toBe(subject)
-        expect(result.type).toBe(PredicateType.TEST)
-      })
-    })
-
-    test('should work with different condition types', () => {
-      const subject = mockValue('test')
-      const conditions = [
-        mockCondition('isRequired'),
-        mockCondition('equals'),
-        mockCondition('greaterThan'),
-        { type: FunctionType.CONDITION, name: 'complex', arguments: [1, 'two', true] } as ConditionFunctionExpr<any>,
-      ]
-
-      conditions.forEach(condition => {
-        const builder = new PredicateTestExprBuilder(subject)
-        const result = builder.match(condition)
-
-        expect(result.condition).toBe(condition)
-        expect(result.type).toBe(PredicateType.TEST)
-      })
-    })
-  })
-
-  describe('not', () => {
-    test('should negate the next condition', () => {
-      const subject = mockValue('test')
-      const condition = mockCondition('isRequired')
-      const builder = new PredicateTestExprBuilder(subject)
-
-      const result = builder.not.match(condition)
-
-      expect(result).toEqual({
-        type: PredicateType.TEST,
-        subject,
-        negate: true,
-        condition,
-      })
-    })
-
-    // Note: I'm not sure why anyone would do this anyway...
-    test('should handle double negation', () => {
-      const subject = mockValue('test')
-      const condition = mockCondition('isRequired')
-      const builder = new PredicateTestExprBuilder(subject)
-
-      const result = builder.not.not.match(condition)
-
-      expect(result).toEqual({
-        type: PredicateType.TEST,
-        subject,
-        negate: false,
-        condition,
-      })
-    })
-
-    test('should return the same builder instance for chaining', () => {
-      const subject = mockValue('test')
-      const builder = new PredicateTestExprBuilder(subject)
-
-      const notBuilder = builder.not
-
-      expect(notBuilder).toBe(builder)
-    })
-  })
-
-  describe('arguments handling', () => {
-    test('should handle empty condition arguments', () => {
-      const subject = mockValue('test')
-      const condition: ConditionFunctionExpr<any> = {
-        type: FunctionType.CONDITION,
-        name: 'isRequired',
-        arguments: [],
-      }
-
-      const builder = new PredicateTestExprBuilder(subject)
-      const result = builder.match(condition)
-
-      expect(result.condition).toEqual(condition)
-    })
-
-    test('should handle conditions with complex arguments', () => {
-      const subject = mockValue('test')
-      const condition: ConditionFunctionExpr<any> = {
-        type: FunctionType.CONDITION,
-        name: 'complex',
-        arguments: [123, 'string', true, null, undefined, [1, 2, 3], { nested: { deep: 'value' } }],
-      }
-
-      const builder = new PredicateTestExprBuilder(subject)
-      const result = builder.match(condition)
-
-      expect(result.condition).toEqual(condition)
-    })
-  })
-})
 
 describe('Logic predicates', () => {
   // Helper to create a test predicate
@@ -209,13 +60,6 @@ describe('Logic predicates', () => {
         type: PredicateType.AND,
         operands: [p1, nested],
       })
-    })
-
-    test('should throw error if PredicateTestExprBuilder is passed without calling match()', () => {
-      const p1 = testPredicate('test1')
-      const builder = new PredicateTestExprBuilder('value')
-
-      expect(() => and(p1, builder as any)).toThrow('PredicateBuilder must call .match() before use')
     })
 
     test('should create an AND condition combinator when given bare conditions', () => {
@@ -291,13 +135,6 @@ describe('Logic predicates', () => {
       })
     })
 
-    test('should throw error if PredicateTestExprBuilder is passed without calling match()', () => {
-      const p1 = testPredicate('test1')
-      const builder = new PredicateTestExprBuilder('value')
-
-      expect(() => or(p1, builder as any)).toThrow('PredicateBuilder must call .match() before use')
-    })
-
     test('should create an OR condition combinator when given bare conditions', () => {
       const c1 = testCondition('cond1')
       const c2 = testCondition('cond2')
@@ -371,13 +208,6 @@ describe('Logic predicates', () => {
       })
     })
 
-    test('should throw error if PredicateTestExprBuilder is passed without calling match()', () => {
-      const p1 = testPredicate('test1')
-      const builder = new PredicateTestExprBuilder('value')
-
-      expect(() => xor(p1, builder as any)).toThrow('PredicateBuilder must call .match() before use')
-    })
-
     test('should create an XOR condition combinator when given bare conditions', () => {
       const c1 = testCondition('cond1')
       const c2 = testCondition('cond2')
@@ -445,12 +275,6 @@ describe('Logic predicates', () => {
         type: PredicateType.NOT,
         operand: firstNot,
       })
-    })
-
-    test('should throw error if PredicateTestExprBuilder is passed without calling match()', () => {
-      const builder = new PredicateTestExprBuilder('value')
-
-      expect(() => not(builder as any)).toThrow('PredicateBuilder must call .match() before use')
     })
 
     test('should create a NOT condition combinator when given a bare condition', () => {

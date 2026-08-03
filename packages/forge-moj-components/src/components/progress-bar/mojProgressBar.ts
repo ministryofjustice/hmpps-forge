@@ -38,7 +38,7 @@ export interface MOJProgressBarItem {
    * @example 'Personal details'
    * @example { text: 'Personal details', classes: 'custom-label' }
    */
-  label: ResolvableString | MOJProgressBarItemLabel | ResolvableObject<MOJProgressBarItemLabel>
+  label: ResolvableString | ResolvableObject<MOJProgressBarItemLabel>
 
   /**
    * Whether this item represents the current/active step.

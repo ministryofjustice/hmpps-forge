@@ -1,6 +1,6 @@
 import { Answer, Data, Item } from './index'
 import { MatchExprBuilder, match } from './MatchExprBuilder'
-import { and, not, or } from './PredicateTestExprBuilder'
+import { and, not, or } from './combinators'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import { MatchExpr } from '../types/expressions.type'
 import { Condition } from '../conditions'
@@ -26,7 +26,7 @@ describe('MatchExprBuilder', () => {
   })
 
   describe('branch()', () => {
-    it('should return the builder for chaining', () => {
+    it('should return a new builder for chaining', () => {
       // Arrange
       const builder = match(Data('status'))
 
@@ -34,8 +34,21 @@ describe('MatchExprBuilder', () => {
       const result = builder.branch(Condition.Equals('ACTIVE'), 'Active')
 
       // Assert
-      expect(result).toBe(builder)
+      expect(result).not.toBe(builder)
       expect(result).toBeInstanceOf(MatchExprBuilder)
+    })
+
+    it('should leave the original builder unchanged when forked', () => {
+      // Arrange
+      const base = match(Data('status')).branch(Condition.Equals('A'), 'A')
+
+      // Act
+      const forked = finaliseBuilders(base.branch(Condition.Equals('B'), 'B')) as MatchExpr
+      const original = finaliseBuilders(base) as MatchExpr
+
+      // Assert
+      expect(forked.branches).toHaveLength(2)
+      expect(original.branches).toHaveLength(1)
     })
 
     it('should accept string values', () => {
@@ -68,12 +81,12 @@ describe('MatchExprBuilder', () => {
       const result = builder.branch(or(Condition.Equals('ACTIVE'), Condition.Equals('PENDING')), 'Open')
 
       // Assert
-      expect(result).toBe(builder)
+      expect(result).toBeInstanceOf(MatchExprBuilder)
     })
   })
 
   describe('otherwise()', () => {
-    it('should return the builder for chaining', () => {
+    it('should return a new builder for chaining', () => {
       // Arrange
       const builder = match(Data('status'))
 
@@ -81,7 +94,7 @@ describe('MatchExprBuilder', () => {
       const result = builder.otherwise('Unknown')
 
       // Assert
-      expect(result).toBe(builder)
+      expect(result).not.toBe(builder)
       expect(result).toBeInstanceOf(MatchExprBuilder)
     })
 

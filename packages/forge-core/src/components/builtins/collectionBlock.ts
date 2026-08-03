@@ -1,9 +1,8 @@
 import { component } from '../component'
-import { ChainableExpr } from '../../authoring/builders'
 import { StructureType } from '../../authoring/types/enums'
 import { isRenderedBlock } from '../../authoring/typeguards/structures'
 import { escapeHtmlEntities } from '../../shared/utils/sanitize'
-import type { BlockDefinition, ResolvableString, RenderedBlock } from '../types/structures.type'
+import type { BlockDefinition, ResolvableArray, ResolvableString, RenderedBlock } from '../types/structures.type'
 
 /**
  * Collection Block component.
@@ -31,10 +30,12 @@ import type { BlockDefinition, ResolvableString, RenderedBlock } from '../types/
  */
 export interface CollectionBlock<T = BlockDefinition, F = T> extends BlockDefinition {
   /**
-   * Expression that evaluates to an array of blocks to render.
+   * The blocks to render: an expression that evaluates to an array of blocks,
+   * or a static array of block definitions.
    * @example Data('items').each(Iterator.Map({ template: GovUKInsetText({ ... }) }))
+   * @example [GovUKInsetText({ html: 'First' }), GovUKInsetText({ html: 'Second' })]
    */
-  collection: ChainableExpr<T[]>
+  collection: ResolvableArray<T>
 
   /**
    * Fallback blocks to render when the collection is empty.

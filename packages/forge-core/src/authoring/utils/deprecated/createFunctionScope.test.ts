@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FunctionType } from '../../types/enums'
 import { createFunctionsRegistry } from './createFunctionsRegistry'
 import { createFunctionScope } from './createFunctionScope'
+import { GeneratorBuilder } from '../../builders/GeneratorBuilder'
 
 interface TestDeps {
   readonly prefix: string
@@ -63,7 +64,9 @@ describe('createFunctionScope()', () => {
         },
         'firstValue',
       )
-      const generatorExpression = scope.generator('FirstValue', deps => () => deps.values[0]).build()
+      const generatorExpression = (
+        scope.generator('FirstValue', deps => () => deps.values[0]) as GeneratorBuilder<[]>
+      ).build()
       const registry = createFunctionsRegistry(scope.implementations, {
         prefix: 'case-',
         values: ['alpha'],
