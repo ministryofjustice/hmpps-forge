@@ -3,7 +3,7 @@ import { MatchExprBuilder, match } from './MatchExprBuilder'
 import { and, not, or } from './combinators'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import { MatchExpr } from '../types/expressions.type'
-import { Condition } from '../conditions'
+import { Condition } from '../../built-ins/functions/conditions'
 import { ConditionCombinatorType, ExpressionType, FunctionType } from '../types/enums'
 
 describe('MatchExprBuilder', () => {

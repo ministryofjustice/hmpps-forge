@@ -5,6 +5,10 @@ import ComponentRegistry from './registries/ComponentRegistry'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import type { BlockDefinition } from '../components/types/structures.type'
 import { createFunctionsRegistry } from '../authoring/utils/deprecated/createFunctionsRegistry'
+import { ConditionsRegistry } from '../built-ins/functions/conditions'
+import { GeneratorsRegistry } from '../built-ins/functions/generators'
+import { TransformersRegistry } from '../built-ins/functions/transformers'
+import { coreComponents } from '../built-ins/components'
 import { isFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
 import { ForgeDeprecations } from '../shared/utils/ForgeDeprecations'
 import type { FunctionImplementations, FunctionShapeMap } from '../authoring/utils/deprecated/defineFunction.type'
@@ -135,11 +139,13 @@ export default class Forge {
     }
 
     if (!this.options.disableBuiltInFunctions) {
-      this.functionRegistry.registerBuiltInFunctions()
+      this.functionRegistry.register(ConditionsRegistry)
+      this.functionRegistry.register(TransformersRegistry)
+      this.functionRegistry.register(GeneratorsRegistry)
     }
 
     if (!this.options.disableBuiltInComponents) {
-      this.componentRegistry.registerBuiltInComponents()
+      this.componentRegistry.registerMany([...coreComponents])
     }
 
     this.dependencies = {

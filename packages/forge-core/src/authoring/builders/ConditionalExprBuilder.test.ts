@@ -2,7 +2,7 @@ import { Answer, Self } from './index'
 import { ConditionalExprBuilder, when } from './ConditionalExprBuilder'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import { ConditionalExpr, PredicateTestExpr } from '../types/expressions.type'
-import { Condition } from '../conditions'
+import { Condition } from '../../built-ins/functions/conditions'
 import { FunctionType, ExpressionType, PredicateType } from '../types/enums'
 
 describe('ConditionalExprBuilder', () => {

@@ -37,7 +37,7 @@ Important entry points:
 
 - [../authoring/types](../authoring/types) defines the authoring object shapes.
 - [../authoring/builders](../authoring/builders) defines expression and reference builders.
-- [../authoring/conditions](../authoring/conditions), [../authoring/generators](../authoring/generators), and [../authoring/transformers](../authoring/transformers) define built-in function sets.
+- [../authoring/built-ins/conditions](../authoring/built-ins/conditions), [../authoring/built-ins/generators](../authoring/built-ins/generators), and [../authoring/built-ins/transformers](../authoring/built-ins/transformers) define built-in function sets.
 - [../authoring/utils](../authoring/utils) contains helpers for defining functions and function scopes.
 
 ## Schema Validation

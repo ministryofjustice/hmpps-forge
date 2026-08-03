@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ASTTestFactory } from '../../../ast/testing-helpers/ASTTestFactory'
 import { FunctionType, HookType, PredicateType } from '../../../../../authoring/types/enums'
-import { formatGeneratorsRegistry } from '../../../../../authoring/generators/formatGenerators'
+import { formatGeneratorsRegistry } from '../../../../../built-ins/functions/generators/formatGenerators'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../../registries/ComponentRegistry'
 import { AccessHookASTNode, SubmitHookASTNode } from '../../../../contracts/ast/expressions.type'
