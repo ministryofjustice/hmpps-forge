@@ -32,7 +32,8 @@ const NARY_PREDICATE_NAMES = {
  * Defaults: negate = false
  */
 export function createTestPredicateNode(json: PredicateTestExpr, ctx: NodeBuildContext): TestPredicateASTNode {
-  if (!json.subject) {
+  // Only undefined means missing - 0, '' and false are legal literal subjects
+  if (json.subject === undefined) {
     throw new InvalidNodeError({
       message: 'Test predicate requires a subject',
       node: json,

@@ -336,7 +336,8 @@ const LOGICAL_PREDICATE_TYPES = {
  * the matching AND/OR/XOR/NOT predicate over its expanded operands.
  */
 export function createMatchNode(json: MatchExpr, ctx: NodeBuildContext): MatchASTNode {
-  if (!json.subject) {
+  // Only undefined means missing - 0, '' and false are legal literal subjects
+  if (json.subject === undefined) {
     throw new InvalidNodeError({
       message: 'Match expression requires a subject',
       node: json,

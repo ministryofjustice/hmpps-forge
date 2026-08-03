@@ -1593,6 +1593,34 @@ describe('expressions', () => {
       expect(() => createMatchNode(json, nodeFactory.context)).toThrow('Match expression requires a subject')
     })
 
+    it('should accept falsy literal subjects when they are 0, empty string or false', () => {
+      // Arrange
+      const falsySubjects = [0, '', false]
+
+      // Act
+      const results = falsySubjects.map(subject =>
+        createMatchNode(
+          {
+            type: ExpressionType.MATCH,
+            subject,
+            branches: [
+              {
+                condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A'] },
+                value: 'A',
+              },
+            ],
+          } as MatchExpr,
+          nodeFactory.context,
+        ),
+      )
+
+      // Assert
+      const branchSubjects = results.map(
+        result => (result.properties.branches[0].predicate as TestPredicateASTNode).properties.subject,
+      )
+      expect(branchSubjects).toEqual(falsySubjects)
+    })
+
     it('should throw InvalidNodeError when branches is empty', () => {
       // Arrange
       const json = {

@@ -139,6 +139,26 @@ describe('predicates', () => {
       expect(() => createTestPredicateNode(json, nodeFactory.context)).toThrow('Test predicate requires a subject')
     })
 
+    it('should accept falsy literal subjects when they are 0, empty string or false', () => {
+      // Arrange
+      const falsySubjects = [0, '', false]
+
+      // Act
+      const results = falsySubjects.map(subject =>
+        createTestPredicateNode(
+          {
+            type: PredicateType.TEST,
+            subject,
+            condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          } as PredicateTestExpr,
+          nodeFactory.context,
+        ),
+      )
+
+      // Assert
+      expect(results.map(result => result.properties.subject)).toEqual(falsySubjects)
+    })
+
     it('should throw InvalidNodeError when condition is missing', () => {
       // Arrange
       const json = {
