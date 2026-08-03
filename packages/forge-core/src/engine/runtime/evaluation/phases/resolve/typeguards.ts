@@ -1,4 +1,4 @@
-import type { RenderBlock } from '../../../../../framework/rendering/types'
+import type { RenderBlock } from '../../../../../framework/types/rendering.type'
 import { RENDER_BLOCK_BRAND } from '../../../../contracts/compiled/renderBlock.brand'
 
 export function isRenderBlock(obj: unknown): obj is RenderBlock {

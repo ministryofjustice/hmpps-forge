@@ -2,7 +2,7 @@ import type { ReachabilityEvaluation } from '../../../contracts/reachability/rea
 import type { StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
 import type { ValidationResult } from '../../../contracts/runtime/validationResult.type'
 import { resolvePathParams } from '../../../../shared/utils/routePath'
-import type { RenderContext } from '../../../../framework/rendering/types'
+import type { RenderContext } from '../../../../framework/types/rendering.type'
 import type { ViewConfig } from '../../../../authoring/types/structures.type'
 import { buildCompiledResolveContext } from '../context/compiledEvaluationContext'
 import { resolveBacklinkRouteTemplatePath } from '../phases/reachability/reachabilityRedirects'

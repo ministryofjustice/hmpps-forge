@@ -6,7 +6,8 @@ import type FunctionRegistry from '../../registries/FunctionRegistry'
 import type { RuntimeContext } from './evaluationState.type'
 import type { ResponseBindings } from '../../../framework/types/responseBindings.type'
 import type { ComponentRegistry } from '../../../framework/types/adapter.type'
-import type { RenderContext, RouteTree } from '../../../framework/rendering/types'
+import type { RenderContext } from '../../../framework/types/rendering.type'
+import type { RouteTree } from '../../../framework/types/routeTree.type'
 import type { StepValidationWorkTask } from './ValidationWork.type'
 
 export type StepValidationTaskResult = StepValidationWorkTask | undefined

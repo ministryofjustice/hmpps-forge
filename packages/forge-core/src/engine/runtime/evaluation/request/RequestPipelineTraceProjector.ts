@@ -20,7 +20,7 @@ import type { ForgeInstrumentation } from '../../../diagnostics/ForgeTraceSinkDi
 import type { RequestPipelineResult } from '../../../contracts/runtime/RequestExecutionContext.type'
 import type { MountedNode } from '../../../registries/MountRegistry'
 import type { NodeId } from '../../../contracts/ast/ast.type'
-import type { RouteTree, RouteTreeNode } from '../../../../framework/rendering/types'
+import type { RouteTree, RouteTreeNode } from '../../../../framework/types/routeTree.type'
 
 export default class RequestPipelineTraceProjector {
   private readonly serializer = new TraceSpanSerializer()

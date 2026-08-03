@@ -1,5 +1,5 @@
 import type { ComponentRegistry } from '../../../framework/types/adapter.type'
-import type { ForgeRenderer } from '../../../framework/rendering/types'
+import type { ForgeRenderer } from '../../../framework/types/rendering.type'
 import type { NodeId } from '../ast/ast.type'
 import type {
   CompiledAnswerPreparationFunction,

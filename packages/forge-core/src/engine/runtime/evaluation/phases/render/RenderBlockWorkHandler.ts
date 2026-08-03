@@ -2,7 +2,7 @@ import type { ComponentRegistryEntry } from '../../../../../components/types/com
 import type { BlockDefinition, EvaluatedBlock } from '../../../../../components/types/structures.type'
 import { StructureType } from '../../../../../authoring/types/enums'
 import { RENDER_BLOCK_BRAND } from '../../../../contracts/compiled/renderBlock.brand'
-import type { RenderBlock, ForgeRenderer } from '../../../../../framework/rendering/types'
+import type { RenderBlock, ForgeRenderer } from '../../../../../framework/types/rendering.type'
 import type { ComponentRegistry } from '../../../../../framework/types/adapter.type'
 import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
 import type {

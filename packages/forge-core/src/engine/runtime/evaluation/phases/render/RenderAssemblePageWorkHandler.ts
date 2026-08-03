@@ -1,4 +1,4 @@
-import type { RenderContext, ForgeRenderer } from '../../../../../framework/rendering/types'
+import type { RenderContext, ForgeRenderer } from '../../../../../framework/types/rendering.type'
 import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
 import type {
   WorkContextContract,

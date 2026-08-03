@@ -6,16 +6,8 @@ export type { RequestLocation } from './types/request.type'
 export type { CookieMutation, CookieOptions } from './types/response.type'
 export type { ResponseBindings } from './types/responseBindings.type'
 export { NO_OP_RESPONSE_BINDINGS } from './types/responseBindings.type'
-export type {
-  ForgeRenderer,
-  JourneyAncestor,
-  RenderBlock,
-  RenderContext,
-  RouteTree,
-  RouteTreeNode,
-  RouteTreeRoute,
-  RouteTreeRouteKind,
-} from './rendering/types'
+export type { ForgeRenderer, JourneyAncestor, RenderBlock, RenderContext } from './types/rendering.type'
+export type { RouteTree, RouteTreeNode, RouteTreeRoute, RouteTreeRouteKind } from './types/routeTree.type'
 export { isRenderBlock } from '../engine/runtime/evaluation/phases/resolve/typeguards'
 export { RENDER_BLOCK_BRAND } from '../engine/contracts/compiled/renderBlock.brand'
 export type { AstNodeId, NodeId } from '../engine/contracts/ast/ast.type'

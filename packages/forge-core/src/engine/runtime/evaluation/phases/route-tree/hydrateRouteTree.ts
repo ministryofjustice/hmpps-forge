@@ -1,5 +1,5 @@
 import { resolvePathParams } from '../../../../../shared/utils/routePath'
-import { RouteTree, RouteTreeNode, RouteTreeRoute } from '../../../../../framework/rendering/types'
+import { RouteTree, RouteTreeNode, RouteTreeRoute } from '../../../../../framework/types/routeTree.type'
 import type {
   ResolvedRouteMetadata,
   ResolvedRouteMetadataEntry,

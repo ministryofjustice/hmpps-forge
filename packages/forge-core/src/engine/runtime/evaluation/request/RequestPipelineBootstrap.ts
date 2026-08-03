@@ -1,4 +1,4 @@
-import type { ForgeRenderer } from '../../../../framework/rendering/types'
+import type { ForgeRenderer } from '../../../../framework/types/rendering.type'
 import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { StepValidityResult } from '../../../contracts/runtime/stepValidityResult.type'
 import type { HttpMethod } from '../../../../framework/types/request.type'

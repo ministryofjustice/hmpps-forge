@@ -1,4 +1,4 @@
-import type { RenderBlock, ForgeRenderer } from '../../../../../framework/rendering/types'
+import type { RenderBlock, ForgeRenderer } from '../../../../../framework/types/rendering.type'
 import type { ComponentRegistry } from '../../../../../framework/types/adapter.type'
 import type { ComponentRegistryEntry } from '../../../../../components/types/components.type'
 import type { BlockDefinition } from '../../../../../components/types/structures.type'

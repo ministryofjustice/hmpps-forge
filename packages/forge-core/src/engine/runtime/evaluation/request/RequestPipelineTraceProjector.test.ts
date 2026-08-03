@@ -1,5 +1,6 @@
 import type { RequestSnapshot } from '../../../../framework/types/snapshot.type'
-import type { RenderContext, RouteTree } from '../../../../framework/rendering/types'
+import type { RenderContext } from '../../../../framework/types/rendering.type'
+import type { RouteTree } from '../../../../framework/types/routeTree.type'
 import type { RequestTraceEvent } from '../../../contracts/runtime/trace.type'
 import type { ReachabilityEvaluation } from '../../../contracts/reachability/reachabilityEvaluation.type'
 import type { RuntimeContext } from '../../../contracts/runtime/evaluationState.type'
