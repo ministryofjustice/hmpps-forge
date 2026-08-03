@@ -78,14 +78,44 @@ _Definitions, expressions, hooks, navigation, reachability_
   entry. Whether all values are kept is now solely the component's decision - setting
   `multiple` on a field block is a type error, so just remove it. ([#206])
 
+- **The expression builder classes are no longer exported.** `ConditionalExprBuilder`,
+  `MatchExprBuilder`, `GeneratorBuilder` and `PredicateTestExprBuilder` are gone from the
+  authoring exports - the factories (`Conditional()`, `Match()`, ...) were always the
+  intended surface and the classes were just their implementation. `PredicateTestExprBuilder`
+  itself is deleted; it was dead code. The granular condition variant types
+  (`ConditionAndExpr`, `ConditionOrExpr`, `ConditionXorExpr`, `ConditionNotExpr`,
+  `ConditionBranchExpr`, `ConditionCombinatorExpr`) are also no longer exported - use
+  `ConditionalExpr`. ([#208])
+
 #### New
 
 - **List items can be blocks.** `GovUKList` items may now mix strings with child blocks -
   `items: ['Plain text', GovUKBody({ ... }), HtmlBlock({ ... })]` renders each block
   inside its own `<li>`. Previously items were strings only. ([#203])
 
+---
+
+### For engine / internal developers
+
+_Compilation, runtime, contracts, diagnostics, instrumentation_
+
+#### Changes
+
+- The authoring builders are reorganised into domain files (structures, values, references,
+  expressions) with a curated export list, the logical combinators moved out of the deleted
+  builder's file, and `Format` is now a registry-backed generator with the hand-rolled
+  `FormatString` implementation inlined away. ([#208])
+
+#### Fixes
+
+- **Sharing a partially built expression chain no longer cross-contaminates.**
+  `Conditional()` and `Match()` chains mutated the builder in place, so holding a partial
+  chain and extending it in two places polluted both results. Each chain step now returns
+  a fresh builder, so partial chains are safe to share and reuse. ([#208])
+
 [#203]: https://github.com/ministryofjustice/hmpps-forge/pull/203
 [#206]: https://github.com/ministryofjustice/hmpps-forge/pull/206
+[#208]: https://github.com/ministryofjustice/hmpps-forge/pull/208
 
 ---
 
