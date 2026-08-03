@@ -1,5 +1,3 @@
-import formatFields from '../../shared/utils/utils'
-
 interface DuplicateRouteErrorOptions {
   /** The duplicate route path */
   path: string
@@ -14,9 +12,5 @@ export default class DuplicateRouteError extends Error {
     super(options.message ?? `Duplicate route path: ${options.path}`)
     this.name = new.target.name
     this.path = options.path
-  }
-
-  toString() {
-    return `${this.name}: ${this.message} [${formatFields([{ label: 'Path', value: this.path }])}]`
   }
 }

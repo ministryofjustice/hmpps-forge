@@ -1,5 +1,3 @@
-import formatFields from '../../shared/utils/utils'
-
 interface InvalidNodeErrorOptions {
   /** Specific validation failure message */
   message: string
@@ -49,27 +47,5 @@ export default class InvalidNodeError extends Error {
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, new.target)
     }
-  }
-
-  toString() {
-    const fields = [
-      { label: 'Path', value: this.path?.length ? this.path.join('.') : 'root' },
-      { label: 'Code', value: this.code },
-      { label: 'Message', value: this.message },
-    ]
-
-    if (this.expected) {
-      fields.push({ label: 'Expected', value: this.expected })
-    }
-
-    if (this.actual) {
-      fields.push({ label: 'Actual', value: this.actual })
-    }
-
-    if (this.node?.type) {
-      fields.push({ label: 'Node Type', value: this.node.type })
-    }
-
-    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }

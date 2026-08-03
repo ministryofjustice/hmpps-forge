@@ -1,5 +1,3 @@
-import formatFields from '../../shared/utils/utils'
-
 interface ForgeConfigurationSchemaErrorOptions {
   /** Path to the invalid field */
   path: (string | number)[]
@@ -35,15 +33,5 @@ export default class ForgeConfigurationSchemaError extends Error {
     this.expected = options.expected
     this.formattedPath = options.formattedPath
     this.callsite = options.callsite
-  }
-
-  toString() {
-    const fields = [
-      { label: 'Path', value: this.formattedPath ?? (this.path.length > 0 ? this.path.join('.') : 'root') },
-      { label: 'Code', value: this.code },
-      { label: 'Expected', value: this.expected },
-    ]
-
-    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }

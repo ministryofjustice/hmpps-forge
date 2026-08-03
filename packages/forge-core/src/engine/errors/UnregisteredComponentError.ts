@@ -1,5 +1,3 @@
-import formatFields from '../../shared/utils/utils'
-
 interface UnregisteredComponentErrorOptions {
   /** Path to the block in the journey configuration */
   path: (string | number)[]
@@ -27,14 +25,5 @@ export default class UnregisteredComponentError extends Error {
     this.variant = options.variant
     this.formattedPath = options.formattedPath
     this.callsite = options.callsite
-  }
-
-  toString() {
-    const fields = [
-      { label: 'Path', value: this.formattedPath ?? (this.path.length > 0 ? this.path.join('.') : 'root') },
-      { label: 'Variant', value: this.variant },
-    ]
-
-    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }

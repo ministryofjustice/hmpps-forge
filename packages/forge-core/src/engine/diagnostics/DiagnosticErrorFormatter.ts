@@ -1,10 +1,5 @@
 import type { DSLPathSegment } from '../../shared/diagnostics/sourceLocation.type'
 
-export interface DiagnosticField {
-  readonly label: string
-  readonly value: string | undefined
-}
-
 export interface RuntimeDiagnosticFields {
   readonly phase: string
   readonly nodeId?: string
@@ -16,14 +11,6 @@ export interface RuntimeDiagnosticFields {
 }
 
 export default class DiagnosticErrorFormatter {
-  static formatDiagnosticError(name: string, message: string, fields: readonly DiagnosticField[]): string {
-    const formattedFields = fields
-      .filter(field => field.value !== undefined)
-      .map(field => `  ${field.label}: ${field.value}`)
-
-    return [`${name}: ${message}`, ...formattedFields].join('\n')
-  }
-
   static appendRuntimeDiagnostics(stack: string | undefined, diagnostics: RuntimeDiagnosticFields): string | undefined {
     if (stack === undefined) {
       return undefined
@@ -53,17 +40,5 @@ export default class DiagnosticErrorFormatter {
     }
 
     return path.length > 0 ? path.map(segment => String(segment)).join('.') : 'root'
-  }
-
-  static formatCause(cause: unknown): string | undefined {
-    if (cause === undefined || cause === null) {
-      return undefined
-    }
-
-    if (cause instanceof Error) {
-      return `${cause.name}: ${cause.message}`
-    }
-
-    return String(cause)
   }
 }

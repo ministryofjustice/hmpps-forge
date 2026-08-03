@@ -62,18 +62,6 @@ export default class ForgeRuntimeEvaluationError extends Error {
       definedAt: this.definedAt,
     })
   }
-
-  toString(): string {
-    return DiagnosticErrorFormatter.formatDiagnosticError(this.name, this.message, [
-      { label: 'Phase', value: this.phase },
-      { label: 'Path', value: this.formattedPath ?? DiagnosticErrorFormatter.formatPath(this.path) },
-      { label: 'Node', value: this.nodeId },
-      { label: 'Function', value: this.functionName },
-      { label: 'Type', value: this.functionType },
-      { label: 'Defined at', value: this.definedAt },
-      { label: 'Cause', value: DiagnosticErrorFormatter.formatCause(this.cause) },
-    ])
-  }
 }
 
 export const decorateForgeRuntimeEvaluationError = (

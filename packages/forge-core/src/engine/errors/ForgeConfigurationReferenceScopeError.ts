@@ -1,5 +1,3 @@
-import formatFields from '../../shared/utils/utils'
-
 interface ForgeConfigurationReferenceScopeErrorOptions {
   /** Path to the invalid reference expression */
   path: (string | number)[]
@@ -30,14 +28,5 @@ export default class ForgeConfigurationReferenceScopeError extends Error {
     this.path = options.path
     this.formattedPath = options.formattedPath
     this.callsite = options.callsite
-  }
-
-  toString() {
-    const fields = [
-      { label: 'Path', value: this.formattedPath },
-      { label: 'Code', value: this.code },
-    ]
-
-    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }

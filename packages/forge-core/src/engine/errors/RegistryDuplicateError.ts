@@ -1,5 +1,3 @@
-import formatFields from '../../shared/utils/utils'
-
 interface RegistryDuplicateErrorOptions {
   /** Type of registry (function or component) */
   registryType: 'function' | 'component'
@@ -19,14 +17,5 @@ export default class RegistryDuplicateError extends Error {
     this.name = new.target.name
     this.registryType = options.registryType
     this.itemName = options.itemName
-  }
-
-  toString() {
-    const fields = [
-      { label: 'Registry Type', value: this.registryType },
-      { label: 'Item Name', value: this.itemName },
-    ]
-
-    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }

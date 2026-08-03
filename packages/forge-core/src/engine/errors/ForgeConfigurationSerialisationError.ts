@@ -1,5 +1,3 @@
-import formatFields from '../../shared/utils/utils'
-
 interface ForgeConfigurationSerialisationErrorOptions {
   /** Path to the invalid field */
   path: (string | number)[]
@@ -39,14 +37,5 @@ export default class ForgeConfigurationSerialisationError extends Error {
     this.code = options.code
     this.callsite = options.callsite
     this.message = message
-  }
-
-  toString() {
-    const fields = [
-      { label: 'Path', value: this.formattedPath ?? (this.path.length > 0 ? this.path.join('.') : 'root') },
-      { label: 'Code', value: this.code },
-    ]
-
-    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }

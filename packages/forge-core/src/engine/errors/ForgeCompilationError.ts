@@ -1,4 +1,3 @@
-import DiagnosticErrorFormatter from '../diagnostics/DiagnosticErrorFormatter'
 import type { DSLPathSegment } from '../../shared/diagnostics/sourceLocation.type'
 
 interface ForgeCompilationErrorOptions {
@@ -36,16 +35,5 @@ export default class ForgeCompilationError extends Error {
     this.functionName = options.functionName
     this.functionType = options.functionType
     this.cause = options.cause
-  }
-
-  toString(): string {
-    return DiagnosticErrorFormatter.formatDiagnosticError(this.name, this.message, [
-      { label: 'Phase', value: this.phase },
-      { label: 'Path', value: this.formattedPath ?? DiagnosticErrorFormatter.formatPath(this.path) },
-      { label: 'Node', value: this.nodeId },
-      { label: 'Function', value: this.functionName },
-      { label: 'Type', value: this.functionType },
-      { label: 'Cause', value: DiagnosticErrorFormatter.formatCause(this.cause) },
-    ])
   }
 }

@@ -1,5 +1,3 @@
-import formatFields from '../../shared/utils/utils'
-
 interface RegistryValidationErrorOptions {
   /** Type of registry (function or component) */
   registryType: 'function' | 'component'
@@ -29,21 +27,5 @@ export default class RegistryValidationError extends Error {
     this.itemName = options.itemName
     this.expected = options.expected
     this.received = options.received
-  }
-
-  toString() {
-    const fields = [
-      { label: 'Registry Type', value: this.registryType },
-      { label: 'Item Name', value: this.itemName || 'Unknown' },
-      { label: 'Expected', value: this.expected },
-    ]
-
-    if (this.received) {
-      fields.push({ label: 'Received', value: this.received })
-    }
-
-    fields.push({ label: 'Message', value: this.message })
-
-    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }

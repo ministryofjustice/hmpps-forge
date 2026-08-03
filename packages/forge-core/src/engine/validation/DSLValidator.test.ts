@@ -802,8 +802,8 @@ describe('FormValidator', () => {
           )
 
           expect(schemaError).toBeInstanceOf(ForgeConfigurationSchemaError)
-          expect(schemaError?.toString()).toContain(
-            'Path=travel-declaration > personal-details > blocks[0] (GovUKInput - firstName) > validWhen[0] > message',
+          expect((schemaError as ForgeConfigurationSchemaError).formattedPath).toBe(
+            'travel-declaration > personal-details > blocks[0] (GovUKInput - firstName) > validWhen[0] > message',
           )
         }
       }

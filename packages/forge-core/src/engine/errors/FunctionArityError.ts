@@ -1,5 +1,3 @@
-import formatFields from '../../shared/utils/utils'
-
 interface FunctionArityErrorOptions {
   /** Path to the function reference in the journey configuration */
   path: (string | number)[]
@@ -44,17 +42,5 @@ export default class FunctionArityError extends Error {
     this.received = options.received
     this.formattedPath = options.formattedPath
     this.callsite = options.callsite
-  }
-
-  toString() {
-    const fields = [
-      { label: 'Path', value: this.formattedPath ?? (this.path.length > 0 ? this.path.join('.') : 'root') },
-      { label: 'Function', value: this.functionName },
-      { label: 'Type', value: this.functionType },
-      { label: 'Expected', value: this.expected },
-      { label: 'Received', value: this.received },
-    ]
-
-    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }

@@ -1,5 +1,3 @@
-import formatFields from '../../shared/utils/utils'
-
 interface UnregisteredFunctionErrorOptions {
   /** Path to the function reference in the journey configuration */
   path: (string | number)[]
@@ -32,15 +30,5 @@ export default class UnregisteredFunctionError extends Error {
     this.functionType = options.functionType
     this.formattedPath = options.formattedPath
     this.callsite = options.callsite
-  }
-
-  toString() {
-    const fields = [
-      { label: 'Path', value: this.formattedPath ?? (this.path.length > 0 ? this.path.join('.') : 'root') },
-      { label: 'Function', value: this.functionName },
-      { label: 'Type', value: this.functionType },
-    ]
-
-    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }

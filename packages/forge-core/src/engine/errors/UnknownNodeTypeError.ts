@@ -1,5 +1,3 @@
-import formatFields from '../../shared/utils/utils'
-
 interface UnknownNodeTypeErrorOptions {
   /** The unknown type encountered */
   nodeType?: string
@@ -51,26 +49,5 @@ export default class UnknownNodeTypeError extends Error {
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, new.target)
     }
-  }
-
-  toString() {
-    const fields = [
-      { label: 'Path', value: this.path?.length ? this.path.join('.') : 'root' },
-      { label: 'Type', value: this.nodeType || 'undefined' },
-      { label: 'Message', value: this.message },
-    ]
-
-    if (this.validTypes && this.validTypes.length > 0) {
-      fields.push({ label: 'Valid Types', value: this.validTypes.join(', ') })
-    }
-
-    if (this.node && typeof this.node === 'object') {
-      const keys = Object.keys(this.node).slice(0, 5)
-      if (keys.length > 0) {
-        fields.push({ label: 'Node Keys', value: keys.join(', ') + (Object.keys(this.node).length > 5 ? '...' : '') })
-      }
-    }
-
-    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }
