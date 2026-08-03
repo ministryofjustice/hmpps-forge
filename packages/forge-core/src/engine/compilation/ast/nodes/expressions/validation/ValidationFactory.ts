@@ -29,8 +29,8 @@ export default class ValidationFactory {
       groups?: string[]
       details?: Record<string, unknown>
     } = {
-      condition: this.nodeFactory.createChildNode(json.condition, 'condition'),
-      message: this.nodeFactory.transformChild(json.message || '', 'message'),
+      condition: this.nodeFactory.createNode(json.condition),
+      message: this.nodeFactory.transformValue(json.message || ''),
       submissionOnly: false,
       groups: json.groups ?? ['default'],
     }
@@ -40,7 +40,7 @@ export default class ValidationFactory {
     }
 
     if (json.details) {
-      properties.details = this.nodeFactory.transformChild(json.details, 'details')
+      properties.details = this.nodeFactory.transformValue(json.details)
     }
 
     return {

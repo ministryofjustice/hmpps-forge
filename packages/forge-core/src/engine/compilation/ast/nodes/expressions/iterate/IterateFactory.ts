@@ -12,7 +12,6 @@ import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import { TemplateValue } from '../../../../../contracts/ast/template.type'
 import TemplateFactory from '../../template/TemplateFactory'
-import type { DSLPathSegment } from '../../../../../diagnostics/sourceLocation.type'
 
 /**
  * IterateFactory: Creates Iterate expression AST nodes
@@ -44,7 +43,7 @@ export default class IterateFactory {
       }
     } = {
       // Transform the input data source (this IS an expression that needs evaluation)
-      input: this.nodeFactory.transformChild(json.input, 'input'),
+      input: this.nodeFactory.transformValue(json.input),
       iterator: {
         type: json.iterator.type,
       },
@@ -52,25 +51,17 @@ export default class IterateFactory {
 
     // For MAP: compile yield template once and instantiate per item at runtime
     if (isMapIteratorConfig(json.iterator)) {
-      properties.iterator.yieldTemplate = this.compileIteratorTemplate(json.iterator.yield, 'iterator', 'yield')
+      properties.iterator.yieldTemplate = this.compileIteratorTemplate(json.iterator.yield)
     }
 
     // For FILTER: compile predicate template once and instantiate per item at runtime
     if (isFilterIteratorConfig(json.iterator)) {
-      properties.iterator.predicateTemplate = this.compileIteratorTemplate(
-        json.iterator.predicate,
-        'iterator',
-        'predicate',
-      )
+      properties.iterator.predicateTemplate = this.compileIteratorTemplate(json.iterator.predicate)
     }
 
     // For FIND: compile predicate template once and instantiate per item at runtime
     if (isFindIteratorConfig(json.iterator)) {
-      properties.iterator.predicateTemplate = this.compileIteratorTemplate(
-        json.iterator.predicate,
-        'iterator',
-        'predicate',
-      )
+      properties.iterator.predicateTemplate = this.compileIteratorTemplate(json.iterator.predicate)
     }
 
     return {
@@ -81,8 +72,8 @@ export default class IterateFactory {
     }
   }
 
-  private compileIteratorTemplate(template: unknown, ...segments: DSLPathSegment[]): TemplateValue {
-    const transformedTemplate = this.nodeFactory.transformChild(template, ...segments)
+  private compileIteratorTemplate(template: unknown): TemplateValue {
+    const transformedTemplate = this.nodeFactory.transformValue(template)
 
     return this.templateFactory.compile(transformedTemplate)
   }

@@ -33,6 +33,8 @@ import { ChainableGenerator, ChainableNegation } from './types'
  * @internal Exposed to authors via the ChainableGenerator interface.
  */
 export class GeneratorBuilder<A extends ResolvableValue[]> implements ChainableGenerator {
+  readonly nodeKind = 'forge-builder' as const
+
   private readonly expression: GeneratorFunctionExpr<A>
 
   private readonly negated: boolean

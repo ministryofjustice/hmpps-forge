@@ -1,6 +1,6 @@
 import type { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
 import { isTemplateNode } from '../../../contracts/ast/nodes'
-import type { DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
+import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
 
 export interface TemplateVisitor {
   /** Return false to skip walking this node's children. */

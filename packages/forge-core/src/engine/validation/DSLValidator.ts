@@ -2,8 +2,8 @@ import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import ForgeConfigurationSerialisationError from '../errors/ForgeConfigurationSerialisationError'
 import ForgeConfigurationSchemaError from '../errors/ForgeConfigurationSchemaError'
 import { JourneySchema } from './schemas/structures.schema'
-import DSLSourceLocator from '../diagnostics/DSLSourceLocator'
-import type { DSLPathSegment } from '../diagnostics/sourceLocation.type'
+import DSLSourceLocator from '../../shared/diagnostics/DSLSourceLocator'
+import type { DSLPathSegment } from '../../shared/diagnostics/sourceLocation.type'
 
 export class DSLValidator {
   static validateSchema(input: unknown): asserts input is JourneyDefinition {

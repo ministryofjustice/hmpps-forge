@@ -8,7 +8,7 @@ import {
   StructureType,
 } from '../../../../../../authoring/types/enums'
 import type { StepDefinition } from '../../../../../../authoring/types/structures.type'
-import type { BlockDefinition } from '../../../../../../components/types/structures.type'
+import type { BlockDefinition, ResolvableBoolean } from '../../../../../../components/types/structures.type'
 import type {
   AccessHook,
   SubmitHook,
@@ -247,7 +247,7 @@ describe('StepFactory', () => {
         title: 'test-step',
         blocks: [] as BlockDefinition[],
         reachability: {
-          entryWhen: { type: ExpressionType.REFERENCE, path: ['data', 'entryActive'] },
+          entryWhen: { type: ExpressionType.REFERENCE, path: ['data', 'entryActive'] } as unknown as ResolvableBoolean,
         },
       } satisfies StepDefinition
 
@@ -289,7 +289,10 @@ describe('StepFactory', () => {
         title: 'test-step',
         blocks: [] as BlockDefinition[],
         validateOnEntry: [
-          { groups: ['conditional'], when: { type: ExpressionType.REFERENCE, path: ['data', 'entryValidation'] } },
+          {
+            groups: ['conditional'],
+            when: { type: ExpressionType.REFERENCE, path: ['data', 'entryValidation'] } as unknown as ResolvableBoolean,
+          },
         ],
       } satisfies StepDefinition
 

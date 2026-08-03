@@ -3,7 +3,7 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { AstNodeId } from '../../../contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
-import type { DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
+import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 

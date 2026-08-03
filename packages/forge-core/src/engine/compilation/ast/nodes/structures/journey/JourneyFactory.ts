@@ -27,7 +27,7 @@ export default class JourneyFactory {
     const properties: JourneyASTNode['properties'] = {
       code: dataProperties.code,
       path: dataProperties.path,
-      title: this.nodeFactory.transformChild(dataProperties.title, 'title'),
+      title: this.nodeFactory.transformValue(dataProperties.title),
     }
 
     if (dataProperties.code === undefined) {
@@ -58,27 +58,27 @@ export default class JourneyFactory {
     }
 
     if (dataProperties.description !== undefined) {
-      properties.description = this.nodeFactory.transformChild(dataProperties.description, 'description')
+      properties.description = this.nodeFactory.transformValue(dataProperties.description)
     }
 
     if (dataProperties.onAccess !== undefined) {
-      properties.onAccess = this.nodeFactory.transformChild(dataProperties.onAccess, 'onAccess')
+      properties.onAccess = this.nodeFactory.transformValue(dataProperties.onAccess)
     }
 
     if (dataProperties.steps !== undefined) {
-      properties.steps = this.nodeFactory.transformChild(dataProperties.steps, 'steps')
+      properties.steps = this.nodeFactory.transformValue(dataProperties.steps)
     }
 
     if (dataProperties.children !== undefined) {
-      properties.children = this.nodeFactory.transformChild(dataProperties.children, 'children')
+      properties.children = this.nodeFactory.transformValue(dataProperties.children)
     }
 
     if (dataProperties.view !== undefined) {
-      properties.view = this.nodeFactory.transformChild(dataProperties.view, 'view')
+      properties.view = this.nodeFactory.transformValue(dataProperties.view)
     }
 
     if (dataProperties.metadata !== undefined) {
-      properties.metadata = this.nodeFactory.transformChild(dataProperties.metadata, 'metadata')
+      properties.metadata = this.nodeFactory.transformValue(dataProperties.metadata)
     }
 
     if (dataProperties.data !== undefined) {
@@ -94,7 +94,7 @@ export default class JourneyFactory {
       }
 
       if (isExpression(resumeWhen)) {
-        reachability.resumeWhen = this.nodeFactory.createChildNode(resumeWhen, 'reachability', 'resumeWhen')
+        reachability.resumeWhen = this.nodeFactory.createNode(resumeWhen)
       }
 
       if (unreachableRedirect !== undefined) {

@@ -1,6 +1,7 @@
 import { z, type ZodType } from 'zod'
 import { FunctionType } from '../types/enums'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
+import { captureCallsite, stampCallsite } from '../builders/utils/captureCallsite'
 import type { FunctionRegistryObject } from '../types/functions.type'
 
 export interface RegistrationOptions {
@@ -91,18 +92,26 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> {
     const type = this.functionType
 
     if (type === FunctionType.GENERATOR) {
-      return (...args: any[]) => {
+      const generatorHandle = (...args: any[]) => {
         const prepared = prepare ? prepare(...args) : args
+        const builder = GeneratorBuilder.create(name, prepared)
 
-        return GeneratorBuilder.create(name, prepared)
+        stampCallsite(builder, captureCallsite(generatorHandle))
+        return builder
       }
+
+      return generatorHandle
     }
 
-    return (...args: any[]) => {
+    const expressionHandle = (...args: any[]) => {
       const prepared = prepare ? prepare(...args) : args
+      const expr = { type, name, arguments: prepared }
 
-      return { type, name, arguments: prepared }
+      stampCallsite(expr, captureCallsite(expressionHandle))
+      return expr
     }
+
+    return expressionHandle
   }
 
   build(deps?: TDeps): FunctionRegistryObject {

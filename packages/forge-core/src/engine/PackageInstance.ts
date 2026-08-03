@@ -101,13 +101,11 @@ export default class PackageInstance {
     return this.compilation.journeyCode
   }
 
-  private static loadConfiguration(configuration: string | JourneyDefinition): JourneyDefinition {
-    const parsedConfiguration: unknown = typeof configuration === 'string' ? JSON.parse(configuration) : configuration
+  private static loadConfiguration(configuration: JourneyDefinition): JourneyDefinition {
+    DSLValidator.validateJSON(configuration)
+    DSLValidator.validateSchema(configuration)
 
-    DSLValidator.validateJSON(parsedConfiguration)
-    DSLValidator.validateSchema(parsedConfiguration)
-
-    return parsedConfiguration
+    return configuration
   }
 
   private static resolveFunctionRegistry(

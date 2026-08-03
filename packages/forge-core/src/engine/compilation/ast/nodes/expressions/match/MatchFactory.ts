@@ -18,6 +18,7 @@ import InvalidNodeError from '../../../../../errors/InvalidNodeError'
 import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import { MatchASTNode } from '../../../../../contracts/ast/expressions.type'
+import type { ASTNodeDiagnostics } from '../../../../../../shared/diagnostics/sourceLocation.type'
 import type {
   AndPredicateASTNode,
   NotPredicateASTNode,
@@ -27,10 +28,10 @@ import type {
   XorPredicateASTNode,
 } from '../../../../../contracts/ast/predicates.type'
 
-/** The shared match subject and branch position every synthesised predicate needs. */
+/** The shared match subject and root branch condition every synthesised predicate needs. */
 interface BranchConditionContext {
   subject: ResolvableValue
-  branchIndex: number
+  branchCondition: ConditionBranchExpr
 }
 
 /**
@@ -78,7 +79,7 @@ export default class MatchFactory {
 
     const compiledBranches = json.branches.map((branch, index) => ({
       predicate: this.createBranchPredicate(json, index),
-      value: this.nodeFactory.transformChild(branch.value, 'branches', index, 'value'),
+      value: this.nodeFactory.transformValue(branch.value),
     }))
 
     return {
@@ -88,14 +89,16 @@ export default class MatchFactory {
       properties: {
         branches: compiledBranches,
         ...(json.otherwise !== undefined && {
-          otherwise: this.nodeFactory.transformChild(json.otherwise, 'otherwise'),
+          otherwise: this.nodeFactory.transformValue(json.otherwise),
         }),
       },
     }
   }
 
   private createBranchPredicate(json: MatchExpr, branchIndex: number): PredicateASTNode {
-    return this.expandCondition(json.branches[branchIndex].condition, { subject: json.subject, branchIndex })
+    const branchCondition = json.branches[branchIndex].condition
+
+    return this.expandCondition(branchCondition, { subject: json.subject, branchCondition })
   }
 
   private expandCondition(condition: ConditionBranchExpr, context: BranchConditionContext): PredicateASTNode {
@@ -115,10 +118,10 @@ export default class MatchFactory {
       id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.PREDICATE,
       predicateType: PredicateType.TEST,
-      diagnostics: this.createBranchDiagnostics(context),
+      ...this.createBranchDiagnostics(context),
       properties: {
-        subject: this.nodeFactory.transformChild(context.subject, 'subject'),
-        condition: this.nodeFactory.createChildNode(condition, 'branches', context.branchIndex, 'condition'),
+        subject: this.nodeFactory.transformValue(context.subject),
+        condition: this.nodeFactory.createNode(condition),
         negate: false,
       },
     }
@@ -129,7 +132,7 @@ export default class MatchFactory {
       id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.PREDICATE,
       predicateType: PredicateType.NOT,
-      diagnostics: this.createBranchDiagnostics(context),
+      ...this.createBranchDiagnostics(context),
       properties: {
         operand: this.expandCondition(combinator.operand, context),
       },
@@ -144,14 +147,16 @@ export default class MatchFactory {
       id: this.nodeIDGenerator.nextAstNodeId(),
       type: ASTNodeType.PREDICATE,
       predicateType: MatchFactory.LOGICAL_PREDICATE_TYPES[combinator.type],
-      diagnostics: this.createBranchDiagnostics(context),
+      ...this.createBranchDiagnostics(context),
       properties: {
         operands: combinator.operands.map(operand => this.expandCondition(operand, context)),
       },
     }
   }
 
-  private createBranchDiagnostics(context: BranchConditionContext) {
-    return this.nodeFactory.createChildDiagnostics('branches', context.branchIndex, 'condition')
+  private createBranchDiagnostics(context: BranchConditionContext): { diagnostics: ASTNodeDiagnostics } | undefined {
+    const diagnostics = this.nodeFactory.diagnosticsFor(context.branchCondition)
+
+    return diagnostics && { diagnostics }
   }
 }

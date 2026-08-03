@@ -34,6 +34,8 @@ import { splitKey } from './utils/splitKey'
  * @internal Exposed to authors via the ChainableIterable interface.
  */
 export class IterableBuilder {
+  readonly nodeKind = 'forge-builder' as const
+
   private readonly expression: IterateExpr
 
   private readonly negated: boolean

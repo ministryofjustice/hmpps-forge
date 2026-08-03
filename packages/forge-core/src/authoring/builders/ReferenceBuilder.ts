@@ -27,6 +27,8 @@ import { splitKey } from './utils/splitKey'
  * @internal Exposed to authors via the ChainableRef interface.
  */
 export class ReferenceBuilder {
+  readonly nodeKind = 'forge-builder' as const
+
   private readonly reference: ReferenceExpr
 
   private readonly negated: boolean

@@ -26,7 +26,7 @@ export default class StepFactory {
 
     const properties: StepASTNode['properties'] = {
       path: json.path,
-      title: this.nodeFactory.transformChild(json.title, 'title'),
+      title: this.nodeFactory.transformValue(json.title),
     }
 
     if (dataProperties.path === undefined) {
@@ -48,7 +48,7 @@ export default class StepFactory {
     }
 
     if (dataProperties.onAccess !== undefined) {
-      properties.onAccess = this.nodeFactory.transformChild(dataProperties.onAccess, 'onAccess')
+      properties.onAccess = this.nodeFactory.transformValue(dataProperties.onAccess)
     }
 
     if (dataProperties.code !== undefined) {
@@ -56,35 +56,32 @@ export default class StepFactory {
     }
 
     if (dataProperties.onSubmission !== undefined) {
-      properties.onSubmission = this.nodeFactory.transformChild(dataProperties.onSubmission, 'onSubmission')
+      properties.onSubmission = this.nodeFactory.transformValue(dataProperties.onSubmission)
     }
 
     if (dataProperties.validateOnEntry !== undefined) {
-      // flatMap rather than filter + map so dropped `when: false` entries don't shift
-      // the diagnostics index of the entries that follow them.
-      properties.validateOnEntry = dataProperties.validateOnEntry.flatMap((entry, index) => {
+      properties.validateOnEntry = dataProperties.validateOnEntry.flatMap(entry => {
         if (entry.when === false) {
           return []
         }
 
         return {
           groups: entry.groups,
-          when:
-            entry.when === true ? true : this.nodeFactory.createChildNode(entry.when, 'validateOnEntry', index, 'when'),
+          when: entry.when === true ? true : this.nodeFactory.createNode(entry.when),
         }
       })
     }
 
     if (dataProperties.blocks !== undefined) {
-      properties.blocks = this.nodeFactory.transformChild(dataProperties.blocks, 'blocks')
+      properties.blocks = this.nodeFactory.transformValue(dataProperties.blocks)
     }
 
     if (dataProperties.description !== undefined) {
-      properties.description = this.nodeFactory.transformChild(dataProperties.description, 'description')
+      properties.description = this.nodeFactory.transformValue(dataProperties.description)
     }
 
     if (dataProperties.view !== undefined) {
-      properties.view = this.nodeFactory.transformChild(dataProperties.view, 'view')
+      properties.view = this.nodeFactory.transformValue(dataProperties.view)
     }
 
     if (dataProperties.reachability !== undefined) {
@@ -96,11 +93,11 @@ export default class StepFactory {
       }
 
       if (isExpression(entryWhen)) {
-        reachability.entryWhen = this.nodeFactory.createChildNode(entryWhen, 'reachability', 'entryWhen')
+        reachability.entryWhen = this.nodeFactory.createNode(entryWhen)
       }
 
       if (tieBreakers?.every(isTieBreaker)) {
-        reachability.tieBreakers = this.nodeFactory.transformChild(tieBreakers, 'reachability', 'tieBreakers')
+        reachability.tieBreakers = this.nodeFactory.transformValue(tieBreakers)
       }
 
       properties.reachability = reachability
@@ -111,7 +108,7 @@ export default class StepFactory {
     }
 
     if (dataProperties.metadata !== undefined) {
-      properties.metadata = this.nodeFactory.transformChild(dataProperties.metadata, 'metadata')
+      properties.metadata = this.nodeFactory.transformValue(dataProperties.metadata)
     }
 
     if (dataProperties.data !== undefined) {
@@ -119,7 +116,7 @@ export default class StepFactory {
     }
 
     if (dataProperties.validWhen !== undefined) {
-      properties.validWhen = this.nodeFactory.transformChild(dataProperties.validWhen, 'validWhen')
+      properties.validWhen = this.nodeFactory.transformValue(dataProperties.validWhen)
     }
 
     if (dataProperties.cleardownFieldCodes !== undefined) {

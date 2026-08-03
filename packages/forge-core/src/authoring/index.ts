@@ -26,7 +26,7 @@ export { EffectFunctionContext } from '../engine/runtime/evaluation/context/Effe
 
 export { StructureType, BlockType, FunctionType, ExpressionType, ConditionCombinatorType } from './types/enums'
 
-export type { ForgePackage } from './types/package.type'
+export type { ForgePackage, RegisteredForgePackage } from './types/package.type'
 export type { FunctionEvaluator, FunctionRegistryEntry, FunctionRegistryObject } from './types/functions.type'
 export type {
   JourneyDefinition,

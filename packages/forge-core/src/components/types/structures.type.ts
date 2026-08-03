@@ -1,13 +1,8 @@
 import {
   FunctionExpr,
   IterateExpr,
-  PipelineExpr,
   PredicateExpr,
-  ReferenceExpr,
   TransformerFunctionExpr,
-  GeneratorFunctionExpr,
-  ConditionalExpr,
-  MatchExpr,
 } from '../../authoring/types/expressions.type'
 import {
   ChainableConditional,
@@ -141,32 +136,28 @@ export interface FieldBlockProps extends BasicBlockProps {
  */
 export interface FieldBlockDefinition extends BlockDefinition, FieldBlockProps {}
 
-/** The finalised wire format an expression is unwrapped to. */
-type ValueExpr = ReferenceExpr | PipelineExpr | ConditionalExpr | MatchExpr | GeneratorFunctionExpr
-
-/** The fluent wrappers the authoring DSL returns before finalisation. */
+/**
+ * The fluent wrappers the authoring DSL returns.
+ * Authors only ever see this side; the finalisation walk unwraps these into the
+ * wire-format expressions (ReferenceExpr, PipelineExpr, ...) the engine consumes.
+ */
 type ChainableValue = ChainableRef | ChainableExpr | ChainableConditional | ChainableMatch | ChainableGenerator
 
-// TODO: To address during finalisation rework - once finalisation has a single
-// home, authors only ever see the ChainableValue side and the engine only the
-// ValueExpr side, so this union should split accordingly.
-type DynamicExpression = ValueExpr | ChainableValue
+export type ResolvableString = string | ChainableValue
 
-export type ResolvableString = string | DynamicExpression
+export type ResolvableBoolean = boolean | ChainableValue | PredicateExpr
 
-export type ResolvableBoolean = boolean | DynamicExpression | PredicateExpr
+export type ResolvableNumber = number | ChainableValue
 
-export type ResolvableNumber = number | DynamicExpression
+export type ResolvableArray<T> = T[] | ChainableValue | ChainableIterable
 
-export type ResolvableArray<T> = T[] | DynamicExpression | IterateExpr | ChainableIterable
-
-export type ResolvableObject<T extends object> = T | DynamicExpression
+export type ResolvableObject<T extends object> = T | ChainableValue
 
 export type RenderedBlock<TOutput = string> = {
   block: BlockDefinition
 } & ([TOutput] extends [string] ? { html: string } : { output: TOutput })
 
-type Resolved<T> = Exclude<T, DynamicExpression | IterateExpr | ChainableIterable | PredicateExpr>
+type Resolved<T> = Exclude<T, ChainableValue | ChainableIterable | IterateExpr | PredicateExpr>
 
 export type EvaluatedBlock<T, IsRoot extends boolean = true, TRenderedBlock = RenderedBlock> =
   Resolved<T> extends infer R

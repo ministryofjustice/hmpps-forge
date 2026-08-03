@@ -1,7 +1,7 @@
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { NodeId } from '../../../contracts/ast/engine.type'
 import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
-import type { DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
+import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 
 function buildError(source: DSLSourceLocation | undefined): ForgeConfigurationReferenceScopeError {

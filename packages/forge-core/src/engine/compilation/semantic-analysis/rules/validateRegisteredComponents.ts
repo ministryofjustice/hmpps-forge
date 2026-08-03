@@ -3,7 +3,7 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import type { BlockASTNode } from '../../../contracts/ast/structures.type'
 import UnregisteredComponentError from '../../../errors/UnregisteredComponentError'
-import type { DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
+import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 

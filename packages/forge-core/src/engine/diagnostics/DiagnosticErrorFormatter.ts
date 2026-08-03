@@ -1,4 +1,4 @@
-import type { DSLPathSegment } from './sourceLocation.type'
+import type { DSLPathSegment } from '../../shared/diagnostics/sourceLocation.type'
 
 export interface DiagnosticField {
   readonly label: string

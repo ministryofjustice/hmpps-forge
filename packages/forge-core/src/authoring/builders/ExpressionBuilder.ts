@@ -30,6 +30,8 @@ import { splitKey } from './utils/splitKey'
  * @internal Exposed to authors via the ChainableExpr interface.
  */
 export class ExpressionBuilder<T extends ResolvableValue> {
+  readonly nodeKind = 'forge-builder' as const
+
   private readonly expression: T
 
   private readonly negate: boolean

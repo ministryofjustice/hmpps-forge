@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ComponentRegistryEntry } from '../../src/components/types/components.type'
 import type { BlockDefinition, EvaluatedBlock } from '../../src/components'
 import type { ForgeRenderer, RenderContext } from '../../src/framework/rendering/types'
+import { createForgePackage } from '../../src/authoring'
 import { ForgeTestHarness, type RequestTraceEvent } from '../../src/testing'
 import type { SerializedTraceSpan } from '../../src/engine/diagnostics/tracing/traceSpan.type'
 import { createRenderClient, createTracedRenderClient } from './contractHelpers'
@@ -107,7 +108,7 @@ describe('rendering contracts', () => {
       // Arrange
       const client = new ForgeTestHarness()
         .registerGlobalComponents(renderingContractComponents)
-        .registerPackage({ journey: basicRenderJourney })
+        .registerPackage(createForgePackage({ journey: basicRenderJourney }))
         .createClient()
 
       // Act
@@ -274,10 +275,12 @@ describe('rendering contracts', () => {
       const { renderer } = createRecordingRenderer()
       const client = new ForgeTestHarness()
         .registerGlobalComponents([contractScopedGlobalComponent])
-        .registerPackage({
-          journey: scopedOverrideRenderJourney,
-          components: [contractScopedPackageComponent],
-        })
+        .registerPackage(
+          createForgePackage({
+            journey: scopedOverrideRenderJourney,
+            components: [contractScopedPackageComponent],
+          }),
+        )
         .createClient(renderer)
 
       // Act
