@@ -1,6 +1,6 @@
 import ForgeBaseError from './ForgeBaseError'
 
-interface FunctionArityErrorOptions {
+interface ForgeFunctionArityErrorOptions {
   /** Name of the function whose arity is wrong */
   functionName: string
   /** Type of the function (e.g. FunctionType.Condition) */
@@ -15,7 +15,7 @@ interface FunctionArityErrorOptions {
   callsite?: { readonly stack?: string }
 }
 
-export default class FunctionArityError extends ForgeBaseError {
+export default class ForgeFunctionArityError extends ForgeBaseError {
   readonly functionName: string
 
   readonly functionType: string
@@ -24,7 +24,7 @@ export default class FunctionArityError extends ForgeBaseError {
 
   readonly received: number
 
-  constructor(options: FunctionArityErrorOptions) {
+  constructor(options: ForgeFunctionArityErrorOptions) {
     super(
       `Function "${options.functionName}" expects ${options.expected} ${options.expected === '1' ? 'argument' : 'arguments'} but received ${options.received}`,
       options,

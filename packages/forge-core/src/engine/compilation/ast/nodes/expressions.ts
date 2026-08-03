@@ -45,7 +45,7 @@ import type {
   TestPredicateASTNode,
   XorPredicateASTNode,
 } from '../../../contracts/ast/predicates.type'
-import InvalidNodeError from '../../../errors/InvalidNodeError'
+import ForgeInvalidNodeError from '../../../errors/ForgeInvalidNodeError'
 import type { NodeBuildContext } from './NodeFactory'
 
 /**
@@ -118,7 +118,7 @@ function buildReferencePath(
   allowEmpty = false,
 ): ReferenceASTNode['properties']['path'] {
   if (!Array.isArray(path) || (!allowEmpty && path.length === 0)) {
-    throw new InvalidNodeError({
+    throw new ForgeInvalidNodeError({
       message: 'Reference path must be a non-empty array',
       actual: JSON.stringify(path),
     })
@@ -133,7 +133,7 @@ function assertReferenceSegment(segment: unknown): string | number {
     return segment
   }
 
-  throw new InvalidNodeError({
+  throw new ForgeInvalidNodeError({
     message: 'Reference path segments must be strings, numbers, or expressions',
     actual: JSON.stringify(segment),
   })
@@ -169,7 +169,7 @@ export function createConditionalNode(json: ConditionalExpr, ctx: NodeBuildConte
   if (!json.predicate) {
     const diagnostics = ctx.diagnosticsFor(json)
 
-    throw new InvalidNodeError({
+    throw new ForgeInvalidNodeError({
       message: 'Conditional expression requires a predicate',
       node: json,
       expected: 'predicate property',
@@ -342,7 +342,7 @@ export function createMatchNode(json: MatchExpr, ctx: NodeBuildContext): MatchAS
   if (json.subject === undefined) {
     const diagnostics = ctx.diagnosticsFor(json)
 
-    throw new InvalidNodeError({
+    throw new ForgeInvalidNodeError({
       message: 'Match expression requires a subject',
       node: json,
       expected: 'subject property',
@@ -355,7 +355,7 @@ export function createMatchNode(json: MatchExpr, ctx: NodeBuildContext): MatchAS
   if (!json.branches || json.branches.length === 0) {
     const diagnostics = ctx.diagnosticsFor(json)
 
-    throw new InvalidNodeError({
+    throw new ForgeInvalidNodeError({
       message: 'Match expression requires at least one branch',
       node: json,
       expected: 'non-empty branches array',

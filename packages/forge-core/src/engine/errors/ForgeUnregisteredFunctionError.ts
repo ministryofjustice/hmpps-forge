@@ -1,6 +1,6 @@
 import ForgeBaseError from './ForgeBaseError'
 
-interface UnregisteredFunctionErrorOptions {
+interface ForgeUnregisteredFunctionErrorOptions {
   /** Name of the unregistered function */
   functionName: string
   /** Type of the function (e.g. FunctionType.Effect) */
@@ -11,12 +11,12 @@ interface UnregisteredFunctionErrorOptions {
   callsite?: { readonly stack?: string }
 }
 
-export default class UnregisteredFunctionError extends ForgeBaseError {
+export default class ForgeUnregisteredFunctionError extends ForgeBaseError {
   readonly functionName: string
 
   readonly functionType: string
 
-  constructor(options: UnregisteredFunctionErrorOptions) {
+  constructor(options: ForgeUnregisteredFunctionErrorOptions) {
     super(`Function "${options.functionName}" (${options.functionType}) is not registered`, options)
     this.functionName = options.functionName
     this.functionType = options.functionType

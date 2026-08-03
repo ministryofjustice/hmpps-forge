@@ -1,7 +1,7 @@
 import { ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode, ReferenceASTNode } from '../../../contracts/ast/expressions.type'
-import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
+import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
@@ -18,13 +18,10 @@ const LOOP_PROPERTIES: ReadonlySet<string> = new Set([
   'length',
 ])
 
-function createError(
-  diagnostics: ASTNodeDiagnostics | undefined,
-  message: string,
-): ForgeConfigurationReferenceScopeError {
+function createError(diagnostics: ASTNodeDiagnostics | undefined, message: string): ForgeReferenceScopeError {
   const source = diagnostics?.source
 
-  return new ForgeConfigurationReferenceScopeError({
+  return new ForgeReferenceScopeError({
     message,
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,

@@ -1,6 +1,6 @@
 import ForgeBaseError from './ForgeBaseError'
 
-interface UnknownNodeTypeErrorOptions {
+interface ForgeUnknownNodeTypeErrorOptions {
   /** The unknown type encountered */
   nodeType?: string
   /** The actual node object */
@@ -13,14 +13,14 @@ interface UnknownNodeTypeErrorOptions {
   callsite?: { readonly stack?: string }
 }
 
-export default class UnknownNodeTypeError extends ForgeBaseError {
+export default class ForgeUnknownNodeTypeError extends ForgeBaseError {
   readonly nodeType?: string
 
   readonly node?: any
 
   readonly validTypes?: string[]
 
-  constructor(options: UnknownNodeTypeErrorOptions) {
+  constructor(options: ForgeUnknownNodeTypeErrorOptions) {
     const nodeType = options.nodeType || 'undefined'
 
     let message = `Unknown node type: ${nodeType}`

@@ -10,8 +10,8 @@ import {
 } from '../../authoring/types/enums'
 import type { JourneyDefinition, StepDefinition } from '../../authoring/types/structures.type'
 import type { FieldBlockDefinition, ResolvableBoolean } from '../../components/types/structures.type'
-import ForgeConfigurationSerialisationError from '../errors/ForgeConfigurationSerialisationError'
-import ForgeConfigurationSchemaError from '../errors/ForgeConfigurationSchemaError'
+import ForgeSerialisationError from '../errors/ForgeSerialisationError'
+import ForgeSchemaError from '../errors/ForgeSchemaError'
 import { DSLValidator } from './DSLValidator'
 
 describe('FormValidator', () => {
@@ -599,12 +599,10 @@ describe('FormValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const dataError = error.errors.find(
-            e =>
-              e instanceof ForgeConfigurationSchemaError &&
-              e.formattedPath === 'test-journey > step1 > data > values[0] > value',
+            e => e instanceof ForgeSchemaError && e.formattedPath === 'test-journey > step1 > data > values[0] > value',
           )
 
-          expect(dataError).toBeInstanceOf(ForgeConfigurationSchemaError)
+          expect(dataError).toBeInstanceOf(ForgeSchemaError)
           expect(dataError?.message).toContain('Forge expressions are not supported in static data')
         }
       }
@@ -745,7 +743,7 @@ describe('FormValidator', () => {
           expect(error.errors.length).toBeGreaterThan(0)
 
           const typeError = error.errors.find(
-            e => e instanceof ForgeConfigurationSchemaError && e.formattedPath === 'test-journey > type',
+            e => e instanceof ForgeSchemaError && e.formattedPath === 'test-journey > type',
           )
           expect(typeError).toBeDefined()
           expect(typeError?.message).toContain('Invalid input')
@@ -799,13 +797,13 @@ describe('FormValidator', () => {
         if (error instanceof AggregateError) {
           const schemaError = error.errors.find(
             e =>
-              e instanceof ForgeConfigurationSchemaError &&
+              e instanceof ForgeSchemaError &&
               e.formattedPath ===
                 'travel-declaration > personal-details > blocks[0] (GovUKInput - firstName) > validWhen[0] > message',
           )
 
-          expect(schemaError).toBeInstanceOf(ForgeConfigurationSchemaError)
-          expect((schemaError as ForgeConfigurationSchemaError).formattedPath).toBe(
+          expect(schemaError).toBeInstanceOf(ForgeSchemaError)
+          expect((schemaError as ForgeSchemaError).formattedPath).toBe(
             'travel-declaration > personal-details > blocks[0] (GovUKInput - firstName) > validWhen[0] > message',
           )
         }
@@ -838,10 +836,10 @@ describe('FormValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const titleError = error.errors.find(
-            e => e instanceof ForgeConfigurationSchemaError && e.formattedPath === 'test-journey > step1 > title',
-          ) as ForgeConfigurationSchemaError | undefined
+            e => e instanceof ForgeSchemaError && e.formattedPath === 'test-journey > step1 > title',
+          ) as ForgeSchemaError | undefined
 
-          expect(titleError).toBeInstanceOf(ForgeConfigurationSchemaError)
+          expect(titleError).toBeInstanceOf(ForgeSchemaError)
           expect(titleError?.callsite).toEqual({ stack: 'at step-site' })
         }
       }
@@ -861,12 +859,8 @@ describe('FormValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           expect(error.errors.length).toBeGreaterThan(0)
-          expect(
-            error.errors.some(e => e instanceof ForgeConfigurationSchemaError && e.formattedPath === 'root > code'),
-          ).toBe(true)
-          expect(
-            error.errors.some(e => e instanceof ForgeConfigurationSchemaError && e.formattedPath === 'root > title'),
-          ).toBe(true)
+          expect(error.errors.some(e => e instanceof ForgeSchemaError && e.formattedPath === 'root > code')).toBe(true)
+          expect(error.errors.some(e => e instanceof ForgeSchemaError && e.formattedPath === 'root > title')).toBe(true)
         }
       }
     })
@@ -938,16 +932,12 @@ describe('FormValidator', () => {
           expect(error.errors.length).toBeGreaterThan(0)
 
           const codeError = error.errors.find(
-            e =>
-              e instanceof ForgeConfigurationSchemaError &&
-              e.formattedPath === 'strengths_and_needs > children[0] > code',
+            e => e instanceof ForgeSchemaError && e.formattedPath === 'strengths_and_needs > children[0] > code',
           )
           expect(codeError).toBeDefined()
 
           const titleError = error.errors.find(
-            e =>
-              e instanceof ForgeConfigurationSchemaError &&
-              e.formattedPath === 'strengths_and_needs > children[0] > title',
+            e => e instanceof ForgeSchemaError && e.formattedPath === 'strengths_and_needs > children[0] > title',
           )
           expect(titleError).toBeDefined()
         }
@@ -966,8 +956,8 @@ describe('FormValidator', () => {
       expect(() => DSLValidator.validateJSON(validJSON)).not.toThrow()
     })
 
-    it('should throw ForgeConfigurationSerialisationError when input is undefined', () => {
-      expect(() => DSLValidator.validateJSON(undefined)).toThrow(ForgeConfigurationSerialisationError)
+    it('should throw ForgeSerialisationError when input is undefined', () => {
+      expect(() => DSLValidator.validateJSON(undefined)).toThrow(ForgeSerialisationError)
     })
 
     it('should throw AggregateError for objects containing functions', () => {
@@ -985,8 +975,8 @@ describe('FormValidator', () => {
         if (error instanceof AggregateError) {
           expect(error.errors).toHaveLength(1)
           const err = error.errors[0]
-          expect(err).toBeInstanceOf(ForgeConfigurationSerialisationError)
-          if (err instanceof ForgeConfigurationSerialisationError) {
+          expect(err).toBeInstanceOf(ForgeSerialisationError)
+          if (err instanceof ForgeSerialisationError) {
             expect(err.type).toBe('Function')
           }
         }
@@ -1017,8 +1007,8 @@ describe('FormValidator', () => {
         if (error instanceof AggregateError) {
           expect(error.errors).toHaveLength(1)
           const err = error.errors[0]
-          expect(err).toBeInstanceOf(ForgeConfigurationSerialisationError)
-          if (err instanceof ForgeConfigurationSerialisationError) {
+          expect(err).toBeInstanceOf(ForgeSerialisationError)
+          if (err instanceof ForgeSerialisationError) {
             expect(err.type).toBe('Function')
             expect(err.callsite).toEqual({ stack: 'at step-site' })
           }
@@ -1041,8 +1031,8 @@ describe('FormValidator', () => {
         if (error instanceof AggregateError) {
           expect(error.errors).toHaveLength(1)
           const err = error.errors[0]
-          expect(err).toBeInstanceOf(ForgeConfigurationSerialisationError)
-          if (err instanceof ForgeConfigurationSerialisationError) {
+          expect(err).toBeInstanceOf(ForgeSerialisationError)
+          if (err instanceof ForgeSerialisationError) {
             expect(err.type).toBe('Date object')
           }
         }
@@ -1064,15 +1054,15 @@ describe('FormValidator', () => {
         if (error instanceof AggregateError) {
           expect(error.errors).toHaveLength(1)
           const err = error.errors[0]
-          expect(err).toBeInstanceOf(ForgeConfigurationSerialisationError)
-          if (err instanceof ForgeConfigurationSerialisationError) {
+          expect(err).toBeInstanceOf(ForgeSerialisationError)
+          if (err instanceof ForgeSerialisationError) {
             expect(err.type).toBe('Symbol')
           }
         }
       }
     })
 
-    it('should throw ForgeConfigurationSerialisationError for circular references', () => {
+    it('should throw ForgeSerialisationError for circular references', () => {
       const circularObject: any = {
         type: 'journey',
         nested: {
@@ -1081,13 +1071,13 @@ describe('FormValidator', () => {
       }
       circularObject.nested.parent = circularObject
 
-      expect(() => DSLValidator.validateJSON(circularObject)).toThrow(ForgeConfigurationSerialisationError)
+      expect(() => DSLValidator.validateJSON(circularObject)).toThrow(ForgeSerialisationError)
 
       try {
         DSLValidator.validateJSON(circularObject)
       } catch (error) {
-        expect(error).toBeInstanceOf(ForgeConfigurationSerialisationError)
-        if (error instanceof ForgeConfigurationSerialisationError) {
+        expect(error).toBeInstanceOf(ForgeSerialisationError)
+        if (error instanceof ForgeSerialisationError) {
           expect(error.type).toBe('json_error')
           expect(error.message).toContain('Converting circular structure to JSON')
         }
@@ -1122,8 +1112,8 @@ describe('FormValidator', () => {
         if (error instanceof AggregateError) {
           expect(error.errors).toHaveLength(1)
           const err = error.errors[0]
-          expect(err).toBeInstanceOf(ForgeConfigurationSerialisationError)
-          if (err instanceof ForgeConfigurationSerialisationError) {
+          expect(err).toBeInstanceOf(ForgeSerialisationError)
+          if (err instanceof ForgeSerialisationError) {
             expect(err.type).toBe('BigInt')
           }
         }
@@ -1148,8 +1138,8 @@ describe('FormValidator', () => {
         if (error instanceof AggregateError) {
           expect(error.errors).toHaveLength(1)
           const err = error.errors[0]
-          expect(err).toBeInstanceOf(ForgeConfigurationSerialisationError)
-          if (err instanceof ForgeConfigurationSerialisationError) {
+          expect(err).toBeInstanceOf(ForgeSerialisationError)
+          if (err instanceof ForgeSerialisationError) {
             expect(err.type).toContain('Non-plain object')
             expect(err.type).toContain('CustomClass')
           }

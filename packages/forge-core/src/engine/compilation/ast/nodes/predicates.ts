@@ -7,7 +7,7 @@ import {
   PredicateTestExpr,
   PredicateXorExpr,
 } from '../../../../authoring/types/expressions.type'
-import InvalidNodeError from '../../../errors/InvalidNodeError'
+import ForgeInvalidNodeError from '../../../errors/ForgeInvalidNodeError'
 import {
   AndPredicateASTNode,
   NotPredicateASTNode,
@@ -36,7 +36,7 @@ export function createTestPredicateNode(json: PredicateTestExpr, ctx: NodeBuildC
   if (json.subject === undefined) {
     const diagnostics = ctx.diagnosticsFor(json)
 
-    throw new InvalidNodeError({
+    throw new ForgeInvalidNodeError({
       message: 'Test predicate requires a subject',
       node: json,
       expected: 'subject property',
@@ -49,7 +49,7 @@ export function createTestPredicateNode(json: PredicateTestExpr, ctx: NodeBuildC
   if (!json.condition) {
     const diagnostics = ctx.diagnosticsFor(json)
 
-    throw new InvalidNodeError({
+    throw new ForgeInvalidNodeError({
       message: 'Test predicate requires a condition',
       node: json,
       expected: 'condition property',
@@ -79,7 +79,7 @@ export function createNotPredicateNode(json: PredicateNotExpr, ctx: NodeBuildCon
   if (!json.operand) {
     const diagnostics = ctx.diagnosticsFor(json)
 
-    throw new InvalidNodeError({
+    throw new ForgeInvalidNodeError({
       message: 'Not predicate requires an operand',
       node: json,
       expected: 'operand property',
@@ -111,7 +111,7 @@ export function naryPredicateCreator(
     if (!json.operands || !Array.isArray(json.operands) || json.operands.length === 0) {
       const diagnostics = ctx.diagnosticsFor(json)
 
-      throw new InvalidNodeError({
+      throw new ForgeInvalidNodeError({
         message: `${NARY_PREDICATE_NAMES[predicateType]} predicate requires a non-empty operands array`,
         node: json,
         expected: 'operands array with at least one element',

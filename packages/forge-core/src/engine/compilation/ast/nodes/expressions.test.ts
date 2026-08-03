@@ -30,7 +30,7 @@ import {
   ReferenceASTNode,
 } from '../../../contracts/ast/expressions.type'
 import { NodeFactory } from './NodeFactory'
-import InvalidNodeError from '../../../errors/InvalidNodeError'
+import ForgeInvalidNodeError from '../../../errors/ForgeInvalidNodeError'
 import type {
   AndPredicateASTNode,
   NotPredicateASTNode,
@@ -503,7 +503,7 @@ describe('expressions', () => {
       expect(result1.id).not.toBe(result2.id)
     })
 
-    it('should throw InvalidNodeError when predicate is missing', () => {
+    it('should throw ForgeInvalidNodeError when predicate is missing', () => {
       // Arrange
       const json = {
         type: ExpressionType.CONDITIONAL,
@@ -512,7 +512,7 @@ describe('expressions', () => {
       } as any
 
       // Act & Assert
-      expect(() => createConditionalNode(json, nodeFactory.context)).toThrow(InvalidNodeError)
+      expect(() => createConditionalNode(json, nodeFactory.context)).toThrow(ForgeInvalidNodeError)
       expect(() => createConditionalNode(json, nodeFactory.context)).toThrow(
         'Conditional expression requires a predicate',
       )
@@ -1576,7 +1576,7 @@ describe('expressions', () => {
       expect(result1.id).not.toBe(result2.id)
     })
 
-    it('should throw InvalidNodeError when subject is missing', () => {
+    it('should throw ForgeInvalidNodeError when subject is missing', () => {
       // Arrange
       const json = {
         type: ExpressionType.MATCH,
@@ -1589,7 +1589,7 @@ describe('expressions', () => {
       } as any
 
       // Act & Assert
-      expect(() => createMatchNode(json, nodeFactory.context)).toThrow(InvalidNodeError)
+      expect(() => createMatchNode(json, nodeFactory.context)).toThrow(ForgeInvalidNodeError)
       expect(() => createMatchNode(json, nodeFactory.context)).toThrow('Match expression requires a subject')
     })
 
@@ -1621,7 +1621,7 @@ describe('expressions', () => {
       expect(branchSubjects).toEqual(falsySubjects)
     })
 
-    it('should throw InvalidNodeError when branches is empty', () => {
+    it('should throw ForgeInvalidNodeError when branches is empty', () => {
       // Arrange
       const json = {
         type: ExpressionType.MATCH,
@@ -1630,11 +1630,11 @@ describe('expressions', () => {
       } as any
 
       // Act & Assert
-      expect(() => createMatchNode(json, nodeFactory.context)).toThrow(InvalidNodeError)
+      expect(() => createMatchNode(json, nodeFactory.context)).toThrow(ForgeInvalidNodeError)
       expect(() => createMatchNode(json, nodeFactory.context)).toThrow('Match expression requires at least one branch')
     })
 
-    it('should throw InvalidNodeError when branches is missing', () => {
+    it('should throw ForgeInvalidNodeError when branches is missing', () => {
       // Arrange
       const json = {
         type: ExpressionType.MATCH,
@@ -1642,7 +1642,7 @@ describe('expressions', () => {
       } as any
 
       // Act & Assert
-      expect(() => createMatchNode(json, nodeFactory.context)).toThrow(InvalidNodeError)
+      expect(() => createMatchNode(json, nodeFactory.context)).toThrow(ForgeInvalidNodeError)
       expect(() => createMatchNode(json, nodeFactory.context)).toThrow('Match expression requires at least one branch')
     })
   })

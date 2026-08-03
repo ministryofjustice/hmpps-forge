@@ -10,7 +10,7 @@ import {
   StepASTNode,
   StepReachabilityAST,
 } from '../../../contracts/ast/structures.type'
-import InvalidNodeError from '../../../errors/InvalidNodeError'
+import ForgeInvalidNodeError from '../../../errors/ForgeInvalidNodeError'
 import type { JourneyDefinition, StepDefinition, TieBreaker } from '../../../../authoring/types/structures.type'
 import type { BlockDefinition, FieldBlockDefinition } from '../../../../components/types/structures.type'
 import type { NodeBuildContext } from './NodeFactory'
@@ -35,7 +35,7 @@ export function createJourneyNode(json: JourneyDefinition, ctx: NodeBuildContext
   if (dataProperties.code === undefined) {
     const diagnostics = ctx.diagnosticsFor(json)
 
-    throw new InvalidNodeError({
+    throw new ForgeInvalidNodeError({
       message: 'Journey requires a code property',
       node: json,
       expected: 'code property',
@@ -48,7 +48,7 @@ export function createJourneyNode(json: JourneyDefinition, ctx: NodeBuildContext
   if (dataProperties.path === undefined) {
     const diagnostics = ctx.diagnosticsFor(json)
 
-    throw new InvalidNodeError({
+    throw new ForgeInvalidNodeError({
       message: 'Journey requires a path property',
       node: json,
       expected: 'path property',
@@ -61,7 +61,7 @@ export function createJourneyNode(json: JourneyDefinition, ctx: NodeBuildContext
   if (dataProperties.title === undefined) {
     const diagnostics = ctx.diagnosticsFor(json)
 
-    throw new InvalidNodeError({
+    throw new ForgeInvalidNodeError({
       message: 'Journey requires a title property',
       node: json,
       expected: 'title property',
@@ -143,7 +143,7 @@ export function createStepNode(json: StepDefinition, ctx: NodeBuildContext): Ste
   if (dataProperties.path === undefined) {
     const diagnostics = ctx.diagnosticsFor(json)
 
-    throw new InvalidNodeError({
+    throw new ForgeInvalidNodeError({
       message: 'Step requires a path property',
       node: json,
       expected: 'path property',
@@ -156,7 +156,7 @@ export function createStepNode(json: StepDefinition, ctx: NodeBuildContext): Ste
   if (dataProperties.title === undefined) {
     const diagnostics = ctx.diagnosticsFor(json)
 
-    throw new InvalidNodeError({
+    throw new ForgeInvalidNodeError({
       message: 'Step requires a title property',
       node: json,
       expected: 'title property',
@@ -288,7 +288,7 @@ function createFieldBlock(json: FieldBlockDefinition, ctx: NodeBuildContext): Fi
   if (dataProperties.code === undefined) {
     const diagnostics = ctx.diagnosticsFor(json)
 
-    throw new InvalidNodeError({
+    throw new ForgeInvalidNodeError({
       message: 'Field block requires a code property',
       node: json,
       expected: 'code property',

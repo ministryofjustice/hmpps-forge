@@ -1,6 +1,6 @@
 import ForgeBaseError from './ForgeBaseError'
 
-interface ForgeConfigurationReferenceScopeErrorOptions {
+interface ForgeReferenceScopeErrorOptions {
   /** Human-readable error message */
   message: string
   /** Human-readable path through the journey DSL */
@@ -9,8 +9,8 @@ interface ForgeConfigurationReferenceScopeErrorOptions {
   callsite?: { readonly stack?: string }
 }
 
-export default class ForgeConfigurationReferenceScopeError extends ForgeBaseError {
-  constructor(options: ForgeConfigurationReferenceScopeErrorOptions) {
+export default class ForgeReferenceScopeError extends ForgeBaseError {
+  constructor(options: ForgeReferenceScopeErrorOptions) {
     super(options.message, options)
   }
 }

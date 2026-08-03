@@ -1,6 +1,6 @@
 import ForgeBaseError from './ForgeBaseError'
 
-interface UnregisteredComponentErrorOptions {
+interface ForgeUnregisteredComponentErrorOptions {
   /** Variant name of the unregistered component */
   variant: string
   /** Human-readable path through the journey DSL */
@@ -9,10 +9,10 @@ interface UnregisteredComponentErrorOptions {
   callsite?: { readonly stack?: string }
 }
 
-export default class UnregisteredComponentError extends ForgeBaseError {
+export default class ForgeUnregisteredComponentError extends ForgeBaseError {
   readonly variant: string
 
-  constructor(options: UnregisteredComponentErrorOptions) {
+  constructor(options: ForgeUnregisteredComponentErrorOptions) {
     super(`Component variant "${options.variant}" is not registered`, options)
     this.variant = options.variant
   }

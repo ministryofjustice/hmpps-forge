@@ -1,6 +1,6 @@
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
-import ForgeConfigurationSerialisationError from '../errors/ForgeConfigurationSerialisationError'
-import ForgeConfigurationSchemaError from '../errors/ForgeConfigurationSchemaError'
+import ForgeSerialisationError from '../errors/ForgeSerialisationError'
+import ForgeSchemaError from '../errors/ForgeSchemaError'
 import { JourneySchema } from './schemas/structures.schema'
 import DSLSourceLocator from '../../shared/diagnostics/DSLSourceLocator'
 import type { DSLPathSegment } from '../../shared/diagnostics/sourceLocation.type'
@@ -14,7 +14,7 @@ export class DSLValidator {
       const schemaErrors = result.error.issues.map(issue => {
         const path = issue.path.map(pathPart => (typeof pathPart === 'symbol' ? pathPart.toString() : pathPart))
 
-        return new ForgeConfigurationSchemaError({
+        return new ForgeSchemaError({
           message: issue.message,
           formattedPath: sourceLocator.fromPath(path).formattedPath,
           expected: 'expected' in issue && typeof issue.expected === 'string' ? issue.expected : undefined,
@@ -32,7 +32,7 @@ export class DSLValidator {
    */
   static validateJSON(input: unknown): void {
     if (input === undefined) {
-      throw new ForgeConfigurationSerialisationError({
+      throw new ForgeSerialisationError({
         message: 'Input is undefined (not valid JSON)',
         formattedPath: 'root',
         type: 'non_serializable',
@@ -50,7 +50,7 @@ export class DSLValidator {
       const serialized = JSON.stringify(input)
       JSON.parse(serialized)
     } catch (error) {
-      throw new ForgeConfigurationSerialisationError({
+      throw new ForgeSerialisationError({
         message: `JSON serialization failed: ${(error as Error).message}`,
         formattedPath: sourceLocator.fromPath([]).formattedPath,
         type: 'json_error',
@@ -64,12 +64,12 @@ export class DSLValidator {
     path: DSLPathSegment[] = [],
     sourceLocator: DSLSourceLocator = new DSLSourceLocator(obj),
     seen = new WeakSet(),
-  ): ForgeConfigurationSerialisationError[] {
-    const errors: ForgeConfigurationSerialisationError[] = []
+  ): ForgeSerialisationError[] {
+    const errors: ForgeSerialisationError[] = []
 
     if (obj === undefined) {
       errors.push(
-        new ForgeConfigurationSerialisationError({
+        new ForgeSerialisationError({
           type: 'Undefined value',
           formattedPath: sourceLocator.fromPath(path).formattedPath,
           callsite: sourceLocator.callsiteFromPath(path),
@@ -77,7 +77,7 @@ export class DSLValidator {
       )
     } else if (typeof obj === 'function') {
       errors.push(
-        new ForgeConfigurationSerialisationError({
+        new ForgeSerialisationError({
           type: 'Function',
           formattedPath: sourceLocator.fromPath(path).formattedPath,
           callsite: sourceLocator.callsiteFromPath(path),
@@ -85,7 +85,7 @@ export class DSLValidator {
       )
     } else if (typeof obj === 'symbol') {
       errors.push(
-        new ForgeConfigurationSerialisationError({
+        new ForgeSerialisationError({
           type: 'Symbol',
           formattedPath: sourceLocator.fromPath(path).formattedPath,
           callsite: sourceLocator.callsiteFromPath(path),
@@ -93,7 +93,7 @@ export class DSLValidator {
       )
     } else if (typeof obj === 'bigint') {
       errors.push(
-        new ForgeConfigurationSerialisationError({
+        new ForgeSerialisationError({
           type: 'BigInt',
           formattedPath: sourceLocator.fromPath(path).formattedPath,
           callsite: sourceLocator.callsiteFromPath(path),
@@ -101,7 +101,7 @@ export class DSLValidator {
       )
     } else if (obj instanceof Date) {
       errors.push(
-        new ForgeConfigurationSerialisationError({
+        new ForgeSerialisationError({
           type: 'Date object',
           formattedPath: sourceLocator.fromPath(path).formattedPath,
           callsite: sourceLocator.callsiteFromPath(path),
@@ -123,7 +123,7 @@ export class DSLValidator {
           typeof obj.constructor === 'function' && obj.constructor.name ? obj.constructor.name : 'unknown'
 
         errors.push(
-          new ForgeConfigurationSerialisationError({
+          new ForgeSerialisationError({
             type: `Non-plain object (${constructorName})`,
             formattedPath: sourceLocator.fromPath(path).formattedPath,
           }),

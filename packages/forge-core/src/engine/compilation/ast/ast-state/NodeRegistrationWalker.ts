@@ -6,7 +6,7 @@ import { isASTNode, isTemplateNode } from '../../../contracts/ast/nodes'
 import { isFieldBlockStructNode } from '../../../contracts/ast/structure-nodes'
 import { isReferenceExprNode } from '../../../contracts/ast/expression-nodes'
 import { cloneASTValue } from './astValueCloning'
-import InvalidNodeError from '../../../errors/InvalidNodeError'
+import ForgeInvalidNodeError from '../../../errors/ForgeInvalidNodeError'
 
 /**
  * Normalises and indexes an AST subtree in one recursive descent.
@@ -119,7 +119,7 @@ export default class NodeRegistrationWalker {
     const containingField = fieldStack[fieldStack.length - 1]
 
     if (!containingField) {
-      throw new InvalidNodeError({
+      throw new ForgeInvalidNodeError({
         message: 'Self() reference used outside of a field block',
         formattedPath: node.diagnostics?.source.formattedPath,
         callsite: node.diagnostics?.callsite,
@@ -127,7 +127,7 @@ export default class NodeRegistrationWalker {
     }
 
     if (codeOwnerFieldId === containingField.id) {
-      throw new InvalidNodeError({
+      throw new ForgeInvalidNodeError({
         message: "Self() cannot be used within the field's code expression",
         formattedPath: node.diagnostics?.source.formattedPath,
         callsite: node.diagnostics?.callsite,
@@ -137,7 +137,7 @@ export default class NodeRegistrationWalker {
     const codeValue = containingField.properties?.code
 
     if (codeValue === undefined) {
-      throw new InvalidNodeError({
+      throw new ForgeInvalidNodeError({
         message: 'Containing field has no code to resolve Self()',
         formattedPath: node.diagnostics?.source.formattedPath,
         callsite: node.diagnostics?.callsite,

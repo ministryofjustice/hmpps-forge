@@ -4,7 +4,7 @@ import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
-import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
+import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTValidationContext } from './types'
 import { validateBlockScope } from './validateBlockScope'
 
@@ -31,7 +31,7 @@ const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, 
 }
 
 const errorMessages = (errors: readonly Error[]): string[] =>
-  errors.map(error => (error as ForgeConfigurationReferenceScopeError).message)
+  errors.map(error => (error as ForgeReferenceScopeError).message)
 
 describe('validateBlockScope', () => {
   describe('validateBlockScope()', () => {
@@ -132,7 +132,7 @@ describe('validateBlockScope', () => {
 
       // Assert
       expect(errors).toHaveLength(1)
-      expect((errors[0] as ForgeConfigurationReferenceScopeError).callsite).toBe(callsite)
+      expect((errors[0] as ForgeReferenceScopeError).callsite).toBe(callsite)
     })
   })
 })

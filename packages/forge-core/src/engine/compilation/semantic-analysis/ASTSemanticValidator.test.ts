@@ -17,10 +17,10 @@ import ComponentRegistry from '../../registries/ComponentRegistry'
 import ConditionRegistry from '../../../authoring/registries/ConditionRegistry'
 import TransformerRegistry from '../../../authoring/registries/TransformerRegistry'
 import { buildComponent } from '../../../components/utils/buildComponent'
-import ForgeConfigurationReferenceScopeError from '../../errors/ForgeConfigurationReferenceScopeError'
-import UnregisteredFunctionError from '../../errors/UnregisteredFunctionError'
-import UnregisteredComponentError from '../../errors/UnregisteredComponentError'
-import FunctionArityError from '../../errors/FunctionArityError'
+import ForgeReferenceScopeError from '../../errors/ForgeReferenceScopeError'
+import ForgeUnregisteredFunctionError from '../../errors/ForgeUnregisteredFunctionError'
+import ForgeUnregisteredComponentError from '../../errors/ForgeUnregisteredComponentError'
+import ForgeFunctionArityError from '../../errors/ForgeFunctionArityError'
 import CompilationPipeline from '../CompilationPipeline'
 import { finaliseBuilders } from '../../../authoring/builders/utils/finaliseBuilders'
 
@@ -110,7 +110,7 @@ describe('ASTSemanticValidator', () => {
         if (error instanceof AggregateError) {
           const scopeError = error.errors[0]
 
-          expect(scopeError).toBeInstanceOf(ForgeConfigurationReferenceScopeError)
+          expect(scopeError).toBeInstanceOf(ForgeReferenceScopeError)
           expect(scopeError.message).toContain('can only be used inside an iterator')
         }
       }
@@ -160,7 +160,7 @@ describe('ASTSemanticValidator', () => {
         if (error instanceof AggregateError) {
           const scopeError = error.errors[0]
 
-          expect(scopeError).toBeInstanceOf(ForgeConfigurationReferenceScopeError)
+          expect(scopeError).toBeInstanceOf(ForgeReferenceScopeError)
           expect(scopeError.message).toBe('Item().parent references level 1, but only 1 iterator scope is available')
         }
       }
@@ -210,7 +210,7 @@ describe('ASTSemanticValidator', () => {
         if (error instanceof AggregateError) {
           const scopeError = error.errors[0]
 
-          expect(scopeError).toBeInstanceOf(ForgeConfigurationReferenceScopeError)
+          expect(scopeError).toBeInstanceOf(ForgeReferenceScopeError)
           expect(scopeError.message).toContain('Loop reference property must be one of')
         }
       }
@@ -243,7 +243,7 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const messages = error.errors.map((scopeError: ForgeConfigurationReferenceScopeError) => scopeError.message)
+          const messages = error.errors.map((scopeError: ForgeReferenceScopeError) => scopeError.message)
 
           expect(error.errors).toHaveLength(2)
           expect(messages).toContain('Item() reference level must be a non-negative integer')
@@ -403,7 +403,7 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const fnErrors = error.errors.filter((e: Error) => e instanceof UnregisteredFunctionError)
+          const fnErrors = error.errors.filter((e: Error) => e instanceof ForgeUnregisteredFunctionError)
 
           expect(fnErrors).toHaveLength(1)
           expect(fnErrors[0].functionName).toBe('nonExistentEffect')
@@ -454,7 +454,7 @@ describe('ASTSemanticValidator', () => {
         compileJourney(journey, registry, compRegistry)
       } catch (error) {
         if (error instanceof AggregateError) {
-          const fnErrors = error.errors.filter((e: Error) => e instanceof UnregisteredFunctionError)
+          const fnErrors = error.errors.filter((e: Error) => e instanceof ForgeUnregisteredFunctionError)
 
           expect(fnErrors).toHaveLength(1)
           expect(fnErrors[0].functionName).toBe('missingCondition')
@@ -503,11 +503,11 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const fnErrors = error.errors.filter((e: Error) => e instanceof UnregisteredFunctionError)
+          const fnErrors = error.errors.filter((e: Error) => e instanceof ForgeUnregisteredFunctionError)
 
           expect(fnErrors).toHaveLength(2)
 
-          const names = fnErrors.map((e: UnregisteredFunctionError) => e.functionName)
+          const names = fnErrors.map((e: ForgeUnregisteredFunctionError) => e.functionName)
           expect(names).toContain('missingEffect1')
           expect(names).toContain('missingEffect2')
         }
@@ -551,7 +551,7 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const fnErrors = error.errors.filter((e: Error) => e instanceof UnregisteredFunctionError)
+          const fnErrors = error.errors.filter((e: Error) => e instanceof ForgeUnregisteredFunctionError)
 
           expect(fnErrors).toHaveLength(1)
           expect(fnErrors[0].functionName).toBe('deeplyNestedEffect')
@@ -591,11 +591,11 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const fnErrors = error.errors.filter((e: Error) => e instanceof UnregisteredFunctionError)
+          const fnErrors = error.errors.filter((e: Error) => e instanceof ForgeUnregisteredFunctionError)
 
           expect(fnErrors).toHaveLength(2)
 
-          const types = fnErrors.map((e: UnregisteredFunctionError) => e.functionType)
+          const types = fnErrors.map((e: ForgeUnregisteredFunctionError) => e.functionType)
           expect(types).toContain(FunctionType.GENERATOR)
           expect(types).toContain(FunctionType.TRANSFORMER)
         }
@@ -696,7 +696,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           expect(error.errors).toHaveLength(1)
-          expect(error.errors[0]).toBeInstanceOf(UnregisteredComponentError)
+          expect(error.errors[0]).toBeInstanceOf(ForgeUnregisteredComponentError)
           expect(error.errors[0].variant).toBe('nonExistentComponent')
         }
       }
@@ -745,7 +745,7 @@ describe('ASTSemanticValidator', () => {
         if (error instanceof AggregateError) {
           expect(error.errors).toHaveLength(2)
 
-          const variants = error.errors.map((e: UnregisteredComponentError) => e.variant)
+          const variants = error.errors.map((e: ForgeUnregisteredComponentError) => e.variant)
           expect(variants).toContain('missingRadio')
           expect(variants).toContain('missingCheckbox')
         }
@@ -933,9 +933,7 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const scopeErrors = error.errors.filter((e: ForgeConfigurationReferenceScopeError) =>
-            e.message.startsWith('Effect '),
-          )
+          const scopeErrors = error.errors.filter((e: ForgeReferenceScopeError) => e.message.startsWith('Effect '))
 
           expect(scopeErrors).toHaveLength(1)
         }
@@ -979,9 +977,7 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const scopeErrors = error.errors.filter((e: ForgeConfigurationReferenceScopeError) =>
-            e.message.startsWith('Effect '),
-          )
+          const scopeErrors = error.errors.filter((e: ForgeReferenceScopeError) => e.message.startsWith('Effect '))
 
           expect(scopeErrors.length).toBeGreaterThanOrEqual(1)
         }
@@ -1052,8 +1048,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) =>
-              e.message === 'Block definitions cannot be used as function arguments',
+            (e: ForgeReferenceScopeError) => e.message === 'Block definitions cannot be used as function arguments',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -1107,7 +1102,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) =>
+            (e: ForgeReferenceScopeError) =>
               e.message === 'Validation rules can only be used inside validWhen on a field block or step',
           )
 
@@ -1209,8 +1204,8 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const messages = error.errors
-            .filter((e: Error) => e instanceof ForgeConfigurationReferenceScopeError)
-            .map((e: ForgeConfigurationReferenceScopeError) => e.message)
+            .filter((e: Error) => e instanceof ForgeReferenceScopeError)
+            .map((e: ForgeReferenceScopeError) => e.message)
 
           expect(messages).toContain('Block definitions cannot be used as function arguments')
           expect(messages).toContain('Validation rules can only be used inside validWhen on a field block or step')
@@ -1275,8 +1270,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) =>
-              e.message === 'Block definitions cannot be used as function arguments',
+            (e: ForgeReferenceScopeError) => e.message === 'Block definitions cannot be used as function arguments',
           )
 
           expect(scopeErrors.length).toBeGreaterThanOrEqual(1)
@@ -1413,7 +1407,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) =>
+            (e: ForgeReferenceScopeError) =>
               e.message === 'Validation rules can only be used inside validWhen on a field block or step',
           )
 
@@ -1461,7 +1455,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) =>
+            (e: ForgeReferenceScopeError) =>
               e.message === 'Validation rules can only be used inside validWhen on a field block or step',
           )
 
@@ -1632,7 +1626,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) =>
+            (e: ForgeReferenceScopeError) =>
               e.message === 'Outcomes can only be used inside a hook (onAccess or onSubmission)',
           )
 
@@ -1709,7 +1703,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) =>
+            (e: ForgeReferenceScopeError) =>
               e.message === 'Hooks can only be defined in onAccess (steps, journeys) or onSubmission (steps) arrays',
           )
 
@@ -1784,7 +1778,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) =>
+            (e: ForgeReferenceScopeError) =>
               e.message === "Tie-breakers can only be used in a step's reachability configuration",
           )
 
@@ -1858,8 +1852,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) =>
-              e.message === 'Steps can only be defined in a journey steps array',
+            (e: ForgeReferenceScopeError) => e.message === 'Steps can only be defined in a journey steps array',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -1898,7 +1891,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) =>
+            (e: ForgeReferenceScopeError) =>
               e.message === 'Journeys can only be defined at the root or in a journey children array',
           )
 
@@ -1968,7 +1961,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) =>
+            (e: ForgeReferenceScopeError) =>
               e.message === 'Blocks can only be defined in a step blocks array or nested within another block',
           )
 
@@ -2054,7 +2047,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.message === 'onAccess can only contain access hooks',
+            (e: ForgeReferenceScopeError) => e.message === 'onAccess can only contain access hooks',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -2091,7 +2084,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.message === 'effects can only contain effect functions',
+            (e: ForgeReferenceScopeError) => e.message === 'effects can only contain effect functions',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -2131,7 +2124,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.message === 'next can only contain outcomes',
+            (e: ForgeReferenceScopeError) => e.message === 'next can only contain outcomes',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -2162,7 +2155,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.message === 'blocks can only contain block definitions',
+            (e: ForgeReferenceScopeError) => e.message === 'blocks can only contain block definitions',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -2259,7 +2252,7 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const arityErrors = error.errors.filter((e: Error) => e instanceof FunctionArityError)
+          const arityErrors = error.errors.filter((e: Error) => e instanceof ForgeFunctionArityError)
 
           expect(arityErrors).toHaveLength(1)
           expect(arityErrors[0].functionName).toBe('exactOne')
@@ -2281,7 +2274,7 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const arityErrors = error.errors.filter((e: Error) => e instanceof FunctionArityError)
+          const arityErrors = error.errors.filter((e: Error) => e instanceof ForgeFunctionArityError)
 
           expect(arityErrors).toHaveLength(1)
           expect(arityErrors[0].received).toBe(2)
@@ -2328,7 +2321,7 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const arityErrors = error.errors.filter((e: Error) => e instanceof FunctionArityError)
+          const arityErrors = error.errors.filter((e: Error) => e instanceof ForgeFunctionArityError)
 
           expect(arityErrors).toHaveLength(1)
           expect(arityErrors[0].expected).toBe('at least 1')
@@ -2366,7 +2359,7 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const arityErrors = error.errors.filter((e: Error) => e instanceof FunctionArityError)
+          const arityErrors = error.errors.filter((e: Error) => e instanceof ForgeFunctionArityError)
 
           expect(arityErrors).toHaveLength(1)
           expect(arityErrors[0].expected).toBe('between 1 and 2')
@@ -2425,7 +2418,7 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const arityErrors = error.errors.filter((e: Error) => e instanceof FunctionArityError)
+          const arityErrors = error.errors.filter((e: Error) => e instanceof ForgeFunctionArityError)
 
           expect(arityErrors).toHaveLength(1)
           expect(arityErrors[0].functionName).toBe('exactOneTransformer')
@@ -2459,11 +2452,11 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const arityErrors = error.errors.filter((e: Error) => e instanceof FunctionArityError)
+          const arityErrors = error.errors.filter((e: Error) => e instanceof ForgeFunctionArityError)
 
           expect(arityErrors).toHaveLength(2)
 
-          const receivedCounts = arityErrors.map((e: FunctionArityError) => e.received)
+          const receivedCounts = arityErrors.map((e: ForgeFunctionArityError) => e.received)
           expect(receivedCounts).toContain(0)
           expect(receivedCounts).toContain(2)
         }
@@ -2482,7 +2475,9 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const arityError = error.errors.find((e: Error) => e instanceof FunctionArityError) as FunctionArityError
+          const arityError = error.errors.find(
+            (e: Error) => e instanceof ForgeFunctionArityError,
+          ) as ForgeFunctionArityError
 
           expect(arityError.functionName).toBe('exactOne')
           expect(arityError.functionType).toBe(FunctionType.CONDITION)

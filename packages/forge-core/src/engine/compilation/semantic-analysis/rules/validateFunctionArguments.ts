@@ -1,7 +1,7 @@
 import { FunctionType, ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
-import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
+import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import { isTemplateNode } from '../../../contracts/ast/nodes'
 import type { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
@@ -10,10 +10,10 @@ import type { ASTValidationContext, ASTValidationRule } from './types'
 
 const FUNCTION_TYPES: readonly string[] = Object.values(FunctionType)
 
-function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigurationReferenceScopeError {
+function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeReferenceScopeError {
   const source = diagnostics?.source
 
-  return new ForgeConfigurationReferenceScopeError({
+  return new ForgeReferenceScopeError({
     message: 'Block definitions cannot be used as function arguments',
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,

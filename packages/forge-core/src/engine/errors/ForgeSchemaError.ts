@@ -1,6 +1,6 @@
 import ForgeBaseError from './ForgeBaseError'
 
-interface ForgeConfigurationSchemaErrorOptions {
+interface ForgeSchemaErrorOptions {
   /** Human-readable error message */
   message: string
   /** Expected value type/format */
@@ -11,10 +11,10 @@ interface ForgeConfigurationSchemaErrorOptions {
   callsite?: { readonly stack?: string }
 }
 
-export default class ForgeConfigurationSchemaError extends ForgeBaseError {
+export default class ForgeSchemaError extends ForgeBaseError {
   readonly expected?: string
 
-  constructor(options: ForgeConfigurationSchemaErrorOptions) {
+  constructor(options: ForgeSchemaErrorOptions) {
     super(options.message, options)
     this.expected = options.expected
   }

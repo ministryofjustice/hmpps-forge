@@ -5,7 +5,7 @@ import type {
 } from '../../contracts/routing/routeDescriptors.type'
 import type { NodeId } from '../../contracts/ast/ast.type'
 import { joinPaths } from '../../../shared/utils/routePath'
-import DuplicateRouteError from '../../errors/DuplicateRouteError'
+import ForgeDuplicateRouteError from '../../errors/ForgeDuplicateRouteError'
 import {
   JourneyRouteContext,
   JourneyRouteTemplateCatalog,
@@ -160,7 +160,7 @@ export default class RouteTreeBuilder {
       const isStepOverridingJourney = node.route.kind === 'journey' && route.kind === 'step'
 
       if (!isStepOverridingJourney) {
-        throw new DuplicateRouteError({ routePath: templatePath })
+        throw new ForgeDuplicateRouteError({ routePath: templatePath })
       }
     }
 

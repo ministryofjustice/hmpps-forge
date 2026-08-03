@@ -1,6 +1,6 @@
 import ForgeBaseError from './ForgeBaseError'
 
-interface ForgeConfigurationSerialisationErrorOptions {
+interface ForgeSerialisationErrorOptions {
   type: string
   /** Human-readable error message */
   message?: string
@@ -10,10 +10,10 @@ interface ForgeConfigurationSerialisationErrorOptions {
   callsite?: { readonly stack?: string }
 }
 
-export default class ForgeConfigurationSerialisationError extends ForgeBaseError {
+export default class ForgeSerialisationError extends ForgeBaseError {
   readonly type: string
 
-  constructor(options: ForgeConfigurationSerialisationErrorOptions) {
+  constructor(options: ForgeSerialisationErrorOptions) {
     super(
       options.message ?? `${options.type} at ${options.formattedPath ?? 'unknown'} (not JSON serializable)`,
       options,

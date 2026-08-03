@@ -1,6 +1,6 @@
 import { CompileAstNodeId, NodeId } from '../../contracts/ast/ast.type'
 import type { JourneyRouteDescriptor, StepRouteDescriptor } from '../../contracts/routing/routeDescriptors.type'
-import DuplicateRouteError from '../../errors/DuplicateRouteError'
+import ForgeDuplicateRouteError from '../../errors/ForgeDuplicateRouteError'
 import { createRouteTreeIndex, RouteTreeBuildResult, RouteTreeIndex } from '../../contracts/routing/routeTree.type'
 import RouteTreeBuilder from './RouteTreeBuilder'
 
@@ -158,7 +158,7 @@ describe('RouteTreeBuilder', () => {
     })
   })
 
-  it('should throw DuplicateRouteError when two concrete routes use the same template path', () => {
+  it('should throw ForgeDuplicateRouteError when two concrete routes use the same template path', () => {
     // Arrange
     const journey = createJourneyDescriptor('compile_ast:14', '/journey', ['compile_ast:14'])
     const firstStep = createStepDescriptor('compile_ast:15', '/duplicate', ['compile_ast:14'])
@@ -168,7 +168,7 @@ describe('RouteTreeBuilder', () => {
     const act = () => buildRouteTree([journey], [firstStep, secondStep])
 
     // Assert
-    expect(act).toThrow(DuplicateRouteError)
+    expect(act).toThrow(ForgeDuplicateRouteError)
   })
 
   it('should allow a step to occupy the same path as its parent journey', () => {

@@ -4,7 +4,7 @@ import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
-import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
+import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTValidationContext } from './types'
 import { validateTieBreakerScope } from './validateTieBreakerScope'
 
@@ -31,7 +31,7 @@ const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, 
 }
 
 const errorMessages = (errors: readonly Error[]): string[] =>
-  errors.map(error => (error as ForgeConfigurationReferenceScopeError).message)
+  errors.map(error => (error as ForgeReferenceScopeError).message)
 
 const createTieBreaker = (): ASTNode =>
   ASTTestFactory.expression<ASTNode>(ExpressionType.TIE_BREAKER).withProperty('priority', 1).build()

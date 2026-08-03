@@ -4,7 +4,7 @@ import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
-import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
+import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTValidationContext } from './types'
 import { validateStructureScope } from './validateStructureScope'
 
@@ -84,7 +84,7 @@ describe('validateStructureScope', () => {
     nodeIndex.register(stepNode.id, stepNode)
 
     // Act
-    const errors = validateStructureScope(createContext(nodeIndex)) as ForgeConfigurationReferenceScopeError[]
+    const errors = validateStructureScope(createContext(nodeIndex)) as ForgeReferenceScopeError[]
 
     // Assert
     expect(errors).toHaveLength(1)
@@ -102,7 +102,7 @@ describe('validateStructureScope', () => {
     nodeIndex.register(strayStepNode.id, strayStepNode)
 
     // Act
-    const errors = validateStructureScope(createContext(nodeIndex)) as ForgeConfigurationReferenceScopeError[]
+    const errors = validateStructureScope(createContext(nodeIndex)) as ForgeReferenceScopeError[]
 
     // Assert
     expect(errors).toHaveLength(1)
@@ -120,7 +120,7 @@ describe('validateStructureScope', () => {
     nodeIndex.register(strayJourneyNode.id, strayJourneyNode)
 
     // Act
-    const errors = validateStructureScope(createContext(nodeIndex)) as ForgeConfigurationReferenceScopeError[]
+    const errors = validateStructureScope(createContext(nodeIndex)) as ForgeReferenceScopeError[]
 
     // Assert
     expect(errors).toHaveLength(1)

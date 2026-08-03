@@ -1,16 +1,16 @@
 import { FunctionType, ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { FunctionASTNode, IterateASTNode } from '../../../contracts/ast/expressions.type'
-import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
+import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTNode } from '../../../contracts/ast/engine.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 
-function buildError(name: string, diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigurationReferenceScopeError {
+function buildError(name: string, diagnostics: ASTNodeDiagnostics | undefined): ForgeReferenceScopeError {
   const source = diagnostics?.source
 
-  return new ForgeConfigurationReferenceScopeError({
+  return new ForgeReferenceScopeError({
     message: `Effect "${name}" can only be used inside a hook (onAccess or onSubmission)`,
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,

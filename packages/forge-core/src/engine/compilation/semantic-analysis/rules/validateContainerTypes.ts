@@ -2,7 +2,7 @@ import { FunctionType, HookType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { AccessHookASTNode, SubmitHookASTNode } from '../../../contracts/ast/expressions.type'
 import type { StepASTNode, JourneyASTNode } from '../../../contracts/ast/structures.type'
-import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
+import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 
@@ -37,13 +37,10 @@ interface ContainerCheck {
   isValid: (value: unknown) => boolean
 }
 
-function buildError(
-  check: ContainerCheck,
-  diagnostics: ASTNodeDiagnostics | undefined,
-): ForgeConfigurationReferenceScopeError {
+function buildError(check: ContainerCheck, diagnostics: ASTNodeDiagnostics | undefined): ForgeReferenceScopeError {
   const source = diagnostics?.source
 
-  return new ForgeConfigurationReferenceScopeError({
+  return new ForgeReferenceScopeError({
     message: check.message,
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,

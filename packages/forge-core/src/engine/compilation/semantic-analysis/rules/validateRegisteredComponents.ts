@@ -2,15 +2,15 @@ import { ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import type { BlockASTNode } from '../../../contracts/ast/structures.type'
-import UnregisteredComponentError from '../../../errors/UnregisteredComponentError'
+import ForgeUnregisteredComponentError from '../../../errors/ForgeUnregisteredComponentError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 
-function buildError(variant: string, diagnostics: ASTNodeDiagnostics | undefined): UnregisteredComponentError {
+function buildError(variant: string, diagnostics: ASTNodeDiagnostics | undefined): ForgeUnregisteredComponentError {
   const source = diagnostics?.source
 
-  return new UnregisteredComponentError({
+  return new ForgeUnregisteredComponentError({
     formattedPath: source?.formattedPath ?? 'unknown',
     variant,
     callsite: diagnostics?.callsite,

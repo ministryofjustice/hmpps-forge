@@ -1,4 +1,4 @@
-import RegistryValidationError from '../errors/RegistryValidationError'
+import ForgeRegistryValidationError from '../errors/ForgeRegistryValidationError'
 import FunctionRegistry from './FunctionRegistry'
 
 describe('FunctionRegistry', () => {
@@ -48,7 +48,7 @@ describe('FunctionRegistry', () => {
       expect(registry.size()).toBe(0)
     })
 
-    it('should throw RegistryValidationError for missing name', () => {
+    it('should throw ForgeRegistryValidationError for missing name', () => {
       const invalidRegistry = {
         InvalidFunc: { evaluate: () => true } as any,
       }
@@ -60,15 +60,15 @@ describe('FunctionRegistry', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          expect(error.errors[0]).toBeInstanceOf(RegistryValidationError)
-          const valError = error.errors[0] as RegistryValidationError
+          expect(error.errors[0]).toBeInstanceOf(ForgeRegistryValidationError)
+          const valError = error.errors[0] as ForgeRegistryValidationError
           expect(valError.registryType).toBe('function')
           expect(valError.expected).toContain('name')
         }
       }
     })
 
-    it('should throw RegistryValidationError for entry without name', () => {
+    it('should throw ForgeRegistryValidationError for entry without name', () => {
       const invalidRegistry = {
         InvalidEntry: {} as any,
       }
@@ -76,7 +76,7 @@ describe('FunctionRegistry', () => {
       expect(() => registry.register(invalidRegistry)).toThrow(AggregateError)
     })
 
-    it('should throw RegistryValidationError for missing evaluate function', () => {
+    it('should throw ForgeRegistryValidationError for missing evaluate function', () => {
       const invalidRegistry = {
         TestFunc: {
           name: 'TestFunc',
@@ -88,15 +88,15 @@ describe('FunctionRegistry', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          expect(error.errors[0]).toBeInstanceOf(RegistryValidationError)
-          const valError = error.errors[0] as RegistryValidationError
+          expect(error.errors[0]).toBeInstanceOf(ForgeRegistryValidationError)
+          const valError = error.errors[0] as ForgeRegistryValidationError
           expect(valError.itemName).toBe('TestFunc')
           expect(valError.expected).toContain('evaluate function')
         }
       }
     })
 
-    it('should throw RegistryValidationError for non-function evaluate', () => {
+    it('should throw ForgeRegistryValidationError for non-function evaluate', () => {
       const invalidRegistry = {
         TestFunc: {
           name: 'TestFunc',
@@ -120,7 +120,7 @@ describe('FunctionRegistry', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           expect(error.errors).toHaveLength(3)
-          expect(error.errors.every(e => e instanceof RegistryValidationError)).toBe(true)
+          expect(error.errors.every(e => e instanceof ForgeRegistryValidationError)).toBe(true)
         }
       }
     })

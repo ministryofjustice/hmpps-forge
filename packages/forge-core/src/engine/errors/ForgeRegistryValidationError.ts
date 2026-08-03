@@ -1,6 +1,6 @@
 import ForgeBaseError from './ForgeBaseError'
 
-interface RegistryValidationErrorOptions {
+interface ForgeRegistryValidationErrorOptions {
   /** Type of registry (function or component) */
   registryType: 'function' | 'component'
   /** Name or variant of the item (if available) */
@@ -13,7 +13,7 @@ interface RegistryValidationErrorOptions {
   message: string
 }
 
-export default class RegistryValidationError extends ForgeBaseError {
+export default class ForgeRegistryValidationError extends ForgeBaseError {
   readonly registryType: 'function' | 'component'
 
   readonly itemName?: string
@@ -22,7 +22,7 @@ export default class RegistryValidationError extends ForgeBaseError {
 
   readonly received?: string
 
-  constructor(options: RegistryValidationErrorOptions) {
+  constructor(options: ForgeRegistryValidationErrorOptions) {
     super(options.message)
     this.registryType = options.registryType
     this.itemName = options.itemName

@@ -13,18 +13,18 @@ single `instanceof ForgeBaseError` check answers "did Forge throw this".
 
 | Error | Thrown when |
 |-------|------------|
-| [`ForgeConfigurationSchemaError`](./ForgeConfigurationSchemaError.ts) | An authored definition fails Zod schema validation |
-| [`ForgeConfigurationReferenceScopeError`](./ForgeConfigurationReferenceScopeError.ts) | A reference (e.g. `Answer()`, `Params()`) is used in a scope where its data source isn't available |
-| [`ForgeConfigurationSerialisationError`](./ForgeConfigurationSerialisationError.ts) | The authored input can't be serialised into a valid journey |
+| [`ForgeSchemaError`](./ForgeSchemaError.ts) | An authored definition fails Zod schema validation |
+| [`ForgeReferenceScopeError`](./ForgeReferenceScopeError.ts) | A reference (e.g. `Answer()`, `Params()`) is used in a scope where its data source isn't available |
+| [`ForgeSerialisationError`](./ForgeSerialisationError.ts) | The authored input can't be serialised into a valid journey |
 | [`ForgeCompilationError`](./ForgeCompilationError.ts) | Generated source can't be compiled into a function during codegen (`new Function`) |
 | [`ForgeRuntimeEvaluationError`](./ForgeRuntimeEvaluationError.ts) | A compiled function throws at request time and carries diagnostic context such as node id and DSL path |
-| [`InvalidNodeError`](./InvalidNodeError.ts) | An AST node has an unexpected shape or missing properties |
-| [`UnknownNodeTypeError`](./UnknownNodeTypeError.ts) | `NodeFactory` encounters a type the creator table has no row for |
-| [`DuplicateRouteError`](./DuplicateRouteError.ts) | Two steps or journeys declare the same route path |
-| [`RegistryDuplicateError`](./RegistryDuplicateError.ts) | A function or component is registered with a name that already exists |
-| [`RegistryValidationError`](./RegistryValidationError.ts) | A registry entry is malformed (e.g. missing `evaluate` or `variant`) |
-| [`UnregisteredComponentError`](./UnregisteredComponentError.ts) | A block references a component variant that isn't in the registry |
-| [`UnregisteredFunctionError`](./UnregisteredFunctionError.ts) | An expression references a function name that isn't in the registry |
+| [`ForgeInvalidNodeError`](./ForgeInvalidNodeError.ts) | An AST node has an unexpected shape or missing properties |
+| [`ForgeUnknownNodeTypeError`](./ForgeUnknownNodeTypeError.ts) | `NodeFactory` encounters a type the creator table has no row for |
+| [`ForgeDuplicateRouteError`](./ForgeDuplicateRouteError.ts) | Two steps or journeys declare the same route path |
+| [`ForgeRegistryDuplicateError`](./ForgeRegistryDuplicateError.ts) | A function or component is registered with a name that already exists |
+| [`ForgeRegistryValidationError`](./ForgeRegistryValidationError.ts) | A registry entry is malformed (e.g. missing `evaluate` or `variant`) |
+| [`ForgeUnregisteredComponentError`](./ForgeUnregisteredComponentError.ts) | A block references a component variant that isn't in the registry |
+| [`ForgeUnregisteredFunctionError`](./ForgeUnregisteredFunctionError.ts) | An expression references a function name that isn't in the registry |
 | [`ForgeRegistrationError`](./ForgeRegistrationError.ts) | Package registration fails while `strictRegistration` is enabled |
 
 Most engine errors keep their native stack traces. Runtime evaluation errors are

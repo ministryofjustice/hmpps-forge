@@ -1,6 +1,6 @@
 import ForgeBaseError from './ForgeBaseError'
 
-interface InvalidNodeErrorOptions {
+interface ForgeInvalidNodeErrorOptions {
   /** Specific validation failure message */
   message: string
   /** The invalid node */
@@ -15,14 +15,14 @@ interface InvalidNodeErrorOptions {
   callsite?: { readonly stack?: string }
 }
 
-export default class InvalidNodeError extends ForgeBaseError {
+export default class ForgeInvalidNodeError extends ForgeBaseError {
   readonly node?: any
 
   readonly expected?: string
 
   readonly actual?: string
 
-  constructor(options: InvalidNodeErrorOptions) {
+  constructor(options: ForgeInvalidNodeErrorOptions) {
     let { message } = options
 
     if (options.expected && options.actual) {

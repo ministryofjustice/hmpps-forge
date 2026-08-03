@@ -1,5 +1,5 @@
-import UnknownNodeTypeError from '../../../errors/UnknownNodeTypeError'
-import InvalidNodeError from '../../../errors/InvalidNodeError'
+import ForgeUnknownNodeTypeError from '../../../errors/ForgeUnknownNodeTypeError'
+import ForgeInvalidNodeError from '../../../errors/ForgeInvalidNodeError'
 import type { ASTNode, AstNodeId } from '../../../contracts/ast/engine.type'
 import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
 import type { TemplateValue } from '../../../contracts/ast/template.type'
@@ -66,7 +66,7 @@ const notConstructible =
   (json: unknown, ctx: NodeBuildContext) => {
     const diagnostics = ctx.diagnosticsFor(json)
 
-    throw new InvalidNodeError({
+    throw new ForgeInvalidNodeError({
       message: reason,
       node: json,
       actual: (json as { type?: string }).type,
@@ -96,7 +96,7 @@ const INLINE_ONLY_TYPES: ReadonlySet<string> = new Set([
  * unique and one flat map covers every node family.
  *
  * This map is the single source for dispatch (`createNode`), node detection
- * (`isNode`), and the valid-types list in `UnknownNodeTypeError` - the list
+ * (`isNode`), and the valid-types list in `ForgeUnknownNodeTypeError` - the list
  * minus the `INLINE_ONLY_TYPES` rows. Adding a node type means adding a
  * creator and a row here; the completeness test in `NodeFactory.test.ts`
  * fails if an enum value has no row.
@@ -183,7 +183,7 @@ export class NodeFactory {
    */
   createNode(json: unknown): ASTNode {
     if (!json || typeof json !== 'object') {
-      throw new InvalidNodeError({
+      throw new ForgeInvalidNodeError({
         message: `Invalid node: expected object, got ${typeof json}`,
         node: json,
         expected: 'object',
@@ -197,7 +197,7 @@ export class NodeFactory {
     if (!create) {
       const diagnostics = this.diagnosticsFor(json)
 
-      throw new UnknownNodeTypeError({
+      throw new ForgeUnknownNodeTypeError({
         nodeType,
         node: json,
         validTypes: [...creatorsByType.keys()].filter(type => !INLINE_ONLY_TYPES.has(type)),

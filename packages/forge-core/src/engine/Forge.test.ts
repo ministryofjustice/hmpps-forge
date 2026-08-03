@@ -281,7 +281,7 @@ describe('Forge', () => {
     it('should throw formatted registration errors for aggregate failures', () => {
       // Arrange
       const schemaError = Object.assign(new Error('Invalid input: expected "HookType.Access"'), {
-        name: 'ForgeConfigurationSchemaError',
+        name: 'ForgeSchemaError',
         formattedPath: 'guide > onAccess[1] > type',
         code: 'invalid_value',
       })

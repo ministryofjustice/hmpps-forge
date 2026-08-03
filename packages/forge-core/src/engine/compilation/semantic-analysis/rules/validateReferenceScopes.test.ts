@@ -5,7 +5,7 @@ import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
-import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
+import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTValidationContext } from './types'
 import { validateReferenceScopes } from './validateReferenceScopes'
 
@@ -31,9 +31,9 @@ const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, 
   }
 }
 
-const scopeErrors = (errors: readonly Error[]): ForgeConfigurationReferenceScopeError[] =>
-  errors.filter((error): error is ForgeConfigurationReferenceScopeError => {
-    return error instanceof ForgeConfigurationReferenceScopeError
+const scopeErrors = (errors: readonly Error[]): ForgeReferenceScopeError[] =>
+  errors.filter((error): error is ForgeReferenceScopeError => {
+    return error instanceof ForgeReferenceScopeError
   })
 
 describe('validateReferenceScopes', () => {
