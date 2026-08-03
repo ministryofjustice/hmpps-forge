@@ -104,6 +104,20 @@ describe('NodeFactory', () => {
       )
     })
 
+    it('should throw a placement error when a stray iterator config is nested inside an otherwise-valid node', () => {
+      // Arrange
+      const json = {
+        type: StructureType.BLOCK,
+        variant: 'test-block',
+        someProperty: { type: IteratorType.MAP },
+      }
+
+      // Act & Assert
+      expect(() => nodeFactory.createNode(json)).toThrow(
+        'Iterator configurations can only appear inside the iterator of an Iterate expression',
+      )
+    })
+
     it('should throw UnknownNodeTypeError when the type string is unrecognised', () => {
       // Arrange
       const json = { type: 'NoSuchType.Bogus' }
@@ -119,5 +133,23 @@ describe('NodeFactory', () => {
       // Act & Assert
       expect(() => nodeFactory.createNode(json)).toThrow(UnknownNodeTypeError)
     })
+
+    it('should exclude the inline-only types from the valid-types list', () => {
+      // Arrange
+      const inlineOnlyTypes: string[] = [...Object.values(ConditionCombinatorType), ...Object.values(IteratorType)]
+
+      // Act
+      let validTypes: string[] = []
+      try {
+        nodeFactory.createNode({ type: 'NoSuchType.Bogus' })
+      } catch (error) {
+        validTypes = (error as UnknownNodeTypeError).validTypes ?? []
+      }
+
+      // Assert
+      expect(validTypes).toContain(StructureType.JOURNEY)
+      expect(validTypes.filter(type => inlineOnlyTypes.includes(type))).toEqual([])
+    })
   })
+
 })

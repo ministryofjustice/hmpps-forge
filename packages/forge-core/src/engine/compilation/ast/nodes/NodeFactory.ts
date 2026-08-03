@@ -75,15 +75,27 @@ const COMBINATOR_PLACEMENT = 'Condition combinators can only appear inside a mat
 const ITERATOR_PLACEMENT = 'Iterator configurations can only appear inside the iterator of an Iterate expression'
 
 /**
+ * The discriminants of the inline-only types. Anything carrying one of these
+ * strings outside its one legal spot throws the placement error - even a
+ * coincidental data object - but the valid-types list must not advertise them
+ * as constructible.
+ */
+const INLINE_ONLY_TYPES: ReadonlySet<string> = new Set([
+  ...Object.values(ConditionCombinatorType),
+  ...Object.values(IteratorType),
+])
+
+/**
  * The complete registry of every `type` discriminant the DSL can emit - one
  * row per enum value. Discriminant values are namespaced strings
  * ('StructureType.Journey', 'PredicateType.And', ...), so they are globally
  * unique and one flat map covers every node family.
  *
  * This map is the single source for dispatch (`createNode`), node detection
- * (`isNode`), and the valid-types list in `UnknownNodeTypeError`. Adding a
- * node type means adding a creator and a row here; the completeness test in
- * `NodeFactory.test.ts` fails if an enum value has no row.
+ * (`isNode`), and the valid-types list in `UnknownNodeTypeError` - the list
+ * minus the `INLINE_ONLY_TYPES` rows. Adding a node type means adding a
+ * creator and a row here; the completeness test in `NodeFactory.test.ts`
+ * fails if an enum value has no row.
  *
  * `ExpressionType.NEXT` is deliberately absent: nothing in the authoring
  * surface produces it and no factory ever created it (its `NextASTNode`
@@ -182,7 +194,7 @@ export class NodeFactory {
       throw new UnknownNodeTypeError({
         nodeType,
         node: json,
-        validTypes: [...creatorsByType.keys()],
+        validTypes: [...creatorsByType.keys()].filter(type => !INLINE_ONLY_TYPES.has(type)),
       })
     }
 
@@ -271,7 +283,9 @@ export class NodeFactory {
 
   /**
    * Node detection: Identifies objects that are AST nodes
-   * An object is a node when its `type` discriminant has a creator
+   * An object is a node when its `type` discriminant has a creator - the
+   * inline-only rows included, so a stray combinator or iterator config in a
+   * data position surfaces its placement error rather than passing as data.
    */
   private isNode(value: object): boolean {
     const nodeType = this.getNodeType(value)
