@@ -2,7 +2,6 @@ import type { BlockDefinition } from '../../components/types/structures.type'
 import RegistryDuplicateError from '../errors/RegistryDuplicateError'
 import RegistryValidationError from '../errors/RegistryValidationError'
 import { ComponentRegistryEntry } from '../../components/types/components.type'
-import { coreComponents } from '../../built-ins/components'
 
 /**
  * Registry for managing UI components in forge.
@@ -60,10 +59,6 @@ export default class ComponentRegistry {
     if (errors.length > 0) {
       throw new AggregateError(errors, 'Component registration failed')
     }
-  }
-
-  registerBuiltInComponents() {
-    this.registerMany([...coreComponents])
   }
 
   /**

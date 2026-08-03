@@ -1,6 +1,10 @@
 import type { MockInstance } from 'vitest'
 import { buildComponent } from '../components/utils/buildComponent'
 import { createForgePackage } from '../authoring/builders'
+import { ConditionsRegistry } from '../built-ins/functions/conditions'
+import { GeneratorsRegistry } from '../built-ins/functions/generators'
+import { TransformersRegistry } from '../built-ins/functions/transformers'
+import { coreComponents } from '../built-ins/components'
 import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import MountRegistry from './registries/MountRegistry'
@@ -108,8 +112,8 @@ describe('Forge', () => {
       const mockComponentRegistry = (ComponentRegistry as MockedClass<typeof ComponentRegistry>).mock.instances[0]
       const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
 
-      expect(mockFunctionRegistry.registerBuiltInFunctions).not.toHaveBeenCalled()
-      expect(mockComponentRegistry.registerBuiltInComponents).not.toHaveBeenCalled()
+      expect(mockFunctionRegistry.register).not.toHaveBeenCalled()
+      expect(mockComponentRegistry.registerMany).not.toHaveBeenCalled()
     })
 
     it('should register built-in functions and components by default', () => {
@@ -119,8 +123,10 @@ describe('Forge', () => {
       const mockComponentRegistry = (ComponentRegistry as MockedClass<typeof ComponentRegistry>).mock.instances[0]
       const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
 
-      expect(mockFunctionRegistry.registerBuiltInFunctions).toHaveBeenCalledTimes(1)
-      expect(mockComponentRegistry.registerBuiltInComponents).toHaveBeenCalledTimes(1)
+      expect(mockFunctionRegistry.register).toHaveBeenCalledWith(ConditionsRegistry)
+      expect(mockFunctionRegistry.register).toHaveBeenCalledWith(TransformersRegistry)
+      expect(mockFunctionRegistry.register).toHaveBeenCalledWith(GeneratorsRegistry)
+      expect(mockComponentRegistry.registerMany).toHaveBeenCalledWith([...coreComponents])
     })
 
     it('should use custom logger when provided', () => {

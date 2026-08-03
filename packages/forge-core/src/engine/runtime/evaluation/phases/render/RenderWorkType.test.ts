@@ -4,6 +4,7 @@ import { buildComponent } from '../../../../../components/utils/buildComponent'
 import type { BlockDefinition, EvaluatedBlock } from '../../../../../components/types/structures.type'
 import type { ForgeRenderer, RenderBlock, RenderContext } from '../../../../../framework/rendering/types'
 import ComponentRegistry from '../../../../registries/ComponentRegistry'
+import { coreComponents } from '../../../../../built-ins/components'
 import { RENDER_BLOCK_BRAND } from '../../../../contracts/compiled/renderBlock.brand'
 import WorkContext from '../../work/WorkContext'
 import WorkExecutor from '../../work/WorkExecutor'
@@ -252,7 +253,7 @@ describe('Render work handlers', () => {
       assemblePage: (_context, renderedBlocks) => renderedBlocks.join(''),
     }
     const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerBuiltInComponents()
+    componentRegistry.registerMany([...coreComponents])
     componentRegistry.registerMany([buildComponent('child', block => `<p>${(block as { text?: string }).text}</p>`)])
     const fragment = createRenderBlock('fragment', {
       blocks: [
