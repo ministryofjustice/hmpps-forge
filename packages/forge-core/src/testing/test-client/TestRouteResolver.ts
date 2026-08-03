@@ -1,6 +1,6 @@
 import type { ForgeRoute, ForgeTopology } from '../../framework/types/topology.type'
 import type { HttpMethod } from '../../framework/types/request.type'
-import { extractPathname } from '../../framework/path/routePath'
+import { extractPathname } from '../extractPathname'
 
 export interface ResolvedRoute {
   readonly route: ForgeRoute

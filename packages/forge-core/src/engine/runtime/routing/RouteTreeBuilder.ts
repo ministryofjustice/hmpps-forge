@@ -4,7 +4,7 @@ import type {
   StepRouteDescriptor,
 } from '../../contracts/routing/routeDescriptors.type'
 import type { NodeId } from '../../contracts/ast/ast.type'
-import { joinPaths } from '../../../framework/path/routePath'
+import { joinPaths } from '../../../shared/utils/routePath'
 import DuplicateRouteError from '../../errors/DuplicateRouteError'
 import {
   JourneyRouteContext,

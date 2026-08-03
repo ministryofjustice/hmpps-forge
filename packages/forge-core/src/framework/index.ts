@@ -21,11 +21,3 @@ export { RENDER_BLOCK_BRAND } from '../engine/contracts/compiled/renderBlock.bra
 export type { AstNodeId, NodeId } from '../engine/contracts/ast/ast.type'
 export type { HttpMethod } from './types/request.type'
 export type { ValidationResult } from '../engine/contracts/runtime/validationResult.type'
-export {
-  extractPathname,
-  joinPaths,
-  normalizeBasePath,
-  normalizeRelativePath,
-  resolveMountedPath,
-  resolvePathParams,
-} from './path/routePath'

@@ -1,7 +1,7 @@
 import type { ReachabilityEvaluation } from '../../../contracts/reachability/reachabilityEvaluation.type'
 import type { StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
 import type { ValidationResult } from '../../../contracts/runtime/validationResult.type'
-import { resolvePathParams } from '../../../../framework/path/routePath'
+import { resolvePathParams } from '../../../../shared/utils/routePath'
 import type { RenderContext } from '../../../../framework/rendering/types'
 import type { ViewConfig } from '../../../../authoring/types/structures.type'
 import { buildCompiledResolveContext } from '../context/compiledEvaluationContext'
