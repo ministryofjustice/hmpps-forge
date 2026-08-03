@@ -33,29 +33,41 @@ export function createJourneyNode(json: JourneyDefinition, ctx: NodeBuildContext
   }
 
   if (dataProperties.code === undefined) {
+    const diagnostics = ctx.diagnosticsFor(json)
+
     throw new InvalidNodeError({
       message: 'Journey requires a code property',
       node: json,
       expected: 'code property',
       actual: 'undefined',
+      formattedPath: diagnostics?.source.formattedPath,
+      callsite: diagnostics?.callsite,
     })
   }
 
   if (dataProperties.path === undefined) {
+    const diagnostics = ctx.diagnosticsFor(json)
+
     throw new InvalidNodeError({
       message: 'Journey requires a path property',
       node: json,
       expected: 'path property',
       actual: 'undefined',
+      formattedPath: diagnostics?.source.formattedPath,
+      callsite: diagnostics?.callsite,
     })
   }
 
   if (dataProperties.title === undefined) {
+    const diagnostics = ctx.diagnosticsFor(json)
+
     throw new InvalidNodeError({
       message: 'Journey requires a title property',
       node: json,
       expected: 'title property',
       actual: 'undefined',
+      formattedPath: diagnostics?.source.formattedPath,
+      callsite: diagnostics?.callsite,
     })
   }
 
@@ -129,20 +141,28 @@ export function createStepNode(json: StepDefinition, ctx: NodeBuildContext): Ste
   }
 
   if (dataProperties.path === undefined) {
+    const diagnostics = ctx.diagnosticsFor(json)
+
     throw new InvalidNodeError({
       message: 'Step requires a path property',
       node: json,
       expected: 'path property',
       actual: 'undefined',
+      formattedPath: diagnostics?.source.formattedPath,
+      callsite: diagnostics?.callsite,
     })
   }
 
   if (dataProperties.title === undefined) {
+    const diagnostics = ctx.diagnosticsFor(json)
+
     throw new InvalidNodeError({
       message: 'Step requires a title property',
       node: json,
       expected: 'title property',
       actual: 'undefined',
+      formattedPath: diagnostics?.source.formattedPath,
+      callsite: diagnostics?.callsite,
     })
   }
 
@@ -266,11 +286,15 @@ function createFieldBlock(json: FieldBlockDefinition, ctx: NodeBuildContext): Fi
   const { variant, type, ...dataProperties } = json
 
   if (dataProperties.code === undefined) {
+    const diagnostics = ctx.diagnosticsFor(json)
+
     throw new InvalidNodeError({
       message: 'Field block requires a code property',
       node: json,
       expected: 'code property',
       actual: 'undefined',
+      formattedPath: diagnostics?.source.formattedPath,
+      callsite: diagnostics?.callsite,
     })
   }
 

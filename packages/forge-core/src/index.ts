@@ -4,6 +4,7 @@ export { default as ComponentRegistry } from './engine/registries/ComponentRegis
 export { default as EffectFunctionContext } from './engine/runtime/evaluation/context/EffectFunctionContext'
 export { isRenderBlock } from './engine/runtime/evaluation/phases/resolve/typeguards'
 export { RENDER_BLOCK_BRAND } from './engine/contracts/compiled/renderBlock.brand'
+export { default as ForgeBaseError } from './engine/errors/ForgeBaseError'
 export { default as DuplicateRouteError } from './engine/errors/DuplicateRouteError'
 export { default as ForgeCompilationError } from './engine/errors/ForgeCompilationError'
 export { default as ForgeConfigurationReferenceScopeError } from './engine/errors/ForgeConfigurationReferenceScopeError'

@@ -13,7 +13,6 @@ function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigura
   const source = diagnostics?.source
 
   return new ForgeConfigurationReferenceScopeError({
-    path: source?.path ? [...source.path] : [],
     message: 'Validation rules can only be used inside validWhen on a field block or step',
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,

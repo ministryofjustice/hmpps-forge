@@ -121,12 +121,16 @@ export default class NodeRegistrationWalker {
     if (!containingField) {
       throw new InvalidNodeError({
         message: 'Self() reference used outside of a field block',
+        formattedPath: node.diagnostics?.source.formattedPath,
+        callsite: node.diagnostics?.callsite,
       })
     }
 
     if (codeOwnerFieldId === containingField.id) {
       throw new InvalidNodeError({
         message: "Self() cannot be used within the field's code expression",
+        formattedPath: node.diagnostics?.source.formattedPath,
+        callsite: node.diagnostics?.callsite,
       })
     }
 
@@ -135,6 +139,8 @@ export default class NodeRegistrationWalker {
     if (codeValue === undefined) {
       throw new InvalidNodeError({
         message: 'Containing field has no code to resolve Self()',
+        formattedPath: node.diagnostics?.source.formattedPath,
+        callsite: node.diagnostics?.callsite,
       })
     }
 

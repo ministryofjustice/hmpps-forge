@@ -25,7 +25,6 @@ function createError(
   const source = diagnostics?.source
 
   return new ForgeConfigurationReferenceScopeError({
-    path: source?.path ? [...source.path] : [],
     message,
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,

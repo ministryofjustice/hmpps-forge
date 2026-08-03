@@ -63,7 +63,6 @@ function buildError(
   const source = diagnostics?.source
 
   return new FunctionArityError({
-    path: source?.path ? [...source.path] : [],
     formattedPath: source?.formattedPath ?? 'unknown',
     functionName: name,
     functionType,

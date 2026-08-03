@@ -16,7 +16,6 @@ function buildError(
   const source = diagnostics?.source
 
   return new UnregisteredFunctionError({
-    path: source?.path ? [...source.path] : [],
     formattedPath: source?.formattedPath ?? 'unknown',
     functionName: name,
     functionType,

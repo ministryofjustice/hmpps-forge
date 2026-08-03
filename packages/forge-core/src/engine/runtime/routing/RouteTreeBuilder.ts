@@ -160,7 +160,7 @@ export default class RouteTreeBuilder {
       const isStepOverridingJourney = node.route.kind === 'journey' && route.kind === 'step'
 
       if (!isStepOverridingJourney) {
-        throw new DuplicateRouteError({ path: templatePath })
+        throw new DuplicateRouteError({ routePath: templatePath })
       }
     }
 

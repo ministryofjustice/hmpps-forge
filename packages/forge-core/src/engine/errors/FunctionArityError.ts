@@ -1,6 +1,6 @@
+import ForgeBaseError from './ForgeBaseError'
+
 interface FunctionArityErrorOptions {
-  /** Path to the function reference in the journey configuration */
-  path: (string | number)[]
   /** Name of the function whose arity is wrong */
   functionName: string
   /** Type of the function (e.g. FunctionType.Condition) */
@@ -15,9 +15,7 @@ interface FunctionArityErrorOptions {
   callsite?: { readonly stack?: string }
 }
 
-export default class FunctionArityError extends Error {
-  readonly path: (string | number)[]
-
+export default class FunctionArityError extends ForgeBaseError {
   readonly functionName: string
 
   readonly functionType: string
@@ -26,21 +24,14 @@ export default class FunctionArityError extends Error {
 
   readonly received: number
 
-  readonly formattedPath?: string
-
-  readonly callsite?: { readonly stack?: string }
-
   constructor(options: FunctionArityErrorOptions) {
     super(
       `Function "${options.functionName}" expects ${options.expected} ${options.expected === '1' ? 'argument' : 'arguments'} but received ${options.received}`,
+      options,
     )
-    this.name = new.target.name
-    this.path = options.path
     this.functionName = options.functionName
     this.functionType = options.functionType
     this.expected = options.expected
     this.received = options.received
-    this.formattedPath = options.formattedPath
-    this.callsite = options.callsite
   }
 }

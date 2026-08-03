@@ -167,11 +167,15 @@ export function createPipelineNode(json: PipelineExpr, ctx: NodeBuildContext): P
  */
 export function createConditionalNode(json: ConditionalExpr, ctx: NodeBuildContext): ConditionalASTNode {
   if (!json.predicate) {
+    const diagnostics = ctx.diagnosticsFor(json)
+
     throw new InvalidNodeError({
       message: 'Conditional expression requires a predicate',
       node: json,
       expected: 'predicate property',
       actual: 'undefined',
+      formattedPath: diagnostics?.source.formattedPath,
+      callsite: diagnostics?.callsite,
     })
   }
 
@@ -336,20 +340,28 @@ const LOGICAL_PREDICATE_TYPES = {
 export function createMatchNode(json: MatchExpr, ctx: NodeBuildContext): MatchASTNode {
   // Only undefined means missing - 0, '' and false are legal literal subjects
   if (json.subject === undefined) {
+    const diagnostics = ctx.diagnosticsFor(json)
+
     throw new InvalidNodeError({
       message: 'Match expression requires a subject',
       node: json,
       expected: 'subject property',
       actual: 'undefined',
+      formattedPath: diagnostics?.source.formattedPath,
+      callsite: diagnostics?.callsite,
     })
   }
 
   if (!json.branches || json.branches.length === 0) {
+    const diagnostics = ctx.diagnosticsFor(json)
+
     throw new InvalidNodeError({
       message: 'Match expression requires at least one branch',
       node: json,
       expected: 'non-empty branches array',
       actual: json.branches ? 'empty array' : 'undefined',
+      formattedPath: diagnostics?.source.formattedPath,
+      callsite: diagnostics?.callsite,
     })
   }
 

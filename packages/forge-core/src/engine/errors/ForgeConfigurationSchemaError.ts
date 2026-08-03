@@ -1,6 +1,6 @@
+import ForgeBaseError from './ForgeBaseError'
+
 interface ForgeConfigurationSchemaErrorOptions {
-  /** Path to the invalid field */
-  path: (string | number)[]
   /** Human-readable error message */
   message: string
   /** Expected value type/format */
@@ -11,22 +11,11 @@ interface ForgeConfigurationSchemaErrorOptions {
   callsite?: { readonly stack?: string }
 }
 
-export default class ForgeConfigurationSchemaError extends Error {
+export default class ForgeConfigurationSchemaError extends ForgeBaseError {
   readonly expected?: string
 
-  readonly path: (string | number)[]
-
-  readonly formattedPath?: string
-
-  readonly callsite?: { readonly stack?: string }
-
   constructor(options: ForgeConfigurationSchemaErrorOptions) {
-    super(options.message)
-    this.name = new.target.name
-    this.message = options.message
-    this.path = options.path
+    super(options.message, options)
     this.expected = options.expected
-    this.formattedPath = options.formattedPath
-    this.callsite = options.callsite
   }
 }

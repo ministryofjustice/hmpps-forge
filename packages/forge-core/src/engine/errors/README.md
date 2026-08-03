@@ -5,6 +5,12 @@ failure mode, and every class is exported from the package root, so callers can
 `instanceof` their way from configuration problems to runtime evaluation
 failures without parsing message strings.
 
+Every class extends [`ForgeBaseError`](./ForgeBaseError.ts), which owns the
+shared diagnostic fields (`formattedPath` - the human-readable path through the
+journey DSL - and `callsite` - the captured author callsite), stamps `name`
+from the concrete class, and trims constructor frames off the stack trace. A
+single `instanceof ForgeBaseError` check answers "did Forge throw this".
+
 | Error | Thrown when |
 |-------|------------|
 | [`ForgeConfigurationSchemaError`](./ForgeConfigurationSchemaError.ts) | An authored definition fails Zod schema validation |

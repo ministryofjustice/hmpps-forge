@@ -11,7 +11,6 @@ function buildError(variant: string, diagnostics: ASTNodeDiagnostics | undefined
   const source = diagnostics?.source
 
   return new UnregisteredComponentError({
-    path: source?.path ? [...source.path] : [],
     formattedPath: source?.formattedPath ?? 'unknown',
     variant,
     callsite: diagnostics?.callsite,

@@ -63,11 +63,15 @@ export type NodeCreator<TIn = any> = (json: TIn, ctx: NodeBuildContext) => ASTNo
  */
 const notConstructible =
   (reason: string): NodeCreator =>
-  (json: unknown) => {
+  (json: unknown, ctx: NodeBuildContext) => {
+    const diagnostics = ctx.diagnosticsFor(json)
+
     throw new InvalidNodeError({
       message: reason,
       node: json,
       actual: (json as { type?: string }).type,
+      formattedPath: diagnostics?.source.formattedPath,
+      callsite: diagnostics?.callsite,
     })
   }
 
@@ -191,10 +195,14 @@ export class NodeFactory {
     const create = nodeType === undefined ? undefined : creatorsByType.get(nodeType)
 
     if (!create) {
+      const diagnostics = this.diagnosticsFor(json)
+
       throw new UnknownNodeTypeError({
         nodeType,
         node: json,
         validTypes: [...creatorsByType.keys()].filter(type => !INLINE_ONLY_TYPES.has(type)),
+        formattedPath: diagnostics?.source.formattedPath,
+        callsite: diagnostics?.callsite,
       })
     }
 

@@ -1,18 +1,20 @@
+import ForgeBaseError from './ForgeBaseError'
+
 interface UnknownNodeTypeErrorOptions {
   /** The unknown type encountered */
   nodeType?: string
-  /** Path to the node (optional) */
-  path?: (string | number)[]
   /** The actual node object */
   node?: any
   /** List of valid types (for helpful error messages) */
   validTypes?: string[]
+  /** Human-readable path through the journey DSL */
+  formattedPath?: string
+  /** Author callsite captured where the offending node was defined */
+  callsite?: { readonly stack?: string }
 }
 
-export default class UnknownNodeTypeError extends Error {
+export default class UnknownNodeTypeError extends ForgeBaseError {
   readonly nodeType?: string
-
-  readonly path?: (string | number)[]
 
   readonly node?: any
 
@@ -34,20 +36,13 @@ export default class UnknownNodeTypeError extends Error {
       message += ` (found ${typeof options.node}: ${JSON.stringify(options.node).slice(0, 50)})`
     }
 
-    if (options.path && options.path.length > 0) {
-      message += ` at path: ${options.path.join('.')}`
+    if (options.formattedPath) {
+      message += ` at ${options.formattedPath}`
     }
 
-    super(message)
-    this.name = new.target.name
-    this.message = message
+    super(message, options)
     this.nodeType = options.nodeType
-    this.path = options.path
     this.node = options.node
     this.validTypes = options.validTypes
-
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, new.target)
-    }
   }
 }

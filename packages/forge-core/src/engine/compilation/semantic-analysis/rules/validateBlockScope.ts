@@ -8,7 +8,6 @@ function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigura
   const source = diagnostics?.source
 
   return new ForgeConfigurationReferenceScopeError({
-    path: source?.path ? [...source.path] : [],
     message: 'Blocks can only be defined in a step blocks array or nested within another block',
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,

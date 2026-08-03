@@ -1,23 +1,18 @@
-import type { DSLPathSegment } from '../../shared/diagnostics/sourceLocation.type'
+import ForgeBaseError from './ForgeBaseError'
 
 interface ForgeCompilationErrorOptions {
   readonly phase: string
   readonly cause: unknown
   readonly nodeId?: string
-  readonly path?: readonly DSLPathSegment[]
   readonly formattedPath?: string
   readonly functionName?: string
   readonly functionType?: string
 }
 
-export default class ForgeCompilationError extends Error {
+export default class ForgeCompilationError extends ForgeBaseError {
   readonly phase: string
 
   readonly nodeId?: string
-
-  readonly path?: readonly DSLPathSegment[]
-
-  readonly formattedPath?: string
 
   readonly functionName?: string
 
@@ -26,12 +21,9 @@ export default class ForgeCompilationError extends Error {
   readonly cause: unknown
 
   constructor(options: ForgeCompilationErrorOptions) {
-    super(`Failed to compile generated Forge ${options.phase} function`)
-    this.name = new.target.name
+    super(`Failed to compile generated Forge ${options.phase} function`, options)
     this.phase = options.phase
     this.nodeId = options.nodeId
-    this.path = options.path
-    this.formattedPath = options.formattedPath
     this.functionName = options.functionName
     this.functionType = options.functionType
     this.cause = options.cause

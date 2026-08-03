@@ -4,7 +4,6 @@ interface DiagnosticError {
   readonly name?: unknown
   readonly message?: unknown
   readonly formattedPath?: unknown
-  readonly path?: unknown
   readonly expected?: unknown
   readonly functionName?: unknown
   readonly functionType?: unknown
@@ -58,13 +57,9 @@ export default class RegistrationErrorFormatter {
       return []
     }
 
-    const path =
-      RegistrationErrorFormatter.formatValue(diagnostic.formattedPath) ??
-      RegistrationErrorFormatter.formatPath(diagnostic.path)
-
     const fields = [
       { label: 'Phase', value: RegistrationErrorFormatter.formatValue(diagnostic.phase) },
-      { label: 'Path', value: path },
+      { label: 'Path', value: RegistrationErrorFormatter.formatValue(diagnostic.formattedPath) },
       { label: 'Node', value: RegistrationErrorFormatter.formatValue(diagnostic.nodeId) },
       { label: 'Expected', value: RegistrationErrorFormatter.formatValue(diagnostic.expected) },
       { label: 'Function', value: RegistrationErrorFormatter.formatValue(diagnostic.functionName) },
@@ -89,14 +84,6 @@ export default class RegistrationErrorFormatter {
 
   private static formatCallsiteValue(callsite: { readonly stack?: string } | undefined): string | undefined {
     return typeof callsite?.stack === 'string' ? formatCallsite(callsite) : undefined
-  }
-
-  private static formatPath(value: unknown): string | undefined {
-    if (Array.isArray(value)) {
-      return value.length > 0 ? value.map(pathPart => String(pathPart)).join('.') : 'root'
-    }
-
-    return RegistrationErrorFormatter.formatValue(value)
   }
 
   private static formatValue(value: unknown): string | undefined {

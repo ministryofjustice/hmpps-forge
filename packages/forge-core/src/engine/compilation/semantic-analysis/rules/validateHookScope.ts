@@ -11,7 +11,6 @@ function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigura
   const source = diagnostics?.source
 
   return new ForgeConfigurationReferenceScopeError({
-    path: source?.path ? [...source.path] : [],
     message: 'Hooks can only be defined in onAccess (steps, journeys) or onSubmission (steps) arrays',
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,

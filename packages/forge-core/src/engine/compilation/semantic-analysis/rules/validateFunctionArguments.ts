@@ -14,7 +14,6 @@ function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigura
   const source = diagnostics?.source
 
   return new ForgeConfigurationReferenceScopeError({
-    path: source?.path ? [...source.path] : [],
     message: 'Block definitions cannot be used as function arguments',
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,

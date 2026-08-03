@@ -1,3 +1,5 @@
+import ForgeBaseError from './ForgeBaseError'
+
 interface RegistryDuplicateErrorOptions {
   /** Type of registry (function or component) */
   registryType: 'function' | 'component'
@@ -7,14 +9,13 @@ interface RegistryDuplicateErrorOptions {
   message?: string
 }
 
-export default class RegistryDuplicateError extends Error {
+export default class RegistryDuplicateError extends ForgeBaseError {
   readonly registryType: 'function' | 'component'
 
   readonly itemName: string
 
   constructor(options: RegistryDuplicateErrorOptions) {
-    super(options.message)
-    this.name = new.target.name
+    super(options.message ?? `Duplicate ${options.registryType} registration: "${options.itemName}"`)
     this.registryType = options.registryType
     this.itemName = options.itemName
   }

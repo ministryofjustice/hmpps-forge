@@ -1,7 +1,6 @@
-interface ForgeConfigurationSerialisationErrorOptions {
-  /** Path to the invalid field */
-  path: (string | number)[]
+import ForgeBaseError from './ForgeBaseError'
 
+interface ForgeConfigurationSerialisationErrorOptions {
   type: string
   /** Human-readable error message */
   message?: string
@@ -11,26 +10,14 @@ interface ForgeConfigurationSerialisationErrorOptions {
   callsite?: { readonly stack?: string }
 }
 
-export default class ForgeConfigurationSerialisationError extends Error {
-  readonly path: (string | number)[]
-
-  readonly formattedPath?: string
-
+export default class ForgeConfigurationSerialisationError extends ForgeBaseError {
   readonly type: string
 
-  readonly callsite?: { readonly stack?: string }
-
   constructor(options: ForgeConfigurationSerialisationErrorOptions) {
-    const message =
-      options.message ??
-      `${options.type} at ${options.path.length > 0 ? options.path.join('.') : 'root'} (not JSON serializable)`
-
-    super(message)
-    this.name = new.target.name
-    this.path = options.path
-    this.formattedPath = options.formattedPath
+    super(
+      options.message ?? `${options.type} at ${options.formattedPath ?? 'unknown'} (not JSON serializable)`,
+      options,
+    )
     this.type = options.type
-    this.callsite = options.callsite
-    this.message = message
   }
 }

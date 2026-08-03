@@ -599,7 +599,9 @@ describe('FormValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const dataError = error.errors.find(
-            e => e instanceof ForgeConfigurationSchemaError && e.path?.join('.') === 'steps.0.data.values.0.value',
+            e =>
+              e instanceof ForgeConfigurationSchemaError &&
+              e.formattedPath === 'test-journey > step1 > data > values[0] > value',
           )
 
           expect(dataError).toBeInstanceOf(ForgeConfigurationSchemaError)
@@ -743,7 +745,7 @@ describe('FormValidator', () => {
           expect(error.errors.length).toBeGreaterThan(0)
 
           const typeError = error.errors.find(
-            e => e instanceof ForgeConfigurationSchemaError && e.path?.includes('type'),
+            e => e instanceof ForgeConfigurationSchemaError && e.formattedPath === 'test-journey > type',
           )
           expect(typeError).toBeDefined()
           expect(typeError?.message).toContain('Invalid input')
@@ -798,7 +800,8 @@ describe('FormValidator', () => {
           const schemaError = error.errors.find(
             e =>
               e instanceof ForgeConfigurationSchemaError &&
-              e.path?.join('.') === 'steps.0.blocks.0.validWhen.0.message',
+              e.formattedPath ===
+                'travel-declaration > personal-details > blocks[0] (GovUKInput - firstName) > validWhen[0] > message',
           )
 
           expect(schemaError).toBeInstanceOf(ForgeConfigurationSchemaError)
@@ -835,7 +838,7 @@ describe('FormValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const titleError = error.errors.find(
-            e => e instanceof ForgeConfigurationSchemaError && e.path?.join('.') === 'steps.0.title',
+            e => e instanceof ForgeConfigurationSchemaError && e.formattedPath === 'test-journey > step1 > title',
           ) as ForgeConfigurationSchemaError | undefined
 
           expect(titleError).toBeInstanceOf(ForgeConfigurationSchemaError)
@@ -858,12 +861,12 @@ describe('FormValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           expect(error.errors.length).toBeGreaterThan(0)
-          expect(error.errors.some(e => e instanceof ForgeConfigurationSchemaError && e.path?.includes('code'))).toBe(
-            true,
-          )
-          expect(error.errors.some(e => e instanceof ForgeConfigurationSchemaError && e.path?.includes('title'))).toBe(
-            true,
-          )
+          expect(
+            error.errors.some(e => e instanceof ForgeConfigurationSchemaError && e.formattedPath === 'root > code'),
+          ).toBe(true)
+          expect(
+            error.errors.some(e => e instanceof ForgeConfigurationSchemaError && e.formattedPath === 'root > title'),
+          ).toBe(true)
         }
       }
     })
@@ -935,12 +938,16 @@ describe('FormValidator', () => {
           expect(error.errors.length).toBeGreaterThan(0)
 
           const codeError = error.errors.find(
-            e => e instanceof ForgeConfigurationSchemaError && e.path?.join('.') === 'children.0.code',
+            e =>
+              e instanceof ForgeConfigurationSchemaError &&
+              e.formattedPath === 'strengths_and_needs > children[0] > code',
           )
           expect(codeError).toBeDefined()
 
           const titleError = error.errors.find(
-            e => e instanceof ForgeConfigurationSchemaError && e.path?.join('.') === 'children.0.title',
+            e =>
+              e instanceof ForgeConfigurationSchemaError &&
+              e.formattedPath === 'strengths_and_needs > children[0] > title',
           )
           expect(titleError).toBeDefined()
         }

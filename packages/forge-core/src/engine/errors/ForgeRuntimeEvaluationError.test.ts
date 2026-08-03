@@ -11,7 +11,6 @@ describe('ForgeRuntimeEvaluationError', () => {
       const error = new ForgeRuntimeEvaluationError({
         phase: 'render',
         nodeId: 'compile_ast:1',
-        path: ['steps', 0, 'blocks', 0],
         formattedPath: 'journey > step > blocks[0]',
         functionName: 'explode',
         functionType: 'FunctionType.Generator',

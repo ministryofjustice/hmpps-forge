@@ -1,11 +1,10 @@
 import DiagnosticErrorFormatter from '../diagnostics/DiagnosticErrorFormatter'
-import type { DSLPathSegment } from '../../shared/diagnostics/sourceLocation.type'
+import ForgeBaseError from './ForgeBaseError'
 
 interface ForgeRuntimeEvaluationErrorOptions {
   readonly phase: string
   readonly cause: unknown
   readonly nodeId?: string
-  readonly path?: readonly DSLPathSegment[]
   readonly formattedPath?: string
   readonly functionName?: string
   readonly functionType?: string
@@ -15,7 +14,6 @@ interface ForgeRuntimeEvaluationErrorOptions {
 export interface ForgeRuntimeEvaluationDiagnostics {
   readonly phase: string
   readonly nodeId?: string
-  readonly path?: readonly DSLPathSegment[]
   readonly formattedPath?: string
   readonly functionName?: string
   readonly functionType?: string
@@ -24,14 +22,10 @@ export interface ForgeRuntimeEvaluationDiagnostics {
 
 export const FORGE_RUNTIME_EVALUATION_DIAGNOSTICS = Symbol.for('hmpps-forge.runtimeEvaluationDiagnostics')
 
-export default class ForgeRuntimeEvaluationError extends Error {
+export default class ForgeRuntimeEvaluationError extends ForgeBaseError {
   readonly phase: string
 
   readonly nodeId?: string
-
-  readonly path?: readonly DSLPathSegment[]
-
-  readonly formattedPath?: string
 
   readonly functionName?: string
 
@@ -42,12 +36,9 @@ export default class ForgeRuntimeEvaluationError extends Error {
   readonly cause: unknown
 
   constructor(options: ForgeRuntimeEvaluationErrorOptions) {
-    super(`Failed to evaluate compiled Forge ${options.phase} function`)
-    this.name = new.target.name
+    super(`Failed to evaluate compiled Forge ${options.phase} function`, options)
     this.phase = options.phase
     this.nodeId = options.nodeId
-    this.path = options.path
-    this.formattedPath = options.formattedPath
     this.functionName = options.functionName
     this.functionType = options.functionType
     this.definedAt = options.definedAt
@@ -55,7 +46,6 @@ export default class ForgeRuntimeEvaluationError extends Error {
     this.stack = DiagnosticErrorFormatter.appendRuntimeDiagnostics(this.stack, {
       phase: this.phase,
       nodeId: this.nodeId,
-      path: this.path,
       formattedPath: this.formattedPath,
       functionName: this.functionName,
       functionType: this.functionType,

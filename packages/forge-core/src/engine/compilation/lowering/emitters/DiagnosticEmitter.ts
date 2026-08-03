@@ -1,10 +1,8 @@
 import { FunctionType } from '../../../../authoring/types/enums'
 import { formatCallsite } from '../../../../shared/diagnostics/formatCallsite'
-import type { DSLPathSegment, DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
 
 interface DiagnosticMetadata {
   readonly nodeId?: string
-  readonly path?: readonly DSLPathSegment[]
   readonly formattedPath?: string
   readonly functionName?: string
   readonly functionType?: string
@@ -56,7 +54,6 @@ export default class DiagnosticEmitter {
 
     if (
       sourceDiagnostics.nodeId === undefined &&
-      sourceDiagnostics.path === undefined &&
       sourceDiagnostics.formattedPath === undefined &&
       sourceDiagnostics.definedAt === undefined &&
       resolvedFunctionName === undefined &&
@@ -73,21 +70,19 @@ export default class DiagnosticEmitter {
   }
 
   private getSourceDiagnostics(source: unknown): DiagnosticMetadata {
-    const sourceLocation = this.getSourceLocation(source)
+    const formattedPath = this.getFormattedPath(source)
     const definedAt = this.getDefinedAt(source)
 
     if (!isRecord(source)) {
       return {
-        path: sourceLocation?.path,
-        formattedPath: sourceLocation?.formattedPath,
+        formattedPath,
         definedAt,
       }
     }
 
     return {
       nodeId: typeof source.id === 'string' ? source.id : undefined,
-      path: sourceLocation?.path,
-      formattedPath: sourceLocation?.formattedPath,
+      formattedPath,
       definedAt,
     }
   }
@@ -118,7 +113,7 @@ export default class DiagnosticEmitter {
     return formatCallsite({ stack })
   }
 
-  private getSourceLocation(source: unknown): DSLSourceLocation | undefined {
+  private getFormattedPath(source: unknown): string | undefined {
     if (!isRecord(source)) {
       return undefined
     }
@@ -135,13 +130,7 @@ export default class DiagnosticEmitter {
       return undefined
     }
 
-    const { path, formattedPath } = sourceLocation
-
-    if (!isDSLPath(path) || typeof formattedPath !== 'string') {
-      return undefined
-    }
-
-    return { path, formattedPath }
+    return typeof sourceLocation.formattedPath === 'string' ? sourceLocation.formattedPath : undefined
   }
 
   private getFunctionName(source: unknown): string | undefined {
@@ -208,7 +197,6 @@ export default class DiagnosticEmitter {
       indentSource(
         [
           `nodeId: ${toSourceLiteral(metadata.nodeId)},`,
-          `path: ${toSourceLiteral(metadata.path)},`,
           `formattedPath: ${toSourceLiteral(metadata.formattedPath)},`,
           `functionName: ${toSourceLiteral(metadata.functionName)},`,
           `functionType: ${toSourceLiteral(metadata.functionType)},`,
@@ -222,10 +210,6 @@ export default class DiagnosticEmitter {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value)
-}
-
-function isDSLPath(value: unknown): value is readonly DSLPathSegment[] {
-  return Array.isArray(value) && value.every(segment => typeof segment === 'string' || typeof segment === 'number')
 }
 
 function indentSource(source: string): string {
