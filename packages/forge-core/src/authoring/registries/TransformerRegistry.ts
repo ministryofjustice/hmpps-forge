@@ -1,4 +1,4 @@
-import type { TransformerFunctionExpr } from '../types/expressions.type'
+import type { Resolvable, TransformerFunctionExpr } from '../types/expressions.type'
 import { FunctionType } from '../types/enums'
 import { BaseFunctionRegistry, type RegistrationOptions } from './BaseFunctionRegistry'
 
@@ -11,21 +11,21 @@ export default class TransformerRegistry<TDeps = Record<string, never>> extends 
     name: string,
     options: RegistrationOptions,
     factory: (deps: TDeps) => (value: any, ...args: TArgs) => any,
-  ): (...args: TArgs) => TransformerFunctionExpr
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => TransformerFunctionExpr
 
   register<TArgs extends any[]>(
     name: string,
     factory: (deps: TDeps) => (value: any, ...args: TArgs) => any,
-  ): (...args: TArgs) => TransformerFunctionExpr
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => TransformerFunctionExpr
 
   register<TArgs extends any[]>(
     options: RegistrationOptions,
     factory: (deps: TDeps) => (value: any, ...args: TArgs) => any,
-  ): (...args: TArgs) => TransformerFunctionExpr
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => TransformerFunctionExpr
 
   register<TArgs extends any[]>(
     factory: (deps: TDeps) => (value: any, ...args: TArgs) => any,
-  ): (...args: TArgs) => TransformerFunctionExpr
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => TransformerFunctionExpr
 
   register(
     first: string | RegistrationOptions | ((deps: TDeps) => (...args: any[]) => any),

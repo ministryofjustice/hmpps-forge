@@ -32,7 +32,7 @@ import {
  * // Reference to current loop metadata
  * { type: 'ExpressionType.Reference', path: ['@loop', '0', 'index0'] }
  */
-export interface ReferenceExpr {
+export interface ReferenceExpr extends ResolvableExpression {
   type: ExpressionType.REFERENCE
 
   /**
@@ -87,7 +87,7 @@ export interface ReferenceExpr {
  *   ]
  * }
  */
-export interface PipelineExpr {
+export interface PipelineExpr extends ResolvableExpression {
   type: ExpressionType.PIPELINE
 
   /**
@@ -180,7 +180,8 @@ export type FunctionExpr<A extends ResolvableValue[]> = BaseFunctionExpr<A>
  *   arguments: ['^item-(.+)$', 1]
  * }
  */
-export interface TransformerFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
+export interface TransformerFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]>
+  extends BaseFunctionExpr<A>, ResolvableExpression {
   type: FunctionType.TRANSFORMER
 }
 
@@ -233,7 +234,8 @@ export interface EffectFunctionExpr<A extends ResolvableValue[] = ResolvableValu
  *   arguments: ['prefix-']
  * }
  */
-export interface GeneratorFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
+export interface GeneratorFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]>
+  extends BaseFunctionExpr<A>, ResolvableExpression {
   type: FunctionType.GENERATOR
 }
 
@@ -306,7 +308,7 @@ export type IteratorConfig = MapIteratorConfig | FilterIteratorConfig | FindIter
  *   .each(Iterator.Map(Item().path('name')))
  *   .pipe(Transformer.Array.Slice(0, 10))
  */
-export interface IterateExpr {
+export interface IterateExpr extends ResolvableExpression {
   type: ExpressionType.ITERATE
 
   /**
@@ -320,6 +322,28 @@ export interface IterateExpr {
    */
   iterator: IteratorConfig
 }
+
+/**
+ * The type-level marker shared by every authoring expression that resolves to
+ * a value at runtime - references, pipelines, iterations, and
+ * generator/transformer chains. An interface rather than a union so IDE
+ * hovers show one name; the optional-only member makes it a weak type, so
+ * only types declaring the marker are assignable. Never set at runtime.
+ *
+ * `T` is the value the expression resolves to. It defaults to `any` because
+ * references are untyped at authoring time - the extending expression types
+ * inherit that default and stay assignable to every `ResolvableExpression<T>`.
+ * A builder that knows its resolved type can narrow it and be checked for real.
+ */
+export interface ResolvableExpression<T = any> {
+  readonly __resolves?: T
+}
+
+/**
+ * Widens a declared argument type so a caller can pass either a literal of
+ * that type or any authoring expression that resolves to one at runtime.
+ */
+export type Resolvable<T> = T | ResolvableExpression<T>
 
 /**
  * Represents any expression that evaluates to a value.

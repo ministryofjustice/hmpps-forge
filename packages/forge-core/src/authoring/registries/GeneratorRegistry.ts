@@ -1,4 +1,4 @@
-import type { ResolvableValue } from '../types/expressions.type'
+import type { Resolvable, ResolvableValue } from '../types/expressions.type'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
 import { FunctionType } from '../types/enums'
 import { BaseFunctionRegistry, type RegistrationOptions } from './BaseFunctionRegistry'
@@ -12,21 +12,21 @@ export default class GeneratorRegistry<TDeps = Record<string, never>> extends Ba
     name: string,
     options: RegistrationOptions,
     factory: (deps: TDeps) => (...args: TArgs) => any,
-  ): (...args: TArgs) => GeneratorBuilder<ResolvableValue[]>
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => GeneratorBuilder<ResolvableValue[]>
 
   register<TArgs extends any[]>(
     name: string,
     factory: (deps: TDeps) => (...args: TArgs) => any,
-  ): (...args: TArgs) => GeneratorBuilder<ResolvableValue[]>
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => GeneratorBuilder<ResolvableValue[]>
 
   register<TArgs extends any[]>(
     options: RegistrationOptions,
     factory: (deps: TDeps) => (...args: TArgs) => any,
-  ): (...args: TArgs) => GeneratorBuilder<ResolvableValue[]>
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => GeneratorBuilder<ResolvableValue[]>
 
   register<TArgs extends any[]>(
     factory: (deps: TDeps) => (...args: TArgs) => any,
-  ): (...args: TArgs) => GeneratorBuilder<ResolvableValue[]>
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => GeneratorBuilder<ResolvableValue[]>
 
   register(
     first: string | RegistrationOptions | ((deps: TDeps) => (...args: any[]) => any),
