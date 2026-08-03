@@ -152,6 +152,13 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
   metadata at emit time - `formatCallsite` in shared diagnostics does the frame-picking,
   and display stays lazy everywhere else. ([#210])
 
+- The built-in conditions, transformers, generators and core components now live together
+  under `forge-core/src/built-ins/{functions,components}` instead of loose in `authoring/`
+  and `components/builtins` - the authoring and components barrels re-export them, so the
+  published subpaths are unchanged. The registries' `registerBuiltIn*` methods are gone
+  too: `Forge`'s constructor registers the built-ins through the ordinary
+  `register()`/`registerMany()` path, leaving the registry classes content-agnostic. ([#211])
+
 #### Fixes
 
 - **Sharing a partially built expression chain no longer cross-contaminates.**
@@ -174,6 +181,7 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
 [#208]: https://github.com/ministryofjustice/hmpps-forge/pull/208
 [#209]: https://github.com/ministryofjustice/hmpps-forge/pull/209
 [#210]: https://github.com/ministryofjustice/hmpps-forge/pull/210
+[#211]: https://github.com/ministryofjustice/hmpps-forge/pull/211
 
 ---
 
