@@ -11,7 +11,7 @@ import {
 import {
   FORMAT_STRING_GENERATOR_NAME,
   formatGeneratorsRegistry,
-} from '../../../../../authoring/generators/formatGenerators'
+} from '../../../../../built-ins/functions/generators/formatGenerators'
 import { FieldBlockASTNode, StepASTNode, StepEntryValidationAST } from '../../../../contracts/ast/structures.type'
 import {
   FunctionASTNode,

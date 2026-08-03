@@ -10,8 +10,8 @@ import {
 import {
   FORMAT_STRING_GENERATOR_NAME,
   formatGeneratorsRegistry,
-} from '../../../../../authoring/generators/formatGenerators'
-import { stringTransformersRegistry } from '../../../../../authoring/transformers/stringTransformers'
+} from '../../../../../built-ins/functions/generators/formatGenerators'
+import { stringTransformersRegistry } from '../../../../../built-ins/functions/transformers/stringTransformers'
 import { ASTNodeType } from '../../../../contracts/ast/enums'
 import { BlockASTNode, StepASTNode } from '../../../../contracts/ast/structures.type'
 import { IterateASTNode, ReferenceASTNode } from '../../../../contracts/ast/expressions.type'

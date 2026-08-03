@@ -1,8 +1,8 @@
 import RegistryDuplicateError from '../errors/RegistryDuplicateError'
 import RegistryValidationError from '../errors/RegistryValidationError'
-import { ConditionsRegistry } from '../../authoring/conditions'
-import { GeneratorsRegistry } from '../../authoring/generators'
-import { TransformersRegistry } from '../../authoring/transformers'
+import { ConditionsRegistry } from '../../built-ins/functions/conditions'
+import { GeneratorsRegistry } from '../../built-ins/functions/generators'
+import { TransformersRegistry } from '../../built-ins/functions/transformers'
 import { FunctionRegistryEntry, FunctionRegistryObject } from '../../authoring/types/functions.type'
 
 /**

@@ -8,7 +8,7 @@ import type {
   ThrowErrorOutcome,
   ResolvableValue,
 } from '../../../../../../authoring/types/expressions.type'
-import { FORMAT_STRING_GENERATOR_NAME } from '../../../../../../authoring/generators/formatGenerators'
+import { FORMAT_STRING_GENERATOR_NAME } from '../../../../../../built-ins/functions/generators/formatGenerators'
 import { NodeIDGenerator } from '../../../ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../NodeFactory'
 import { ASTNode } from '../../../../../contracts/ast/engine.type'

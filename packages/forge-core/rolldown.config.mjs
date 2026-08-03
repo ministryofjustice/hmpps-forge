@@ -9,6 +9,8 @@ export default {
   // Order matters: the specific ast.type / enums rules must win over the broader
   // /forge-core/src/engine/ rule below them, which is matched by find().
   dtsOwnershipRules: [
+    { match: '/forge-core/src/built-ins/components', entrypoint: 'core/components' },
+    { match: '/forge-core/src/built-ins/', entrypoint: 'core/authoring' },
     { match: '/forge-core/src/components/', entrypoint: 'core/components' },
     { match: '/forge-core/src/authoring/', entrypoint: 'core/authoring' },
     { match: '/forge-core/src/framework/', entrypoint: 'core/framework' },

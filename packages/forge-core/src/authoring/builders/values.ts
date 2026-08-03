@@ -3,7 +3,7 @@ import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { ChainableExpr, ChainableGenerator } from './types'
 import { ResolvableValue } from '../types/expressions.type'
 import { ResolvableString } from '../../components/types/structures.type'
-import { FormatGenerators } from '../generators/formatGenerators'
+import { FormatGenerators } from '../../built-ins/functions/generators/formatGenerators'
 
 /**
  * Creates a string formatting expression with placeholder substitution.
