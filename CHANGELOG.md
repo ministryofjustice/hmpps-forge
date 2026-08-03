@@ -87,6 +87,15 @@ _Definitions, expressions, hooks, navigation, reachability_
   `ConditionBranchExpr`, `ConditionCombinatorExpr`) are also no longer exported - use
   `ConditionalExpr`. ([#208])
 
+- **`createForgePackage()` is now mandatory.** Previously it was a typing convenience -
+  `registerPackage()` took any package-shaped object, so hand-rolled packages worked
+  without it. Now registration rejects anything that hasn't passed through
+  `createForgePackage()`, which finalises the builders in the journey tree and stamps
+  every node with its source location and the callsite that defined it. If you already
+  wrap your package, nothing changes; if not, it's
+  `registerPackage(createForgePackage({ journey, ... }))`. As part of this, `journey`
+  also accepts a JSON string, which `createForgePackage` parses. ([#209])
+
 #### New
 
 - **List items can be blocks.** `GovUKList` items may now mix strings with child blocks -
@@ -106,6 +115,14 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
   builder's file, and `Format` is now a registry-backed generator with the hand-rolled
   `FormatString` implementation inlined away. ([#208])
 
+- Finalisation stamps every object node with non-enumerable `__source` and `__callsite`
+  provenance - `NodeFactory` lifts them onto AST diagnostics, and the engine's own
+  path-computation walks are gone. The callsite capture is lazy (V8's `.stack`
+  accessor), so there's no formatting cost unless an error actually reads it. ([#209])
+
+- Hook helpers are plain taggers now - finalisation does the walking they used to do
+  themselves. ([#209])
+
 #### Fixes
 
 - **Sharing a partially built expression chain no longer cross-contaminates.**
@@ -113,9 +130,14 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
   chain and extending it in two places polluted both results. Each chain step now returns
   a fresh builder, so partial chains are safe to share and reuse. ([#208])
 
+- Builders are detected by a `nodeKind` marker instead of `'build' in value`
+  duck-typing, so an authored object that happens to have a `build` property can't be
+  mistaken for a builder and swallowed during finalisation. ([#209])
+
 [#203]: https://github.com/ministryofjustice/hmpps-forge/pull/203
 [#206]: https://github.com/ministryofjustice/hmpps-forge/pull/206
 [#208]: https://github.com/ministryofjustice/hmpps-forge/pull/208
+[#209]: https://github.com/ministryofjustice/hmpps-forge/pull/209
 
 ---
 
