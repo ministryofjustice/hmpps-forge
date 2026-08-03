@@ -13,7 +13,7 @@ import {
 import {
   FORMAT_STRING_GENERATOR_NAME,
   formatGeneratorsRegistry,
-} from '../../../../../authoring/generators/formatGenerators'
+} from '../../../../../built-ins/functions/generators/formatGenerators'
 import { FieldBlockASTNode } from '../../../../contracts/ast/structures.type'
 import { FunctionASTNode, IterateASTNode, ReferenceASTNode } from '../../../../contracts/ast/expressions.type'
 import { TestPredicateASTNode } from '../../../../contracts/ast/predicates.type'

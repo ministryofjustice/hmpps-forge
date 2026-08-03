@@ -1,8 +1,8 @@
 import { Data, field } from '../index'
 import { finaliseBuilders } from './finaliseBuilders'
 import { BlockType, ExpressionType, StructureType } from '../../types/enums'
-import { FormatGenerators } from '../../generators/formatGenerators'
-import { Condition } from '../../conditions'
+import { FormatGenerators } from '../../../built-ins/functions/generators/formatGenerators'
+import { Condition } from '../../../built-ins/functions/conditions'
 import type { Callsite } from './captureCallsite'
 import type { DSLSourceLocation } from '../../../shared/diagnostics/sourceLocation.type'
 

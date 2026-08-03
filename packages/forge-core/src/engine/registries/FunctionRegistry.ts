@@ -1,8 +1,5 @@
 import RegistryDuplicateError from '../errors/RegistryDuplicateError'
 import RegistryValidationError from '../errors/RegistryValidationError'
-import { ConditionsRegistry } from '../../authoring/conditions'
-import { GeneratorsRegistry } from '../../authoring/generators'
-import { TransformersRegistry } from '../../authoring/transformers'
 import { FunctionRegistryEntry, FunctionRegistryObject } from '../../authoring/types/functions.type'
 
 /**
@@ -67,15 +64,6 @@ export default class FunctionRegistry {
     if (errors.length > 0) {
       throw new AggregateError(errors, 'Function registration failed')
     }
-  }
-
-  /**
-   * Register all built-in conditions, transformers, and generators
-   */
-  registerBuiltInFunctions() {
-    this.register(ConditionsRegistry)
-    this.register(TransformersRegistry)
-    this.register(GeneratorsRegistry)
   }
 
   /**

@@ -1,7 +1,7 @@
 export * from './builders'
-export { Condition, ConditionsRegistry } from './conditions'
-export { Generator, GeneratorsRegistry } from './generators'
-export { Transformer, TransformersRegistry } from './transformers'
+export { Condition, ConditionsRegistry } from '../built-ins/functions/conditions'
+export { Generator, GeneratorsRegistry } from '../built-ins/functions/generators'
+export { Transformer, TransformersRegistry } from '../built-ins/functions/transformers'
 
 export { BaseFunctionRegistry } from './registries/BaseFunctionRegistry'
 export { default as ConditionRegistry } from './registries/ConditionRegistry'
