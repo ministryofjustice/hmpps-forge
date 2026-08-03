@@ -56,7 +56,6 @@ describe('validateReferenceScopes', () => {
 
       // Assert
       const [scopeError] = scopeErrors(errors)
-      expect(scopeError.code).toBe('item_outside_iterator_scope')
       expect(scopeError.message).toBe('Item() can only be used inside an iterator')
     })
   })

@@ -13,7 +13,6 @@ function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigura
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: "Tie-breakers can only be used in a step's reachability configuration",
-    code: 'tiebreaker_outside_step_reachability',
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,
   })

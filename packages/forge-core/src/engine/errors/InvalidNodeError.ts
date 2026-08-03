@@ -9,8 +9,6 @@ interface InvalidNodeErrorOptions {
   expected?: string
   /** What was actually found */
   actual?: string
-  /** Error code for programmatic handling */
-  code?: string
 }
 
 export default class InvalidNodeError extends Error {
@@ -21,8 +19,6 @@ export default class InvalidNodeError extends Error {
   readonly expected?: string
 
   readonly actual?: string
-
-  readonly code?: string
 
   constructor(options: InvalidNodeErrorOptions) {
     let { message } = options
@@ -42,7 +38,6 @@ export default class InvalidNodeError extends Error {
     this.node = options.node
     this.expected = options.expected
     this.actual = options.actual
-    this.code = options.code
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, new.target)

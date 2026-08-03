@@ -5,8 +5,6 @@ interface ForgeConfigurationSerialisationErrorOptions {
   type: string
   /** Human-readable error message */
   message?: string
-  /** Error code for programmatic handling */
-  code?: string
   /** Human-readable path through the journey DSL */
   formattedPath?: string
   /** Captured author callsite for the offending node, when available */
@@ -14,8 +12,6 @@ interface ForgeConfigurationSerialisationErrorOptions {
 }
 
 export default class ForgeConfigurationSerialisationError extends Error {
-  readonly code?: string
-
   readonly path: (string | number)[]
 
   readonly formattedPath?: string
@@ -34,7 +30,6 @@ export default class ForgeConfigurationSerialisationError extends Error {
     this.path = options.path
     this.formattedPath = options.formattedPath
     this.type = options.type
-    this.code = options.code
     this.callsite = options.callsite
     this.message = message
   }

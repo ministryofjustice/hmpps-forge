@@ -1,8 +1,9 @@
 # errors
 
 Error classes thrown by the engine. Each error type corresponds to a specific
-failure mode, so callers can distinguish configuration problems from runtime
-evaluation failures without parsing message strings.
+failure mode, and every class is exported from the package root, so callers can
+`instanceof` their way from configuration problems to runtime evaluation
+failures without parsing message strings.
 
 | Error | Thrown when |
 |-------|------------|

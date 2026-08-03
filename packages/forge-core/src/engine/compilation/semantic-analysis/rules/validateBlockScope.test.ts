@@ -30,8 +30,8 @@ const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, 
   }
 }
 
-const errorCodes = (errors: readonly Error[]): string[] =>
-  errors.map(error => (error as ForgeConfigurationReferenceScopeError).code)
+const errorMessages = (errors: readonly Error[]): string[] =>
+  errors.map(error => (error as ForgeConfigurationReferenceScopeError).message)
 
 describe('validateBlockScope', () => {
   describe('validateBlockScope()', () => {
@@ -82,7 +82,9 @@ describe('validateBlockScope', () => {
       const errors = validateBlockScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['block_outside_blocks'])
+      expect(errorMessages(errors)).toEqual([
+        'Blocks can only be defined in a step blocks array or nested within another block',
+      ])
     })
 
     it('should return an error when the parent is a hook property', () => {
@@ -95,7 +97,9 @@ describe('validateBlockScope', () => {
       const errors = validateBlockScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['block_outside_blocks'])
+      expect(errorMessages(errors)).toEqual([
+        'Blocks can only be defined in a step blocks array or nested within another block',
+      ])
     })
 
     it('should return an error when the parent is a step but the block is absent from blocks', () => {
@@ -108,7 +112,9 @@ describe('validateBlockScope', () => {
       const errors = validateBlockScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['block_outside_blocks'])
+      expect(errorMessages(errors)).toEqual([
+        'Blocks can only be defined in a step blocks array or nested within another block',
+      ])
     })
 
     it('should carry the node diagnostics callsite on the collected error', () => {

@@ -13,7 +13,6 @@ function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigura
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: 'Outcomes can only be used inside a hook (onAccess or onSubmission)',
-    code: 'outcome_outside_hook',
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,
   })

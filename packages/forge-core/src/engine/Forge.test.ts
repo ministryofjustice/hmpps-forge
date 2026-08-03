@@ -308,7 +308,6 @@ describe('Forge', () => {
           expect(error.stack).toBe(error.message)
           expect(error.message).toContain('Forge registration failed: Schema validation failed')
           expect(error.message).toContain('Path: guide > onAccess[1] > type')
-          expect(error.message).toContain('Code: invalid_value')
         }
       }
     })

@@ -121,7 +121,6 @@ function buildReferencePath(
     throw new InvalidNodeError({
       message: 'Reference path must be a non-empty array',
       actual: JSON.stringify(path),
-      code: 'INVALID_REFERENCE_PATH',
     })
   }
 
@@ -137,7 +136,6 @@ function assertReferenceSegment(segment: unknown): string | number {
   throw new InvalidNodeError({
     message: 'Reference path segments must be strings, numbers, or expressions',
     actual: JSON.stringify(segment),
-    code: 'INVALID_REFERENCE_PATH_SEGMENT',
   })
 }
 

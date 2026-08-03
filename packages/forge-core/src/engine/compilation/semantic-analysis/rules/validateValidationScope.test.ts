@@ -34,8 +34,8 @@ const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, 
   }
 }
 
-const errorCodes = (errors: readonly Error[]): string[] =>
-  errors.map(error => (error as ForgeConfigurationReferenceScopeError).code)
+const errorMessages = (errors: readonly Error[]): string[] =>
+  errors.map(error => (error as ForgeConfigurationReferenceScopeError).message)
 
 const validationTemplate = (): TemplateNode => ({
   type: ASTNodeType.TEMPLATE,
@@ -106,7 +106,9 @@ describe('validateValidationScope', () => {
       const errors = validateValidationScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['validation_outside_valid_when'])
+      expect(errorMessages(errors)).toEqual([
+        'Validation rules can only be used inside validWhen on a field block or step',
+      ])
     })
 
     it('should return an error when an Iterate template holds a validation but the Iterate is not inside a validWhen', () => {
@@ -118,7 +120,9 @@ describe('validateValidationScope', () => {
       const errors = validateValidationScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['validation_outside_valid_when'])
+      expect(errorMessages(errors)).toEqual([
+        'Validation rules can only be used inside validWhen on a field block or step',
+      ])
     })
   })
 })

@@ -88,7 +88,7 @@ describe('validateStructureScope', () => {
 
     // Assert
     expect(errors).toHaveLength(1)
-    expect(errors[0].code).toBe('step_outside_journey_steps')
+    expect(errors[0].message).toBe('Steps can only be defined in a journey steps array')
   })
 
   it('should reject a step parented to a journey but absent from its steps array', () => {
@@ -106,7 +106,7 @@ describe('validateStructureScope', () => {
 
     // Assert
     expect(errors).toHaveLength(1)
-    expect(errors[0].code).toBe('step_outside_journey_steps')
+    expect(errors[0].message).toBe('Steps can only be defined in a journey steps array')
   })
 
   it('should reject a journey parented to a journey but absent from its children array', () => {
@@ -124,6 +124,6 @@ describe('validateStructureScope', () => {
 
     // Assert
     expect(errors).toHaveLength(1)
-    expect(errors[0].code).toBe('journey_outside_journey_children')
+    expect(errors[0].message).toBe('Journeys can only be defined at the root or in a journey children array')
   })
 })

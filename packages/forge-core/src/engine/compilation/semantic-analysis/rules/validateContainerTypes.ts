@@ -34,7 +34,6 @@ function getDiagnostics(value: unknown): ASTNodeDiagnostics | undefined {
 
 interface ContainerCheck {
   message: string
-  code: string
   isValid: (value: unknown) => boolean
 }
 
@@ -47,7 +46,6 @@ function buildError(
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: check.message,
-    code: check.code,
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,
   })
@@ -94,31 +92,26 @@ function isOutcome(value: unknown): boolean {
 
 const ON_ACCESS: ContainerCheck = {
   message: 'onAccess can only contain access hooks',
-  code: 'invalid_entry_in_on_access',
   isValid: isAccessHook,
 }
 
 const ON_SUBMISSION: ContainerCheck = {
   message: 'onSubmission can only contain submit hooks',
-  code: 'invalid_entry_in_on_submission',
   isValid: isSubmitHook,
 }
 
 const BLOCKS: ContainerCheck = {
   message: 'blocks can only contain block definitions',
-  code: 'invalid_entry_in_blocks',
   isValid: isBlock,
 }
 
 const EFFECTS: ContainerCheck = {
   message: 'effects can only contain effect functions',
-  code: 'invalid_entry_in_effects',
   isValid: isEffect,
 }
 
 const NEXT: ContainerCheck = {
   message: 'next can only contain outcomes',
-  code: 'invalid_entry_in_next',
   isValid: isOutcome,
 }
 

@@ -19,7 +19,6 @@ export class DSLValidator {
           message: issue.message,
           formattedPath: sourceLocator.fromPath(path).formattedPath,
           expected: 'expected' in issue && typeof issue.expected === 'string' ? issue.expected : undefined,
-          code: issue.code,
           callsite: sourceLocator.callsiteFromPath(path),
         })
       })

@@ -111,7 +111,7 @@ describe('ASTSemanticValidator', () => {
           const scopeError = error.errors[0]
 
           expect(scopeError).toBeInstanceOf(ForgeConfigurationReferenceScopeError)
-          expect(scopeError.code).toBe('item_outside_iterator_scope')
+          expect(scopeError.message).toContain('can only be used inside an iterator')
         }
       }
     })
@@ -161,7 +161,7 @@ describe('ASTSemanticValidator', () => {
           const scopeError = error.errors[0]
 
           expect(scopeError).toBeInstanceOf(ForgeConfigurationReferenceScopeError)
-          expect(scopeError.code).toBe('item_outside_iterator_scope')
+          expect(scopeError.message).toBe('Item().parent references level 1, but only 1 iterator scope is available')
         }
       }
     })
@@ -211,7 +211,7 @@ describe('ASTSemanticValidator', () => {
           const scopeError = error.errors[0]
 
           expect(scopeError).toBeInstanceOf(ForgeConfigurationReferenceScopeError)
-          expect(scopeError.code).toBe('loop_invalid_property')
+          expect(scopeError.message).toContain('Loop reference property must be one of')
         }
       }
     })
@@ -243,11 +243,11 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const codes = error.errors.map((scopeError: ForgeConfigurationReferenceScopeError) => scopeError.code)
+          const messages = error.errors.map((scopeError: ForgeConfigurationReferenceScopeError) => scopeError.message)
 
           expect(error.errors).toHaveLength(2)
-          expect(codes).toContain('item_invalid_level')
-          expect(codes).toContain('loop_outside_iterator_scope')
+          expect(messages).toContain('Item() reference level must be a non-negative integer')
+          expect(messages).toContain('Loop can only be used inside an iterator')
         }
       }
     })
@@ -933,8 +933,8 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.code === 'effect_outside_hook',
+          const scopeErrors = error.errors.filter((e: ForgeConfigurationReferenceScopeError) =>
+            e.message.startsWith('Effect '),
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -979,8 +979,8 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.code === 'effect_outside_hook',
+          const scopeErrors = error.errors.filter((e: ForgeConfigurationReferenceScopeError) =>
+            e.message.startsWith('Effect '),
           )
 
           expect(scopeErrors.length).toBeGreaterThanOrEqual(1)
@@ -1052,7 +1052,8 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.code === 'block_in_function_arguments',
+            (e: ForgeConfigurationReferenceScopeError) =>
+              e.message === 'Block definitions cannot be used as function arguments',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -1106,7 +1107,8 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.code === 'validation_outside_valid_when',
+            (e: ForgeConfigurationReferenceScopeError) =>
+              e.message === 'Validation rules can only be used inside validWhen on a field block or step',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -1206,12 +1208,12 @@ describe('ASTSemanticValidator', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
-          const codes = error.errors
+          const messages = error.errors
             .filter((e: Error) => e instanceof ForgeConfigurationReferenceScopeError)
-            .map((e: ForgeConfigurationReferenceScopeError) => e.code)
+            .map((e: ForgeConfigurationReferenceScopeError) => e.message)
 
-          expect(codes).toContain('block_in_function_arguments')
-          expect(codes).toContain('validation_outside_valid_when')
+          expect(messages).toContain('Block definitions cannot be used as function arguments')
+          expect(messages).toContain('Validation rules can only be used inside validWhen on a field block or step')
         }
       }
     })
@@ -1273,7 +1275,8 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.code === 'block_in_function_arguments',
+            (e: ForgeConfigurationReferenceScopeError) =>
+              e.message === 'Block definitions cannot be used as function arguments',
           )
 
           expect(scopeErrors.length).toBeGreaterThanOrEqual(1)
@@ -1410,7 +1413,8 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.code === 'validation_outside_valid_when',
+            (e: ForgeConfigurationReferenceScopeError) =>
+              e.message === 'Validation rules can only be used inside validWhen on a field block or step',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -1457,7 +1461,8 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.code === 'validation_outside_valid_when',
+            (e: ForgeConfigurationReferenceScopeError) =>
+              e.message === 'Validation rules can only be used inside validWhen on a field block or step',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -1627,7 +1632,8 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.code === 'outcome_outside_hook',
+            (e: ForgeConfigurationReferenceScopeError) =>
+              e.message === 'Outcomes can only be used inside a hook (onAccess or onSubmission)',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -1703,7 +1709,8 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.code === 'hook_outside_step_or_journey',
+            (e: ForgeConfigurationReferenceScopeError) =>
+              e.message === 'Hooks can only be defined in onAccess (steps, journeys) or onSubmission (steps) arrays',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -1777,7 +1784,8 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.code === 'tiebreaker_outside_step_reachability',
+            (e: ForgeConfigurationReferenceScopeError) =>
+              e.message === "Tie-breakers can only be used in a step's reachability configuration",
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -1850,7 +1858,8 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.code === 'step_outside_journey_steps',
+            (e: ForgeConfigurationReferenceScopeError) =>
+              e.message === 'Steps can only be defined in a journey steps array',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -1889,7 +1898,8 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.code === 'journey_outside_journey_children',
+            (e: ForgeConfigurationReferenceScopeError) =>
+              e.message === 'Journeys can only be defined at the root or in a journey children array',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -1958,7 +1968,8 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.code === 'block_outside_blocks',
+            (e: ForgeConfigurationReferenceScopeError) =>
+              e.message === 'Blocks can only be defined in a step blocks array or nested within another block',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -2043,7 +2054,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.code === 'invalid_entry_in_on_access',
+            (e: ForgeConfigurationReferenceScopeError) => e.message === 'onAccess can only contain access hooks',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -2080,7 +2091,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.code === 'invalid_entry_in_effects',
+            (e: ForgeConfigurationReferenceScopeError) => e.message === 'effects can only contain effect functions',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -2120,7 +2131,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.code === 'invalid_entry_in_next',
+            (e: ForgeConfigurationReferenceScopeError) => e.message === 'next can only contain outcomes',
           )
 
           expect(scopeErrors).toHaveLength(1)
@@ -2151,7 +2162,7 @@ describe('ASTSemanticValidator', () => {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
-            (e: ForgeConfigurationReferenceScopeError) => e.code === 'invalid_entry_in_blocks',
+            (e: ForgeConfigurationReferenceScopeError) => e.message === 'blocks can only contain block definitions',
           )
 
           expect(scopeErrors).toHaveLength(1)

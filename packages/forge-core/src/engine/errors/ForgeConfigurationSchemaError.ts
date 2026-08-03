@@ -5,8 +5,6 @@ interface ForgeConfigurationSchemaErrorOptions {
   message: string
   /** Expected value type/format */
   expected?: string
-  /** Error code for programmatic handling */
-  code?: string
   /** Human-readable path through the journey DSL */
   formattedPath?: string
   /** Captured author callsite for the offending node, when available */
@@ -14,8 +12,6 @@ interface ForgeConfigurationSchemaErrorOptions {
 }
 
 export default class ForgeConfigurationSchemaError extends Error {
-  readonly code?: string
-
   readonly expected?: string
 
   readonly path: (string | number)[]
@@ -28,7 +24,6 @@ export default class ForgeConfigurationSchemaError extends Error {
     super(options.message)
     this.name = new.target.name
     this.message = options.message
-    this.code = options.code
     this.path = options.path
     this.expected = options.expected
     this.formattedPath = options.formattedPath

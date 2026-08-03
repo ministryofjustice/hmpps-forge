@@ -5,7 +5,6 @@ interface DiagnosticError {
   readonly message?: unknown
   readonly formattedPath?: unknown
   readonly path?: unknown
-  readonly code?: unknown
   readonly expected?: unknown
   readonly functionName?: unknown
   readonly functionType?: unknown
@@ -67,7 +66,6 @@ export default class RegistrationErrorFormatter {
       { label: 'Phase', value: RegistrationErrorFormatter.formatValue(diagnostic.phase) },
       { label: 'Path', value: path },
       { label: 'Node', value: RegistrationErrorFormatter.formatValue(diagnostic.nodeId) },
-      { label: 'Code', value: RegistrationErrorFormatter.formatValue(diagnostic.code) },
       { label: 'Expected', value: RegistrationErrorFormatter.formatValue(diagnostic.expected) },
       { label: 'Function', value: RegistrationErrorFormatter.formatValue(diagnostic.functionName) },
       { label: 'Type', value: RegistrationErrorFormatter.formatValue(diagnostic.functionType) },

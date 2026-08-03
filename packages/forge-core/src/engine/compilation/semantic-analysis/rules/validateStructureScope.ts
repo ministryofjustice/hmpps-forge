@@ -13,7 +13,6 @@ function buildStepError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfi
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: 'Steps can only be defined in a journey steps array',
-    code: 'step_outside_journey_steps',
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,
   })
@@ -25,7 +24,6 @@ function buildJourneyError(diagnostics: ASTNodeDiagnostics | undefined): ForgeCo
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: 'Journeys can only be defined at the root or in a journey children array',
-    code: 'journey_outside_journey_children',
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,
   })

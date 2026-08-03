@@ -30,8 +30,8 @@ const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, 
   }
 }
 
-const errorCodes = (errors: readonly Error[]): string[] =>
-  errors.map(error => (error as ForgeConfigurationReferenceScopeError).code)
+const errorMessages = (errors: readonly Error[]): string[] =>
+  errors.map(error => (error as ForgeConfigurationReferenceScopeError).message)
 
 const createTieBreaker = (): ASTNode =>
   ASTTestFactory.expression<ASTNode>(ExpressionType.TIE_BREAKER).withProperty('priority', 1).build()
@@ -67,7 +67,7 @@ describe('validateTieBreakerScope', () => {
       const errors = validateTieBreakerScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['tiebreaker_outside_step_reachability'])
+      expect(errorMessages(errors)).toEqual(["Tie-breakers can only be used in a step's reachability configuration"])
     })
 
     it('should return an error when the parent is a step but the tie-breaker is absent from tieBreakers', () => {
@@ -80,7 +80,7 @@ describe('validateTieBreakerScope', () => {
       const errors = validateTieBreakerScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['tiebreaker_outside_step_reachability'])
+      expect(errorMessages(errors)).toEqual(["Tie-breakers can only be used in a step's reachability configuration"])
     })
 
     it('should return an error when the tie-breaker has no parent', () => {
@@ -92,7 +92,7 @@ describe('validateTieBreakerScope', () => {
       const errors = validateTieBreakerScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['tiebreaker_outside_step_reachability'])
+      expect(errorMessages(errors)).toEqual(["Tie-breakers can only be used in a step's reachability configuration"])
     })
   })
 })

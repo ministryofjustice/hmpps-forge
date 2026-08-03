@@ -15,7 +15,6 @@ function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigura
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: 'Validation rules can only be used inside validWhen on a field block or step',
-    code: 'validation_outside_valid_when',
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,
   })

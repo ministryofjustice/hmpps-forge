@@ -30,8 +30,8 @@ const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, 
   }
 }
 
-const errorCodes = (errors: readonly Error[]): string[] =>
-  errors.map(error => (error as ForgeConfigurationReferenceScopeError).code)
+const errorMessages = (errors: readonly Error[]): string[] =>
+  errors.map(error => (error as ForgeConfigurationReferenceScopeError).message)
 
 describe('validateHookScope', () => {
   describe('validateHookScope()', () => {
@@ -88,7 +88,9 @@ describe('validateHookScope', () => {
       const errors = validateHookScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['hook_outside_step_or_journey'])
+      expect(errorMessages(errors)).toEqual([
+        'Hooks can only be defined in onAccess (steps, journeys) or onSubmission (steps) arrays',
+      ])
     })
 
     it('should return an error when a submit hook sits under a journey onSubmission key', () => {
@@ -101,7 +103,9 @@ describe('validateHookScope', () => {
       const errors = validateHookScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['hook_outside_step_or_journey'])
+      expect(errorMessages(errors)).toEqual([
+        'Hooks can only be defined in onAccess (steps, journeys) or onSubmission (steps) arrays',
+      ])
     })
 
     it('should return an error when the parent is a step but the hook is absent from its arrays', () => {
@@ -114,7 +118,9 @@ describe('validateHookScope', () => {
       const errors = validateHookScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['hook_outside_step_or_journey'])
+      expect(errorMessages(errors)).toEqual([
+        'Hooks can only be defined in onAccess (steps, journeys) or onSubmission (steps) arrays',
+      ])
     })
 
     it('should return an error when the hook has no parent', () => {
@@ -126,7 +132,9 @@ describe('validateHookScope', () => {
       const errors = validateHookScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['hook_outside_step_or_journey'])
+      expect(errorMessages(errors)).toEqual([
+        'Hooks can only be defined in onAccess (steps, journeys) or onSubmission (steps) arrays',
+      ])
     })
   })
 })

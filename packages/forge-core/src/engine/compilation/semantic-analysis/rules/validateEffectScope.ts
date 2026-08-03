@@ -13,7 +13,6 @@ function buildError(name: string, diagnostics: ASTNodeDiagnostics | undefined): 
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: `Effect "${name}" can only be used inside a hook (onAccess or onSubmission)`,
-    code: 'effect_outside_hook',
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,
   })

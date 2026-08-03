@@ -10,7 +10,6 @@ function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigura
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: 'Blocks can only be defined in a step blocks array or nested within another block',
-    code: 'block_outside_blocks',
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,
   })

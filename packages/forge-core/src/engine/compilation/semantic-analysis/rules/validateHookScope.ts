@@ -13,7 +13,6 @@ function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigura
   return new ForgeConfigurationReferenceScopeError({
     path: source?.path ? [...source.path] : [],
     message: 'Hooks can only be defined in onAccess (steps, journeys) or onSubmission (steps) arrays',
-    code: 'hook_outside_step_or_journey',
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,
   })
