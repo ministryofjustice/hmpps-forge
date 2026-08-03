@@ -7,6 +7,8 @@ interface UnregisteredComponentErrorOptions {
   variant: string
   /** Human-readable path through the journey DSL */
   formattedPath?: string
+  /** Author callsite captured where the offending node was defined */
+  callsite?: { readonly stack?: string }
 }
 
 export default class UnregisteredComponentError extends Error {
@@ -16,12 +18,15 @@ export default class UnregisteredComponentError extends Error {
 
   readonly formattedPath?: string
 
+  readonly callsite?: { readonly stack?: string }
+
   constructor(options: UnregisteredComponentErrorOptions) {
     super(`Component variant "${options.variant}" is not registered`)
     this.name = new.target.name
     this.path = options.path
     this.variant = options.variant
     this.formattedPath = options.formattedPath
+    this.callsite = options.callsite
   }
 
   toString() {

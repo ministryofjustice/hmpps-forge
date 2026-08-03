@@ -102,6 +102,31 @@ _Definitions, expressions, hooks, navigation, reachability_
   `items: ['Plain text', GovUKBody({ ... }), HtmlBlock({ ... })]` renders each block
   inside its own `<li>`. Previously items were strings only. ([#203])
 
+#### Improvements
+
+- **Errors now say where in your code the problem is.** Every author-facing error -
+  registration validation, schema and serialisation failures, and runtime evaluation
+  errors - carries a `Defined at: journeySteps (/app/journeys/tax/steps.ts:42:13)` line
+  pointing at the builder call that defined the offending node. Previously errors could
+  only name the DSL path, leaving you to hunt the definition down yourself. ([#210])
+
+- **`Format()` takes a resolvable template.** The template no longer has to be a literal
+  string - a reference or any string-valued expression works:
+  `Format(Answer('template'), ...)`. ([#210])
+
+---
+
+### For function and component authors
+
+_Conditions, transformers, effects, generators, iterators, component packages_
+
+#### Notes
+
+- **Callsite attribution for packaged components.** The `Defined at` frame is the first
+  one outside forge-core, node internals and `node_modules` - so when a component from a
+  published package produces an error, it points at the app's usage site rather than
+  inside the package. ([#210])
+
 ---
 
 ### For engine / internal developers
@@ -123,6 +148,10 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
 - Hook helpers are plain taggers now - finalisation does the walking they used to do
   themselves. ([#209])
 
+- Runtime diagnostics carry a preformatted `definedAt` baked into the generated source
+  metadata at emit time - `formatCallsite` in shared diagnostics does the frame-picking,
+  and display stays lazy everywhere else. ([#210])
+
 #### Fixes
 
 - **Sharing a partially built expression chain no longer cross-contaminates.**
@@ -134,10 +163,17 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
   duck-typing, so an authored object that happens to have a `build` property can't be
   mistaken for a builder and swallowed during finalisation. ([#209])
 
+- The two validation rules missing the `formattedPath` fallback now default it to
+  `unknown` like the rest. ([#210])
+
+- The deprecated `defineFunction` helpers never stamped callsites on the handles they
+  build, so their errors lacked a `Defined at` line - they stamp now. ([#210])
+
 [#203]: https://github.com/ministryofjustice/hmpps-forge/pull/203
 [#206]: https://github.com/ministryofjustice/hmpps-forge/pull/206
 [#208]: https://github.com/ministryofjustice/hmpps-forge/pull/208
 [#209]: https://github.com/ministryofjustice/hmpps-forge/pull/209
+[#210]: https://github.com/ministryofjustice/hmpps-forge/pull/210
 
 ---
 

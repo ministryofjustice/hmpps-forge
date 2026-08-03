@@ -1,4 +1,5 @@
 import { FunctionType } from '../../types/enums'
+import { captureCallsite, stampCallsite } from '../../builders/utils/captureCallsite'
 import type { FunctionImplementations, FunctionShapeMap } from './defineFunction.type'
 
 /**
@@ -72,11 +73,16 @@ export function buildExpressionFunctions<TShapes extends FunctionShapeMap, TDeps
 
   Object.keys(factories).forEach(name => {
     const prepare = extractPrepare((factories as Record<string, unknown>)[name])
-    functions[name] = (...args: unknown[]) => {
+    const expressionHandle = (...args: unknown[]) => {
       const prepared = prepare ? prepare(...args) : args
+      const expr = { type: functionType, name, arguments: prepared }
 
-      return { type: functionType, name, arguments: prepared }
+      stampCallsite(expr, captureCallsite(expressionHandle))
+
+      return expr
     }
+
+    functions[name] = expressionHandle
   })
 
   return functions

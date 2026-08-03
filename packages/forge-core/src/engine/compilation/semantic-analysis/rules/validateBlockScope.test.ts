@@ -110,5 +110,23 @@ describe('validateBlockScope', () => {
       // Assert
       expect(errorCodes(errors)).toEqual(['block_outside_blocks'])
     })
+
+    it('should carry the node diagnostics callsite on the collected error', () => {
+      // Arrange
+      const callsite = { stack: 'Error\n    at author (/repo/journeys/steps.ts:10:5)' }
+      const block = {
+        ...ASTTestFactory.block('text', BlockType.FIELD).build(),
+        diagnostics: { ...ASTTestFactory.diagnostics(), callsite },
+      }
+      const step = ASTTestFactory.step().withProperty('blocks', []).build()
+      const context = createContext([block, step], [[block.id, step.id]])
+
+      // Act
+      const errors = validateBlockScope(context)
+
+      // Assert
+      expect(errors).toHaveLength(1)
+      expect((errors[0] as ForgeConfigurationReferenceScopeError).callsite).toBe(callsite)
+    })
   })
 })

@@ -809,6 +809,41 @@ describe('FormValidator', () => {
       }
     })
 
+    it('should attach the nearest ancestor callsite to schema errors', () => {
+      // Arrange
+      const step = {
+        type: StructureType.STEP,
+        path: '/step1',
+        title: 123,
+        blocks: [],
+      }
+      Object.defineProperty(step, '__callsite', { value: { stack: 'at step-site' }, enumerable: false })
+      const invalidJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [step],
+      } as unknown as JourneyDefinition
+
+      // Act / Assert
+      expect(() => DSLValidator.validateSchema(invalidJourney)).toThrow(AggregateError)
+
+      try {
+        DSLValidator.validateSchema(invalidJourney)
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          const titleError = error.errors.find(
+            e => e instanceof ForgeConfigurationSchemaError && e.path?.join('.') === 'steps.0.title',
+          ) as ForgeConfigurationSchemaError | undefined
+
+          expect(titleError).toBeInstanceOf(ForgeConfigurationSchemaError)
+          expect(titleError?.callsite).toEqual({ stack: 'at step-site' })
+        }
+      }
+    })
+
     it('should fail when required fields are missing', () => {
       const invalidJourney = {
         type: StructureType.JOURNEY,
@@ -946,6 +981,39 @@ describe('FormValidator', () => {
           expect(err).toBeInstanceOf(ForgeConfigurationSerialisationError)
           if (err instanceof ForgeConfigurationSerialisationError) {
             expect(err.type).toBe('Function')
+          }
+        }
+      }
+    })
+
+    it('should attach the nearest ancestor callsite to serialisation errors', () => {
+      // Arrange
+      const step = {
+        type: 'step',
+        path: '/step1',
+        title: 'Step 1',
+        onLoad: () => 'hello',
+      }
+      Object.defineProperty(step, '__callsite', { value: { stack: 'at step-site' }, enumerable: false })
+      const objWithFunction = {
+        type: 'journey',
+        steps: [step],
+      }
+
+      // Act / Assert
+      expect(() => DSLValidator.validateJSON(objWithFunction)).toThrow(AggregateError)
+
+      try {
+        DSLValidator.validateJSON(objWithFunction)
+      } catch (error) {
+        expect(error).toBeInstanceOf(AggregateError)
+        if (error instanceof AggregateError) {
+          expect(error.errors).toHaveLength(1)
+          const err = error.errors[0]
+          expect(err).toBeInstanceOf(ForgeConfigurationSerialisationError)
+          if (err instanceof ForgeConfigurationSerialisationError) {
+            expect(err.type).toBe('Function')
+            expect(err.callsite).toEqual({ stack: 'at step-site' })
           }
         }
       }

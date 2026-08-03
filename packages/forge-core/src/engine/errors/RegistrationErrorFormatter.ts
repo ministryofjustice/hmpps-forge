@@ -1,3 +1,5 @@
+import { formatCallsite } from '../../shared/diagnostics/formatCallsite'
+
 interface DiagnosticError {
   readonly name?: unknown
   readonly message?: unknown
@@ -11,6 +13,7 @@ interface DiagnosticError {
   readonly phase?: unknown
   readonly nodeId?: unknown
   readonly cause?: unknown
+  readonly callsite?: { readonly stack?: string }
 }
 
 export default class RegistrationErrorFormatter {
@@ -69,6 +72,7 @@ export default class RegistrationErrorFormatter {
       { label: 'Function', value: RegistrationErrorFormatter.formatValue(diagnostic.functionName) },
       { label: 'Type', value: RegistrationErrorFormatter.formatValue(diagnostic.functionType) },
       { label: 'Variant', value: RegistrationErrorFormatter.formatValue(diagnostic.variant) },
+      { label: 'Defined at', value: RegistrationErrorFormatter.formatCallsiteValue(diagnostic.callsite) },
       { label: 'Cause', value: RegistrationErrorFormatter.formatValue(diagnostic.cause) },
     ]
 
@@ -83,6 +87,10 @@ export default class RegistrationErrorFormatter {
     }
 
     return error as DiagnosticError
+  }
+
+  private static formatCallsiteValue(callsite: { readonly stack?: string } | undefined): string | undefined {
+    return typeof callsite?.stack === 'string' ? formatCallsite(callsite) : undefined
   }
 
   private static formatPath(value: unknown): string | undefined {

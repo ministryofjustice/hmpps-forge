@@ -56,6 +56,7 @@ interface RuntimeDiagnosticState {
   readonly formattedPath?: string
   readonly functionName?: string
   readonly functionType?: string
+  readonly definedAt?: string
 }
 
 interface RuntimeEvaluationDiagnostics {
@@ -67,6 +68,7 @@ interface RuntimeEvaluationDiagnostics {
     formattedPath?: string,
     functionName?: string,
     functionType?: string,
+    definedAt?: string,
   ): unknown
 }
 
@@ -430,6 +432,7 @@ function wrapDiagnosticError(
     metadata.formattedPath,
     metadata.functionName,
     metadata.functionType,
+    metadata.definedAt,
   )
 }
 

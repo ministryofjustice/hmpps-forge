@@ -12,6 +12,7 @@ export interface RuntimeDiagnosticFields {
   readonly formattedPath?: string
   readonly functionName?: string
   readonly functionType?: string
+  readonly definedAt?: string
 }
 
 export default class DiagnosticErrorFormatter {
@@ -38,6 +39,7 @@ export default class DiagnosticErrorFormatter {
       { label: 'Node', value: diagnostics.nodeId },
       { label: 'Function', value: diagnostics.functionName },
       { label: 'Type', value: diagnostics.functionType },
+      { label: 'Defined at', value: diagnostics.definedAt },
     ]
       .filter(field => field.value !== undefined)
       .map(field => `  ${field.label}: ${field.value}`)

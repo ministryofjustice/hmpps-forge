@@ -3,7 +3,7 @@ import { FunctionType, ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { FunctionASTNode, IterateASTNode } from '../../../contracts/ast/expressions.type'
 import FunctionArityError from '../../../errors/FunctionArityError'
-import type { DSLSourceLocation } from '../../../../shared/diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 
@@ -56,17 +56,20 @@ function arityViolation(schema: ZodType, received: number): { expected: string }
 function buildError(
   name: string,
   functionType: string,
-  source: DSLSourceLocation | undefined,
+  diagnostics: ASTNodeDiagnostics | undefined,
   expected: string,
   received: number,
 ): FunctionArityError {
+  const source = diagnostics?.source
+
   return new FunctionArityError({
     path: source?.path ? [...source.path] : [],
-    formattedPath: source?.formattedPath,
+    formattedPath: source?.formattedPath ?? 'unknown',
     functionName: name,
     functionType,
     expected,
     received,
+    callsite: diagnostics?.callsite,
   })
 }
 
@@ -88,9 +91,7 @@ export const validateFunctionArity: ASTValidationRule = (context: ASTValidationC
       const violation = arityViolation(entry.argumentsSchema, received)
 
       if (violation) {
-        errors.push(
-          buildError(node.properties.name, functionType, node.diagnostics?.source, violation.expected, received),
-        )
+        errors.push(buildError(node.properties.name, functionType, node.diagnostics, violation.expected, received))
       }
     })
   })

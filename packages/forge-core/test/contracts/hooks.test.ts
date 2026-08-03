@@ -790,6 +790,9 @@ describe('hooks and effects contracts', () => {
       expect(result.error.stack).toContain('Forge diagnostics:')
       expect(result.error).toMatchObject({ dependency: 'bookingStore' })
       expect(getForgeRuntimeEvaluationDiagnostics(result.error)).toBeDefined()
+      expect(result.error.stack).toContain('Defined at: ')
+      expect(result.error.stack).toContain('hooks.fixtures.ts')
+      expect(getForgeRuntimeEvaluationDiagnostics(result.error)?.definedAt).toContain('hooks.fixtures.ts')
     })
 
     it('should preserve an accidental Error thrown by an effect without assigning a status', async () => {

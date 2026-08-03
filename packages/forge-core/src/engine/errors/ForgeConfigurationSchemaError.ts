@@ -11,6 +11,8 @@ interface ForgeConfigurationSchemaErrorOptions {
   code?: string
   /** Human-readable path through the journey DSL */
   formattedPath?: string
+  /** Captured author callsite for the offending node, when available */
+  callsite?: { readonly stack?: string }
 }
 
 export default class ForgeConfigurationSchemaError extends Error {
@@ -22,6 +24,8 @@ export default class ForgeConfigurationSchemaError extends Error {
 
   readonly formattedPath?: string
 
+  readonly callsite?: { readonly stack?: string }
+
   constructor(options: ForgeConfigurationSchemaErrorOptions) {
     super(options.message)
     this.name = new.target.name
@@ -30,6 +34,7 @@ export default class ForgeConfigurationSchemaError extends Error {
     this.path = options.path
     this.expected = options.expected
     this.formattedPath = options.formattedPath
+    this.callsite = options.callsite
   }
 
   toString() {

@@ -203,4 +203,89 @@ describe('DSLSourceLocator', () => {
       )
     })
   })
+
+  describe('callsiteFromPath()', () => {
+    it('should return the stamp on the node at the path', () => {
+      // Arrange
+      const step = { code: 'personal-details' }
+      Object.defineProperty(step, '__callsite', { value: { stack: 'at step-site' }, enumerable: false })
+      const journey = { steps: [step] }
+      Object.defineProperty(journey, '__callsite', { value: { stack: 'at journey-site' }, enumerable: false })
+      const locator = new DSLSourceLocator(journey)
+
+      // Act
+      const result = locator.callsiteFromPath(['steps', 0])
+
+      // Assert
+      expect(result).toEqual({ stack: 'at step-site' })
+    })
+
+    it('should fall back to the nearest stamped ancestor when the path targets an unstamped primitive', () => {
+      // Arrange
+      const step = { code: 'personal-details', title: 'Personal details' }
+      Object.defineProperty(step, '__callsite', { value: { stack: 'at step-site' }, enumerable: false })
+      const journey = { steps: [step] }
+      Object.defineProperty(journey, '__callsite', { value: { stack: 'at journey-site' }, enumerable: false })
+      const locator = new DSLSourceLocator(journey)
+
+      // Act
+      const result = locator.callsiteFromPath(['steps', 0, 'title'])
+
+      // Assert
+      expect(result).toEqual({ stack: 'at step-site' })
+    })
+
+    it('should return undefined when nothing is stamped', () => {
+      // Arrange
+      const journey = { steps: [{ code: 'personal-details' }] }
+      const locator = new DSLSourceLocator(journey)
+
+      // Act
+      const result = locator.callsiteFromPath(['steps', 0, 'code'])
+
+      // Assert
+      expect(result).toBeUndefined()
+    })
+
+    it('should return an ancestor stamp when the path goes through a missing key', () => {
+      // Arrange
+      const journey = { steps: [] }
+      Object.defineProperty(journey, '__callsite', { value: { stack: 'at journey-site' }, enumerable: false })
+      const locator = new DSLSourceLocator(journey)
+
+      // Act
+      const result = locator.callsiteFromPath(['steps', 0, 'blocks', 0])
+
+      // Assert
+      expect(result).toEqual({ stack: 'at journey-site' })
+    })
+
+    it('should reject a stamp whose stack is not a string and fall back to a valid ancestor stamp', () => {
+      // Arrange
+      const step = { code: 'personal-details' }
+      Object.defineProperty(step, '__callsite', { value: { stack: 42 }, enumerable: false })
+      const journey = { steps: [step] }
+      Object.defineProperty(journey, '__callsite', { value: { stack: 'at journey-site' }, enumerable: false })
+      const locator = new DSLSourceLocator(journey)
+
+      // Act
+      const result = locator.callsiteFromPath(['steps', 0])
+
+      // Assert
+      expect(result).toEqual({ stack: 'at journey-site' })
+    })
+
+    it('should return undefined when the only stamp is not an object', () => {
+      // Arrange
+      const journey = { steps: [{ code: 'personal-details' }] }
+      Object.defineProperty(journey, '__callsite', { value: 'at journey-site', enumerable: false })
+      const locator = new DSLSourceLocator(journey)
+
+      // Act
+      const result = locator.callsiteFromPath(['steps', 0])
+
+      // Assert
+      expect(result).toBeUndefined()
+    })
+  })
 })
