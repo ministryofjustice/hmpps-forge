@@ -22,7 +22,9 @@ const methodizeFunctionProperties = sourceText => {
     }
 
     const functionType = member.type
-    const arrowToken = functionType.getChildren(sourceFile).find(child => child.kind === ts.SyntaxKind.EqualsGreaterThanToken)
+    const arrowToken = functionType
+      .getChildren(sourceFile)
+      .find(child => child.kind === ts.SyntaxKind.EqualsGreaterThanToken)
 
     if (arrowToken === undefined) {
       return
@@ -113,5 +115,9 @@ export const createDtsConfig = (registry, dtsOwnershipRules, isExternal) => ({
   },
   external: isExternal,
   resolve: { tsconfigFilename: './tsconfig.json' },
-  plugins: [createDtsEntrypointPlugin(dtsOwnershipRules, isExternal), dts({ emitDtsOnly: true, tsgo: {} }), createMethodSignaturePlugin()],
+  plugins: [
+    createDtsEntrypointPlugin(dtsOwnershipRules, isExternal),
+    dts({ emitDtsOnly: true, tsgo: {} }),
+    createMethodSignaturePlugin(),
+  ],
 })
