@@ -16,7 +16,7 @@ import { ASTNodeType } from '../../../../contracts/ast/enums'
 import { BlockASTNode, StepASTNode } from '../../../../contracts/ast/structures.type'
 import { IterateASTNode, ReferenceASTNode } from '../../../../contracts/ast/expressions.type'
 import { TemplateValue } from '../../../../contracts/ast/template.type'
-import TemplateFactory from '../../../ast/nodes/template/TemplateFactory'
+import { compileTemplate } from '../../../ast/nodes/template'
 import { NodeIDGenerator } from '../../../ast/ast-state/NodeIDGenerator'
 import FunctionRegistry from '../../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../../registries/ComponentRegistry'
@@ -61,7 +61,7 @@ function createCollectionBlock(collection: IterateASTNode): BlockASTNode {
 }
 
 function createTemplate(value: unknown): TemplateValue {
-  return new TemplateFactory(new NodeIDGenerator()).compile(value)
+  return compileTemplate(value, new NodeIDGenerator())
 }
 
 function createIterateNode(
