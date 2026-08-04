@@ -9,6 +9,11 @@ export default class EffectRegistry<TDeps = Record<string, never>> extends BaseF
 
   register<TArgs extends any[]>(
     name: string,
+    options: RegistrationOptions & { factory: (deps: TDeps) => (context: any, ...args: TArgs) => any },
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => EffectFunctionExpr
+
+  register<TArgs extends any[]>(
+    name: string,
     options: RegistrationOptions,
     factory: (deps: TDeps) => (context: any, ...args: TArgs) => any,
   ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => EffectFunctionExpr

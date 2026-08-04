@@ -30,6 +30,26 @@ describe('ConditionRegistry', () => {
       HasMinLength(null as unknown as ResolvableExpression<string>)
     })
 
+    it('should widen evaluator arguments when the factory is embedded in the options object', () => {
+      // Arrange
+      const registry = new ConditionRegistry()
+
+      // Act
+      const HasMinLength = registry.register('HasMinLength', {
+        factory: () => (value: string, min: number) => value.length >= min,
+      })
+
+      // Assert
+      expectTypeOf<Parameters<typeof HasMinLength>>().toEqualTypeOf<[Resolvable<number>]>()
+      expect(HasMinLength(5).name).toBe('HasMinLength')
+
+      // A reference resolving to the argument at runtime is accepted
+      HasMinLength(Answer('minimumLength'))
+
+      // @ts-expect-error - the evaluator declares a number, so a string is rejected
+      HasMinLength('5')
+    })
+
     it('should accept a generator handle result in a resolvable argument slot', () => {
       // Arrange
       const registry = new ConditionRegistry()

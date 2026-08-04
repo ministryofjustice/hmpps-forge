@@ -9,6 +9,11 @@ export default class TransformerRegistry<TDeps = Record<string, never>> extends 
 
   register<TArgs extends any[]>(
     name: string,
+    options: RegistrationOptions & { factory: (deps: TDeps) => (value: any, ...args: TArgs) => any },
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => TransformerFunctionExpr
+
+  register<TArgs extends any[]>(
+    name: string,
     options: RegistrationOptions,
     factory: (deps: TDeps) => (value: any, ...args: TArgs) => any,
   ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => TransformerFunctionExpr
