@@ -52,7 +52,7 @@ describe('DateTransformers', () => {
     it('should throw on non-Date input', () => {
       // Act & Assert
       expect(() => harness.evaluate(DateTransformers.Format('DD/MM/YYYY')).withInput('not a date')).toThrow(
-        'expects a Date object',
+        'Date.Format: value failed schema validation',
       )
     })
   })

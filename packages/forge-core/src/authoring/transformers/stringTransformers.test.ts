@@ -33,7 +33,7 @@ describe('String Transformers', () => {
 
     it('should throw error for non-string values', () => {
       expect(() => harness.evaluate(StringTransformers.Trim()).withInput(123)).toThrow(
-        'Transformer.String.Trim expects a string but received number.',
+        'String.Trim: value failed schema validation',
       )
     })
 
@@ -75,7 +75,7 @@ describe('String Transformers', () => {
 
     it('should throw error for non-string values', () => {
       expect(() => harness.evaluate(StringTransformers.ToUpperCase()).withInput(123)).toThrow(
-        'Transformer.String.ToUpperCase expects a string but received number.',
+        'String.ToUpperCase: value failed schema validation',
       )
     })
   })
@@ -103,7 +103,7 @@ describe('String Transformers', () => {
 
     it('should throw error for non-string values', () => {
       expect(() => harness.evaluate(StringTransformers.ToLowerCase()).withInput(123)).toThrow(
-        'Transformer.String.ToLowerCase expects a string but received number.',
+        'String.ToLowerCase: value failed schema validation',
       )
     })
   })
@@ -136,7 +136,7 @@ describe('String Transformers', () => {
 
     it('should throw error for non-string values', () => {
       expect(() => harness.evaluate(StringTransformers.ToTitleCase()).withInput(123)).toThrow(
-        'Transformer.String.ToTitleCase expects a string but received number.',
+        'String.ToTitleCase: value failed schema validation',
       )
     })
   })
@@ -164,7 +164,7 @@ describe('String Transformers', () => {
 
     it('should throw error for non-string values', () => {
       expect(() => harness.evaluate(StringTransformers.Capitalize()).withInput(123)).toThrow(
-        'Transformer.String.Capitalize expects a string but received number.',
+        'String.Capitalize: value failed schema validation',
       )
     })
   })
@@ -198,7 +198,7 @@ describe('String Transformers', () => {
 
     it('should throw error for non-string values', () => {
       expect(() => harness.evaluate(StringTransformers.Possessive()).withInput(123)).toThrow(
-        'Transformer.String.Possessive expects a string but received number.',
+        'String.Possessive: value failed schema validation',
       )
     })
 
@@ -235,7 +235,7 @@ describe('String Transformers', () => {
 
     it('should throw error for non-string values', () => {
       expect(() => harness.evaluate(StringTransformers.Substring(0, 1)).withInput(123)).toThrow(
-        'Transformer.String.Substring expects a string but received number.',
+        'String.Substring: value failed schema validation',
       )
     })
   })
@@ -263,7 +263,7 @@ describe('String Transformers', () => {
 
     it('should throw error for non-string values', () => {
       expect(() => harness.evaluate(StringTransformers.Replace('a', 'b')).withInput(123)).toThrow(
-        'Transformer.String.Replace expects a string but received number.',
+        'String.Replace: value failed schema validation',
       )
     })
   })
@@ -291,7 +291,7 @@ describe('String Transformers', () => {
 
     it('should throw error for non-string values', () => {
       expect(() => harness.evaluate(StringTransformers.PadStart(5)).withInput(123)).toThrow(
-        'Transformer.String.PadStart expects a string but received number.',
+        'String.PadStart: value failed schema validation',
       )
     })
   })
@@ -319,7 +319,7 @@ describe('String Transformers', () => {
 
     it('should throw error for non-string values', () => {
       expect(() => harness.evaluate(StringTransformers.PadEnd(5)).withInput(123)).toThrow(
-        'Transformer.String.PadEnd expects a string but received number.',
+        'String.PadEnd: value failed schema validation',
       )
     })
   })
@@ -375,7 +375,7 @@ describe('String Transformers', () => {
 
     it('should throw error for non-string values', () => {
       expect(() => harness.evaluate(StringTransformers.ToInt()).withInput(123)).toThrow(
-        'Transformer.String.ToInt expects a string but received number.',
+        'String.ToInt: value failed schema validation',
       )
     })
 
@@ -449,7 +449,7 @@ describe('String Transformers', () => {
 
     it('should throw error for non-string values', () => {
       expect(() => harness.evaluate(StringTransformers.ToFloat()).withInput(123.45)).toThrow(
-        'Transformer.String.ToFloat expects a string but received number.',
+        'String.ToFloat: value failed schema validation',
       )
     })
 
@@ -511,7 +511,7 @@ describe('String Transformers', () => {
 
     it('should throw error for non-string values', () => {
       expect(() => harness.evaluate(StringTransformers.ToArray()).withInput(123)).toThrow(
-        'Transformer.String.ToArray expects a string but received number.',
+        'String.ToArray: value failed schema validation',
       )
     })
 
@@ -650,11 +650,11 @@ describe('String Transformers', () => {
 
     it('should throw error for non-string values', () => {
       expect(() => harness.evaluate(StringTransformers.ToDate()).withInput(123)).toThrow(
-        'Transformer.String.ToDate expects a string but received number.',
+        'String.ToDate: value failed schema validation',
       )
       // `null` is a real value, so it flows through to the transformer and fails its string assertion.
       expect(() => harness.evaluate(StringTransformers.ToDate()).withInput(null)).toThrow(
-        'Transformer.String.ToDate expects a string but received object.',
+        'String.ToDate: value failed schema validation',
       )
       // An undefined input short-circuits to undefined without calling the transformer.
       expect(harness.evaluate(StringTransformers.ToDate()).withInput(undefined)).toBeUndefined()
@@ -756,7 +756,7 @@ describe('String Transformers', () => {
       const act = () => harness.evaluate(StringTransformers.FormatDate()).withInput(input)
 
       // Assert
-      expect(act).toThrow('Transformer.String.FormatDate expects a string but received number.')
+      expect(act).toThrow('String.FormatDate: value failed schema validation')
     })
 
     it('should return a function expression when called without options', () => {
@@ -875,7 +875,7 @@ describe('String Transformers', () => {
       const act = () => harness.evaluate(StringTransformers.FormatDate()).withInput(input)
 
       // Assert
-      expect(act).toThrow('Transformer.String.FormatDate expects a string but received number.')
+      expect(act).toThrow('String.FormatDate: value failed schema validation')
     })
 
     it('should return a function expression when called without options', () => {
@@ -983,11 +983,11 @@ describe('String Transformers', () => {
 
     it('should throw error for non-string values', () => {
       expect(() => harness.evaluate(StringTransformers.ToISODate()).withInput(123)).toThrow(
-        'Transformer.String.ToISODate expects a string but received number.',
+        'String.ToISODate: value failed schema validation',
       )
       // `null` is a real value, so it flows through to the transformer and fails its string assertion.
       expect(() => harness.evaluate(StringTransformers.ToISODate()).withInput(null)).toThrow(
-        'Transformer.String.ToISODate expects a string but received object.',
+        'String.ToISODate: value failed schema validation',
       )
       // An undefined input short-circuits to undefined without calling the transformer.
       expect(harness.evaluate(StringTransformers.ToISODate()).withInput(undefined)).toBeUndefined()
@@ -1095,7 +1095,7 @@ describe('String Transformers', () => {
 
     it('should throw error for non-string values', () => {
       expect(() => harness.evaluate(StringTransformers.EscapeHtml()).withInput(123)).toThrow(
-        'Transformer.String.EscapeHtml expects a string but received number.',
+        'String.EscapeHtml: value failed schema validation',
       )
     })
 

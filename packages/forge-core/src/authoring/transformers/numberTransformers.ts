@@ -1,5 +1,9 @@
-import { assertNumber } from '../../shared/utils/asserts'
+import { z } from 'zod'
 import TransformerRegistry from '../registries/TransformerRegistry'
+
+const numberSchema = z.number()
+const numberArgsSchema = z.tuple([z.number()])
+const numberRangeArgsSchema = z.tuple([z.number(), z.number()])
 
 const numberTransformers = new TransformerRegistry()
 
@@ -11,11 +15,14 @@ export const NumberTransformers = {
    * // Add(3) applied to 5 returns 8
    * // Add(Answer('tax')) applied to Answer('price') - dynamic addition
    */
-  Add: numberTransformers.register('Number.Add', () => (value: any, addend: number) => {
-    assertNumber(value, 'Transformer.Number.Add')
-    assertNumber(addend, 'Transformer.Number.Add (addend)')
-    return value + addend
-  }),
+  Add: numberTransformers.register(
+    'Number.Add',
+    {
+      inputSchema: numberSchema,
+      argumentsSchema: numberArgsSchema,
+    },
+    () => (value: number, addend: number) => value + addend,
+  ),
 
   /**
    * Subtracts a number from the input value
@@ -23,11 +30,14 @@ export const NumberTransformers = {
    * @example
    * // Subtract(3) applied to 10 returns 7
    */
-  Subtract: numberTransformers.register('Number.Subtract', () => (value: any, subtrahend: number) => {
-    assertNumber(value, 'Transformer.Number.Subtract')
-    assertNumber(subtrahend, 'Transformer.Number.Subtract (subtrahend)')
-    return value - subtrahend
-  }),
+  Subtract: numberTransformers.register(
+    'Number.Subtract',
+    {
+      inputSchema: numberSchema,
+      argumentsSchema: numberArgsSchema,
+    },
+    () => (value: number, subtrahend: number) => value - subtrahend,
+  ),
 
   /**
    * Multiplies the input value by a number
@@ -36,11 +46,14 @@ export const NumberTransformers = {
    * // Multiply(3) applied to 4 returns 12
    * // Multiply(Answer('quantity')) applied to Answer('price') - dynamic multiplication
    */
-  Multiply: numberTransformers.register('Number.Multiply', () => (value: any, multiplier: number) => {
-    assertNumber(value, 'Transformer.Number.Multiply')
-    assertNumber(multiplier, 'Transformer.Number.Multiply (multiplier)')
-    return value * multiplier
-  }),
+  Multiply: numberTransformers.register(
+    'Number.Multiply',
+    {
+      inputSchema: numberSchema,
+      argumentsSchema: numberArgsSchema,
+    },
+    () => (value: number, multiplier: number) => value * multiplier,
+  ),
 
   /**
    * Divides the input value by a number
@@ -48,54 +61,72 @@ export const NumberTransformers = {
    * @example
    * // Divide(3) applied to 15 returns 5
    */
-  Divide: numberTransformers.register('Number.Divide', () => (value: any, divisor: number) => {
-    assertNumber(value, 'Transformer.Number.Divide')
-    assertNumber(divisor, 'Transformer.Number.Divide (divisor)')
-    if (divisor === 0) {
-      throw new Error('Division by zero is not allowed in Transformer.Number.Divide')
-    }
-    return value / divisor
-  }),
+  Divide: numberTransformers.register(
+    'Number.Divide',
+    {
+      inputSchema: numberSchema,
+      argumentsSchema: numberArgsSchema,
+    },
+    () => (value: number, divisor: number) => {
+      if (divisor === 0) {
+        throw new Error('Division by zero is not allowed in Transformer.Number.Divide')
+      }
+
+      return value / divisor
+    },
+  ),
 
   /**
    * Returns the absolute value of the input
    * @example
    * // Abs() applied to -5 returns 5
    */
-  Abs: numberTransformers.register('Number.Abs', () => (value: any) => {
-    assertNumber(value, 'Transformer.Number.Abs')
-    return Math.abs(value)
-  }),
+  Abs: numberTransformers.register(
+    'Number.Abs',
+    {
+      inputSchema: numberSchema,
+    },
+    () => (value: number) => Math.abs(value),
+  ),
 
   /**
    * Rounds the number to the nearest integer
    * @example
    * // Round() applied to 4.7 returns 5
    */
-  Round: numberTransformers.register('Number.Round', () => (value: any) => {
-    assertNumber(value, 'Transformer.Number.Round')
-    return Math.round(value)
-  }),
+  Round: numberTransformers.register(
+    'Number.Round',
+    {
+      inputSchema: numberSchema,
+    },
+    () => (value: number) => Math.round(value),
+  ),
 
   /**
    * Rounds the number down to the nearest integer
    * @example
    * // Floor() applied to 4.7 returns 4
    */
-  Floor: numberTransformers.register('Number.Floor', () => (value: any) => {
-    assertNumber(value, 'Transformer.Number.Floor')
-    return Math.floor(value)
-  }),
+  Floor: numberTransformers.register(
+    'Number.Floor',
+    {
+      inputSchema: numberSchema,
+    },
+    () => (value: number) => Math.floor(value),
+  ),
 
   /**
    * Rounds the number up to the nearest integer
    * @example
    * // Ceil() applied to 4.2 returns 5
    */
-  Ceil: numberTransformers.register('Number.Ceil', () => (value: any) => {
-    assertNumber(value, 'Transformer.Number.Ceil')
-    return Math.ceil(value)
-  }),
+  Ceil: numberTransformers.register(
+    'Number.Ceil',
+    {
+      inputSchema: numberSchema,
+    },
+    () => (value: number) => Math.ceil(value),
+  ),
 
   /**
    * Rounds the number to a specified number of decimal places
@@ -103,11 +134,14 @@ export const NumberTransformers = {
    * @example
    * // ToFixed(2) applied to 3.14159 returns 3.14
    */
-  ToFixed: numberTransformers.register('Number.ToFixed', () => (value: any, decimals: number) => {
-    assertNumber(value, 'Transformer.Number.ToFixed')
-    assertNumber(decimals, 'Transformer.Number.ToFixed (decimals)')
-    return parseFloat(value.toFixed(decimals))
-  }),
+  ToFixed: numberTransformers.register(
+    'Number.ToFixed',
+    {
+      inputSchema: numberSchema,
+      argumentsSchema: numberArgsSchema,
+    },
+    () => (value: number, decimals: number) => parseFloat(value.toFixed(decimals)),
+  ),
 
   /**
    * Returns the maximum of the input value and a comparison value
@@ -115,11 +149,14 @@ export const NumberTransformers = {
    * @example
    * // Max(10) applied to 5 returns 10
    */
-  Max: numberTransformers.register('Number.Max', () => (value: any, comparison: number) => {
-    assertNumber(value, 'Transformer.Number.Max')
-    assertNumber(comparison, 'Transformer.Number.Max (comparison)')
-    return Math.max(value, comparison)
-  }),
+  Max: numberTransformers.register(
+    'Number.Max',
+    {
+      inputSchema: numberSchema,
+      argumentsSchema: numberArgsSchema,
+    },
+    () => (value: number, comparison: number) => Math.max(value, comparison),
+  ),
 
   /**
    * Returns the minimum of the input value and a comparison value
@@ -127,11 +164,14 @@ export const NumberTransformers = {
    * @example
    * // Min(10) applied to 5 returns 5
    */
-  Min: numberTransformers.register('Number.Min', () => (value: any, comparison: number) => {
-    assertNumber(value, 'Transformer.Number.Min')
-    assertNumber(comparison, 'Transformer.Number.Min (comparison)')
-    return Math.min(value, comparison)
-  }),
+  Min: numberTransformers.register(
+    'Number.Min',
+    {
+      inputSchema: numberSchema,
+      argumentsSchema: numberArgsSchema,
+    },
+    () => (value: number, comparison: number) => Math.min(value, comparison),
+  ),
 
   /**
    * Raises the input value to the power of the exponent
@@ -139,24 +179,33 @@ export const NumberTransformers = {
    * @example
    * // Power(3) applied to 2 returns 8
    */
-  Power: numberTransformers.register('Number.Power', () => (value: any, exponent: number) => {
-    assertNumber(value, 'Transformer.Number.Power')
-    assertNumber(exponent, 'Transformer.Number.Power (exponent)')
-    return value ** exponent
-  }),
+  Power: numberTransformers.register(
+    'Number.Power',
+    {
+      inputSchema: numberSchema,
+      argumentsSchema: numberArgsSchema,
+    },
+    () => (value: number, exponent: number) => value ** exponent,
+  ),
 
   /**
    * Returns the square root of the input value
    * @example
    * // Sqrt() applied to 16 returns 4
    */
-  Sqrt: numberTransformers.register('Number.Sqrt', () => (value: any) => {
-    assertNumber(value, 'Transformer.Number.Sqrt')
-    if (value < 0) {
-      throw new Error('Cannot calculate square root of negative number in Transformer.Number.Sqrt')
-    }
-    return Math.sqrt(value)
-  }),
+  Sqrt: numberTransformers.register(
+    'Number.Sqrt',
+    {
+      inputSchema: numberSchema,
+    },
+    () => (value: number) => {
+      if (value < 0) {
+        throw new Error('Cannot calculate square root of negative number in Transformer.Number.Sqrt')
+      }
+
+      return Math.sqrt(value)
+    },
+  ),
 
   /**
    * Clamps the input value between a minimum and maximum range
@@ -167,12 +216,14 @@ export const NumberTransformers = {
    * // Clamp(5, 10) applied to 3 returns 5
    * // Clamp(5, 10) applied to 7 returns 7
    */
-  Clamp: numberTransformers.register('Number.Clamp', () => (value: any, min: number, max: number) => {
-    assertNumber(value, 'Transformer.Number.Clamp')
-    assertNumber(min, 'Transformer.Number.Clamp (min)')
-    assertNumber(max, 'Transformer.Number.Clamp (max)')
-    return Math.min(Math.max(value, min), max)
-  }),
+  Clamp: numberTransformers.register(
+    'Number.Clamp',
+    {
+      inputSchema: numberSchema,
+      argumentsSchema: numberRangeArgsSchema,
+    },
+    () => (value: number, min: number, max: number) => Math.min(Math.max(value, min), max),
+  ),
 }
 
 export { numberTransformers as numberTransformersRegistry }

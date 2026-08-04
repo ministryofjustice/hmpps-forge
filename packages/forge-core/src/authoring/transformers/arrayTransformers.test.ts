@@ -23,7 +23,7 @@ describe('Array Transformers', () => {
 
     it('should throw error for non-array values', () => {
       expect(() => harness.evaluate(ArrayTransformers.Length()).withInput('hello')).toThrow(
-        'Transformer.Array.Length expects an array but received string.',
+        'Array.Length: value failed schema validation',
       )
     })
 
@@ -55,7 +55,7 @@ describe('Array Transformers', () => {
 
     it('should throw error for non-array values', () => {
       expect(() => harness.evaluate(ArrayTransformers.First()).withInput('hello')).toThrow(
-        'Transformer.Array.First expects an array but received string.',
+        'Array.First: value failed schema validation',
       )
     })
   })
@@ -78,7 +78,7 @@ describe('Array Transformers', () => {
 
     it('should throw error for non-array values', () => {
       expect(() => harness.evaluate(ArrayTransformers.Last()).withInput('hello')).toThrow(
-        'Transformer.Array.Last expects an array but received string.',
+        'Array.Last: value failed schema validation',
       )
     })
   })
@@ -108,7 +108,7 @@ describe('Array Transformers', () => {
 
     it('should throw error for non-array values', () => {
       expect(() => harness.evaluate(ArrayTransformers.Reverse()).withInput('hello')).toThrow(
-        'Transformer.Array.Reverse expects an array but received string.',
+        'Array.Reverse: value failed schema validation',
       )
     })
   })
@@ -141,7 +141,7 @@ describe('Array Transformers', () => {
 
     it('should throw error for non-array values', () => {
       expect(() => harness.evaluate(ArrayTransformers.Join()).withInput('hello')).toThrow(
-        'Transformer.Array.Join expects an array but received string.',
+        'Array.Join: value failed schema validation',
       )
     })
   })
@@ -169,7 +169,7 @@ describe('Array Transformers', () => {
 
     it('should throw error for non-array values', () => {
       expect(() => harness.evaluate(ArrayTransformers.Slice(1, 3)).withInput('hello')).toThrow(
-        'Transformer.Array.Slice expects an array but received string.',
+        'Array.Slice: value failed schema validation',
       )
     })
   })
@@ -193,12 +193,12 @@ describe('Array Transformers', () => {
     it('should throw error if any argument is not an array', () => {
       expect(() =>
         harness.evaluate(ArrayTransformers.Concat('hello' as unknown as unknown[])).withInput([1, 2]),
-      ).toThrow('Transformer.Array.Concat (array at position 1) expects an array but received string.')
+      ).toThrow('Array.Concat: arguments failed schema validation')
     })
 
     it('should throw error for non-array input', () => {
       expect(() => harness.evaluate(ArrayTransformers.Concat([1, 2])).withInput('hello')).toThrow(
-        'Transformer.Array.Concat expects an array but received string.',
+        'Array.Concat: value failed schema validation',
       )
     })
   })
@@ -226,7 +226,7 @@ describe('Array Transformers', () => {
 
     it('should throw error for non-array values', () => {
       expect(() => harness.evaluate(ArrayTransformers.Unique()).withInput('hello')).toThrow(
-        'Transformer.Array.Unique expects an array but received string.',
+        'Array.Unique: value failed schema validation',
       )
     })
   })
@@ -261,7 +261,7 @@ describe('Array Transformers', () => {
 
     it('should throw error for non-array values', () => {
       expect(() => harness.evaluate(ArrayTransformers.Sort()).withInput('hello')).toThrow(
-        'Transformer.Array.Sort expects an array but received string.',
+        'Array.Sort: value failed schema validation',
       )
     })
   })
@@ -289,7 +289,7 @@ describe('Array Transformers', () => {
 
     it('should throw error for non-array values', () => {
       expect(() => harness.evaluate(ArrayTransformers.Filter('e')).withInput('hello')).toThrow(
-        'Transformer.Array.Filter expects an array but received string.',
+        'Array.Filter: value failed schema validation',
       )
     })
   })
@@ -325,7 +325,7 @@ describe('Array Transformers', () => {
 
     it('should throw error for non-array values', () => {
       expect(() => harness.evaluate(ArrayTransformers.Map('name')).withInput('hello')).toThrow(
-        'Transformer.Array.Map expects an array but received string.',
+        'Array.Map: value failed schema validation',
       )
     })
   })
@@ -356,7 +356,7 @@ describe('Array Transformers', () => {
 
     it('should throw error for non-array values', () => {
       expect(() => harness.evaluate(ArrayTransformers.Flatten()).withInput('hello')).toThrow(
-        'Transformer.Array.Flatten expects an array but received string.',
+        'Array.Flatten: value failed schema validation',
       )
     })
   })

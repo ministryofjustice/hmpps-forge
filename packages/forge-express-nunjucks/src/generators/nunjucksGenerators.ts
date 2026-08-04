@@ -1,4 +1,5 @@
 import nunjucks from 'nunjucks'
+import { z } from 'zod'
 import { GeneratorRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
 
 /**
@@ -52,6 +53,13 @@ interface NunjucksStringGeneratorProps {
   data?: Record<string, unknown>
 }
 
+const nunjucksStringArgsSchema = z.tuple([
+  z.looseObject({
+    template: z.string(),
+    data: z.record(z.string(), z.unknown()).optional(),
+  }),
+])
+
 const nunjucksGenerators = new GeneratorRegistry()
 
 export const NunjucksGenerators = {
@@ -71,6 +79,7 @@ export const NunjucksGenerators = {
   String: nunjucksGenerators.register(
     'String',
     {
+      argumentsSchema: nunjucksStringArgsSchema,
       prepare: (props: NunjucksStringGeneratorProps) => {
         assertTemplateIsAllowed(props.template)
 

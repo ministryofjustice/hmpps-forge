@@ -76,13 +76,15 @@ describe('Object Transformers', () => {
     it('should throw errors for invalid inputs', () => {
       const paths = { year: 'year' }
 
-      expect(() => harness.evaluate(ObjectTransformers.ToISO(paths)).withInput(null)).toThrow('expects an object')
+      expect(() => harness.evaluate(ObjectTransformers.ToISO(paths)).withInput(null)).toThrow(
+        'Object.ToISO: value failed schema validation',
+      )
       expect(() => harness.evaluate(ObjectTransformers.ToISO(paths)).withInput('not-object')).toThrow(
-        'expects an object',
+        'Object.ToISO: value failed schema validation',
       )
       expect(() =>
         harness.evaluate(ObjectTransformers.ToISO(null as unknown as DateParts)).withInput({ year: '2024' }),
-      ).toThrow('requires a paths configuration')
+      ).toThrow('Object.ToISO: arguments failed schema validation')
       expect(() =>
         harness.evaluate(ObjectTransformers.ToISO({ year: 'missing' })).withInput({ other: 'value' }),
       ).toThrow('No valid date components found')

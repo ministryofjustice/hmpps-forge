@@ -1,4 +1,4 @@
-import { assertString } from '../../shared/utils/asserts'
+import { z } from 'zod'
 import GeneratorRegistry from '../registries/GeneratorRegistry'
 
 export const FORMAT_STRING_GENERATOR_NAME = 'FormatString'
@@ -6,7 +6,15 @@ export const FORMAT_STRING_GENERATOR_NAME = 'FormatString'
 const formatGenerators = new GeneratorRegistry()
 
 export const FormatGenerators = {
-  FormatString: formatGenerators.register(FORMAT_STRING_GENERATOR_NAME, () => createFormatStringGenerator()),
+  FormatString: formatGenerators.register(
+    FORMAT_STRING_GENERATOR_NAME,
+    {
+      argumentsSchema: z.tuple([z.string()], z.unknown()),
+    },
+    () =>
+      (template: string, ...replacements: unknown[]) =>
+        formatString(template, replacements),
+  ),
 }
 
 export { formatGenerators as formatGeneratorsRegistry }
@@ -25,12 +33,4 @@ function replaceFormatPlaceholder(placeholder: string, indexValue: string, repla
   }
 
   return String(replacements[index] ?? '')
-}
-
-function createFormatStringGenerator(): (template: unknown, ...replacements: unknown[]) => string {
-  return (template, ...replacements) => {
-    assertString(template, 'Generator.FormatString')
-
-    return formatString(template, replacements)
-  }
 }
