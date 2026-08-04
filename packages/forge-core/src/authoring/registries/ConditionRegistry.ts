@@ -9,6 +9,11 @@ export default class ConditionRegistry<TDeps = Record<string, never>> extends Ba
 
   register<TArgs extends any[]>(
     name: string,
+    options: RegistrationOptions & { factory: (deps: TDeps) => (value: any, ...args: TArgs) => boolean },
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => ConditionFunctionExpr
+
+  register<TArgs extends any[]>(
+    name: string,
     options: RegistrationOptions,
     factory: (deps: TDeps) => (value: any, ...args: TArgs) => boolean,
   ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => ConditionFunctionExpr

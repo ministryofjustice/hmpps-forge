@@ -2162,22 +2162,23 @@ describe('ASTSemanticValidator', () => {
   describe('function arity', () => {
     const createArityRegistry = (): FunctionRegistry => {
       const conditions = new ConditionRegistry()
-      conditions.register('exactOne', { argumentsSchema: z.tuple([z.number()]) }, () => () => true)
-      conditions.register('withRest', { argumentsSchema: z.tuple([z.number()]).rest(z.number()) }, () => () => true)
-      conditions.register(
-        'trailingOptional',
-        { argumentsSchema: z.tuple([z.number(), z.number().optional()]) },
-        () => () => true,
-      )
-      conditions.register('noSchema', {}, () => () => true)
-      conditions.register('nonTuple', { argumentsSchema: z.number() }, () => () => true)
+      conditions.register('exactOne', { argumentsSchema: z.tuple([z.number()]), factory: () => () => true })
+      conditions.register('withRest', {
+        argumentsSchema: z.tuple([z.number()]).rest(z.number()),
+        factory: () => () => true,
+      })
+      conditions.register('trailingOptional', {
+        argumentsSchema: z.tuple([z.number(), z.number().optional()]),
+        factory: () => () => true,
+      })
+      conditions.register('noSchema', { factory: () => () => true })
+      conditions.register('nonTuple', { argumentsSchema: z.number(), factory: () => () => true })
 
       const transformers = new TransformerRegistry()
-      transformers.register(
-        'exactOneTransformer',
-        { argumentsSchema: z.tuple([z.number()]) },
-        () => (value: unknown) => value,
-      )
+      transformers.register('exactOneTransformer', {
+        argumentsSchema: z.tuple([z.number()]),
+        factory: () => (value: unknown) => value,
+      })
 
       const registry = new FunctionRegistry()
       registry.register(conditions.build({}))

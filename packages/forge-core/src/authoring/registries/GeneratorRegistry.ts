@@ -10,6 +10,11 @@ export default class GeneratorRegistry<TDeps = Record<string, never>> extends Ba
 
   register<TArgs extends any[]>(
     name: string,
+    options: RegistrationOptions & { factory: (deps: TDeps) => (...args: TArgs) => any },
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => GeneratorBuilder<ResolvableValue[]>
+
+  register<TArgs extends any[]>(
+    name: string,
     options: RegistrationOptions,
     factory: (deps: TDeps) => (...args: TArgs) => any,
   ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => GeneratorBuilder<ResolvableValue[]>

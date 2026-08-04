@@ -37,13 +37,10 @@ export const ObjectTransformers = {
    * // Nested paths: {date: {y: "2024", m: "3", d: "15"}} becomes "2024-03-15"
    * ToISO({year: 'date.y', month: 'date.m', day: 'date.d'})
    */
-  ToISO: objectTransformers.register(
-    'Object.ToISO',
-    {
-      inputSchema: objectSchema,
-      argumentsSchema: datePartsArgsSchema,
-    },
-    () => (value: Record<string, unknown>, paths: DateParts) => {
+  ToISO: objectTransformers.register('Object.ToISO', {
+    inputSchema: objectSchema,
+    argumentsSchema: datePartsArgsSchema,
+    factory: () => (value: Record<string, unknown>, paths: DateParts) => {
       const year = paths.year ? getByPath<string>(value, paths.year) : undefined
       const month = paths.month ? getByPath<string>(value, paths.month) : undefined
       const day = paths.day ? getByPath<string>(value, paths.day) : undefined
@@ -107,7 +104,7 @@ export const ObjectTransformers = {
 
       throw new TypeError('Transformer.Object.ToISO: No valid date components found in object')
     },
-  ),
+  }),
 
   /**
    * Converts an ISO 8601 date string back to an object with date parts.
@@ -122,12 +119,9 @@ export const ObjectTransformers = {
    * // Year-month: "2024-03" becomes {year: "2024", month: "03"}
    * FromISO({year: 'year', month: 'month'})
    */
-  FromISO: objectTransformers.register(
-    'Object.FromISO',
-    {
-      argumentsSchema: datePartsArgsSchema,
-    },
-    () => (value: unknown, paths: DateParts) => {
+  FromISO: objectTransformers.register('Object.FromISO', {
+    argumentsSchema: datePartsArgsSchema,
+    factory: () => (value: unknown, paths: DateParts) => {
       if (typeof value === 'object' && value !== null) {
         return value
       }
@@ -187,7 +181,7 @@ export const ObjectTransformers = {
 
       return {}
     },
-  ),
+  }),
 }
 
 export { objectTransformers as objectTransformersRegistry }

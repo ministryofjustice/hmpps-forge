@@ -12,40 +12,30 @@ const objectConditions = new ConditionRegistry()
 
 export const ObjectConditions = {
   /** Checks if a value is a plain object (not null, not array) */
-  IsObject: objectConditions.register(
-    'Object.IsObject',
-    () => (value: unknown) => value !== null && typeof value === 'object' && !Array.isArray(value),
-  ),
+  IsObject: objectConditions.register('Object.IsObject', {
+    factory: () => (value: unknown) => value !== null && typeof value === 'object' && !Array.isArray(value),
+  }),
 
   /** Checks if an object has a property at the given path */
-  HasProperty: objectConditions.register(
-    'Object.HasProperty',
-    {
-      inputSchema: objectSchema,
-      argumentsSchema: stringArgsSchema,
-    },
-    () => (value: unknown, path: string) => getByPath(value, path) !== undefined,
-  ),
+  HasProperty: objectConditions.register('Object.HasProperty', {
+    inputSchema: objectSchema,
+    argumentsSchema: stringArgsSchema,
+    factory: () => (value: unknown, path: string) => getByPath(value, path) !== undefined,
+  }),
 
   /** Checks if an object property at the given path is empty */
-  PropertyIsEmpty: objectConditions.register(
-    'Object.PropertyIsEmpty',
-    {
-      inputSchema: objectSchema,
-      argumentsSchema: stringArgsSchema,
-    },
-    () => (value: unknown, path: string) => isEmpty(getByPath(value, path)),
-  ),
+  PropertyIsEmpty: objectConditions.register('Object.PropertyIsEmpty', {
+    inputSchema: objectSchema,
+    argumentsSchema: stringArgsSchema,
+    factory: () => (value: unknown, path: string) => isEmpty(getByPath(value, path)),
+  }),
 
   /** Checks if an object property at the given path has a value (not empty) */
-  PropertyHasValue: objectConditions.register(
-    'Object.PropertyHasValue',
-    {
-      inputSchema: objectSchema,
-      argumentsSchema: stringArgsSchema,
-    },
-    () => (value: unknown, path: string) => !isEmpty(getByPath(value, path)),
-  ),
+  PropertyHasValue: objectConditions.register('Object.PropertyHasValue', {
+    inputSchema: objectSchema,
+    argumentsSchema: stringArgsSchema,
+    factory: () => (value: unknown, path: string) => !isEmpty(getByPath(value, path)),
+  }),
 }
 
 export { objectConditions as objectConditionsRegistry }
