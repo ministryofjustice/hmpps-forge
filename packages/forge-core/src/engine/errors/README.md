@@ -13,6 +13,7 @@ single `instanceof ForgeBaseError` check answers "did Forge throw this".
 
 | Error | Thrown when |
 |-------|------------|
+| [`ForgeAuthoringError`](./ForgeAuthoringError.ts) | The authoring API is misused while builders are still assembling the definition (e.g. a circular reference) |
 | [`ForgeSchemaError`](./ForgeSchemaError.ts) | An authored definition fails Zod schema validation |
 | [`ForgeReferenceScopeError`](./ForgeReferenceScopeError.ts) | A reference (e.g. `Answer()`, `Params()`) is used in a scope where its data source isn't available |
 | [`ForgeSerialisationError`](./ForgeSerialisationError.ts) | The authored input can't be serialised into a valid journey |
@@ -26,6 +27,7 @@ single `instanceof ForgeBaseError` check answers "did Forge throw this".
 | [`ForgeUnregisteredComponentError`](./ForgeUnregisteredComponentError.ts) | A block references a component variant that isn't in the registry |
 | [`ForgeUnregisteredFunctionError`](./ForgeUnregisteredFunctionError.ts) | An expression references a function name that isn't in the registry |
 | [`ForgeRegistrationError`](./ForgeRegistrationError.ts) | Package registration fails while `strictRegistration` is enabled |
+| [`ForgeInternalError`](./ForgeInternalError.ts) | An internal consistency check fails - a state the engine should make impossible, so reaching one is a bug in Forge |
 
 Most engine errors keep their native stack traces. Runtime evaluation errors are
 special because production loggers often serialize `stack`, so they append a
