@@ -1,4 +1,4 @@
-import type { EffectFunctionExpr } from '../types/expressions.type'
+import type { EffectFunctionExpr, Resolvable } from '../types/expressions.type'
 import { FunctionType } from '../types/enums'
 import { BaseFunctionRegistry, type RegistrationOptions } from './BaseFunctionRegistry'
 
@@ -11,21 +11,21 @@ export default class EffectRegistry<TDeps = Record<string, never>> extends BaseF
     name: string,
     options: RegistrationOptions,
     factory: (deps: TDeps) => (context: any, ...args: TArgs) => any,
-  ): (...args: TArgs) => EffectFunctionExpr
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => EffectFunctionExpr
 
   register<TArgs extends any[]>(
     name: string,
     factory: (deps: TDeps) => (context: any, ...args: TArgs) => any,
-  ): (...args: TArgs) => EffectFunctionExpr
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => EffectFunctionExpr
 
   register<TArgs extends any[]>(
     options: RegistrationOptions,
     factory: (deps: TDeps) => (context: any, ...args: TArgs) => any,
-  ): (...args: TArgs) => EffectFunctionExpr
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => EffectFunctionExpr
 
   register<TArgs extends any[]>(
     factory: (deps: TDeps) => (context: any, ...args: TArgs) => any,
-  ): (...args: TArgs) => EffectFunctionExpr
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => EffectFunctionExpr
 
   register(
     first: string | RegistrationOptions | ((deps: TDeps) => (...args: any[]) => any),

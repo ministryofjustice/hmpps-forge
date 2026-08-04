@@ -4,6 +4,7 @@ import {
   GeneratorFunctionExpr,
   PipelineExpr,
   PredicateTestExpr,
+  ResolvableExpression,
   TransformerFunctionExpr,
   ResolvableValue,
 } from '../types/expressions.type'
@@ -29,7 +30,11 @@ import { ExpressionBuilder } from './ExpressionBuilder'
  *
  * @template A - The argument types for the generator function
  */
-export class GeneratorBuilder<A extends ResolvableValue[]> {
+export class GeneratorBuilder<A extends ResolvableValue[]> implements ResolvableExpression {
+  // The marker must exist on the class type so builders pass the weak-type
+  // check on Resolvable<T> argument slots; it is type-only and never set.
+  declare readonly __resolves?: any
+
   private readonly expression: GeneratorFunctionExpr<A>
 
   private readonly negated: boolean
