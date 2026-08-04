@@ -1,5 +1,4 @@
 import ConditionRegistry from '../registries/ConditionRegistry'
-import type { ResolvableValue } from '../types/expressions.type'
 
 const generalConditions = new ConditionRegistry()
 
@@ -17,7 +16,7 @@ export const GeneralConditions = {
   ),
 
   /** Checks if a value is strictly equal to an expected value */
-  Equals: generalConditions.register('Equals', () => (value: unknown, expected: ResolvableValue) => value === expected),
+  Equals: generalConditions.register('Equals', () => (value: unknown, expected: unknown) => value === expected),
 }
 
 export { generalConditions as generalConditionsRegistry }

@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import ConditionRegistry from '../registries/ConditionRegistry'
-import type { ResolvableValue } from '../types/expressions.type'
 
 const arraySchema = z.array(z.unknown())
 const arrayArgsSchema = z.tuple([z.array(z.unknown())])
@@ -17,7 +16,7 @@ export const ArrayConditions = {
     {
       argumentsSchema: arrayArgsSchema,
     },
-    () => (value: unknown, expected: ResolvableValue) => (expected as unknown[]).some(item => item === value),
+    () => (value: unknown, expected: unknown[]) => expected.some(item => item === value),
   ),
 
   /** Checks if an array contains a specific value */
@@ -26,7 +25,7 @@ export const ArrayConditions = {
     {
       inputSchema: arraySchema,
     },
-    () => (value: unknown, expected: ResolvableValue) => (value as unknown[]).includes(expected),
+    () => (value: unknown[], expected: unknown) => value.includes(expected),
   ),
 
   /** Checks if an array contains any of the items from another array */
@@ -36,15 +35,12 @@ export const ArrayConditions = {
       inputSchema: arraySchema,
       argumentsSchema: arrayArgsSchema,
     },
-    () => (value: unknown, expected: ResolvableValue) => {
-      const arr = value as unknown[]
-      const exp = expected as unknown[]
-
-      if (arr.length === 0 && exp.length === 0) {
+    () => (value: unknown[], expected: unknown[]) => {
+      if (value.length === 0 && expected.length === 0) {
         return true
       }
 
-      return exp.some(item => arr.includes(item))
+      return expected.some(item => value.includes(item))
     },
   ),
 
@@ -55,15 +51,12 @@ export const ArrayConditions = {
       inputSchema: arraySchema,
       argumentsSchema: arrayArgsSchema,
     },
-    () => (value: unknown, expected: ResolvableValue) => {
-      const arr = value as unknown[]
-      const exp = expected as unknown[]
-
-      if (arr.length === 0 && exp.length === 0) {
+    () => (value: unknown[], expected: unknown[]) => {
+      if (value.length === 0 && expected.length === 0) {
         return true
       }
 
-      return arr.every(item => exp.includes(item))
+      return value.every(item => expected.includes(item))
     },
   ),
 }

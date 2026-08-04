@@ -1,6 +1,5 @@
 import { assertNumber, assertString } from '../../shared/utils/asserts'
 import TransformerRegistry from '../registries/TransformerRegistry'
-import type { ResolvableValue } from '../types/expressions.type'
 import { escapeHtmlEntities } from '../../shared/utils/sanitize'
 
 const DEFAULT_FORMAT_DATE_LOCALE = 'en-GB'
@@ -159,18 +158,15 @@ export const StringTransformers = {
    * @example
    * // Substring(1, 4) applied to "hello" returns "ell"
    */
-  Substring: stringTransformers.register(
-    'String.Substring',
-    () => (value: any, start: number | ResolvableValue, end?: number | ResolvableValue) => {
-      assertString(value, 'Transformer.String.Substring')
-      assertNumber(start, 'Transformer.String.Substring (start)')
-      if (end !== undefined) {
-        assertNumber(end, 'Transformer.String.Substring (end)')
-        return value.substring(start, end)
-      }
-      return value.substring(start)
-    },
-  ),
+  Substring: stringTransformers.register('String.Substring', () => (value: any, start: number, end?: number) => {
+    assertString(value, 'Transformer.String.Substring')
+    assertNumber(start, 'Transformer.String.Substring (start)')
+    if (end !== undefined) {
+      assertNumber(end, 'Transformer.String.Substring (end)')
+      return value.substring(start, end)
+    }
+    return value.substring(start)
+  }),
 
   /**
    * Replaces all occurrences of a search string with a replacement string
@@ -181,7 +177,7 @@ export const StringTransformers = {
    */
   Replace: stringTransformers.register(
     'String.Replace',
-    () => (value: any, searchValue: string | ResolvableValue, replaceValue: string | ResolvableValue) => {
+    () => (value: any, searchValue: string, replaceValue: string) => {
       assertString(value, 'Transformer.String.Replace')
       assertString(searchValue, 'Transformer.String.Replace (searchValue)')
       assertString(replaceValue, 'Transformer.String.Replace (replaceValue)')
@@ -199,7 +195,7 @@ export const StringTransformers = {
   PadStart: stringTransformers.register(
     'String.PadStart',
     () =>
-      (value: any, targetLength: number | ResolvableValue, padString: string | ResolvableValue = ' ') => {
+      (value: any, targetLength: number, padString: string = ' ') => {
         assertString(value, 'Transformer.String.PadStart')
         assertNumber(targetLength, 'Transformer.String.PadStart (targetLength)')
         assertString(padString, 'Transformer.String.PadStart (padString)')
@@ -217,7 +213,7 @@ export const StringTransformers = {
   PadEnd: stringTransformers.register(
     'String.PadEnd',
     () =>
-      (value: any, targetLength: number | ResolvableValue, padString: string | ResolvableValue = ' ') => {
+      (value: any, targetLength: number, padString: string = ' ') => {
         assertString(value, 'Transformer.String.PadEnd')
         assertNumber(targetLength, 'Transformer.String.PadEnd (targetLength)')
         assertString(padString, 'Transformer.String.PadEnd (padString)')
@@ -283,7 +279,7 @@ export const StringTransformers = {
    * // ToArray(",") on "hello,world" returns ["hello", "world"]
    * // ToArray("-") on "a-b-c" returns ["a", "b", "c"]
    */
-  ToArray: stringTransformers.register('String.ToArray', () => (value: any, separator?: string | ResolvableValue) => {
+  ToArray: stringTransformers.register('String.ToArray', () => (value: any, separator?: string) => {
     assertString(value, 'Transformer.String.ToArray')
     if (separator === undefined) {
       return value.split('')
