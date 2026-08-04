@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import ConditionRegistry from '../registries/ConditionRegistry'
-import type { ResolvableValue } from '../types/expressions.type'
 
 function parseISODate(value: unknown): { year: number; month: number; day: number } | null {
   if (typeof value !== 'string') {
@@ -89,7 +88,7 @@ export const DateConditions = {
       inputSchema: stringSchema,
     },
     () => (value: string) => {
-      const dateMatch = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/)
+      const dateMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
       if (!dateMatch) {
         return false
       }
@@ -115,7 +114,7 @@ export const DateConditions = {
       inputSchema: stringSchema,
       argumentsSchema: stringArgsSchema,
     },
-    () => (value: string, dateStr: ResolvableValue) => {
+    () => (value: string, dateStr: string) => {
       const valueParsed = parseISODate(value)
       const compareParsed = parseISODate(dateStr)
 
@@ -140,7 +139,7 @@ export const DateConditions = {
       inputSchema: stringSchema,
       argumentsSchema: stringArgsSchema,
     },
-    () => (value: string, dateStr: ResolvableValue) => {
+    () => (value: string, dateStr: string) => {
       const valueParsed = parseISODate(value)
       if (!valueParsed) {
         throw new Error(`Condition.Date.IsAfter: Invalid date string "${value}"`)

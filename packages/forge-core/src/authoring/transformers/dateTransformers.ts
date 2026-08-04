@@ -1,6 +1,5 @@
 import { assertDate, assertNumber, assertString } from '../../shared/utils/asserts'
 import TransformerRegistry from '../registries/TransformerRegistry'
-import type { ResolvableValue } from '../types/expressions.type'
 
 const formatDate = (date: Date, format: string): string => {
   const monthNames = [
@@ -83,7 +82,7 @@ export const DateTransformers = {
    * // Format("D M YYYY") returns "15 3 2024"
    * // Format("HH:mm:ss") returns "14:30:45"
    */
-  Format: dateTransformers.register('Date.Format', () => (value: any, format: string | ResolvableValue) => {
+  Format: dateTransformers.register('Date.Format', () => (value: any, format: string) => {
     assertDate(value, 'Transformer.Date.Format')
     assertString(format, 'Transformer.Date.Format (format)')
 
@@ -97,7 +96,7 @@ export const DateTransformers = {
    * // AddDays(7) adds one week
    * // AddDays(-1) subtracts one day
    */
-  AddDays: dateTransformers.register('Date.AddDays', () => (value: any, days: number | ResolvableValue) => {
+  AddDays: dateTransformers.register('Date.AddDays', () => (value: any, days: number) => {
     assertDate(value, 'Transformer.Date.AddDays')
     assertNumber(days, 'Transformer.Date.AddDays (days)')
 
@@ -112,7 +111,7 @@ export const DateTransformers = {
    * @example
    * // SubtractDays(7) subtracts one week
    */
-  SubtractDays: dateTransformers.register('Date.SubtractDays', () => (value: any, days: number | ResolvableValue) => {
+  SubtractDays: dateTransformers.register('Date.SubtractDays', () => (value: any, days: number) => {
     assertDate(value, 'Transformer.Date.SubtractDays')
     assertNumber(days, 'Transformer.Date.SubtractDays (days)')
 
@@ -128,7 +127,7 @@ export const DateTransformers = {
    * // AddMonths(1) adds one month
    * // AddMonths(-6) subtracts 6 months
    */
-  AddMonths: dateTransformers.register('Date.AddMonths', () => (value: any, months: number | ResolvableValue) => {
+  AddMonths: dateTransformers.register('Date.AddMonths', () => (value: any, months: number) => {
     assertDate(value, 'Transformer.Date.AddMonths')
     assertNumber(months, 'Transformer.Date.AddMonths (months)')
 
@@ -144,7 +143,7 @@ export const DateTransformers = {
    * // AddYears(1) adds one year
    * // AddYears(-18) subtracts 18 years
    */
-  AddYears: dateTransformers.register('Date.AddYears', () => (value: any, years: number | ResolvableValue) => {
+  AddYears: dateTransformers.register('Date.AddYears', () => (value: any, years: number) => {
     assertDate(value, 'Transformer.Date.AddYears')
     assertNumber(years, 'Transformer.Date.AddYears (years)')
 
@@ -196,17 +195,14 @@ export const DateTransformers = {
    * // ToLocaleString() returns "15/03/2024, 14:30:45" (UK locale)
    * // ToLocaleString('en-US') returns "3/15/2024, 2:30:45 PM"
    */
-  ToLocaleString: dateTransformers.register(
-    'Date.ToLocaleString',
-    () => (value: any, locale?: string | ResolvableValue) => {
-      assertDate(value, 'Transformer.Date.ToLocaleString')
-      if (locale === undefined) {
-        return value.toLocaleString()
-      }
-      assertString(locale, 'Transformer.Date.ToLocaleString (locale)')
-      return value.toLocaleString(locale)
-    },
-  ),
+  ToLocaleString: dateTransformers.register('Date.ToLocaleString', () => (value: any, locale?: string) => {
+    assertDate(value, 'Transformer.Date.ToLocaleString')
+    if (locale === undefined) {
+      return value.toLocaleString()
+    }
+    assertString(locale, 'Transformer.Date.ToLocaleString (locale)')
+    return value.toLocaleString(locale)
+  }),
 
   /**
    * Converts a Date to UK long date format (e.g. "18 March 2026")

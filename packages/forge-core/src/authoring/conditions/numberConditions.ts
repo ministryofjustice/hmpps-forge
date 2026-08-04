@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import ConditionRegistry from '../registries/ConditionRegistry'
-import type { ResolvableValue } from '../types/expressions.type'
 
 const numberSchema = z.number()
 const numberArgsSchema = z.tuple([z.number()])
@@ -28,7 +27,7 @@ export const NumberConditions = {
       inputSchema: numberSchema,
       argumentsSchema: numberArgsSchema,
     },
-    () => (value: number, threshold: ResolvableValue) => value > Number(threshold),
+    () => (value: number, threshold: number) => value > threshold,
   ),
 
   /** Checks if a number is greater than or equal to a threshold value */
@@ -38,7 +37,7 @@ export const NumberConditions = {
       inputSchema: numberSchema,
       argumentsSchema: numberArgsSchema,
     },
-    () => (value: number, threshold: ResolvableValue) => value >= Number(threshold),
+    () => (value: number, threshold: number) => value >= threshold,
   ),
 
   /** Checks if a number is less than a threshold value */
@@ -48,7 +47,7 @@ export const NumberConditions = {
       inputSchema: numberSchema,
       argumentsSchema: numberArgsSchema,
     },
-    () => (value: number, threshold: ResolvableValue) => value < Number(threshold),
+    () => (value: number, threshold: number) => value < threshold,
   ),
 
   /** Checks if a number is less than or equal to a threshold value */
@@ -58,7 +57,7 @@ export const NumberConditions = {
       inputSchema: numberSchema,
       argumentsSchema: numberArgsSchema,
     },
-    () => (value: number, threshold: ResolvableValue) => value <= Number(threshold),
+    () => (value: number, threshold: number) => value <= threshold,
   ),
 
   /** Checks if a number is between two values (inclusive) */
@@ -68,7 +67,7 @@ export const NumberConditions = {
       inputSchema: numberSchema,
       argumentsSchema: numberRangeArgsSchema,
     },
-    () => (value: number, min: ResolvableValue, max: ResolvableValue) => value >= Number(min) && value <= Number(max),
+    () => (value: number, min: number, max: number) => value >= min && value <= max,
   ),
 }
 

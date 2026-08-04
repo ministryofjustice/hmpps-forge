@@ -1,6 +1,5 @@
 import { assertNumber } from '../../shared/utils/asserts'
 import TransformerRegistry from '../registries/TransformerRegistry'
-import type { ResolvableValue } from '../types/expressions.type'
 
 const numberTransformers = new TransformerRegistry()
 
@@ -12,7 +11,7 @@ export const NumberTransformers = {
    * // Add(3) applied to 5 returns 8
    * // Add(Answer('tax')) applied to Answer('price') - dynamic addition
    */
-  Add: numberTransformers.register('Number.Add', () => (value: any, addend: number | ResolvableValue) => {
+  Add: numberTransformers.register('Number.Add', () => (value: any, addend: number) => {
     assertNumber(value, 'Transformer.Number.Add')
     assertNumber(addend, 'Transformer.Number.Add (addend)')
     return value + addend
@@ -24,7 +23,7 @@ export const NumberTransformers = {
    * @example
    * // Subtract(3) applied to 10 returns 7
    */
-  Subtract: numberTransformers.register('Number.Subtract', () => (value: any, subtrahend: number | ResolvableValue) => {
+  Subtract: numberTransformers.register('Number.Subtract', () => (value: any, subtrahend: number) => {
     assertNumber(value, 'Transformer.Number.Subtract')
     assertNumber(subtrahend, 'Transformer.Number.Subtract (subtrahend)')
     return value - subtrahend
@@ -37,7 +36,7 @@ export const NumberTransformers = {
    * // Multiply(3) applied to 4 returns 12
    * // Multiply(Answer('quantity')) applied to Answer('price') - dynamic multiplication
    */
-  Multiply: numberTransformers.register('Number.Multiply', () => (value: any, multiplier: number | ResolvableValue) => {
+  Multiply: numberTransformers.register('Number.Multiply', () => (value: any, multiplier: number) => {
     assertNumber(value, 'Transformer.Number.Multiply')
     assertNumber(multiplier, 'Transformer.Number.Multiply (multiplier)')
     return value * multiplier
@@ -49,7 +48,7 @@ export const NumberTransformers = {
    * @example
    * // Divide(3) applied to 15 returns 5
    */
-  Divide: numberTransformers.register('Number.Divide', () => (value: any, divisor: number | ResolvableValue) => {
+  Divide: numberTransformers.register('Number.Divide', () => (value: any, divisor: number) => {
     assertNumber(value, 'Transformer.Number.Divide')
     assertNumber(divisor, 'Transformer.Number.Divide (divisor)')
     if (divisor === 0) {
@@ -104,7 +103,7 @@ export const NumberTransformers = {
    * @example
    * // ToFixed(2) applied to 3.14159 returns 3.14
    */
-  ToFixed: numberTransformers.register('Number.ToFixed', () => (value: any, decimals: number | ResolvableValue) => {
+  ToFixed: numberTransformers.register('Number.ToFixed', () => (value: any, decimals: number) => {
     assertNumber(value, 'Transformer.Number.ToFixed')
     assertNumber(decimals, 'Transformer.Number.ToFixed (decimals)')
     return parseFloat(value.toFixed(decimals))
@@ -116,7 +115,7 @@ export const NumberTransformers = {
    * @example
    * // Max(10) applied to 5 returns 10
    */
-  Max: numberTransformers.register('Number.Max', () => (value: any, comparison: number | ResolvableValue) => {
+  Max: numberTransformers.register('Number.Max', () => (value: any, comparison: number) => {
     assertNumber(value, 'Transformer.Number.Max')
     assertNumber(comparison, 'Transformer.Number.Max (comparison)')
     return Math.max(value, comparison)
@@ -128,7 +127,7 @@ export const NumberTransformers = {
    * @example
    * // Min(10) applied to 5 returns 5
    */
-  Min: numberTransformers.register('Number.Min', () => (value: any, comparison: number | ResolvableValue) => {
+  Min: numberTransformers.register('Number.Min', () => (value: any, comparison: number) => {
     assertNumber(value, 'Transformer.Number.Min')
     assertNumber(comparison, 'Transformer.Number.Min (comparison)')
     return Math.min(value, comparison)
@@ -140,7 +139,7 @@ export const NumberTransformers = {
    * @example
    * // Power(3) applied to 2 returns 8
    */
-  Power: numberTransformers.register('Number.Power', () => (value: any, exponent: number | ResolvableValue) => {
+  Power: numberTransformers.register('Number.Power', () => (value: any, exponent: number) => {
     assertNumber(value, 'Transformer.Number.Power')
     assertNumber(exponent, 'Transformer.Number.Power (exponent)')
     return value ** exponent
@@ -168,15 +167,12 @@ export const NumberTransformers = {
    * // Clamp(5, 10) applied to 3 returns 5
    * // Clamp(5, 10) applied to 7 returns 7
    */
-  Clamp: numberTransformers.register(
-    'Number.Clamp',
-    () => (value: any, min: number | ResolvableValue, max: number | ResolvableValue) => {
-      assertNumber(value, 'Transformer.Number.Clamp')
-      assertNumber(min, 'Transformer.Number.Clamp (min)')
-      assertNumber(max, 'Transformer.Number.Clamp (max)')
-      return Math.min(Math.max(value, min), max)
-    },
-  ),
+  Clamp: numberTransformers.register('Number.Clamp', () => (value: any, min: number, max: number) => {
+    assertNumber(value, 'Transformer.Number.Clamp')
+    assertNumber(min, 'Transformer.Number.Clamp (min)')
+    assertNumber(max, 'Transformer.Number.Clamp (max)')
+    return Math.min(Math.max(value, min), max)
+  }),
 }
 
 export { numberTransformers as numberTransformersRegistry }

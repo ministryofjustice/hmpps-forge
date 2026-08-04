@@ -191,9 +191,9 @@ describe('Array Transformers', () => {
     })
 
     it('should throw error if any argument is not an array', () => {
-      expect(() => harness.evaluate(ArrayTransformers.Concat('hello')).withInput([1, 2])).toThrow(
-        'Transformer.Array.Concat (array at position 1) expects an array but received string.',
-      )
+      expect(() =>
+        harness.evaluate(ArrayTransformers.Concat('hello' as unknown as unknown[])).withInput([1, 2]),
+      ).toThrow('Transformer.Array.Concat (array at position 1) expects an array but received string.')
     })
 
     it('should throw error for non-array input', () => {

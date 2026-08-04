@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import ConditionRegistry from '../registries/ConditionRegistry'
-import type { ResolvableValue } from '../types/expressions.type'
 
 const stringSchema = z.string()
+const stringArgsSchema = z.tuple([z.string()])
 const nonNegativeNumberArgsSchema = z.tuple([z.number().nonnegative()])
 
 const stringConditions = new ConditionRegistry()
@@ -13,10 +13,11 @@ export const StringConditions = {
     'String.MatchesRegex',
     {
       inputSchema: stringSchema,
+      argumentsSchema: stringArgsSchema,
     },
-    () => (value: string, pattern: ResolvableValue) => {
+    () => (value: string, pattern: string) => {
       try {
-        return new RegExp(String(pattern)).test(value)
+        return new RegExp(pattern).test(value)
       } catch {
         throw new Error(`Condition.String.MatchesRegex: Invalid regex pattern "${pattern}"`)
       }
@@ -30,7 +31,7 @@ export const StringConditions = {
       inputSchema: stringSchema,
       argumentsSchema: nonNegativeNumberArgsSchema,
     },
-    () => (value: string, min: number) => value.length >= Number(min),
+    () => (value: string, min: number) => value.length >= min,
   ),
 
   /** Checks if a string does not exceed the maximum specified length */
@@ -40,7 +41,7 @@ export const StringConditions = {
       inputSchema: stringSchema,
       argumentsSchema: nonNegativeNumberArgsSchema,
     },
-    () => (value: string, max: number) => value.length <= Number(max),
+    () => (value: string, max: number) => value.length <= max,
   ),
 
   /** Checks if a string has exactly the specified length */
@@ -50,7 +51,7 @@ export const StringConditions = {
       inputSchema: stringSchema,
       argumentsSchema: nonNegativeNumberArgsSchema,
     },
-    () => (value: string, len: number) => value.length === Number(len),
+    () => (value: string, len: number) => value.length === len,
   ),
 
   /** Checks if a string contains at most the specified number of words */
@@ -61,14 +62,13 @@ export const StringConditions = {
       argumentsSchema: nonNegativeNumberArgsSchema,
     },
     () => (value: string, maxWords: number) => {
-      const max = Number(maxWords)
       const trimmed = value.trim()
 
       if (trimmed === '') {
-        return max >= 0
+        return maxWords >= 0
       }
 
-      return trimmed.split(/\s+/).length <= max
+      return trimmed.split(/\s+/).length <= maxWords
     },
   ),
 
@@ -140,8 +140,9 @@ export const StringConditions = {
     'String.StartsWith',
     {
       inputSchema: stringSchema,
+      argumentsSchema: stringArgsSchema,
     },
-    () => (value: string, prefix: ResolvableValue) => value.startsWith(String(prefix)),
+    () => (value: string, prefix: string) => value.startsWith(prefix),
   ),
 
   /** Checks if a string ends with the specified suffix */
@@ -149,8 +150,9 @@ export const StringConditions = {
     'String.EndsWith',
     {
       inputSchema: stringSchema,
+      argumentsSchema: stringArgsSchema,
     },
-    () => (value: string, suffix: ResolvableValue) => value.endsWith(String(suffix)),
+    () => (value: string, suffix: string) => value.endsWith(suffix),
   ),
 
   /** Checks if a string contains the specified substring */
@@ -158,8 +160,9 @@ export const StringConditions = {
     'String.Contains',
     {
       inputSchema: stringSchema,
+      argumentsSchema: stringArgsSchema,
     },
-    () => (value: string, substring: ResolvableValue) => value.includes(String(substring)),
+    () => (value: string, substring: string) => value.includes(substring),
   ),
 }
 
