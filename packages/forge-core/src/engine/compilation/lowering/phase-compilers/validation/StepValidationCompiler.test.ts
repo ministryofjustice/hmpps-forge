@@ -20,7 +20,7 @@ import {
   ValidationASTNode,
 } from '../../../../contracts/ast/expressions.type'
 import { TemplateValue } from '../../../../contracts/ast/template.type'
-import TemplateFactory from '../../../ast/nodes/template/TemplateFactory'
+import { compileTemplate } from '../../../ast/nodes/template'
 import { NodeIDGenerator } from '../../../ast/ast-state/NodeIDGenerator'
 import {
   TestPredicateASTNode,
@@ -1199,7 +1199,7 @@ describe('StepValidationCompiler', () => {
 
   describe('iterators', () => {
     function createTemplateValue(value: unknown): TemplateValue {
-      return new TemplateFactory(new NodeIDGenerator()).compile(value)
+      return compileTemplate(value, new NodeIDGenerator())
     }
 
     function createIterateNode(input: unknown, yieldTemplate: TemplateValue): IterateASTNode {
