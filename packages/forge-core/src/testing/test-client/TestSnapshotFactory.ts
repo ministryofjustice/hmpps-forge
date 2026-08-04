@@ -1,6 +1,7 @@
 import type { HttpMethod, RequestLocation } from '../../framework/types/request.type'
 import type { RequestSnapshot } from '../../framework/types/snapshot.type'
-import { extractPathname, resolvePathParams } from '../../framework/path/routePath'
+import { resolvePathParams } from '../../shared/utils/routePath'
+import { extractPathname } from '../extractPathname'
 import type { ResolvedRoute } from './TestRouteResolver'
 import type { TestRequestOptions } from '../types'
 

@@ -1,11 +1,4 @@
-import {
-  extractPathname,
-  joinPaths,
-  normalizeBasePath,
-  normalizeRelativePath,
-  resolveMountedPath,
-  resolvePathParams,
-} from './routePath'
+import { joinPaths, normalizeBasePath, normalizeRelativePath, resolvePathParams } from './routePath'
 
 describe('routePath', () => {
   describe('normalizeBasePath()', () => {
@@ -50,30 +43,6 @@ describe('routePath', () => {
 
       // Assert
       expect(result).toBe('https://example.test/next-step')
-    })
-  })
-
-  describe('extractPathname()', () => {
-    it('should extract a pathname from an absolute URL', () => {
-      // Arrange
-      const url = 'https://example.test/forms/journey/step?tab=current#summary'
-
-      // Act
-      const result = extractPathname(url)
-
-      // Assert
-      expect(result).toBe('/forms/journey/step')
-    })
-
-    it('should extract a pathname from a relative request URL', () => {
-      // Arrange
-      const url = '/forms/journey/step?tab=current#summary'
-
-      // Act
-      const result = extractPathname(url)
-
-      // Assert
-      expect(result).toBe('/forms/journey/step')
     })
   })
 
@@ -123,31 +92,4 @@ describe('routePath', () => {
       expect(result).toBe('/')
     })
   })
-
-  describe('resolveMountedPath()', () => {
-    it('should resolve relative targets against the mounted base path', () => {
-      // Arrange
-      const basePath = '/forms/journey'
-      const target = 'next-step'
-
-      // Act
-      const result = resolveMountedPath(basePath, target)
-
-      // Assert
-      expect(result).toBe('/forms/journey/next-step')
-    })
-
-    it('should keep absolute targets unchanged', () => {
-      // Arrange
-      const basePath = '/forms/journey'
-      const target = '/login'
-
-      // Act
-      const result = resolveMountedPath(basePath, target)
-
-      // Assert
-      expect(result).toBe('/login')
-    })
-  })
-
 })

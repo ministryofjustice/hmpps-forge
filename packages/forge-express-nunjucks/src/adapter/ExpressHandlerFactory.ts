@@ -7,7 +7,7 @@ import type {
   Logger,
   ResponseBindings,
 } from '@ministryofjustice/hmpps-forge/core/framework'
-import { extractPathname } from '@ministryofjustice/hmpps-forge/core/framework'
+import { extractPathname } from './routePath'
 import ExpressSnapshotFactory from './ExpressSnapshotFactory'
 
 export default class ExpressHandlerFactory {

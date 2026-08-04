@@ -1,5 +1,5 @@
 import type { CookieMutation } from '../framework/types/response.type'
-import type { RenderBlock, RenderContext } from '../framework/rendering/types'
+import type { RenderBlock, RenderContext } from '../framework/types/rendering.type'
 import type { ValidationResult } from '../engine/contracts/runtime/validationResult.type'
 import type { ForgeError } from '../framework/types/outcome.type'
 

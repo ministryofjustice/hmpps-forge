@@ -1,4 +1,4 @@
-import { normalizeRelativePath } from '../../../../framework/path/routePath'
+import { normalizeRelativePath } from '../../../../shared/utils/routePath'
 import type { ASTNode } from '../../../contracts/ast/ast.type'
 import type { JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
 import type { JourneyRuntimePlan, StepRuntimePlan } from '../../../contracts/plans/runtimePlans.type'

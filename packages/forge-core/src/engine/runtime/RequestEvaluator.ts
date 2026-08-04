@@ -11,9 +11,9 @@ import WorkExecutor from './evaluation/work/WorkExecutor'
 import WorkExecutionError from './evaluation/work/WorkExecutionError'
 import type { WorkTask } from '../contracts/runtime/work.type'
 import type { ForgeInstrumentation } from '../diagnostics/ForgeTraceSinkDispatcher'
-import type { ForgeRenderer } from '../../framework/rendering/types'
+import type { ForgeRenderer } from '../../framework/types/rendering.type'
 import RequestPipelineTraceProjector from './evaluation/request/RequestPipelineTraceProjector'
-import { resolvePathParams } from '../../framework/path/routePath'
+import { resolvePathParams } from '../../shared/utils/routePath'
 import { NO_OP_RESPONSE_BINDINGS, type ResponseBindings } from '../../framework/types/responseBindings.type'
 
 export interface RequestEvaluatorOptions {

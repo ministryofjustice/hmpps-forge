@@ -13,7 +13,7 @@ import { isFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry
 import { ForgeDeprecations } from '../shared/utils/ForgeDeprecations'
 import type { FunctionImplementations, FunctionShapeMap } from '../authoring/utils/deprecated/defineFunction.type'
 import type { Logger } from '../framework/types/adapter.type'
-import type { ForgeRenderer } from '../framework/rendering/types'
+import type { ForgeRenderer } from '../framework/types/rendering.type'
 import type { ForgeError, ForgeOutcome } from '../framework/types/outcome.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
 import type { ResponseBindings } from '../framework/types/responseBindings.type'

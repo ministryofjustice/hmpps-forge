@@ -32,20 +32,6 @@ export function normalizeRelativePath(path: string): string {
 }
 
 /**
- * Extract a pathname from either an absolute URL or a relative request URL.
- */
-export function extractPathname(url: string): string {
-  try {
-    return new URL(url).pathname
-  } catch {
-    const [withoutHash] = url.split('#', 1)
-    const [path] = withoutHash.split('?', 1)
-
-    return path
-  }
-}
-
-/**
  * Resolve route params embedded in a path template.
  */
 export function resolvePathParams(path: string, params: Record<string, string>): string {
@@ -57,15 +43,4 @@ export function resolvePathParams(path: string, params: Record<string, string>):
  */
 export function joinPaths(...segments: string[]): string {
   return `/${segments.join('/').split('/').filter(Boolean).join('/')}`
-}
-
-/**
- * Resolve a redirect or backlink target against the current mounted base path.
- */
-export function resolveMountedPath(basePath: string, target: string): string {
-  if (target.includes('://') || target.startsWith('/')) {
-    return target
-  }
-
-  return joinPaths(basePath, target)
 }

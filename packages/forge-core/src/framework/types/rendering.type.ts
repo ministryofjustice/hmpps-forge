@@ -4,6 +4,7 @@ import { ValidationResult } from '../../engine/contracts/runtime/validationResul
 import type { ViewConfig } from '../../authoring/types/structures.type'
 import type { ComponentRegistryEntry } from '../../components/types/components.type'
 import type { BlockDefinition, EvaluatedBlock } from '../../components/types/structures.type'
+import type { RouteTree } from './routeTree.type'
 
 type MaybePromise<T> = T | Promise<T>
 
@@ -13,28 +14,6 @@ export interface RenderBlock {
   readonly blockType: BlockType
   readonly properties: Record<string, unknown>
 }
-
-export type RouteTreeRouteKind = 'journey' | 'step'
-
-export interface RouteTreeRoute {
-  kind: RouteTreeRouteKind
-  nodeId: NodeId
-  title?: string
-  description?: string
-  metadata?: Record<string, unknown>
-}
-
-export interface RouteTreeNode {
-  segment: string
-  path: string
-  templatePath: string
-  active: boolean
-  metadata?: Record<string, unknown>
-  route?: RouteTreeRoute
-  children: RouteTreeNode[]
-}
-
-export type RouteTree = RouteTreeNode[]
 
 /**
  * Journey ancestor in the render context, including its evaluated view configuration.

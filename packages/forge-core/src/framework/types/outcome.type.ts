@@ -1,4 +1,4 @@
-import type { RenderContext } from '../rendering/types'
+import type { RenderContext } from './rendering.type'
 
 /**
  * Error returned in a Forge error outcome. Its optional status and statusCode

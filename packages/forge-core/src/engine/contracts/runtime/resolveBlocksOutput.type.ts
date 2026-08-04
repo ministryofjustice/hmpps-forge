@@ -1,4 +1,4 @@
-import type { RenderBlock } from '../../../framework/rendering/types'
+import type { RenderBlock } from '../../../framework/types/rendering.type'
 
 export interface ResolveBlocksOutput {
   readonly blocks: readonly RenderBlock[]

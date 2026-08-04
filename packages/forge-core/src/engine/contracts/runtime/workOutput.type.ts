@@ -2,7 +2,7 @@ import type { ReachabilityEvaluationResult } from '../reachability/generatedReac
 import type { CompiledAccessHookResult, CompiledSubmitHookResult } from './hookLifecycle.type'
 import type { DomainValidationFailure, StepValidationFailure } from './evaluationState.type'
 import type { StepValidityResult } from './stepValidityResult.type'
-import type { RenderBlock } from '../../../framework/rendering/types'
+import type { RenderBlock } from '../../../framework/types/rendering.type'
 import type { AnswerPreparationFieldResult, AnswerPreparationResult } from './AnswerPreparationWork.type'
 import type { HookStageResult } from './HookStage.type'
 import type { PhaseWorkOutput, RequestPipelineResult } from './RequestExecutionContext.type'

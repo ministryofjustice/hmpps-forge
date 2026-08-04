@@ -4,7 +4,7 @@ import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { BlockType } from '../../../../authoring/types/enums'
 import type { ComponentRegistryEntry } from '../../../../components/types/components.type'
 import type { BlockDefinition } from '../../../../components/types/structures.type'
-import type { RenderBlock, ForgeRenderer, RenderContext } from '../../../../framework/rendering/types'
+import type { RenderBlock, ForgeRenderer, RenderContext } from '../../../../framework/types/rendering.type'
 import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
 import type {
   AnswerPreparationWorkProps,

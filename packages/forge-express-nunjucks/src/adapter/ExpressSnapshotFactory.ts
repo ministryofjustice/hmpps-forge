@@ -5,7 +5,7 @@ import type {
   RequestLocation,
   RequestSnapshot,
 } from '@ministryofjustice/hmpps-forge/core/framework'
-import { extractPathname, resolvePathParams } from '@ministryofjustice/hmpps-forge/core/framework'
+import { extractPathname, resolvePathParams } from './routePath'
 import type { RequestWithState } from './types'
 
 export default class ExpressSnapshotFactory {

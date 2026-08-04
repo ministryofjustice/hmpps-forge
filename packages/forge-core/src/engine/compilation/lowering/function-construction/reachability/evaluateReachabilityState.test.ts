@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { joinPaths } from '../../../../../framework/path/routePath'
+import { joinPaths } from '../../../../../shared/utils/routePath'
 import type {
   ForwardOutcomeEvaluation,
   ReachabilityStateTable,
