@@ -17,6 +17,7 @@ import { singleChildOutput } from '../work/workTask'
 import { phaseInstrumentation, runTaskPhase } from './requestPhase'
 import type { RequestResolveWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 export const REQUEST_RESOLVE_KIND = 'request.resolve'
 
@@ -58,7 +59,7 @@ export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', Reques
     const output = singleChildOutput(children, RESOLVE_BLOCKS_KIND)
 
     if (output === undefined) {
-      throw new Error('Resolve work task completed with an invalid render result')
+      throw new ForgeInternalError('Resolve work task completed with an invalid render result')
     }
 
     const ancestors = output.ancestors as RenderContext['ancestors']

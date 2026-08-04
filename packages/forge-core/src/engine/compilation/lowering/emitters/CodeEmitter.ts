@@ -6,6 +6,8 @@
  * names make failures much easier to map back to the source compiler.
  */
 
+import ForgeInternalError from '../../../errors/ForgeInternalError'
+
 interface ScopeFrame {
   readonly names: Set<string>
 }
@@ -324,7 +326,7 @@ export default class CodeEmitter {
 
   private reserveLexicalName(name: string): void {
     if (this.isNameVisible(name)) {
-      throw new Error(`CodeEmitter: name "${name}" is already visible in this scope`)
+      throw new ForgeInternalError(`CodeEmitter: name "${name}" is already visible in this scope`)
     }
 
     this.currentScope.names.add(name)
@@ -332,7 +334,7 @@ export default class CodeEmitter {
 
   private reserveFunctionName(name: string): void {
     if (this.isNameVisible(name)) {
-      throw new Error(`CodeEmitter: name "${name}" is already declared in this function`)
+      throw new ForgeInternalError(`CodeEmitter: name "${name}" is already declared in this function`)
     }
 
     this.functionNames.add(name)

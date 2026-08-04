@@ -1,3 +1,4 @@
+import ForgeAuthoringError from '../../../engine/errors/ForgeAuthoringError'
 import DSLSourceLocator from '../../../shared/diagnostics/DSLSourceLocator'
 import type { DSLPathSegment } from '../../../shared/diagnostics/sourceLocation.type'
 import { stampCallsite } from './captureCallsite'
@@ -30,10 +31,11 @@ const finalise = (value: unknown, path: DSLPathSegment[], ancestors: Set<object>
   }
 
   if (ancestors.has(value)) {
-    throw new Error(
-      `Circular reference detected in form configuration at "${describePath(path)}". ` +
+    throw new ForgeAuthoringError({
+      message:
+        `Circular reference detected in form configuration at "${describePath(path)}". ` +
         'Configuration objects must form a tree; an object cannot contain itself.',
-    )
+    })
   }
 
   ancestors.add(value)

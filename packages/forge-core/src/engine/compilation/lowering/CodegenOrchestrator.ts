@@ -27,6 +27,7 @@ import StepAnswerPreparationCompiler from './phase-compilers/answer-preparation/
 import HookLifecycleCompiler from './phase-compilers/hooks/HookLifecycleCompiler'
 import RouteMetadataCompiler from './phase-compilers/route-tree/RouteMetadataCompiler'
 import CompilationTracer from '../../diagnostics/tracing/CompilationTracer'
+import ForgeInternalError from '../../errors/ForgeInternalError'
 
 export default class CodegenOrchestrator {
   private readonly tracer: CompilationTracer
@@ -206,7 +207,7 @@ export default class CodegenOrchestrator {
     const inputs = plan.reachabilityInputs.get(journeyId)
 
     if (inputs === undefined) {
-      throw new Error(`Reachability inputs missing for journey "${journeyId}"`)
+      throw new ForgeInternalError(`Reachability inputs missing for journey "${journeyId}"`)
     }
 
     return inputs
@@ -216,7 +217,7 @@ export default class CodegenOrchestrator {
     const inputs = plan.stepInputs.get(stepId)
 
     if (inputs === undefined) {
-      throw new Error(`Step inputs missing for step "${stepId}"`)
+      throw new ForgeInternalError(`Step inputs missing for step "${stepId}"`)
     }
 
     return inputs

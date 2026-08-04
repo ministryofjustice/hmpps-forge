@@ -518,7 +518,7 @@ describe('Forge', () => {
       expect(result.kind).toBe('error')
 
       if (result.kind === 'error') {
-        expect(result.error.message).toBe('[Forge] No node registered for "unknown::step"')
+        expect(result.error.message).toBe('No node registered for "unknown::step"')
       }
     })
 

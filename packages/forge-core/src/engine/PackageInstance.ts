@@ -14,6 +14,7 @@ import type { ForgeInstrumentation } from './diagnostics/ForgeTraceSinkDispatche
 
 import type { CompiledJourney, CompiledStep, CompiledPackage } from './contracts/plans/compilationArtefacts.type'
 import type { JourneyRouteIndex, StepRouteIndex } from './contracts/routing/routeDescriptors.type'
+import ForgeInternalError from './errors/ForgeInternalError'
 
 export interface PackageInstanceOptions<TDeps> {
   readonly functionRegistry: FunctionRegistry
@@ -71,7 +72,7 @@ export default class PackageInstance {
     const step = this.compilation.steps.get(stepId)
 
     if (!step) {
-      throw new Error(`Step "${stepId}" not found in compiled journey`)
+      throw new ForgeInternalError(`Step "${stepId}" not found in compiled journey`)
     }
 
     return step

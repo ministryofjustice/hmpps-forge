@@ -12,6 +12,7 @@ import {
 } from '../types/expressions.type'
 import { ConditionCombinatorType, FunctionType, PredicateType } from '../types/enums'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
+import ForgeAuthoringError from '../../engine/errors/ForgeAuthoringError'
 
 /** A single operand of a combinator: a bare condition branch, or a predicate. */
 type CombinatorOperand = ConditionBranchExpr | PredicateExpr
@@ -58,9 +59,9 @@ function classifyOperands(fnName: string, args: CombinatorArgs): ClassifiedOpera
   }
 
   if (predicates.length > 0) {
-    throw new Error(
-      `${fnName}() cannot mix bare conditions with predicates — conditions take their subject from the surrounding match`,
-    )
+    throw new ForgeAuthoringError({
+      message: `${fnName}() cannot mix bare conditions with predicates — conditions take their subject from the surrounding match`,
+    })
   }
 
   return { kind: OperandKind.CONDITION, operands: conditions }

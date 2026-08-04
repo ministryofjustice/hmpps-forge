@@ -11,6 +11,7 @@ import type {
   WorkInstrumentation,
 } from '../../../../contracts/runtime/work.type'
 import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
+import ForgeInternalError from '../../../../errors/ForgeInternalError'
 
 export type ResolveBlockWorkProps = CompiledResolveBlockWorkProps
 
@@ -73,7 +74,7 @@ function replaceCompletedProperties(
   const properties = propsWalker.replaceCompletedOutputs(props.properties, children)
 
   if (!isStringRecord(properties)) {
-    throw new Error(`Render block "${props.id}" completed with invalid properties`)
+    throw new ForgeInternalError(`Render block "${props.id}" completed with invalid properties`)
   }
 
   return properties

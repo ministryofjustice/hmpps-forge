@@ -11,6 +11,7 @@ import { singleChildOutput } from '../work/workTask'
 import { phaseInstrumentation, runTaskPhase } from './requestPhase'
 import type { RequestSubmitWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 export const REQUEST_SUBMIT_KIND = 'request.submit'
 
@@ -48,7 +49,7 @@ export const REQUEST_SUBMIT_WORK_HANDLER: WorkHandler<'request.submit', RequestS
     const result = singleChildOutput(children, SUBMIT_LIFECYCLE_KIND)
 
     if (result === undefined) {
-      throw new Error('Submit lifecycle work task completed with an invalid submit result')
+      throw new ForgeInternalError('Submit lifecycle work task completed with an invalid submit result')
     }
 
     const output = toOutput(ctx, result)
@@ -63,7 +64,7 @@ function toOutput(
 ): PhaseWorkOutput {
   if (result.outcome === 'redirect') {
     if (result.redirect === undefined) {
-      throw new Error('Hook redirect target is missing')
+      throw new ForgeInternalError('Hook redirect target is missing')
     }
 
     return { action: 'halt-redirect', target: result.redirect, reason: 'submit' }

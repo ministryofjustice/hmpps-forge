@@ -11,6 +11,7 @@ import type {
   WorkTask,
 } from '../../../../contracts/runtime/work.type'
 import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
+import ForgeUnregisteredComponentError from '../../../../errors/ForgeUnregisteredComponentError'
 import { childOutputs } from '../../work/workTask'
 import { RENDER_BLOCK_KIND } from './RenderBlockWorkHandler'
 import WorkTaskFactory from '../../work/WorkTaskFactory'
@@ -84,7 +85,7 @@ function resolveComponentEntry(
   const entry = componentRegistry.get(variant)
 
   if (entry === undefined) {
-    throw new Error(`[Forge] Component variant "${variant}" is not registered`)
+    throw new ForgeUnregisteredComponentError({ variant })
   }
 
   return entry

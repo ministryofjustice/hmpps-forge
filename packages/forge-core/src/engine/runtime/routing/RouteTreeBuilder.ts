@@ -1,3 +1,4 @@
+import ForgeInternalError from '../../errors/ForgeInternalError'
 import type {
   JourneyRouteIndex,
   StepRouteIndex,
@@ -196,7 +197,7 @@ export default class RouteTreeBuilder {
     })
 
     if (!node) {
-      throw new Error(`Unable to build route tree node for path "${path}"`)
+      throw new ForgeInternalError(`Unable to build route tree node for path "${path}"`)
     }
 
     return node

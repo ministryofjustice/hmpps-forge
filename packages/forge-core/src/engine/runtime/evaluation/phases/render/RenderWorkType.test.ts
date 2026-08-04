@@ -113,7 +113,7 @@ describe('Render work handlers', () => {
 
     // Act / Assert
     await expect(executor.execute(task, new WorkContext(createRequestContext()))).rejects.toThrow(
-      '[Forge] Component variant "missing" is not registered',
+      'Component variant "missing" is not registered',
     )
   })
 
@@ -129,7 +129,7 @@ describe('Render work handlers', () => {
 
     // Act / Assert
     await expect(executor.execute(task, new WorkContext(createRequestContext()))).rejects.toThrow(
-      '[Forge] Component variant "missing" is not registered',
+      'Component variant "missing" is not registered',
     )
   })
 

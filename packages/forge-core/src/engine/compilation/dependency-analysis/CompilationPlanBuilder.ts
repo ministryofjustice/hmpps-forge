@@ -18,6 +18,7 @@ import HookInputAnalyzer from './hooks/HookInputAnalyzer'
 import ValidationInputAnalyzer from './validation/ValidationInputAnalyzer'
 import ResolveInputAnalyzer from './resolve/ResolveInputAnalyzer'
 import RouteMetadataInputAnalyzer from './route-metadata/RouteMetadataInputAnalyzer'
+import ForgeInternalError from '../../errors/ForgeInternalError'
 
 type StepIndex = Map<NodeId, StepASTNode>
 type JourneyIndex = Map<NodeId, JourneyASTNode>
@@ -60,7 +61,7 @@ export default class CompilationPlanBuilder {
       const parentJourney = stepNode.parent
 
       if (!this.isJourneyNode(parentJourney)) {
-        throw new Error(`Step "${stepId}" was not registered under a journey`)
+        throw new ForgeInternalError(`Step "${stepId}" was not registered under a journey`)
       }
 
       const parentJourneyId = parentJourney.id
