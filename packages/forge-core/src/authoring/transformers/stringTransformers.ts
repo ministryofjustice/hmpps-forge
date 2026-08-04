@@ -81,69 +81,54 @@ export const StringTransformers = {
    * @example
    * // Transforms "  hello world  " to "hello world"
    */
-  Trim: stringTransformers.register(
-    'String.Trim',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => value.trim(),
-  ),
+  Trim: stringTransformers.register('String.Trim', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => value.trim(),
+  }),
 
   /**
    * Converts string to uppercase
    * @example
    * // Transforms "Hello World" to "HELLO WORLD"
    */
-  ToUpperCase: stringTransformers.register(
-    'String.ToUpperCase',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => value.toUpperCase(),
-  ),
+  ToUpperCase: stringTransformers.register('String.ToUpperCase', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => value.toUpperCase(),
+  }),
 
   /**
    * Converts string to lowercase
    * @example
    * // Transforms "Hello World" to "hello world"
    */
-  ToLowerCase: stringTransformers.register(
-    'String.ToLowerCase',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => value.toLowerCase(),
-  ),
+  ToLowerCase: stringTransformers.register('String.ToLowerCase', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => value.toLowerCase(),
+  }),
 
   /**
    * Capitalizes the first letter of each word
    * @example
    * // Transforms "hello world" to "Hello World"
    */
-  ToTitleCase: stringTransformers.register(
-    'String.ToTitleCase',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) =>
+  ToTitleCase: stringTransformers.register('String.ToTitleCase', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) =>
       value.replace(/\w\S*/g, (text: string) => text.charAt(0).toUpperCase() + text.slice(1).toLowerCase()),
-  ),
+  }),
 
   /**
    * Capitalizes the first letter of the string
    * @example
    * // Transforms "hello world" to "Hello world"
    */
-  Capitalize: stringTransformers.register(
-    'String.Capitalize',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => {
+  Capitalize: stringTransformers.register('String.Capitalize', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => {
       if (value.length === 0) return value
       return value.charAt(0).toUpperCase() + value.slice(1)
     },
-  ),
+  }),
 
   /**
    * Converts a name to its possessive form
@@ -153,19 +138,16 @@ export const StringTransformers = {
    * // Possessive("James") returns "James'"
    * // Possessive("Chris") returns "Chris'"
    */
-  Possessive: stringTransformers.register(
-    'String.Possessive',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => {
+  Possessive: stringTransformers.register('String.Possessive', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => {
       if (value.length === 0) return value
       if (value.toLowerCase().endsWith('s')) {
         return `${value}'`
       }
       return `${value}'s`
     },
-  ),
+  }),
 
   /**
    * Extracts a substring from start to end position
@@ -174,14 +156,11 @@ export const StringTransformers = {
    * @example
    * // Substring(1, 4) applied to "hello" returns "ell"
    */
-  Substring: stringTransformers.register(
-    'String.Substring',
-    {
-      inputSchema: stringSchema,
-      argumentsSchema: z.tuple([z.number(), z.number().optional()]),
-    },
-    () => (value: string, start: number, end?: number) => value.substring(start, end),
-  ),
+  Substring: stringTransformers.register('String.Substring', {
+    inputSchema: stringSchema,
+    argumentsSchema: z.tuple([z.number(), z.number().optional()]),
+    factory: () => (value: string, start: number, end?: number) => value.substring(start, end),
+  }),
 
   /**
    * Replaces all occurrences of a search string with a replacement string
@@ -190,14 +169,12 @@ export const StringTransformers = {
    * @example
    * // Replace("world", "universe") applied to "hello world" returns "hello universe"
    */
-  Replace: stringTransformers.register(
-    'String.Replace',
-    {
-      inputSchema: stringSchema,
-      argumentsSchema: z.tuple([z.string(), z.string()]),
-    },
-    () => (value: string, searchValue: string, replaceValue: string) => value.replaceAll(searchValue, replaceValue),
-  ),
+  Replace: stringTransformers.register('String.Replace', {
+    inputSchema: stringSchema,
+    argumentsSchema: z.tuple([z.string(), z.string()]),
+    factory: () => (value: string, searchValue: string, replaceValue: string) =>
+      value.replaceAll(searchValue, replaceValue),
+  }),
 
   /**
    * Pads the string to a specified length with a given string on the left
@@ -206,16 +183,14 @@ export const StringTransformers = {
    * @example
    * // PadStart(3) applied to "5" returns "  5"
    */
-  PadStart: stringTransformers.register(
-    'String.PadStart',
-    {
-      inputSchema: stringSchema,
-      argumentsSchema: z.tuple([z.number(), z.string().optional()]),
-    },
-    () =>
+  PadStart: stringTransformers.register('String.PadStart', {
+    inputSchema: stringSchema,
+    argumentsSchema: z.tuple([z.number(), z.string().optional()]),
+    factory:
+      () =>
       (value: string, targetLength: number, padString: string = ' ') =>
         value.padStart(targetLength, padString),
-  ),
+  }),
 
   /**
    * Pads the string to a specified length with a given string on the right
@@ -224,16 +199,14 @@ export const StringTransformers = {
    * @example
    * // PadEnd(3) applied to "5" returns "5  "
    */
-  PadEnd: stringTransformers.register(
-    'String.PadEnd',
-    {
-      inputSchema: stringSchema,
-      argumentsSchema: z.tuple([z.number(), z.string().optional()]),
-    },
-    () =>
+  PadEnd: stringTransformers.register('String.PadEnd', {
+    inputSchema: stringSchema,
+    argumentsSchema: z.tuple([z.number(), z.string().optional()]),
+    factory:
+      () =>
       (value: string, targetLength: number, padString: string = ' ') =>
         value.padEnd(targetLength, padString),
-  ),
+  }),
 
   // TODO: I wonder if the below transformers should instead be broken off into a `Type` transformer group, like
   //  `Transformers.Type.ToInt()` - it might be a bit more clear.
@@ -248,12 +221,9 @@ export const StringTransformers = {
    * // ToInt() on "abc" throws Error
    * // ToInt() on "123abc" throws Error (partial parse rejected)
    */
-  ToInt: stringTransformers.register(
-    'String.ToInt',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => {
+  ToInt: stringTransformers.register('String.ToInt', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => {
       const trimmed = value.trim()
       const parsed = Number(trimmed)
 
@@ -263,7 +233,7 @@ export const StringTransformers = {
 
       return Math.trunc(parsed)
     },
-  ),
+  }),
 
   /**
    * Converts a string to a floating-point number
@@ -276,12 +246,9 @@ export const StringTransformers = {
    * // ToFloat() on "abc" throws Error
    * // ToFloat() on "123abc" throws Error (partial parse rejected)
    */
-  ToFloat: stringTransformers.register(
-    'String.ToFloat',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => {
+  ToFloat: stringTransformers.register('String.ToFloat', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => {
       const trimmed = value.trim()
       const parsed = Number(trimmed)
 
@@ -291,7 +258,7 @@ export const StringTransformers = {
 
       return parsed
     },
-  ),
+  }),
 
   /**
    * Splits a string into an array of characters or by a separator
@@ -301,20 +268,17 @@ export const StringTransformers = {
    * // ToArray(",") on "hello,world" returns ["hello", "world"]
    * // ToArray("-") on "a-b-c" returns ["a", "b", "c"]
    */
-  ToArray: stringTransformers.register(
-    'String.ToArray',
-    {
-      inputSchema: stringSchema,
-      argumentsSchema: z.tuple([z.string().optional()]),
-    },
-    () => (value: string, separator?: string) => {
+  ToArray: stringTransformers.register('String.ToArray', {
+    inputSchema: stringSchema,
+    argumentsSchema: z.tuple([z.string().optional()]),
+    factory: () => (value: string, separator?: string) => {
       if (separator === undefined) {
         return value.split('')
       }
 
       return value.split(separator)
     },
-  ),
+  }),
 
   // TODO: This probably needs to support supplying/choosing a format.
   /**
@@ -329,13 +293,10 @@ export const StringTransformers = {
    * // ToDate() on "2024-03-15T14:30:00Z" returns a Date object with time
    * // ToDate() on "" throws Error
    */
-  ToDate: stringTransformers.register(
-    'String.ToDate',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => parseDateString(value, 'Transformer.String.ToDate'),
-  ),
+  ToDate: stringTransformers.register('String.ToDate', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => parseDateString(value, 'Transformer.String.ToDate'),
+  }),
 
   /**
    * Formats a date string using Intl.DateTimeFormat options.
@@ -347,13 +308,10 @@ export const StringTransformers = {
    * // FormatDate({ dateStyle: 'short' }) on "2024-03-15" returns "15/03/2024"
    * // FormatDate({ locale: 'en-US', dateStyle: 'long' }) on "2024-03-15" returns "March 15, 2024"
    */
-  FormatDate: stringTransformers.register(
-    'String.FormatDate',
-    {
-      inputSchema: stringSchema,
-      argumentsSchema: z.tuple([formatDateOptionsSchema.optional()]),
-    },
-    () => (value: string, options?: StringDateFormatOptions) => {
+  FormatDate: stringTransformers.register('String.FormatDate', {
+    inputSchema: stringSchema,
+    argumentsSchema: z.tuple([formatDateOptionsSchema.optional()]),
+    factory: () => (value: string, options?: StringDateFormatOptions) => {
       const {
         locale = DEFAULT_FORMAT_DATE_LOCALE,
         timeZone = DEFAULT_FORMAT_DATE_TIME_ZONE,
@@ -364,7 +322,7 @@ export const StringTransformers = {
 
       return new Intl.DateTimeFormat(locale, { ...dateTimeFormatOptions, timeZone }).format(date)
     },
-  ),
+  }),
 
   /**
    * Converts a UK-formatted date string (DD/MM/YYYY) to ISO-8601 format (YYYY-MM-DD).
@@ -378,12 +336,9 @@ export const StringTransformers = {
    * // ToISODate() on "" throws Error
    * // ToISODate() on "31/02/2024" throws Error (invalid date)
    */
-  ToISODate: stringTransformers.register(
-    'String.ToISODate',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => {
+  ToISODate: stringTransformers.register('String.ToISODate', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => {
       const UK_DATE_RE = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/
       const trimmed = value.trim()
 
@@ -413,7 +368,7 @@ export const StringTransformers = {
 
       return `${paddedYear}-${paddedMonth}-${paddedDay}`
     },
-  ),
+  }),
 
   /**
    * Converts an epoch millisecond date string to a Date (local time).
@@ -423,12 +378,9 @@ export const StringTransformers = {
    * // ToTimestampDate() on "1771429146000" returns 2026-02-18T15:39:06 local
    * // ToTimestampDate() on "" throws Error
    */
-  ToTimestampDate: stringTransformers.register(
-    'String.ToTimestampDate',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => {
+  ToTimestampDate: stringTransformers.register('String.ToTimestampDate', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => {
       if (!/^\d+$/.test(value)) {
         throw new TypeError(`Transformer.String.ToTimestampDate: "${value}" is not a timestamp`)
       }
@@ -447,7 +399,7 @@ export const StringTransformers = {
 
       return date
     },
-  ),
+  }),
 
   /**
    * Escapes HTML entities in a string to prevent XSS attacks.
@@ -459,13 +411,10 @@ export const StringTransformers = {
    * // EscapeHtml() on '"><img src=x onerror=alert(1)>' returns '&quot;&gt;&lt;img src=x onerror=alert(1)&gt;'
    * // Usage: Data('goalTitle').pipe(Transformer.String.EscapeHtml())
    */
-  EscapeHtml: stringTransformers.register(
-    'String.EscapeHtml',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => escapeHtmlEntities(value),
-  ),
+  EscapeHtml: stringTransformers.register('String.EscapeHtml', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => escapeHtmlEntities(value),
+  }),
 }
 
 export { stringTransformers as stringTransformersRegistry }

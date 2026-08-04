@@ -11,52 +11,40 @@ export const ArrayTransformers = {
    * @example
    * // Length() applied to [1, 2, 3, 4] returns 4
    */
-  Length: arrayTransformers.register(
-    'Array.Length',
-    {
-      inputSchema: arraySchema,
-    },
-    () => (value: unknown[]) => value.length,
-  ),
+  Length: arrayTransformers.register('Array.Length', {
+    inputSchema: arraySchema,
+    factory: () => (value: unknown[]) => value.length,
+  }),
 
   /**
    * Returns the first element of the array
    * @example
    * // First() applied to [1, 2, 3] returns 1
    */
-  First: arrayTransformers.register(
-    'Array.First',
-    {
-      inputSchema: arraySchema,
-    },
-    () => (value: unknown[]) => (value.length > 0 ? value[0] : undefined),
-  ),
+  First: arrayTransformers.register('Array.First', {
+    inputSchema: arraySchema,
+    factory: () => (value: unknown[]) => (value.length > 0 ? value[0] : undefined),
+  }),
 
   /**
    * Returns the last element of the array
    * @example
    * // Last() applied to [1, 2, 3] returns 3
    */
-  Last: arrayTransformers.register(
-    'Array.Last',
-    {
-      inputSchema: arraySchema,
-    },
-    () => (value: unknown[]) => (value.length > 0 ? value[value.length - 1] : undefined),
-  ),
+  Last: arrayTransformers.register('Array.Last', {
+    inputSchema: arraySchema,
+    factory: () => (value: unknown[]) => (value.length > 0 ? value[value.length - 1] : undefined),
+  }),
 
   /**
    * Reverses the array (returns a new array)
    * @example
    * // Reverse() applied to [1, 2, 3] returns [3, 2, 1]
    */
-  Reverse: arrayTransformers.register(
-    'Array.Reverse',
-    {
-      inputSchema: arraySchema,
-    },
-    () => (value: unknown[]) => [...value].reverse(),
-  ),
+  Reverse: arrayTransformers.register('Array.Reverse', {
+    inputSchema: arraySchema,
+    factory: () => (value: unknown[]) => [...value].reverse(),
+  }),
 
   /**
    * Joins array elements into a string with specified separator
@@ -64,16 +52,14 @@ export const ArrayTransformers = {
    * @example
    * // Join(", ") applied to [1, 2, 3] returns "1, 2, 3"
    */
-  Join: arrayTransformers.register(
-    'Array.Join',
-    {
-      inputSchema: arraySchema,
-      argumentsSchema: z.tuple([z.string().optional()]),
-    },
-    () =>
+  Join: arrayTransformers.register('Array.Join', {
+    inputSchema: arraySchema,
+    argumentsSchema: z.tuple([z.string().optional()]),
+    factory:
+      () =>
       (value: unknown[], separator: string = ',') =>
         value.join(separator),
-  ),
+  }),
 
   /**
    * Returns a slice of the array from start to end index
@@ -82,14 +68,11 @@ export const ArrayTransformers = {
    * @example
    * // Slice(1, 4) applied to [1, 2, 3, 4, 5] returns [2, 3, 4]
    */
-  Slice: arrayTransformers.register(
-    'Array.Slice',
-    {
-      inputSchema: arraySchema,
-      argumentsSchema: z.tuple([z.number(), z.number().optional()]),
-    },
-    () => (value: unknown[], start: number, end?: number) => value.slice(start, end),
-  ),
+  Slice: arrayTransformers.register('Array.Slice', {
+    inputSchema: arraySchema,
+    argumentsSchema: z.tuple([z.number(), z.number().optional()]),
+    factory: () => (value: unknown[], start: number, end?: number) => value.slice(start, end),
+  }),
 
   /**
    * Concatenates arrays together
@@ -97,41 +80,33 @@ export const ArrayTransformers = {
    * @example
    * // Concat([3, 4]) applied to [1, 2] returns [1, 2, 3, 4]
    */
-  Concat: arrayTransformers.register(
-    'Array.Concat',
-    {
-      inputSchema: arraySchema,
-      argumentsSchema: z.tuple([z.array(z.unknown())], z.array(z.unknown())),
-    },
-    () =>
+  Concat: arrayTransformers.register('Array.Concat', {
+    inputSchema: arraySchema,
+    argumentsSchema: z.tuple([z.array(z.unknown())], z.array(z.unknown())),
+    factory:
+      () =>
       (value: unknown[], ...arrays: unknown[][]) =>
         value.concat(...arrays),
-  ),
+  }),
 
   /**
    * Returns unique elements from the array (removes duplicates)
    * @example
    * // Unique() applied to [1, 2, 2, 3, 1] returns [1, 2, 3]
    */
-  Unique: arrayTransformers.register(
-    'Array.Unique',
-    {
-      inputSchema: arraySchema,
-    },
-    () => (value: unknown[]) => [...new Set(value)],
-  ),
+  Unique: arrayTransformers.register('Array.Unique', {
+    inputSchema: arraySchema,
+    factory: () => (value: unknown[]) => [...new Set(value)],
+  }),
 
   /**
    * Sorts the array in ascending order (returns a new array)
    * @example
    * // Sort() applied to [3, 1, 4, 2] returns [1, 2, 3, 4]
    */
-  Sort: arrayTransformers.register(
-    'Array.Sort',
-    {
-      inputSchema: arraySchema,
-    },
-    () => (value: unknown[]) =>
+  Sort: arrayTransformers.register('Array.Sort', {
+    inputSchema: arraySchema,
+    factory: () => (value: unknown[]) =>
       [...value].sort((a, b) => {
         if (typeof a === 'number' && typeof b === 'number') {
           return a - b
@@ -139,7 +114,7 @@ export const ArrayTransformers = {
 
         return String(a).localeCompare(String(b))
       }),
-  ),
+  }),
 
   /**
    * Filters the array to only include elements that match the specified value
@@ -147,14 +122,11 @@ export const ArrayTransformers = {
    * @example
    * // Filter(2) applied to [1, 2, 2, 3] returns [2, 2]
    */
-  Filter: arrayTransformers.register(
-    'Array.Filter',
-    {
-      inputSchema: arraySchema,
-      argumentsSchema: z.tuple([z.unknown()]),
-    },
-    () => (value: unknown[], filterValue: unknown) => value.filter(item => item === filterValue),
-  ),
+  Filter: arrayTransformers.register('Array.Filter', {
+    inputSchema: arraySchema,
+    argumentsSchema: z.tuple([z.unknown()]),
+    factory: () => (value: unknown[], filterValue: unknown) => value.filter(item => item === filterValue),
+  }),
 
   /**
    * Maps each array element by extracting a property (for objects) or applying an index (for arrays)
@@ -163,13 +135,10 @@ export const ArrayTransformers = {
    * // Map('name') applied to [{name: 'John'}, {name: 'Jane'}] returns ['John', 'Jane']
    * // Map(0) applied to [[1, 2], [3, 4]] returns [1, 3]
    */
-  Map: arrayTransformers.register(
-    'Array.Map',
-    {
-      inputSchema: arraySchema,
-      argumentsSchema: z.tuple([z.union([z.string(), z.number()])]),
-    },
-    () => (value: unknown[], property: string | number) =>
+  Map: arrayTransformers.register('Array.Map', {
+    inputSchema: arraySchema,
+    argumentsSchema: z.tuple([z.union([z.string(), z.number()])]),
+    factory: () => (value: unknown[], property: string | number) =>
       value.map(item => {
         if (typeof property === 'number' && Array.isArray(item)) {
           return item[property]
@@ -181,20 +150,17 @@ export const ArrayTransformers = {
 
         return undefined
       }),
-  ),
+  }),
 
   /**
    * Flattens a nested array by one level
    * @example
    * // Flatten() applied to [[1, 2], [3, 4]] returns [1, 2, 3, 4]
    */
-  Flatten: arrayTransformers.register(
-    'Array.Flatten',
-    {
-      inputSchema: arraySchema,
-    },
-    () => (value: unknown[]) => value.flat(),
-  ),
+  Flatten: arrayTransformers.register('Array.Flatten', {
+    inputSchema: arraySchema,
+    factory: () => (value: unknown[]) => value.flat(),
+  }),
 }
 
 export { arrayTransformers as arrayTransformersRegistry }

@@ -16,19 +16,16 @@ const MAX_EMAIL_LENGTH = 254
 
 export const EmailConditions = {
   /** Validates if a string is a properly formatted email address */
-  IsValidEmail: emailConditions.register(
-    'Email.IsValidEmail',
-    {
-      inputSchema: z.string(),
-    },
-    () => (value: string) => {
+  IsValidEmail: emailConditions.register('Email.IsValidEmail', {
+    inputSchema: z.string(),
+    factory: () => (value: string) => {
       if (value.length > MAX_EMAIL_LENGTH) {
         return false
       }
 
       return emailRegex.test(value)
     },
-  ),
+  }),
 }
 
 export { emailConditions as emailConditionsRegistry }

@@ -76,17 +76,14 @@ export const NunjucksGenerators = {
    * `{% macro %}` are rejected at author-call time. If you need reusable
    * composition logic, extract a custom generator or component instead.
    */
-  String: nunjucksGenerators.register(
-    'String',
-    {
-      argumentsSchema: nunjucksStringArgsSchema,
-      prepare: (props: NunjucksStringGeneratorProps) => {
-        assertTemplateIsAllowed(props.template)
+  String: nunjucksGenerators.register('String', {
+    argumentsSchema: nunjucksStringArgsSchema,
+    prepare: (props: NunjucksStringGeneratorProps) => {
+      assertTemplateIsAllowed(props.template)
 
-        return [props]
-      },
+      return [props]
     },
-    () => (props: NunjucksStringGeneratorProps) => {
+    factory: () => (props: NunjucksStringGeneratorProps) => {
       let compiled = templateCache.get(props.template)
 
       if (!compiled) {
@@ -97,7 +94,7 @@ export const NunjucksGenerators = {
 
       return compiled.render(props.data ?? {})
     },
-  ),
+  }),
 }
 
 export { nunjucksGenerators as nunjucksFunctions }

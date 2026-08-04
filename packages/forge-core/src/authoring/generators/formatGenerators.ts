@@ -6,15 +6,13 @@ export const FORMAT_STRING_GENERATOR_NAME = 'FormatString'
 const formatGenerators = new GeneratorRegistry()
 
 export const FormatGenerators = {
-  FormatString: formatGenerators.register(
-    FORMAT_STRING_GENERATOR_NAME,
-    {
-      argumentsSchema: z.tuple([z.string()], z.unknown()),
-    },
-    () =>
+  FormatString: formatGenerators.register(FORMAT_STRING_GENERATOR_NAME, {
+    argumentsSchema: z.tuple([z.string()], z.unknown()),
+    factory:
+      () =>
       (template: string, ...replacements: unknown[]) =>
         formatString(template, replacements),
-  ),
+  }),
 }
 
 export { formatGenerators as formatGeneratorsRegistry }

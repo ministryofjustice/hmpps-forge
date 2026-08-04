@@ -87,14 +87,11 @@ export const DateTransformers = {
    * // Format("D M YYYY") returns "15 3 2024"
    * // Format("HH:mm:ss") returns "14:30:45"
    */
-  Format: dateTransformers.register(
-    'Date.Format',
-    {
-      inputSchema: dateSchema,
-      argumentsSchema: stringArgsSchema,
-    },
-    () => (value: Date, format: string) => formatDate(value, format),
-  ),
+  Format: dateTransformers.register('Date.Format', {
+    inputSchema: dateSchema,
+    argumentsSchema: stringArgsSchema,
+    factory: () => (value: Date, format: string) => formatDate(value, format),
+  }),
 
   /**
    * Adds a number of days to a Date
@@ -103,19 +100,16 @@ export const DateTransformers = {
    * // AddDays(7) adds one week
    * // AddDays(-1) subtracts one day
    */
-  AddDays: dateTransformers.register(
-    'Date.AddDays',
-    {
-      inputSchema: dateSchema,
-      argumentsSchema: numberArgsSchema,
-    },
-    () => (value: Date, days: number) => {
+  AddDays: dateTransformers.register('Date.AddDays', {
+    inputSchema: dateSchema,
+    argumentsSchema: numberArgsSchema,
+    factory: () => (value: Date, days: number) => {
       const result = new Date(value)
       result.setDate(result.getDate() + days)
 
       return result
     },
-  ),
+  }),
 
   /**
    * Subtracts a number of days from a Date
@@ -123,19 +117,16 @@ export const DateTransformers = {
    * @example
    * // SubtractDays(7) subtracts one week
    */
-  SubtractDays: dateTransformers.register(
-    'Date.SubtractDays',
-    {
-      inputSchema: dateSchema,
-      argumentsSchema: numberArgsSchema,
-    },
-    () => (value: Date, days: number) => {
+  SubtractDays: dateTransformers.register('Date.SubtractDays', {
+    inputSchema: dateSchema,
+    argumentsSchema: numberArgsSchema,
+    factory: () => (value: Date, days: number) => {
       const result = new Date(value)
       result.setDate(result.getDate() - days)
 
       return result
     },
-  ),
+  }),
 
   /**
    * Adds a number of months to a Date
@@ -144,19 +135,16 @@ export const DateTransformers = {
    * // AddMonths(1) adds one month
    * // AddMonths(-6) subtracts 6 months
    */
-  AddMonths: dateTransformers.register(
-    'Date.AddMonths',
-    {
-      inputSchema: dateSchema,
-      argumentsSchema: numberArgsSchema,
-    },
-    () => (value: Date, months: number) => {
+  AddMonths: dateTransformers.register('Date.AddMonths', {
+    inputSchema: dateSchema,
+    argumentsSchema: numberArgsSchema,
+    factory: () => (value: Date, months: number) => {
       const result = new Date(value)
       result.setMonth(result.getMonth() + months)
 
       return result
     },
-  ),
+  }),
 
   /**
    * Adds a number of years to a Date
@@ -165,68 +153,56 @@ export const DateTransformers = {
    * // AddYears(1) adds one year
    * // AddYears(-18) subtracts 18 years
    */
-  AddYears: dateTransformers.register(
-    'Date.AddYears',
-    {
-      inputSchema: dateSchema,
-      argumentsSchema: numberArgsSchema,
-    },
-    () => (value: Date, years: number) => {
+  AddYears: dateTransformers.register('Date.AddYears', {
+    inputSchema: dateSchema,
+    argumentsSchema: numberArgsSchema,
+    factory: () => (value: Date, years: number) => {
       const result = new Date(value)
       result.setFullYear(result.getFullYear() + years)
 
       return result
     },
-  ),
+  }),
 
   /**
    * Returns the start of the day (midnight) for a Date
    * @example
    * // StartOfDay() returns 2024-03-15T00:00:00.000
    */
-  StartOfDay: dateTransformers.register(
-    'Date.StartOfDay',
-    {
-      inputSchema: dateSchema,
-    },
-    () => (value: Date) => {
+  StartOfDay: dateTransformers.register('Date.StartOfDay', {
+    inputSchema: dateSchema,
+    factory: () => (value: Date) => {
       const result = new Date(value)
       result.setHours(0, 0, 0, 0)
 
       return result
     },
-  ),
+  }),
 
   /**
    * Returns the end of the day (23:59:59.999) for a Date
    * @example
    * // EndOfDay() returns 2024-03-15T23:59:59.999
    */
-  EndOfDay: dateTransformers.register(
-    'Date.EndOfDay',
-    {
-      inputSchema: dateSchema,
-    },
-    () => (value: Date) => {
+  EndOfDay: dateTransformers.register('Date.EndOfDay', {
+    inputSchema: dateSchema,
+    factory: () => (value: Date) => {
       const result = new Date(value)
       result.setHours(23, 59, 59, 999)
 
       return result
     },
-  ),
+  }),
 
   /**
    * Converts a Date to ISO-8601 string format
    * @example
    * // ToISOString() returns "2024-03-15T14:30:45.123Z"
    */
-  ToISOString: dateTransformers.register(
-    'Date.ToISOString',
-    {
-      inputSchema: dateSchema,
-    },
-    () => (value: Date) => value.toISOString(),
-  ),
+  ToISOString: dateTransformers.register('Date.ToISOString', {
+    inputSchema: dateSchema,
+    factory: () => (value: Date) => value.toISOString(),
+  }),
 
   /**
    * Converts a Date to a locale-specific string
@@ -235,32 +211,26 @@ export const DateTransformers = {
    * // ToLocaleString() returns "15/03/2024, 14:30:45" (UK locale)
    * // ToLocaleString('en-US') returns "3/15/2024, 2:30:45 PM"
    */
-  ToLocaleString: dateTransformers.register(
-    'Date.ToLocaleString',
-    {
-      inputSchema: dateSchema,
-      argumentsSchema: optionalStringArgsSchema,
-    },
-    () => (value: Date, locale?: string) => value.toLocaleString(locale),
-  ),
+  ToLocaleString: dateTransformers.register('Date.ToLocaleString', {
+    inputSchema: dateSchema,
+    argumentsSchema: optionalStringArgsSchema,
+    factory: () => (value: Date, locale?: string) => value.toLocaleString(locale),
+  }),
 
   /**
    * Converts a Date to UK long date format (e.g. "18 March 2026")
    * @example
    * // ToUKLongDate() returns "18 March 2026"
    */
-  ToUKLongDate: dateTransformers.register(
-    'Date.ToUKLongDate',
-    {
-      inputSchema: dateSchema,
-    },
-    () => (value: Date) =>
+  ToUKLongDate: dateTransformers.register('Date.ToUKLongDate', {
+    inputSchema: dateSchema,
+    factory: () => (value: Date) =>
       value.toLocaleDateString('en-GB', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
       }),
-  ),
+  }),
 }
 
 export { dateTransformers as dateTransformersRegistry }

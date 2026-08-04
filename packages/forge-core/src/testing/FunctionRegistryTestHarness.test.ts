@@ -12,7 +12,7 @@ describe('FunctionRegistryTestHarness', () => {
     it('should return the condition result when a value is supplied via withInput', () => {
       // Arrange
       const conditions = new ConditionRegistry()
-      const isYes = conditions.register('isYes', () => (value: any) => value === 'yes')
+      const isYes = conditions.register('isYes', { factory: () => (value: any) => value === 'yes' })
       const harness = new FunctionRegistryTestHarness(conditions)
 
       // Act
@@ -27,7 +27,7 @@ describe('FunctionRegistryTestHarness', () => {
     it('should return the transformed value when a value is supplied via withInput', () => {
       // Arrange
       const transformers = new TransformerRegistry()
-      const shout = transformers.register('shout', () => (value: any) => `${value}!`)
+      const shout = transformers.register('shout', { factory: () => (value: any) => `${value}!` })
       const harness = new FunctionRegistryTestHarness(transformers)
 
       // Act
@@ -40,7 +40,7 @@ describe('FunctionRegistryTestHarness', () => {
     it('should execute a generator immediately from its builder handle without withInput', () => {
       // Arrange
       const generators = new GeneratorRegistry()
-      const constant = generators.register('constant', () => () => 42)
+      const constant = generators.register('constant', { factory: () => () => 42 })
       const harness = new FunctionRegistryTestHarness(generators)
 
       // Act
@@ -53,7 +53,7 @@ describe('FunctionRegistryTestHarness', () => {
     it('should run an effect against the supplied context via withContext', () => {
       // Arrange
       const effects = new EffectRegistry()
-      const stamp = effects.register('stamp', () => (context: any) => context.setAnswer('stamped', true))
+      const stamp = effects.register('stamp', { factory: () => (context: any) => context.setAnswer('stamped', true) })
       const harness = new FunctionRegistryTestHarness(effects)
       const context = createTestEffectContext()
 
@@ -70,12 +70,12 @@ describe('FunctionRegistryTestHarness', () => {
         prefix: string
       }
       const generators = new GeneratorRegistry<Deps>()
-      const prefixed = generators.register(
-        'prefixed',
-        ({ prefix }) =>
+      const prefixed = generators.register('prefixed', {
+        factory:
+          ({ prefix }) =>
           () =>
             `${prefix}-value`,
-      )
+      })
       const harness = new FunctionRegistryTestHarness(generators, { prefix: 'test' })
 
       // Act
@@ -88,11 +88,10 @@ describe('FunctionRegistryTestHarness', () => {
     it('should throw a TypeError when the arguments fail the argumentsSchema', () => {
       // Arrange
       const conditions = new ConditionRegistry()
-      const atMost = conditions.register(
-        'atMost',
-        { argumentsSchema: z.tuple([z.number()]) },
-        () => (value: any, max: number) => value <= max,
-      )
+      const atMost = conditions.register('atMost', {
+        argumentsSchema: z.tuple([z.number()]),
+        factory: () => (value: any, max: number) => value <= max,
+      })
       const harness = new FunctionRegistryTestHarness(conditions)
 
       // Act
@@ -106,10 +105,12 @@ describe('FunctionRegistryTestHarness', () => {
       // Arrange
       const conditions = new ConditionRegistry()
       let called = false
-      const isYes = conditions.register('isYes', () => (value: any) => {
-        called = true
+      const isYes = conditions.register('isYes', {
+        factory: () => (value: any) => {
+          called = true
 
-        return value === 'yes'
+          return value === 'yes'
+        },
       })
       const harness = new FunctionRegistryTestHarness(conditions)
 
@@ -125,10 +126,12 @@ describe('FunctionRegistryTestHarness', () => {
       // Arrange
       const transformers = new TransformerRegistry()
       let called = false
-      const shout = transformers.register('shout', () => (value: any) => {
-        called = true
+      const shout = transformers.register('shout', {
+        factory: () => (value: any) => {
+          called = true
 
-        return `${value}!`
+          return `${value}!`
+        },
       })
       const harness = new FunctionRegistryTestHarness(transformers)
 
@@ -143,7 +146,7 @@ describe('FunctionRegistryTestHarness', () => {
     it('should fail a condition soft to false when the input fails the inputSchema', () => {
       // Arrange
       const conditions = new ConditionRegistry()
-      const needsString = conditions.register('needsString', { inputSchema: z.string() }, () => () => true)
+      const needsString = conditions.register('needsString', { inputSchema: z.string(), factory: () => () => true })
       const harness = new FunctionRegistryTestHarness(conditions)
 
       // Act
@@ -156,11 +159,10 @@ describe('FunctionRegistryTestHarness', () => {
     it('should throw a TypeError when a transformer input fails the inputSchema', () => {
       // Arrange
       const transformers = new TransformerRegistry()
-      const upper = transformers.register(
-        'upper',
-        { inputSchema: z.string() },
-        () => (value: string) => value.toUpperCase(),
-      )
+      const upper = transformers.register('upper', {
+        inputSchema: z.string(),
+        factory: () => (value: string) => value.toUpperCase(),
+      })
       const harness = new FunctionRegistryTestHarness(transformers)
 
       // Act
@@ -173,7 +175,7 @@ describe('FunctionRegistryTestHarness', () => {
     it('should throw a TypeError when a condition returns a non-boolean against the default output schema', () => {
       // Arrange
       const conditions = new ConditionRegistry()
-      const broken = conditions.register('broken', () => () => 'not-a-boolean' as any)
+      const broken = conditions.register('broken', { factory: () => () => 'not-a-boolean' as any })
       const harness = new FunctionRegistryTestHarness(conditions)
 
       // Act
@@ -186,7 +188,7 @@ describe('FunctionRegistryTestHarness', () => {
     it('should return a promise resolving to the validated value when the function is async', async () => {
       // Arrange
       const transformers = new TransformerRegistry()
-      const asyncDouble = transformers.register('asyncDouble', () => async (value: number) => value * 2)
+      const asyncDouble = transformers.register('asyncDouble', { factory: () => async (value: number) => value * 2 })
       const harness = new FunctionRegistryTestHarness(transformers)
 
       // Act
@@ -200,7 +202,10 @@ describe('FunctionRegistryTestHarness', () => {
     it('should reject with a TypeError when an async result fails the outputSchema', async () => {
       // Arrange
       const transformers = new TransformerRegistry()
-      const asyncBad = transformers.register('asyncBad', { outputSchema: z.number() }, () => async () => 'not-a-number')
+      const asyncBad = transformers.register('asyncBad', {
+        outputSchema: z.number(),
+        factory: () => async () => 'not-a-number',
+      })
       const harness = new FunctionRegistryTestHarness(transformers)
 
       // Act
@@ -213,8 +218,10 @@ describe('FunctionRegistryTestHarness', () => {
     it('should return a promise and mutate the context when an async effect runs via withContext', async () => {
       // Arrange
       const effects = new EffectRegistry()
-      const asyncStamp = effects.register('asyncStamp', () => async (context: any) => {
-        context.setAnswer('done', true)
+      const asyncStamp = effects.register('asyncStamp', {
+        factory: () => async (context: any) => {
+          context.setAnswer('done', true)
+        },
       })
       const harness = new FunctionRegistryTestHarness(effects)
       const context = createTestEffectContext()
@@ -231,8 +238,8 @@ describe('FunctionRegistryTestHarness', () => {
     it('should throw naming the unknown function and the registered functions when the name is not registered', () => {
       // Arrange
       const conditions = new ConditionRegistry()
-      conditions.register('alpha', () => () => true)
-      conditions.register('beta', () => () => true)
+      conditions.register('alpha', { factory: () => () => true })
+      conditions.register('beta', { factory: () => () => true })
       const harness = new FunctionRegistryTestHarness(conditions)
 
       // Act
@@ -245,9 +252,9 @@ describe('FunctionRegistryTestHarness', () => {
     it('should evaluate functions from every registry when an array is passed', () => {
       // Arrange
       const conditions = new ConditionRegistry()
-      const isYes = conditions.register('isYes', () => (value: any) => value === 'yes')
+      const isYes = conditions.register('isYes', { factory: () => (value: any) => value === 'yes' })
       const transformers = new TransformerRegistry()
-      const shout = transformers.register('shout', () => (value: any) => `${value}!`)
+      const shout = transformers.register('shout', { factory: () => (value: any) => `${value}!` })
       const harness = new FunctionRegistryTestHarness([conditions, transformers])
 
       // Act
@@ -264,9 +271,9 @@ describe('FunctionRegistryTestHarness', () => {
     it('should throw naming the duplicate when a name is registered across two registries', () => {
       // Arrange
       const first = new ConditionRegistry()
-      first.register('dup', () => () => true)
+      first.register('dup', { factory: () => () => true })
       const second = new ConditionRegistry()
-      second.register('dup', () => () => false)
+      second.register('dup', { factory: () => () => false })
 
       // Act
       const act = () => new FunctionRegistryTestHarness([first, second])
