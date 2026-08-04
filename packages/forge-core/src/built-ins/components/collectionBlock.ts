@@ -1,6 +1,6 @@
 import { component } from '../../components/component'
 import { StructureType } from '../../authoring/types/enums'
-import { isRenderedBlock } from '../../authoring/typeguards/structures'
+import { isRenderedBlock } from '../../components/typeguards'
 import { escapeHtmlEntities } from '../../shared/utils/sanitize'
 import type {
   BlockDefinition,

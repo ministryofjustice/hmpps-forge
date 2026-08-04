@@ -5,7 +5,7 @@ import { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
 import { isASTNode, isTemplateNode } from '../../../contracts/ast/nodes'
 import { isFieldBlockStructNode } from '../../../contracts/ast/structure-nodes'
 import { isReferenceExprNode } from '../../../contracts/ast/expression-nodes'
-import { cloneASTValue } from '../nodes/astValueCloning'
+import { cloneASTValue } from './astValueCloning'
 import InvalidNodeError from '../../../errors/InvalidNodeError'
 
 /**
