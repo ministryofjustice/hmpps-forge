@@ -1,4 +1,4 @@
-import type { ConditionFunctionExpr } from '../types/expressions.type'
+import type { ConditionFunctionExpr, Resolvable } from '../types/expressions.type'
 import { FunctionType } from '../types/enums'
 import { BaseFunctionRegistry, CONDITION_OUTPUT_SCHEMA, type RegistrationOptions } from './BaseFunctionRegistry'
 
@@ -9,23 +9,28 @@ export default class ConditionRegistry<TDeps = Record<string, never>> extends Ba
 
   register<TArgs extends any[]>(
     name: string,
+    options: RegistrationOptions & { factory: (deps: TDeps) => (value: any, ...args: TArgs) => boolean },
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => ConditionFunctionExpr
+
+  register<TArgs extends any[]>(
+    name: string,
     options: RegistrationOptions,
     factory: (deps: TDeps) => (value: any, ...args: TArgs) => boolean,
-  ): (...args: TArgs) => ConditionFunctionExpr
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => ConditionFunctionExpr
 
   register<TArgs extends any[]>(
     name: string,
     factory: (deps: TDeps) => (value: any, ...args: TArgs) => boolean,
-  ): (...args: TArgs) => ConditionFunctionExpr
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => ConditionFunctionExpr
 
   register<TArgs extends any[]>(
     options: RegistrationOptions,
     factory: (deps: TDeps) => (value: any, ...args: TArgs) => boolean,
-  ): (...args: TArgs) => ConditionFunctionExpr
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => ConditionFunctionExpr
 
   register<TArgs extends any[]>(
     factory: (deps: TDeps) => (value: any, ...args: TArgs) => boolean,
-  ): (...args: TArgs) => ConditionFunctionExpr
+  ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => ConditionFunctionExpr
 
   register(
     first: string | RegistrationOptions | ((deps: TDeps) => (...args: any[]) => any),

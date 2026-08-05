@@ -53,6 +53,69 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.3.6
+
+A typing-focused release - registered function handles now know what their arguments
+are, built-ins validate their inputs through schemas instead of hand-rolled asserts,
+and registering a function now reads the same as registering a component.
+
+### Added
+
+- `Resolvable<T>` and `ResolvableExpression<T>` types - handles are typed from their
+  evaluator's annotations, and every argument still accepts an expression ([#213])
+- `argumentsSchema` and `inputSchema` on the built-in conditions and transformers -
+  bad arguments now surface through the engine's normal precheck diagnostics ([#222])
+- `factory` embedded in registration options - `register(name, { argumentsSchema,
+  factory })` on all four authoring registries, matching `component(variant, options)`
+  ([#223])
+
+### Changed
+
+- Built-in evaluators declare plain argument types - the handle wraps them in
+  `Resolvable<T>` itself, and the schema-backed ones drop their casts ([#221])
+
+### Fixed
+
+- Export types - bumped rolldown to fix misaligned JSDoc, and reworked the DTS bundle
+  so IntelliJ shows JSDoc on function-typed props ([#220])
+
+### Details
+
+#### Typed handle arguments
+
+Previously a function whose evaluator annotated its parameters - `(value: string,
+min: number) => ...` - produced a handle that rejected expressions outright:
+`HasMinLength(Answer('minimumLength'))` was a type error. Now `register()` returns a
+handle typed `(min: Resolvable<number>)`: literals are checked against the declared
+type (`HasMinLength('5')` is rejected), and references, pipelines, iterations, and
+generator chains are accepted through the `ResolvableExpression` marker. Both types
+are exported for use in your own signatures, and unannotated evaluators behave
+exactly as before. ([#213], [#221])
+
+#### Schema validation for built-ins
+
+Previously the built-in conditions and transformers guarded their inputs with ad-hoc
+asserts inside the evaluators, each reporting failures its own way. They now declare
+`argumentsSchema` and `inputSchema`, so wrong arguments and inputs come back through
+the same precheck diagnostics as user-registered functions - and since the schemas
+guarantee the runtime types, the evaluators lose their casts too. ([#221], [#222])
+
+#### `factory` in registration options
+
+Registering a function read differently to registering a component - components take
+one options object with everything in it, functions took a positional factory after
+the options. All four authoring registries now accept `register(name, { factory: ...
+})` with the schemas alongside, and the internals all use this form. The positional
+forms still work exactly as before. ([#223])
+
+[#213]: https://github.com/ministryofjustice/hmpps-forge/pull/213
+[#220]: https://github.com/ministryofjustice/hmpps-forge/pull/220
+[#221]: https://github.com/ministryofjustice/hmpps-forge/pull/221
+[#222]: https://github.com/ministryofjustice/hmpps-forge/pull/222
+[#223]: https://github.com/ministryofjustice/hmpps-forge/pull/223
+
+---
+
 ## 0.3.5
 
 This release we focused on improving the experience for building components - defining

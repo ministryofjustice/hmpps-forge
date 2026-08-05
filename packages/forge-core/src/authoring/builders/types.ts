@@ -6,6 +6,7 @@ import {
   PipelineExpr,
   PredicateTestExpr,
   ReferenceExpr,
+  ResolvableExpression,
   TransformerFunctionExpr,
   ResolvableValue,
 } from '../types/expressions.type'
@@ -14,7 +15,7 @@ import {
  * Public interface for chainable iterable expressions.
  * Created by .each(Iterator.Map/Filter) on references or expressions.
  */
-export interface ChainableIterable {
+export interface ChainableIterable extends ResolvableExpression {
   /**
    * Chain a Find iterator.
    * Returns a ChainableExpr since Find returns a single item, not an array.
@@ -52,7 +53,7 @@ export interface ChainableIterable {
  * Public interface for chainable value expressions.
  * Only exposes the fluent API methods - internal methods like build() are hidden.
  */
-export interface ChainableExpr<T extends ResolvableValue> {
+export interface ChainableExpr<T extends ResolvableValue> extends ResolvableExpression {
   /**
    * Navigate into a property of the expression result.
    * Creates a reference with this expression as its base.
@@ -90,7 +91,7 @@ export interface ChainableExpr<T extends ResolvableValue> {
  * Public interface for chainable reference expressions.
  * Extends ChainableExpr with path navigation.
  */
-export interface ChainableRef {
+export interface ChainableRef extends ResolvableExpression {
   /**
    * Navigate to a nested property.
    * Supports dot notation: .path('user.address.city')
@@ -127,7 +128,7 @@ export interface ChainableRef {
 /**
  * Public interface for scoped reference builders (Item()).
  */
-export interface ChainableScopedRef {
+export interface ChainableScopedRef extends ResolvableExpression {
   /**
    * Navigate to the parent scope in nested collections.
    */
@@ -154,7 +155,7 @@ export interface ChainableScopedRef {
 /**
  * Public interface for loop metadata references (Loop).
  */
-export interface ChainableLoopRef {
+export interface ChainableLoopRef extends ResolvableExpression {
   /**
    * Navigate to the parent loop in nested collections.
    */

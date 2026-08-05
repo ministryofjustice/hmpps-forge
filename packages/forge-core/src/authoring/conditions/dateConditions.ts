@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import ConditionRegistry from '../registries/ConditionRegistry'
-import type { ResolvableValue } from '../types/expressions.type'
 
 function parseISODate(value: unknown): { year: number; month: number; day: number } | null {
   if (typeof value !== 'string') {
@@ -30,12 +29,9 @@ const dateConditions = new ConditionRegistry()
 
 export const DateConditions = {
   /** Checks if a value is a valid ISO-8601 date string (YYYY-MM-DD) */
-  IsValid: dateConditions.register(
-    'Date.IsValid',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => {
+  IsValid: dateConditions.register('Date.IsValid', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => {
       const parsed = parseISODate(value)
       if (!parsed) {
         return false
@@ -48,15 +44,12 @@ export const DateConditions = {
         date.getMonth() === parsed.month - 1 &&
         date.getDate() === parsed.day
     },
-  ),
+  }),
 
   /** Validates if an ISO date string has a valid year component (1000-9999) */
-  IsValidYear: dateConditions.register(
-    'Date.IsValidYear',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => {
+  IsValidYear: dateConditions.register('Date.IsValidYear', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => {
       const parsed = parseISODate(value)
       if (!parsed) {
         return false
@@ -64,15 +57,12 @@ export const DateConditions = {
 
       return parsed.year >= 1000 && parsed.year <= 9999
     },
-  ),
+  }),
 
   /** Validates if an ISO date string has a valid month component (1-12) */
-  IsValidMonth: dateConditions.register(
-    'Date.IsValidMonth',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => {
+  IsValidMonth: dateConditions.register('Date.IsValidMonth', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => {
       const parsed = parseISODate(value)
       if (!parsed) {
         return false
@@ -80,16 +70,13 @@ export const DateConditions = {
 
       return parsed.month >= 1 && parsed.month <= 12
     },
-  ),
+  }),
 
   /** Validates if a date string has a valid day component for its specific month/year */
-  IsValidDay: dateConditions.register(
-    'Date.IsValidDay',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => {
-      const dateMatch = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  IsValidDay: dateConditions.register('Date.IsValidDay', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => {
+      const dateMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
       if (!dateMatch) {
         return false
       }
@@ -106,16 +93,13 @@ export const DateConditions = {
 
       return day >= 1 && day <= daysInMonth
     },
-  ),
+  }),
 
   /** Checks if an ISO date string is before another ISO date string */
-  IsBefore: dateConditions.register(
-    'Date.IsBefore',
-    {
-      inputSchema: stringSchema,
-      argumentsSchema: stringArgsSchema,
-    },
-    () => (value: string, dateStr: ResolvableValue) => {
+  IsBefore: dateConditions.register('Date.IsBefore', {
+    inputSchema: stringSchema,
+    argumentsSchema: stringArgsSchema,
+    factory: () => (value: string, dateStr: string) => {
       const valueParsed = parseISODate(value)
       const compareParsed = parseISODate(dateStr)
 
@@ -131,16 +115,13 @@ export const DateConditions = {
 
       return valueDate < compareDate
     },
-  ),
+  }),
 
   /** Checks if an ISO date string is after another ISO date string */
-  IsAfter: dateConditions.register(
-    'Date.IsAfter',
-    {
-      inputSchema: stringSchema,
-      argumentsSchema: stringArgsSchema,
-    },
-    () => (value: string, dateStr: ResolvableValue) => {
+  IsAfter: dateConditions.register('Date.IsAfter', {
+    inputSchema: stringSchema,
+    argumentsSchema: stringArgsSchema,
+    factory: () => (value: string, dateStr: string) => {
       const valueParsed = parseISODate(value)
       if (!valueParsed) {
         throw new Error(`Condition.Date.IsAfter: Invalid date string "${value}"`)
@@ -156,15 +137,12 @@ export const DateConditions = {
 
       return valueDate > compareDate
     },
-  ),
+  }),
 
   /** Checks if an ISO date string is in the future (after today) */
-  IsFutureDate: dateConditions.register(
-    'Date.IsFutureDate',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => {
+  IsFutureDate: dateConditions.register('Date.IsFutureDate', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => {
       const parsed = parseISODate(value)
       if (!parsed) {
         throw new Error(`Condition.Date.IsFutureDate: Invalid date string "${value}"`)
@@ -176,15 +154,12 @@ export const DateConditions = {
 
       return valueDate > todayUTC
     },
-  ),
+  }),
 
   /** Checks if an ISO date string is in the past (before today) */
-  IsPastDate: dateConditions.register(
-    'Date.IsPastDate',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => {
+  IsPastDate: dateConditions.register('Date.IsPastDate', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => {
       const parsed = parseISODate(value)
       if (!parsed) {
         throw new Error(`Condition.Date.IsPastDate: Invalid date string "${value}"`)
@@ -196,15 +171,12 @@ export const DateConditions = {
 
       return valueDate < todayUTC
     },
-  ),
+  }),
 
   /** Checks if an ISO date string is today */
-  IsToday: dateConditions.register(
-    'Date.IsToday',
-    {
-      inputSchema: stringSchema,
-    },
-    () => (value: string) => {
+  IsToday: dateConditions.register('Date.IsToday', {
+    inputSchema: stringSchema,
+    factory: () => (value: string) => {
       const parsed = parseISODate(value)
       if (!parsed) {
         throw new Error(`Condition.Date.IsToday: Invalid date string "${value}"`)
@@ -216,7 +188,7 @@ export const DateConditions = {
 
       return valueDate.getTime() === todayUTC.getTime()
     },
-  ),
+  }),
 }
 
 export { dateConditions as dateConditionsRegistry }
