@@ -10,7 +10,7 @@ import { phaseInstrumentation, runTaskPhase } from './requestPhase'
 import type { RequestAnswerPreparationWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 
-export const REQUEST_ANSWER_PREPARATION_KIND = 'request.answer-preparation'
+const REQUEST_ANSWER_PREPARATION_KIND = 'request.answer-preparation'
 
 export const REQUEST_ANSWER_PREPARATION_WORK_INSTRUMENTATION: WorkInstrumentation<
   RequestAnswerPreparationWorkProps,

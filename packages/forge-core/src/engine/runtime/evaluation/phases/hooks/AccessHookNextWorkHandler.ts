@@ -5,7 +5,7 @@ import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.
 import type { HookStageResult } from '../../../../contracts/runtime/HookStage.type'
 import type { AccessHookNextWorkProps } from '../../../../contracts/runtime/AccessLifecycleWork.type'
 
-export const ACCESS_HOOK_NEXT_KIND = 'access.hook.next'
+const ACCESS_HOOK_NEXT_KIND = 'access.hook.next'
 
 export const ACCESS_HOOK_NEXT_WORK_INSTRUMENTATION: WorkInstrumentation<
   AccessHookNextWorkProps,

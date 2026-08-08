@@ -1,6 +1,6 @@
 import type { RequestTraceEvent } from '@ministryofjustice/hmpps-forge/core'
 
-export const DEVTOOLS_COOKIE_NAME = '__forgeDevtools'
+const DEVTOOLS_COOKIE_NAME = '__forgeDevtools'
 
 /**
  * Reads the devtools cookie from the snapshot. Checks `cookies` first

@@ -19,7 +19,7 @@ export const PredicateExprSchema: z.ZodType<any> = z.lazy(() =>
 /**
  * @see {@link PredicateTestExpr}
  */
-export const PredicateTestExprSchema = z.object({
+const PredicateTestExprSchema = z.object({
   type: z.literal(PredicateType.TEST),
   subject: ResolvableValueSchema,
   negate: z.boolean(),
@@ -29,7 +29,7 @@ export const PredicateTestExprSchema = z.object({
 /**
  * @see {@link PredicateAndExpr}
  */
-export const PredicateAndExprSchema: z.ZodType<any> = z.looseObject({
+const PredicateAndExprSchema: z.ZodType<any> = z.looseObject({
   type: z.literal(PredicateType.AND),
   operands: z.array(PredicateExprSchema).min(2),
 })
@@ -37,7 +37,7 @@ export const PredicateAndExprSchema: z.ZodType<any> = z.looseObject({
 /**
  * @see {@link PredicateOrExpr}
  */
-export const PredicateOrExprSchema: z.ZodType<any> = z.looseObject({
+const PredicateOrExprSchema: z.ZodType<any> = z.looseObject({
   type: z.literal(PredicateType.OR),
   operands: z.array(PredicateExprSchema).min(2),
 })
@@ -45,7 +45,7 @@ export const PredicateOrExprSchema: z.ZodType<any> = z.looseObject({
 /**
  * @see {@link PredicateXorExpr}
  */
-export const PredicateXorExprSchema: z.ZodType<any> = z.looseObject({
+const PredicateXorExprSchema: z.ZodType<any> = z.looseObject({
   type: z.literal(PredicateType.XOR),
   operands: z.array(PredicateExprSchema).min(2),
 })
@@ -53,7 +53,7 @@ export const PredicateXorExprSchema: z.ZodType<any> = z.looseObject({
 /**
  * @see {@link PredicateNotExpr}
  */
-export const PredicateNotExprSchema: z.ZodType<any> = z.looseObject({
+const PredicateNotExprSchema: z.ZodType<any> = z.looseObject({
   type: z.literal(PredicateType.NOT),
   operand: PredicateExprSchema,
 })
@@ -73,7 +73,7 @@ export const ConditionalExprSchema = z.lazy(() =>
 /**
  * @see {@link ConditionBranchExpr}
  */
-export const ConditionBranchExprSchema: z.ZodType<any> = z.lazy(() =>
+const ConditionBranchExprSchema: z.ZodType<any> = z.lazy(() =>
   z.union([
     ConditionFunctionExprSchema,
     ConditionAndExprSchema,
@@ -86,7 +86,7 @@ export const ConditionBranchExprSchema: z.ZodType<any> = z.lazy(() =>
 /**
  * @see {@link ConditionAndExpr}
  */
-export const ConditionAndExprSchema: z.ZodType<any> = z.looseObject({
+const ConditionAndExprSchema: z.ZodType<any> = z.looseObject({
   type: z.literal(ConditionCombinatorType.AND),
   operands: z.array(ConditionBranchExprSchema).min(2),
 })
@@ -94,7 +94,7 @@ export const ConditionAndExprSchema: z.ZodType<any> = z.looseObject({
 /**
  * @see {@link ConditionOrExpr}
  */
-export const ConditionOrExprSchema: z.ZodType<any> = z.looseObject({
+const ConditionOrExprSchema: z.ZodType<any> = z.looseObject({
   type: z.literal(ConditionCombinatorType.OR),
   operands: z.array(ConditionBranchExprSchema).min(2),
 })
@@ -102,7 +102,7 @@ export const ConditionOrExprSchema: z.ZodType<any> = z.looseObject({
 /**
  * @see {@link ConditionXorExpr}
  */
-export const ConditionXorExprSchema: z.ZodType<any> = z.looseObject({
+const ConditionXorExprSchema: z.ZodType<any> = z.looseObject({
   type: z.literal(ConditionCombinatorType.XOR),
   operands: z.array(ConditionBranchExprSchema).min(2),
 })
@@ -138,7 +138,7 @@ export const MatchExprSchema = z.lazy(() =>
 /**
  * @see {@link RedirectOutcome}
  */
-export const RedirectOutcomeSchema = z.object({
+const RedirectOutcomeSchema = z.object({
   type: z.literal(OutcomeType.REDIRECT),
   when: PredicateExprSchema.optional(),
   goto: z.union([z.string(), ResolvableValueSchema]),
@@ -147,7 +147,7 @@ export const RedirectOutcomeSchema = z.object({
 /**
  * @see {@link ThrowErrorOutcome}
  */
-export const ThrowErrorOutcomeSchema = z.object({
+const ThrowErrorOutcomeSchema = z.object({
   type: z.literal(OutcomeType.THROW_ERROR),
   when: PredicateExprSchema.optional(),
   status: z.number().int().min(100).max(599),

@@ -3,7 +3,7 @@ import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../.
 import type { HookStageResult } from '../../../../contracts/runtime/HookStage.type'
 import type { HookEffectWorkProps } from '../../../../contracts/runtime/HookEffectWork.type'
 
-export const HOOK_EFFECT_KIND = 'hook.effect'
+const HOOK_EFFECT_KIND = 'hook.effect'
 
 export const HOOK_EFFECT_WORK_INSTRUMENTATION: WorkInstrumentation<HookEffectWorkProps, HookStageResult<never>> = {
   resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestExecutionContext, HookEffectWorkProps>) {

@@ -24,7 +24,7 @@ export interface RenderBlocksWorkProps {
 
 export type RenderBlocksWorkTask = WorkTask<'render.render-blocks', RenderBlocksWorkProps>
 
-export const RENDER_BLOCKS_KIND = 'render.render-blocks'
+const RENDER_BLOCKS_KIND = 'render.render-blocks'
 
 export const RENDER_BLOCKS_WORK_INSTRUMENTATION: WorkInstrumentation<RenderBlocksWorkProps, unknown> = {
   resolveTraceMetadataAtStart(

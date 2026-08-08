@@ -13,7 +13,7 @@ import type { RequestSubmitWorkProps } from '../../../contracts/runtime/RequestP
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
-export const REQUEST_SUBMIT_KIND = 'request.submit'
+const REQUEST_SUBMIT_KIND = 'request.submit'
 
 export const REQUEST_SUBMIT_WORK_INSTRUMENTATION: WorkInstrumentation<RequestSubmitWorkProps, PhaseWorkOutput> =
   phaseInstrumentation()

@@ -14,7 +14,7 @@ import type { SubmitValidationWorkProps } from '../../../../contracts/runtime/Su
 import type { CompiledSubmitHookResult } from '../../../../contracts/runtime/hookLifecycle.type'
 import ForgeInternalError from '../../../../errors/ForgeInternalError'
 
-export const SUBMIT_VALIDATION_KIND = 'submit.validation'
+const SUBMIT_VALIDATION_KIND = 'submit.validation'
 
 export const SUBMIT_VALIDATION_WORK_INSTRUMENTATION: WorkInstrumentation<
   SubmitValidationWorkProps,

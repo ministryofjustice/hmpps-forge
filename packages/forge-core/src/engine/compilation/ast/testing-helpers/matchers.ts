@@ -234,7 +234,7 @@ const toHaveValidStructure: Matcher = function toHaveValidStructureMatcher(
   return { pass, message }
 }
 
-export function registerTestingMatchers(): void {
+function registerTestingMatchers(): void {
   expect.extend({
     toContainText,
     toHaveNodeCount,

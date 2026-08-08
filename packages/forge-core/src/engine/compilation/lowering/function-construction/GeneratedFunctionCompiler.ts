@@ -32,7 +32,7 @@ interface RuntimeEvaluationDiagnostics {
   ) => unknown
 }
 
-export const RUNTIME_DIAGNOSTICS_PARAM = '_forgeRuntimeDiagnostics'
+const RUNTIME_DIAGNOSTICS_PARAM = '_forgeRuntimeDiagnostics'
 export const GENERATED_FUNCTION_HELPERS_PARAM = '_forgeHelpers'
 
 /**

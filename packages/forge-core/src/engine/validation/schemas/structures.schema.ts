@@ -21,7 +21,7 @@ import {
 /**
  * @see {@link ViewConfig}
  */
-export const ViewConfigSchema = z.object({
+const ViewConfigSchema = z.object({
   template: z.string().optional(),
   locals: z.record(z.string(), z.unknown()).optional(),
 })
@@ -69,7 +69,7 @@ const StaticDataSchema = z.record(z.string(), StaticDataValueSchema)
 /**
  * @see {@link ResolvableString}
  */
-export const ResolvableStringSchema = z.union([
+const ResolvableStringSchema = z.union([
   z.string(),
   ReferenceExprSchema,
   GeneratorFunctionExprSchema,
@@ -81,7 +81,7 @@ export const ResolvableStringSchema = z.union([
 /**
  * @see {@link ResolvableBoolean}
  */
-export const ResolvableBooleanSchema = z.union([
+const ResolvableBooleanSchema = z.union([
   z.boolean(),
   PredicateExprSchema,
   ReferenceExprSchema,
@@ -94,12 +94,12 @@ export const ResolvableBooleanSchema = z.union([
 /**
  * @see {@link RouteMetadata}
  */
-export const RouteMetadataSchema = z.record(z.string(), ResolvableValueSchema.optional())
+const RouteMetadataSchema = z.record(z.string(), ResolvableValueSchema.optional())
 
 /**
  * @see {@link ValidationExpr}
  */
-export const ValidationExprSchema = z.looseObject({
+const ValidationExprSchema = z.looseObject({
   type: z.literal(ExpressionType.VALIDATION),
   condition: PredicateExprSchema,
   message: ResolvableStringSchema,
@@ -126,7 +126,7 @@ const ValidWhenSchema = z.preprocess(value => {
 /**
  * @see {@link BlockDefinition}
  */
-export const BlockSchema: z.ZodType<any> = z.lazy(() => {
+const BlockSchema: z.ZodType<any> = z.lazy(() => {
   const baseBlock = z.looseObject({
     type: z.literal(StructureType.BLOCK),
     variant: z.string(),
@@ -169,7 +169,7 @@ export const BlockSchema: z.ZodType<any> = z.lazy(() => {
  * Access hooks handle access control, data loading, and outcomes.
  * All properties except `type` are optional.
  */
-export const AccessHookSchema = z.object({
+const AccessHookSchema = z.object({
   type: z.literal(HookType.ACCESS),
   when: PredicateExprSchema.optional(),
   effects: z.array(EffectFunctionExprSchema).optional(),
@@ -179,7 +179,7 @@ export const AccessHookSchema = z.object({
 /**
  * @see {@link SubmitHook}
  */
-export const SubmitHookSchema = z.object({
+const SubmitHookSchema = z.object({
   type: z.literal(HookType.SUBMIT),
   when: PredicateExprSchema.optional(),
   guards: PredicateExprSchema.optional(),
@@ -240,7 +240,7 @@ const JourneyReachabilitySchema = z
 /**
  * @see {@link StepDefinition}
  */
-export const StepSchema = z.looseObject({
+const StepSchema = z.looseObject({
   type: z.literal(StructureType.STEP),
   path: z.string(),
   blocks: z.array(BlockSchema).optional(),

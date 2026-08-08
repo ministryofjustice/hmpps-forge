@@ -4,7 +4,7 @@ import type { CompiledSubmitHookResult } from '../../../../contracts/runtime/hoo
 import type { HookStageResult } from '../../../../contracts/runtime/HookStage.type'
 import type { SubmitHookPredicateWorkProps } from '../../../../contracts/runtime/SubmitLifecycleWork.type'
 
-export const SUBMIT_HOOK_PREDICATE_KIND = 'submit.predicate'
+const SUBMIT_HOOK_PREDICATE_KIND = 'submit.predicate'
 
 export const SUBMIT_HOOK_PREDICATE_WORK_INSTRUMENTATION: WorkInstrumentation<
   SubmitHookPredicateWorkProps,

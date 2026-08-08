@@ -11,7 +11,7 @@ import { phaseInstrumentation } from './requestPhase'
 import type { RequestEntryValidationWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 
-export const REQUEST_ENTRY_VALIDATION_KIND = 'request.entry-validation'
+const REQUEST_ENTRY_VALIDATION_KIND = 'request.entry-validation'
 
 export const REQUEST_ENTRY_VALIDATION_WORK_INSTRUMENTATION: WorkInstrumentation<
   RequestEntryValidationWorkProps,

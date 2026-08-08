@@ -41,7 +41,7 @@ export const PipelineExprSchema = z.looseObject({
 /**
  * @see {@link MapIteratorConfig}
  */
-export const MapIteratorConfigSchema = z.looseObject({
+const MapIteratorConfigSchema = z.looseObject({
   type: z.literal(IteratorType.MAP),
   yield: z.any(),
 })
@@ -49,7 +49,7 @@ export const MapIteratorConfigSchema = z.looseObject({
 /**
  * @see {@link FilterIteratorConfig}
  */
-export const FilterIteratorConfigSchema = z.looseObject({
+const FilterIteratorConfigSchema = z.looseObject({
   type: z.literal(IteratorType.FILTER),
   predicate: z.any(),
 })
@@ -57,7 +57,7 @@ export const FilterIteratorConfigSchema = z.looseObject({
 /**
  * @see {@link FindIteratorConfig}
  */
-export const FindIteratorConfigSchema = z.looseObject({
+const FindIteratorConfigSchema = z.looseObject({
   type: z.literal(IteratorType.FIND),
   predicate: z.any(),
 })
@@ -65,11 +65,7 @@ export const FindIteratorConfigSchema = z.looseObject({
 /**
  * @see {@link IteratorConfig}
  */
-export const IteratorConfigSchema = z.union([
-  MapIteratorConfigSchema,
-  FilterIteratorConfigSchema,
-  FindIteratorConfigSchema,
-])
+const IteratorConfigSchema = z.union([MapIteratorConfigSchema, FilterIteratorConfigSchema, FindIteratorConfigSchema])
 
 /**
  * @see {@link IterateExpr}

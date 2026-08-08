@@ -19,7 +19,7 @@ import type { RequestResolveWorkProps } from '../../../contracts/runtime/Request
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
-export const REQUEST_RESOLVE_KIND = 'request.resolve'
+const REQUEST_RESOLVE_KIND = 'request.resolve'
 
 export const REQUEST_RESOLVE_WORK_INSTRUMENTATION: WorkInstrumentation<RequestResolveWorkProps, PhaseWorkOutput> =
   phaseInstrumentation()

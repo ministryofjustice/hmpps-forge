@@ -13,7 +13,7 @@ import type { RequestAccessWorkProps } from '../../../contracts/runtime/RequestP
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
-export const REQUEST_ACCESS_KIND = 'request.access'
+const REQUEST_ACCESS_KIND = 'request.access'
 
 export const REQUEST_ACCESS_WORK_INSTRUMENTATION: WorkInstrumentation<RequestAccessWorkProps, PhaseWorkOutput> =
   phaseInstrumentation()

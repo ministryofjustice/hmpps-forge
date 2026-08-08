@@ -5,7 +5,7 @@ import { phaseInstrumentation } from './requestPhase'
 import type { RequestRouteTreeWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 
-export const REQUEST_ROUTE_TREE_KIND = 'request.route-tree'
+const REQUEST_ROUTE_TREE_KIND = 'request.route-tree'
 
 export const REQUEST_ROUTE_TREE_WORK_INSTRUMENTATION: WorkInstrumentation<RequestRouteTreeWorkProps, PhaseWorkOutput> =
   phaseInstrumentation()
