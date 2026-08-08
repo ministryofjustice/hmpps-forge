@@ -25,14 +25,14 @@ export interface CompiledSubmitHookResult {
   message?: string
 }
 
-export interface CompiledAccessLifecycleWorkTask {
+interface CompiledAccessLifecycleWorkTask {
   readonly $$typeof: symbol
   readonly key: string
   readonly handler: unknown
   readonly props: unknown
 }
 
-export interface CompiledSubmitHooksWorkTask {
+interface CompiledSubmitHooksWorkTask {
   readonly $$typeof: symbol
   readonly key: string
   readonly handler: unknown

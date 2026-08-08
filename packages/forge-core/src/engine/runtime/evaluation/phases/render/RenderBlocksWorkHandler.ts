@@ -8,7 +8,6 @@ import type {
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-  WorkTask,
 } from '../../../../contracts/runtime/work.type'
 import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
 import ForgeUnregisteredComponentError from '../../../../errors/ForgeUnregisteredComponentError'
@@ -22,9 +21,7 @@ export interface RenderBlocksWorkProps {
   readonly componentRegistry: ComponentRegistry
 }
 
-export type RenderBlocksWorkTask = WorkTask<'render.render-blocks', RenderBlocksWorkProps>
-
-export const RENDER_BLOCKS_KIND = 'render.render-blocks'
+const RENDER_BLOCKS_KIND = 'render.render-blocks'
 
 export const RENDER_BLOCKS_WORK_INSTRUMENTATION: WorkInstrumentation<RenderBlocksWorkProps, unknown> = {
   resolveTraceMetadataAtStart(

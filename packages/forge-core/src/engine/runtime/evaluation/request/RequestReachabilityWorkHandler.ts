@@ -19,7 +19,7 @@ import type { StepValidityResult } from '../../../contracts/runtime/stepValidity
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
-export const REQUEST_REACHABILITY_KIND = 'request.reachability'
+const REQUEST_REACHABILITY_KIND = 'request.reachability'
 
 // Reachability reads each step's non-submission, default-group validity, so
 // `submissionOnly` and off-default failures never gate forward reachability.

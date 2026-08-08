@@ -23,7 +23,7 @@ export interface RenderBlockWorkProps {
   readonly componentRegistry: ComponentRegistry
 }
 
-export type RenderBlockWorkTask = WorkTask<'render.render-blocks.block', RenderBlockWorkProps>
+type RenderBlockWorkTask = WorkTask<'render.render-blocks.block', RenderBlockWorkProps>
 
 export const RENDER_BLOCK_KIND = 'render.render-blocks.block'
 

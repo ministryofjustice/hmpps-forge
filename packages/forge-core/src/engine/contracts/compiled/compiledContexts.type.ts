@@ -9,7 +9,7 @@ import type { ValidationResult } from '../runtime/validationResult.type'
  * assigns to this; the boundary stays deliberately loose (only generated source
  * reads these fields, never type-checked code).
  */
-export interface CompiledAnswerSnapshot {
+interface CompiledAnswerSnapshot {
   current: unknown
   parsed?: unknown
   mutations?: { value: unknown; source: string }[]
@@ -19,7 +19,7 @@ export interface CompiledAnswerSnapshot {
  * The answer snapshot after compiled answer preparation has run — `mutations` is
  * guaranteed present, since the answer-preparation phase is the one that produces it.
  */
-export interface CompiledPreparedAnswer extends CompiledAnswerSnapshot {
+interface CompiledPreparedAnswer extends CompiledAnswerSnapshot {
   mutations: { value: unknown; source: string }[]
 }
 

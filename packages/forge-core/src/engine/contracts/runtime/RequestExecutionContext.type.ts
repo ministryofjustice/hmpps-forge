@@ -10,7 +10,7 @@ import type { RenderContext } from '../../../framework/types/rendering.type'
 import type { RouteTree } from '../../../framework/types/routeTree.type'
 import type { StepValidationWorkTask } from './ValidationWork.type'
 
-export type StepValidationTaskResult = StepValidationWorkTask | undefined
+type StepValidationTaskResult = StepValidationWorkTask | undefined
 
 /**
  * The single context threaded through the whole request work tree.

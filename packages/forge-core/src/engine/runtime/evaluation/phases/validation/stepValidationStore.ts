@@ -7,8 +7,6 @@ import { createWorkTask, isWorkTask } from '../../work/workTask'
 import type { StepValidationWorkTask } from '../../../../contracts/runtime/ValidationWork.type'
 import { STEP_VALIDATION_WORK_HANDLER } from './StepValidationWorkHandler'
 
-export { getStepValidity, isStepValidityResult, recordStepValidationState } from './stepValidityState'
-
 /**
  * The work task key a step's validation task is built under. The step id
  * is encoded into the key so the eager validities phase can map each completed

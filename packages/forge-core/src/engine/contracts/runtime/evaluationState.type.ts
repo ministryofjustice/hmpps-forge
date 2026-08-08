@@ -11,7 +11,7 @@ export interface StepValidationFailure extends ValidationResult {
 
 export type DomainValidationFailure = ValidationResult
 
-export interface RequestContextState {
+interface RequestContextState {
   url: string
   path: string
   method: string
@@ -25,12 +25,12 @@ export interface RequestContextState {
   session: Record<string, unknown>
 }
 
-export interface DomainContextState {
+interface DomainContextState {
   data: Record<string, unknown>
   answers: Record<string, AnswerHistory>
 }
 
-export interface EvaluationContextState {
+interface EvaluationContextState {
   stepValidities?: Map<NodeId, StepValidityResult>
   reachability?: JourneyReachabilityProjection
   fieldsToClear?: readonly string[]

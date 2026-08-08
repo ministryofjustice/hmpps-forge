@@ -4,7 +4,7 @@ import { phaseInstrumentation } from './requestPhase'
 import type { RequestAnswerCleardownWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 
-export const REQUEST_ANSWER_CLEARDOWN_KIND = 'request.answer-cleardown'
+const REQUEST_ANSWER_CLEARDOWN_KIND = 'request.answer-cleardown'
 
 export const REQUEST_ANSWER_CLEARDOWN_WORK_INSTRUMENTATION: WorkInstrumentation<
   RequestAnswerCleardownWorkProps,

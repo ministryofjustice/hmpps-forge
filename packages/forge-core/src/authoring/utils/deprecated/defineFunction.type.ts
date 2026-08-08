@@ -52,7 +52,7 @@ export type FunctionImplementations<TShapes extends FunctionShapeMap, TDeps = No
  *
  * @deprecated Use registry classes instead.
  */
-export type FunctionFactoryEntry<
+type FunctionFactoryEntry<
   TEvaluator extends FunctionEvaluator<unknown>,
   TDeps,
   TPublicArgs extends readonly unknown[],

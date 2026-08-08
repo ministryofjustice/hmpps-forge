@@ -1,7 +1,7 @@
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { createForgePackage, journey, defineEffectFunctions, type EffectFunctionExpr } from '../../src/authoring'
 import { ForgeTestHarness, type RequestTraceEvent } from '../../src/testing'
-import type { ForgeRenderer } from '../../src/framework/rendering/types'
+import type { ForgeRenderer } from '../../src/framework/types/rendering.type'
 import type { ComponentRegistryEntry } from '../../src/components/types/components.type'
 import type { BlockDefinition } from '../../src/components'
 import type { RuntimeContextSnapshotTrace, RequestTraceUnit } from '../../src/engine/contracts/runtime/trace.type'

@@ -107,7 +107,7 @@ export interface PipelineExpr extends ResolvableExpression {
  * Base interface for all function call expressions with typed arguments.
  * This serves as the foundation for specific function types like conditions and transformers.
  */
-export interface BaseFunctionExpr<A extends ResolvableValue[]> {
+interface BaseFunctionExpr<A extends ResolvableValue[]> {
   type: FunctionType
   /**
    * Name of the registered function.
@@ -675,7 +675,7 @@ export type ConditionBranchExpr = ConditionFunctionExpr<any> | ConditionCombinat
  * The condition may be a single condition function or a combinator tree of them;
  * the match subject is applied to every condition leaf in that tree.
  */
-export interface MatchBranch {
+interface MatchBranch {
   /** The condition, or combinator tree of conditions, to evaluate against the match subject. */
   condition: ConditionBranchExpr
 

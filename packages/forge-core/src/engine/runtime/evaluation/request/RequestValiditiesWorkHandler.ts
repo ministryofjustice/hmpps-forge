@@ -10,7 +10,7 @@ import { isStepValidityResult } from '../phases/validation/stepValidityState'
 import type { RequestValiditiesWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 
-export const REQUEST_VALIDITIES_KIND = 'request.validities'
+const REQUEST_VALIDITIES_KIND = 'request.validities'
 
 export const REQUEST_VALIDITIES_WORK_INSTRUMENTATION: WorkInstrumentation<RequestValiditiesWorkProps, PhaseWorkOutput> =
   phaseInstrumentation()

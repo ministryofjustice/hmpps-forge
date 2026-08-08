@@ -4,9 +4,9 @@ import { extractPathname } from '../../../../testing/extractPathname'
 import type { RuntimeContext } from '../../../contracts/runtime/evaluationState.type'
 import type { ResponseBindings } from '../../../../framework/types/responseBindings.type'
 
-export type MockAnswerInput = unknown | AnswerHistory
+type MockAnswerInput = unknown | AnswerHistory
 
-export interface MockRequestData {
+interface MockRequestData {
   method?: 'GET' | 'POST'
   url?: string
   session?: unknown

@@ -64,7 +64,7 @@ export interface ForwardOutcomeGroup {
  * the outcome's own `when:` references request-time namespaces, so the compiler
  * records its goto unconditionally instead of gating the cascade on the guard.
  */
-export interface ForwardRedirectOutcome {
+interface ForwardRedirectOutcome {
   node: RedirectOutcomeASTNode
   overApproximatesWhen: boolean
 }

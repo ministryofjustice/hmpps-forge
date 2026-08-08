@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { BlockType } from '../../src/authoring/types/enums'
-import type { RenderBlock } from '../../src/framework/rendering/types'
+import type { RenderBlock } from '../../src/framework/types/rendering.type'
 import { createClient, createTracedClient, answerOf, type ContractSession } from './contractHelpers'
 import type { RequestTraceEvent } from '../../src/testing'
 import {

@@ -22,10 +22,7 @@ import WorkTaskFactory from '../work/WorkTaskFactory'
  * generated-function boundary explicit and prevents controller-specific objects
  * leaking into codegen as the compiler surface changes.
  */
-export function buildCompiledBaseContext(
-  context: RuntimeContext,
-  functionRegistry: FunctionRegistry,
-): CompiledBaseContext {
+function buildCompiledBaseContext(context: RuntimeContext, functionRegistry: FunctionRegistry): CompiledBaseContext {
   return {
     answers: context.domain.answers,
     data: context.domain.data,

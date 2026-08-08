@@ -1,8 +1,8 @@
 import type { WorkTask } from './work.type'
 
-export type AnswerPreparationMode = 'GET' | 'POST'
+type AnswerPreparationMode = 'GET' | 'POST'
 
-export interface AnswerMutation {
+interface AnswerMutation {
   readonly value: unknown
   readonly source: string
 }
@@ -28,7 +28,5 @@ export interface FieldAnswerPreparationWorkProps {
   readonly mode: AnswerPreparationMode
   readonly run: () => AnswerPreparationFieldResult | Promise<AnswerPreparationFieldResult>
 }
-
-export type AnswerPreparationWorkTask = WorkTask<'answer.preparation', AnswerPreparationWorkProps>
 
 export type FieldAnswerPreparationWorkTask = WorkTask<'answer.preparation.field', FieldAnswerPreparationWorkProps>

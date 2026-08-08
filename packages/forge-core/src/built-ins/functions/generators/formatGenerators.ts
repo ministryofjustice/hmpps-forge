@@ -18,7 +18,7 @@ export const FormatGenerators = {
 
 export { formatGenerators as formatGeneratorsRegistry }
 
-export function formatString(template: string, replacements: readonly unknown[]): string {
+function formatString(template: string, replacements: readonly unknown[]): string {
   return template.replace(/%([1-9]\d*)(?!\d)/g, (placeholder, indexValue) =>
     replaceFormatPlaceholder(placeholder, indexValue, replacements),
   )

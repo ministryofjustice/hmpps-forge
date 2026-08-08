@@ -16,7 +16,7 @@ import type {
   SubmitHookNextResult,
 } from '../../../../contracts/runtime/SubmitLifecycleWork.type'
 
-export const SUBMIT_BRANCH_KIND = 'submit.branch'
+const SUBMIT_BRANCH_KIND = 'submit.branch'
 
 export const SUBMIT_BRANCH_WORK_INSTRUMENTATION: WorkInstrumentation<
   SubmitBranchWorkProps,

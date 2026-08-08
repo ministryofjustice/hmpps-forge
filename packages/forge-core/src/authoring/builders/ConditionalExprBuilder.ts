@@ -80,7 +80,7 @@ export const when = (predicate: PredicateExpr | PredicateTestExpr): ChainableCon
 /**
  * Options for creating a conditional expression using object syntax.
  */
-export interface ConditionalOptions {
+interface ConditionalOptions {
   /** The predicate condition to evaluate */
   when: PredicateExpr | PredicateTestExpr
   /** Value to return when predicate is true */

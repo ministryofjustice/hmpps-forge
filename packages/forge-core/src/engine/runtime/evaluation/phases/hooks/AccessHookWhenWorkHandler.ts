@@ -2,7 +2,7 @@ import type { RequestExecutionContext } from '../../../../contracts/runtime/Requ
 import type { WorkContextContract, WorkHandler } from '../../../../contracts/runtime/work.type'
 import type { AccessHookWhenWorkProps } from '../../../../contracts/runtime/AccessLifecycleWork.type'
 
-export const ACCESS_HOOK_WHEN_KIND = 'access.hook.when'
+const ACCESS_HOOK_WHEN_KIND = 'access.hook.when'
 
 export const ACCESS_HOOK_WHEN_WORK_HANDLER: WorkHandler<'access.hook.when', AccessHookWhenWorkProps> = {
   kind: ACCESS_HOOK_WHEN_KIND,

@@ -7,7 +7,7 @@ import type {
   RequestPipelineResult,
 } from '../../../contracts/runtime/RequestExecutionContext.type'
 
-export const REQUEST_PIPELINE_KIND = 'request.pipeline'
+const REQUEST_PIPELINE_KIND = 'request.pipeline'
 
 /**
  * The whole request as one work handler. `begin` runs the route's ordered phases as a

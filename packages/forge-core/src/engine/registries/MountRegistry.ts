@@ -58,7 +58,7 @@ export interface MountedStepNode extends MountedNodeBase {
   readonly routeTree: StoredRouteTree
 }
 
-export interface MountedJourneyNode extends MountedNodeBase {
+interface MountedJourneyNode extends MountedNodeBase {
   readonly kind: 'journey'
 }
 

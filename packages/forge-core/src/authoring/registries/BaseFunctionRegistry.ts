@@ -13,7 +13,7 @@ export interface RegistrationOptions {
   prepare?: (...args: any[]) => any[]
 }
 
-export interface RegistrationWithFactory<TDeps = any> extends RegistrationOptions {
+interface RegistrationWithFactory<TDeps = any> extends RegistrationOptions {
   factory: (deps: TDeps) => (...args: any[]) => any
 }
 

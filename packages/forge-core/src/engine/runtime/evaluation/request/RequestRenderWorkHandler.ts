@@ -12,7 +12,7 @@ import type { RequestRenderWorkProps } from '../../../contracts/runtime/RequestP
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
-export const REQUEST_RENDER_KIND = 'request.render'
+const REQUEST_RENDER_KIND = 'request.render'
 
 export const REQUEST_RENDER_WORK_INSTRUMENTATION: WorkInstrumentation<RequestRenderWorkProps, PhaseWorkOutput> =
   phaseInstrumentation()

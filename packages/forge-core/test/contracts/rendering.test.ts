@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ComponentRegistryEntry } from '../../src/components/types/components.type'
 import type { BlockDefinition, EvaluatedBlock } from '../../src/components'
-import type { ForgeRenderer, RenderContext } from '../../src/framework/rendering/types'
+import type { ForgeRenderer, RenderContext } from '../../src/framework/types/rendering.type'
 import { createForgePackage } from '../../src/authoring'
 import { ForgeTestHarness, type RequestTraceEvent } from '../../src/testing'
 import type { SerializedTraceSpan } from '../../src/engine/diagnostics/tracing/traceSpan.type'
