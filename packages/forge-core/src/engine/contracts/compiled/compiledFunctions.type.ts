@@ -61,7 +61,7 @@ export interface CompiledValidationWorkTask {
   readonly props: unknown
 }
 
-export interface CompiledAnswerPreparationWorkTask {
+interface CompiledAnswerPreparationWorkTask {
   readonly $$typeof: symbol
   readonly key: string
   readonly handler: unknown
@@ -75,13 +75,13 @@ export interface CompiledResolveBlockWorkTask {
   readonly props: CompiledResolveBlockWorkProps
 }
 
-export interface CompiledResolveBlocksWorkProps {
+interface CompiledResolveBlocksWorkProps {
   readonly blocks: CompiledResolveBlockWorkTask[]
   readonly step: Record<string, unknown>
   readonly ancestors: Record<string, unknown>[]
 }
 
-export interface CompiledResolveBlocksWorkTask {
+interface CompiledResolveBlocksWorkTask {
   readonly $$typeof: symbol
   readonly key: string
   readonly handler: unknown

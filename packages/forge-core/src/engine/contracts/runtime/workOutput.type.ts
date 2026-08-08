@@ -15,7 +15,7 @@ import type { ResolveBlocksOutput } from './resolveBlocksOutput.type'
  * and the typed child-output accessors return the precise type for a given kind
  * (consumer side). One entry per work handler; reading one sibling predicts the rest.
  */
-export type WorkOutputByKind = {
+type WorkOutputByKind = {
   readonly 'request.pipeline': RequestPipelineResult
   readonly 'request.context-preparation': PhaseWorkOutput
   readonly 'request.access': PhaseWorkOutput

@@ -26,7 +26,7 @@ export interface RequestPipelineWorkProps {
  * Access, answer-preparation, entry-validation, submit, and render all instantiate
  * it; `compiled` is the phase's compiled function.
  */
-export interface PhaseWorkProps<TCompiled> {
+interface PhaseWorkProps<TCompiled> {
   readonly compiled: TCompiled
   readonly path: string
 }

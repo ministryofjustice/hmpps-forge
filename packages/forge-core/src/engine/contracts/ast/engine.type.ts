@@ -6,7 +6,7 @@ import type { FunctionEvaluator } from '../../../authoring/types/functions.type'
 import type { BaseFunctionRegistry } from '../../../authoring/registries/BaseFunctionRegistry'
 import type { FunctionImplementations, FunctionShapeMap } from '../../../authoring/utils/deprecated/defineFunction.type'
 
-export type { ASTNode, AstNodeId, CompiledNodeId, CompileAstNodeId, NodeId, TemplateNodeId } from './ast.type'
+export type { ASTNode, AstNodeId, NodeId, TemplateNodeId } from './ast.type'
 
 export interface ForgeDependencies {
   logger: Logger | Console

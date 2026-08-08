@@ -1,11 +1,5 @@
 import { RenderBlock, RenderContext, RouteTreeRouteKind } from '@ministryofjustice/hmpps-forge/core/framework'
 
-/** Error format expected by components for displaying validation errors */
-export interface FieldError {
-  message: string
-  details?: Record<string, unknown>
-}
-
 export interface TemplateNavigationItem {
   type: RouteTreeRouteKind
   title?: string

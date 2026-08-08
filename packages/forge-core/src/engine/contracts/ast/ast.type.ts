@@ -6,7 +6,7 @@ import type { ASTNodeDiagnostics } from '../../../shared/diagnostics/sourceLocat
  */
 export type CompileAstNodeId = `compile_ast:${number}`
 export type TemplateNodeId = `template:${number}`
-export type CompiledNodeId = `compiled:${string}`
+type CompiledNodeId = `compiled:${string}`
 
 /**
  * Union of all valid NodeId formats

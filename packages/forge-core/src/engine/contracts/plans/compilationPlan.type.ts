@@ -15,7 +15,7 @@ export interface ReachabilityTieBreakerEntry {
   when?: ASTNode
 }
 
-export interface StepCoreInputs {
+interface StepCoreInputs {
   readonly stepNode: StepASTNode
   readonly runtimePlan: StepRuntimePlan
   readonly staticData: Record<string, unknown>

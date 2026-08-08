@@ -41,8 +41,8 @@ export type SubmitLifecycleWorkTask = WorkTask<'submit.lifecycle', SubmitLifecyc
 
 export type SubmitHookWorkTask = WorkTask<'submit.hook', SubmitHookWorkProps>
 
-export type SubmitHookPredicateWorkTask = WorkTask<'submit.predicate', SubmitHookPredicateWorkProps>
+type SubmitHookPredicateWorkTask = WorkTask<'submit.predicate', SubmitHookPredicateWorkProps>
 
-export type SubmitBranchWorkTask = WorkTask<'submit.branch', SubmitBranchWorkProps>
+type SubmitBranchWorkTask = WorkTask<'submit.branch', SubmitBranchWorkProps>
 
-export type SubmitValidationWorkTask = WorkTask<'submit.validation', SubmitValidationWorkProps>
+type SubmitValidationWorkTask = WorkTask<'submit.validation', SubmitValidationWorkProps>

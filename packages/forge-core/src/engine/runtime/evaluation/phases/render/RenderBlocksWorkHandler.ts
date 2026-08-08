@@ -8,7 +8,6 @@ import type {
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-  WorkTask,
 } from '../../../../contracts/runtime/work.type'
 import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
 import ForgeUnregisteredComponentError from '../../../../errors/ForgeUnregisteredComponentError'
@@ -21,8 +20,6 @@ export interface RenderBlocksWorkProps {
   readonly renderer: ForgeRenderer<unknown>
   readonly componentRegistry: ComponentRegistry
 }
-
-export type RenderBlocksWorkTask = WorkTask<'render.render-blocks', RenderBlocksWorkProps>
 
 const RENDER_BLOCKS_KIND = 'render.render-blocks'
 

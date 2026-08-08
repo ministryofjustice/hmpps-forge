@@ -102,8 +102,7 @@ const INLINE_ONLY_TYPES: ReadonlySet<string> = new Set([
  * fails if an enum value has no row.
  *
  * `ExpressionType.NEXT` is deliberately absent: nothing in the authoring
- * surface produces it and no factory ever created it (its `NextASTNode`
- * contract is equally unreferenced).
+ * surface produces it and no factory ever created it.
  */
 export const creatorsByType: ReadonlyMap<string, NodeCreator> = new Map<string, NodeCreator>([
   // Structures

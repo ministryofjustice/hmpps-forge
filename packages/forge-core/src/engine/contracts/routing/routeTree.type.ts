@@ -1,8 +1,6 @@
 import { NodeId } from '../ast/ast.type'
 import type { RouteTreeRouteKind } from '../../../framework/types/routeTree.type'
 
-export type RouteMethod = 'GET' | 'POST'
-
 export interface JourneyRouteTemplateCatalog {
   routeTemplatePathByStepId: Map<NodeId, string>
   stepIdByRouteTemplatePath: Map<string, NodeId>

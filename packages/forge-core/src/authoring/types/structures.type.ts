@@ -36,7 +36,7 @@ export interface ValidationExpr {
 
 export type ValidationProps = Omit<ValidationExpr, 'type'>
 
-export type ValidWhenInput = ValidationExpr | IterateExpr | ChainableIterable
+type ValidWhenInput = ValidationExpr | IterateExpr | ChainableIterable
 
 /**
  * A prioritised rule that participates in tie-breaking during reachability,
@@ -276,7 +276,7 @@ export interface StepReachability {
   tieBreakers?: TieBreaker[]
 }
 
-export interface StepEntryValidation {
+interface StepEntryValidation {
   groups: string[]
 
   /**

@@ -28,6 +28,4 @@ export type AccessLifecycleWorkTask = WorkTask<'access.lifecycle', AccessLifecyc
 
 export type AccessHookWorkTask = WorkTask<'access.hook', AccessHookWorkProps>
 
-export type AccessHookWhenWorkTask = WorkTask<'access.hook.when', AccessHookWhenWorkProps>
-
-export type AccessHookNextWorkTask = WorkTask<'access.hook.next', AccessHookNextWorkProps>
+type AccessHookWhenWorkTask = WorkTask<'access.hook.when', AccessHookWhenWorkProps>

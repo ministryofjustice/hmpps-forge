@@ -2,7 +2,6 @@ import type { RequestExecutionContext } from '../../../../contracts/runtime/Requ
 import type {
   CompletedWork,
   WorkContextContract,
-  WorkTask,
   WorkHandler,
   WorkInstrumentation,
 } from '../../../../contracts/runtime/work.type'
@@ -18,8 +17,6 @@ export interface ResolveBlocksWorkProps {
   readonly step: Record<string, unknown>
   readonly ancestors: readonly Record<string, unknown>[]
 }
-
-export type ResolveBlocksWorkTask = WorkTask<'resolve.blocks', ResolveBlocksWorkProps>
 
 export const RESOLVE_BLOCKS_KIND = 'resolve.blocks'
 
