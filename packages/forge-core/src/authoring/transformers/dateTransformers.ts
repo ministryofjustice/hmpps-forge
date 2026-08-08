@@ -1,6 +1,5 @@
-import { assertDate, assertNumber, assertString } from '../../shared/utils/asserts'
+import { z } from 'zod'
 import TransformerRegistry from '../registries/TransformerRegistry'
-import type { ResolvableValue } from '../types/expressions.type'
 
 const formatDate = (date: Date, format: string): string => {
   const monthNames = [
@@ -54,6 +53,11 @@ const formatDate = (date: Date, format: string): string => {
   return format.replace(new RegExp(tokenPattern, 'g'), match => tokens[match]())
 }
 
+const dateSchema = z.date()
+const stringArgsSchema = z.tuple([z.string()])
+const numberArgsSchema = z.tuple([z.number()])
+const optionalStringArgsSchema = z.tuple([z.string().optional()])
+
 const dateTransformers = new TransformerRegistry()
 
 export const DateTransformers = {
@@ -83,11 +87,10 @@ export const DateTransformers = {
    * // Format("D M YYYY") returns "15 3 2024"
    * // Format("HH:mm:ss") returns "14:30:45"
    */
-  Format: dateTransformers.register('Date.Format', () => (value: any, format: string | ResolvableValue) => {
-    assertDate(value, 'Transformer.Date.Format')
-    assertString(format, 'Transformer.Date.Format (format)')
-
-    return formatDate(value, format)
+  Format: dateTransformers.register('Date.Format', {
+    inputSchema: dateSchema,
+    argumentsSchema: stringArgsSchema,
+    factory: () => (value: Date, format: string) => formatDate(value, format),
   }),
 
   /**
@@ -97,13 +100,15 @@ export const DateTransformers = {
    * // AddDays(7) adds one week
    * // AddDays(-1) subtracts one day
    */
-  AddDays: dateTransformers.register('Date.AddDays', () => (value: any, days: number | ResolvableValue) => {
-    assertDate(value, 'Transformer.Date.AddDays')
-    assertNumber(days, 'Transformer.Date.AddDays (days)')
+  AddDays: dateTransformers.register('Date.AddDays', {
+    inputSchema: dateSchema,
+    argumentsSchema: numberArgsSchema,
+    factory: () => (value: Date, days: number) => {
+      const result = new Date(value)
+      result.setDate(result.getDate() + days)
 
-    const result = new Date(value)
-    result.setDate(result.getDate() + days)
-    return result
+      return result
+    },
   }),
 
   /**
@@ -112,13 +117,15 @@ export const DateTransformers = {
    * @example
    * // SubtractDays(7) subtracts one week
    */
-  SubtractDays: dateTransformers.register('Date.SubtractDays', () => (value: any, days: number | ResolvableValue) => {
-    assertDate(value, 'Transformer.Date.SubtractDays')
-    assertNumber(days, 'Transformer.Date.SubtractDays (days)')
+  SubtractDays: dateTransformers.register('Date.SubtractDays', {
+    inputSchema: dateSchema,
+    argumentsSchema: numberArgsSchema,
+    factory: () => (value: Date, days: number) => {
+      const result = new Date(value)
+      result.setDate(result.getDate() - days)
 
-    const result = new Date(value)
-    result.setDate(result.getDate() - days)
-    return result
+      return result
+    },
   }),
 
   /**
@@ -128,13 +135,15 @@ export const DateTransformers = {
    * // AddMonths(1) adds one month
    * // AddMonths(-6) subtracts 6 months
    */
-  AddMonths: dateTransformers.register('Date.AddMonths', () => (value: any, months: number | ResolvableValue) => {
-    assertDate(value, 'Transformer.Date.AddMonths')
-    assertNumber(months, 'Transformer.Date.AddMonths (months)')
+  AddMonths: dateTransformers.register('Date.AddMonths', {
+    inputSchema: dateSchema,
+    argumentsSchema: numberArgsSchema,
+    factory: () => (value: Date, months: number) => {
+      const result = new Date(value)
+      result.setMonth(result.getMonth() + months)
 
-    const result = new Date(value)
-    result.setMonth(result.getMonth() + months)
-    return result
+      return result
+    },
   }),
 
   /**
@@ -144,13 +153,15 @@ export const DateTransformers = {
    * // AddYears(1) adds one year
    * // AddYears(-18) subtracts 18 years
    */
-  AddYears: dateTransformers.register('Date.AddYears', () => (value: any, years: number | ResolvableValue) => {
-    assertDate(value, 'Transformer.Date.AddYears')
-    assertNumber(years, 'Transformer.Date.AddYears (years)')
+  AddYears: dateTransformers.register('Date.AddYears', {
+    inputSchema: dateSchema,
+    argumentsSchema: numberArgsSchema,
+    factory: () => (value: Date, years: number) => {
+      const result = new Date(value)
+      result.setFullYear(result.getFullYear() + years)
 
-    const result = new Date(value)
-    result.setFullYear(result.getFullYear() + years)
-    return result
+      return result
+    },
   }),
 
   /**
@@ -158,12 +169,14 @@ export const DateTransformers = {
    * @example
    * // StartOfDay() returns 2024-03-15T00:00:00.000
    */
-  StartOfDay: dateTransformers.register('Date.StartOfDay', () => (value: any) => {
-    assertDate(value, 'Transformer.Date.StartOfDay')
+  StartOfDay: dateTransformers.register('Date.StartOfDay', {
+    inputSchema: dateSchema,
+    factory: () => (value: Date) => {
+      const result = new Date(value)
+      result.setHours(0, 0, 0, 0)
 
-    const result = new Date(value)
-    result.setHours(0, 0, 0, 0)
-    return result
+      return result
+    },
   }),
 
   /**
@@ -171,12 +184,14 @@ export const DateTransformers = {
    * @example
    * // EndOfDay() returns 2024-03-15T23:59:59.999
    */
-  EndOfDay: dateTransformers.register('Date.EndOfDay', () => (value: any) => {
-    assertDate(value, 'Transformer.Date.EndOfDay')
+  EndOfDay: dateTransformers.register('Date.EndOfDay', {
+    inputSchema: dateSchema,
+    factory: () => (value: Date) => {
+      const result = new Date(value)
+      result.setHours(23, 59, 59, 999)
 
-    const result = new Date(value)
-    result.setHours(23, 59, 59, 999)
-    return result
+      return result
+    },
   }),
 
   /**
@@ -184,9 +199,9 @@ export const DateTransformers = {
    * @example
    * // ToISOString() returns "2024-03-15T14:30:45.123Z"
    */
-  ToISOString: dateTransformers.register('Date.ToISOString', () => (value: any) => {
-    assertDate(value, 'Transformer.Date.ToISOString')
-    return value.toISOString()
+  ToISOString: dateTransformers.register('Date.ToISOString', {
+    inputSchema: dateSchema,
+    factory: () => (value: Date) => value.toISOString(),
   }),
 
   /**
@@ -196,30 +211,25 @@ export const DateTransformers = {
    * // ToLocaleString() returns "15/03/2024, 14:30:45" (UK locale)
    * // ToLocaleString('en-US') returns "3/15/2024, 2:30:45 PM"
    */
-  ToLocaleString: dateTransformers.register(
-    'Date.ToLocaleString',
-    () => (value: any, locale?: string | ResolvableValue) => {
-      assertDate(value, 'Transformer.Date.ToLocaleString')
-      if (locale === undefined) {
-        return value.toLocaleString()
-      }
-      assertString(locale, 'Transformer.Date.ToLocaleString (locale)')
-      return value.toLocaleString(locale)
-    },
-  ),
+  ToLocaleString: dateTransformers.register('Date.ToLocaleString', {
+    inputSchema: dateSchema,
+    argumentsSchema: optionalStringArgsSchema,
+    factory: () => (value: Date, locale?: string) => value.toLocaleString(locale),
+  }),
 
   /**
    * Converts a Date to UK long date format (e.g. "18 March 2026")
    * @example
    * // ToUKLongDate() returns "18 March 2026"
    */
-  ToUKLongDate: dateTransformers.register('Date.ToUKLongDate', () => (value: any) => {
-    assertDate(value, 'Transformer.Date.ToUKLongDate')
-    return value.toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
+  ToUKLongDate: dateTransformers.register('Date.ToUKLongDate', {
+    inputSchema: dateSchema,
+    factory: () => (value: Date) =>
+      value.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }),
   }),
 }
 

@@ -58,7 +58,7 @@ describe('FormatGenerators', () => {
 
     it('should reject non-string templates when evaluated', () => {
       // Arrange
-      const template = 123
+      const template = 123 as unknown as string
 
       // Act / Assert
       expect(() => harness.evaluate(FormatGenerators.FormatString(template))).toThrow(TypeError)

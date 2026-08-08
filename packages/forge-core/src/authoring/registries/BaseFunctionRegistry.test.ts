@@ -56,6 +56,41 @@ describe('BaseFunctionRegistry', () => {
       // Assert
       expect(Object.keys(registry.build())).toEqual(['IsOfAge'])
     })
+
+    it('should register when the factory is embedded in the options object', () => {
+      // Arrange & Act
+      registry.register('IsAdult', {
+        factory: () => (value: any) => value >= 18,
+      })
+
+      // Assert
+      const built = registry.build()
+      expect(Object.keys(built)).toEqual(['IsAdult'])
+      expect(built.IsAdult.evaluate(21)).toBe(true)
+      expect(built.IsAdult.evaluate(3)).toBe(false)
+    })
+
+    it('should prefer the positional factory when both positional and embedded are given', () => {
+      // Arrange
+      const embedded = () => (_value: any) => false
+      const positional = () => (_value: any) => true
+
+      // Act
+      registry.register('AlwaysTrue', { factory: embedded } as any, positional)
+
+      // Assert
+      expect(registry.build().AlwaysTrue.evaluate(0)).toBe(true)
+    })
+
+    it('should throw when a named registration supplies no factory at all', () => {
+      // Arrange & Act
+      const act = () => registry.register('Broken', {} as any)
+
+      // Assert
+      expect(act).toThrow(
+        'The FunctionType.Condition registration "Broken" has no factory - pass one positionally or as options.factory',
+      )
+    })
   })
 
   describe('store()', () => {

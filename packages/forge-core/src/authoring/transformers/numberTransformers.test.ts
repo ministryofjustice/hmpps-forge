@@ -28,7 +28,7 @@ describe('Number Transformers', () => {
 
     it('should throw error for non-number values', () => {
       expect(() => harness.evaluate(NumberTransformers.Add(3)).withInput('5')).toThrow(
-        'Transformer.Number.Add expects a number but received string.',
+        'Number.Add: value failed schema validation',
       )
     })
 
@@ -60,7 +60,7 @@ describe('Number Transformers', () => {
 
     it('should throw error for non-number values', () => {
       expect(() => harness.evaluate(NumberTransformers.Subtract(3)).withInput('10')).toThrow(
-        'Transformer.Number.Subtract expects a number but received string.',
+        'Number.Subtract: value failed schema validation',
       )
     })
   })
@@ -88,7 +88,7 @@ describe('Number Transformers', () => {
 
     it('should throw error for non-number values', () => {
       expect(() => harness.evaluate(NumberTransformers.Multiply(3)).withInput('4')).toThrow(
-        'Transformer.Number.Multiply expects a number but received string.',
+        'Number.Multiply: value failed schema validation',
       )
     })
   })
@@ -112,7 +112,7 @@ describe('Number Transformers', () => {
 
     it('should throw error for non-number values', () => {
       expect(() => harness.evaluate(NumberTransformers.Divide(3)).withInput('15')).toThrow(
-        'Transformer.Number.Divide expects a number but received string.',
+        'Number.Divide: value failed schema validation',
       )
     })
   })
@@ -140,7 +140,7 @@ describe('Number Transformers', () => {
 
     it('should throw error for non-number values', () => {
       expect(() => harness.evaluate(NumberTransformers.Abs()).withInput('-5')).toThrow(
-        'Transformer.Number.Abs expects a number but received string.',
+        'Number.Abs: value failed schema validation',
       )
     })
   })
@@ -168,7 +168,7 @@ describe('Number Transformers', () => {
 
     it('should throw error for non-number values', () => {
       expect(() => harness.evaluate(NumberTransformers.Round()).withInput('4.7')).toThrow(
-        'Transformer.Number.Round expects a number but received string.',
+        'Number.Round: value failed schema validation',
       )
     })
   })
@@ -191,7 +191,7 @@ describe('Number Transformers', () => {
 
     it('should throw error for non-number values', () => {
       expect(() => harness.evaluate(NumberTransformers.Floor()).withInput('4.7')).toThrow(
-        'Transformer.Number.Floor expects a number but received string.',
+        'Number.Floor: value failed schema validation',
       )
     })
   })
@@ -214,7 +214,7 @@ describe('Number Transformers', () => {
 
     it('should throw error for non-number values', () => {
       expect(() => harness.evaluate(NumberTransformers.Ceil()).withInput('4.2')).toThrow(
-        'Transformer.Number.Ceil expects a number but received string.',
+        'Number.Ceil: value failed schema validation',
       )
     })
   })
@@ -237,7 +237,7 @@ describe('Number Transformers', () => {
 
     it('should throw error for non-number values', () => {
       expect(() => harness.evaluate(NumberTransformers.ToFixed(2)).withInput('3.14')).toThrow(
-        'Transformer.Number.ToFixed expects a number but received string.',
+        'Number.ToFixed: value failed schema validation',
       )
     })
   })
@@ -265,7 +265,7 @@ describe('Number Transformers', () => {
 
     it('should throw error for non-number values', () => {
       expect(() => harness.evaluate(NumberTransformers.Max(10)).withInput('5')).toThrow(
-        'Transformer.Number.Max expects a number but received string.',
+        'Number.Max: value failed schema validation',
       )
     })
   })
@@ -293,7 +293,7 @@ describe('Number Transformers', () => {
 
     it('should throw error for non-number values', () => {
       expect(() => harness.evaluate(NumberTransformers.Min(10)).withInput('5')).toThrow(
-        'Transformer.Number.Min expects a number but received string.',
+        'Number.Min: value failed schema validation',
       )
     })
   })
@@ -316,7 +316,7 @@ describe('Number Transformers', () => {
 
     it('should throw error for non-number values', () => {
       expect(() => harness.evaluate(NumberTransformers.Power(3)).withInput('2')).toThrow(
-        'Transformer.Number.Power expects a number but received string.',
+        'Number.Power: value failed schema validation',
       )
     })
   })
@@ -345,7 +345,7 @@ describe('Number Transformers', () => {
 
     it('should throw error for non-number values', () => {
       expect(() => harness.evaluate(NumberTransformers.Sqrt()).withInput('16')).toThrow(
-        'Transformer.Number.Sqrt expects a number but received string.',
+        'Number.Sqrt: value failed schema validation',
       )
     })
   })
@@ -376,7 +376,7 @@ describe('Number Transformers', () => {
 
     it('should throw error for non-number values', () => {
       expect(() => harness.evaluate(NumberTransformers.Clamp(5, 10)).withInput('7')).toThrow(
-        'Transformer.Number.Clamp expects a number but received string.',
+        'Number.Clamp: value failed schema validation',
       )
     })
   })

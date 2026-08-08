@@ -67,8 +67,12 @@ export default [
     },
   },
   {
-    // The rolldown build configs are build-time tooling and import devDependencies (sass, rolldown-plugin-dts)
+    // The rolldown build configs are build-time tooling and import devDependencies (sass, rolldown-plugin-dts).
+    // The shared hmpps config parses plain .mjs as ES2018, which predates ?? / ?. — these files run on modern Node.
     files: ['rolldown.*.mjs', '**/rolldown.config.mjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+    },
     rules: {
       'import/no-extraneous-dependencies': ['error', { devDependencies: true }],
     },

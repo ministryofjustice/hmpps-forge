@@ -62,6 +62,8 @@ export type {
   PipelineExpr,
   PredicateExpr,
   ReferenceExpr,
+  Resolvable,
+  ResolvableExpression,
   SubmitHook,
   TransformerFunctionExpr,
   ResolvableValue,

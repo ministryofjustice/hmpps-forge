@@ -10,6 +10,10 @@ export interface RegistrationOptions {
   prepare?: (...args: any[]) => any[]
 }
 
+export interface RegistrationWithFactory<TDeps = any> extends RegistrationOptions {
+  factory: (deps: TDeps) => (...args: any[]) => any
+}
+
 interface StoredRegistration {
   name: string
   inputSchema?: ZodType
@@ -69,7 +73,21 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> {
       return { name: first, options: {}, factory: second }
     }
 
-    return { name: first, options: second as RegistrationOptions, factory: third! }
+    const options = second ?? {}
+
+    return { name: first, options, factory: third ?? this.requireEmbeddedFactory(first, options) }
+  }
+
+  private requireEmbeddedFactory(name: string, options: RegistrationOptions): (deps: TDeps) => (...args: any[]) => any {
+    const { factory } = options as RegistrationWithFactory<TDeps>
+
+    if (!factory) {
+      throw new Error(
+        `The ${this.functionType} registration "${name}" has no factory - pass one positionally or as options.factory`,
+      )
+    }
+
+    return factory
   }
 
   protected store(name: string, options: RegistrationOptions, factory: (deps: TDeps) => (...args: any[]) => any): void {

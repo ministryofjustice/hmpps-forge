@@ -29,7 +29,7 @@ import {
  * @example
  * ```typescript
  * const conditions = new ConditionRegistry()
- * const isRequired = conditions.register('isRequired', () => (value) => value != null)
+ * const isRequired = conditions.register('isRequired', { factory: () => (value) => value != null })
  *
  * const harness = new FunctionRegistryTestHarness(conditions)
  * expect(harness.evaluate(isRequired()).withInput('hello')).toBe(true)
@@ -39,7 +39,7 @@ import {
  * @example
  * ```typescript
  * const effects = new EffectRegistry()
- * const stamp = effects.register('stamp', () => (context) => context.setAnswer('stamped', true))
+ * const stamp = effects.register('stamp', { factory: () => (context) => context.setAnswer('stamped', true) })
  *
  * const context = createTestEffectContext()
  * new FunctionRegistryTestHarness(effects).evaluate(stamp()).withContext(context)
