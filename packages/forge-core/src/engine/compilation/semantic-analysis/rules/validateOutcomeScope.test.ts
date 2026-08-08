@@ -4,7 +4,7 @@ import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
-import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
+import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTValidationContext } from './types'
 import { validateOutcomeScope } from './validateOutcomeScope'
 
@@ -30,8 +30,8 @@ const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, 
   }
 }
 
-const errorCodes = (errors: readonly Error[]): string[] =>
-  errors.map(error => (error as ForgeConfigurationReferenceScopeError).code)
+const errorMessages = (errors: readonly Error[]): string[] =>
+  errors.map(error => (error as ForgeReferenceScopeError).message)
 
 const createOutcome = (): ASTNode => ASTTestFactory.redirectOutcome({ goto: '/next' })
 
@@ -94,7 +94,7 @@ describe('validateOutcomeScope', () => {
       const errors = validateOutcomeScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['outcome_outside_hook'])
+      expect(errorMessages(errors)).toEqual(['Outcomes can only be used inside a hook (onAccess or onSubmission)'])
     })
 
     it('should return an error when the parent is a hook but the outcome is absent from its next arrays', () => {
@@ -107,7 +107,7 @@ describe('validateOutcomeScope', () => {
       const errors = validateOutcomeScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['outcome_outside_hook'])
+      expect(errorMessages(errors)).toEqual(['Outcomes can only be used inside a hook (onAccess or onSubmission)'])
     })
 
     it('should return an error when the outcome has no parent', () => {
@@ -119,7 +119,7 @@ describe('validateOutcomeScope', () => {
       const errors = validateOutcomeScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['outcome_outside_hook'])
+      expect(errorMessages(errors)).toEqual(['Outcomes can only be used inside a hook (onAccess or onSubmission)'])
     })
   })
 })

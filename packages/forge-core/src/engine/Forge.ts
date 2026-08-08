@@ -24,6 +24,7 @@ import ForgeTraceSinkDispatcher from './diagnostics/ForgeTraceSinkDispatcher'
 import type { ForgeInstrumentation, ForgeInstrumentationOptions } from './diagnostics/ForgeTraceSinkDispatcher'
 import RegistrationErrorFormatter from './errors/RegistrationErrorFormatter'
 import ForgeRegistrationError from './errors/ForgeRegistrationError'
+import ForgeInternalError from './errors/ForgeInternalError'
 
 export interface ForgeExecutionRequest {
   readonly snapshot: RequestSnapshot
@@ -313,7 +314,7 @@ export default class Forge {
       const node = this.mountRegistry.getNode(request.snapshot.nodeId)
 
       if (!node) {
-        throw new Error(`[Forge] No node registered for "${request.snapshot.nodeId}"`)
+        throw new ForgeInternalError(`No node registered for "${request.snapshot.nodeId}"`)
       }
 
       return await this.requestEvaluator.evaluate({ node, ...request })

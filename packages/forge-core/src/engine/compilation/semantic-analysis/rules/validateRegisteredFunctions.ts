@@ -1,7 +1,7 @@
 import { FunctionType, ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { FunctionASTNode, IterateASTNode } from '../../../contracts/ast/expressions.type'
-import UnregisteredFunctionError from '../../../errors/UnregisteredFunctionError'
+import ForgeUnregisteredFunctionError from '../../../errors/ForgeUnregisteredFunctionError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
@@ -12,11 +12,10 @@ function buildError(
   name: string,
   functionType: string,
   diagnostics: ASTNodeDiagnostics | undefined,
-): UnregisteredFunctionError {
+): ForgeUnregisteredFunctionError {
   const source = diagnostics?.source
 
-  return new UnregisteredFunctionError({
-    path: source?.path ? [...source.path] : [],
+  return new ForgeUnregisteredFunctionError({
     formattedPath: source?.formattedPath ?? 'unknown',
     functionName: name,
     functionType,

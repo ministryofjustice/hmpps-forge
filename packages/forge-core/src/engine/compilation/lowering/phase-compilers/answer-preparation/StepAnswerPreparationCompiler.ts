@@ -18,6 +18,7 @@ import type ComponentRegistry from '../../../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 
 import type { CompiledAnswerPreparationFunction } from '../../../../contracts/compiled/compiledFunctions.type'
+import ForgeInternalError from '../../../../errors/ForgeInternalError'
 
 interface TransformerFunctionCall {
   readonly name: string
@@ -503,7 +504,7 @@ export default class StepAnswerPreparationCompiler {
     const transformerCall = readTransformerCall(transformerNode)
 
     if (transformerCall === undefined) {
-      throw new Error('Formatter entry is not a transformer function call')
+      throw new ForgeInternalError('Formatter entry is not a transformer function call')
     }
 
     return this.compileTransformerFunctionCall(transformerCall, valueVar, transformerNode)

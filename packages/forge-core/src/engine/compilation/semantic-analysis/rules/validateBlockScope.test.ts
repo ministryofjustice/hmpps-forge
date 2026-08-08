@@ -4,7 +4,7 @@ import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
-import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
+import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTValidationContext } from './types'
 import { validateBlockScope } from './validateBlockScope'
 
@@ -30,8 +30,8 @@ const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, 
   }
 }
 
-const errorCodes = (errors: readonly Error[]): string[] =>
-  errors.map(error => (error as ForgeConfigurationReferenceScopeError).code)
+const errorMessages = (errors: readonly Error[]): string[] =>
+  errors.map(error => (error as ForgeReferenceScopeError).message)
 
 describe('validateBlockScope', () => {
   describe('validateBlockScope()', () => {
@@ -82,7 +82,9 @@ describe('validateBlockScope', () => {
       const errors = validateBlockScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['block_outside_blocks'])
+      expect(errorMessages(errors)).toEqual([
+        'Blocks can only be defined in a step blocks array or nested within another block',
+      ])
     })
 
     it('should return an error when the parent is a hook property', () => {
@@ -95,7 +97,9 @@ describe('validateBlockScope', () => {
       const errors = validateBlockScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['block_outside_blocks'])
+      expect(errorMessages(errors)).toEqual([
+        'Blocks can only be defined in a step blocks array or nested within another block',
+      ])
     })
 
     it('should return an error when the parent is a step but the block is absent from blocks', () => {
@@ -108,7 +112,9 @@ describe('validateBlockScope', () => {
       const errors = validateBlockScope(context)
 
       // Assert
-      expect(errorCodes(errors)).toEqual(['block_outside_blocks'])
+      expect(errorMessages(errors)).toEqual([
+        'Blocks can only be defined in a step blocks array or nested within another block',
+      ])
     })
 
     it('should carry the node diagnostics callsite on the collected error', () => {
@@ -126,7 +132,7 @@ describe('validateBlockScope', () => {
 
       // Assert
       expect(errors).toHaveLength(1)
-      expect((errors[0] as ForgeConfigurationReferenceScopeError).callsite).toBe(callsite)
+      expect((errors[0] as ForgeReferenceScopeError).callsite).toBe(callsite)
     })
   })
 })

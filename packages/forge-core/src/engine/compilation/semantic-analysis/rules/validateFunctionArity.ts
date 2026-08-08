@@ -2,7 +2,7 @@ import { z, type ZodType } from 'zod'
 import { FunctionType, ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { FunctionASTNode, IterateASTNode } from '../../../contracts/ast/expressions.type'
-import FunctionArityError from '../../../errors/FunctionArityError'
+import ForgeFunctionArityError from '../../../errors/ForgeFunctionArityError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
@@ -59,11 +59,10 @@ function buildError(
   diagnostics: ASTNodeDiagnostics | undefined,
   expected: string,
   received: number,
-): FunctionArityError {
+): ForgeFunctionArityError {
   const source = diagnostics?.source
 
-  return new FunctionArityError({
-    path: source?.path ? [...source.path] : [],
+  return new ForgeFunctionArityError({
     formattedPath: source?.formattedPath ?? 'unknown',
     functionName: name,
     functionType,

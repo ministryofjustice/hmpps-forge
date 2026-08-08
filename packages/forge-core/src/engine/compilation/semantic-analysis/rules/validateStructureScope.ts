@@ -2,30 +2,26 @@ import { ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { AstNodeId } from '../../../contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
-import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
+import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 
-function buildStepError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigurationReferenceScopeError {
+function buildStepError(diagnostics: ASTNodeDiagnostics | undefined): ForgeReferenceScopeError {
   const source = diagnostics?.source
 
-  return new ForgeConfigurationReferenceScopeError({
-    path: source?.path ? [...source.path] : [],
+  return new ForgeReferenceScopeError({
     message: 'Steps can only be defined in a journey steps array',
-    code: 'step_outside_journey_steps',
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,
   })
 }
 
-function buildJourneyError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigurationReferenceScopeError {
+function buildJourneyError(diagnostics: ASTNodeDiagnostics | undefined): ForgeReferenceScopeError {
   const source = diagnostics?.source
 
-  return new ForgeConfigurationReferenceScopeError({
-    path: source?.path ? [...source.path] : [],
+  return new ForgeReferenceScopeError({
     message: 'Journeys can only be defined at the root or in a journey children array',
-    code: 'journey_outside_journey_children',
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,
   })

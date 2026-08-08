@@ -10,6 +10,7 @@ import { RENDER_ASSEMBLE_PAGE_KIND } from '../phases/render/RenderAssemblePageWo
 import WorkTaskFactory from '../work/WorkTaskFactory'
 import type { RequestRenderWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 export const REQUEST_RENDER_KIND = 'request.render'
 
@@ -23,7 +24,7 @@ export const REQUEST_RENDER_WORK_HANDLER: WorkHandler<'request.render', RequestR
     const renderContext = ctx.request.renderContext
 
     if (!renderContext) {
-      throw new Error('[Forge] Render phase reached without a render context — resolve phase did not produce one')
+      throw new ForgeInternalError('Render phase reached without a render context — resolve phase did not produce one')
     }
 
     const { renderer, componentRegistry } = ctx.props

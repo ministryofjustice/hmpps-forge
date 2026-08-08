@@ -13,6 +13,7 @@ import type {
   WorkTask,
 } from '../../../../contracts/runtime/work.type'
 import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
+import ForgeUnregisteredComponentError from '../../../../errors/ForgeUnregisteredComponentError'
 import WorkTaskFactory from '../../work/WorkTaskFactory'
 
 export interface RenderBlockWorkProps {
@@ -125,7 +126,7 @@ function collectNestedBlockTasks(
     const entry = componentRegistry.get(value.variant)
 
     if (entry === undefined) {
-      throw new Error(`[Forge] Component variant "${value.variant}" is not registered`)
+      throw new ForgeUnregisteredComponentError({ variant: value.variant })
     }
 
     tasks.push(WorkTaskFactory.renderBlock(value.id, value, entry, renderer, componentRegistry))

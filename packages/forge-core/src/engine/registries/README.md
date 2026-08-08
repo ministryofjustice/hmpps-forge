@@ -13,5 +13,5 @@ compile time and request time.
 | [`MountRegistry`](./MountRegistry.ts) | `MountedNode` values - by mount key. `register()` builds the route tree and one mounted node per step and journey from a compiled `PackageInstance` | `Forge.execute()` calls `getNode()` to pick the node for a request; `getTopology()` gives framework adapters the routes to mount |
 
 The function and component registries validate on registration. Bad entries
-raise `RegistryValidationError` or `RegistryDuplicateError`, collected into an
+raise `ForgeRegistryValidationError` or `ForgeRegistryDuplicateError`, collected into an
 `AggregateError`.

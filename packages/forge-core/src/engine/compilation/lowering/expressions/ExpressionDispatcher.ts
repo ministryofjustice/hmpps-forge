@@ -2,6 +2,7 @@ import { ASTNode } from '../../../contracts/ast/ast.type'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import { ExpressionType, FunctionType, IteratorType } from '../../../../authoring/types/enums'
 import { TemplateNode } from '../../../contracts/ast/template.type'
+import ForgeUnregisteredFunctionError from '../../../errors/ForgeUnregisteredFunctionError'
 import CodeEmitter from '../emitters/CodeEmitter'
 import DiagnosticEmitter from '../emitters/DiagnosticEmitter'
 import { IteratorScopeFrame, NodeCompilationContext } from './types'
@@ -519,7 +520,10 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     const registeredFunction = this.dependencies.functionRegistry.get(funcName)
 
     if (!registeredFunction) {
-      throw new Error(`Function "${funcName}" missing from registry`)
+      throw new ForgeUnregisteredFunctionError({
+        functionName: funcName,
+        functionType: (source as { expressionType?: string } | undefined)?.expressionType ?? 'unknown',
+      })
     }
 
     const callIsAsync = registeredFunction.isAsync

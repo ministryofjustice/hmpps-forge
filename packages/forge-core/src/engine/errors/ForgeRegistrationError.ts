@@ -1,7 +1,8 @@
-export default class ForgeRegistrationError extends Error {
+import ForgeBaseError from './ForgeBaseError'
+
+export default class ForgeRegistrationError extends ForgeBaseError {
   constructor(message: string) {
     super(message)
-    this.name = 'ForgeRegistrationError'
     this.stack = this.message
   }
 }

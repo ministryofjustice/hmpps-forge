@@ -1,3 +1,4 @@
+import ForgeInternalError from '../../errors/ForgeInternalError'
 import type {
   JourneyRouteIndex,
   StepRouteIndex,
@@ -5,7 +6,7 @@ import type {
 } from '../../contracts/routing/routeDescriptors.type'
 import type { NodeId } from '../../contracts/ast/ast.type'
 import { joinPaths } from '../../../shared/utils/routePath'
-import DuplicateRouteError from '../../errors/DuplicateRouteError'
+import ForgeDuplicateRouteError from '../../errors/ForgeDuplicateRouteError'
 import {
   JourneyRouteContext,
   JourneyRouteTemplateCatalog,
@@ -160,7 +161,7 @@ export default class RouteTreeBuilder {
       const isStepOverridingJourney = node.route.kind === 'journey' && route.kind === 'step'
 
       if (!isStepOverridingJourney) {
-        throw new DuplicateRouteError({ path: templatePath })
+        throw new ForgeDuplicateRouteError({ routePath: templatePath })
       }
     }
 
@@ -196,7 +197,7 @@ export default class RouteTreeBuilder {
     })
 
     if (!node) {
-      throw new Error(`Unable to build route tree node for path "${path}"`)
+      throw new ForgeInternalError(`Unable to build route tree node for path "${path}"`)
     }
 
     return node

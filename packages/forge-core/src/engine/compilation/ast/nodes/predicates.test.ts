@@ -7,7 +7,7 @@ import type {
   ResolvableValue,
 } from '../../../../authoring/types/expressions.type'
 import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
-import InvalidNodeError from '../../../errors/InvalidNodeError'
+import ForgeInvalidNodeError from '../../../errors/ForgeInvalidNodeError'
 import { ExpressionASTNode } from '../../../contracts/ast/expressions.type'
 import { NodeFactory } from './NodeFactory'
 import { PredicateASTNode, NotPredicateASTNode } from '../../../contracts/ast/predicates.type'
@@ -127,7 +127,7 @@ describe('predicates', () => {
       expect(result.properties.negate).toBe(false)
     })
 
-    it('should throw InvalidNodeError when subject is missing', () => {
+    it('should throw ForgeInvalidNodeError when subject is missing', () => {
       // Arrange
       const json = {
         type: PredicateType.TEST,
@@ -135,7 +135,7 @@ describe('predicates', () => {
       } as any
 
       // Act & Assert
-      expect(() => createTestPredicateNode(json, nodeFactory.context)).toThrow(InvalidNodeError)
+      expect(() => createTestPredicateNode(json, nodeFactory.context)).toThrow(ForgeInvalidNodeError)
       expect(() => createTestPredicateNode(json, nodeFactory.context)).toThrow('Test predicate requires a subject')
     })
 
@@ -159,7 +159,7 @@ describe('predicates', () => {
       expect(results.map(result => result.properties.subject)).toEqual(falsySubjects)
     })
 
-    it('should throw InvalidNodeError when condition is missing', () => {
+    it('should throw ForgeInvalidNodeError when condition is missing', () => {
       // Arrange
       const json = {
         type: PredicateType.TEST,
@@ -167,7 +167,7 @@ describe('predicates', () => {
       } as any
 
       // Act & Assert
-      expect(() => createTestPredicateNode(json, nodeFactory.context)).toThrow(InvalidNodeError)
+      expect(() => createTestPredicateNode(json, nodeFactory.context)).toThrow(ForgeInvalidNodeError)
       expect(() => createTestPredicateNode(json, nodeFactory.context)).toThrow('Test predicate requires a condition')
     })
 
@@ -298,14 +298,14 @@ describe('predicates', () => {
       expect(innerOperand.predicateType).toBe(PredicateType.TEST)
     })
 
-    it('should throw InvalidNodeError when operand is missing', () => {
+    it('should throw ForgeInvalidNodeError when operand is missing', () => {
       // Arrange
       const json = {
         type: PredicateType.NOT,
       } as any
 
       // Act & Assert
-      expect(() => createNotPredicateNode(json, nodeFactory.context)).toThrow(InvalidNodeError)
+      expect(() => createNotPredicateNode(json, nodeFactory.context)).toThrow(ForgeInvalidNodeError)
       expect(() => createNotPredicateNode(json, nodeFactory.context)).toThrow('Not predicate requires an operand')
     })
   })
@@ -376,25 +376,25 @@ describe('predicates', () => {
       expect((nested as typeof result).properties.operands).toHaveLength(2)
     })
 
-    it('should throw InvalidNodeError naming the predicate when operands is empty', () => {
+    it('should throw ForgeInvalidNodeError naming the predicate when operands is empty', () => {
       // Arrange
       const jsons = naryPredicateTypes.map(predicateType => naryExpr(predicateType, []))
       const expectedMessages = ['And', 'Or', 'Xor'].map(name => `${name} predicate requires a non-empty operands array`)
 
       // Act & Assert
       jsons.forEach((json, index) => {
-        expect(() => naryPredicateCreator(json.type)(json, nodeFactory.context)).toThrow(InvalidNodeError)
+        expect(() => naryPredicateCreator(json.type)(json, nodeFactory.context)).toThrow(ForgeInvalidNodeError)
         expect(() => naryPredicateCreator(json.type)(json, nodeFactory.context)).toThrow(expectedMessages[index])
       })
     })
 
-    it('should throw InvalidNodeError when operands is missing', () => {
+    it('should throw ForgeInvalidNodeError when operands is missing', () => {
       // Arrange
       const jsons = naryPredicateTypes.map(predicateType => ({ type: predicateType }) as PredicateAndExpr)
 
       // Act & Assert
       jsons.forEach(json => {
-        expect(() => naryPredicateCreator(json.type)(json, nodeFactory.context)).toThrow(InvalidNodeError)
+        expect(() => naryPredicateCreator(json.type)(json, nodeFactory.context)).toThrow(ForgeInvalidNodeError)
       })
     })
   })

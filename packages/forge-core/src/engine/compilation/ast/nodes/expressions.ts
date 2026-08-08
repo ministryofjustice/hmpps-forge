@@ -45,7 +45,7 @@ import type {
   TestPredicateASTNode,
   XorPredicateASTNode,
 } from '../../../contracts/ast/predicates.type'
-import InvalidNodeError from '../../../errors/InvalidNodeError'
+import ForgeInvalidNodeError from '../../../errors/ForgeInvalidNodeError'
 import type { NodeBuildContext } from './NodeFactory'
 
 /**
@@ -118,10 +118,9 @@ function buildReferencePath(
   allowEmpty = false,
 ): ReferenceASTNode['properties']['path'] {
   if (!Array.isArray(path) || (!allowEmpty && path.length === 0)) {
-    throw new InvalidNodeError({
+    throw new ForgeInvalidNodeError({
       message: 'Reference path must be a non-empty array',
       actual: JSON.stringify(path),
-      code: 'INVALID_REFERENCE_PATH',
     })
   }
 
@@ -134,10 +133,9 @@ function assertReferenceSegment(segment: unknown): string | number {
     return segment
   }
 
-  throw new InvalidNodeError({
+  throw new ForgeInvalidNodeError({
     message: 'Reference path segments must be strings, numbers, or expressions',
     actual: JSON.stringify(segment),
-    code: 'INVALID_REFERENCE_PATH_SEGMENT',
   })
 }
 
@@ -169,11 +167,15 @@ export function createPipelineNode(json: PipelineExpr, ctx: NodeBuildContext): P
  */
 export function createConditionalNode(json: ConditionalExpr, ctx: NodeBuildContext): ConditionalASTNode {
   if (!json.predicate) {
-    throw new InvalidNodeError({
+    const diagnostics = ctx.diagnosticsFor(json)
+
+    throw new ForgeInvalidNodeError({
       message: 'Conditional expression requires a predicate',
       node: json,
       expected: 'predicate property',
       actual: 'undefined',
+      formattedPath: diagnostics?.source.formattedPath,
+      callsite: diagnostics?.callsite,
     })
   }
 
@@ -338,20 +340,28 @@ const LOGICAL_PREDICATE_TYPES = {
 export function createMatchNode(json: MatchExpr, ctx: NodeBuildContext): MatchASTNode {
   // Only undefined means missing - 0, '' and false are legal literal subjects
   if (json.subject === undefined) {
-    throw new InvalidNodeError({
+    const diagnostics = ctx.diagnosticsFor(json)
+
+    throw new ForgeInvalidNodeError({
       message: 'Match expression requires a subject',
       node: json,
       expected: 'subject property',
       actual: 'undefined',
+      formattedPath: diagnostics?.source.formattedPath,
+      callsite: diagnostics?.callsite,
     })
   }
 
   if (!json.branches || json.branches.length === 0) {
-    throw new InvalidNodeError({
+    const diagnostics = ctx.diagnosticsFor(json)
+
+    throw new ForgeInvalidNodeError({
       message: 'Match expression requires at least one branch',
       node: json,
       expected: 'non-empty branches array',
       actual: json.branches ? 'empty array' : 'undefined',
+      formattedPath: diagnostics?.source.formattedPath,
+      callsite: diagnostics?.callsite,
     })
   }
 

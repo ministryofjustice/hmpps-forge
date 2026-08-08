@@ -281,7 +281,7 @@ describe('Forge', () => {
     it('should throw formatted registration errors for aggregate failures', () => {
       // Arrange
       const schemaError = Object.assign(new Error('Invalid input: expected "HookType.Access"'), {
-        name: 'ForgeConfigurationSchemaError',
+        name: 'ForgeSchemaError',
         formattedPath: 'guide > onAccess[1] > type',
         code: 'invalid_value',
       })
@@ -308,7 +308,6 @@ describe('Forge', () => {
           expect(error.stack).toBe(error.message)
           expect(error.message).toContain('Forge registration failed: Schema validation failed')
           expect(error.message).toContain('Path: guide > onAccess[1] > type')
-          expect(error.message).toContain('Code: invalid_value')
         }
       }
     })
@@ -519,7 +518,7 @@ describe('Forge', () => {
       expect(result.kind).toBe('error')
 
       if (result.kind === 'error') {
-        expect(result.error.message).toBe('[Forge] No node registered for "unknown::step"')
+        expect(result.error.message).toBe('No node registered for "unknown::step"')
       }
     })
 

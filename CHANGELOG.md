@@ -55,150 +55,137 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ## 0.4.0
 
-### For journey authors
+A tidy-up of the authoring surface - the GOV.UK utility wrappers are real components
+now, `createForgePackage()` is mandatory and stamps provenance on every node so errors
+point at the line in your code that defined the offending definition, and everything
+the engine throws is one exported family of `Forge*` error classes.
 
-_Definitions, expressions, hooks, navigation, reachability_
+### Added
 
-#### Breaking changes
+- The `Forge*` error classes are exported from core - catch and narrow with
+  `instanceof`, and a single `instanceof ForgeBaseError` check answers "did Forge
+  throw this" ([#229])
+- `ForgeAuthoringError` for authoring API misuse caught while builders are still
+  assembling the definition, and `ForgeInternalError` for states the engine should
+  make impossible - seeing one is a bug in Forge ([#229])
+- `Defined at:` lines on every author-facing error, pointing at the builder call that
+  defined the offending node ([#209], [#210])
+- List items can be blocks - `GovUKList` items may mix strings with child blocks, and
+  each block renders inside its own `<li>` ([#203])
+- `Format()` takes a resolvable template - a reference or any string-valued expression
+  works: `Format(Answer('template'), ...)` ([#210])
 
-- **The GOV.UK utility wrappers are now real components.** `GovUKBody`, `GovUKHeading`,
-  `GovUKList`, `GovUKGridRow`, `GovUKSectionBreak` and `GovUKButtonGroup` were authoring
-  functions that expanded into generic `html`/`template` blocks - they now register and
-  render like every other component, with their renders written in the experimental JSX
-  API. Builder names and props are unchanged, with one exception: `GovUKList`'s `type`
-  prop is now `style` (`type` is the engine's structure discriminator on real components).
-  The standalone `GovUK*Props` interfaces are gone - each component's single interface
-  (`GovUKBody`, `GovUKList`, ...) is both the props and the block type. If you register
-  `govukComponents` wholesale nothing else changes; if you cherry-pick registry entries,
-  add the six new ones. ([#203])
+### Changed
 
-- **The field-level `multiple` flag is gone.** Field blocks could set `multiple: true` to
-  keep every value when a POST returns an array, overlapping with the component-level
-  flag that array-shaped components like checkboxes already declare on their registry
-  entry. Whether all values are kept is now solely the component's decision - setting
-  `multiple` on a field block is a type error, so just remove it. ([#206])
+- The GOV.UK utility wrappers are real registered components written in the
+  experimental JSX API - `GovUKList`'s `type` prop is now `style`, and the standalone
+  `GovUK*Props` interfaces are gone ([#203])
+- `createForgePackage()` is mandatory - registration rejects anything that hasn't
+  passed through it, and `journey` also accepts a JSON string ([#209])
+- The engine's errors follow one `Forge`-prefixed naming scheme on a shared
+  `ForgeBaseError` base class ([#229])
+- `core/framework` is types-only - the path utilities are no longer exported, so copy
+  the ones you used into your adapter; they're a few lines each ([#212])
 
-- **The expression builder classes are no longer exported.** `ConditionalExprBuilder`,
-  `MatchExprBuilder`, `GeneratorBuilder` and `PredicateTestExprBuilder` are gone from the
+### Removed
+
+- The field-level `multiple` flag - it overlapped with the flag that array-shaped
+  components like checkboxes already declare on their registry entry, so keeping every
+  posted value is solely the component's decision now. Setting `multiple` on a field
+  block is a type error; just remove it ([#206])
+- The expression builder classes and the granular condition variant types from the
   authoring exports - the factories (`Conditional()`, `Match()`, ...) were always the
-  intended surface and the classes were just their implementation. `PredicateTestExprBuilder`
-  itself is deleted; it was dead code. The granular condition variant types
-  (`ConditionAndExpr`, `ConditionOrExpr`, `ConditionXorExpr`, `ConditionNotExpr`,
-  `ConditionBranchExpr`, `ConditionCombinatorExpr`) are also no longer exported - use
-  `ConditionalExpr`. ([#208])
+  intended surface, and `ConditionalExpr` covers the variant types.
+  `PredicateTestExprBuilder` is deleted outright; it was dead code ([#208])
+- Error codes and the error `toString()` implementations - the class is the
+  discriminator now ([#229])
 
-- **`createForgePackage()` is now mandatory.** Previously it was a typing convenience -
-  `registerPackage()` took any package-shaped object, so hand-rolled packages worked
-  without it. Now registration rejects anything that hasn't passed through
-  `createForgePackage()`, which finalises the builders in the journey tree and stamps
-  every node with its source location and the callsite that defined it. If you already
-  wrap your package, nothing changes; if not, it's
-  `registerPackage(createForgePackage({ journey, ... }))`. As part of this, `journey`
-  also accepts a JSON string, which `createForgePackage` parses. ([#209])
+### Fixed
 
-#### New
-
-- **List items can be blocks.** `GovUKList` items may now mix strings with child blocks -
-  `items: ['Plain text', GovUKBody({ ... }), HtmlBlock({ ... })]` renders each block
-  inside its own `<li>`. Previously items were strings only. ([#203])
-
-#### Improvements
-
-- **Errors now say where in your code the problem is.** Every author-facing error -
-  registration validation, schema and serialisation failures, and runtime evaluation
-  errors - carries a `Defined at: journeySteps (/app/journeys/tax/steps.ts:42:13)` line
-  pointing at the builder call that defined the offending node. Previously errors could
-  only name the DSL path, leaving you to hunt the definition down yourself. ([#210])
-
-- **`Format()` takes a resolvable template.** The template no longer has to be a literal
-  string - a reference or any string-valued expression works:
-  `Format(Answer('template'), ...)`. ([#210])
-
----
-
-### For function and component authors
-
-_Conditions, transformers, effects, generators, iterators, component packages_
-
-#### Notes
-
-- **Callsite attribution for packaged components.** The `Defined at` frame is the first
-  one outside forge-core, node internals and `node_modules` - so when a component from a
-  published package produces an error, it points at the app's usage site rather than
-  inside the package. ([#210])
-
----
-
-### For adapter and renderer developers
-
-_Express adapter, Nunjucks renderer, test harness, framework integration_
-
-#### Breaking changes
-
-- **`core/framework` is types-only now.** The path utilities (`extractPathname`,
-  `resolvePathParams`, `joinPaths`, `normalizeBasePath`, `normalizeRelativePath`,
-  `resolveMountedPath`) are no longer exported - they were engine internals leaking
-  through the barrel, and the express adapter now carries its own copies of the two it
-  used. If you used any of them, copy them into your adapter - they're a few lines
-  each. ([#212])
-
----
-
-### For engine / internal developers
-
-_Compilation, runtime, contracts, diagnostics, instrumentation_
-
-#### Changes
-
-- The authoring builders are reorganised into domain files (structures, values, references,
-  expressions) with a curated export list, the logical combinators moved out of the deleted
-  builder's file, and `Format` is now a registry-backed generator with the hand-rolled
-  `FormatString` implementation inlined away. ([#208])
-
-- Finalisation stamps every object node with non-enumerable `__source` and `__callsite`
-  provenance - `NodeFactory` lifts them onto AST diagnostics, and the engine's own
-  path-computation walks are gone. The callsite capture is lazy (V8's `.stack`
-  accessor), so there's no formatting cost unless an error actually reads it. ([#209])
-
-- Hook helpers are plain taggers now - finalisation does the walking they used to do
-  themselves. ([#209])
-
-- Runtime diagnostics carry a preformatted `definedAt` baked into the generated source
-  metadata at emit time - `formatCallsite` in shared diagnostics does the frame-picking,
-  and display stays lazy everywhere else. ([#210])
-
-- The built-in conditions, transformers, generators and core components now live together
-  under `forge-core/src/built-ins/{functions,components}` instead of loose in `authoring/`
-  and `components/builtins` - the authoring and components barrels re-export them, so the
-  published subpaths are unchanged. The registries' `registerBuiltIn*` methods are gone
-  too: `Forge`'s constructor registers the built-ins through the ordinary
-  `register()`/`registerMany()` path, leaving the registry classes content-agnostic. ([#211])
-
-- `routePath.ts` lives in `shared/utils` now, trimmed to the four functions the engine
-  uses - `resolveMountedPath` had no callers at all and is deleted. The express adapter
-  and the test client each carry their own `extractPathname`: turning a raw URL into
-  snapshot terms is the adapter role's job, whichever side plays it. ([#212])
-
-- The framework types are one folder now - `rendering/types.ts` became
-  `types/rendering.type.ts` to match its siblings, with the route tree types split out
-  into `types/routeTree.type.ts`. Public exports are unchanged. ([#212])
-
-#### Fixes
-
-- **Sharing a partially built expression chain no longer cross-contaminates.**
-  `Conditional()` and `Match()` chains mutated the builder in place, so holding a partial
-  chain and extending it in two places polluted both results. Each chain step now returns
-  a fresh builder, so partial chains are safe to share and reuse. ([#208])
-
+- Sharing a partially built `Conditional()`/`Match()` chain no longer
+  cross-contaminates - each chain step returns a fresh builder ([#208])
 - Builders are detected by a `nodeKind` marker instead of `'build' in value`
   duck-typing, so an authored object that happens to have a `build` property can't be
-  mistaken for a builder and swallowed during finalisation. ([#209])
-
+  mistaken for a builder and swallowed during finalisation ([#209])
 - The two validation rules missing the `formattedPath` fallback now default it to
-  `unknown` like the rest. ([#210])
-
+  `unknown` like the rest ([#210])
 - The deprecated `defineFunction` helpers never stamped callsites on the handles they
-  build, so their errors lacked a `Defined at` line - they stamp now. ([#210])
+  build, so their errors lacked a `Defined at` line - they stamp now ([#210])
+
+### Details
+
+#### GOV.UK wrappers as real components
+
+Previously `GovUKBody`, `GovUKHeading`, `GovUKList`, `GovUKGridRow`,
+`GovUKSectionBreak` and `GovUKButtonGroup` were authoring functions that expanded into
+generic `html`/`template` blocks. They now register and render like every other
+component, with their renders written in the experimental JSX API. Builder names and
+props are unchanged, with one exception: `GovUKList`'s `type` prop is now `style`
+(`type` is the engine's structure discriminator on real components). The standalone
+`GovUK*Props` interfaces are gone - each component's single interface (`GovUKBody`,
+`GovUKList`, ...) is both the props and the block type. If you register
+`govukComponents` wholesale nothing else changes; if you cherry-pick registry entries,
+add the six new ones. ([#203])
+
+#### Mandatory `createForgePackage()` and callsite attribution
+
+Previously `createForgePackage()` was a typing convenience - `registerPackage()` took
+anything with the right properties - and errors could only name the DSL path, leaving
+you to hunt the definition down yourself. Now registration rejects anything that
+hasn't passed through `createForgePackage()`, which finalises the builders in the
+journey tree and stamps every node with its source location and the callsite that
+defined it. Every author-facing error - registration validation, schema and
+serialisation failures, runtime evaluation errors - then carries a
+`Defined at: journeySteps (/app/journeys/tax/steps.ts:42:13)` line pointing at the
+builder call that defined the offending node. The frame picked is the first one
+outside forge-core, node internals and `node_modules`, so when a component from a
+published package produces an error, it points at your usage site rather than inside
+the package. If you already wrap your package, nothing changes; if not, it's
+`registerPackage(createForgePackage({ journey, ... }))`. ([#209], [#210])
+
+#### One family of Forge errors
+
+Previously the engine threw a mixture of plain `Error`s and per-concern classes - some
+`Forge`-prefixed, some not, each carrying a string `code` and its own `toString()`,
+and none of them exported. Now there's one family: every class extends
+`ForgeBaseError`, the names all follow the `Forge*` scheme, and the whole set is
+exported from core so you can catch and narrow with `instanceof`. The codes and
+`toString()` implementations are binned - the class is the discriminator. Two classes
+are new: `ForgeAuthoringError` for authoring API misuse caught while the builders are
+still assembling the definition, and `ForgeInternalError` for states the engine should
+make impossible. ([#229])
+
+#### Under the hood
+
+- The authoring builders are reorganised into domain files (structures, values,
+  references, expressions) with a curated export list, and `Format` is a
+  registry-backed generator now with the hand-rolled `FormatString` implementation
+  inlined away ([#208])
+- Finalisation stamps every object node with non-enumerable `__source` and
+  `__callsite` provenance - the callsite capture is lazy (V8's `.stack` accessor), so
+  there's no formatting cost unless an error actually reads it - and hook helpers are
+  plain taggers now, with finalisation doing the walking they used to do themselves
+  ([#209])
+- Runtime diagnostics carry a preformatted `definedAt` baked into the generated source
+  metadata at emit time - `formatCallsite` in shared diagnostics does the
+  frame-picking, and display stays lazy everywhere else ([#210])
+- The built-in conditions, transformers, generators and core components live together
+  under `forge-core/src/built-ins/{functions,components}` - the authoring and
+  components barrels re-export them, so the published subpaths are unchanged. The
+  registries' `registerBuiltIn*` methods are gone too: `Forge`'s constructor registers
+  the built-ins through the ordinary `register()`/`registerMany()` path, leaving the
+  registry classes content-agnostic ([#211])
+- `routePath.ts` lives in `shared/utils` now, trimmed to the four functions the engine
+  uses - `resolveMountedPath` had no callers at all and is deleted. The express
+  adapter and the test client each carry their own `extractPathname`: turning a raw
+  URL into snapshot terms is the adapter role's job, whichever side plays it ([#212])
+- The framework types are one folder now - `rendering/types.ts` became
+  `types/rendering.type.ts` to match its siblings, with the route tree types split out
+  into `types/routeTree.type.ts`. Public exports are unchanged ([#212])
+- `NodeFactory` is table-driven dispatch now - a creator table with one row per node
+  type, and `ForgeUnknownNodeTypeError` for a type the table has no row for ([#219])
+- Raw `Error` throws across the engine and authoring internals moved onto the Forge
+  error classes ([#229])
 
 [#203]: https://github.com/ministryofjustice/hmpps-forge/pull/203
 [#206]: https://github.com/ministryofjustice/hmpps-forge/pull/206
@@ -207,6 +194,8 @@ _Compilation, runtime, contracts, diagnostics, instrumentation_
 [#210]: https://github.com/ministryofjustice/hmpps-forge/pull/210
 [#211]: https://github.com/ministryofjustice/hmpps-forge/pull/211
 [#212]: https://github.com/ministryofjustice/hmpps-forge/pull/212
+[#219]: https://github.com/ministryofjustice/hmpps-forge/pull/219
+[#229]: https://github.com/ministryofjustice/hmpps-forge/pull/229
 
 ---
 

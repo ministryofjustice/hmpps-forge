@@ -8,7 +8,7 @@ import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import { compileTemplate } from '../../ast/nodes/template'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
-import UnregisteredComponentError from '../../../errors/UnregisteredComponentError'
+import ForgeUnregisteredComponentError from '../../../errors/ForgeUnregisteredComponentError'
 import { buildComponent } from '../../../../components/utils/buildComponent'
 import { validateRegisteredComponents } from './validateRegisteredComponents'
 import type { ASTValidationContext } from './types'
@@ -70,8 +70,8 @@ describe('validateRegisteredComponents', () => {
 
     // Assert
     expect(errors).toHaveLength(1)
-    expect(errors[0]).toBeInstanceOf(UnregisteredComponentError)
-    expect((errors[0] as UnregisteredComponentError).variant).toBe('missing')
+    expect(errors[0]).toBeInstanceOf(ForgeUnregisteredComponentError)
+    expect((errors[0] as ForgeUnregisteredComponentError).variant).toBe('missing')
   })
 
   it('should return no errors when an iterator yieldTemplate block has a registered variant', () => {
@@ -96,8 +96,8 @@ describe('validateRegisteredComponents', () => {
 
     // Assert
     expect(errors).toHaveLength(1)
-    expect(errors[0]).toBeInstanceOf(UnregisteredComponentError)
-    expect((errors[0] as UnregisteredComponentError).variant).toBe('missing')
+    expect(errors[0]).toBeInstanceOf(ForgeUnregisteredComponentError)
+    expect((errors[0] as ForgeUnregisteredComponentError).variant).toBe('missing')
   })
 
   it('should return no errors when an iterator template contains no blocks', () => {

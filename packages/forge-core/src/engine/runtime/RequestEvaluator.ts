@@ -15,6 +15,7 @@ import type { ForgeRenderer } from '../../framework/types/rendering.type'
 import RequestPipelineTraceProjector from './evaluation/request/RequestPipelineTraceProjector'
 import { resolvePathParams } from '../../shared/utils/routePath'
 import { NO_OP_RESPONSE_BINDINGS, type ResponseBindings } from '../../framework/types/responseBindings.type'
+import ForgeInternalError from '../errors/ForgeInternalError'
 
 export interface RequestEvaluatorOptions {
   readonly instrumentation: ForgeInstrumentation
@@ -103,7 +104,7 @@ export default class RequestEvaluator {
       const pipelineResult = requestExecutionContext.pipelineResult
 
       if (pipelineResult === undefined) {
-        throw new Error('[Forge] Request pipeline completed without a result')
+        throw new ForgeInternalError('Request pipeline completed without a result')
       }
 
       this.traceProjector.emitTrace(

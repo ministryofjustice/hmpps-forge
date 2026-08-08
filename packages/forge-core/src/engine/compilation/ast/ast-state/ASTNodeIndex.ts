@@ -11,6 +11,7 @@ import {
 import { ExpressionASTNode, OutcomeASTNode } from '../../../contracts/ast/expressions.type'
 import { PredicateASTNode } from '../../../contracts/ast/predicates.type'
 import { BlockASTNode } from '../../../contracts/ast/structures.type'
+import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 /** Indexes include both structural AST types and authoring sub-types. */
 export type IndexableNodeType =
@@ -40,7 +41,7 @@ export default class ASTNodeIndex {
    */
   register(id: NodeId, node: ASTNode): void {
     if (this.registeredIds.has(id)) {
-      throw new Error(`Node with ID "${id}" is already registered`)
+      throw new ForgeInternalError(`Node with ID "${id}" is already registered`)
     }
 
     this.registeredIds.add(id)

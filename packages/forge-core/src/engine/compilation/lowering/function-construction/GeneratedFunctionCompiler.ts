@@ -6,7 +6,6 @@ import ForgeRuntimeEvaluationError, {
   decorateForgeRuntimeEvaluationError,
   type ForgeRuntimeEvaluationDiagnostics,
 } from '../../../errors/ForgeRuntimeEvaluationError'
-import type { DSLPathSegment } from '../../../../shared/diagnostics/sourceLocation.type'
 
 interface CompileOptions {
   forceAsync?: boolean
@@ -15,7 +14,6 @@ interface CompileOptions {
 
 interface RuntimeDiagnosticState {
   readonly nodeId?: string
-  readonly path?: readonly DSLPathSegment[]
   readonly formattedPath?: string
   readonly functionName?: string
   readonly functionType?: string
@@ -27,7 +25,6 @@ interface RuntimeEvaluationDiagnostics {
   wrap: (
     error: unknown,
     nodeId?: string,
-    path?: readonly DSLPathSegment[],
     formattedPath?: string,
     functionName?: string,
     functionType?: string,
@@ -127,7 +124,7 @@ export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
 const createRuntimeDiagnostics = (phase: string): RuntimeEvaluationDiagnostics => {
   const diagnostics: RuntimeEvaluationDiagnostics = {
     current: undefined,
-    wrap: (error, nodeId, path, formattedPath, functionName, functionType, definedAt) => {
+    wrap: (error, nodeId, formattedPath, functionName, functionType, definedAt) => {
       if (error instanceof ForgeRuntimeEvaluationError) {
         return error
       }
@@ -136,7 +133,6 @@ const createRuntimeDiagnostics = (phase: string): RuntimeEvaluationDiagnostics =
       const runtimeDiagnostics: ForgeRuntimeEvaluationDiagnostics = {
         phase,
         nodeId: nodeId ?? current?.nodeId,
-        path: path ?? current?.path,
         formattedPath: formattedPath ?? current?.formattedPath,
         functionName: functionName ?? current?.functionName,
         functionType: functionType ?? current?.functionType,

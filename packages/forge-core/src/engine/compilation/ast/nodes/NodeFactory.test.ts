@@ -9,8 +9,8 @@ import {
   StructureType,
 } from '../../../../authoring/types/enums'
 import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
-import InvalidNodeError from '../../../errors/InvalidNodeError'
-import UnknownNodeTypeError from '../../../errors/UnknownNodeTypeError'
+import ForgeInvalidNodeError from '../../../errors/ForgeInvalidNodeError'
+import ForgeUnknownNodeTypeError from '../../../errors/ForgeUnknownNodeTypeError'
 import { NodeFactory, creatorsByType } from './NodeFactory'
 
 describe('NodeFactory', () => {
@@ -70,7 +70,7 @@ describe('NodeFactory', () => {
 
       // Act & Assert
       strayCombinators.forEach(combinator => {
-        expect(() => nodeFactory.createNode(combinator)).toThrow(InvalidNodeError)
+        expect(() => nodeFactory.createNode(combinator)).toThrow(ForgeInvalidNodeError)
         expect(() => nodeFactory.createNode(combinator)).toThrow(
           'Condition combinators can only appear inside a match expression branch condition',
         )
@@ -83,7 +83,7 @@ describe('NodeFactory', () => {
 
       // Act & Assert
       strayIteratorConfigs.forEach(iteratorConfig => {
-        expect(() => nodeFactory.createNode(iteratorConfig)).toThrow(InvalidNodeError)
+        expect(() => nodeFactory.createNode(iteratorConfig)).toThrow(ForgeInvalidNodeError)
         expect(() => nodeFactory.createNode(iteratorConfig)).toThrow(
           'Iterator configurations can only appear inside the iterator of an Iterate expression',
         )
@@ -118,20 +118,20 @@ describe('NodeFactory', () => {
       )
     })
 
-    it('should throw UnknownNodeTypeError when the type string is unrecognised', () => {
+    it('should throw ForgeUnknownNodeTypeError when the type string is unrecognised', () => {
       // Arrange
       const json = { type: 'NoSuchType.Bogus' }
 
       // Act & Assert
-      expect(() => nodeFactory.createNode(json)).toThrow(UnknownNodeTypeError)
+      expect(() => nodeFactory.createNode(json)).toThrow(ForgeUnknownNodeTypeError)
     })
 
-    it('should throw UnknownNodeTypeError when the object has no type', () => {
+    it('should throw ForgeUnknownNodeTypeError when the object has no type', () => {
       // Arrange
       const json = { foo: 'bar' }
 
       // Act & Assert
-      expect(() => nodeFactory.createNode(json)).toThrow(UnknownNodeTypeError)
+      expect(() => nodeFactory.createNode(json)).toThrow(ForgeUnknownNodeTypeError)
     })
 
     it('should exclude the inline-only types from the valid-types list', () => {
@@ -143,7 +143,7 @@ describe('NodeFactory', () => {
       try {
         nodeFactory.createNode({ type: 'NoSuchType.Bogus' })
       } catch (error) {
-        validTypes = (error as UnknownNodeTypeError).validTypes ?? []
+        validTypes = (error as ForgeUnknownNodeTypeError).validTypes ?? []
       }
 
       // Assert

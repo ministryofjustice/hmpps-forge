@@ -1,7 +1,7 @@
 import { ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode, ReferenceASTNode } from '../../../contracts/ast/expressions.type'
-import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
+import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
@@ -18,17 +18,11 @@ const LOOP_PROPERTIES: ReadonlySet<string> = new Set([
   'length',
 ])
 
-function createError(
-  diagnostics: ASTNodeDiagnostics | undefined,
-  message: string,
-  code: string,
-): ForgeConfigurationReferenceScopeError {
+function createError(diagnostics: ASTNodeDiagnostics | undefined, message: string): ForgeReferenceScopeError {
   const source = diagnostics?.source
 
-  return new ForgeConfigurationReferenceScopeError({
-    path: source?.path ? [...source.path] : [],
+  return new ForgeReferenceScopeError({
     message,
-    code,
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,
   })
@@ -52,7 +46,7 @@ function validateItemReference(
   const level = parseReferenceLevel(path[1])
 
   if (level === undefined) {
-    return [createError(diagnostics, 'Item() reference level must be a non-negative integer', 'item_invalid_level')]
+    return [createError(diagnostics, 'Item() reference level must be a non-negative integer')]
   }
 
   if (level >= iteratorDepth) {
@@ -61,7 +55,7 @@ function validateItemReference(
         ? 'Item() can only be used inside an iterator'
         : `Item().parent references level ${level}, but only ${iteratorDepth} iterator scope is available`
 
-    return [createError(diagnostics, message, 'item_outside_iterator_scope')]
+    return [createError(diagnostics, message)]
   }
 
   return []
@@ -76,7 +70,7 @@ function validateLoopReference(
   const level = parseReferenceLevel(path[1])
 
   if (level === undefined) {
-    return [createError(diagnostics, 'Loop reference level must be a non-negative integer', 'loop_invalid_level')]
+    return [createError(diagnostics, 'Loop reference level must be a non-negative integer')]
   }
 
   if (level >= iteratorDepth) {
@@ -85,7 +79,7 @@ function validateLoopReference(
         ? 'Loop can only be used inside an iterator'
         : `Loop.Parent references level ${level}, but only ${iteratorDepth} iterator scope is available`
 
-    errors.push(createError(diagnostics, message, 'loop_outside_iterator_scope'))
+    errors.push(createError(diagnostics, message))
   }
 
   const property = path[2]
@@ -95,7 +89,6 @@ function validateLoopReference(
       createError(
         diagnostics,
         'Loop reference property must be one of index, index0, revindex, revindex0, first, last, length',
-        'loop_invalid_property',
       ),
     )
   }

@@ -102,7 +102,7 @@ AST creation still turns that function into an expression node:
 ```
 
 `validateEffectScope()` then walks the node's `parent` links to find its ancestors.
-If no ancestor has `ASTNodeType.HOOK`, it returns a `ForgeConfigurationReferenceScopeError` with code `effect_outside_hook`.
+If no ancestor has `ASTNodeType.HOOK`, it returns a `ForgeReferenceScopeError` with code `effect_outside_hook`.
 `ASTSemanticValidator.validate()` includes that error in the final `AggregateError`.
 
 *Note: Pretty sure the DSL Validation stage would catch this, but suspend disbelief for the example please!*

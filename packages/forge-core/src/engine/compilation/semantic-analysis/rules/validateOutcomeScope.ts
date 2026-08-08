@@ -2,18 +2,16 @@ import { ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { NodeId, ASTNode } from '../../../contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
-import ForgeConfigurationReferenceScopeError from '../../../errors/ForgeConfigurationReferenceScopeError'
+import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 import { walkTemplateValue } from './templateWalker'
 
-function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeConfigurationReferenceScopeError {
+function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeReferenceScopeError {
   const source = diagnostics?.source
 
-  return new ForgeConfigurationReferenceScopeError({
-    path: source?.path ? [...source.path] : [],
+  return new ForgeReferenceScopeError({
     message: 'Outcomes can only be used inside a hook (onAccess or onSubmission)',
-    code: 'outcome_outside_hook',
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,
   })

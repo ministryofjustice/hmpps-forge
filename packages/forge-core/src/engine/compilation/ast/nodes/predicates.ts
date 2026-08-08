@@ -7,7 +7,7 @@ import {
   PredicateTestExpr,
   PredicateXorExpr,
 } from '../../../../authoring/types/expressions.type'
-import InvalidNodeError from '../../../errors/InvalidNodeError'
+import ForgeInvalidNodeError from '../../../errors/ForgeInvalidNodeError'
 import {
   AndPredicateASTNode,
   NotPredicateASTNode,
@@ -34,20 +34,28 @@ const NARY_PREDICATE_NAMES = {
 export function createTestPredicateNode(json: PredicateTestExpr, ctx: NodeBuildContext): TestPredicateASTNode {
   // Only undefined means missing - 0, '' and false are legal literal subjects
   if (json.subject === undefined) {
-    throw new InvalidNodeError({
+    const diagnostics = ctx.diagnosticsFor(json)
+
+    throw new ForgeInvalidNodeError({
       message: 'Test predicate requires a subject',
       node: json,
       expected: 'subject property',
       actual: 'undefined',
+      formattedPath: diagnostics?.source.formattedPath,
+      callsite: diagnostics?.callsite,
     })
   }
 
   if (!json.condition) {
-    throw new InvalidNodeError({
+    const diagnostics = ctx.diagnosticsFor(json)
+
+    throw new ForgeInvalidNodeError({
       message: 'Test predicate requires a condition',
       node: json,
       expected: 'condition property',
       actual: 'undefined',
+      formattedPath: diagnostics?.source.formattedPath,
+      callsite: diagnostics?.callsite,
     })
   }
 
@@ -69,11 +77,15 @@ export function createTestPredicateNode(json: PredicateTestExpr, ctx: NodeBuildC
  */
 export function createNotPredicateNode(json: PredicateNotExpr, ctx: NodeBuildContext): NotPredicateASTNode {
   if (!json.operand) {
-    throw new InvalidNodeError({
+    const diagnostics = ctx.diagnosticsFor(json)
+
+    throw new ForgeInvalidNodeError({
       message: 'Not predicate requires an operand',
       node: json,
       expected: 'operand property',
       actual: 'undefined',
+      formattedPath: diagnostics?.source.formattedPath,
+      callsite: diagnostics?.callsite,
     })
   }
 
@@ -97,11 +109,15 @@ export function naryPredicateCreator(
 ): (json: PredicateNaryExpr, ctx: NodeBuildContext) => NaryPredicateASTNode {
   return (json, ctx) => {
     if (!json.operands || !Array.isArray(json.operands) || json.operands.length === 0) {
-      throw new InvalidNodeError({
+      const diagnostics = ctx.diagnosticsFor(json)
+
+      throw new ForgeInvalidNodeError({
         message: `${NARY_PREDICATE_NAMES[predicateType]} predicate requires a non-empty operands array`,
         node: json,
         expected: 'operands array with at least one element',
         actual: json.operands ? `array with ${json.operands.length} elements` : 'undefined',
+        formattedPath: diagnostics?.source.formattedPath,
+        callsite: diagnostics?.callsite,
       })
     }
 

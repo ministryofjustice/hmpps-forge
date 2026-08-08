@@ -17,6 +17,7 @@ import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { ReachabilityEvaluation } from '../../../contracts/reachability/reachabilityEvaluation.type'
 import type { StepValidityResult } from '../../../contracts/runtime/stepValidityResult.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 export const REQUEST_REACHABILITY_KIND = 'request.reachability'
 
@@ -105,7 +106,7 @@ function resolvePhaseOutput(evaluation: ReachabilityEvaluation, props: RequestRe
 
   if (props.mode === 'journey') {
     if (!redirectTarget) {
-      throw new Error('No steps found in journey')
+      throw new ForgeInternalError('No steps found in journey')
     }
 
     return { action: 'halt-redirect', target: redirectTarget, reason: 'journey-redirect' }

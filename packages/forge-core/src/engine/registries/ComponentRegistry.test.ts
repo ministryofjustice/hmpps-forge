@@ -1,6 +1,6 @@
 import { buildComponent } from '../../components/utils/buildComponent'
-import RegistryDuplicateError from '../errors/RegistryDuplicateError'
-import RegistryValidationError from '../errors/RegistryValidationError'
+import ForgeRegistryDuplicateError from '../errors/ForgeRegistryDuplicateError'
+import ForgeRegistryValidationError from '../errors/ForgeRegistryValidationError'
 import type { BlockDefinition, EvaluatedBlock } from '../../components/types/structures.type'
 import ComponentRegistry from './ComponentRegistry'
 
@@ -46,7 +46,7 @@ describe('ComponentRegistry', () => {
     })
 
     describe('duplicate registration', () => {
-      it('should throw RegistryDuplicateError for duplicate component', () => {
+      it('should throw ForgeRegistryDuplicateError for duplicate component', () => {
         const comp1 = buildComponent('text', () => '<input />')
         const comp2 = buildComponent('text', () => '<textarea />')
 
@@ -59,8 +59,8 @@ describe('ComponentRegistry', () => {
         } catch (error) {
           expect(error).toBeInstanceOf(AggregateError)
           if (error instanceof AggregateError) {
-            expect(error.errors[0]).toBeInstanceOf(RegistryDuplicateError)
-            const dupError = error.errors[0] as RegistryDuplicateError
+            expect(error.errors[0]).toBeInstanceOf(ForgeRegistryDuplicateError)
+            const dupError = error.errors[0] as ForgeRegistryDuplicateError
             expect(dupError.registryType).toBe('component')
             expect(dupError.itemName).toBe('text')
           }
@@ -84,14 +84,14 @@ describe('ComponentRegistry', () => {
           expect(error).toBeInstanceOf(AggregateError)
           if (error instanceof AggregateError) {
             expect(error.errors).toHaveLength(2)
-            expect(error.errors.every(e => e instanceof RegistryDuplicateError)).toBe(true)
+            expect(error.errors.every(e => e instanceof ForgeRegistryDuplicateError)).toBe(true)
           }
         }
       })
     })
 
     describe('validation errors', () => {
-      it('should throw RegistryValidationError for missing variant', () => {
+      it('should throw ForgeRegistryValidationError for missing variant', () => {
         const invalidComponent = {} as any
 
         expect(() => registry.registerMany([invalidComponent])).toThrow(AggregateError)
@@ -101,15 +101,15 @@ describe('ComponentRegistry', () => {
         } catch (error) {
           expect(error).toBeInstanceOf(AggregateError)
           if (error instanceof AggregateError) {
-            expect(error.errors[0]).toBeInstanceOf(RegistryValidationError)
-            const valError = error.errors[0] as RegistryValidationError
+            expect(error.errors[0]).toBeInstanceOf(ForgeRegistryValidationError)
+            const valError = error.errors[0] as ForgeRegistryValidationError
             expect(valError.registryType).toBe('component')
             expect(valError.expected).toContain('variant')
           }
         }
       })
 
-      it('should throw RegistryValidationError for component with render but no variant', () => {
+      it('should throw ForgeRegistryValidationError for component with render but no variant', () => {
         const invalidComponent = {
           render: () => '<div />',
         } as any
@@ -117,7 +117,7 @@ describe('ComponentRegistry', () => {
         expect(() => registry.registerMany([invalidComponent])).toThrow(AggregateError)
       })
 
-      it('should throw RegistryValidationError for missing render function', () => {
+      it('should throw ForgeRegistryValidationError for missing render function', () => {
         const invalidComponent = {
           variant: 'test-component',
         } as any
@@ -127,15 +127,15 @@ describe('ComponentRegistry', () => {
         } catch (error) {
           expect(error).toBeInstanceOf(AggregateError)
           if (error instanceof AggregateError) {
-            expect(error.errors[0]).toBeInstanceOf(RegistryValidationError)
-            const valError = error.errors[0] as RegistryValidationError
+            expect(error.errors[0]).toBeInstanceOf(ForgeRegistryValidationError)
+            const valError = error.errors[0] as ForgeRegistryValidationError
             expect(valError.itemName).toBe('test-component')
             expect(valError.expected).toContain('render function')
           }
         }
       })
 
-      it('should throw RegistryValidationError for non-function render', () => {
+      it('should throw ForgeRegistryValidationError for non-function render', () => {
         const invalidComponent = {
           variant: 'test-component',
           render: 'not a function',
@@ -157,7 +157,7 @@ describe('ComponentRegistry', () => {
           expect(error).toBeInstanceOf(AggregateError)
           if (error instanceof AggregateError) {
             expect(error.errors).toHaveLength(3)
-            expect(error.errors.every(e => e instanceof RegistryValidationError)).toBe(true)
+            expect(error.errors.every(e => e instanceof ForgeRegistryValidationError)).toBe(true)
           }
         }
       })

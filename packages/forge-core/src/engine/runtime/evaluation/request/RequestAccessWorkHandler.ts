@@ -11,6 +11,7 @@ import { singleChildOutput } from '../work/workTask'
 import { phaseInstrumentation, runTaskPhase } from './requestPhase'
 import type { RequestAccessWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 export const REQUEST_ACCESS_KIND = 'request.access'
 
@@ -47,7 +48,7 @@ export const REQUEST_ACCESS_WORK_HANDLER: WorkHandler<'request.access', RequestA
     const result = singleChildOutput(children, ACCESS_LIFECYCLE_KIND)
 
     if (result === undefined) {
-      throw new Error('Access lifecycle work task completed with an invalid access result')
+      throw new ForgeInternalError('Access lifecycle work task completed with an invalid access result')
     }
 
     const output = toOutput(result)
@@ -59,7 +60,7 @@ export const REQUEST_ACCESS_WORK_HANDLER: WorkHandler<'request.access', RequestA
 function toOutput(result: CompiledAccessHookResult): PhaseWorkOutput {
   if (result.outcome === 'redirect') {
     if (result.redirect === undefined) {
-      throw new Error('Hook redirect target is missing')
+      throw new ForgeInternalError('Hook redirect target is missing')
     }
 
     return { action: 'halt-redirect', target: result.redirect, reason: 'access-lifecycle' }

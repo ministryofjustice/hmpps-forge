@@ -52,7 +52,6 @@ interface ComponentInputContext {
 
 interface RuntimeDiagnosticState {
   readonly nodeId?: string
-  readonly path?: readonly (string | number)[]
   readonly formattedPath?: string
   readonly functionName?: string
   readonly functionType?: string
@@ -64,7 +63,6 @@ interface RuntimeEvaluationDiagnostics {
   wrap(
     error: unknown,
     nodeId?: string,
-    path?: readonly (string | number)[],
     formattedPath?: string,
     functionName?: string,
     functionType?: string,
@@ -428,7 +426,6 @@ function wrapDiagnosticError(
   return diagnostics.wrap(
     error,
     metadata.nodeId,
-    metadata.path,
     metadata.formattedPath,
     metadata.functionName,
     metadata.functionType,

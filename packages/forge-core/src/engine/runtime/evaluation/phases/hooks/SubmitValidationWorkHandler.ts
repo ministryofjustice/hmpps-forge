@@ -12,6 +12,7 @@ import { STEP_VALIDATION_KIND } from '../validation/StepValidationWorkHandler'
 import type { HookStageResult } from '../../../../contracts/runtime/HookStage.type'
 import type { SubmitValidationWorkProps } from '../../../../contracts/runtime/SubmitLifecycleWork.type'
 import type { CompiledSubmitHookResult } from '../../../../contracts/runtime/hookLifecycle.type'
+import ForgeInternalError from '../../../../errors/ForgeInternalError'
 
 export const SUBMIT_VALIDATION_KIND = 'submit.validation'
 
@@ -46,13 +47,13 @@ export const SUBMIT_VALIDATION_WORK_HANDLER: WorkHandler<'submit.validation', Su
     const stepId = ctx.request.currentStepId
 
     if (stepId === undefined) {
-      throw new Error('[Forge] Submit validation requires a current step id')
+      throw new ForgeInternalError('Submit validation requires a current step id')
     }
 
     const validation = await ctx.request.buildStepValidation(stepId, true)
 
     if (validation === undefined) {
-      throw new Error('[Forge] Submit validation task missing')
+      throw new ForgeInternalError('Submit validation task missing')
     }
 
     return singleTaskGroup(validation)
@@ -65,7 +66,7 @@ export const SUBMIT_VALIDATION_WORK_HANDLER: WorkHandler<'submit.validation', Su
     const result = singleChildOutput(children, STEP_VALIDATION_KIND)
 
     if (result === undefined) {
-      throw new Error('[Forge] Submit validation produced an invalid result')
+      throw new ForgeInternalError('Submit validation produced an invalid result')
     }
 
     const stepId = ctx.request.currentStepId

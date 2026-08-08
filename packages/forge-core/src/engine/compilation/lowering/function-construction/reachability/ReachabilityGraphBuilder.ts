@@ -5,6 +5,7 @@ import type { NodeId } from '../../../../contracts/ast/ast.type'
 import type { ReachabilityNode } from '../../../../contracts/reachability/reachabilityEvaluation.type'
 import type { CompiledReachabilityResult } from '../../../../contracts/compiled/compiledFunctions.type'
 import { resolveRouteTemplateTargetPath } from './routeTemplateTargetResolver'
+import ForgeInternalError from '../../../../errors/ForgeInternalError'
 
 /**
  * Builds the reachability state for a journey: seeds entry points, walks
@@ -79,7 +80,7 @@ export default class ReachabilityGraphBuilder {
       const routeTemplatePath = this.routeTemplateCatalog.routeTemplatePathByStepId.get(entry.stepId)
 
       if (!routeTemplatePath) {
-        throw new Error(`Route template path missing for step ${entry.stepId}`)
+        throw new ForgeInternalError(`Route template path missing for step ${entry.stepId}`)
       }
 
       return {

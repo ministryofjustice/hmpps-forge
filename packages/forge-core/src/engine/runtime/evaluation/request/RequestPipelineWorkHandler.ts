@@ -1,3 +1,4 @@
+import ForgeInternalError from '../../../errors/ForgeInternalError'
 import type { CompletedWork, WorkContextContract, WorkHandler } from '../../../contracts/runtime/work.type'
 import type { RequestPipelineWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type {
@@ -62,7 +63,7 @@ function resolveResult(children: readonly CompletedWork[]): RequestPipelineResul
     }
   }
 
-  throw new Error('[Forge] Request pipeline produced no terminal outcome')
+  throw new ForgeInternalError('Request pipeline produced no terminal outcome')
 }
 
 // The pipeline's children are heterogeneous phases that all produce PhaseWorkOutput,

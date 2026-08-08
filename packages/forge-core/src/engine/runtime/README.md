@@ -188,7 +188,7 @@ Runtime executes that work against one request.
 - Field validation failures attach to render blocks by `blockId`.
   Field code is answer identity and debug metadata, not render block identity.
 - Route tree construction allows a step route to occupy the same template path as a journey route.
-  Other duplicate concrete routes throw `DuplicateRouteError`.
+  Other duplicate concrete routes throw `ForgeDuplicateRouteError`.
 
 ## Constraints
 

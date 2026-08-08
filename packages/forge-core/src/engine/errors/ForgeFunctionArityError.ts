@@ -1,8 +1,6 @@
-import formatFields from '../../shared/utils/utils'
+import ForgeBaseError from './ForgeBaseError'
 
-interface FunctionArityErrorOptions {
-  /** Path to the function reference in the journey configuration */
-  path: (string | number)[]
+interface ForgeFunctionArityErrorOptions {
   /** Name of the function whose arity is wrong */
   functionName: string
   /** Type of the function (e.g. FunctionType.Condition) */
@@ -17,9 +15,7 @@ interface FunctionArityErrorOptions {
   callsite?: { readonly stack?: string }
 }
 
-export default class FunctionArityError extends Error {
-  readonly path: (string | number)[]
-
+export default class ForgeFunctionArityError extends ForgeBaseError {
   readonly functionName: string
 
   readonly functionType: string
@@ -28,33 +24,14 @@ export default class FunctionArityError extends Error {
 
   readonly received: number
 
-  readonly formattedPath?: string
-
-  readonly callsite?: { readonly stack?: string }
-
-  constructor(options: FunctionArityErrorOptions) {
+  constructor(options: ForgeFunctionArityErrorOptions) {
     super(
       `Function "${options.functionName}" expects ${options.expected} ${options.expected === '1' ? 'argument' : 'arguments'} but received ${options.received}`,
+      options,
     )
-    this.name = new.target.name
-    this.path = options.path
     this.functionName = options.functionName
     this.functionType = options.functionType
     this.expected = options.expected
     this.received = options.received
-    this.formattedPath = options.formattedPath
-    this.callsite = options.callsite
-  }
-
-  toString() {
-    const fields = [
-      { label: 'Path', value: this.formattedPath ?? (this.path.length > 0 ? this.path.join('.') : 'root') },
-      { label: 'Function', value: this.functionName },
-      { label: 'Type', value: this.functionType },
-      { label: 'Expected', value: this.expected },
-      { label: 'Received', value: this.received },
-    ]
-
-    return `${this.name}: ${this.message} [${formatFields(fields)}]`
   }
 }
