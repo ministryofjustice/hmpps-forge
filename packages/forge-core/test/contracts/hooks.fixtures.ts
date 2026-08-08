@@ -37,7 +37,6 @@ interface HooksEffectShape {
   CaptureRequest: () => EffectFunctionExpr
   CaptureAnswerIntrospection: (code: string) => EffectFunctionExpr
   CaptureRequestFull: () => EffectFunctionExpr
-  CaptureResponseReadback: () => EffectFunctionExpr
   CaptureAllData: () => EffectFunctionExpr
   CaptureFieldsToClear: () => EffectFunctionExpr
   DirectSetAnswer: (code: string, value: string) => EffectFunctionExpr
