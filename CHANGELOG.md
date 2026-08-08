@@ -64,10 +64,10 @@ the engine throws is one exported family of `Forge*` error classes.
 
 - The `Forge*` error classes are exported from core - catch and narrow with
   `instanceof`, and a single `instanceof ForgeBaseError` check answers "did Forge
-  throw this"
+  throw this" ([#229])
 - `ForgeAuthoringError` for authoring API misuse caught while builders are still
   assembling the definition, and `ForgeInternalError` for states the engine should
-  make impossible - seeing one is a bug in Forge
+  make impossible - seeing one is a bug in Forge ([#229])
 - `Defined at:` lines on every author-facing error, pointing at the builder call that
   defined the offending node ([#209], [#210])
 - List items can be blocks - `GovUKList` items may mix strings with child blocks, and
@@ -83,7 +83,7 @@ the engine throws is one exported family of `Forge*` error classes.
 - `createForgePackage()` is mandatory - registration rejects anything that hasn't
   passed through it, and `journey` also accepts a JSON string ([#209])
 - The engine's errors follow one `Forge`-prefixed naming scheme on a shared
-  `ForgeBaseError` base class
+  `ForgeBaseError` base class ([#229])
 - `core/framework` is types-only - the path utilities are no longer exported, so copy
   the ones you used into your adapter; they're a few lines each ([#212])
 
@@ -98,7 +98,7 @@ the engine throws is one exported family of `Forge*` error classes.
   intended surface, and `ConditionalExpr` covers the variant types.
   `PredicateTestExprBuilder` is deleted outright; it was dead code ([#208])
 - Error codes and the error `toString()` implementations - the class is the
-  discriminator now
+  discriminator now ([#229])
 
 ### Fixed
 
@@ -153,7 +153,7 @@ exported from core so you can catch and narrow with `instanceof`. The codes and
 `toString()` implementations are binned - the class is the discriminator. Two classes
 are new: `ForgeAuthoringError` for authoring API misuse caught while the builders are
 still assembling the definition, and `ForgeInternalError` for states the engine should
-make impossible.
+make impossible. ([#229])
 
 #### Under the hood
 
@@ -185,7 +185,7 @@ make impossible.
 - `NodeFactory` is table-driven dispatch now - a creator table with one row per node
   type, and `ForgeUnknownNodeTypeError` for a type the table has no row for ([#219])
 - Raw `Error` throws across the engine and authoring internals moved onto the Forge
-  error classes
+  error classes ([#229])
 
 [#203]: https://github.com/ministryofjustice/hmpps-forge/pull/203
 [#206]: https://github.com/ministryofjustice/hmpps-forge/pull/206
@@ -195,6 +195,7 @@ make impossible.
 [#211]: https://github.com/ministryofjustice/hmpps-forge/pull/211
 [#212]: https://github.com/ministryofjustice/hmpps-forge/pull/212
 [#219]: https://github.com/ministryofjustice/hmpps-forge/pull/219
+[#229]: https://github.com/ministryofjustice/hmpps-forge/pull/229
 
 ---
 
