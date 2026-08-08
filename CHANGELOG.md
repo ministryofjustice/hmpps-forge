@@ -186,6 +186,11 @@ make impossible. ([#229])
   type, and `ForgeUnknownNodeTypeError` for a type the table has no row for ([#219])
 - Raw `Error` throws across the engine and authoring internals moved onto the Forge
   error classes ([#229])
+- A tidy-up of the export surface - a bunch of symbols only used inside their own
+  file are no longer exported, dead typeguards and type aliases are deleted, and four
+  unused devDependencies are gone. The contract tests' `test/` folder is typechecked
+  now too, which caught stale imports from the `framework/types` move and a
+  declared-but-never-implemented effect in the hooks fixtures ([#230])
 
 [#203]: https://github.com/ministryofjustice/hmpps-forge/pull/203
 [#206]: https://github.com/ministryofjustice/hmpps-forge/pull/206
@@ -196,6 +201,7 @@ make impossible. ([#229])
 [#212]: https://github.com/ministryofjustice/hmpps-forge/pull/212
 [#219]: https://github.com/ministryofjustice/hmpps-forge/pull/219
 [#229]: https://github.com/ministryofjustice/hmpps-forge/pull/229
+[#230]: https://github.com/ministryofjustice/hmpps-forge/pull/230
 
 ---
 
