@@ -10,8 +10,6 @@ import type { ResolveBlocksOutput } from '../contracts/resolveBlocksOutput.type'
 import { childOutputs } from '../../../runtime/evaluation/work/workTask'
 import { RESOLVE_BLOCK_KIND, type ResolveBlockWorkTask } from './ResolveBlockWorkHandler'
 
-export type { ResolveBlocksOutput } from '../contracts/resolveBlocksOutput.type'
-
 export interface ResolveBlocksWorkProps {
   readonly blocks: readonly ResolveBlockWorkTask[]
   readonly step: Record<string, unknown>

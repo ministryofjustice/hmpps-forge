@@ -140,6 +140,145 @@ export default [
               message:
                 'concerns/*/contracts is a runtime-free sink and must not import concern analysis, lowering, or runtime code.',
             },
+            // Concern isolation. A concern owns its whole vertical slice, so by default no
+            // concern may import another concern's files. One zone per concern lists every
+            // other concern it may NOT import; each zone omits the concerns it is sanctioned
+            // to import. The sanctioned edges (importer -> imported) are:
+            //   entry-validation -> validation       (validity store read API)
+            //   hooks            -> validation       (stepValidity / stepValidityState / validity result types)
+            //   reachability     -> validation       (validity filter read)
+            //   resolve          -> validation       (validationResult type)
+            //   validation       -> hooks            (SubmitValidationWorkHandler uses the hook work-stage contracts)
+            //   resolve          -> render           (renderBlock brand)
+            //   resolve          -> reachability     (backlink + redirect helpers, evaluation type)
+            //   answer-cleardown -> reachability     (JourneyReachabilityProjection)
+            //   reachability     -> answer-cleardown (StepFieldInventoryCompiler + inventory type)
+            //   reachability     -> route            (JourneyRouteTemplateCatalog)
+            {
+              target: './forge-core/src/engine/concerns/answer-cleardown/**',
+              from: [
+                './forge-core/src/engine/concerns/answer-preparation/**',
+                './forge-core/src/engine/concerns/entry-validation/**',
+                './forge-core/src/engine/concerns/hooks/**',
+                './forge-core/src/engine/concerns/render/**',
+                './forge-core/src/engine/concerns/resolve/**',
+                './forge-core/src/engine/concerns/route/**',
+                './forge-core/src/engine/concerns/validation/**',
+              ],
+              message:
+                'concerns must not import other concerns except sanctioned edges — see the comment above these zones.',
+            },
+            {
+              target: './forge-core/src/engine/concerns/answer-preparation/**',
+              from: [
+                './forge-core/src/engine/concerns/answer-cleardown/**',
+                './forge-core/src/engine/concerns/entry-validation/**',
+                './forge-core/src/engine/concerns/hooks/**',
+                './forge-core/src/engine/concerns/reachability/**',
+                './forge-core/src/engine/concerns/render/**',
+                './forge-core/src/engine/concerns/resolve/**',
+                './forge-core/src/engine/concerns/route/**',
+                './forge-core/src/engine/concerns/validation/**',
+              ],
+              message:
+                'concerns must not import other concerns except sanctioned edges — see the comment above these zones.',
+            },
+            {
+              target: './forge-core/src/engine/concerns/entry-validation/**',
+              from: [
+                './forge-core/src/engine/concerns/answer-cleardown/**',
+                './forge-core/src/engine/concerns/answer-preparation/**',
+                './forge-core/src/engine/concerns/hooks/**',
+                './forge-core/src/engine/concerns/reachability/**',
+                './forge-core/src/engine/concerns/render/**',
+                './forge-core/src/engine/concerns/resolve/**',
+                './forge-core/src/engine/concerns/route/**',
+              ],
+              message:
+                'concerns must not import other concerns except sanctioned edges — see the comment above these zones.',
+            },
+            {
+              target: './forge-core/src/engine/concerns/hooks/**',
+              from: [
+                './forge-core/src/engine/concerns/answer-cleardown/**',
+                './forge-core/src/engine/concerns/answer-preparation/**',
+                './forge-core/src/engine/concerns/entry-validation/**',
+                './forge-core/src/engine/concerns/reachability/**',
+                './forge-core/src/engine/concerns/render/**',
+                './forge-core/src/engine/concerns/resolve/**',
+                './forge-core/src/engine/concerns/route/**',
+              ],
+              message:
+                'concerns must not import other concerns except sanctioned edges — see the comment above these zones.',
+            },
+            {
+              target: './forge-core/src/engine/concerns/reachability/**',
+              from: [
+                './forge-core/src/engine/concerns/answer-preparation/**',
+                './forge-core/src/engine/concerns/entry-validation/**',
+                './forge-core/src/engine/concerns/hooks/**',
+                './forge-core/src/engine/concerns/render/**',
+                './forge-core/src/engine/concerns/resolve/**',
+              ],
+              message:
+                'concerns must not import other concerns except sanctioned edges — see the comment above these zones.',
+            },
+            {
+              target: './forge-core/src/engine/concerns/render/**',
+              from: [
+                './forge-core/src/engine/concerns/answer-cleardown/**',
+                './forge-core/src/engine/concerns/answer-preparation/**',
+                './forge-core/src/engine/concerns/entry-validation/**',
+                './forge-core/src/engine/concerns/hooks/**',
+                './forge-core/src/engine/concerns/reachability/**',
+                './forge-core/src/engine/concerns/resolve/**',
+                './forge-core/src/engine/concerns/route/**',
+                './forge-core/src/engine/concerns/validation/**',
+              ],
+              message:
+                'concerns must not import other concerns except sanctioned edges — see the comment above these zones.',
+            },
+            {
+              target: './forge-core/src/engine/concerns/resolve/**',
+              from: [
+                './forge-core/src/engine/concerns/answer-cleardown/**',
+                './forge-core/src/engine/concerns/answer-preparation/**',
+                './forge-core/src/engine/concerns/entry-validation/**',
+                './forge-core/src/engine/concerns/hooks/**',
+                './forge-core/src/engine/concerns/route/**',
+              ],
+              message:
+                'concerns must not import other concerns except sanctioned edges — see the comment above these zones.',
+            },
+            {
+              target: './forge-core/src/engine/concerns/route/**',
+              from: [
+                './forge-core/src/engine/concerns/answer-cleardown/**',
+                './forge-core/src/engine/concerns/answer-preparation/**',
+                './forge-core/src/engine/concerns/entry-validation/**',
+                './forge-core/src/engine/concerns/hooks/**',
+                './forge-core/src/engine/concerns/reachability/**',
+                './forge-core/src/engine/concerns/render/**',
+                './forge-core/src/engine/concerns/resolve/**',
+                './forge-core/src/engine/concerns/validation/**',
+              ],
+              message:
+                'concerns must not import other concerns except sanctioned edges — see the comment above these zones.',
+            },
+            {
+              target: './forge-core/src/engine/concerns/validation/**',
+              from: [
+                './forge-core/src/engine/concerns/answer-cleardown/**',
+                './forge-core/src/engine/concerns/answer-preparation/**',
+                './forge-core/src/engine/concerns/entry-validation/**',
+                './forge-core/src/engine/concerns/reachability/**',
+                './forge-core/src/engine/concerns/render/**',
+                './forge-core/src/engine/concerns/resolve/**',
+                './forge-core/src/engine/concerns/route/**',
+              ],
+              message:
+                'concerns must not import other concerns except sanctioned edges — see the comment above these zones.',
+            },
           ],
         },
       ],
