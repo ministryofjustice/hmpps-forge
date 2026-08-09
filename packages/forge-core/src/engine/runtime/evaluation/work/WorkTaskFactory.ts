@@ -10,15 +10,15 @@ import type {
   AnswerPreparationWorkProps,
   FieldAnswerPreparationWorkProps,
   FieldAnswerPreparationWorkTask,
-} from '../../../contracts/runtime/AnswerPreparationWork.type'
+} from '../../../concerns/answer-preparation/contracts/AnswerPreparationWork.type'
 import {
   ANSWER_PREPARATION_WORK_HANDLER,
   ANSWER_PREPARATION_WORK_INSTRUMENTATION,
-} from '../phases/answer-preparation/AnswerPreparationWorkHandler'
+} from '../../../concerns/answer-preparation/runtime/AnswerPreparationWorkHandler'
 import {
   FIELD_ANSWER_PREPARATION_WORK_HANDLER,
   FIELD_ANSWER_PREPARATION_WORK_INSTRUMENTATION,
-} from '../phases/answer-preparation/FieldAnswerPreparationWorkHandler'
+} from '../../../concerns/answer-preparation/runtime/FieldAnswerPreparationWorkHandler'
 import type {
   DomainValidationWorkProps,
   DomainValidationWorkTask,
@@ -115,7 +115,7 @@ import {
 import {
   REQUEST_ANSWER_PREPARATION_WORK_HANDLER,
   REQUEST_ANSWER_PREPARATION_WORK_INSTRUMENTATION,
-} from '../request/RequestAnswerPreparationWorkHandler'
+} from '../../../concerns/answer-preparation/runtime/RequestAnswerPreparationWorkHandler'
 import {
   REQUEST_ENTRY_VALIDATION_WORK_HANDLER,
   REQUEST_ENTRY_VALIDATION_WORK_INSTRUMENTATION,

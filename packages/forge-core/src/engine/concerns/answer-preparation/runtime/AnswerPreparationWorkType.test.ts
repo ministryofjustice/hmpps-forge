@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
-import { createWorkTask } from '../../work/workTask'
-import WorkContext from '../../work/WorkContext'
-import WorkExecutor from '../../work/WorkExecutor'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import { createWorkTask } from '../../../runtime/evaluation/work/workTask'
+import WorkContext from '../../../runtime/evaluation/work/WorkContext'
+import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
 import {
   ANSWER_PREPARATION_KIND,
   ANSWER_PREPARATION_WORK_HANDLER,

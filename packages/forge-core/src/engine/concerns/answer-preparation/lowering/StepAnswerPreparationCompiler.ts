@@ -1,24 +1,26 @@
-import { ExpressionType, FunctionType } from '../../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../../contracts/ast/enums'
-import { FieldBlockASTNode } from '../../../../contracts/ast/structures.type'
-import { IterateASTNode } from '../../../../contracts/ast/expressions.type'
-import { TemplateNode, TemplateValue } from '../../../../contracts/ast/template.type'
-import { isASTNode } from '../../../../contracts/ast/nodes'
-import CodeEmitter from '../../emitters/CodeEmitter'
-import FieldCodeEmitter from '../../emitters/FieldCodeEmitter'
-import ScopedTemplateCompiler, { isTemplateFieldNode } from '../../structures/ScopedTemplateCompiler'
-import RuntimeValueCompiler from '../../structures/RuntimeValueCompiler'
+import { ExpressionType, FunctionType } from '../../../../authoring/types/enums'
+import { ASTNodeType } from '../../../contracts/ast/enums'
+import { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
+import { IterateASTNode } from '../../../contracts/ast/expressions.type'
+import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
+import { isASTNode } from '../../../contracts/ast/nodes'
+import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
+import ScopedTemplateCompiler, {
+  isTemplateFieldNode,
+} from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
+import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
 import {
   buildGeneratedSource,
   compileGeneratedFunction,
   GENERATED_FUNCTION_HELPERS_PARAM,
-} from '../../function-construction/GeneratedFunctionCompiler'
-import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
-import type ComponentRegistry from '../../../../registries/ComponentRegistry'
-import type { CompilationDependencies } from '../../compilationDependencies.type'
+} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
+import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
+import type ComponentRegistry from '../../../registries/ComponentRegistry'
+import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 
-import type { CompiledAnswerPreparationFunction } from '../../../../contracts/compiled/compiledFunctions.type'
-import ForgeInternalError from '../../../../errors/ForgeInternalError'
+import type { CompiledAnswerPreparationFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 interface TransformerFunctionCall {
   readonly name: string

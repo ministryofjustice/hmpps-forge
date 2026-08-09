@@ -1,12 +1,12 @@
-import { buildCompiledAnswerPreparationContext } from '../context/compiledEvaluationContext'
-import { ANSWER_PREPARATION_KIND } from '../phases/answer-preparation/AnswerPreparationWorkHandler'
+import { buildCompiledAnswerPreparationContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
+import { ANSWER_PREPARATION_KIND } from './AnswerPreparationWorkHandler'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
 } from '../../../contracts/runtime/work.type'
-import { phaseInstrumentation, runTaskPhase } from './requestPhase'
+import { phaseInstrumentation, runTaskPhase } from '../../../runtime/evaluation/request/requestPhase'
 import type { RequestAnswerPreparationWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 

@@ -1,7 +1,7 @@
 import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { StepASTNode } from '../../../contracts/ast/structures.type'
 import type { AnswerPreparationInputs, JourneyCompilationInputs } from '../../../contracts/plans/compilationPlan.type'
-import type FieldInventoryAnalyzer from '../shared/FieldInventoryAnalyzer'
+import type FieldInventoryAnalyzer from '../../../compilation/dependency-analysis/shared/FieldInventoryAnalyzer'
 
 export default class AnswerPreparationInputAnalyzer {
   constructor(private readonly fieldInventoryAnalyzer: FieldInventoryAnalyzer) {}

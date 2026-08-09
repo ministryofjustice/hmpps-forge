@@ -1,38 +1,32 @@
 /* eslint-disable no-new-func */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z, type ZodType } from 'zod'
-import { ASTTestFactory } from '../../../ast/testing-helpers/ASTTestFactory'
-import { ASTNodeType } from '../../../../contracts/ast/enums'
-import {
-  BlockType,
-  ExpressionType,
-  FunctionType,
-  IteratorType,
-  PredicateType,
-} from '../../../../../authoring/types/enums'
+import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
+import { ASTNodeType } from '../../../contracts/ast/enums'
+import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   formatGeneratorsRegistry,
-} from '../../../../../built-ins/functions/generators/formatGenerators'
-import { FieldBlockASTNode } from '../../../../contracts/ast/structures.type'
-import { FunctionASTNode, IterateASTNode, ReferenceASTNode } from '../../../../contracts/ast/expressions.type'
-import { TestPredicateASTNode } from '../../../../contracts/ast/predicates.type'
-import { TemplateValue } from '../../../../contracts/ast/template.type'
-import { compileTemplate } from '../../../ast/nodes/template'
-import { NodeIDGenerator } from '../../../ast/ast-state/NodeIDGenerator'
-import FunctionRegistry from '../../../../registries/FunctionRegistry'
-import ComponentRegistry from '../../../../registries/ComponentRegistry'
-import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
-import { generatedFunctionHelpers } from '../../function-construction/GeneratedFunctionHelpers'
-import type { CompilationDependencies } from '../../compilationDependencies.type'
+} from '../../../../built-ins/functions/generators/formatGenerators'
+import { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
+import { FunctionASTNode, IterateASTNode, ReferenceASTNode } from '../../../contracts/ast/expressions.type'
+import { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
+import { TemplateValue } from '../../../contracts/ast/template.type'
+import { compileTemplate } from '../../../compilation/ast/nodes/template'
+import { NodeIDGenerator } from '../../../compilation/ast/ast-state/NodeIDGenerator'
+import FunctionRegistry from '../../../registries/FunctionRegistry'
+import ComponentRegistry from '../../../registries/ComponentRegistry'
+import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
+import { generatedFunctionHelpers } from '../../../compilation/lowering/function-construction/GeneratedFunctionHelpers'
+import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import StepAnswerPreparationCompiler from './StepAnswerPreparationCompiler'
-import type { CompiledAnswerPreparationFunction } from '../../../../contracts/compiled/compiledFunctions.type'
-import type { CompiledAnswerPreparationContext } from '../../../../contracts/compiled/compiledContexts.type'
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
-import WorkContext from '../../../../runtime/evaluation/work/WorkContext'
-import WorkExecutor from '../../../../runtime/evaluation/work/WorkExecutor'
-import { isWorkTask } from '../../../../runtime/evaluation/work/workTask'
-import WorkTaskFactory from '../../../../runtime/evaluation/work/WorkTaskFactory'
+import type { CompiledAnswerPreparationFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type { CompiledAnswerPreparationContext } from '../../../contracts/compiled/compiledContexts.type'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import WorkContext from '../../../runtime/evaluation/work/WorkContext'
+import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
+import { isWorkTask } from '../../../runtime/evaluation/work/workTask'
+import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
 
 function createSyncRegistry(...funcNames: string[]): FunctionRegistry {
   const registry = new FunctionRegistry()

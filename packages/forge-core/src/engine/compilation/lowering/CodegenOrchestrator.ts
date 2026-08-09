@@ -23,7 +23,7 @@ import StepValidationCompiler from '../../concerns/validation/lowering/StepValid
 import ReachabilityCompiler from './phase-compilers/reachability/ReachabilityCompiler'
 import { evaluateReachabilityState } from './function-construction/reachability/evaluateReachabilityState'
 import StepResolveCompiler from '../../concerns/resolve/lowering/StepResolveCompiler'
-import StepAnswerPreparationCompiler from './phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
+import StepAnswerPreparationCompiler from '../../concerns/answer-preparation/lowering/StepAnswerPreparationCompiler'
 import HookLifecycleCompiler from '../../concerns/hooks/lowering/HookLifecycleCompiler'
 import RouteMetadataCompiler from '../../concerns/route/lowering/RouteMetadataCompiler'
 import CompilationTracer from '../../diagnostics/tracing/CompilationTracer'

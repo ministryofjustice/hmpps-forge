@@ -3,15 +3,12 @@ import type {
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
-import { childOutputs } from '../../work/workTask'
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
+} from '../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import { childOutputs } from '../../../runtime/evaluation/work/workTask'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import { FIELD_ANSWER_PREPARATION_KIND } from './FieldAnswerPreparationWorkHandler'
-import type {
-  AnswerPreparationResult,
-  AnswerPreparationWorkProps,
-} from '../../../../contracts/runtime/AnswerPreparationWork.type'
+import type { AnswerPreparationResult, AnswerPreparationWorkProps } from '../contracts/AnswerPreparationWork.type'
 
 export const ANSWER_PREPARATION_KIND = 'answer.preparation'
 
