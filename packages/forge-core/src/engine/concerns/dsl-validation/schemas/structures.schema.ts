@@ -8,7 +8,7 @@ import {
   OutcomeType,
   PredicateType,
   StructureType,
-} from '../../../authoring/types/enums'
+} from '../../../../authoring/types/enums'
 import { ReferenceExprSchema, PipelineExprSchema, IterateExprSchema, ResolvableValueSchema } from './expressions.schema'
 import { PredicateExprSchema, ConditionalExprSchema, MatchExprSchema, HookOutcomeSchema } from './predicates.schema'
 import {

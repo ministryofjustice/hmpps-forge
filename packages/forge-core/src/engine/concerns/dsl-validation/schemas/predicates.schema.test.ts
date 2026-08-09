@@ -1,5 +1,5 @@
 import { ConditionNotExprSchema, MatchBranchSchema, MatchExprSchema } from './predicates.schema'
-import { ConditionCombinatorType, ExpressionType, FunctionType, PredicateType } from '../../../authoring/types/enums'
+import { ConditionCombinatorType, ExpressionType, FunctionType, PredicateType } from '../../../../authoring/types/enums'
 
 describe('predicates.schema', () => {
   const condition = (value: string) => ({ type: FunctionType.CONDITION, name: 'Equals', arguments: [value] })

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { FunctionType } from '../../../authoring/types/enums'
+import { FunctionType } from '../../../../authoring/types/enums'
 
 /**
  * Simple ResolvableValue for function arguments

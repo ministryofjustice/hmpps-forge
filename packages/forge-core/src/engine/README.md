@@ -15,10 +15,11 @@ request. That order is fixed and every stage assumes the previous one's output.
 The **concern** axis is the domain question being answered. Validation, reachability, resolve, and the rest each
 have a compile-time half and a runtime half, and those halves only make sense read together.
 
-The stage axis is the outer structure of the chassis - `authoring-validation/`, `compilation/`, `runtime/`,
-`contracts/`. The concern axis is the outer structure of everything else: each concern owns a vertical slice under
-`concerns/<name>/`, with `analysis/`, `lowering/`, `runtime/`, and `contracts/` inside it. The stages still exist;
-they are now the inner axis.
+The stage axis is the outer structure of the chassis - `compilation/`, `runtime/`, `contracts/`. The concern
+axis is the outer structure of everything else: each concern owns a vertical slice under `concerns/<name>/`,
+with `analysis/`, `lowering/`, `runtime/`, and `contracts/` inside it. The stages still exist; they are now
+the inner axis. DSL validation is the one concern with no stage folders - its whole job happens before the
+AST exists.
 
 ## The Four Stages
 
@@ -29,7 +30,7 @@ they are now the inner axis.
 
 ```mermaid
 flowchart TD
-  dsl["DSL: authored journey definition"] -->|"JSON + Zod checks"| schema["Authoring Validation"]
+  dsl["DSL: authored journey definition"] -->|"JSON + Zod checks"| schema["DSL Validation"]
   schema -->|"validated JourneyDefinition"| compilation["Compilation"]
   compilation -->|"CompiledPackage"| mounting["Mounting"]
   mounting -->|"MountedNode"| runtime["Runtime"]
@@ -53,10 +54,10 @@ Important entry points:
 - [../built-ins/functions/conditions](../built-ins/functions/conditions), [../built-ins/functions/generators](../built-ins/functions/generators), and [../built-ins/functions/transformers](../built-ins/functions/transformers) define built-in function sets.
 - [../authoring/utils/deprecated](../authoring/utils/deprecated) contains helpers for defining functions and function scopes.
 
-### Authoring Validation
+### DSL Validation
 
-Authoring validation is the first engine check.
-It lives under [authoring-validation](authoring-validation).
+DSL validation is the first engine check.
+It lives under [concerns/dsl-validation](concerns/dsl-validation).
 
 This stage checks that the authored definition is JSON-compatible and matches the broad Zod schemas.
 It catches shape errors before the compiler builds AST nodes.
@@ -66,7 +67,7 @@ This stage does not know enough to answer semantic questions.
 It cannot decide whether `Item()` is inside an iterator, whether an effect function is inside a hook, or whether a component variant is registered.
 Those checks need compiler state.
 
-Read [authoring-validation/README.md](authoring-validation/README.md) for details.
+Read [concerns/dsl-validation/README.md](concerns/dsl-validation/README.md) for details.
 
 ### Compilation
 
@@ -148,7 +149,7 @@ one of them is listed both in the importing concern's README and in the comment 
 Everything that is not a concern is chassis - the machinery that runs concerns in the right order without knowing
 what any of them mean.
 
-- [authoring-validation](authoring-validation) runs the pre-AST JSON and Zod checks.
+- [concerns/dsl-validation](concerns/dsl-validation) runs the pre-AST JSON and Zod checks.
 - [compilation](compilation) owns phase order, the AST, semantic analysis, plan assembly, the expression and emitter layers, and generated-function construction.
 - [runtime](runtime) owns the request pipeline order, the work executor, the compiled-function contexts, and trace projection.
 - [contracts](contracts) owns the kernel types every layer shares: AST, compiled functions, plans, and runtime plumbing.
@@ -165,6 +166,6 @@ what any of them mean.
 
 - To follow the whole path, read this file, then [compilation/README.md](compilation/README.md), then [runtime/README.md](runtime/README.md).
 - To change one domain question - validation, reachability, resolve - start at that concern's README and read its stage folders in order. You should not need to open another concern.
-- To debug authoring shape errors, start in [authoring-validation](authoring-validation).
+- To debug authoring shape errors, start in [concerns/dsl-validation](concerns/dsl-validation).
 - To debug generated runtime behavior, start in the concern's `lowering/` folder and the matching `runtime/` folder next to it.
 - To debug one request, start in [runtime/RequestEvaluator.ts](runtime/RequestEvaluator.ts) and [runtime/evaluation/request](runtime/evaluation/request).

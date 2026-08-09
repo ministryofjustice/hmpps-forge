@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { PredicateType, ExpressionType, OutcomeType, ConditionCombinatorType } from '../../../authoring/types/enums'
+import { PredicateType, ExpressionType, OutcomeType, ConditionCombinatorType } from '../../../../authoring/types/enums'
 import { ResolvableValueSchema } from './expressions.schema'
 import { ConditionFunctionExprSchema } from './base.schema'
 

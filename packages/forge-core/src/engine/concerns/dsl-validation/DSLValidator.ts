@@ -1,9 +1,9 @@
-import type { JourneyDefinition } from '../../authoring/types/structures.type'
-import ForgeSerialisationError from '../errors/ForgeSerialisationError'
-import ForgeSchemaError from '../errors/ForgeSchemaError'
+import type { JourneyDefinition } from '../../../authoring/types/structures.type'
+import ForgeSerialisationError from '../../errors/ForgeSerialisationError'
+import ForgeSchemaError from '../../errors/ForgeSchemaError'
 import { JourneySchema } from './schemas/structures.schema'
-import DSLSourceLocator from '../../shared/diagnostics/DSLSourceLocator'
-import type { DSLPathSegment } from '../../shared/diagnostics/sourceLocation.type'
+import DSLSourceLocator from '../../../shared/diagnostics/DSLSourceLocator'
+import type { DSLPathSegment } from '../../../shared/diagnostics/sourceLocation.type'
 
 export class DSLValidator {
   static validateSchema(input: unknown): asserts input is JourneyDefinition {

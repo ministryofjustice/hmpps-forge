@@ -7,11 +7,11 @@ import {
   ExpressionType,
   BlockType,
   IteratorType,
-} from '../../authoring/types/enums'
-import type { JourneyDefinition, StepDefinition } from '../../authoring/types/structures.type'
-import type { FieldBlockDefinition, ResolvableBoolean } from '../../components/types/structures.type'
-import ForgeSerialisationError from '../errors/ForgeSerialisationError'
-import ForgeSchemaError from '../errors/ForgeSchemaError'
+} from '../../../authoring/types/enums'
+import type { JourneyDefinition, StepDefinition } from '../../../authoring/types/structures.type'
+import type { FieldBlockDefinition, ResolvableBoolean } from '../../../components/types/structures.type'
+import ForgeSerialisationError from '../../errors/ForgeSerialisationError'
+import ForgeSchemaError from '../../errors/ForgeSchemaError'
 import { DSLValidator } from './DSLValidator'
 
 describe('FormValidator', () => {

@@ -154,10 +154,13 @@ export default [
             //   answer-cleardown -> reachability     (JourneyReachabilityProjection)
             //   reachability     -> answer-cleardown (StepFieldInventory, type-only)
             //   reachability     -> route            (JourneyRouteTemplateCatalog)
+            // dsl-validation (Zod checks on the raw authored shape) has no sanctioned edges
+            // in either direction: it sees only authoring types, never other concerns.
             {
               target: './forge-core/src/engine/concerns/answer-cleardown/**',
               from: [
                 './forge-core/src/engine/concerns/answer-preparation/**',
+                './forge-core/src/engine/concerns/dsl-validation/**',
                 './forge-core/src/engine/concerns/entry-validation/**',
                 './forge-core/src/engine/concerns/hooks/**',
                 './forge-core/src/engine/concerns/render/**',
@@ -172,6 +175,7 @@ export default [
               target: './forge-core/src/engine/concerns/answer-preparation/**',
               from: [
                 './forge-core/src/engine/concerns/answer-cleardown/**',
+                './forge-core/src/engine/concerns/dsl-validation/**',
                 './forge-core/src/engine/concerns/entry-validation/**',
                 './forge-core/src/engine/concerns/hooks/**',
                 './forge-core/src/engine/concerns/reachability/**',
@@ -188,6 +192,7 @@ export default [
               from: [
                 './forge-core/src/engine/concerns/answer-cleardown/**',
                 './forge-core/src/engine/concerns/answer-preparation/**',
+                './forge-core/src/engine/concerns/dsl-validation/**',
                 './forge-core/src/engine/concerns/hooks/**',
                 './forge-core/src/engine/concerns/reachability/**',
                 './forge-core/src/engine/concerns/render/**',
@@ -202,6 +207,7 @@ export default [
               from: [
                 './forge-core/src/engine/concerns/answer-cleardown/**',
                 './forge-core/src/engine/concerns/answer-preparation/**',
+                './forge-core/src/engine/concerns/dsl-validation/**',
                 './forge-core/src/engine/concerns/entry-validation/**',
                 './forge-core/src/engine/concerns/reachability/**',
                 './forge-core/src/engine/concerns/render/**',
@@ -215,6 +221,7 @@ export default [
               target: './forge-core/src/engine/concerns/reachability/**',
               from: [
                 './forge-core/src/engine/concerns/answer-preparation/**',
+                './forge-core/src/engine/concerns/dsl-validation/**',
                 './forge-core/src/engine/concerns/entry-validation/**',
                 './forge-core/src/engine/concerns/hooks/**',
                 './forge-core/src/engine/concerns/render/**',
@@ -228,6 +235,7 @@ export default [
               from: [
                 './forge-core/src/engine/concerns/answer-cleardown/**',
                 './forge-core/src/engine/concerns/answer-preparation/**',
+                './forge-core/src/engine/concerns/dsl-validation/**',
                 './forge-core/src/engine/concerns/entry-validation/**',
                 './forge-core/src/engine/concerns/hooks/**',
                 './forge-core/src/engine/concerns/reachability/**',
@@ -243,6 +251,7 @@ export default [
               from: [
                 './forge-core/src/engine/concerns/answer-cleardown/**',
                 './forge-core/src/engine/concerns/answer-preparation/**',
+                './forge-core/src/engine/concerns/dsl-validation/**',
                 './forge-core/src/engine/concerns/entry-validation/**',
                 './forge-core/src/engine/concerns/hooks/**',
                 './forge-core/src/engine/concerns/route/**',
@@ -255,6 +264,7 @@ export default [
               from: [
                 './forge-core/src/engine/concerns/answer-cleardown/**',
                 './forge-core/src/engine/concerns/answer-preparation/**',
+                './forge-core/src/engine/concerns/dsl-validation/**',
                 './forge-core/src/engine/concerns/entry-validation/**',
                 './forge-core/src/engine/concerns/hooks/**',
                 './forge-core/src/engine/concerns/reachability/**',
@@ -270,6 +280,7 @@ export default [
               from: [
                 './forge-core/src/engine/concerns/answer-cleardown/**',
                 './forge-core/src/engine/concerns/answer-preparation/**',
+                './forge-core/src/engine/concerns/dsl-validation/**',
                 './forge-core/src/engine/concerns/entry-validation/**',
                 './forge-core/src/engine/concerns/reachability/**',
                 './forge-core/src/engine/concerns/render/**',
@@ -278,6 +289,28 @@ export default [
               ],
               message:
                 'concerns must not import other concerns except sanctioned edges — see the comment above these zones.',
+            },
+            {
+              target: './forge-core/src/engine/concerns/dsl-validation/**',
+              from: [
+                './forge-core/src/engine/concerns/answer-cleardown/**',
+                './forge-core/src/engine/concerns/answer-preparation/**',
+                './forge-core/src/engine/concerns/entry-validation/**',
+                './forge-core/src/engine/concerns/hooks/**',
+                './forge-core/src/engine/concerns/reachability/**',
+                './forge-core/src/engine/concerns/render/**',
+                './forge-core/src/engine/concerns/resolve/**',
+                './forge-core/src/engine/concerns/route/**',
+                './forge-core/src/engine/concerns/validation/**',
+              ],
+              message:
+                'concerns must not import other concerns except sanctioned edges — see the comment above these zones.',
+            },
+            {
+              target: './forge-core/src/engine/concerns/dsl-validation/**',
+              from: ['./forge-core/src/engine/compilation', './forge-core/src/engine/runtime'],
+              message:
+                'dsl-validation checks the raw authored shape before the AST exists and must not import from compilation/ or runtime/.',
             },
           ],
         },

@@ -17,7 +17,7 @@ The AST phase has already turned the authored journey into typed nodes.
 That means semantic analysis can ask structural questions against `ASTNodeIndex` and each node's `parent` link instead of searching the raw DSL.
 For example, it can ask "is this `FunctionType.EFFECT` inside a hook?", "is this `ExpressionType.VALIDATION` inside `validWhen`?", and "is this block variant registered?".
 
-To some degree, the earlier [DSL validation](../../authoring-validation/README.md) stage protects the broad shape
+To some degree, the earlier [DSL validation](../../concerns/dsl-validation/README.md) stage protects the broad shape
 of the authored definition. It can check that a value looks like an iterator, a reference, a hook, or a block.
 That's about it, it cannot decide whether those values are semantically valid in their current position.
 For example, Zod can accept an `Item()` reference because the reference has the right shape.
