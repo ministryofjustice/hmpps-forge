@@ -46,15 +46,18 @@ import {
   RESOLVE_BLOCKS_WORK_HANDLER,
   RESOLVE_BLOCKS_WORK_INSTRUMENTATION,
 } from '../../../concerns/resolve/runtime/ResolveBlocksWorkHandler'
-import { RENDER_BLOCK_WORK_HANDLER, RENDER_BLOCK_WORK_INSTRUMENTATION } from '../phases/render/RenderBlockWorkHandler'
+import {
+  RENDER_BLOCK_WORK_HANDLER,
+  RENDER_BLOCK_WORK_INSTRUMENTATION,
+} from '../../../concerns/render/runtime/RenderBlockWorkHandler'
 import {
   RENDER_BLOCKS_WORK_HANDLER,
   RENDER_BLOCKS_WORK_INSTRUMENTATION,
-} from '../phases/render/RenderBlocksWorkHandler'
+} from '../../../concerns/render/runtime/RenderBlocksWorkHandler'
 import {
   RENDER_ASSEMBLE_PAGE_WORK_HANDLER,
   RENDER_ASSEMBLE_PAGE_WORK_INSTRUMENTATION,
-} from '../phases/render/RenderAssemblePageWorkHandler'
+} from '../../../concerns/render/runtime/RenderAssemblePageWorkHandler'
 import type {
   AccessHookWhenWorkProps,
   AccessHookWorkProps,
@@ -107,7 +110,10 @@ import {
   REQUEST_REACHABILITY_WORK_HANDLER,
   REQUEST_REACHABILITY_WORK_INSTRUMENTATION,
 } from '../request/RequestReachabilityWorkHandler'
-import { REQUEST_RENDER_WORK_HANDLER, REQUEST_RENDER_WORK_INSTRUMENTATION } from '../request/RequestRenderWorkHandler'
+import {
+  REQUEST_RENDER_WORK_HANDLER,
+  REQUEST_RENDER_WORK_INSTRUMENTATION,
+} from '../../../concerns/render/runtime/RequestRenderWorkHandler'
 import {
   REQUEST_RESOLVE_WORK_HANDLER,
   REQUEST_RESOLVE_WORK_INSTRUMENTATION,

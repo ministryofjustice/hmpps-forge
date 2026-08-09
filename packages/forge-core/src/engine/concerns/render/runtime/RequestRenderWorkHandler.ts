@@ -4,10 +4,10 @@ import type {
   WorkHandler,
   WorkInstrumentation,
 } from '../../../contracts/runtime/work.type'
-import { singleChildOutput } from '../work/workTask'
-import { phaseInstrumentation } from './requestPhase'
-import { RENDER_ASSEMBLE_PAGE_KIND } from '../phases/render/RenderAssemblePageWorkHandler'
-import WorkTaskFactory from '../work/WorkTaskFactory'
+import { singleChildOutput } from '../../../runtime/evaluation/work/workTask'
+import { phaseInstrumentation } from '../../../runtime/evaluation/request/requestPhase'
+import { RENDER_ASSEMBLE_PAGE_KIND } from './RenderAssemblePageWorkHandler'
+import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
 import type { RequestRenderWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'

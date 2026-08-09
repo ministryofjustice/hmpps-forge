@@ -1,19 +1,19 @@
-import type { RenderBlock, ForgeRenderer } from '../../../../../framework/types/rendering.type'
-import type { ComponentRegistry } from '../../../../../framework/types/adapter.type'
-import type { ComponentRegistryEntry } from '../../../../../components/types/components.type'
-import type { BlockDefinition } from '../../../../../components/types/structures.type'
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
+import type { RenderBlock, ForgeRenderer } from '../../../../framework/types/rendering.type'
+import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
+import type { ComponentRegistryEntry } from '../../../../components/types/components.type'
+import type { BlockDefinition } from '../../../../components/types/structures.type'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
-import ForgeUnregisteredComponentError from '../../../../errors/ForgeUnregisteredComponentError'
-import { childOutputs } from '../../work/workTask'
+} from '../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import ForgeUnregisteredComponentError from '../../../errors/ForgeUnregisteredComponentError'
+import { childOutputs } from '../../../runtime/evaluation/work/workTask'
 import { RENDER_BLOCK_KIND } from './RenderBlockWorkHandler'
-import WorkTaskFactory from '../../work/WorkTaskFactory'
+import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
 
 export interface RenderBlocksWorkProps {
   readonly blocks: readonly RenderBlock[]

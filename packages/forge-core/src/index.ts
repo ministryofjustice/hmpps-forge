@@ -3,7 +3,7 @@ export { default as FunctionRegistry } from './engine/registries/FunctionRegistr
 export { default as ComponentRegistry } from './engine/registries/ComponentRegistry'
 export { default as EffectFunctionContext } from './engine/runtime/evaluation/context/EffectFunctionContext'
 export { isRenderBlock } from './engine/concerns/resolve/runtime/typeguards'
-export { RENDER_BLOCK_BRAND } from './engine/contracts/compiled/renderBlock.brand'
+export { RENDER_BLOCK_BRAND } from './engine/concerns/render/contracts/renderBlock.brand'
 export { default as ForgeBaseError } from './engine/errors/ForgeBaseError'
 export { default as ForgeAuthoringError } from './engine/errors/ForgeAuthoringError'
 export { default as ForgeInternalError } from './engine/errors/ForgeInternalError'

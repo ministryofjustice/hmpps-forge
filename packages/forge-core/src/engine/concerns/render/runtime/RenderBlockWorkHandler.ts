@@ -1,20 +1,20 @@
-import type { ComponentRegistryEntry } from '../../../../../components/types/components.type'
-import type { BlockDefinition, EvaluatedBlock } from '../../../../../components/types/structures.type'
-import { StructureType } from '../../../../../authoring/types/enums'
-import { RENDER_BLOCK_BRAND } from '../../../../contracts/compiled/renderBlock.brand'
-import type { RenderBlock, ForgeRenderer } from '../../../../../framework/types/rendering.type'
-import type { ComponentRegistry } from '../../../../../framework/types/adapter.type'
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
+import type { ComponentRegistryEntry } from '../../../../components/types/components.type'
+import type { BlockDefinition, EvaluatedBlock } from '../../../../components/types/structures.type'
+import { StructureType } from '../../../../authoring/types/enums'
+import { RENDER_BLOCK_BRAND } from '../contracts/renderBlock.brand'
+import type { RenderBlock, ForgeRenderer } from '../../../../framework/types/rendering.type'
+import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
   WorkTask,
-} from '../../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
-import ForgeUnregisteredComponentError from '../../../../errors/ForgeUnregisteredComponentError'
-import WorkTaskFactory from '../../work/WorkTaskFactory'
+} from '../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import ForgeUnregisteredComponentError from '../../../errors/ForgeUnregisteredComponentError'
+import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
 
 export interface RenderBlockWorkProps {
   readonly block: RenderBlock

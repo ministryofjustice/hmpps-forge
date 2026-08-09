@@ -1,6 +1,6 @@
 import type { CompiledResolveBlockWorkProps } from '../../../contracts/compiled/compiledFunctions.type'
 import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
-import { RENDER_BLOCK_BRAND } from '../../../contracts/compiled/renderBlock.brand'
+import { RENDER_BLOCK_BRAND } from '../../render/contracts/renderBlock.brand'
 import type { RenderBlock } from '../../../../framework/types/rendering.type'
 import WorkTaskPropsWalker from '../../../runtime/evaluation/work/WorkTaskPropsWalker'
 import type {
