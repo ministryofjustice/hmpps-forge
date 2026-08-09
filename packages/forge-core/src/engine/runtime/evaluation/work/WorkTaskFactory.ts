@@ -41,11 +41,11 @@ import {
   RESOLVE_BLOCK_WORK_HANDLER,
   RESOLVE_BLOCK_WORK_INSTRUMENTATION,
   type ResolveBlockWorkTask,
-} from '../phases/resolve/ResolveBlockWorkHandler'
+} from '../../../concerns/resolve/runtime/ResolveBlockWorkHandler'
 import {
   RESOLVE_BLOCKS_WORK_HANDLER,
   RESOLVE_BLOCKS_WORK_INSTRUMENTATION,
-} from '../phases/resolve/ResolveBlocksWorkHandler'
+} from '../../../concerns/resolve/runtime/ResolveBlocksWorkHandler'
 import { RENDER_BLOCK_WORK_HANDLER, RENDER_BLOCK_WORK_INSTRUMENTATION } from '../phases/render/RenderBlockWorkHandler'
 import {
   RENDER_BLOCKS_WORK_HANDLER,
@@ -111,7 +111,7 @@ import { REQUEST_RENDER_WORK_HANDLER, REQUEST_RENDER_WORK_INSTRUMENTATION } from
 import {
   REQUEST_RESOLVE_WORK_HANDLER,
   REQUEST_RESOLVE_WORK_INSTRUMENTATION,
-} from '../request/RequestResolveWorkHandler'
+} from '../../../concerns/resolve/runtime/RequestResolveWorkHandler'
 import {
   REQUEST_ROUTE_TREE_WORK_HANDLER,
   REQUEST_ROUTE_TREE_WORK_INSTRUMENTATION,

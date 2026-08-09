@@ -1,31 +1,25 @@
 /* eslint-disable no-new-func */
-import { ASTTestFactory } from '../../../ast/testing-helpers/ASTTestFactory'
-import {
-  BlockType,
-  ExpressionType,
-  FunctionType,
-  IteratorType,
-  PredicateType,
-} from '../../../../../authoring/types/enums'
+import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
+import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   formatGeneratorsRegistry,
-} from '../../../../../built-ins/functions/generators/formatGenerators'
-import { stringTransformersRegistry } from '../../../../../built-ins/functions/transformers/stringTransformers'
-import { ASTNodeType } from '../../../../contracts/ast/enums'
-import { BlockASTNode, StepASTNode } from '../../../../contracts/ast/structures.type'
-import { IterateASTNode, ReferenceASTNode } from '../../../../contracts/ast/expressions.type'
-import { TemplateValue } from '../../../../contracts/ast/template.type'
-import { compileTemplate } from '../../../ast/nodes/template'
-import { NodeIDGenerator } from '../../../ast/ast-state/NodeIDGenerator'
-import FunctionRegistry from '../../../../registries/FunctionRegistry'
-import ComponentRegistry from '../../../../registries/ComponentRegistry'
-import type { CompilationDependencies } from '../../compilationDependencies.type'
-import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
-import type { CompiledResolveContext } from '../../../../contracts/compiled/compiledContexts.type'
-import type { CompiledResolveBlockWorkTask } from '../../../../contracts/compiled/compiledFunctions.type'
-import { isWorkTask } from '../../../../runtime/evaluation/work/workTask'
-import WorkTaskFactory from '../../../../runtime/evaluation/work/WorkTaskFactory'
+} from '../../../../built-ins/functions/generators/formatGenerators'
+import { stringTransformersRegistry } from '../../../../built-ins/functions/transformers/stringTransformers'
+import { ASTNodeType } from '../../../contracts/ast/enums'
+import { BlockASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
+import { IterateASTNode, ReferenceASTNode } from '../../../contracts/ast/expressions.type'
+import { TemplateValue } from '../../../contracts/ast/template.type'
+import { compileTemplate } from '../../../compilation/ast/nodes/template'
+import { NodeIDGenerator } from '../../../compilation/ast/ast-state/NodeIDGenerator'
+import FunctionRegistry from '../../../registries/FunctionRegistry'
+import ComponentRegistry from '../../../registries/ComponentRegistry'
+import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
+import type { CompiledResolveContext } from '../../../contracts/compiled/compiledContexts.type'
+import type { CompiledResolveBlockWorkTask } from '../../../contracts/compiled/compiledFunctions.type'
+import { isWorkTask } from '../../../runtime/evaluation/work/workTask'
+import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
 import StepResolveCompiler from './StepResolveCompiler'
 
 function createStep(): StepASTNode {

@@ -1,17 +1,17 @@
-import type { CompiledResolveBlockWorkProps } from '../../../../contracts/compiled/compiledFunctions.type'
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
-import { RENDER_BLOCK_BRAND } from '../../../../contracts/compiled/renderBlock.brand'
-import type { RenderBlock } from '../../../../../framework/types/rendering.type'
-import WorkTaskPropsWalker from '../../work/WorkTaskPropsWalker'
+import type { CompiledResolveBlockWorkProps } from '../../../contracts/compiled/compiledFunctions.type'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import { RENDER_BLOCK_BRAND } from '../../../contracts/compiled/renderBlock.brand'
+import type { RenderBlock } from '../../../../framework/types/rendering.type'
+import WorkTaskPropsWalker from '../../../runtime/evaluation/work/WorkTaskPropsWalker'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkTask,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
-import ForgeInternalError from '../../../../errors/ForgeInternalError'
+} from '../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 export type ResolveBlockWorkProps = CompiledResolveBlockWorkProps
 

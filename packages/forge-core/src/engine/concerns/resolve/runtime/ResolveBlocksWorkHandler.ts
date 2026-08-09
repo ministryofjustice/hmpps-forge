@@ -1,16 +1,16 @@
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
-import type { ResolveBlocksOutput } from '../../../../contracts/runtime/resolveBlocksOutput.type'
-import { childOutputs } from '../../work/workTask'
+} from '../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import type { ResolveBlocksOutput } from '../contracts/resolveBlocksOutput.type'
+import { childOutputs } from '../../../runtime/evaluation/work/workTask'
 import { RESOLVE_BLOCK_KIND, type ResolveBlockWorkTask } from './ResolveBlockWorkHandler'
 
-export type { ResolveBlocksOutput } from '../../../../contracts/runtime/resolveBlocksOutput.type'
+export type { ResolveBlocksOutput } from '../contracts/resolveBlocksOutput.type'
 
 export interface ResolveBlocksWorkProps {
   readonly blocks: readonly ResolveBlockWorkTask[]

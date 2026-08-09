@@ -6,7 +6,7 @@ import type { RenderBlock } from '../../../framework/types/rendering.type'
 import type { AnswerPreparationFieldResult, AnswerPreparationResult } from './AnswerPreparationWork.type'
 import type { HookStageResult } from './HookStage.type'
 import type { PhaseWorkOutput, RequestPipelineResult } from './RequestExecutionContext.type'
-import type { ResolveBlocksOutput } from './resolveBlocksOutput.type'
+import type { ResolveBlocksOutput } from '../../concerns/resolve/contracts/resolveBlocksOutput.type'
 
 /**
  * Single source of truth mapping every work `kind` to the output its work handler

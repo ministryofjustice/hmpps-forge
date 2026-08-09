@@ -22,7 +22,7 @@ import type {
 import StepValidationCompiler from './phase-compilers/validation/StepValidationCompiler'
 import ReachabilityCompiler from './phase-compilers/reachability/ReachabilityCompiler'
 import { evaluateReachabilityState } from './function-construction/reachability/evaluateReachabilityState'
-import StepResolveCompiler from './phase-compilers/resolve/StepResolveCompiler'
+import StepResolveCompiler from '../../concerns/resolve/lowering/StepResolveCompiler'
 import StepAnswerPreparationCompiler from './phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
 import HookLifecycleCompiler from './phase-compilers/hooks/HookLifecycleCompiler'
 import RouteMetadataCompiler from './phase-compilers/route-tree/RouteMetadataCompiler'

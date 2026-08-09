@@ -77,6 +77,69 @@ export default [
               message:
                 'lowering/ (codegen) may depend on ast/ + contracts/ but not semantic-analysis/, dependency-analysis/, or runtime/.',
             },
+            // Transitional concern-first zones. Files under concerns/<name>/ have left the
+            // stage folders above, so they need their own compile-time/runtime separation:
+            //   concerns/*/analysis   — compile-time; must not import runtime code
+            //   concerns/*/lowering   — compile-time; must not import runtime code
+            //   concerns/*/runtime    — execution; must not import compile-time code
+            //   concerns/*/contracts  — runtime-free sink
+            // `from` cannot mix glob and non-glob entries, so each rule is split into a
+            // glob zone (other concerns) and a plain-path zone (the not-yet-moved stages).
+            {
+              target: [
+                './forge-core/src/engine/concerns/*/analysis/**',
+                './forge-core/src/engine/concerns/*/lowering/**',
+              ],
+              from: './forge-core/src/engine/runtime',
+              message: 'concerns/*/analysis and concerns/*/lowering are compile-time and must not import runtime/.',
+            },
+            {
+              target: [
+                './forge-core/src/engine/concerns/*/analysis/**',
+                './forge-core/src/engine/concerns/*/lowering/**',
+              ],
+              from: './forge-core/src/engine/concerns/*/runtime/**',
+              message:
+                'concerns/*/analysis and concerns/*/lowering are compile-time and must not import concerns/*/runtime.',
+            },
+            {
+              target: './forge-core/src/engine/concerns/*/runtime/**',
+              from: './forge-core/src/engine/compilation',
+              message: 'concerns/*/runtime executes compiled output and must not import from compilation/.',
+            },
+            {
+              target: './forge-core/src/engine/concerns/*/runtime/**',
+              from: [
+                './forge-core/src/engine/concerns/*/analysis/**',
+                './forge-core/src/engine/concerns/*/lowering/**',
+              ],
+              message:
+                'concerns/*/runtime executes compiled output and must not import concerns/*/analysis or concerns/*/lowering.',
+            },
+            {
+              target: './forge-core/src/engine/runtime',
+              from: [
+                './forge-core/src/engine/concerns/*/analysis/**',
+                './forge-core/src/engine/concerns/*/lowering/**',
+              ],
+              message:
+                'runtime/ executes compiled output and must not import concerns/*/analysis or concerns/*/lowering.',
+            },
+            {
+              target: './forge-core/src/engine/concerns/*/contracts/**',
+              from: ['./forge-core/src/engine/compilation', './forge-core/src/engine/runtime'],
+              message: 'concerns/*/contracts is a runtime-free sink and must not import from compilation/ or runtime/.',
+            },
+            {
+              target: './forge-core/src/engine/concerns/*/contracts/**',
+              from: [
+                './forge-core/src/engine/concerns/*/analysis/**',
+                './forge-core/src/engine/concerns/*/lowering/**',
+                './forge-core/src/engine/concerns/*/runtime/**',
+              ],
+              message:
+                'concerns/*/contracts is a runtime-free sink and must not import concern analysis, lowering, or runtime code.',
+            },
           ],
         },
       ],

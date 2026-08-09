@@ -16,7 +16,7 @@ import ReachabilityPlanAnalyzer from './reachability/ReachabilityPlanAnalyzer'
 import AnswerPreparationInputAnalyzer from './answer-preparation/AnswerPreparationInputAnalyzer'
 import HookInputAnalyzer from './hooks/HookInputAnalyzer'
 import ValidationInputAnalyzer from './validation/ValidationInputAnalyzer'
-import ResolveInputAnalyzer from './resolve/ResolveInputAnalyzer'
+import ResolveInputAnalyzer from '../../concerns/resolve/analysis/ResolveInputAnalyzer'
 import RouteMetadataInputAnalyzer from './route-metadata/RouteMetadataInputAnalyzer'
 import ForgeInternalError from '../../errors/ForgeInternalError'
 

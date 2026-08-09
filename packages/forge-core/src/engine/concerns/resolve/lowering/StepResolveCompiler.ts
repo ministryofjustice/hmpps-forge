@@ -10,24 +10,26 @@
  * into the render result. FILTER/FIND/MAP iterators used as property values are
  * compiled inline as expressions. No runtime node expansion is required.
  */
-import { ASTNodeType } from '../../../../contracts/ast/enums'
-import { BlockType, IteratorType } from '../../../../../authoring/types/enums'
-import { BlockASTNode, JourneyASTNode, StepASTNode } from '../../../../contracts/ast/structures.type'
-import { IterateASTNode } from '../../../../contracts/ast/expressions.type'
-import { TemplateNode, TemplateValue } from '../../../../contracts/ast/template.type'
-import CodeEmitter from '../../emitters/CodeEmitter'
-import FieldCodeEmitter from '../../emitters/FieldCodeEmitter'
-import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
+import { ASTNodeType } from '../../../contracts/ast/enums'
+import { BlockType, IteratorType } from '../../../../authoring/types/enums'
+import { BlockASTNode, JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
+import { IterateASTNode } from '../../../contracts/ast/expressions.type'
+import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
+import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
+import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
   buildGeneratedSource,
   compileGeneratedFunction,
   GENERATED_FUNCTION_HELPERS_PARAM,
-} from '../../function-construction/GeneratedFunctionCompiler'
-import ScopedTemplateCompiler, { isTemplateBlockNode } from '../../structures/ScopedTemplateCompiler'
-import RuntimeValueCompiler from '../../structures/RuntimeValueCompiler'
-import type { CompilationDependencies } from '../../compilationDependencies.type'
+} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
+import ScopedTemplateCompiler, {
+  isTemplateBlockNode,
+} from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
+import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
+import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 
-import type { CompiledResolveFunction } from '../../../../contracts/compiled/compiledFunctions.type'
+import type { CompiledResolveFunction } from '../../../contracts/compiled/compiledFunctions.type'
 
 interface ResolveBlockValue {
   readonly id?: unknown

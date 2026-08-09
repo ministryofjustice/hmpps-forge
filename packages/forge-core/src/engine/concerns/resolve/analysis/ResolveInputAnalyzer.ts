@@ -2,7 +2,7 @@ import type { ASTNode } from '../../../contracts/ast/ast.type'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
 import type { ResolveInputs } from '../../../contracts/plans/compilationPlan.type'
-import type FieldInventoryAnalyzer from '../shared/FieldInventoryAnalyzer'
+import type FieldInventoryAnalyzer from '../../../compilation/dependency-analysis/shared/FieldInventoryAnalyzer'
 
 export default class ResolveInputAnalyzer {
   constructor(private readonly fieldInventoryAnalyzer: FieldInventoryAnalyzer) {}

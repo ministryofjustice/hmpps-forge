@@ -4,17 +4,17 @@ import type { ValidationResult } from '../../../contracts/runtime/validationResu
 import { resolvePathParams } from '../../../../shared/utils/routePath'
 import type { RenderContext } from '../../../../framework/types/rendering.type'
 import type { ViewConfig } from '../../../../authoring/types/structures.type'
-import { buildCompiledResolveContext } from '../context/compiledEvaluationContext'
-import { resolveBacklinkRouteTemplatePath } from '../phases/reachability/reachabilityRedirects'
-import { RESOLVE_BLOCKS_KIND } from '../phases/resolve/ResolveBlocksWorkHandler'
+import { buildCompiledResolveContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
+import { resolveBacklinkRouteTemplatePath } from '../../../runtime/evaluation/phases/reachability/reachabilityRedirects'
+import { RESOLVE_BLOCKS_KIND } from './ResolveBlocksWorkHandler'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
 } from '../../../contracts/runtime/work.type'
-import { singleChildOutput } from '../work/workTask'
-import { phaseInstrumentation, runTaskPhase } from './requestPhase'
+import { singleChildOutput } from '../../../runtime/evaluation/work/workTask'
+import { phaseInstrumentation, runTaskPhase } from '../../../runtime/evaluation/request/requestPhase'
 import type { RequestResolveWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
