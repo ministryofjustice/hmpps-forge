@@ -16,7 +16,7 @@ import CodeEmitter from '../../emitters/CodeEmitter'
 import type { CompiledReachabilityFactsFunction } from '../../../../contracts/compiled/compiledFunctions.type'
 import { buildGeneratedSource, compileGeneratedFunction } from '../../function-construction/GeneratedFunctionCompiler'
 import type { FieldInventoryStepSource } from '../../../../contracts/plans/compilationPlan.type'
-import StepFieldInventoryCompiler from './StepFieldInventoryCompiler'
+import StepFieldInventoryCompiler from '../../../../concerns/answer-cleardown/lowering/StepFieldInventoryCompiler'
 import type { CompilationDependencies } from '../../compilationDependencies.type'
 
 /**

@@ -8,7 +8,7 @@ import {
   ReachabilityNode,
 } from '../../../../contracts/reachability/reachabilityEvaluation.type'
 import { resolveBacklinkRouteTemplatePathForStep } from './ReachabilityPathAnalyzer'
-import { StepFieldInventory } from '../../../../contracts/plans/stepFieldInventory.type'
+import { StepFieldInventory } from '../../../../concerns/answer-cleardown/contracts/stepFieldInventory.type'
 
 export default class ReachabilityStateProjector {
   project(

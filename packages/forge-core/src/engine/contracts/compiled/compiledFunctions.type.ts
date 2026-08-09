@@ -7,7 +7,7 @@ import type {
 } from './compiledContexts.type'
 import { NodeId } from '../ast/ast.type'
 import { BlockType } from '../../../authoring/types/enums'
-import type { StepFieldInventory } from '../plans/stepFieldInventory.type'
+import type { StepFieldInventory } from '../../concerns/answer-cleardown/contracts/stepFieldInventory.type'
 import type {
   ReachabilityEvaluationResult,
   ReachabilityFactsInput,

@@ -1,17 +1,22 @@
-import { ASTNodeType } from '../../../../contracts/ast/enums'
-import { BlockType, ExpressionType } from '../../../../../authoring/types/enums'
-import { FieldBlockASTNode } from '../../../../contracts/ast/structures.type'
-import { IterateASTNode } from '../../../../contracts/ast/expressions.type'
-import { TemplateNode, TemplateValue } from '../../../../contracts/ast/template.type'
-import { StepFieldInventory } from '../../../../contracts/plans/stepFieldInventory.type'
-import FunctionRegistry from '../../../../registries/FunctionRegistry'
-import CodeEmitter from '../../emitters/CodeEmitter'
-import FieldCodeEmitter from '../../emitters/FieldCodeEmitter'
-import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
-import { buildGeneratedSource, compileGeneratedFunction } from '../../function-construction/GeneratedFunctionCompiler'
-import ScopedTemplateCompiler, { isTemplateFieldNode } from '../../structures/ScopedTemplateCompiler'
-import type { CompilationDependencies } from '../../compilationDependencies.type'
-import type { FieldInventoryStepSource } from '../../../../contracts/plans/compilationPlan.type'
+import { ASTNodeType } from '../../../contracts/ast/enums'
+import { BlockType, ExpressionType } from '../../../../authoring/types/enums'
+import { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
+import { IterateASTNode } from '../../../contracts/ast/expressions.type'
+import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
+import { StepFieldInventory } from '../contracts/stepFieldInventory.type'
+import FunctionRegistry from '../../../registries/FunctionRegistry'
+import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
+import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
+import {
+  buildGeneratedSource,
+  compileGeneratedFunction,
+} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
+import ScopedTemplateCompiler, {
+  isTemplateFieldNode,
+} from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
+import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+import type { FieldInventoryStepSource } from '../../../contracts/plans/compilationPlan.type'
 
 export interface FieldInventoryContext {
   answers: Record<string, { current: unknown }>

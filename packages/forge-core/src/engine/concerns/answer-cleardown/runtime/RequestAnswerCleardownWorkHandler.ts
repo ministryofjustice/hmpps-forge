@@ -1,6 +1,6 @@
-import { evaluateAnswerCleardown } from '../phases/answer-cleardown/evaluateAnswerCleardown'
+import { evaluateAnswerCleardown } from './evaluateAnswerCleardown'
 import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/runtime/work.type'
-import { phaseInstrumentation } from './requestPhase'
+import { phaseInstrumentation } from '../../../runtime/evaluation/request/requestPhase'
 import type { RequestAnswerCleardownWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 

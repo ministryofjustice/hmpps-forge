@@ -8,7 +8,7 @@ import type {
 import { CompiledReachabilityResult } from '../../../../contracts/compiled/compiledFunctions.type'
 import { NodeId } from '../../../../contracts/ast/engine.type'
 import { JourneyRouteTemplateCatalog } from '../../../../concerns/route/contracts/routeTree.type'
-import { StepFieldInventory } from '../../../../contracts/plans/stepFieldInventory.type'
+import { StepFieldInventory } from '../../../../concerns/answer-cleardown/contracts/stepFieldInventory.type'
 import { evaluateReachabilityState } from './evaluateReachabilityState'
 
 const routePathsByStepId = new Map<NodeId, string>()

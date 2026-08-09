@@ -3,7 +3,7 @@ import {
   ReachabilityEvaluation,
   ReachabilityNode,
 } from '../../../../contracts/reachability/reachabilityEvaluation.type'
-import { StepFieldInventory } from '../../../../contracts/plans/stepFieldInventory.type'
+import { StepFieldInventory } from '../../../../concerns/answer-cleardown/contracts/stepFieldInventory.type'
 
 describe('ReachabilityStateProjector', () => {
   const projector = new ReachabilityStateProjector()

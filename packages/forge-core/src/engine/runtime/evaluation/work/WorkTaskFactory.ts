@@ -111,7 +111,7 @@ import {
 import {
   REQUEST_ANSWER_CLEARDOWN_WORK_HANDLER,
   REQUEST_ANSWER_CLEARDOWN_WORK_INSTRUMENTATION,
-} from '../request/RequestAnswerCleardownWorkHandler'
+} from '../../../concerns/answer-cleardown/runtime/RequestAnswerCleardownWorkHandler'
 import {
   REQUEST_ANSWER_PREPARATION_WORK_HANDLER,
   REQUEST_ANSWER_PREPARATION_WORK_INSTRUMENTATION,
