@@ -1,6 +1,6 @@
 import type { StepASTNode } from '../../../contracts/ast/structures.type'
 import type { ValidationInputs } from '../../../contracts/plans/compilationPlan.type'
-import type FieldInventoryAnalyzer from '../shared/FieldInventoryAnalyzer'
+import type FieldInventoryAnalyzer from '../../../compilation/dependency-analysis/shared/FieldInventoryAnalyzer'
 
 export default class ValidationInputAnalyzer {
   constructor(private readonly fieldInventoryAnalyzer: FieldInventoryAnalyzer) {}

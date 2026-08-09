@@ -1,10 +1,10 @@
-import type { CompiledValidationFunction } from '../../../../contracts/compiled/compiledFunctions.type'
-import type { NodeId } from '../../../../contracts/ast/ast.type'
-import type FunctionRegistry from '../../../../registries/FunctionRegistry'
-import type { RuntimeContext } from '../../../../contracts/runtime/evaluationState.type'
-import { buildCompiledValidationContext } from '../../context/compiledEvaluationContext'
-import { createWorkTask, isWorkTask } from '../../work/workTask'
-import type { StepValidationWorkTask } from '../../../../contracts/runtime/ValidationWork.type'
+import type { CompiledValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type { NodeId } from '../../../contracts/ast/ast.type'
+import type FunctionRegistry from '../../../registries/FunctionRegistry'
+import type { RuntimeContext } from '../../../contracts/runtime/evaluationState.type'
+import { buildCompiledValidationContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
+import { createWorkTask, isWorkTask } from '../../../runtime/evaluation/work/workTask'
+import type { StepValidationWorkTask } from '../contracts/ValidationWork.type'
 import { STEP_VALIDATION_WORK_HANDLER } from './StepValidationWorkHandler'
 
 /**

@@ -1,8 +1,8 @@
-import type { ValidationResult } from '../../../../contracts/runtime/validationResult.type'
-import type { StepValidityResult } from '../../../../contracts/runtime/stepValidityResult.type'
-import type { ValidationView } from '../../../../contracts/runtime/validationView.type'
+import type { ValidationResult } from '../contracts/validationResult.type'
+import type { StepValidityResult } from '../contracts/stepValidityResult.type'
+import type { ValidationView } from '../contracts/validationView.type'
 
-export type { ValidationView } from '../../../../contracts/runtime/validationView.type'
+export type { ValidationView } from '../contracts/validationView.type'
 
 const DEFAULT_GROUPS: readonly string[] = ['default']
 

@@ -24,19 +24,19 @@ import type {
   DomainValidationWorkTask,
   FieldValidationWorkProps,
   FieldValidationWorkTask,
-} from '../../../contracts/runtime/ValidationWork.type'
+} from '../../../concerns/validation/contracts/ValidationWork.type'
 import {
   STEP_VALIDATION_WORK_HANDLER,
   STEP_VALIDATION_WORK_INSTRUMENTATION,
-} from '../phases/validation/StepValidationWorkHandler'
+} from '../../../concerns/validation/runtime/StepValidationWorkHandler'
 import {
   FIELD_VALIDATION_WORK_HANDLER,
   FIELD_VALIDATION_WORK_INSTRUMENTATION,
-} from '../phases/validation/FieldValidationWorkHandler'
+} from '../../../concerns/validation/runtime/FieldValidationWorkHandler'
 import {
   DOMAIN_VALIDATION_WORK_HANDLER,
   DOMAIN_VALIDATION_WORK_INSTRUMENTATION,
-} from '../phases/validation/DomainValidationWorkHandler'
+} from '../../../concerns/validation/runtime/DomainValidationWorkHandler'
 import {
   RESOLVE_BLOCK_WORK_HANDLER,
   RESOLVE_BLOCK_WORK_INSTRUMENTATION,
@@ -87,7 +87,7 @@ import { SUBMIT_BRANCH_WORK_HANDLER, SUBMIT_BRANCH_WORK_INSTRUMENTATION } from '
 import {
   SUBMIT_VALIDATION_WORK_HANDLER,
   SUBMIT_VALIDATION_WORK_INSTRUMENTATION,
-} from '../phases/hooks/SubmitValidationWorkHandler'
+} from '../../../concerns/validation/runtime/SubmitValidationWorkHandler'
 import { REQUEST_ACCESS_WORK_HANDLER, REQUEST_ACCESS_WORK_INSTRUMENTATION } from '../request/RequestAccessWorkHandler'
 import {
   REQUEST_CONTEXT_PREPARATION_WORK_HANDLER,
@@ -104,7 +104,7 @@ import {
 import {
   REQUEST_ENTRY_VALIDATION_WORK_HANDLER,
   REQUEST_ENTRY_VALIDATION_WORK_INSTRUMENTATION,
-} from '../request/RequestEntryValidationWorkHandler'
+} from '../../../concerns/entry-validation/runtime/RequestEntryValidationWorkHandler'
 import { REQUEST_PIPELINE_WORK_HANDLER } from '../request/RequestPipelineWorkHandler'
 import {
   REQUEST_REACHABILITY_WORK_HANDLER,
@@ -126,7 +126,7 @@ import { REQUEST_SUBMIT_WORK_HANDLER, REQUEST_SUBMIT_WORK_INSTRUMENTATION } from
 import {
   REQUEST_VALIDITIES_WORK_HANDLER,
   REQUEST_VALIDITIES_WORK_INSTRUMENTATION,
-} from '../request/RequestValiditiesWorkHandler'
+} from '../../../concerns/validation/runtime/RequestValiditiesWorkHandler'
 import type {
   RequestAccessWorkProps,
   RequestAnswerCleardownWorkProps,

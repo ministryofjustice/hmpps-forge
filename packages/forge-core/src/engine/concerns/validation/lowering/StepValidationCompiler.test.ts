@@ -1,51 +1,45 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ASTTestFactory } from '../../../ast/testing-helpers/ASTTestFactory'
-import { ASTNodeType } from '../../../../contracts/ast/enums'
-import {
-  BlockType,
-  ExpressionType,
-  FunctionType,
-  IteratorType,
-  PredicateType,
-} from '../../../../../authoring/types/enums'
+import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
+import { ASTNodeType } from '../../../contracts/ast/enums'
+import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   formatGeneratorsRegistry,
-} from '../../../../../built-ins/functions/generators/formatGenerators'
-import { FieldBlockASTNode, StepASTNode, StepEntryValidationAST } from '../../../../contracts/ast/structures.type'
+} from '../../../../built-ins/functions/generators/formatGenerators'
+import { FieldBlockASTNode, StepASTNode, StepEntryValidationAST } from '../../../contracts/ast/structures.type'
 import {
   FunctionASTNode,
   IterateASTNode,
   ReferenceASTNode,
   ValidationASTNode,
-} from '../../../../contracts/ast/expressions.type'
-import { TemplateValue } from '../../../../contracts/ast/template.type'
-import { compileTemplate } from '../../../ast/nodes/template'
-import { NodeIDGenerator } from '../../../ast/ast-state/NodeIDGenerator'
+} from '../../../contracts/ast/expressions.type'
+import { TemplateValue } from '../../../contracts/ast/template.type'
+import { compileTemplate } from '../../../compilation/ast/nodes/template'
+import { NodeIDGenerator } from '../../../compilation/ast/ast-state/NodeIDGenerator'
 import {
   TestPredicateASTNode,
   AndPredicateASTNode,
   OrPredicateASTNode,
   NotPredicateASTNode,
   XorPredicateASTNode,
-} from '../../../../contracts/ast/predicates.type'
-import FunctionRegistry from '../../../../registries/FunctionRegistry'
-import ComponentRegistry from '../../../../registries/ComponentRegistry'
-import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
-import type { CompilationDependencies } from '../../compilationDependencies.type'
+} from '../../../contracts/ast/predicates.type'
+import FunctionRegistry from '../../../registries/FunctionRegistry'
+import ComponentRegistry from '../../../registries/ComponentRegistry'
+import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
+import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import StepValidationCompiler from './StepValidationCompiler'
-import type { CompiledValidationContext } from '../../../../contracts/compiled/compiledContexts.type'
+import type { CompiledValidationContext } from '../../../contracts/compiled/compiledContexts.type'
 import type {
   CompiledValidationFunction,
   CompiledValidationWorkTask,
-} from '../../../../contracts/compiled/compiledFunctions.type'
-import type { StepValidityResult } from '../../../../contracts/runtime/stepValidityResult.type'
-import { stepValidity, type ValidationView } from '../../../../runtime/evaluation/phases/validation/stepValidity'
-import WorkContext from '../../../../runtime/evaluation/work/WorkContext'
-import WorkExecutor from '../../../../runtime/evaluation/work/WorkExecutor'
-import { isWorkTask } from '../../../../runtime/evaluation/work/workTask'
-import type { WorkTask } from '../../../../contracts/runtime/work.type'
-import WorkTaskFactory from '../../../../runtime/evaluation/work/WorkTaskFactory'
+} from '../../../contracts/compiled/compiledFunctions.type'
+import type { StepValidityResult } from '../contracts/stepValidityResult.type'
+import { stepValidity, type ValidationView } from '../runtime/stepValidity'
+import WorkContext from '../../../runtime/evaluation/work/WorkContext'
+import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
+import { isWorkTask } from '../../../runtime/evaluation/work/workTask'
+import type { WorkTask } from '../../../contracts/runtime/work.type'
+import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
 
 function createStep(): StepASTNode {
   return ASTTestFactory.step()

@@ -1,7 +1,7 @@
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
-import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../../contracts/runtime/work.type'
-import type { DomainValidationFailure } from '../../../../contracts/runtime/evaluationState.type'
-import type { DomainValidationWorkProps } from '../../../../contracts/runtime/ValidationWork.type'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/runtime/work.type'
+import type { DomainValidationFailure } from '../../../contracts/runtime/evaluationState.type'
+import type { DomainValidationWorkProps } from '../contracts/ValidationWork.type'
 
 export const DOMAIN_VALIDATION_KIND = 'validation.domain'
 

@@ -4,9 +4,9 @@ import type {
   WorkHandler,
   WorkInstrumentation,
 } from '../../../contracts/runtime/work.type'
-import { phaseInstrumentation } from './requestPhase'
-import { validationTaskKey } from '../phases/validation/stepValidationStore'
-import { isStepValidityResult } from '../phases/validation/stepValidityState'
+import { phaseInstrumentation } from '../../../runtime/evaluation/request/requestPhase'
+import { validationTaskKey } from './stepValidationStore'
+import { isStepValidityResult } from './stepValidityState'
 import type { RequestValiditiesWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 

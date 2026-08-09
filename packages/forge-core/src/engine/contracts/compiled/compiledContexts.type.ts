@@ -1,6 +1,6 @@
 import type FunctionRegistry from '../../registries/FunctionRegistry'
 import type { ComponentRegistry } from '../../../framework/types/adapter.type'
-import type { ValidationResult } from '../runtime/validationResult.type'
+import type { ValidationResult } from '../../concerns/validation/contracts/validationResult.type'
 
 /**
  * The answer snapshot the generated source reads at the compiled-function boundary:

@@ -1,6 +1,6 @@
 import type { ReachabilityEvaluation } from '../../../contracts/reachability/reachabilityEvaluation.type'
 import type { StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
-import type { ValidationResult } from '../../../contracts/runtime/validationResult.type'
+import type { ValidationResult } from '../../validation/contracts/validationResult.type'
 import { resolvePathParams } from '../../../../shared/utils/routePath'
 import type { RenderContext } from '../../../../framework/types/rendering.type'
 import type { ViewConfig } from '../../../../authoring/types/structures.type'

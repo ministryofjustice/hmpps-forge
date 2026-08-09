@@ -1,8 +1,8 @@
 import { BlockType } from '../../../../authoring/types/enums'
 import type { ASTNode } from '../../../contracts/ast/engine.type'
-import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
-import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
-import FieldInventoryAnalyzer from '../shared/FieldInventoryAnalyzer'
+import ASTNodeIndex from '../../../compilation/ast/ast-state/ASTNodeIndex'
+import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
+import FieldInventoryAnalyzer from '../../../compilation/dependency-analysis/shared/FieldInventoryAnalyzer'
 import ValidationInputAnalyzer from './ValidationInputAnalyzer'
 
 function setParent(child: ASTNode, parent: ASTNode): void {

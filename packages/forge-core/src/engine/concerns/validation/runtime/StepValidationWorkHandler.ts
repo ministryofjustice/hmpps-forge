@@ -1,17 +1,17 @@
-import type { StepValidityResult } from '../../../../contracts/runtime/stepValidityResult.type'
-import type { DomainValidationFailure, StepValidationFailure } from '../../../../contracts/runtime/evaluationState.type'
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
+import type { StepValidityResult } from '../contracts/stepValidityResult.type'
+import type { DomainValidationFailure, StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
-import { childOutputs } from '../../work/workTask'
+} from '../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import { childOutputs } from '../../../runtime/evaluation/work/workTask'
 import { FIELD_VALIDATION_KIND } from './FieldValidationWorkHandler'
 import { DOMAIN_VALIDATION_KIND } from './DomainValidationWorkHandler'
-import type { StepValidationWorkProps } from '../../../../contracts/runtime/ValidationWork.type'
+import type { StepValidationWorkProps } from '../contracts/ValidationWork.type'
 
 export const STEP_VALIDATION_KIND = 'validation.step'
 

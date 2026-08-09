@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { NodeId } from '../../../../contracts/ast/ast.type'
-import type { StepValidityResult } from '../../../../contracts/runtime/stepValidityResult.type'
+import type { NodeId } from '../../../contracts/ast/ast.type'
+import type { StepValidityResult } from '../contracts/stepValidityResult.type'
 import { isStepValid, stepValidity } from './stepValidity'
 
 function fieldFailure(message: string, groups: string[], submissionOnly = false) {

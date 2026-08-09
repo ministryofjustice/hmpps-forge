@@ -27,7 +27,7 @@ export type {
   ForgeInstrumentationOptions,
   ForgeInstrumentationSink,
 } from './engine/diagnostics/ForgeTraceSinkDispatcher'
-export type { ValidationResult } from './engine/contracts/runtime/validationResult.type'
+export type { ValidationResult } from './engine/concerns/validation/contracts/validationResult.type'
 export type { HookType } from './engine/contracts/runtime/answerHistory.type'
 export type { RuntimeContext } from './engine/contracts/runtime/evaluationState.type'
 export type {

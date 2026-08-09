@@ -4,7 +4,7 @@ import type { ResumeOutcome } from '../reachability/reachabilityEvaluation.type'
 import type { UnreachableRedirectTarget } from '../../../authoring/types/structures.type'
 import type { AnswerHistory } from './answerHistory.type'
 import type { NodeId } from '../ast/ast.type'
-import type { StepValidityResult } from './stepValidityResult.type'
+import type { StepValidityResult } from '../../concerns/validation/contracts/stepValidityResult.type'
 import type { SerializedTraceSpan, TraceSpanFields } from '../../diagnostics/tracing/traceSpan.type'
 
 export interface RuntimeContextSnapshotTrace {

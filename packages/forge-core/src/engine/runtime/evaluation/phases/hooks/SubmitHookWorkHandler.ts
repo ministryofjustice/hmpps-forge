@@ -9,8 +9,8 @@ import type {
 } from '../../../../contracts/runtime/work.type'
 import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
 import { findChildByTask, findTerminalStage, isTerminalStage } from '../../work/workTask'
-import { isStepValid } from '../validation/stepValidity'
-import { getStepValidity } from '../validation/stepValidityState'
+import { isStepValid } from '../../../../concerns/validation/runtime/stepValidity'
+import { getStepValidity } from '../../../../concerns/validation/runtime/stepValidityState'
 import type { SubmitHookWorkProps } from '../../../../contracts/runtime/SubmitLifecycleWork.type'
 
 export const SUBMIT_HOOK_KIND = 'submit.hook'

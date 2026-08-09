@@ -1,18 +1,18 @@
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../../contracts/runtime/work.type'
-import { singleChildOutput, singleTaskGroup } from '../../work/workTask'
-import { isStepValid, stepValidity } from '../validation/stepValidity'
-import { getStepValidity } from '../validation/stepValidityState'
-import { STEP_VALIDATION_KIND } from '../validation/StepValidationWorkHandler'
-import type { HookStageResult } from '../../../../contracts/runtime/HookStage.type'
-import type { SubmitValidationWorkProps } from '../../../../contracts/runtime/SubmitLifecycleWork.type'
-import type { CompiledSubmitHookResult } from '../../../../contracts/runtime/hookLifecycle.type'
-import ForgeInternalError from '../../../../errors/ForgeInternalError'
+} from '../../../contracts/runtime/work.type'
+import { singleChildOutput, singleTaskGroup } from '../../../runtime/evaluation/work/workTask'
+import { isStepValid, stepValidity } from './stepValidity'
+import { getStepValidity } from './stepValidityState'
+import { STEP_VALIDATION_KIND } from './StepValidationWorkHandler'
+import type { HookStageResult } from '../../../contracts/runtime/HookStage.type'
+import type { SubmitValidationWorkProps } from '../../../contracts/runtime/SubmitLifecycleWork.type'
+import type { CompiledSubmitHookResult } from '../../../contracts/runtime/hookLifecycle.type'
+import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 const SUBMIT_VALIDATION_KIND = 'submit.validation'
 

@@ -15,7 +15,7 @@ import type {
   CompiledSubmitHooksFunction,
   CompiledHookLifecycleContext,
 } from '../../../../contracts/runtime/hookLifecycle.type'
-import type { StepValidityResult } from '../../../../contracts/runtime/stepValidityResult.type'
+import type { StepValidityResult } from '../../../../concerns/validation/contracts/stepValidityResult.type'
 import type { NodeId } from '../../../../contracts/ast/ast.type'
 import HookLifecycleCompiler from './HookLifecycleCompiler'
 import EffectFunctionContextImpl from '../../../../runtime/evaluation/context/EffectFunctionContext'

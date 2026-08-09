@@ -1,13 +1,13 @@
-import { buildCompiledValidationContext } from '../context/compiledEvaluationContext'
-import { stepValidity } from '../phases/validation/stepValidity'
-import { getStepValidity } from '../phases/validation/stepValidityState'
+import { buildCompiledValidationContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
+import { stepValidity } from '../../validation/runtime/stepValidity'
+import { getStepValidity } from '../../validation/runtime/stepValidityState'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
 } from '../../../contracts/runtime/work.type'
-import { phaseInstrumentation } from './requestPhase'
+import { phaseInstrumentation } from '../../../runtime/evaluation/request/requestPhase'
 import type { RequestEntryValidationWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 

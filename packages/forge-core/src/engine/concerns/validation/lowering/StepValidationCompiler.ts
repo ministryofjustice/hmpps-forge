@@ -18,23 +18,28 @@
  * Generated-function construction failures throw ForgeCompilationError. There is
  * no secondary validation execution path.
  */
-import { ASTNodeType } from '../../../../contracts/ast/enums'
-import { FieldBlockASTNode, StepASTNode, StepEntryValidationAST } from '../../../../contracts/ast/structures.type'
-import { IterateASTNode } from '../../../../contracts/ast/expressions.type'
-import { TemplateNode, TemplateValue } from '../../../../contracts/ast/template.type'
-import { ExpressionType } from '../../../../../authoring/types/enums'
-import CodeEmitter from '../../emitters/CodeEmitter'
-import FieldCodeEmitter from '../../emitters/FieldCodeEmitter'
-import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
-import { buildGeneratedSource, compileGeneratedFunction } from '../../function-construction/GeneratedFunctionCompiler'
-import ScopedTemplateCompiler, { isTemplateFieldNode } from '../../structures/ScopedTemplateCompiler'
-import RuntimeValueCompiler from '../../structures/RuntimeValueCompiler'
-import type { CompilationDependencies } from '../../compilationDependencies.type'
+import { ASTNodeType } from '../../../contracts/ast/enums'
+import { FieldBlockASTNode, StepASTNode, StepEntryValidationAST } from '../../../contracts/ast/structures.type'
+import { IterateASTNode } from '../../../contracts/ast/expressions.type'
+import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
+import { ExpressionType } from '../../../../authoring/types/enums'
+import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
+import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
+import {
+  buildGeneratedSource,
+  compileGeneratedFunction,
+} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
+import ScopedTemplateCompiler, {
+  isTemplateFieldNode,
+} from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
+import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
+import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 
 import type {
   CompiledEntryValidationFunction,
   CompiledValidationFunction,
-} from '../../../../contracts/compiled/compiledFunctions.type'
+} from '../../../contracts/compiled/compiledFunctions.type'
 
 /**
  * Phase compiler for step-level validation generated functions.

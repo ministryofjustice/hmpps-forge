@@ -9,7 +9,7 @@ import type {
   RuntimeContext,
 } from '../../../../contracts/runtime/evaluationState.type'
 import type { NodeId } from '../../../../contracts/ast/ast.type'
-import type { StepValidityResult } from '../../../../contracts/runtime/stepValidityResult.type'
+import type { StepValidityResult } from '../../../../concerns/validation/contracts/stepValidityResult.type'
 
 /**
  * A deep-cloned, point-in-time copy of the request's runtime evaluation state.

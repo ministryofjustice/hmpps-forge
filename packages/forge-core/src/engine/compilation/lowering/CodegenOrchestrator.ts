@@ -19,7 +19,7 @@ import type {
   RouteMetadataCompilationInputs,
   StepCompilationInputs,
 } from '../../contracts/plans/compilationPlan.type'
-import StepValidationCompiler from './phase-compilers/validation/StepValidationCompiler'
+import StepValidationCompiler from '../../concerns/validation/lowering/StepValidationCompiler'
 import ReachabilityCompiler from './phase-compilers/reachability/ReachabilityCompiler'
 import { evaluateReachabilityState } from './function-construction/reachability/evaluateReachabilityState'
 import StepResolveCompiler from '../../concerns/resolve/lowering/StepResolveCompiler'

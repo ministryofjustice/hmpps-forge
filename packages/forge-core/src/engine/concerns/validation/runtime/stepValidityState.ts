@@ -1,6 +1,6 @@
-import type { NodeId } from '../../../../contracts/ast/ast.type'
-import type { StepValidityResult } from '../../../../contracts/runtime/stepValidityResult.type'
-import type { RuntimeContext } from '../../../../contracts/runtime/evaluationState.type'
+import type { NodeId } from '../../../contracts/ast/ast.type'
+import type { StepValidityResult } from '../contracts/stepValidityResult.type'
+import type { RuntimeContext } from '../../../contracts/runtime/evaluationState.type'
 
 /**
  * Records a step's full failure set into the per-step `stepValidities` map on the

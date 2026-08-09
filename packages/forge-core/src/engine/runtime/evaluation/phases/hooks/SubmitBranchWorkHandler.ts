@@ -7,8 +7,8 @@ import type {
   WorkInstrumentation,
 } from '../../../../contracts/runtime/work.type'
 import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
-import { isStepValid } from '../validation/stepValidity'
-import { getStepValidity } from '../validation/stepValidityState'
+import { isStepValid } from '../../../../concerns/validation/runtime/stepValidity'
+import { getStepValidity } from '../../../../concerns/validation/runtime/stepValidityState'
 import type { HookStageResult } from '../../../../contracts/runtime/HookStage.type'
 import type {
   SubmitBranchName,

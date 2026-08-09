@@ -1,5 +1,5 @@
-import type { DomainValidationFailure, StepValidationFailure } from './evaluationState.type'
-import type { WorkTask } from './work.type'
+import type { DomainValidationFailure, StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
+import type { WorkTask } from '../../../contracts/runtime/work.type'
 
 export interface StepValidationWorkProps {
   readonly fields: readonly FieldValidationWorkTask[]
