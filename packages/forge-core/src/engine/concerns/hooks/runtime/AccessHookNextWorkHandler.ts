@@ -1,9 +1,9 @@
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
-import type { CompiledAccessHookResult } from '../../../../contracts/runtime/hookLifecycle.type'
-import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
-import type { HookStageResult } from '../../../../contracts/runtime/HookStage.type'
-import type { AccessHookNextWorkProps } from '../../../../contracts/runtime/AccessLifecycleWork.type'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type { CompiledAccessHookResult } from '../contracts/hookLifecycle.type'
+import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import type { HookStageResult } from '../contracts/HookStage.type'
+import type { AccessHookNextWorkProps } from '../contracts/AccessLifecycleWork.type'
 
 const ACCESS_HOOK_NEXT_KIND = 'access.hook.next'
 

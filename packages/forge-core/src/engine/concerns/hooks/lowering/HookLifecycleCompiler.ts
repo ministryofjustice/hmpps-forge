@@ -1,22 +1,22 @@
-import { FunctionType } from '../../../../../authoring/types/enums'
-import { ASTNode } from '../../../../contracts/ast/ast.type'
-import { ASTNodeType } from '../../../../contracts/ast/enums'
+import { FunctionType } from '../../../../authoring/types/enums'
+import { ASTNode } from '../../../contracts/ast/ast.type'
+import { ASTNodeType } from '../../../contracts/ast/enums'
 import {
   AccessHookASTNode,
   FunctionASTNode,
   RedirectOutcomeASTNode,
   SubmitHookASTNode,
   ThrowErrorOutcomeASTNode,
-} from '../../../../contracts/ast/expressions.type'
-import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
-import CodeEmitter from '../../emitters/CodeEmitter'
-import { buildGeneratedSource, compileGeneratedFunction } from '../../function-construction/GeneratedFunctionCompiler'
-import type { CompilationDependencies } from '../../compilationDependencies.type'
-import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '../../../../contracts/ast/outcome-nodes'
-import type {
-  CompiledAccessLifecycleFunction,
-  CompiledSubmitHooksFunction,
-} from '../../../../contracts/runtime/hookLifecycle.type'
+} from '../../../contracts/ast/expressions.type'
+import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
+import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import {
+  buildGeneratedSource,
+  compileGeneratedFunction,
+} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
+import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '../../../contracts/ast/outcome-nodes'
+import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from '../contracts/hookLifecycle.type'
 
 export default class HookLifecycleCompiler {
   private readonly expr: ExpressionDispatcher

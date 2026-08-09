@@ -1,20 +1,20 @@
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
-import type { CompiledSubmitHookResult } from '../../../../contracts/runtime/hookLifecycle.type'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type { CompiledSubmitHookResult } from '../contracts/hookLifecycle.type'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
-import { isStepValid } from '../../../../concerns/validation/runtime/stepValidity'
-import { getStepValidity } from '../../../../concerns/validation/runtime/stepValidityState'
-import type { HookStageResult } from '../../../../contracts/runtime/HookStage.type'
+} from '../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import { isStepValid } from '../../validation/runtime/stepValidity'
+import { getStepValidity } from '../../validation/runtime/stepValidityState'
+import type { HookStageResult } from '../contracts/HookStage.type'
 import type {
   SubmitBranchName,
   SubmitBranchWorkProps,
   SubmitHookNextResult,
-} from '../../../../contracts/runtime/SubmitLifecycleWork.type'
+} from '../contracts/SubmitLifecycleWork.type'
 
 const SUBMIT_BRANCH_KIND = 'submit.branch'
 

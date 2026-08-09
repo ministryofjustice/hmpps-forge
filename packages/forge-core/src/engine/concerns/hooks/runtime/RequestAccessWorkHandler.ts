@@ -1,14 +1,14 @@
-import type { CompiledAccessHookResult } from '../../../contracts/runtime/hookLifecycle.type'
-import { buildCompiledHookLifecycleContext } from '../context/compiledEvaluationContext'
-import { ACCESS_LIFECYCLE_KIND } from '../phases/hooks/AccessLifecycleWorkHandler'
+import type { CompiledAccessHookResult } from '../contracts/hookLifecycle.type'
+import { buildCompiledHookLifecycleContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
+import { ACCESS_LIFECYCLE_KIND } from './AccessLifecycleWorkHandler'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
 } from '../../../contracts/runtime/work.type'
-import { singleChildOutput } from '../work/workTask'
-import { phaseInstrumentation, runTaskPhase } from './requestPhase'
+import { singleChildOutput } from '../../../runtime/evaluation/work/workTask'
+import { phaseInstrumentation, runTaskPhase } from '../../../runtime/evaluation/request/requestPhase'
 import type { RequestAccessWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'

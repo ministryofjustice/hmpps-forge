@@ -4,7 +4,7 @@ import type { NodeId } from '../contracts/ast/ast.type'
 import type {
   CompiledAccessLifecycleFunction,
   CompiledSubmitHooksFunction,
-} from '../contracts/runtime/hookLifecycle.type'
+} from '../concerns/hooks/contracts/hookLifecycle.type'
 import type {
   CompiledAnswerPreparationFunction,
   CompiledEntryValidationFunction,

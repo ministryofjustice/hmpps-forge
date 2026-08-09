@@ -1,9 +1,9 @@
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
-import type { CompiledAccessHookResult } from '../../../../contracts/runtime/hookLifecycle.type'
-import type { CompletedWork, WorkContextContract, WorkHandler } from '../../../../contracts/runtime/work.type'
-import { childOutputs } from '../../work/workTask'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type { CompiledAccessHookResult } from '../contracts/hookLifecycle.type'
+import type { CompletedWork, WorkContextContract, WorkHandler } from '../../../contracts/runtime/work.type'
+import { childOutputs } from '../../../runtime/evaluation/work/workTask'
 import { ACCESS_HOOK_KIND } from './AccessHookWorkHandler'
-import type { AccessLifecycleWorkProps } from '../../../../contracts/runtime/AccessLifecycleWork.type'
+import type { AccessLifecycleWorkProps } from '../contracts/AccessLifecycleWork.type'
 
 export const ACCESS_LIFECYCLE_KIND = 'access.lifecycle'
 

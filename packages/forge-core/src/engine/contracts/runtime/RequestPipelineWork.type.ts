@@ -11,7 +11,10 @@ import type {
   CompiledStaticDataFunction,
   CompiledValidationFunction,
 } from '../compiled/compiledFunctions.type'
-import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from './hookLifecycle.type'
+import type {
+  CompiledAccessLifecycleFunction,
+  CompiledSubmitHooksFunction,
+} from '../../concerns/hooks/contracts/hookLifecycle.type'
 import type { JourneyRouteTemplateCatalog, StoredRouteTree } from '../../concerns/route/contracts/routeTree.type'
 import type { HttpMethod } from '../../../framework/types/request.type'
 import type { RequestSnapshot } from '../../../framework/types/snapshot.type'

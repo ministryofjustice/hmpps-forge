@@ -1,16 +1,16 @@
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
-import type { CompiledAccessHookResult } from '../../../../contracts/runtime/hookLifecycle.type'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type { CompiledAccessHookResult } from '../contracts/hookLifecycle.type'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkTask,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../../diagnostics/tracing/traceSpan.type'
-import { createWorkTask, findTerminalStage, isTerminalStage } from '../../work/workTask'
+} from '../../../contracts/runtime/work.type'
+import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import { createWorkTask, findTerminalStage, isTerminalStage } from '../../../runtime/evaluation/work/workTask'
 import { ACCESS_HOOK_NEXT_WORK_INSTRUMENTATION, ACCESS_HOOK_NEXT_WORK_HANDLER } from './AccessHookNextWorkHandler'
-import type { AccessHookWorkProps } from '../../../../contracts/runtime/AccessLifecycleWork.type'
+import type { AccessHookWorkProps } from '../contracts/AccessLifecycleWork.type'
 
 export const ACCESS_HOOK_KIND = 'access.hook'
 

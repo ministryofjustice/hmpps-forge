@@ -1,7 +1,7 @@
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
-import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../../contracts/runtime/work.type'
-import type { HookStageResult } from '../../../../contracts/runtime/HookStage.type'
-import type { HookEffectWorkProps } from '../../../../contracts/runtime/HookEffectWork.type'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/runtime/work.type'
+import type { HookStageResult } from '../contracts/HookStage.type'
+import type { HookEffectWorkProps } from '../contracts/HookEffectWork.type'
 
 const HOOK_EFFECT_KIND = 'hook.effect'
 

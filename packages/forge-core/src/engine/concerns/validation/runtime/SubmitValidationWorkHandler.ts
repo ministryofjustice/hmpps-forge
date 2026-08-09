@@ -9,9 +9,9 @@ import { singleChildOutput, singleTaskGroup } from '../../../runtime/evaluation/
 import { isStepValid, stepValidity } from './stepValidity'
 import { getStepValidity } from './stepValidityState'
 import { STEP_VALIDATION_KIND } from './StepValidationWorkHandler'
-import type { HookStageResult } from '../../../contracts/runtime/HookStage.type'
-import type { SubmitValidationWorkProps } from '../../../contracts/runtime/SubmitLifecycleWork.type'
-import type { CompiledSubmitHookResult } from '../../../contracts/runtime/hookLifecycle.type'
+import type { HookStageResult } from '../../hooks/contracts/HookStage.type'
+import type { SubmitValidationWorkProps } from '../../hooks/contracts/SubmitLifecycleWork.type'
+import type { CompiledSubmitHookResult } from '../../hooks/contracts/hookLifecycle.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 const SUBMIT_VALIDATION_KIND = 'submit.validation'

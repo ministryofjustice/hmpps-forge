@@ -63,12 +63,18 @@ import type {
   AccessHookWorkProps,
   AccessLifecycleWorkTask,
   AccessHookWorkTask,
-} from '../../../contracts/runtime/AccessLifecycleWork.type'
-import { ACCESS_LIFECYCLE_WORK_HANDLER } from '../phases/hooks/AccessLifecycleWorkHandler'
-import { ACCESS_HOOK_WORK_HANDLER, ACCESS_HOOK_WORK_INSTRUMENTATION } from '../phases/hooks/AccessHookWorkHandler'
-import { ACCESS_HOOK_WHEN_WORK_HANDLER } from '../phases/hooks/AccessHookWhenWorkHandler'
-import type { HookEffectWorkProps } from '../../../contracts/runtime/HookEffectWork.type'
-import { HOOK_EFFECT_WORK_HANDLER, HOOK_EFFECT_WORK_INSTRUMENTATION } from '../phases/hooks/HookEffectWorkHandler'
+} from '../../../concerns/hooks/contracts/AccessLifecycleWork.type'
+import { ACCESS_LIFECYCLE_WORK_HANDLER } from '../../../concerns/hooks/runtime/AccessLifecycleWorkHandler'
+import {
+  ACCESS_HOOK_WORK_HANDLER,
+  ACCESS_HOOK_WORK_INSTRUMENTATION,
+} from '../../../concerns/hooks/runtime/AccessHookWorkHandler'
+import { ACCESS_HOOK_WHEN_WORK_HANDLER } from '../../../concerns/hooks/runtime/AccessHookWhenWorkHandler'
+import type { HookEffectWorkProps } from '../../../concerns/hooks/contracts/HookEffectWork.type'
+import {
+  HOOK_EFFECT_WORK_HANDLER,
+  HOOK_EFFECT_WORK_INSTRUMENTATION,
+} from '../../../concerns/hooks/runtime/HookEffectWorkHandler'
 import type {
   SubmitBranchWorkProps,
   SubmitHookPredicateWorkProps,
@@ -76,19 +82,28 @@ import type {
   SubmitValidationWorkProps,
   SubmitLifecycleWorkTask,
   SubmitHookWorkTask,
-} from '../../../contracts/runtime/SubmitLifecycleWork.type'
-import { SUBMIT_LIFECYCLE_WORK_HANDLER } from '../phases/hooks/SubmitLifecycleWorkHandler'
-import { SUBMIT_HOOK_WORK_HANDLER, SUBMIT_HOOK_WORK_INSTRUMENTATION } from '../phases/hooks/SubmitHookWorkHandler'
+} from '../../../concerns/hooks/contracts/SubmitLifecycleWork.type'
+import { SUBMIT_LIFECYCLE_WORK_HANDLER } from '../../../concerns/hooks/runtime/SubmitLifecycleWorkHandler'
+import {
+  SUBMIT_HOOK_WORK_HANDLER,
+  SUBMIT_HOOK_WORK_INSTRUMENTATION,
+} from '../../../concerns/hooks/runtime/SubmitHookWorkHandler'
 import {
   SUBMIT_HOOK_PREDICATE_WORK_HANDLER,
   SUBMIT_HOOK_PREDICATE_WORK_INSTRUMENTATION,
-} from '../phases/hooks/SubmitHookPredicateWorkHandler'
-import { SUBMIT_BRANCH_WORK_HANDLER, SUBMIT_BRANCH_WORK_INSTRUMENTATION } from '../phases/hooks/SubmitBranchWorkHandler'
+} from '../../../concerns/hooks/runtime/SubmitHookPredicateWorkHandler'
+import {
+  SUBMIT_BRANCH_WORK_HANDLER,
+  SUBMIT_BRANCH_WORK_INSTRUMENTATION,
+} from '../../../concerns/hooks/runtime/SubmitBranchWorkHandler'
 import {
   SUBMIT_VALIDATION_WORK_HANDLER,
   SUBMIT_VALIDATION_WORK_INSTRUMENTATION,
 } from '../../../concerns/validation/runtime/SubmitValidationWorkHandler'
-import { REQUEST_ACCESS_WORK_HANDLER, REQUEST_ACCESS_WORK_INSTRUMENTATION } from '../request/RequestAccessWorkHandler'
+import {
+  REQUEST_ACCESS_WORK_HANDLER,
+  REQUEST_ACCESS_WORK_INSTRUMENTATION,
+} from '../../../concerns/hooks/runtime/RequestAccessWorkHandler'
 import {
   REQUEST_CONTEXT_PREPARATION_WORK_HANDLER,
   REQUEST_CONTEXT_PREPARATION_WORK_INSTRUMENTATION,
@@ -122,7 +137,10 @@ import {
   REQUEST_ROUTE_TREE_WORK_HANDLER,
   REQUEST_ROUTE_TREE_WORK_INSTRUMENTATION,
 } from '../../../concerns/route/runtime/RequestRouteTreeWorkHandler'
-import { REQUEST_SUBMIT_WORK_HANDLER, REQUEST_SUBMIT_WORK_INSTRUMENTATION } from '../request/RequestSubmitWorkHandler'
+import {
+  REQUEST_SUBMIT_WORK_HANDLER,
+  REQUEST_SUBMIT_WORK_INSTRUMENTATION,
+} from '../../../concerns/hooks/runtime/RequestSubmitWorkHandler'
 import {
   REQUEST_VALIDITIES_WORK_HANDLER,
   REQUEST_VALIDITIES_WORK_INSTRUMENTATION,

@@ -1,8 +1,8 @@
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
-import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../../contracts/runtime/work.type'
-import type { CompiledSubmitHookResult } from '../../../../contracts/runtime/hookLifecycle.type'
-import type { HookStageResult } from '../../../../contracts/runtime/HookStage.type'
-import type { SubmitHookPredicateWorkProps } from '../../../../contracts/runtime/SubmitLifecycleWork.type'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/runtime/work.type'
+import type { CompiledSubmitHookResult } from '../contracts/hookLifecycle.type'
+import type { HookStageResult } from '../contracts/HookStage.type'
+import type { SubmitHookPredicateWorkProps } from '../contracts/SubmitLifecycleWork.type'
 
 const SUBMIT_HOOK_PREDICATE_KIND = 'submit.predicate'
 

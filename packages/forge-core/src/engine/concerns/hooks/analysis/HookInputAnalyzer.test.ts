@@ -1,6 +1,6 @@
 import { HookType } from '../../../../authoring/types/enums'
 import type { ASTNode } from '../../../contracts/ast/engine.type'
-import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
+import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
 import HookInputAnalyzer from './HookInputAnalyzer'
 
 function setParent(child: ASTNode, parent: ASTNode): void {

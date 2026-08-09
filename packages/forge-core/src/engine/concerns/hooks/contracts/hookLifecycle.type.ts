@@ -1,5 +1,5 @@
-import type { CompiledBaseContext } from '../compiled/compiledContexts.type'
-import type { AnswerHistory } from './answerHistory.type'
+import type { CompiledBaseContext } from '../../../contracts/compiled/compiledContexts.type'
+import type { AnswerHistory } from '../../../contracts/runtime/answerHistory.type'
 
 export interface CompiledHookLifecycleContext extends CompiledBaseContext {
   answers: Record<string, AnswerHistory>

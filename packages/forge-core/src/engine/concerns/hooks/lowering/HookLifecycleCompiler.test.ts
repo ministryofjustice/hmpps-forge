@@ -1,30 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ASTTestFactory } from '../../../ast/testing-helpers/ASTTestFactory'
-import { FunctionType, HookType, PredicateType } from '../../../../../authoring/types/enums'
-import { formatGeneratorsRegistry } from '../../../../../built-ins/functions/generators/formatGenerators'
-import FunctionRegistry from '../../../../registries/FunctionRegistry'
-import ComponentRegistry from '../../../../registries/ComponentRegistry'
-import { AccessHookASTNode, SubmitHookASTNode } from '../../../../contracts/ast/expressions.type'
-import { TestPredicateASTNode } from '../../../../contracts/ast/predicates.type'
-import type { ResponseBindings } from '../../../../../framework/types/responseBindings.type'
-import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
+import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
+import { FunctionType, HookType, PredicateType } from '../../../../authoring/types/enums'
+import { formatGeneratorsRegistry } from '../../../../built-ins/functions/generators/formatGenerators'
+import FunctionRegistry from '../../../registries/FunctionRegistry'
+import ComponentRegistry from '../../../registries/ComponentRegistry'
+import { AccessHookASTNode, SubmitHookASTNode } from '../../../contracts/ast/expressions.type'
+import { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
+import type { ResponseBindings } from '../../../../framework/types/responseBindings.type'
+import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import type {
   CompiledAccessHookResult,
   CompiledAccessLifecycleFunction,
   CompiledSubmitHookResult,
   CompiledSubmitHooksFunction,
   CompiledHookLifecycleContext,
-} from '../../../../contracts/runtime/hookLifecycle.type'
-import type { StepValidityResult } from '../../../../concerns/validation/contracts/stepValidityResult.type'
-import type { NodeId } from '../../../../contracts/ast/ast.type'
+} from '../contracts/hookLifecycle.type'
+import type { StepValidityResult } from '../../validation/contracts/stepValidityResult.type'
+import type { NodeId } from '../../../contracts/ast/ast.type'
 import HookLifecycleCompiler from './HookLifecycleCompiler'
-import EffectFunctionContextImpl from '../../../../runtime/evaluation/context/EffectFunctionContext'
-import WorkContext from '../../../../runtime/evaluation/work/WorkContext'
-import WorkExecutor from '../../../../runtime/evaluation/work/WorkExecutor'
-import { createWorkTask, isWorkTask } from '../../../../runtime/evaluation/work/workTask'
-import type { WorkTask, WorkHandler } from '../../../../contracts/runtime/work.type'
-import type { SubmitLifecycleWorkTask } from '../../../../contracts/runtime/SubmitLifecycleWork.type'
-import WorkTaskFactory from '../../../../runtime/evaluation/work/WorkTaskFactory'
+import EffectFunctionContextImpl from '../../../runtime/evaluation/context/EffectFunctionContext'
+import WorkContext from '../../../runtime/evaluation/work/WorkContext'
+import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
+import { createWorkTask, isWorkTask } from '../../../runtime/evaluation/work/workTask'
+import type { WorkTask, WorkHandler } from '../../../contracts/runtime/work.type'
+import type { SubmitLifecycleWorkTask } from '../contracts/SubmitLifecycleWork.type'
+import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
 
 function createPredicate(answerCode: string, functionName = 'isRequired'): TestPredicateASTNode {
   return ASTTestFactory.predicate(PredicateType.TEST, {

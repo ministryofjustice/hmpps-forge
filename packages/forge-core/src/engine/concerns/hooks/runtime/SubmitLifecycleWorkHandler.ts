@@ -1,9 +1,9 @@
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
-import type { CompiledSubmitHookResult } from '../../../../contracts/runtime/hookLifecycle.type'
-import type { CompletedWork, WorkContextContract, WorkHandler } from '../../../../contracts/runtime/work.type'
-import { childOutputs } from '../../work/workTask'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type { CompiledSubmitHookResult } from '../contracts/hookLifecycle.type'
+import type { CompletedWork, WorkContextContract, WorkHandler } from '../../../contracts/runtime/work.type'
+import { childOutputs } from '../../../runtime/evaluation/work/workTask'
 import { SUBMIT_HOOK_KIND } from './SubmitHookWorkHandler'
-import type { SubmitLifecycleWorkProps } from '../../../../contracts/runtime/SubmitLifecycleWork.type'
+import type { SubmitLifecycleWorkProps } from '../contracts/SubmitLifecycleWork.type'
 
 export const SUBMIT_LIFECYCLE_KIND = 'submit.lifecycle'
 

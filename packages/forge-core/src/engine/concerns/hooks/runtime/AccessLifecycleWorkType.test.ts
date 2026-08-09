@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
-import WorkContext from '../../work/WorkContext'
-import WorkExecutor from '../../work/WorkExecutor'
-import type { AccessHookNextResult } from '../../../../contracts/runtime/AccessLifecycleWork.type'
-import { createWorkTask } from '../../work/workTask'
+import WorkContext from '../../../runtime/evaluation/work/WorkContext'
+import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
+import type { AccessHookNextResult } from '../contracts/AccessLifecycleWork.type'
+import { createWorkTask } from '../../../runtime/evaluation/work/workTask'
 import { ACCESS_LIFECYCLE_WORK_HANDLER } from './AccessLifecycleWorkHandler'
 import { ACCESS_HOOK_WHEN_WORK_HANDLER } from './AccessHookWhenWorkHandler'
 import { ACCESS_HOOK_WORK_HANDLER } from './AccessHookWorkHandler'
 import { HOOK_EFFECT_WORK_HANDLER } from './HookEffectWorkHandler'
-import type { CompiledHookLifecycleContext } from '../../../../contracts/runtime/hookLifecycle.type'
+import type { CompiledHookLifecycleContext } from '../contracts/hookLifecycle.type'
 
 function createContext(): WorkContext<CompiledHookLifecycleContext> {
   return new WorkContext({

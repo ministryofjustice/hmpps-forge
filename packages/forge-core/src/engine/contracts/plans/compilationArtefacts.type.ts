@@ -1,7 +1,10 @@
 import type { NodeId } from '../ast/ast.type'
 import type { JourneyRouteIndex, StepRouteIndex } from '../../concerns/route/contracts/routeDescriptors.type'
 import type { JourneyRuntimePlan, StepRuntimePlan } from './runtimePlans.type'
-import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from '../runtime/hookLifecycle.type'
+import type {
+  CompiledAccessLifecycleFunction,
+  CompiledSubmitHooksFunction,
+} from '../../concerns/hooks/contracts/hookLifecycle.type'
 import type {
   CompiledAnswerPreparationFunction,
   CompiledEntryValidationFunction,

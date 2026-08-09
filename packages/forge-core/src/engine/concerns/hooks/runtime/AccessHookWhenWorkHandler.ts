@@ -1,6 +1,6 @@
-import type { RequestExecutionContext } from '../../../../contracts/runtime/RequestExecutionContext.type'
-import type { WorkContextContract, WorkHandler } from '../../../../contracts/runtime/work.type'
-import type { AccessHookWhenWorkProps } from '../../../../contracts/runtime/AccessLifecycleWork.type'
+import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type { WorkContextContract, WorkHandler } from '../../../contracts/runtime/work.type'
+import type { AccessHookWhenWorkProps } from '../contracts/AccessLifecycleWork.type'
 
 const ACCESS_HOOK_WHEN_KIND = 'access.hook.when'
 
