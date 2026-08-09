@@ -89,7 +89,6 @@ describe('ForwardNavigationAnalyzer', () => {
         { hookWhen: undefined, redirectOutcomes: [{ node: firstRedirect, overApproximatesWhen: false }] },
         { hookWhen: undefined, redirectOutcomes: [{ node: secondRedirect, overApproximatesWhen: false }] },
       ])
-      expect(result.forwardOutcomeEvaluation).toBe('exact')
     })
 
     it('should preserve a stable hook predicate on its forward outcome group', () => {
@@ -105,7 +104,6 @@ describe('ForwardNavigationAnalyzer', () => {
       expect(result.forwardOutcomeGroups).toEqual([
         { hookWhen, redirectOutcomes: [{ node: redirect, overApproximatesWhen: false }] },
       ])
-      expect(result.forwardOutcomeEvaluation).toBe('exact')
     })
 
     it('should over-approximate hook predicates that reference request-time namespaces', () => {
@@ -121,7 +119,6 @@ describe('ForwardNavigationAnalyzer', () => {
       expect(result.forwardOutcomeGroups).toEqual([
         { hookWhen: undefined, redirectOutcomes: [{ node: redirect, overApproximatesWhen: false }] },
       ])
-      expect(result.forwardOutcomeEvaluation).toBe('over-approximate')
     })
 
     it('should mark outcome predicates that reference request-time namespaces as over-approximated', () => {
@@ -137,7 +134,6 @@ describe('ForwardNavigationAnalyzer', () => {
       expect(result.forwardOutcomeGroups).toEqual([
         { hookWhen: undefined, redirectOutcomes: [{ node: redirect, overApproximatesWhen: true }] },
       ])
-      expect(result.forwardOutcomeEvaluation).toBe('over-approximate')
     })
 
     it('should include valid outcomes only when the hook validates and ignore non-redirect outcomes', () => {
@@ -162,7 +158,6 @@ describe('ForwardNavigationAnalyzer', () => {
           ],
         },
       ])
-      expect(result.forwardOutcomeEvaluation).toBe('exact')
     })
   })
 })

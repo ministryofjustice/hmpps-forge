@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { joinPaths } from '../../../../../shared/utils/routePath'
-import type {
-  ForwardOutcomeEvaluation,
-  ReachabilityStateTable,
-  ReachabilityStateTableEntry,
-} from '../../../../contracts/plans/runtimePlans.type'
+import type { ReachabilityStateTable, ReachabilityStateTableEntry } from '../../../../contracts/plans/runtimePlans.type'
 import { CompiledReachabilityResult } from '../../../../contracts/compiled/compiledFunctions.type'
 import { NodeId } from '../../../../contracts/ast/engine.type'
 import { JourneyRouteTemplateCatalog } from '../../../route/contracts/routeTree.type'
@@ -21,7 +17,6 @@ function createEntry(options: {
   code?: string
   isEntryPoint?: boolean
   hasValidation?: boolean
-  forwardOutcomeEvaluation?: ForwardOutcomeEvaluation
 }): ReachabilityStateTableEntry {
   routePathsByStepId.set(options.stepId, options.path)
 
@@ -33,7 +28,6 @@ function createEntry(options: {
     stepId: options.stepId,
     code: options.code,
     isEntryPoint: options.isEntryPoint ?? false,
-    forwardOutcomeEvaluation: options.forwardOutcomeEvaluation,
   }
 }
 

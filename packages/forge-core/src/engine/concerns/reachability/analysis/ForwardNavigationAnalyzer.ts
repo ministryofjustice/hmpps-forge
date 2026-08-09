@@ -3,11 +3,10 @@ import type { RedirectOutcomeASTNode, SubmitHookASTNode } from '../../../contrac
 import type { StepASTNode } from '../../../contracts/ast/structures.type'
 import { isASTNode } from '../../../contracts/ast/nodes'
 import { isRedirectOutcomeNode } from '../../../contracts/ast/outcome-nodes'
-import type { ForwardOutcomeEvaluation, ForwardOutcomeGroup } from '../../../contracts/plans/runtimePlans.type'
+import type { ForwardOutcomeGroup } from '../../../contracts/plans/runtimePlans.type'
 import RequestTimeReferenceAnalyzer from './RequestTimeReferenceAnalyzer'
 
 export interface ForwardNavigationAnalysis {
-  readonly forwardOutcomeEvaluation: ForwardOutcomeEvaluation
   readonly forwardOutcomeGroups: ForwardOutcomeGroup[]
 }
 
@@ -16,22 +15,11 @@ export default class ForwardNavigationAnalyzer {
 
   analyze(stepNode: StepASTNode): ForwardNavigationAnalysis {
     const submitHooks = stepNode.properties.onSubmission ?? []
-    const forwardNavigation = submitHooks
-      .map(hook => ({
-        forwardOutcomeGroup: this.buildForwardOutcomeGroup(hook),
-        overApproximatesHookWhen: this.overApproximatesHookWhen(hook.properties.when),
-      }))
-      .filter(entry => entry.forwardOutcomeGroup.redirectOutcomes.length > 0)
-
-    const overApproximate = forwardNavigation.some(
-      entry =>
-        entry.overApproximatesHookWhen ||
-        entry.forwardOutcomeGroup.redirectOutcomes.some(outcome => outcome.overApproximatesWhen),
-    )
 
     return {
-      forwardOutcomeEvaluation: overApproximate ? 'over-approximate' : 'exact',
-      forwardOutcomeGroups: forwardNavigation.map(entry => entry.forwardOutcomeGroup),
+      forwardOutcomeGroups: submitHooks
+        .map(hook => this.buildForwardOutcomeGroup(hook))
+        .filter(group => group.redirectOutcomes.length > 0),
     }
   }
 
@@ -57,10 +45,6 @@ export default class ForwardNavigationAnalyzer {
     }
 
     return when
-  }
-
-  private overApproximatesHookWhen(when: ASTNode | undefined): boolean {
-    return when !== undefined && isASTNode(when) && this.requestTimeReferenceAnalyzer.containsRequestTimeReference(when)
   }
 
   private forwardRedirectOutcomes(hook: SubmitHookASTNode): RedirectOutcomeASTNode[] {

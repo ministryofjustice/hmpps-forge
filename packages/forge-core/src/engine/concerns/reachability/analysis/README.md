@@ -35,11 +35,11 @@ flowchart TD
   entries -->|analyze submit hooks| forwardAnalyzer["ForwardNavigationAnalyzer"]
   forwardAnalyzer -->|onAlways + onValid redirects| redirectGroups["Collect redirect outcomes per submit hook"]
   redirectGroups -->|check each predicate| requestTimeCheck{"Predicate reads post, params, query, or request?"}
-  requestTimeCheck -->|yes| overApproximate["Mark forward navigation over-approximate"]
-  requestTimeCheck -->|no| exact["Keep forward navigation exact"]
+  requestTimeCheck -->|yes| overApproximate["Mark outcome over-approximate (overApproximatesWhen)"]
+  requestTimeCheck -->|no| exact["Keep outcome predicate exact"]
   stepMetadata -->|compile-time entry| reachabilityPlan["ReachabilityCompilationPlan.entries"]
-  overApproximate -->|with evaluation flag| reachabilityPlan
-  exact -->|with evaluation flag| reachabilityPlan
+  overApproximate -->|into outcome groups| reachabilityPlan
+  exact -->|into outcome groups| reachabilityPlan
   reachabilityPlan -->|project runtime subset| stateTable["ReachabilityStateTable.entries"]
 ```
 

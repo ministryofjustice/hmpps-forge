@@ -21,7 +21,6 @@ export default class ReachabilityPlanAnalyzer {
         stepId: entry.stepId,
         code: entry.code,
         isEntryPoint: entry.isEntryPoint,
-        forwardOutcomeEvaluation: entry.forwardOutcomeEvaluation,
       })),
       unreachableRedirect: journeyNode.properties.reachability?.unreachableRedirect ?? 'entry',
       reachabilityDisabled: this.resolveReachabilityDisabled(journeyNode),
@@ -37,7 +36,7 @@ export default class ReachabilityPlanAnalyzer {
 
   private buildReachabilityEntry(stepNode: StepASTNode): ReachabilityCompilationEntry {
     const stepId = stepNode.id
-    const { forwardOutcomeEvaluation, forwardOutcomeGroups } = this.forwardNavigationAnalyzer.analyze(stepNode)
+    const { forwardOutcomeGroups } = this.forwardNavigationAnalyzer.analyze(stepNode)
 
     const reachability = stepNode.properties.reachability
     const entryWhen = reachability?.entryWhen
@@ -47,7 +46,6 @@ export default class ReachabilityPlanAnalyzer {
       code: stepNode.properties.code,
       isEntryPoint: entryWhen === true,
       entryWhen: entryWhen !== undefined && entryWhen !== true ? entryWhen : undefined,
-      forwardOutcomeEvaluation,
       forwardOutcomeGroups,
       cleardownFieldCodes: stepNode.properties.cleardownFieldCodes ?? [],
       reachabilityTieBreakers: (reachability?.tieBreakers ?? []).map(entry => ({

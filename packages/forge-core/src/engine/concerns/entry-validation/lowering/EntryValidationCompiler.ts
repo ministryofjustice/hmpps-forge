@@ -63,7 +63,7 @@ export default class EntryValidationCompiler {
 
     emitter.code('"use strict";')
 
-    emitter.comment('StepValidationCompiler.buildEntryValidationSource')
+    emitter.comment('EntryValidationCompiler.buildEntryValidationSource')
     emitter.declareConst('groups', '[]')
     emitter.declareConst('seen', 'Object.create(null)')
     this.compileEntryValidationGroupAccumulator(emitter)
@@ -78,7 +78,7 @@ export default class EntryValidationCompiler {
    * Emits a tiny local helper so repeated entry groups keep their first declaration position.
    */
   private compileEntryValidationGroupAccumulator(emitter: CodeEmitter): void {
-    emitter.comment('StepValidationCompiler.compileEntryValidationGroupAccumulator')
+    emitter.comment('EntryValidationCompiler.compileEntryValidationGroupAccumulator')
     emitter.emitBlock('function addGroup(group)', () => {
       const groupKeyVar = emitter.const('groupKey', 'String(group)')
 
@@ -93,7 +93,7 @@ export default class EntryValidationCompiler {
    * Emits one validateOnEntry rule, preserving unconditional entries as direct group additions.
    */
   private compileEntryValidationRule(entry: StepEntryValidationAST, emitter: CodeEmitter): void {
-    emitter.comment('StepValidationCompiler.compileEntryValidationRule')
+    emitter.comment('EntryValidationCompiler.compileEntryValidationRule')
     emitter.scope(() => {
       if (entry.when === true) {
         this.compileEntryValidationGroups(entry.groups, emitter)

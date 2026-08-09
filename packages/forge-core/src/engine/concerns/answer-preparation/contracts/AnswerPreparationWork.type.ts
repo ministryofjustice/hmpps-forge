@@ -1,11 +1,7 @@
+import type { AnswerMutation } from '../../../contracts/runtime/answerHistory.type'
 import type { WorkTask } from '../../../contracts/runtime/work.type'
 
 type AnswerPreparationMode = 'GET' | 'POST'
-
-interface AnswerMutation {
-  readonly value: unknown
-  readonly source: string
-}
 
 export interface AnswerPreparationFieldResult {
   readonly code: string | undefined
