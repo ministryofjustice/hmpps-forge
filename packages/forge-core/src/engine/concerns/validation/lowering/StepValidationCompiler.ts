@@ -1,10 +1,9 @@
 /**
- * Compiles the validation functions needed by one step.
+ * Compiles the submit-validation function needed by one step.
  *
- * On-entry validation is a small group selector for validateOnEntry. Submit
- * validation evaluates the field/domain `validWhen` slots, recursively flattens
- * arrays produced by iterators, and turns failing validation results into field
- * or domain failures.
+ * Submit validation evaluates the field/domain `validWhen` slots, recursively
+ * flattens arrays produced by iterators, and turns failing validation results
+ * into field or domain failures.
  *
  * Static fields are already present in the shared AST, while fields inside MAP
  * iterators remain as template nodes. Iterator field validation emits loops over
@@ -19,7 +18,7 @@
  * no secondary validation execution path.
  */
 import { ASTNodeType } from '../../../contracts/ast/enums'
-import { FieldBlockASTNode, StepASTNode, StepEntryValidationAST } from '../../../contracts/ast/structures.type'
+import { FieldBlockASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
 import { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
 import { ExpressionType } from '../../../../authoring/types/enums'
@@ -36,10 +35,7 @@ import ScopedTemplateCompiler, {
 import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 
-import type {
-  CompiledEntryValidationFunction,
-  CompiledValidationFunction,
-} from '../../../contracts/compiled/compiledFunctions.type'
+import type { CompiledValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
 
 /**
  * Phase compiler for step-level validation generated functions.
@@ -85,18 +81,6 @@ export default class StepValidationCompiler {
   }
 
   /**
-   * Builds the generated group-selector used before rendering a GET request.
-   */
-  compileOnEntryValidation(entries: StepEntryValidationAST[] | undefined): CompiledEntryValidationFunction {
-    return compileGeneratedFunction<CompiledEntryValidationFunction>(
-      this.expr,
-      ['ctx'],
-      () => this.buildEntryValidationSource(entries ?? []),
-      { phase: 'entry-validation' },
-    )
-  }
-
-  /**
    * Produces inspectable submit-validation source for tests and local debugging.
    */
   generateOnSubmitValidationSource(
@@ -108,13 +92,6 @@ export default class StepValidationCompiler {
     return buildGeneratedSource(this.expr, () =>
       this.buildSubmitValidationSource(fieldBlocks, domainValidWhen, iterateNodes),
     )
-  }
-
-  /**
-   * Produces inspectable entry-validation source for tests and local debugging.
-   */
-  generateOnEntryValidationSource(entries: StepEntryValidationAST[]): string {
-    return buildGeneratedSource(this.expr, () => this.buildEntryValidationSource(entries))
   }
 
   /**
@@ -148,80 +125,6 @@ export default class StepValidationCompiler {
     emitter.return(`ctx.workTasks.stepValidation(${fieldValidationsVar}, ${domainValidationsVar})`)
 
     return emitter.toString()
-  }
-
-  /**
-   * Emits the entry-validation group selector used by GET rendering.
-   */
-  private buildEntryValidationSource(entries: StepEntryValidationAST[]): string {
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
-
-    emitter.comment('StepValidationCompiler.buildEntryValidationSource')
-    emitter.declareConst('groups', '[]')
-    emitter.declareConst('seen', 'Object.create(null)')
-    this.compileEntryValidationGroupAccumulator(emitter)
-
-    entries.forEach(entry => this.compileEntryValidationRule(entry, emitter))
-    emitter.return('groups')
-
-    return emitter.toString()
-  }
-
-  /**
-   * Emits a tiny local helper so repeated entry groups keep their first declaration position.
-   */
-  private compileEntryValidationGroupAccumulator(emitter: CodeEmitter): void {
-    emitter.comment('StepValidationCompiler.compileEntryValidationGroupAccumulator')
-    emitter.emitBlock('function addGroup(group)', () => {
-      const groupKeyVar = emitter.const('groupKey', 'String(group)')
-
-      emitter.if(`!seen[${groupKeyVar}]`, () => {
-        emitter.assign(`seen[${groupKeyVar}]`, 'true')
-        emitter.code(`groups.push(${groupKeyVar});`)
-      })
-    })
-  }
-
-  /**
-   * Emits one validateOnEntry rule, preserving unconditional entries as direct group additions.
-   */
-  private compileEntryValidationRule(entry: StepEntryValidationAST, emitter: CodeEmitter): void {
-    emitter.comment('StepValidationCompiler.compileEntryValidationRule')
-    emitter.scope(() => {
-      if (entry.when === true) {
-        this.compileEntryValidationGroups(entry.groups, emitter)
-
-        return
-      }
-
-      const whenVar = this.compileEntryValidationWhen(entry.when, emitter)
-
-      emitter.if(whenVar, () => this.compileEntryValidationGroups(entry.groups, emitter))
-    })
-  }
-
-  /**
-   * Emits a validateOnEntry predicate as a named boolean so generated source reads as a rule guard.
-   */
-  private compileEntryValidationWhen(when: StepEntryValidationAST['when'], emitter: CodeEmitter): string {
-    if (when === true) {
-      return 'true'
-    }
-
-    const predicateExpr = this.expr.compileExpression(when)
-
-    return emitter.const('entryWhen', `Boolean(${predicateExpr})`)
-  }
-
-  /**
-   * Emits the declared validateOnEntry groups through addGroup to preserve uniqueness and ordering.
-   */
-  private compileEntryValidationGroups(groups: readonly string[], emitter: CodeEmitter): void {
-    groups.forEach(group => {
-      emitter.code(`addGroup(${JSON.stringify(group)});`)
-    })
   }
 
   /**

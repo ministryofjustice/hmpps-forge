@@ -7,12 +7,13 @@ this phase does is decide what the user should see on first render.
 
 ## Stage folders
 
+- `lowering` holds `EntryValidationCompiler.ts`, which compiles the step's `validateOnEntry` rules into the group selector the phase handler runs.
 - `runtime` holds `RequestEntryValidationWorkHandler.ts`, the phase handler.
 
-There is no analysis or lowering folder yet. The lowering side - the `compileOnEntryValidation` family and
-`CompiledEntryValidationFunction` - is still inside
-[`../validation/lowering/StepValidationCompiler.ts`](../validation/lowering/StepValidationCompiler.ts) and moves
-here when that class is split in round two.
+There is no analysis folder: entry validation reads `validateOnEntry` straight off the step node, so it needs no
+dependency-analysis pass of its own. `CompiledEntryValidationFunction` stays in the shared
+[`../../contracts/compiled/compiledFunctions.type.ts`](../../contracts/compiled/compiledFunctions.type.ts)
+alongside every other compiled-function type.
 
 ## Runtime phase
 

@@ -20,6 +20,7 @@ import type {
   StepCompilationInputs,
 } from '../../contracts/plans/compilationPlan.type'
 import StepValidationCompiler from '../../concerns/validation/lowering/StepValidationCompiler'
+import EntryValidationCompiler from '../../concerns/entry-validation/lowering/EntryValidationCompiler'
 import ReachabilityCompiler from '../../concerns/reachability/lowering/ReachabilityCompiler'
 import { evaluateReachabilityState } from '../../concerns/reachability/lowering/graph/evaluateReachabilityState'
 import StepResolveCompiler from '../../concerns/resolve/lowering/StepResolveCompiler'
@@ -100,6 +101,7 @@ export default class CodegenOrchestrator {
     const hookCompiler = new HookLifecycleCompiler(this.dependencies)
     const answerPrepCompiler = new StepAnswerPreparationCompiler(this.dependencies)
     const validationCompiler = new StepValidationCompiler(this.dependencies)
+    const entryValidationCompiler = new EntryValidationCompiler(this.dependencies)
     const resolveCompiler = new StepResolveCompiler(this.dependencies)
 
     return {
@@ -116,7 +118,7 @@ export default class CodegenOrchestrator {
         inputs.validation.stepNode.properties.validWhen,
         inputs.validation.mapIterateNodes,
       ),
-      compiledEntryValidation: validationCompiler.compileOnEntryValidation(
+      compiledEntryValidation: entryValidationCompiler.compileOnEntryValidation(
         inputs.validation.stepNode.properties.validateOnEntry,
       ),
       compiledResolve: resolveCompiler.compile(

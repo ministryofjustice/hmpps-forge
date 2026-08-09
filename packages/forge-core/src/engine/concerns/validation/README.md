@@ -9,7 +9,7 @@ show. Filtering at write time would throw away failures another reader still nee
 ## Stage folders
 
 - [analysis](analysis/README.md) selects the validating field blocks and map iterates for a step, and answers whether a step validates at all.
-- [lowering](lowering/README.md) emits submit validation and entry-validation group selection.
+- [lowering](lowering/README.md) emits submit validation. Entry-validation group selection is compiled by [entry-validation](../entry-validation/lowering/EntryValidationCompiler.ts).
 - [runtime](runtime/README.md) runs the compiled tasks, stores `StepValidityResult` by `NodeId`, and filters it into a `ValidationView`.
 - `contracts` holds `ValidationWork.type.ts`, `stepValidityResult.type.ts`, `validationResult.type.ts`, and `validationView.type.ts`.
 
