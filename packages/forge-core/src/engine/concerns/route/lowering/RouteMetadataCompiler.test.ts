@@ -1,12 +1,12 @@
 /* eslint-disable no-new-func */
-import { ASTTestFactory } from '../../../ast/testing-helpers/ASTTestFactory'
-import { FunctionType } from '../../../../../authoring/types/enums'
-import FunctionRegistry from '../../../../registries/FunctionRegistry'
-import ComponentRegistry from '../../../../registries/ComponentRegistry'
-import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
-import type { CompilationDependencies } from '../../compilationDependencies.type'
-import type { CompiledRouteMetadataContext } from '../../../../contracts/compiled/compiledContexts.type'
-import type { RouteMetadataCompilationInputs } from '../../../../contracts/plans/compilationPlan.type'
+import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
+import { FunctionType } from '../../../../authoring/types/enums'
+import FunctionRegistry from '../../../registries/FunctionRegistry'
+import ComponentRegistry from '../../../registries/ComponentRegistry'
+import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
+import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+import type { CompiledRouteMetadataContext } from '../../../contracts/compiled/compiledContexts.type'
+import type { RouteMetadataCompilationInputs } from '../../../contracts/plans/compilationPlan.type'
 import RouteMetadataCompiler from './RouteMetadataCompiler'
 
 function createCtx(overrides: Partial<CompiledRouteMetadataContext> = {}): CompiledRouteMetadataContext {

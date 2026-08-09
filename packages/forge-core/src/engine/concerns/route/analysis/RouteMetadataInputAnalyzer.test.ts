@@ -1,4 +1,4 @@
-import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
+import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
 import RouteMetadataInputAnalyzer from './RouteMetadataInputAnalyzer'
 
 describe('RouteMetadataInputAnalyzer', () => {

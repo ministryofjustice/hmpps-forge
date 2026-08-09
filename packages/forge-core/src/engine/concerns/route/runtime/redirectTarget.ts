@@ -1,4 +1,4 @@
-import { RequestLocation } from '../../../../../framework/types/request.type'
+import { RequestLocation } from '../../../../framework/types/request.type'
 
 export type ParsedRedirectTarget =
   | { kind: 'external'; value: string }

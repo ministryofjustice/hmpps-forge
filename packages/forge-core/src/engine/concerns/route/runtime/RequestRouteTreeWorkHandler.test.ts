@@ -6,7 +6,7 @@ import { REQUEST_ROUTE_TREE_WORK_HANDLER } from './RequestRouteTreeWorkHandler'
 import type { CompiledRouteMetadataFunction } from '../../../contracts/compiled/compiledFunctions.type'
 import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import type { RequestRouteTreeWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type { StoredRouteTree } from '../../../contracts/routing/routeTree.type'
+import type { StoredRouteTree } from '../contracts/routeTree.type'
 import type { WorkContextContract } from '../../../contracts/runtime/work.type'
 
 const STORED_TREE: StoredRouteTree = [

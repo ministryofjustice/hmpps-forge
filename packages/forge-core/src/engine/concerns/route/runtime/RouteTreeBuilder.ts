@@ -1,12 +1,8 @@
-import ForgeInternalError from '../../errors/ForgeInternalError'
-import type {
-  JourneyRouteIndex,
-  StepRouteIndex,
-  StepRouteDescriptor,
-} from '../../contracts/routing/routeDescriptors.type'
-import type { NodeId } from '../../contracts/ast/ast.type'
-import { joinPaths } from '../../../shared/utils/routePath'
-import ForgeDuplicateRouteError from '../../errors/ForgeDuplicateRouteError'
+import ForgeInternalError from '../../../errors/ForgeInternalError'
+import type { JourneyRouteIndex, StepRouteIndex, StepRouteDescriptor } from '../contracts/routeDescriptors.type'
+import type { NodeId } from '../../../contracts/ast/ast.type'
+import { joinPaths } from '../../../../shared/utils/routePath'
+import ForgeDuplicateRouteError from '../../../errors/ForgeDuplicateRouteError'
 import {
   JourneyRouteContext,
   JourneyRouteTemplateCatalog,
@@ -15,7 +11,7 @@ import {
   StepRouteContext,
   StoredRouteTreeNode,
   StoredRouteTreeRoute,
-} from '../../contracts/routing/routeTree.type'
+} from '../contracts/routeTree.type'
 
 export interface RouteTreeBuilderInput {
   basePath: string

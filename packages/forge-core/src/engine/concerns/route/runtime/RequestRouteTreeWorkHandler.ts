@@ -1,7 +1,7 @@
-import { buildCompiledRouteMetadataContext } from '../context/compiledEvaluationContext'
-import { hydrateRouteTree } from '../phases/route-tree/hydrateRouteTree'
+import { buildCompiledRouteMetadataContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
+import { hydrateRouteTree } from './hydrateRouteTree'
 import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/runtime/work.type'
-import { phaseInstrumentation } from './requestPhase'
+import { phaseInstrumentation } from '../../../runtime/evaluation/request/requestPhase'
 import type { RequestRouteTreeWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 

@@ -17,7 +17,7 @@ import AnswerPreparationInputAnalyzer from './answer-preparation/AnswerPreparati
 import HookInputAnalyzer from './hooks/HookInputAnalyzer'
 import ValidationInputAnalyzer from './validation/ValidationInputAnalyzer'
 import ResolveInputAnalyzer from '../../concerns/resolve/analysis/ResolveInputAnalyzer'
-import RouteMetadataInputAnalyzer from './route-metadata/RouteMetadataInputAnalyzer'
+import RouteMetadataInputAnalyzer from '../../concerns/route/analysis/RouteMetadataInputAnalyzer'
 import ForgeInternalError from '../../errors/ForgeInternalError'
 
 type StepIndex = Map<NodeId, StepASTNode>

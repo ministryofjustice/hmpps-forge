@@ -24,9 +24,9 @@ import {
   RouteTreeIndex,
   StepRouteContext,
   StoredRouteTree,
-} from '../contracts/routing/routeTree.type'
-import type { JourneyRouteIndex, StepRouteIndex } from '../contracts/routing/routeDescriptors.type'
-import RouteTreeBuilder from '../runtime/routing/RouteTreeBuilder'
+} from '../concerns/route/contracts/routeTree.type'
+import type { JourneyRouteIndex, StepRouteIndex } from '../concerns/route/contracts/routeDescriptors.type'
+import RouteTreeBuilder from '../concerns/route/runtime/RouteTreeBuilder'
 import type { ForgeRoute, ForgeTopology } from '../../framework/types/topology.type'
 
 interface MountedNodeBase {

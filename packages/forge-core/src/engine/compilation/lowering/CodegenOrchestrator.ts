@@ -25,7 +25,7 @@ import { evaluateReachabilityState } from './function-construction/reachability/
 import StepResolveCompiler from '../../concerns/resolve/lowering/StepResolveCompiler'
 import StepAnswerPreparationCompiler from './phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
 import HookLifecycleCompiler from './phase-compilers/hooks/HookLifecycleCompiler'
-import RouteMetadataCompiler from './phase-compilers/route-tree/RouteMetadataCompiler'
+import RouteMetadataCompiler from '../../concerns/route/lowering/RouteMetadataCompiler'
 import CompilationTracer from '../../diagnostics/tracing/CompilationTracer'
 import ForgeInternalError from '../../errors/ForgeInternalError'
 

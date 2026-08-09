@@ -1,10 +1,13 @@
-import CodeEmitter from '../../emitters/CodeEmitter'
-import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
-import { buildGeneratedSource, compileGeneratedFunction } from '../../function-construction/GeneratedFunctionCompiler'
-import RuntimeValueCompiler from '../../structures/RuntimeValueCompiler'
-import type { CompilationDependencies } from '../../compilationDependencies.type'
-import type { CompiledRouteMetadataFunction } from '../../../../contracts/compiled/compiledFunctions.type'
-import type { RouteMetadataCompilationInputs } from '../../../../contracts/plans/compilationPlan.type'
+import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
+import {
+  buildGeneratedSource,
+  compileGeneratedFunction,
+} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
+import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
+import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+import type { CompiledRouteMetadataFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type { RouteMetadataCompilationInputs } from '../../../contracts/plans/compilationPlan.type'
 
 /**
  * Compiles the package-level route-metadata function for the route-tree phase.

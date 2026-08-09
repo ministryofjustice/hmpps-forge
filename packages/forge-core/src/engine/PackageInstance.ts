@@ -13,7 +13,7 @@ import CompilationTraceProjector from './diagnostics/tracing/CompilationTracePro
 import type { ForgeInstrumentation } from './diagnostics/ForgeTraceSinkDispatcher'
 
 import type { CompiledJourney, CompiledStep, CompiledPackage } from './contracts/plans/compilationArtefacts.type'
-import type { JourneyRouteIndex, StepRouteIndex } from './contracts/routing/routeDescriptors.type'
+import type { JourneyRouteIndex, StepRouteIndex } from './concerns/route/contracts/routeDescriptors.type'
 import ForgeInternalError from './errors/ForgeInternalError'
 
 export interface PackageInstanceOptions<TDeps> {

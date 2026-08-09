@@ -1,5 +1,5 @@
-import { NodeId } from '../ast/ast.type'
-import type { RouteTreeRouteKind } from '../../../framework/types/routeTree.type'
+import { NodeId } from '../../../contracts/ast/ast.type'
+import type { RouteTreeRouteKind } from '../../../../framework/types/routeTree.type'
 
 export interface JourneyRouteTemplateCatalog {
   routeTemplatePathByStepId: Map<NodeId, string>

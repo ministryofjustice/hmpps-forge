@@ -1,6 +1,6 @@
 import type { ReachabilityStateTableEntry, ReachabilityStateTable } from '../../../../contracts/plans/runtimePlans.type'
 import { pickTieBreakerWinner } from './ReachabilityPathAnalyzer'
-import type { JourneyRouteTemplateCatalog } from '../../../../contracts/routing/routeTree.type'
+import type { JourneyRouteTemplateCatalog } from '../../../../concerns/route/contracts/routeTree.type'
 import type { NodeId } from '../../../../contracts/ast/ast.type'
 import type { ReachabilityNode } from '../../../../contracts/reachability/reachabilityEvaluation.type'
 import type { CompiledReachabilityResult } from '../../../../contracts/compiled/compiledFunctions.type'

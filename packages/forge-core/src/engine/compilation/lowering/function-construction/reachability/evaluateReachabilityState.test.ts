@@ -7,7 +7,7 @@ import type {
 } from '../../../../contracts/plans/runtimePlans.type'
 import { CompiledReachabilityResult } from '../../../../contracts/compiled/compiledFunctions.type'
 import { NodeId } from '../../../../contracts/ast/engine.type'
-import { JourneyRouteTemplateCatalog } from '../../../../contracts/routing/routeTree.type'
+import { JourneyRouteTemplateCatalog } from '../../../../concerns/route/contracts/routeTree.type'
 import { StepFieldInventory } from '../../../../contracts/plans/stepFieldInventory.type'
 import { evaluateReachabilityState } from './evaluateReachabilityState'
 

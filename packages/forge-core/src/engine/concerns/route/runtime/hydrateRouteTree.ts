@@ -1,14 +1,10 @@
-import { resolvePathParams } from '../../../../../shared/utils/routePath'
-import { RouteTree, RouteTreeNode, RouteTreeRoute } from '../../../../../framework/types/routeTree.type'
+import { resolvePathParams } from '../../../../shared/utils/routePath'
+import { RouteTree, RouteTreeNode, RouteTreeRoute } from '../../../../framework/types/routeTree.type'
 import type {
   ResolvedRouteMetadata,
   ResolvedRouteMetadataEntry,
-} from '../../../../contracts/compiled/compiledFunctions.type'
-import {
-  StoredRouteTree,
-  StoredRouteTreeNode,
-  StoredRouteTreeRoute,
-} from '../../../../contracts/routing/routeTree.type'
+} from '../../../contracts/compiled/compiledFunctions.type'
+import { StoredRouteTree, StoredRouteTreeNode, StoredRouteTreeRoute } from '../contracts/routeTree.type'
 
 /**
  * Hydrates the stored route hierarchy for one request: resolves `:param`
