@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/compilation/lowering/phase-compilers/resolve`.
+This document covers `packages/forge-core/src/engine/concerns/resolve/lowering`.
 
 This code compiles step resolve/render preparation.
 It emits a `CompiledResolveFunction` that returns block and metadata `WorkTask`s for rendering.

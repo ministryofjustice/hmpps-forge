@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/compilation/dependency-analysis/validation`.
+This document covers `packages/forge-core/src/engine/concerns/validation/analysis`.
 
 This code builds the dependency-analysis inputs for validation lowering.
 It selects the step, field blocks with configured validation, and map iterates that validation compilation needs.
@@ -40,4 +40,4 @@ Field-level validation is filtered into `validatingFieldBlocks`.
 ## Entry Points
 
 - [ValidationInputAnalyzer.ts](ValidationInputAnalyzer.ts) builds validation inputs for one step.
-- [../shared/FieldInventoryAnalyzer.ts](../shared/FieldInventoryAnalyzer.ts) owns validating-field and map-iterate lookup.
+- [FieldInventoryAnalyzer.ts](../../../compilation/dependency-analysis/shared/FieldInventoryAnalyzer.ts) owns validating-field and map-iterate lookup.

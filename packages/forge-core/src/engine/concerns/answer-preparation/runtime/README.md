@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/runtime/evaluation/phases/answer-preparation`.
+This document covers `packages/forge-core/src/engine/concerns/answer-preparation/runtime`.
 
 This code runs compiled field answer-preparation tasks.
 It records post input, parser output, formatter output, and answer mutations into `context.domain.answers`.
@@ -124,6 +124,7 @@ flowchart TD
 
 ## Entry Points
 
+- [RequestAnswerPreparationWorkHandler.ts](RequestAnswerPreparationWorkHandler.ts) answers where the `request.answer-preparation` phase calls the compiled function.
 - [AnswerPreparationWorkHandler.ts](AnswerPreparationWorkHandler.ts) answers how field preparation tasks run as a phase.
 - [FieldAnswerPreparationWorkHandler.ts](FieldAnswerPreparationWorkHandler.ts) answers how one compiled field preparation runs.
-- [../../../../contracts/runtime/AnswerPreparationWork.type.ts](../../../../contracts/runtime/AnswerPreparationWork.type.ts) defines the props and result types.
+- [../contracts/AnswerPreparationWork.type.ts](../contracts/AnswerPreparationWork.type.ts) defines the props and result types.

@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/runtime/evaluation/phases/hooks`.
+This document covers `packages/forge-core/src/engine/concerns/hooks/runtime`.
 
 This code runs access and submit hook lifecycles.
 It executes hook predicates, effects, validation stages, branches, and next functions as runtime work.
@@ -113,7 +113,8 @@ flowchart TD
 - [SubmitLifecycleWorkHandler.ts](SubmitLifecycleWorkHandler.ts) runs submit hooks until one executes.
 - [SubmitHookWorkHandler.ts](SubmitHookWorkHandler.ts) runs one submit hook's ordered stages.
 - [SubmitHookPredicateWorkHandler.ts](SubmitHookPredicateWorkHandler.ts) stops a submit hook when `when` or guards fail.
-- [SubmitValidationWorkHandler.ts](SubmitValidationWorkHandler.ts) runs step validation and records validation state.
+- [SubmitValidationWorkHandler.ts](../../validation/runtime/SubmitValidationWorkHandler.ts) runs step validation and records validation state.
+  It belongs to the validation concern, not this one, because the work it does is validation; it only runs as a hook stage.
 - [SubmitBranchWorkHandler.ts](SubmitBranchWorkHandler.ts) gates and runs `onAlways`, `onValid`, or `onInvalid`.
 - [HookEffectWorkHandler.ts](HookEffectWorkHandler.ts) runs one effect and always continues.
 
@@ -172,6 +173,8 @@ flowchart TD
 
 ## Entry Points
 
+- [RequestAccessWorkHandler.ts](RequestAccessWorkHandler.ts) answers how the `request.access` phase can halt a request.
+- [RequestSubmitWorkHandler.ts](RequestSubmitWorkHandler.ts) answers how the `request.submit` phase halts, continues, or shows validation failures.
 - [AccessLifecycleWorkHandler.ts](AccessLifecycleWorkHandler.ts) answers how access hooks are sequenced.
 - [AccessHookWorkHandler.ts](AccessHookWorkHandler.ts) answers how one access hook runs.
 - [AccessHookWhenWorkHandler.ts](AccessHookWhenWorkHandler.ts) answers how access `when` gates a hook.
@@ -179,6 +182,6 @@ flowchart TD
 - [SubmitLifecycleWorkHandler.ts](SubmitLifecycleWorkHandler.ts) answers how submit hooks are sequenced.
 - [SubmitHookWorkHandler.ts](SubmitHookWorkHandler.ts) answers how one submit hook runs.
 - [SubmitHookPredicateWorkHandler.ts](SubmitHookPredicateWorkHandler.ts) answers how submit predicates gate execution.
-- [SubmitValidationWorkHandler.ts](SubmitValidationWorkHandler.ts) answers how submit validation is recorded.
+- [SubmitValidationWorkHandler.ts](../../validation/runtime/SubmitValidationWorkHandler.ts) answers how submit validation is recorded.
 - [SubmitBranchWorkHandler.ts](SubmitBranchWorkHandler.ts) answers how submit branches select and return outcomes.
 - [HookEffectWorkHandler.ts](HookEffectWorkHandler.ts) answers how hook effects run.

@@ -5,7 +5,11 @@
 This document covers `packages/forge-core/src/engine/compilation/dependency-analysis`.
 
 This code reads the registered AST and builds the `CompilationPlan` that lowering consumes.
-It decides which AST nodes and runtime facts each phase compiler needs.
+It owns plan assembly and the AST queries more than one concern shares.
+
+The per-concern analyzers live with their concern, under `concerns/<name>/analysis`.
+`CompilationPlanBuilder` calls them; this folder holds the loop that does the calling and the shared lookups they
+are built on.
 
 This document does not cover AST creation, semantic validation, JavaScript generation, runtime
 execution, or route index construction.
@@ -171,22 +175,21 @@ flowchart TD
   It normalizes paths and merges static `data` from ancestor journeys and the current node.
 - [shared/FieldInventoryAnalyzer.ts](shared/FieldInventoryAnalyzer.ts) finds field blocks, validating field blocks, map iterate nodes, and all iterate nodes for a step.
   It also builds field inventory sources from reachability entries.
-- [answer-preparation/AnswerPreparationInputAnalyzer.ts](answer-preparation/AnswerPreparationInputAnalyzer.ts) builds field and map-iterate inputs for answer preparation.
-- [hooks/HookInputAnalyzer.ts](hooks/HookInputAnalyzer.ts) resolves access hooks from ancestor journeys through the current step.
-  It reads submit hooks from the current step only.
-- [validation/ValidationInputAnalyzer.ts](validation/ValidationInputAnalyzer.ts) builds validation inputs from the step, validating field blocks, and map iterate nodes.
-- [resolve/ResolveInputAnalyzer.ts](resolve/ResolveInputAnalyzer.ts) builds resolve inputs from the step, ancestor journeys, and all iterate nodes.
-- [reachability/ReachabilityPlanAnalyzer.ts](reachability/ReachabilityPlanAnalyzer.ts) builds navigation runtime entries and richer reachability compilation entries.
-- [reachability/ForwardNavigationAnalyzer.ts](reachability/ForwardNavigationAnalyzer.ts) extracts forward redirect outcomes from submit hooks.
-  It preserves one outcome group per submit hook.
-- [reachability/RequestTimeReferenceAnalyzer.ts](reachability/RequestTimeReferenceAnalyzer.ts) detects `post`, `params`, `query`, and `request` references that cannot be evaluated at compile time.
-- [route-metadata/RouteMetadataInputAnalyzer.ts](route-metadata/RouteMetadataInputAnalyzer.ts) collects the authored `title`, `description`, and `metadata` from each step and journey node.
+- The analyzers `CompilationPlanBuilder` calls live in their concerns.
+  Each concern's `analysis/README.md` explains which inputs it builds and the rules behind them:
+  [answer-preparation](../../concerns/answer-preparation/analysis/README.md),
+  [hooks](../../concerns/hooks/analysis/README.md),
+  [reachability](../../concerns/reachability/analysis/README.md),
+  [resolve](../../concerns/resolve/analysis/README.md),
+  [route](../../concerns/route/analysis/README.md), and
+  [validation](../../concerns/validation/analysis/README.md).
 
 ## Boundaries
 
 - `CompilationPlanBuilder` owns plan assembly.
   It should not contain the details of every phase-specific AST query.
 - Analyzer classes own AST queries for one concern.
+  They live in that concern's `analysis/` folder, not here.
 - Reachability analysis owns compile-time navigation facts.
   Runtime navigation still evaluates the compiled navigation function with request data.
 - `FieldInventoryAnalyzer` owns shared field and iterate lookup.
@@ -234,11 +237,11 @@ flowchart TD
 - [CompilationPlanBuilder.ts](CompilationPlanBuilder.ts) builds the full `CompilationPlan`.
 - [shared/RuntimePlanAnalyzer.ts](shared/RuntimePlanAnalyzer.ts) answers what runtime metadata belongs to a step or journey.
 - [shared/FieldInventoryAnalyzer.ts](shared/FieldInventoryAnalyzer.ts) answers which field blocks and iterate nodes belong to a step.
-- [answer-preparation/AnswerPreparationInputAnalyzer.ts](answer-preparation/AnswerPreparationInputAnalyzer.ts) answers what answer preparation needs to compile for a step or journey.
-- [hooks/HookInputAnalyzer.ts](hooks/HookInputAnalyzer.ts) answers which hooks apply to a step or journey.
-- [validation/ValidationInputAnalyzer.ts](validation/ValidationInputAnalyzer.ts) answers which validation inputs belong to a step.
-- [resolve/ResolveInputAnalyzer.ts](resolve/ResolveInputAnalyzer.ts) answers which ancestor journeys and iterate nodes resolve needs.
-- [reachability/ReachabilityPlanAnalyzer.ts](reachability/ReachabilityPlanAnalyzer.ts) answers what navigation and reachability facts belong to a journey.
-- [reachability/ForwardNavigationAnalyzer.ts](reachability/ForwardNavigationAnalyzer.ts) answers which submit outcomes can move the user forward.
-- [reachability/RequestTimeReferenceAnalyzer.ts](reachability/RequestTimeReferenceAnalyzer.ts) answers whether a predicate depends on request-time state.
-- [route-metadata/RouteMetadataInputAnalyzer.ts](route-metadata/RouteMetadataInputAnalyzer.ts) answers what route metadata a step or journey carries.
+- [../../concerns/answer-preparation/analysis/AnswerPreparationInputAnalyzer.ts](../../concerns/answer-preparation/analysis/AnswerPreparationInputAnalyzer.ts) answers what answer preparation needs to compile for a step or journey.
+- [../../concerns/hooks/analysis/HookInputAnalyzer.ts](../../concerns/hooks/analysis/HookInputAnalyzer.ts) answers which hooks apply to a step or journey.
+- [../../concerns/validation/analysis/ValidationInputAnalyzer.ts](../../concerns/validation/analysis/ValidationInputAnalyzer.ts) answers which validation inputs belong to a step.
+- [../../concerns/resolve/analysis/ResolveInputAnalyzer.ts](../../concerns/resolve/analysis/ResolveInputAnalyzer.ts) answers which ancestor journeys and iterate nodes resolve needs.
+- [../../concerns/reachability/analysis/ReachabilityPlanAnalyzer.ts](../../concerns/reachability/analysis/ReachabilityPlanAnalyzer.ts) answers what navigation and reachability facts belong to a journey.
+- [../../concerns/reachability/analysis/ForwardNavigationAnalyzer.ts](../../concerns/reachability/analysis/ForwardNavigationAnalyzer.ts) answers which submit outcomes can move the user forward.
+- [../../concerns/reachability/analysis/RequestTimeReferenceAnalyzer.ts](../../concerns/reachability/analysis/RequestTimeReferenceAnalyzer.ts) answers whether a predicate depends on request-time state.
+- [../../concerns/route/analysis/RouteMetadataInputAnalyzer.ts](../../concerns/route/analysis/RouteMetadataInputAnalyzer.ts) answers what route metadata a step or journey carries.

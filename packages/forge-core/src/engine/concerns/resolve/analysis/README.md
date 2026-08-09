@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/compilation/dependency-analysis/resolve`.
+This document covers `packages/forge-core/src/engine/concerns/resolve/analysis`.
 
 This code builds the dependency-analysis inputs for resolve lowering.
 It gives resolve compilation the current step, its ancestor journeys, and every iterate node under the step.
@@ -37,4 +37,4 @@ Filter and find iterators can also affect what resolution needs to compile.
 ## Entry Points
 
 - [ResolveInputAnalyzer.ts](ResolveInputAnalyzer.ts) builds resolve inputs for one step.
-- [../shared/FieldInventoryAnalyzer.ts](../shared/FieldInventoryAnalyzer.ts) owns all-iterate lookup.
+- [FieldInventoryAnalyzer.ts](../../../compilation/dependency-analysis/shared/FieldInventoryAnalyzer.ts) owns all-iterate lookup.

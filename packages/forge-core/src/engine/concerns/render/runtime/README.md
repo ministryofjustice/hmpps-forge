@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/runtime/evaluation/phases/render`.
+This document covers `packages/forge-core/src/engine/concerns/render/runtime`.
 
 This code renders resolved blocks and assembles final renderer output.
 It calls the configured `ForgeRenderer` with evaluated blocks, rendered nested blocks, and request state.
@@ -145,6 +145,7 @@ flowchart TD
 
 ## Entry Points
 
+- [RequestRenderWorkHandler.ts](RequestRenderWorkHandler.ts) answers how a stored `RenderContext` becomes renderer output.
 - [RenderBlocksWorkHandler.ts](RenderBlocksWorkHandler.ts) answers how resolved blocks become rendered block output.
 - [RenderBlockWorkHandler.ts](RenderBlockWorkHandler.ts) answers how one block and its nested blocks are rendered.
 - [RenderAssemblePageWorkHandler.ts](RenderAssemblePageWorkHandler.ts) answers how rendered blocks become final renderer output.

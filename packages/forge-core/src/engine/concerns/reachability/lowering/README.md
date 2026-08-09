@@ -2,13 +2,13 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/compilation/lowering/phase-compilers/reachability`.
+This document covers `packages/forge-core/src/engine/concerns/reachability/lowering`.
 
 This code compiles the dynamic half of reachability: the facts function.
 It emits a function that evaluates a journey's authored reachability expressions — entry predicates, forward outcomes, tie-breakers, and the resume condition — and, when request params are present, the per-step field inventory, into a `CompiledReachabilityResult`.
 
 This document does not cover the static graph walk.
-The reachability state function that turns these facts into reachable step state is assembled in `CodegenOrchestrator` over `evaluateReachabilityState` (in `function-construction/reachability`), not here.
+The reachability state function that turns these facts into reachable step state is assembled in `CodegenOrchestrator` over `evaluateReachabilityState` (in [graph](graph)), not here.
 It also does not cover runtime redirect handling.
 
 ## Inputs
@@ -21,6 +21,7 @@ Dependency analysis provides those inputs.
 
 `StepFieldInventoryCompiler` receives the field inventory sources and emits field-code collection into the facts function body through `compileInto`.
 Its standalone `compile()` and `generateSource()` exist only for tests and diagnostics.
+That compiler belongs to the [answer-cleardown](../../answer-cleardown/README.md) concern - the inventory it emits is what cleardown clears - and it currently has no compiled artifact of its own, so it emits into this function.
 
 ## Work Returned
 
@@ -174,10 +175,11 @@ flowchart TD
 - To change forward outcome evaluation, start in `compileForwardOutcomes()`, `compileForwardOutcomeGroup()`, and `compileForwardOutcomeCascade()`.
 - To change the facts function body or ordering, start in `buildFactsSource()`.
 - To change field inventory behavior, start in `StepFieldInventoryCompiler`.
-- To change how facts become reachable state, edit `function-construction/reachability`, not this folder.
+- To change how facts become reachable state, edit [graph](graph), not this file.
 - To inspect generated source, use `generateFactsSource()` in the tests.
 
 ## Entry Points
 
 - [ReachabilityCompiler.ts](ReachabilityCompiler.ts) emits the reachability facts function source and compiles it.
-- [StepFieldInventoryCompiler.ts](StepFieldInventoryCompiler.ts) emits the per-step field inventory the facts function fills when params are present.
+- [graph/evaluateReachabilityState.ts](graph/evaluateReachabilityState.ts) walks the graph and projects reachable step state from the facts.
+- [StepFieldInventoryCompiler.ts](../../answer-cleardown/lowering/StepFieldInventoryCompiler.ts) emits the per-step field inventory the facts function fills when params are present.

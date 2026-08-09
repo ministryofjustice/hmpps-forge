@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/runtime/evaluation/phases/validation`.
+This document covers `packages/forge-core/src/engine/concerns/validation/runtime`.
 
 This code runs compiled step validation tasks and stores or projects their results.
 It separates field failures from domain failures and applies validation group filters when readers ask for a view.
@@ -149,6 +149,8 @@ flowchart TD
 
 ## Entry Points
 
+- [RequestValiditiesWorkHandler.ts](RequestValiditiesWorkHandler.ts) answers how the `request.validities` phase populates step validities before reachability.
+- [SubmitValidationWorkHandler.ts](SubmitValidationWorkHandler.ts) answers how submit validation runs as a hook stage.
 - [StepValidationWorkHandler.ts](StepValidationWorkHandler.ts) answers how validation child tasks run.
 - [FieldValidationWorkHandler.ts](FieldValidationWorkHandler.ts) answers how one field validation runs.
 - [DomainValidationWorkHandler.ts](DomainValidationWorkHandler.ts) answers how one domain validation runs.

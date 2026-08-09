@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/compilation/lowering/phase-compilers/route-tree`.
+This document covers `packages/forge-core/src/engine/concerns/route/lowering`.
 
 This code compiles the package's dynamic route metadata.
 It emits a `CompiledRouteMetadataFunction` that returns resolved title/description/metadata keyed by node ID.

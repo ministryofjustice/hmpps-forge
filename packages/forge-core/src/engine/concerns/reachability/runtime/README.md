@@ -2,25 +2,25 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/runtime/evaluation/phases/reachability`.
+This document covers `packages/forge-core/src/engine/concerns/reachability/runtime`.
 
-This code turns a finished reachability evaluation into a redirect decision, and resolves redirect target strings into concrete URLs.
-It decides whether a request should redirect and to which route-template path, derives the current step's backlink, and resolves redirect targets against the request location.
+This code runs the `request.reachability` phase and turns the finished evaluation into a redirect decision.
+It calls the compiled facts and state functions, decides whether a request should redirect and to which route-template path, and derives the current step's backlink.
 
 This document does not cover building the reachability evaluation.
-The graph walk, path/frontier/resume, and projection are compiled in `compilation/lowering/function-construction/reachability` and run as the compiled state function; `RequestReachabilityWorkHandler` orchestrates the phase and stores the result before this code runs.
+The graph walk, path/frontier/resume, and projection are compiled in [../lowering/graph](../lowering/graph) and run as the compiled state function; `RequestReachabilityWorkHandler` orchestrates the phase and stores the result before this code runs.
 
 ## Background
 
 By the time this code runs, the reachability evaluation already exists.
 
-`RequestReachabilityWorkHandler` (in `runtime/evaluation/request`) calls the compiled reachability facts function, then the compiled reachability state function, and stores the resulting `ReachabilityEvaluation` on the request context.
+[`RequestReachabilityWorkHandler`](RequestReachabilityWorkHandler.ts) calls the compiled reachability facts function, then the compiled reachability state function, and stores the resulting `ReachabilityEvaluation` on the request context.
 That evaluation already knows which steps are reachable, the default entry, the frontier, and the resume outcome.
 
 What is left is a routing decision.
 Given that evaluation, should the request continue to render, or halt and redirect, and if so to which step?
-Then, once a redirect produces a route-template path or an authored target string, what concrete URL does the user go to?
-Those questions are all this folder answers.
+That is the question this folder answers.
+Turning the resulting route-template path into a concrete URL is the [route](../../route/README.md) concern's job, in `redirectTarget.ts`.
 
 ## Responsibilities
 
@@ -28,8 +28,6 @@ Those questions are all this folder answers.
 - Choose the frontier path when a resume should jump forward.
 - Fall back to the configured unreachable target when a requested step is unreachable.
 - Derive the backlink route-template path for the current step.
-- Classify a redirect target as external, absolute, or relative.
-- Resolve a redirect target into a concrete URL against the request location.
 
 ## Data Model
 
@@ -81,8 +79,8 @@ flowchart TD
 
 - [reachabilityRedirects.ts](reachabilityRedirects.ts) decides the redirect and backlink route-template paths from the evaluation.
   `RequestReachabilityWorkHandler` reads the redirect; `RequestResolveWorkHandler` reads the backlink.
-- [redirectTarget.ts](redirectTarget.ts) classifies a redirect target and resolves it into a concrete URL.
-  `RequestEvaluator` calls it once a phase has chosen to redirect.
+- [redirectTarget.ts](../../route/runtime/redirectTarget.ts) classifies a redirect target and resolves it into a concrete URL.
+  It belongs to the [route](../../route/README.md) concern; `RequestEvaluator` calls it once a phase has chosen to redirect.
 
 ## Boundaries
 
@@ -123,9 +121,10 @@ flowchart TD
 - To change the unreachable fallback, start in `resolveUnreachableRedirect()`.
 - To change the backlink, start in `resolveBacklinkRouteTemplatePath()`.
 - To change how targets become URLs, start in `resolveRedirectTarget()` and `parseRedirectTarget()`.
-- To change how the evaluation is built, edit `compilation/lowering/function-construction/reachability`, not this folder.
+- To change how the evaluation is built, edit [../lowering/graph](../lowering/graph), not this folder.
 
 ## Entry Points
 
 - [reachabilityRedirects.ts](reachabilityRedirects.ts) answers whether a request redirects and to which route-template path.
-- [redirectTarget.ts](redirectTarget.ts) answers how a redirect target string becomes a concrete URL.
+- [RequestReachabilityWorkHandler.ts](RequestReachabilityWorkHandler.ts) answers how the phase runs the compiled functions and turns a redirect path into `halt-redirect`.
+- [redirectTarget.ts](../../route/runtime/redirectTarget.ts) answers how a redirect target string becomes a concrete URL.

@@ -5,7 +5,10 @@
 This document covers `packages/forge-core/src/engine/compilation/lowering`.
 
 This code turns a `CompilationPlan` into compiled functions for journeys, steps, hooks, validation, answer preparation, resolve, and navigation.
-It emits JavaScript source strings and compiles them into `Function` or `AsyncFunction` instances.
+It owns compile order, the shared emitter and expression layers, and the `new Function` boundary.
+
+The phase compilers themselves live with their concern, under `concerns/<name>/lowering`.
+This folder is what they are built out of and what drives them.
 
 This document does not cover AST creation, semantic validation, dependency analysis, route index construction, or runtime execution.
 
@@ -176,13 +179,14 @@ flowchart TD
 - [CodegenOrchestrator.ts](CodegenOrchestrator.ts) owns compile order.
   The order follows ownership: package scope, journey scope, then step scope.
   Child scopes may receive parent-scoped compiled functions at assembly time, but parent scopes do not depend on compiled child artifacts.
-- [phase-compilers/answer-preparation/StepAnswerPreparationCompiler.ts](phase-compilers/answer-preparation/StepAnswerPreparationCompiler.ts) compiles GET and POST answer preparation.
-- [phase-compilers/hooks/HookLifecycleCompiler.ts](phase-compilers/hooks/HookLifecycleCompiler.ts) compiles access lifecycles and submit hook lifecycles.
-- [phase-compilers/reachability/ReachabilityCompiler.ts](phase-compilers/reachability/ReachabilityCompiler.ts) compiles reachability and navigation functions.
-- [phase-compilers/reachability/StepFieldInventoryCompiler.ts](phase-compilers/reachability/StepFieldInventoryCompiler.ts) compiles field inventory used by navigation.
-- [phase-compilers/resolve/StepResolveCompiler.ts](phase-compilers/resolve/StepResolveCompiler.ts) compiles render/resolve work for a step.
-- [phase-compilers/route-tree/RouteMetadataCompiler.ts](phase-compilers/route-tree/RouteMetadataCompiler.ts) compiles the package-level route metadata function consumed by the route-tree phase.
-- [phase-compilers/validation/StepValidationCompiler.ts](phase-compilers/validation/StepValidationCompiler.ts) compiles submit validation and entry-validation group selection.
+- The phase compilers `CodegenOrchestrator` drives live in their concerns.
+  Each concern's `lowering/README.md` explains what its compiler emits and what work the generated function returns:
+  [answer-preparation](../../concerns/answer-preparation/lowering/README.md),
+  [hooks](../../concerns/hooks/lowering/README.md),
+  [reachability](../../concerns/reachability/lowering/README.md),
+  [resolve](../../concerns/resolve/lowering/README.md),
+  [route](../../concerns/route/lowering/README.md), and
+  [validation](../../concerns/validation/lowering/README.md).
 - [expressions/ExpressionDispatcher.ts](expressions/ExpressionDispatcher.ts) is the shared expression entry point used by the phase compilers.
 - [function-construction/GeneratedFunctionCompiler.ts](function-construction/GeneratedFunctionCompiler.ts) wraps generated source, attaches diagnostics, injects helpers, and constructs the executable function.
 
@@ -190,8 +194,9 @@ flowchart TD
 
 - `CodegenOrchestrator` owns phase compile order.
   It should not contain source-emission details.
-- Phase compilers own statement-shaped generated source for one runtime phase.
+- Phase compilers own the generated source for one runtime phase.
   They should not query the AST for missing inputs that dependency analysis should have provided.
+  They live in their concern's `lowering/` folder, not here.
 - `ExpressionDispatcher` owns expression-shaped source.
   Phase compilers should use it for nested expressions instead of hand-writing expression dispatch.
 - `RuntimeValueCompiler` owns turning arbitrary authored values into runtime values.
@@ -289,10 +294,10 @@ flowchart TD
 - [expressions/ExpressionDispatcher.ts](expressions/ExpressionDispatcher.ts) compiles AST and template expressions.
 - [structures/RuntimeValueCompiler.ts](structures/RuntimeValueCompiler.ts) turns authored values into the runtime values used at request time.
 - [structures/ScopedTemplateCompiler.ts](structures/ScopedTemplateCompiler.ts) emits iterator/template traversal and template instance IDs.
-- [phase-compilers/answer-preparation/StepAnswerPreparationCompiler.ts](phase-compilers/answer-preparation/StepAnswerPreparationCompiler.ts) compiles answer-preparation work.
-- [phase-compilers/hooks/HookLifecycleCompiler.ts](phase-compilers/hooks/HookLifecycleCompiler.ts) compiles access and submit hook work.
-- [phase-compilers/reachability/ReachabilityCompiler.ts](phase-compilers/reachability/ReachabilityCompiler.ts) compiles reachability and navigation work.
-- [phase-compilers/reachability/StepFieldInventoryCompiler.ts](phase-compilers/reachability/StepFieldInventoryCompiler.ts) compiles navigation field inventory.
-- [phase-compilers/resolve/StepResolveCompiler.ts](phase-compilers/resolve/StepResolveCompiler.ts) compiles resolve/render work.
-- [phase-compilers/route-tree/RouteMetadataCompiler.ts](phase-compilers/route-tree/RouteMetadataCompiler.ts) compiles route metadata for the route tree.
-- [phase-compilers/validation/StepValidationCompiler.ts](phase-compilers/validation/StepValidationCompiler.ts) compiles validation work.
+- [../../concerns/answer-preparation/lowering/StepAnswerPreparationCompiler.ts](../../concerns/answer-preparation/lowering/StepAnswerPreparationCompiler.ts) compiles answer-preparation work.
+- [../../concerns/hooks/lowering/HookLifecycleCompiler.ts](../../concerns/hooks/lowering/HookLifecycleCompiler.ts) compiles access and submit hook work.
+- [../../concerns/reachability/lowering/ReachabilityCompiler.ts](../../concerns/reachability/lowering/ReachabilityCompiler.ts) compiles reachability and navigation work.
+- [../../concerns/answer-cleardown/lowering/StepFieldInventoryCompiler.ts](../../concerns/answer-cleardown/lowering/StepFieldInventoryCompiler.ts) compiles the step field inventory the reachability facts function fills.
+- [../../concerns/resolve/lowering/StepResolveCompiler.ts](../../concerns/resolve/lowering/StepResolveCompiler.ts) compiles resolve/render work.
+- [../../concerns/route/lowering/RouteMetadataCompiler.ts](../../concerns/route/lowering/RouteMetadataCompiler.ts) compiles route metadata for the route tree.
+- [../../concerns/validation/lowering/StepValidationCompiler.ts](../../concerns/validation/lowering/StepValidationCompiler.ts) compiles validation work.

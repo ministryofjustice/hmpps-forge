@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/compilation/lowering/phase-compilers/validation`.
+This document covers `packages/forge-core/src/engine/concerns/validation/lowering`.
 
 This code compiles submit validation and entry-validation group selection.
 It emits validation functions that return validation `WorkTask`s or selected entry-validation groups.

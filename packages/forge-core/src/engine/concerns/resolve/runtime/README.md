@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/runtime/evaluation/phases/resolve`.
+This document covers `packages/forge-core/src/engine/concerns/resolve/runtime`.
 
 This code turns compiled resolve-block work into branded `RenderBlock` values.
 It resolves nested work tasks inside block properties before the render phase sees them.
@@ -143,11 +143,12 @@ flowchart TD
 - To change block folding, start in `ResolveBlocksWorkHandler`.
 - To change nested property replacement, start in `ResolveBlockWorkHandler`.
 - To change traversal semantics, start in `WorkTaskPropsWalker`.
-- To change route tree hydration, start in the route-tree phase (`../route-tree`).
-- To change validation error attachment, start in request-level `RequestResolveWorkHandler`.
+- To change route tree hydration, start in the [route](../../route/runtime/README.md) concern's runtime folder.
+- To change validation error attachment, start in [RequestResolveWorkHandler.ts](RequestResolveWorkHandler.ts).
 
 ## Entry Points
 
+- [RequestResolveWorkHandler.ts](RequestResolveWorkHandler.ts) answers how the `request.resolve` phase builds `RenderContext` and attaches validation failures.
 - [ResolveBlocksWorkHandler.ts](ResolveBlocksWorkHandler.ts) answers how block tasks are collected into resolve output.
 - [ResolveBlockWorkHandler.ts](ResolveBlockWorkHandler.ts) answers how one compiled block becomes `RenderBlock`.
 - [typeguards.ts](typeguards.ts) answers how callers identify branded render blocks.

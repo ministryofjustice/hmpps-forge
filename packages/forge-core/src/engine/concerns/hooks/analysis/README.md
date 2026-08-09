@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/compilation/dependency-analysis/hooks`.
+This document covers `packages/forge-core/src/engine/concerns/hooks/analysis`.
 
 This code builds the dependency-analysis inputs for hook lowering.
 It resolves which access hooks and submit hooks apply to a step or journey.
@@ -36,4 +36,4 @@ This document does not cover hook execution, hook result handling, or generated 
 ## Entry Points
 
 - [HookInputAnalyzer.ts](HookInputAnalyzer.ts) builds hook inputs and resolves inherited access hooks.
-- [../CompilationPlanBuilder.ts](../CompilationPlanBuilder.ts) calls `buildInputs()` for steps and `resolveAccessHooks()` for journeys.
+- [CompilationPlanBuilder.ts](../../../compilation/dependency-analysis/CompilationPlanBuilder.ts) calls `buildInputs()` for steps and `resolveAccessHooks()` for journeys.

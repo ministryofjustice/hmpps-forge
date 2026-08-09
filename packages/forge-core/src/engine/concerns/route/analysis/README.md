@@ -1,14 +1,14 @@
-# Route Metadata Inputs
+# Route Analysis
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/compilation/dependency-analysis/route-metadata`.
+This document covers `packages/forge-core/src/engine/concerns/route/analysis`.
 
-This code builds the dependency-analysis inputs for route-metadata lowering.
-It collects the authored `title`, `description`, and `metadata` from each step and journey node.
+This code builds the route concern's compile-time inputs.
+It collects the authored `title`, `description`, and `metadata` from each step and journey node for route-metadata lowering, and builds the static route indexes that map every node to its path and ancestor journeys.
 
 This document does not cover metadata resolution or generated code.
-The lowering side lives in `lowering/phase-compilers/route-tree` - named after the runtime phase that consumes the compiled function, not after this analyzer.
+The lowering side lives in [../lowering](../lowering/README.md).
 
 ## Inputs Built
 
@@ -19,6 +19,10 @@ The lowering side lives in `lowering/phase-compilers/route-tree` - named after t
 
 Steps and journeys carry the same metadata shape, so one analyzer serves both.
 `CompilationPlanBuilder.buildPlan()` calls it for every step and every journey and collects the results into the `routeMetadataInputs` map on the plan.
+
+`RouteIndexBuilder` builds the `stepRouteIndex` and `journeyRouteIndex` maps for the compiled package.
+Each entry carries the node's authored `path` and its `ancestorJourneyIds`, derived by walking AST `parent` links from the outermost journey down.
+`CompilationPipeline.buildRouteIndexes()` calls it after lowering and spreads the indexes onto the `CompiledPackage`.
 
 ## Rules
 
@@ -37,5 +41,6 @@ Steps and journeys carry the same metadata shape, so one analyzer serves both.
 ## Entry Points
 
 - [RouteMetadataInputAnalyzer.ts](RouteMetadataInputAnalyzer.ts) builds route metadata inputs for one step or journey.
-- [../CompilationPlanBuilder.ts](../CompilationPlanBuilder.ts) calls `buildInputs()` for every step and journey.
-- [../../lowering/phase-compilers/route-tree/RouteMetadataCompiler.ts](../../lowering/phase-compilers/route-tree/RouteMetadataCompiler.ts) consumes the collected inputs.
+- [RouteIndexBuilder.ts](RouteIndexBuilder.ts) builds the step and journey route indexes.
+- [CompilationPlanBuilder.ts](../../../compilation/dependency-analysis/CompilationPlanBuilder.ts) calls `buildInputs()` for every step and journey.
+- [../lowering/RouteMetadataCompiler.ts](../lowering/RouteMetadataCompiler.ts) consumes the collected inputs.

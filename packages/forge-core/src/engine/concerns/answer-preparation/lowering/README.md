@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/compilation/lowering/phase-compilers/answer-preparation`.
+This document covers `packages/forge-core/src/engine/concerns/answer-preparation/lowering`.
 
 This code compiles answer preparation for steps and journeys.
 It emits a `CompiledAnswerPreparationFunction` that builds answer-preparation `WorkTask`s.

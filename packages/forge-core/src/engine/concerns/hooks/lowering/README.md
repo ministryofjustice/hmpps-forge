@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/compilation/lowering/phase-compilers/hooks`.
+This document covers `packages/forge-core/src/engine/concerns/hooks/lowering`.
 
 This code compiles access hooks and submit hooks.
 It emits lifecycle functions that return hook `WorkTask`s.

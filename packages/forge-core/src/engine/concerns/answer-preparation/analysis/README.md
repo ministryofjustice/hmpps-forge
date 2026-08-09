@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/compilation/dependency-analysis/answer-preparation`.
+This document covers `packages/forge-core/src/engine/concerns/answer-preparation/analysis`.
 
 This code builds the dependency-analysis inputs for the answer-preparation lowering phase.
 It selects the field blocks and map iterates that can produce or normalize answers for a step or journey.
@@ -39,4 +39,4 @@ Both methods delegate field and iterate lookup to `FieldInventoryAnalyzer`.
 ## Entry Points
 
 - [AnswerPreparationInputAnalyzer.ts](AnswerPreparationInputAnalyzer.ts) builds step and journey inputs for answer preparation.
-- [../shared/FieldInventoryAnalyzer.ts](../shared/FieldInventoryAnalyzer.ts) owns the shared field and map-iterate lookup.
+- [FieldInventoryAnalyzer.ts](../../../compilation/dependency-analysis/shared/FieldInventoryAnalyzer.ts) owns the shared field and map-iterate lookup.

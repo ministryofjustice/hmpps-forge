@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/runtime/evaluation/phases/answer-cleardown`.
+This document covers `packages/forge-core/src/engine/concerns/answer-cleardown/runtime`.
 
 This code clears answers that belong to steps no active path can reach.
 It adds `cleardown` mutations to answer history and returns the field codes cleared in this request.
@@ -116,12 +116,13 @@ flowchart TD
 
 ## Editing Notes
 
-- To change which steps count as reachable, start in `compilation/lowering/function-construction/reachability`, not this helper.
+- To change which steps count as reachable, start in [../../reachability/lowering/graph](../../reachability/lowering/graph), not this helper.
 - To change which fields are cleared, start in `resolveFieldsToClear()`.
 - To change answer mutation shape, start in `clearStaleAnswers()`.
-- To change when cleardown runs, edit `RequestAnswerCleardownWorkHandler`, not this helper.
+- To change when cleardown runs, edit [RequestAnswerCleardownWorkHandler.ts](RequestAnswerCleardownWorkHandler.ts), not this helper.
 
 ## Entry Points
 
 - [evaluateAnswerCleardown.ts](evaluateAnswerCleardown.ts) answers which stale answers are cleared and how they are mutated.
+- [RequestAnswerCleardownWorkHandler.ts](RequestAnswerCleardownWorkHandler.ts) answers where the `request.answer-cleardown` phase calls the helper from.
 - [evaluateAnswerCleardown.test.ts](evaluateAnswerCleardown.test.ts) shows unreachable-step clearing, pattern matching, and duplicate-cleardown behavior.

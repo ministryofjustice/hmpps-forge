@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/compilation/dependency-analysis/reachability`.
+This document covers `packages/forge-core/src/engine/concerns/reachability/analysis`.
 
 This code builds navigation and reachability facts for a journey.
 It decides which steps appear in navigation, which predicates guard those steps, and which submit outcomes can move the user forward.
@@ -70,4 +70,4 @@ flowchart TD
 - [ReachabilityPlanAnalyzer.ts](ReachabilityPlanAnalyzer.ts) builds the navigation and reachability plans.
 - [ForwardNavigationAnalyzer.ts](ForwardNavigationAnalyzer.ts) extracts redirect outcomes from submit hooks.
 - [RequestTimeReferenceAnalyzer.ts](RequestTimeReferenceAnalyzer.ts) detects request-time references.
-- [../shared/FieldInventoryAnalyzer.ts](../shared/FieldInventoryAnalyzer.ts) builds the field inventory sources for each reachability entry.
+- [FieldInventoryAnalyzer.ts](../../../compilation/dependency-analysis/shared/FieldInventoryAnalyzer.ts) builds the field inventory sources for each reachability entry.
