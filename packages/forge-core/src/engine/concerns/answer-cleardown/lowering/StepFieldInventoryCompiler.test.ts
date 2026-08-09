@@ -9,8 +9,9 @@ import { NodeIDGenerator } from '../../../compilation/ast/ast-state/NodeIDGenera
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+import type { FieldInventoryContext } from '../contracts/compiledFieldInventory.type'
 import type { FieldInventoryStepSource } from '../../../contracts/plans/compilationPlan.type'
-import StepFieldInventoryCompiler, { FieldInventoryContext } from './StepFieldInventoryCompiler'
+import StepFieldInventoryCompiler from './StepFieldInventoryCompiler'
 
 function createFieldBlock(code: string | FunctionASTNode): FieldBlockASTNode {
   return ASTTestFactory.block('text-input', BlockType.FIELD)

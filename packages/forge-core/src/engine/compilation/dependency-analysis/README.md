@@ -22,8 +22,8 @@ The AST tells us everything that exists in the journey. But lowering - the next 
 questions like "is this step valid?" - needs the inputs for each question gathered into easy-to-evaluate
 lists, rather than scattered across the tree. For example, a step compiler needs its own runtime metadata, fields,
 hooks, validations, iterate nodes, and ancestor journeys. A journey compiler needs navigation facts and the fields
-from the steps that belong to that journey. Navigation compilation needs reachability entries, cleardown fields,
-forward redirects, and field inventory sources.
+from the steps that belong to that journey, plus the field inventory sources answer cleardown clears against.
+Navigation compilation needs reachability entries, cleardown fields, and forward redirects.
 
 "Can lowering just query the AST directly?" sure, but then every phase compiler would need to rediscover the same
 tree facts. It would also make ordering rules harder to see. Dependency analysis keeps those questions in one place,
@@ -57,10 +57,11 @@ It contains four maps:
 - `resolve`, with the step node, ancestor journeys, and all iterate nodes.
 
 `JourneyCompilationInputs` contains the journey runtime plan, the merged `staticData`, field blocks from
-the journey's steps, map iterate nodes from those steps, and journey access hooks.
+the journey's steps, map iterate nodes from those steps, journey access hooks, and `answerCleardown`, with one
+field inventory source per step in the journey.
 
-`ReachabilityCompilationInputs` contains the parent `reachabilityId`, the reachability state table, the richer reachability
-compilation plan, and field inventory sources for each reachable entry.
+`ReachabilityCompilationInputs` contains the parent `reachabilityId`, the reachability state table, and the richer
+reachability compilation plan.
 
 `RouteMetadataCompilationInputs` contains the node ID plus the authored `title`, `description`, and `metadata`
 from that step or journey.
@@ -69,7 +70,7 @@ The analyzers share one core structure, `ASTNodeIndex`, which answers lookup que
 Ancestry questions are answered by walking the `parent` pointer carried on every AST node.
 
 `FieldInventoryAnalyzer` is shared by several analyzers because field and iterate lookup is needed by answer
-preparation, validation, resolve, and navigation inventory.
+preparation, validation, resolve, and answer cleardown.
 
 ### Example
 
@@ -124,6 +125,7 @@ A journey with two steps starts as registered AST nodes:
       stepFieldBlocks: [...],
       stepMapIterateNodes: [...],
       accessHooks: [...],
+      answerCleardown: { fieldInventorySources: [...] },
     },
   },
   reachabilityInputs: Map {
@@ -131,7 +133,6 @@ A journey with two steps starts as registered AST nodes:
       reachabilityId: 'compile_ast:1',
       stateTable: { entries: [...], ... },
       reachabilityPlan: { stateTable: ..., entries: [...], resumeAlways: false },
-      fieldInventorySources: [...],
     },
   },
   routeMetadataInputs: Map {
@@ -174,9 +175,9 @@ flowchart TD
 - [shared/RuntimePlanAnalyzer.ts](shared/RuntimePlanAnalyzer.ts) builds `StepRuntimePlan` and `JourneyRuntimePlan`.
   It normalizes paths and merges static `data` from ancestor journeys and the current node.
 - [shared/FieldInventoryAnalyzer.ts](shared/FieldInventoryAnalyzer.ts) finds field blocks, validating field blocks, map iterate nodes, and all iterate nodes for a step.
-  It also builds field inventory sources from reachability entries.
 - The analyzers `CompilationPlanBuilder` calls live in their concerns.
   Each concern's `analysis/README.md` explains which inputs it builds and the rules behind them:
+  [answer-cleardown](../../concerns/answer-cleardown/analysis/README.md),
   [answer-preparation](../../concerns/answer-preparation/analysis/README.md),
   [hooks](../../concerns/hooks/analysis/README.md),
   [reachability](../../concerns/reachability/analysis/README.md),
@@ -237,6 +238,7 @@ flowchart TD
 - [CompilationPlanBuilder.ts](CompilationPlanBuilder.ts) builds the full `CompilationPlan`.
 - [shared/RuntimePlanAnalyzer.ts](shared/RuntimePlanAnalyzer.ts) answers what runtime metadata belongs to a step or journey.
 - [shared/FieldInventoryAnalyzer.ts](shared/FieldInventoryAnalyzer.ts) answers which field blocks and iterate nodes belong to a step.
+- [../../concerns/answer-cleardown/analysis/AnswerCleardownInputAnalyzer.ts](../../concerns/answer-cleardown/analysis/AnswerCleardownInputAnalyzer.ts) answers which field codes each step in a journey can hold.
 - [../../concerns/answer-preparation/analysis/AnswerPreparationInputAnalyzer.ts](../../concerns/answer-preparation/analysis/AnswerPreparationInputAnalyzer.ts) answers what answer preparation needs to compile for a step or journey.
 - [../../concerns/hooks/analysis/HookInputAnalyzer.ts](../../concerns/hooks/analysis/HookInputAnalyzer.ts) answers which hooks apply to a step or journey.
 - [../../concerns/validation/analysis/ValidationInputAnalyzer.ts](../../concerns/validation/analysis/ValidationInputAnalyzer.ts) answers which validation inputs belong to a step.

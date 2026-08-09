@@ -63,6 +63,7 @@ export interface JourneyCompilationInputs {
   readonly stepFieldBlocks: FieldBlockASTNode[]
   readonly stepMapIterateNodes: IterateASTNode[]
   readonly accessHooks: AccessHookASTNode[]
+  readonly answerCleardown: AnswerCleardownInputs
 }
 
 export interface FieldInventoryStepSource {
@@ -72,11 +73,14 @@ export interface FieldInventoryStepSource {
   readonly cleardownFieldCodes: string[]
 }
 
+export interface AnswerCleardownInputs {
+  readonly fieldInventorySources: FieldInventoryStepSource[]
+}
+
 export interface ReachabilityCompilationInputs {
   readonly reachabilityId: NodeId
   readonly stateTable: ReachabilityStateTable
   readonly reachabilityPlan: ReachabilityCompilationPlan
-  readonly fieldInventorySources: FieldInventoryStepSource[]
 }
 
 export interface RouteMetadataCompilationInputs {

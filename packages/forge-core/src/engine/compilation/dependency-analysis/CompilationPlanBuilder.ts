@@ -8,11 +8,12 @@ import type {
   RouteMetadataCompilationInputs,
   StepCompilationInputs,
 } from '../../contracts/plans/compilationPlan.type'
-import type { ReachabilityStateTable } from '../../contracts/plans/runtimePlans.type'
+import type { ReachabilityCompilationPlan } from '../../contracts/plans/runtimePlans.type'
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import FieldInventoryAnalyzer from './shared/FieldInventoryAnalyzer'
 import RuntimePlanAnalyzer from './shared/RuntimePlanAnalyzer'
 import ReachabilityPlanAnalyzer from '../../concerns/reachability/analysis/ReachabilityPlanAnalyzer'
+import AnswerCleardownInputAnalyzer from '../../concerns/answer-cleardown/analysis/AnswerCleardownInputAnalyzer'
 import AnswerPreparationInputAnalyzer from '../../concerns/answer-preparation/analysis/AnswerPreparationInputAnalyzer'
 import HookInputAnalyzer from '../../concerns/hooks/analysis/HookInputAnalyzer'
 import ValidationInputAnalyzer from '../../concerns/validation/analysis/ValidationInputAnalyzer'
@@ -28,6 +29,8 @@ export default class CompilationPlanBuilder {
 
   private readonly reachabilityPlanAnalyzer: ReachabilityPlanAnalyzer
 
+  private readonly answerCleardownInputAnalyzer: AnswerCleardownInputAnalyzer
+
   private readonly answerPreparationInputAnalyzer: AnswerPreparationInputAnalyzer
 
   private readonly hookInputAnalyzer: HookInputAnalyzer
@@ -42,7 +45,8 @@ export default class CompilationPlanBuilder {
     const fieldInventoryAnalyzer = new FieldInventoryAnalyzer(nodeRegistry)
 
     this.runtimePlanAnalyzer = new RuntimePlanAnalyzer()
-    this.reachabilityPlanAnalyzer = new ReachabilityPlanAnalyzer(fieldInventoryAnalyzer)
+    this.reachabilityPlanAnalyzer = new ReachabilityPlanAnalyzer()
+    this.answerCleardownInputAnalyzer = new AnswerCleardownInputAnalyzer(fieldInventoryAnalyzer)
     this.answerPreparationInputAnalyzer = new AnswerPreparationInputAnalyzer(fieldInventoryAnalyzer)
     this.hookInputAnalyzer = new HookInputAnalyzer()
     this.validationInputAnalyzer = new ValidationInputAnalyzer(fieldInventoryAnalyzer)
@@ -84,10 +88,9 @@ export default class CompilationPlanBuilder {
         reachabilityId: journeyId,
         stateTable: reachabilityPlan.stateTable,
         reachabilityPlan,
-        fieldInventorySources: this.reachabilityPlanAnalyzer.buildFieldInventorySources(reachabilityPlan),
       })
 
-      journeyInputs.set(journeyId, this.buildJourneyInputs(journeyNode, reachabilityPlan.stateTable))
+      journeyInputs.set(journeyId, this.buildJourneyInputs(journeyNode, reachabilityPlan))
     })
 
     // Route metadata is a per-node concern, collected for every step and journey — including
@@ -124,15 +127,16 @@ export default class CompilationPlanBuilder {
 
   private buildJourneyInputs(
     journeyNode: JourneyASTNode,
-    stateTable: ReachabilityStateTable,
+    reachabilityPlan: ReachabilityCompilationPlan,
   ): JourneyCompilationInputs {
-    const stepIds = stateTable.entries.map(entry => entry.stepId)
+    const stepIds = reachabilityPlan.stateTable.entries.map(entry => entry.stepId)
 
     return {
       runtimePlan: this.runtimePlanAnalyzer.buildJourneyRuntimePlan(journeyNode),
       staticData: this.runtimePlanAnalyzer.resolveStaticData(journeyNode),
       ...this.answerPreparationInputAnalyzer.buildJourneyInputs(stepIds),
       accessHooks: this.hookInputAnalyzer.resolveAccessHooks(journeyNode),
+      answerCleardown: this.answerCleardownInputAnalyzer.buildInputs(reachabilityPlan),
     }
   }
 

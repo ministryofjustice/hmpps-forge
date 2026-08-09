@@ -188,8 +188,8 @@ describe('ReachabilityCompiler', () => {
       const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = localCompiler.generateFactsSource(plan, [])
-      const fn = localCompiler.compileFacts(plan, [])
+      const source = localCompiler.generateFactsSource(plan)
+      const fn = localCompiler.compileFacts(plan)
       const result = await fn!(
         createCtx({
           data: { isAdmin: true },
@@ -224,8 +224,8 @@ describe('ReachabilityCompiler', () => {
       const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = localCompiler.generateFactsSource(plan, [])
-      const fn = localCompiler.compileFacts(plan, [])
+      const source = localCompiler.generateFactsSource(plan)
+      const fn = localCompiler.compileFacts(plan)
       const result = await fn!(
         createCtx({
           data: { isAdmin: true },
@@ -257,8 +257,8 @@ describe('ReachabilityCompiler', () => {
       const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = localCompiler.generateFactsSource(plan, [])
-      const fn = localCompiler.compileFacts(plan, [])
+      const source = localCompiler.generateFactsSource(plan)
+      const fn = localCompiler.compileFacts(plan)
       const result = await fn!(createCtx({ conditions: functionRegistry }))
 
       // Assert
@@ -273,7 +273,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
 
       // Assert
       expect(fn).toBeDefined()
@@ -299,7 +299,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { isAdmin: true } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert
@@ -320,7 +320,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { isAdmin: false } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert
@@ -336,7 +336,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { entryActive: true } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert
@@ -352,7 +352,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { entryActive: false } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert
@@ -370,7 +370,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(createCtx())
 
       // Assert
@@ -393,7 +393,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ answers: { choice: { current: 'yes' } } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert
@@ -415,7 +415,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ answers: { choice: { current: 'no' } } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert
@@ -432,7 +432,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(createCtx())
 
       // Assert
@@ -456,7 +456,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ answers: { choice: { current: 'yes' } } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert
@@ -480,7 +480,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ answers: { choice: { current: 'no' } } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert
@@ -506,7 +506,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(createCtx())
 
       // Assert
@@ -543,7 +543,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ answers: { choice: { current: 'yes' } } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert
@@ -564,7 +564,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(createCtx())
 
       // Assert
@@ -596,7 +596,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ answers: { route: { current: 'a' } } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert
@@ -624,7 +624,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ answers: { a: { current: 'no' }, b: { current: 'yes' } } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert
@@ -644,7 +644,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(createCtx())
 
       // Assert
@@ -669,7 +669,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { priority: 'high' } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert
@@ -694,7 +694,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { priority: 'low' } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert
@@ -708,7 +708,7 @@ describe('ReachabilityCompiler', () => {
       const plan = createPlan({ resumeAlways: true })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(createCtx())
 
       // Assert
@@ -727,7 +727,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { hasProgress: true } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert
@@ -746,7 +746,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { hasProgress: false } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert
@@ -760,7 +760,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { resumeActive: true } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert
@@ -774,7 +774,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { resumeActive: false } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert
@@ -802,7 +802,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
 
       // Assert
       await expect(fn!(ctx)).rejects.toThrow('boom')
@@ -839,7 +839,7 @@ describe('ReachabilityCompiler', () => {
       })
 
       // Act
-      const source = compiler.generateFactsSource(plan, [])
+      const source = compiler.generateFactsSource(plan)
 
       // Assert
       expect(source).toContain('"use strict"')
@@ -880,7 +880,7 @@ describe('ReachabilityCompiler', () => {
       const ctx = createCtx({ data: { skipIntro: true } })
 
       // Act
-      const fn = compiler.compileFacts(plan, [])
+      const fn = compiler.compileFacts(plan)
       const result = await fn!(ctx)
 
       // Assert

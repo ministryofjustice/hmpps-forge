@@ -5,23 +5,16 @@
 This document covers `packages/forge-core/src/engine/concerns/reachability/lowering`.
 
 This code compiles the dynamic half of reachability: the facts function.
-It emits a function that evaluates a journey's authored reachability expressions — entry predicates, forward outcomes, tie-breakers, and the resume condition — and, when request params are present, the per-step field inventory, into a `CompiledReachabilityResult`.
+It emits a function that evaluates a journey's authored reachability expressions — entry predicates, forward outcomes, tie-breakers, and the resume condition — into a `CompiledReachabilityResult`.
 
 This document does not cover the static graph walk.
 The reachability state function that turns these facts into reachable step state is assembled in `CodegenOrchestrator` over `evaluateReachabilityState` (in [graph](graph)), not here.
-It also does not cover runtime redirect handling.
+It also does not cover runtime redirect handling, or the per-step field inventory, which is [answer-cleardown](../../answer-cleardown/README.md)'s own compiled artifact.
 
 ## Inputs
 
-`ReachabilityCompiler.compileFacts()` receives:
-- a `ReachabilityCompilationPlan`, whose `entries` are the journey's steps in declaration order.
-- field inventory sources, one per step.
-
-Dependency analysis provides those inputs.
-
-`StepFieldInventoryCompiler` receives the field inventory sources and emits field-code collection into the facts function body through `compileInto`.
-Its standalone `compile()` and `generateSource()` exist only for tests and diagnostics.
-That compiler belongs to the [answer-cleardown](../../answer-cleardown/README.md) concern - the inventory it emits is what cleardown clears - and it currently has no compiled artifact of its own, so it emits into this function.
+`ReachabilityCompiler.compileFacts()` receives a `ReachabilityCompilationPlan`, whose `entries` are the journey's steps in declaration order.
+Dependency analysis provides it.
 
 ## Work Returned
 
@@ -32,7 +25,6 @@ That function returns a `CompiledReachabilityResult`, not a `WorkTask`:
 - `declaredOutcomeValues`, every authored static goto per step, unguarded, for the devtools graph.
 - `tieBreakerPriorities`, per-step resolved priority, or `undefined`.
 - `resumeActive`, the journey-level resume result.
-- `fieldInventory`, present only when the request supplies params.
 
 Every per-step array is indexed by `plan.entries` order.
 The compiled state function consumes them later to walk the graph.
@@ -43,13 +35,12 @@ The facts function emits one declaration block, then each algorithm in turn, the
 
 ```mermaid
 flowchart TD
-  start["compileFacts(plan, sources)"] --> arrays["declare entryResults, outcomeValues, declaredOutcomeValues, tieBreakerPriorities"]
+  start["compileFacts(plan)"] --> arrays["declare entryResults, outcomeValues, declaredOutcomeValues, tieBreakerPriorities"]
   arrays --> entry["compileEntryPredicates"]
   entry --> forward["compileForwardOutcomes"]
   forward --> tie["compileTieBreakers"]
   tie --> resume["compileResumeCondition sets resumeActive"]
-  resume --> inventory["compileFieldInventory sets fieldInventory"]
-  inventory --> ret["return CompiledReachabilityResult"]
+  resume --> ret["return CompiledReachabilityResult"]
 ```
 
 ## Algorithms
@@ -138,23 +129,6 @@ flowchart TD
   q2 -->|yes| e["resumeActive = Boolean(resumeWhen)"]
 ```
 
-### Field inventory
-
-Field inventory runs only on step requests, which carry params.
-For each step it collects registered field-block codes, static or dynamic, plus any codes from MAP iterators whose yield template contains fields, de-duplicates them, and records them with the step's cleardown patterns.
-
-```mermaid
-flowchart TD
-  guard{"factsInput.params present?"}
-  guard -->|no| undef["fieldInventory stays undefined"]
-  guard -->|yes| init["fieldInventory = []"]
-  init --> step["for each step source"]
-  step --> codes["fieldCodes = []"]
-  codes --> blocks["push each registered field-block code, static or dynamic"]
-  blocks --> iters["for each field-bearing MAP iterator: walk yield template under iterator scope, push codes"]
-  iters --> push["push step entry with unique fieldCodes and cleardownFieldCodes"]
-```
-
 ## Rules
 
 - Per-step result arrays are indexed by `plan.entries` order.
@@ -165,21 +139,17 @@ flowchart TD
   They push a candidate without closing the cascade.
 - `declaredOutcomeValues` is unguarded and records authored static gotos only.
   The devtools graph needs the declared shape even when a guard would suppress it at runtime.
-- Field inventory is emitted only inside the `params`-present guard.
-  Journey requests carry no params and skip it.
-- Field inventory de-duplicates codes and includes static codes, dynamic codes, and codes from MAP iterator templates; cleardown patterns are carried through verbatim.
 
 ## Editing Notes
 
 - To change the result shape, start in `compileReachabilityResult()` and `buildReachabilityResultExpression()`.
 - To change forward outcome evaluation, start in `compileForwardOutcomes()`, `compileForwardOutcomeGroup()`, and `compileForwardOutcomeCascade()`.
 - To change the facts function body or ordering, start in `buildFactsSource()`.
-- To change field inventory behavior, start in `StepFieldInventoryCompiler`.
+- To change field inventory behavior, start in `StepFieldInventoryCompiler` in [answer-cleardown](../../answer-cleardown/README.md).
 - To change how facts become reachable state, edit [graph](graph), not this file.
 - To inspect generated source, use `generateFactsSource()` in the tests.
 
 ## Entry Points
 
 - [ReachabilityCompiler.ts](ReachabilityCompiler.ts) emits the reachability facts function source and compiles it.
-- [graph/evaluateReachabilityState.ts](graph/evaluateReachabilityState.ts) walks the graph and projects reachable step state from the facts.
-- [StepFieldInventoryCompiler.ts](../../answer-cleardown/lowering/StepFieldInventoryCompiler.ts) emits the per-step field inventory the facts function fills when params are present.
+- [graph/evaluateReachabilityState.ts](graph/evaluateReachabilityState.ts) walks the graph and projects reachable step state from the facts and the field inventory the runtime phase supplies.

@@ -2,8 +2,7 @@
  * Emits the compiled reachability facts function for a reachability compilation
  * plan.
  *
- * Dynamic result arrays are indexed by step position in `plan.entries`. The facts
- * function also emits per-step field inventory when request params are present.
+ * Dynamic result arrays are indexed by step position in `plan.entries`.
  */
 import { ASTNode } from '../../../contracts/ast/ast.type'
 import type {
@@ -18,8 +17,6 @@ import {
   buildGeneratedSource,
   compileGeneratedFunction,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
-import type { FieldInventoryStepSource } from '../../../contracts/plans/compilationPlan.type'
-import StepFieldInventoryCompiler from '../../answer-cleardown/lowering/StepFieldInventoryCompiler'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 
 /**
@@ -28,29 +25,22 @@ import type { CompilationDependencies } from '../../../compilation/lowering/comp
 export default class ReachabilityCompiler {
   private readonly expr: ExpressionDispatcher
 
-  private readonly fieldInventory: StepFieldInventoryCompiler
-
   constructor(dependencies: CompilationDependencies) {
     this.expr = new ExpressionDispatcher(dependencies)
-    this.fieldInventory = new StepFieldInventoryCompiler(dependencies, this.expr)
   }
 
   /**
    * Compiles the plan into a reachability facts evaluator.
    *
-   * The generated function evaluates dynamic reachability expressions and, when
-   * params are available, the per-step field inventory. It returns the facts as a
-   * plain result object; the static graph walk over those facts runs in the
-   * compiled reachability state function.
+   * The generated function evaluates dynamic reachability expressions and returns
+   * the facts as a plain result object; the static graph walk over those facts
+   * runs in the compiled reachability state function.
    */
-  compileFacts(
-    plan: ReachabilityCompilationPlan,
-    fieldInventorySources: FieldInventoryStepSource[],
-  ): CompiledReachabilityFactsFunction {
+  compileFacts(plan: ReachabilityCompilationPlan): CompiledReachabilityFactsFunction {
     return compileGeneratedFunction<CompiledReachabilityFactsFunction>(
       this.expr,
-      ['ctx', 'factsInput'],
-      () => this.buildFactsSource(plan, fieldInventorySources),
+      ['ctx'],
+      () => this.buildFactsSource(plan),
       { phase: 'reachability' },
     )
   }
@@ -60,18 +50,14 @@ export default class ReachabilityCompiler {
    *
    * Function metadata determines whether emitted calls need `await`.
    */
-  generateFactsSource(plan: ReachabilityCompilationPlan, fieldInventorySources: FieldInventoryStepSource[]): string {
-    return buildGeneratedSource(this.expr, () => this.buildFactsSource(plan, fieldInventorySources))
+  generateFactsSource(plan: ReachabilityCompilationPlan): string {
+    return buildGeneratedSource(this.expr, () => this.buildFactsSource(plan))
   }
 
   /**
-   * Emits the generated facts function body with reachability arrays and optional
-   * field inventory.
+   * Emits the generated facts function body with the reachability arrays.
    */
-  private buildFactsSource(
-    plan: ReachabilityCompilationPlan,
-    fieldInventorySources: FieldInventoryStepSource[],
-  ): string {
+  private buildFactsSource(plan: ReachabilityCompilationPlan): string {
     const emitter = new CodeEmitter()
     const stepCount = plan.entries.length
 
@@ -79,7 +65,6 @@ export default class ReachabilityCompiler {
 
     emitter.comment('ReachabilityCompiler.buildFactsSource')
     this.compileReachabilityResult(plan, emitter, stepCount)
-    this.compileFieldInventory(fieldInventorySources, emitter)
 
     emitter.return(this.buildReachabilityResultExpression())
 
@@ -102,23 +87,10 @@ export default class ReachabilityCompiler {
   }
 
   /**
-   * Emits field inventory only when a request supplies params (step requests). The
-   * `factsInput` argument is absent for facts-only calls, so the guard tolerates it.
-   */
-  private compileFieldInventory(fieldInventorySources: FieldInventoryStepSource[], emitter: CodeEmitter): void {
-    emitter.comment('ReachabilityCompiler.compileFieldInventory')
-    emitter.declareLet('fieldInventory')
-    emitter.if('factsInput !== undefined && factsInput.params !== undefined', () => {
-      emitter.assign('fieldInventory', '[]')
-      this.fieldInventory.compileInto(fieldInventorySources, emitter, 'fieldInventory')
-    })
-  }
-
-  /**
    * Builds the reachability result object literal.
    */
   private buildReachabilityResultExpression(): string {
-    return '{ entryResults: entryResults, outcomeValues: outcomeValues, declaredOutcomeValues: declaredOutcomeValues, tieBreakerPriorities: tieBreakerPriorities, resumeActive: resumeActive, fieldInventory: fieldInventory }'
+    return '{ entryResults: entryResults, outcomeValues: outcomeValues, declaredOutcomeValues: declaredOutcomeValues, tieBreakerPriorities: tieBreakerPriorities, resumeActive: resumeActive }'
   }
 
   /**

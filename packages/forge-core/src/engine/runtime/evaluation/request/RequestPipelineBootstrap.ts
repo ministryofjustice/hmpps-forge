@@ -84,6 +84,7 @@ export default class RequestPipelineBootstrap {
       mode: node.kind,
       compiledReachabilityFacts: node.compiledReachabilityFacts,
       compiledReachabilityState: node.compiledReachabilityState,
+      compiledFieldInventory: node.compiledFieldInventory,
       routeTemplateCatalog: node.routeTemplateCatalog,
       method,
     })

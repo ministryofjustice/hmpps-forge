@@ -9,7 +9,7 @@ continue.
 
 ## Stage folders
 
-- [analysis](analysis/README.md) builds the reachability state table, the richer compilation plan, and the field inventory sources.
+- [analysis](analysis/README.md) builds the reachability state table and the richer compilation plan.
 - [lowering](lowering/README.md) emits the facts function; its `graph/` folder holds the static walk that becomes the state function.
 - [runtime](runtime/README.md) runs both compiled functions and resolves redirects and backlinks.
 - `contracts` holds `reachabilityEvaluation.type.ts`, `generatedReachabilityEvaluation.type.ts`, and `journeyReachabilityProjection.type.ts`.
@@ -23,7 +23,7 @@ child work tasks.
 ## Cross-concern edges
 
 - Reachability imports **validation** to read the validity filter, because forward movement can be validation-gated.
-- Reachability imports **answer-cleardown** for `StepFieldInventoryCompiler` and the inventory type, which it emits into its own facts function.
+- Reachability imports **answer-cleardown** for the `StepFieldInventory` type. The runtime phase evaluates cleardown's compiled inventory on step requests and passes it to the state function, which projects it per step.
 - Reachability imports **route** for `JourneyRouteTemplateCatalog`, used to turn reachable step ids into route-template paths.
 - **resolve** imports reachability for the backlink and redirect helpers and the evaluation type.
 - **answer-cleardown** imports reachability for `JourneyReachabilityProjection`.

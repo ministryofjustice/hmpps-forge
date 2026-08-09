@@ -3,8 +3,6 @@ import { BlockType, ExpressionType } from '../../../../authoring/types/enums'
 import { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
 import { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
-import { StepFieldInventory } from '../contracts/stepFieldInventory.type'
-import FunctionRegistry from '../../../registries/FunctionRegistry'
 import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
 import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
@@ -16,21 +14,8 @@ import ScopedTemplateCompiler, {
   isTemplateFieldNode,
 } from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+import type { CompiledFieldInventoryFunction } from '../contracts/compiledFieldInventory.type'
 import type { FieldInventoryStepSource } from '../../../contracts/plans/compilationPlan.type'
-
-export interface FieldInventoryContext {
-  answers: Record<string, { current: unknown }>
-  data: Record<string, unknown>
-  session: Record<string, unknown>
-  params: Record<string, unknown>
-  query: Record<string, unknown>
-  request: Record<string, unknown>
-  conditions: FunctionRegistry
-}
-
-export type CompiledFieldInventoryFunction = (
-  ctx: FieldInventoryContext,
-) => StepFieldInventory[] | Promise<StepFieldInventory[]>
 
 /**
  * Compiles the possible field codes for each step in a navigation plan.
@@ -54,7 +39,8 @@ export default class StepFieldInventoryCompiler {
   }
 
   /**
-   * Builds a standalone generated inventory function for tests and diagnostics.
+   * Builds the generated inventory function the cleardown phase and the
+   * reachability projection read.
    */
   compile(steps: FieldInventoryStepSource[]): CompiledFieldInventoryFunction | undefined {
     return compileGeneratedFunction<CompiledFieldInventoryFunction>(this.expr, ['ctx'], () => this.buildSource(steps), {
@@ -70,16 +56,6 @@ export default class StepFieldInventoryCompiler {
   }
 
   /**
-   * Emits inventory collection into an existing generated function.
-   *
-   * The caller owns the target array and expression dispatcher lifecycle; this
-   * method only appends the per-step collection statements.
-   */
-  compileInto(steps: FieldInventoryStepSource[], emitter: CodeEmitter, fieldInventoryVar: string): void {
-    steps.forEach(step => this.compileStep(step, emitter, fieldInventoryVar))
-  }
-
-  /**
    * Emits the full field inventory source, accumulating one inventory entry per step.
    */
   private buildSource(steps: FieldInventoryStepSource[]): string {
@@ -90,7 +66,7 @@ export default class StepFieldInventoryCompiler {
     emitter.comment('StepFieldInventoryCompiler.buildSource')
     emitter.declareConst('fieldInventory', '[]')
 
-    this.compileInto(steps, emitter, 'fieldInventory')
+    steps.forEach(step => this.compileStep(step, emitter, 'fieldInventory'))
     emitter.return('fieldInventory')
 
     return emitter.toString()

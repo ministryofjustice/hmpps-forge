@@ -7,17 +7,15 @@ with a `cleardown` mutation rather than deleting the keys, so traces still show 
 
 ## Stage folders
 
+- [analysis](analysis/README.md) builds the per-step field inventory sources from the journey's reachability plan.
 - [runtime](runtime/README.md) owns the cleardown algorithm and the `request.answer-cleardown` phase handler.
 - `lowering` holds `StepFieldInventoryCompiler`, which emits the per-step field inventory cleardown matches against.
-- `contracts` holds `stepFieldInventory.type.ts`.
+- `contracts` holds `stepFieldInventory.type.ts` and `compiledFieldInventory.type.ts`.
 
-This concern has an unusual shape. Its compile-time half is the field inventory, but that inventory has no
-compiled artifact of its own: `StepFieldInventoryCompiler` emits straight into
-[reachability's compiled facts function](../reachability/lowering/README.md) through `compileInto`, because
-reachability is the function that already walks every step and already carries the request params the inventory
-needs. There is also no `analysis` folder - the inventory sources are built by reachability's analyzer alongside
-the reachability entries. Round two gives cleardown its own compiled artifact and its own analyzer; until then the
-lowering folder is a compiler that another concern calls.
+The concern's compile-time half is the field inventory, compiled into its own artifact
+(`compiledFieldInventory`) and mounted alongside the reachability functions. The reachability phase evaluates it
+on step requests, because the inventory needs the request params that only step requests carry, and hands the
+result to the reachability state function, which projects it per step.
 
 ## Runtime phase
 
@@ -28,7 +26,8 @@ directly.
 ## Cross-concern edges
 
 - Answer cleardown imports **reachability** for `JourneyReachabilityProjection`, the projection that says which steps are unreachable.
-- **Reachability** imports answer cleardown for `StepFieldInventoryCompiler` and the inventory type.
+- **Reachability** imports answer cleardown for the `StepFieldInventory` type, which its state input carries and its projector reads.
 
-That pair of edges is the cost of the shared compiled function described above. Every other concern edge is
-blocked by the zones in [eslint.config.mjs](../../../../eslint.config.mjs).
+Both edges follow the inventory: cleardown reads the projection reachability builds, and reachability names the
+inventory type it is handed. Every other concern edge is blocked by the zones in
+[eslint.config.mjs](../../../../eslint.config.mjs).

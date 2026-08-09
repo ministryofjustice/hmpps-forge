@@ -9,7 +9,7 @@ import type {
   WorkInstrumentation,
 } from '../../../contracts/runtime/work.type'
 import type { RequestReachabilityWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type { ReachabilityFactsInput, ReachabilityStateInput } from '../contracts/generatedReachabilityEvaluation.type'
+import type { ReachabilityStateInput } from '../contracts/generatedReachabilityEvaluation.type'
 import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { ReachabilityEvaluation } from '../contracts/reachabilityEvaluation.type'
 import type { StepValidityResult } from '../../validation/contracts/stepValidityResult.type'
@@ -52,13 +52,14 @@ export const REQUEST_REACHABILITY_WORK_INSTRUMENTATION: WorkInstrumentation<
 
 /**
  * The reachability phase, for both step and journey requests. It evaluates the
- * compiled reachability facts (the dynamic expressions, plus field inventory for
- * step requests), runs the compiled reachability state function over them (graph
- * walk, path/frontier/resume), stores the evaluation and its projection on the
- * shared context, then resolves the redirect: step mode redirects when the
- * requested step is unreachable or a resume should jump to the frontier, else
- * continues to the `answer-cleardown` phase and on to render; journey mode always
- * redirects to the journey's first reachable step.
+ * compiled reachability facts (the dynamic expressions) and, on step requests,
+ * answer-cleardown's compiled field inventory, runs the compiled reachability
+ * state function over them (graph walk, path/frontier/resume), stores the
+ * evaluation and its projection on the shared context, then resolves the
+ * redirect: step mode redirects when the requested step is unreachable or a
+ * resume should jump to the frontier, else continues to the `answer-cleardown`
+ * phase and on to render; journey mode always redirects to the journey's first
+ * reachable step.
  */
 export const REQUEST_REACHABILITY_WORK_HANDLER: WorkHandler<'request.reachability', RequestReachabilityWorkProps> = {
   kind: REQUEST_REACHABILITY_KIND,
@@ -71,9 +72,15 @@ export const REQUEST_REACHABILITY_WORK_HANDLER: WorkHandler<'request.reachabilit
     const reachabilityContext = buildCompiledReachabilityContext(ctx.request.context, ctx.request.functionRegistry)
     const stepValidities = toReachabilityValidities(ctx.request.context.evaluation.stepValidities)
     const params = ctx.request.context.request.params
-    const factsInput: ReachabilityFactsInput = ctx.props.mode === 'journey' ? {} : { params }
 
-    const facts = await compiledReachabilityFacts(reachabilityContext, factsInput)
+    const facts = await compiledReachabilityFacts(reachabilityContext)
+
+    // Field inventory belongs to step requests: journey requests have no step to
+    // project onto, and without params the projection cannot resolve step paths.
+    const fieldInventory =
+      ctx.props.mode === 'journey' || params === undefined
+        ? undefined
+        : await ctx.props.compiledFieldInventory?.(reachabilityContext)
 
     const stateInput: ReachabilityStateInput =
       ctx.props.mode === 'journey'
@@ -84,6 +91,7 @@ export const REQUEST_REACHABILITY_WORK_HANDLER: WorkHandler<'request.reachabilit
             routeTemplateCatalog: ctx.props.routeTemplateCatalog,
             stepValidities,
             params,
+            fieldInventory,
           }
 
     const result = compiledReachabilityState(stateInput)

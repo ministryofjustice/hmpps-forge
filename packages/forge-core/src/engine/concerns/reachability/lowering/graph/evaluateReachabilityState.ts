@@ -56,13 +56,13 @@ export function evaluateReachabilityState(
     unreachableRedirect: plan.unreachableRedirect,
   }
 
-  if (input.facts.fieldInventory === undefined || input.params === undefined) {
+  if (input.fieldInventory === undefined || input.params === undefined) {
     return { evaluation }
   }
 
   return {
     evaluation,
-    reachability: new ReachabilityStateProjector().project(evaluation, input.facts.fieldInventory, input.params),
+    reachability: new ReachabilityStateProjector().project(evaluation, input.fieldInventory, input.params),
   }
 }
 

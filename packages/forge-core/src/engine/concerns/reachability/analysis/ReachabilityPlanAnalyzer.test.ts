@@ -3,7 +3,6 @@ import type { ASTNode } from '../../../contracts/ast/engine.type'
 import ASTNodeIndex from '../../../compilation/ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
 import type { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
-import FieldInventoryAnalyzer from '../../../compilation/dependency-analysis/shared/FieldInventoryAnalyzer'
 import ReachabilityPlanAnalyzer from './ReachabilityPlanAnalyzer'
 
 function setParent(child: ASTNode, parent: ASTNode): void {
@@ -21,10 +20,6 @@ function createPredicate(path: string[]): TestPredicateASTNode {
   }) as TestPredicateASTNode
 }
 
-function createAnalyzer(nodeRegistry: ASTNodeIndex): ReachabilityPlanAnalyzer {
-  return new ReachabilityPlanAnalyzer(new FieldInventoryAnalyzer(nodeRegistry))
-}
-
 describe('ReachabilityPlanAnalyzer', () => {
   beforeEach(() => {
     ASTTestFactory.resetIds()
@@ -40,7 +35,7 @@ describe('ReachabilityPlanAnalyzer', () => {
       setParent(stepNode, journeyNode)
       registerAll(nodeRegistry, [journeyNode, stepNode])
 
-      const analyzer = createAnalyzer(nodeRegistry)
+      const analyzer = new ReachabilityPlanAnalyzer()
 
       // Act
       const result = analyzer.buildReachabilityPlan([stepNode], journeyNode)
@@ -62,7 +57,7 @@ describe('ReachabilityPlanAnalyzer', () => {
       setParent(stepNode, childJourneyNode)
       registerAll(nodeRegistry, [parentJourneyNode, childJourneyNode, stepNode])
 
-      const analyzer = createAnalyzer(nodeRegistry)
+      const analyzer = new ReachabilityPlanAnalyzer()
 
       // Act
       const result = analyzer.buildReachabilityPlan([stepNode], childJourneyNode)
@@ -84,7 +79,7 @@ describe('ReachabilityPlanAnalyzer', () => {
       setParent(stepNode, childJourneyNode)
       registerAll(nodeRegistry, [parentJourneyNode, childJourneyNode, stepNode])
 
-      const analyzer = createAnalyzer(nodeRegistry)
+      const analyzer = new ReachabilityPlanAnalyzer()
 
       // Act
       const result = analyzer.buildReachabilityPlan([stepNode], childJourneyNode)
@@ -108,7 +103,7 @@ describe('ReachabilityPlanAnalyzer', () => {
       setParent(stepNode, childJourneyNode)
       registerAll(nodeRegistry, [grandparentJourneyNode, parentJourneyNode, childJourneyNode, stepNode])
 
-      const analyzer = createAnalyzer(nodeRegistry)
+      const analyzer = new ReachabilityPlanAnalyzer()
 
       // Act
       const result = analyzer.buildReachabilityPlan([stepNode], childJourneyNode)
@@ -132,7 +127,7 @@ describe('ReachabilityPlanAnalyzer', () => {
       setParent(stepNode, childJourneyNode)
       registerAll(nodeRegistry, [parentJourneyNode, childJourneyNode, stepNode])
 
-      const analyzer = createAnalyzer(nodeRegistry)
+      const analyzer = new ReachabilityPlanAnalyzer()
 
       // Act
       const result = analyzer.buildReachabilityPlan([stepNode], childJourneyNode)
@@ -156,7 +151,7 @@ describe('ReachabilityPlanAnalyzer', () => {
       setParent(stepNode, childJourneyNode)
       registerAll(nodeRegistry, [parentJourneyNode, childJourneyNode, stepNode])
 
-      const analyzer = createAnalyzer(nodeRegistry)
+      const analyzer = new ReachabilityPlanAnalyzer()
 
       // Act
       const result = analyzer.buildReachabilityPlan([stepNode], childJourneyNode)
@@ -200,7 +195,7 @@ describe('ReachabilityPlanAnalyzer', () => {
       setParent(validatingFieldBlock, firstStepNode)
       registerAll(nodeRegistry, [journeyNode, firstStepNode, secondStepNode, validatingFieldBlock])
 
-      const analyzer = createAnalyzer(nodeRegistry)
+      const analyzer = new ReachabilityPlanAnalyzer()
 
       // Act
       const result = analyzer.buildReachabilityPlan([firstStepNode, secondStepNode], journeyNode)

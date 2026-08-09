@@ -152,7 +152,7 @@ export default [
             //   resolve          -> render           (renderBlock brand)
             //   resolve          -> reachability     (backlink + redirect helpers, evaluation type)
             //   answer-cleardown -> reachability     (JourneyReachabilityProjection)
-            //   reachability     -> answer-cleardown (StepFieldInventoryCompiler + inventory type)
+            //   reachability     -> answer-cleardown (StepFieldInventory, type-only)
             //   reachability     -> route            (JourneyRouteTemplateCatalog)
             {
               target: './forge-core/src/engine/concerns/answer-cleardown/**',

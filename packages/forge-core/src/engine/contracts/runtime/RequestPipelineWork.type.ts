@@ -11,6 +11,7 @@ import type {
   CompiledStaticDataFunction,
   CompiledValidationFunction,
 } from '../compiled/compiledFunctions.type'
+import type { CompiledFieldInventoryFunction } from '../../concerns/answer-cleardown/contracts/compiledFieldInventory.type'
 import type {
   CompiledAccessLifecycleFunction,
   CompiledSubmitHooksFunction,
@@ -58,6 +59,7 @@ export interface RequestReachabilityWorkProps {
   readonly mode: 'step' | 'journey'
   readonly compiledReachabilityFacts: CompiledReachabilityFactsFunction
   readonly compiledReachabilityState: CompiledReachabilityStateFunction
+  readonly compiledFieldInventory: CompiledFieldInventoryFunction | undefined
   readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
   readonly method: HttpMethod
 }

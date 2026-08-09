@@ -6,15 +6,10 @@ import type {
   ReachabilityCompilationEntry,
   ReachabilityCompilationPlan,
 } from '../../../contracts/plans/runtimePlans.type'
-import type { FieldInventoryStepSource } from '../../../contracts/plans/compilationPlan.type'
-import FieldInventoryAnalyzer from '../../../compilation/dependency-analysis/shared/FieldInventoryAnalyzer'
 import ForwardNavigationAnalyzer from './ForwardNavigationAnalyzer'
 
 export default class ReachabilityPlanAnalyzer {
-  constructor(
-    private readonly fieldInventoryAnalyzer: FieldInventoryAnalyzer,
-    private readonly forwardNavigationAnalyzer = new ForwardNavigationAnalyzer(),
-  ) {}
+  constructor(private readonly forwardNavigationAnalyzer = new ForwardNavigationAnalyzer()) {}
 
   buildReachabilityPlan(journeySteps: StepASTNode[], journeyNode: JourneyASTNode): ReachabilityCompilationPlan {
     const entries = journeySteps.map(stepNode => this.buildReachabilityEntry(stepNode))
@@ -38,10 +33,6 @@ export default class ReachabilityPlanAnalyzer {
       resumeAlways,
       resumeWhen: resumeWhenNode,
     }
-  }
-
-  buildFieldInventorySources(plan: ReachabilityCompilationPlan): FieldInventoryStepSource[] {
-    return this.fieldInventoryAnalyzer.buildFieldInventorySources(plan)
   }
 
   private buildReachabilityEntry(stepNode: StepASTNode): ReachabilityCompilationEntry {

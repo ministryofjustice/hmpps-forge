@@ -2,8 +2,6 @@ import { BlockType, ExpressionType, IteratorType } from '../../../../authoring/t
 import type { ASTNode, NodeId } from '../../../contracts/ast/ast.type'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import type { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
-import type { ReachabilityCompilationPlan } from '../../../contracts/plans/runtimePlans.type'
-import type { FieldInventoryStepSource } from '../../../contracts/plans/compilationPlan.type'
 import type ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
 
 export default class FieldInventoryAnalyzer {
@@ -49,15 +47,6 @@ export default class FieldInventoryAnalyzer {
     }
 
     return false
-  }
-
-  buildFieldInventorySources(plan: ReachabilityCompilationPlan): FieldInventoryStepSource[] {
-    return plan.entries.map(entry => ({
-      stepId: entry.stepId,
-      cleardownFieldCodes: entry.cleardownFieldCodes,
-      fieldBlocks: this.findFieldBlocksForStep(entry.stepId),
-      iterateNodes: this.findMapIterateNodesForStep(entry.stepId),
-    }))
   }
 
   hasValidationBlocks(stepId: NodeId): boolean {

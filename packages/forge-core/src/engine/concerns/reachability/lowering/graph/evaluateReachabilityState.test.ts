@@ -63,7 +63,6 @@ function createFacts(
     declaredOutcomeValues?: Record<number, string[]>
     tieBreakerPriorities?: Record<number, number>
     resumeActive?: boolean
-    fieldInventory?: StepFieldInventory[]
   } = {},
 ): CompiledReachabilityResult {
   const count = plan.entries.length
@@ -77,7 +76,6 @@ function createFacts(
     ),
     tieBreakerPriorities: Array.from({ length: count }, (_, i) => overrides.tieBreakerPriorities?.[i]),
     resumeActive: overrides.resumeActive ?? false,
-    fieldInventory: overrides.fieldInventory,
   }
 }
 
@@ -362,12 +360,10 @@ describe('evaluateReachabilityState', () => {
       reachabilityDisabled: false,
     }
     const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
-    const facts = createFacts(plan, {
-      outcomeValues: { 0: ['question'] },
-      fieldInventory: [
-        { stepId: 'compile_ast:201', fieldCodes: ['question-field'], cleardownFieldCodes: ['question-clear'] },
-      ],
-    })
+    const facts = createFacts(plan, { outcomeValues: { 0: ['question'] } })
+    const fieldInventory: StepFieldInventory[] = [
+      { stepId: 'compile_ast:201', fieldCodes: ['question-field'], cleardownFieldCodes: ['question-clear'] },
+    ]
 
     setStepValidities(plan, ['compile_ast:200', 'compile_ast:201'])
 
@@ -378,6 +374,7 @@ describe('evaluateReachabilityState', () => {
       routeTemplateCatalog,
       stepValidities,
       params: {},
+      fieldInventory,
     })
 
     // Assert

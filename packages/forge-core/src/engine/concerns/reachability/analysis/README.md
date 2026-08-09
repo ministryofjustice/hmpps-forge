@@ -70,4 +70,3 @@ flowchart TD
 - [ReachabilityPlanAnalyzer.ts](ReachabilityPlanAnalyzer.ts) builds the navigation and reachability plans.
 - [ForwardNavigationAnalyzer.ts](ForwardNavigationAnalyzer.ts) extracts redirect outcomes from submit hooks.
 - [RequestTimeReferenceAnalyzer.ts](RequestTimeReferenceAnalyzer.ts) detects request-time references.
-- [FieldInventoryAnalyzer.ts](../../../compilation/dependency-analysis/shared/FieldInventoryAnalyzer.ts) builds the field inventory sources for each reachability entry.

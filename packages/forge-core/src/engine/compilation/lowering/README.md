@@ -65,11 +65,11 @@ under heavy-load - so Forge remains performant!
 
 `CompiledStep` contains the step runtime plan, the step-owned compiled functions, and the journey-scoped and package-scoped compiled functions/indexes it needs at runtime.
 Step-owned functions include step access lifecycle, submit hooks, answer preparation, submit validation, entry validation, and resolve.
-Journey-scoped fields include reachability facts, reachability state, and `compiledStepValidations`.
+Journey-scoped fields include reachability facts, reachability state, field inventory, and `compiledStepValidations`.
 The package-scoped field is `compiledRouteMetadata`, shared by every step and journey in the package.
 
 `CompiledJourney` contains the journey runtime plan and journey-owned compiled functions/indexes, plus the package-scoped `compiledRouteMetadata`.
-Journey-owned functions include reachability facts, reachability state, static data, access lifecycle, and answer preparation.
+Journey-owned functions include reachability facts, reachability state, field inventory, static data, access lifecycle, and answer preparation.
 `compiledStepValidations` is a journey-scoped index of validating step ids to step-specific validation functions.
 
 Most compiled functions return a `WorkTask` or a promise of one.
@@ -297,7 +297,7 @@ flowchart TD
 - [../../concerns/answer-preparation/lowering/StepAnswerPreparationCompiler.ts](../../concerns/answer-preparation/lowering/StepAnswerPreparationCompiler.ts) compiles answer-preparation work.
 - [../../concerns/hooks/lowering/HookLifecycleCompiler.ts](../../concerns/hooks/lowering/HookLifecycleCompiler.ts) compiles access and submit hook work.
 - [../../concerns/reachability/lowering/ReachabilityCompiler.ts](../../concerns/reachability/lowering/ReachabilityCompiler.ts) compiles reachability and navigation work.
-- [../../concerns/answer-cleardown/lowering/StepFieldInventoryCompiler.ts](../../concerns/answer-cleardown/lowering/StepFieldInventoryCompiler.ts) compiles the step field inventory the reachability facts function fills.
+- [../../concerns/answer-cleardown/lowering/StepFieldInventoryCompiler.ts](../../concerns/answer-cleardown/lowering/StepFieldInventoryCompiler.ts) compiles the step field inventory the reachability phase evaluates on step requests.
 - [../../concerns/resolve/lowering/StepResolveCompiler.ts](../../concerns/resolve/lowering/StepResolveCompiler.ts) compiles resolve/render work.
 - [../../concerns/route/lowering/RouteMetadataCompiler.ts](../../concerns/route/lowering/RouteMetadataCompiler.ts) compiles route metadata for the route tree.
 - [../../concerns/validation/lowering/StepValidationCompiler.ts](../../concerns/validation/lowering/StepValidationCompiler.ts) compiles submit-validation work.

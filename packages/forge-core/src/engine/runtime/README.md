@@ -145,7 +145,7 @@ Runtime executes that work against one request.
 | [answer-preparation](../concerns/answer-preparation/README.md) | `compiledAnswerPreparation` | `request.answer-preparation` runs `answer.preparation` |
 | [validation](../concerns/validation/README.md) | `compiledStepValidations` journey index | `request.validities` runs `validation.step` tasks when reachability checks are enabled |
 | [reachability](../concerns/reachability/README.md) | `compiledReachabilityFacts` + `compiledReachabilityState` | `request.reachability` evaluates reachability and resolves redirects |
-| [answer-cleardown](../concerns/answer-cleardown/README.md) | reachability state + `JourneyReachabilityProjection` | `request.answer-cleardown` clears stale answers |
+| [answer-cleardown](../concerns/answer-cleardown/README.md) | `compiledFieldInventory` | `request.reachability` evaluates it on step requests; `request.answer-cleardown` clears stale answers against the projection built from it |
 | [entry-validation](../concerns/entry-validation/README.md) | `compiledEntryValidation` | `request.entry-validation` projects stored validity |
 | [hooks](../concerns/hooks/README.md) | `compiledSubmitHooks` and `compiledValidation` | `request.submit` runs submit hooks and validation |
 | [route](../concerns/route/README.md) | `compiledRouteMetadata` | `request.route-tree` resolves route metadata and hydrates the route tree |
