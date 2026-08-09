@@ -10,13 +10,13 @@ import type {
   RequestTraceUnit,
   RuntimeContextSnapshotTrace,
 } from '../../../contracts/runtime/trace.type'
-import type TraceSpan from '../../../diagnostics/tracing/TraceSpan'
-import TraceSpanSerializer from '../../../diagnostics/tracing/TraceSpanSerializer'
+import type TraceSpan from '../../../tracing/TraceSpan'
+import TraceSpanSerializer from '../../../tracing/TraceSpanSerializer'
 import type {
   ReachabilityEvaluation,
   ReachabilityNode,
 } from '../../../concerns/reachability/contracts/reachabilityEvaluation.type'
-import type { ForgeInstrumentation } from '../../../diagnostics/ForgeTraceSinkDispatcher'
+import type { ForgeInstrumentation } from '../../../tracing/ForgeTraceSinkDispatcher'
 import type { RequestPipelineResult } from '../../../contracts/runtime/RequestExecutionContext.type'
 import type { MountedNode } from '../../../registries/MountRegistry'
 import type { NodeId } from '../../../contracts/ast/ast.type'

@@ -32,7 +32,7 @@ single `instanceof ForgeBaseError` check answers "did Forge throw this".
 Most engine errors keep their native stack traces. Runtime evaluation errors are
 special because production loggers often serialize `stack`, so they append a
 `Forge diagnostics:` block through
-[`DiagnosticErrorFormatter`](../diagnostics/DiagnosticErrorFormatter.ts).
+[`DiagnosticErrorFormatter`](./DiagnosticErrorFormatter.ts).
 
 [`RegistrationErrorFormatter.ts`](./RegistrationErrorFormatter.ts) formats
 registry error context for display.

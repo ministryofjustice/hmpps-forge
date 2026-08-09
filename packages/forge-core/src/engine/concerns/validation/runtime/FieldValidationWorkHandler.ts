@@ -1,6 +1,6 @@
 import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
 import type { StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
 import type { FieldValidationWorkProps } from '../contracts/ValidationWork.type'
 

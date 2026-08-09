@@ -1,7 +1,7 @@
 import { BlockType } from '../../../../authoring/types/enums'
 import type { CompiledResolveContext } from '../../../contracts/compiled/compiledContexts.type'
 import WorkContext from '../../../runtime/evaluation/work/WorkContext'
-import TraceSpan from '../../../diagnostics/tracing/TraceSpan'
+import TraceSpan from '../../../tracing/TraceSpan'
 import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
 import { createWorkTask } from '../../../runtime/evaluation/work/workTask'
 import { isRenderBlock } from './typeguards'

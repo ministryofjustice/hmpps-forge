@@ -7,7 +7,7 @@ import type {
   WorkHandler,
   WorkInstrumentation,
 } from '../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
 import { childOutputs } from '../../../runtime/evaluation/work/workTask'
 import { FIELD_VALIDATION_KIND } from './FieldValidationWorkHandler'
 import { DOMAIN_VALIDATION_KIND } from './DomainValidationWorkHandler'

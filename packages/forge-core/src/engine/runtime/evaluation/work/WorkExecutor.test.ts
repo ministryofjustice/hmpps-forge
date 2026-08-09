@@ -1,10 +1,10 @@
 import WorkContext from './WorkContext'
-import TraceSpan from '../../../diagnostics/tracing/TraceSpan'
+import TraceSpan from '../../../tracing/TraceSpan'
 import WorkExecutor from './WorkExecutor'
 import WorkExecutionError from './WorkExecutionError'
 import type { CompletedWork, WorkTask, WorkHandler, WorkInstrumentation } from '../../../contracts/runtime/work.type'
 import { createWorkTask } from './workTask'
-import type { TraceSpanReference } from '../../../diagnostics/tracing/traceSpan.type'
+import type { TraceSpanReference } from '../../../tracing/traceSpan.type'
 
 interface TestCompiledContext {
   readonly phase: string

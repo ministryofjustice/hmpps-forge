@@ -159,7 +159,7 @@ what any of them mean.
 - [Forge.ts](Forge.ts) is the public engine facade.
 - [PackageInstance.ts](PackageInstance.ts) owns package-level validation and compilation.
 - [registries](registries) owns function, component, and mount registries.
-- [diagnostics](diagnostics) owns source locations and trace wiring.
+- [tracing](tracing) owns the shared trace substrate and the instrumentation fan-out.
 - [errors](errors) owns engine error types and formatting.
 
 ## Where To Start

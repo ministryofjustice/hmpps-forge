@@ -12,7 +12,7 @@ import type {
   WorkInstrumentation,
   WorkTask,
 } from '../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
 import ForgeUnregisteredComponentError from '../../../errors/ForgeUnregisteredComponentError'
 import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
 

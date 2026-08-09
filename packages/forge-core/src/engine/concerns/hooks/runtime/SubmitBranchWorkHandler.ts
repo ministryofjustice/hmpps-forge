@@ -6,7 +6,7 @@ import type {
   WorkHandler,
   WorkInstrumentation,
 } from '../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
 import { isStepValid } from '../../validation/runtime/stepValidity'
 import { getStepValidity } from '../../validation/runtime/stepValidityState'
 import type { HookStageResult } from '../contracts/HookStage.type'

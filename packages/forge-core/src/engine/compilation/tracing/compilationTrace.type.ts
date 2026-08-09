@@ -1,4 +1,4 @@
-import type { SerializedTraceSpan } from './traceSpan.type'
+import type { SerializedTraceSpan } from '../../tracing/traceSpan.type'
 
 /**
  * One compilation phase (for example DSL validation or code generation), with

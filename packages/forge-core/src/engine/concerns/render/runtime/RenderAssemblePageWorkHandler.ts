@@ -1,7 +1,7 @@
 import type { RenderContext, ForgeRenderer } from '../../../../framework/types/rendering.type'
 import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
 
 export interface RenderAssemblePageWorkProps {
   readonly renderContext: RenderContext

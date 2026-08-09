@@ -1,5 +1,5 @@
 import CompilationTracer from './CompilationTracer'
-import type TraceSpan from './TraceSpan'
+import type TraceSpan from '../../tracing/TraceSpan'
 
 describe('CompilationTracer', () => {
   describe('span()', () => {

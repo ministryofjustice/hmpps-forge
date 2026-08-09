@@ -1,5 +1,5 @@
-import TraceSpan from './TraceSpan'
-import type { TraceSpanFields } from './traceSpan.type'
+import TraceSpan from '../../tracing/TraceSpan'
+import type { TraceSpanFields } from '../../tracing/traceSpan.type'
 
 export interface CompilationTracerOptions {
   readonly enabled?: boolean

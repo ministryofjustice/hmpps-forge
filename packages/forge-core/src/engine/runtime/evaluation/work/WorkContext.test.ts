@@ -1,5 +1,5 @@
 import WorkContext from './WorkContext'
-import TraceSpan from '../../../diagnostics/tracing/TraceSpan'
+import TraceSpan from '../../../tracing/TraceSpan'
 
 describe('WorkContext', () => {
   describe('withWork()', () => {

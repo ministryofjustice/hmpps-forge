@@ -159,14 +159,14 @@ flowchart TD
   `execute()` returns `CompletedWork`; `executeWithUnit()` also returns the root `TraceSpan` and wraps failures in `WorkExecutionError`.
 - [WorkContext.ts](WorkContext.ts) carries the request context, current props, and current `TraceSpan`.
   `withWork()` keeps the request context shared while giving each task its own props and trace node.
-- [TraceSpan.ts](../../../diagnostics/tracing/TraceSpan.ts) records the trace tree.
+- [TraceSpan.ts](../../../tracing/TraceSpan.ts) records the trace tree.
   It is mutable while work runs and read later by trace projection.
 - [workTask.ts](workTask.ts) creates branded tasks and provides child-output helpers such as `singleChildOutput()`, `childOutputs()`, and `findChildByTask()`.
 - [WorkTaskFactory.ts](WorkTaskFactory.ts) wires known work kinds to their handlers and instrumentation.
   It is the main factory used by compiled functions and request pipeline builders.
 - [WorkTaskPropsWalker.ts](WorkTaskPropsWalker.ts) finds nested `WorkTask`s inside plain props and replaces them with completed outputs.
   Resolve uses it when block props contain nested render work.
-- [TraceSpanSerializer.ts](../../../diagnostics/tracing/TraceSpanSerializer.ts) turns a `TraceSpan` tree into trace data and drops children marked `omitFromTrace`.
+- [TraceSpanSerializer.ts](../../../tracing/TraceSpanSerializer.ts) turns a `TraceSpan` tree into trace data and drops children marked `omitFromTrace`.
 - [tracing/contextSnapshot.ts](tracing/contextSnapshot.ts) deep-clones request evaluation state for after-phase trace snapshots.
 
 ## Boundaries
@@ -240,7 +240,7 @@ flowchart TD
   Do not hand-cast `CompletedWork.output` in handlers unless the generic helper cannot express the lookup.
 - To support nested tasks inside props, use [WorkTaskPropsWalker.ts](WorkTaskPropsWalker.ts).
   Keep collect and replacement traversal aligned, or duplicate keys can pair with the wrong output.
-- To change trace projection, start in [TraceSpanSerializer.ts](../../../diagnostics/tracing/TraceSpanSerializer.ts).
+- To change trace projection, start in [TraceSpanSerializer.ts](../../../tracing/TraceSpanSerializer.ts).
   Do not put trace serialization rules in `WorkExecutor`.
 
 ## Entry Points
@@ -249,11 +249,11 @@ flowchart TD
 - [workTask.ts](workTask.ts) answers how work tasks are created, identified, and read from completed children.
 - [WorkTaskFactory.ts](WorkTaskFactory.ts) answers which known runtime handlers are wired to which task kinds.
 - [WorkContext.ts](WorkContext.ts) answers how request context and task props are threaded through execution.
-- [TraceSpan.ts](../../../diagnostics/tracing/TraceSpan.ts) answers how the live trace tree is recorded.
+- [TraceSpan.ts](../../../tracing/TraceSpan.ts) answers how the live trace tree is recorded.
 - [WorkExecutionError.ts](WorkExecutionError.ts) answers how a failed execution carries the partial work tree.
 - [WorkTaskPropsWalker.ts](WorkTaskPropsWalker.ts) answers how nested work tasks inside props are collected and replaced.
-- [TraceSpanSerializer.ts](../../../diagnostics/tracing/TraceSpanSerializer.ts) answers how live work units become trace output.
+- [TraceSpanSerializer.ts](../../../tracing/TraceSpanSerializer.ts) answers how live work units become trace output.
 - [tracing/contextSnapshot.ts](tracing/contextSnapshot.ts) answers how request evaluation state is captured for phase traces.
 - [../../../contracts/runtime/work.type.ts](../../../contracts/runtime/work.type.ts) defines `WorkTask`, `WorkHandler`, `WorkBegin`, `WorkGroup`, and `CompletedWork`.
-- [../../../diagnostics/tracing/traceSpan.type.ts](../../../diagnostics/tracing/traceSpan.type.ts) defines `TraceSpanContract`, `TraceSpanReference`, `TraceSpanFields`, and `SerializedTraceSpan`.
+- [../../../tracing/traceSpan.type.ts](../../../tracing/traceSpan.type.ts) defines `TraceSpanContract`, `TraceSpanReference`, `TraceSpanFields`, and `SerializedTraceSpan`.
 - [../../../contracts/runtime/workOutput.type.ts](../../../contracts/runtime/workOutput.type.ts) maps work kinds to their output types.

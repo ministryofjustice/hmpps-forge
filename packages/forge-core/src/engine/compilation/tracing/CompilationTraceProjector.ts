@@ -1,8 +1,8 @@
-import type TraceSpan from './TraceSpan'
-import TraceSpanSerializer from './TraceSpanSerializer'
+import type TraceSpan from '../../tracing/TraceSpan'
+import TraceSpanSerializer from '../../tracing/TraceSpanSerializer'
 import type CompilationTracer from './CompilationTracer'
 import type { CompilationTrace, CompilationTraceError, CompilationTracePhase } from './compilationTrace.type'
-import type { ForgeInstrumentation } from '../ForgeTraceSinkDispatcher'
+import type { ForgeInstrumentation } from '../../tracing/ForgeTraceSinkDispatcher'
 
 export default class CompilationTraceProjector {
   private readonly serializer = new TraceSpanSerializer()

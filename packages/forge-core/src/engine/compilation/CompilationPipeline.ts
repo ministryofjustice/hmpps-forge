@@ -14,7 +14,7 @@ import CompilationPlanBuilder from './dependency-analysis/CompilationPlanBuilder
 import RouteIndexBuilder from '../concerns/route/analysis/RouteIndexBuilder'
 import CodegenOrchestrator from './lowering/CodegenOrchestrator'
 import ASTSemanticValidator from './semantic-analysis/ASTSemanticValidator'
-import CompilationTracer from '../diagnostics/tracing/CompilationTracer'
+import CompilationTracer from './tracing/CompilationTracer'
 
 type AstContext = {
   rootNode: JourneyASTNode

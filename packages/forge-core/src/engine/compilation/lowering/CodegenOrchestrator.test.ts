@@ -5,7 +5,7 @@ import type { ReachabilityStateTable, ReachabilityCompilationPlan } from '../../
 import type { FieldBlockASTNode, StepASTNode } from '../../contracts/ast/structures.type'
 import ComponentRegistry from '../../registries/ComponentRegistry'
 import FunctionRegistry from '../../registries/FunctionRegistry'
-import CompilationTracer from '../../diagnostics/tracing/CompilationTracer'
+import CompilationTracer from '../tracing/CompilationTracer'
 import CodegenOrchestrator from './CodegenOrchestrator'
 
 describe('CodegenOrchestrator', () => {

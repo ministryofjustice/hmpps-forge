@@ -5,7 +5,7 @@ import type {
   WorkHandler,
   WorkInstrumentation,
 } from '../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
 import type { ResolveBlocksOutput } from '../contracts/resolveBlocksOutput.type'
 import { childOutputs } from '../../../runtime/evaluation/work/workTask'
 import { RESOLVE_BLOCK_KIND, type ResolveBlockWorkTask } from './ResolveBlockWorkHandler'

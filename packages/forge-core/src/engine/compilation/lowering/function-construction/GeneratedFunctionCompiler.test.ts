@@ -5,7 +5,7 @@ import ForgeRuntimeEvaluationError, {
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../compilationDependencies.type'
-import CompilationTracer from '../../../diagnostics/tracing/CompilationTracer'
+import CompilationTracer from '../../tracing/CompilationTracer'
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
 import { compileGeneratedFunction } from './GeneratedFunctionCompiler'
 import type { GeneratedFunction } from './compiledFunctionFactory'

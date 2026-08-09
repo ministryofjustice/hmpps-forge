@@ -8,7 +8,7 @@ import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
-import ForgeTraceSinkDispatcher from './diagnostics/ForgeTraceSinkDispatcher'
+import ForgeTraceSinkDispatcher from './tracing/ForgeTraceSinkDispatcher'
 import PackageInstance from './PackageInstance'
 
 describe('PackageInstance', () => {

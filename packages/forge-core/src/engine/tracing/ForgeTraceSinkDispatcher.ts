@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
 import type { RequestTraceEvent } from '../contracts/runtime/trace.type'
 import type { RequestSnapshot } from '../../framework/types/snapshot.type'
-import type { CompilationTraceEvent } from './tracing/compilationTrace.type'
+import type { CompilationTraceEvent } from '../compilation/tracing/compilationTrace.type'
 
 export interface ForgeInstrumentationOptions {
   readonly sinks?: readonly ForgeInstrumentationSink[]

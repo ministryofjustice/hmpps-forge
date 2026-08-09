@@ -7,7 +7,7 @@ import type {
   WorkHandler,
   WorkInstrumentation,
 } from '../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
 import { findChildByTask, findTerminalStage, isTerminalStage } from '../../../runtime/evaluation/work/workTask'
 import { isStepValid } from '../../validation/runtime/stepValidity'
 import { getStepValidity } from '../../validation/runtime/stepValidityState'

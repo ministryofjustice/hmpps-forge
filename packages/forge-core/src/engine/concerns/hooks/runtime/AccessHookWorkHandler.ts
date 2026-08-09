@@ -7,7 +7,7 @@ import type {
   WorkHandler,
   WorkInstrumentation,
 } from '../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
 import { createWorkTask, findTerminalStage, isTerminalStage } from '../../../runtime/evaluation/work/workTask'
 import { ACCESS_HOOK_NEXT_WORK_INSTRUMENTATION, ACCESS_HOOK_NEXT_WORK_HANDLER } from './AccessHookNextWorkHandler'
 import type { AccessHookWorkProps } from '../contracts/AccessLifecycleWork.type'

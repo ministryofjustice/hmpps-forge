@@ -9,7 +9,7 @@ import type {
   WorkHandler,
   WorkInstrumentation,
 } from '../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
 import ForgeUnregisteredComponentError from '../../../errors/ForgeUnregisteredComponentError'
 import { childOutputs } from '../../../runtime/evaluation/work/workTask'
 import { RENDER_BLOCK_KIND } from './RenderBlockWorkHandler'

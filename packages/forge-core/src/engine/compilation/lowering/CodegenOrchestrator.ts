@@ -28,7 +28,7 @@ import StepResolveCompiler from '../../concerns/resolve/lowering/StepResolveComp
 import StepAnswerPreparationCompiler from '../../concerns/answer-preparation/lowering/StepAnswerPreparationCompiler'
 import HookLifecycleCompiler from '../../concerns/hooks/lowering/HookLifecycleCompiler'
 import RouteMetadataCompiler from '../../concerns/route/lowering/RouteMetadataCompiler'
-import CompilationTracer from '../../diagnostics/tracing/CompilationTracer'
+import CompilationTracer from '../tracing/CompilationTracer'
 import ForgeInternalError from '../../errors/ForgeInternalError'
 
 export default class CodegenOrchestrator {

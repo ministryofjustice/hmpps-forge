@@ -26,7 +26,7 @@ export type {
   ForgeInstrumentation,
   ForgeInstrumentationOptions,
   ForgeInstrumentationSink,
-} from './engine/diagnostics/ForgeTraceSinkDispatcher'
+} from './engine/tracing/ForgeTraceSinkDispatcher'
 export type { ValidationResult } from './engine/concerns/validation/contracts/validationResult.type'
 export type { HookType } from './engine/contracts/runtime/answerHistory.type'
 export type { RuntimeContext } from './engine/contracts/runtime/evaluationState.type'
@@ -51,5 +51,5 @@ export type {
   CompilationTraceError,
   CompilationTraceEvent,
   CompilationTracePhase,
-} from './engine/diagnostics/tracing/compilationTrace.type'
-export type { SerializedTraceSpan } from './engine/diagnostics/tracing/traceSpan.type'
+} from './engine/compilation/tracing/compilationTrace.type'
+export type { SerializedTraceSpan } from './engine/tracing/traceSpan.type'

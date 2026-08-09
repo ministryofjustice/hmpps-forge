@@ -1,5 +1,5 @@
-import TraceSpan from '../../../diagnostics/tracing/TraceSpan'
-import type { TraceSpanReference } from '../../../diagnostics/tracing/traceSpan.type'
+import TraceSpan from '../../../tracing/TraceSpan'
+import type { TraceSpanReference } from '../../../tracing/traceSpan.type'
 import type { WorkContextContract } from '../../../contracts/runtime/work.type'
 
 export default class WorkContext<TRequestContext = unknown, TProps = unknown> implements WorkContextContract<

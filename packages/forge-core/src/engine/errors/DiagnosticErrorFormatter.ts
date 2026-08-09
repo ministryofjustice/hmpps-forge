@@ -16,7 +16,7 @@ export default class DiagnosticErrorFormatter {
     return `${stack}\n\n${DiagnosticErrorFormatter.formatRuntimeDiagnostics(diagnostics)}`
   }
 
-  static formatRuntimeDiagnostics(diagnostics: RuntimeDiagnosticFields): string {
+  private static formatRuntimeDiagnostics(diagnostics: RuntimeDiagnosticFields): string {
     const formattedFields = [
       { label: 'Phase', value: diagnostics.phase },
       { label: 'Path', value: diagnostics.formattedPath },

@@ -13,7 +13,7 @@ import ConditionalNodeCompiler from './ConditionalNodeCompiler'
 import MatchNodeCompiler from './MatchNodeCompiler'
 import { isASTNode } from '../../../contracts/ast/nodes'
 import type { CompilationDependencies } from '../compilationDependencies.type'
-import CompilationTracer from '../../../diagnostics/tracing/CompilationTracer'
+import CompilationTracer from '../../tracing/CompilationTracer'
 import { compileIifeExpression } from './IifeExpressionCompiler'
 
 export type { IteratorScopeFrame } from './types'

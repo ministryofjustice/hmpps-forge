@@ -1,7 +1,7 @@
 import CompilationTraceProjector from './CompilationTraceProjector'
 import CompilationTracer from './CompilationTracer'
 import type { CompilationTraceEvent } from './compilationTrace.type'
-import type { ForgeInstrumentation } from '../ForgeTraceSinkDispatcher'
+import type { ForgeInstrumentation } from '../../tracing/ForgeTraceSinkDispatcher'
 
 describe('CompilationTraceProjector', () => {
   describe('emit()', () => {
