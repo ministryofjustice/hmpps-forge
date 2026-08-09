@@ -2,13 +2,10 @@ import { resolvePathParams } from '../../../../../shared/utils/routePath'
 import {
   JourneyReachabilityProjection,
   StepReachabilityProjection,
-} from '../../../../contracts/reachability/journeyReachabilityProjection.type'
-import {
-  ReachabilityEvaluation,
-  ReachabilityNode,
-} from '../../../../contracts/reachability/reachabilityEvaluation.type'
+} from '../../contracts/journeyReachabilityProjection.type'
+import { ReachabilityEvaluation, ReachabilityNode } from '../../contracts/reachabilityEvaluation.type'
 import { resolveBacklinkRouteTemplatePathForStep } from './ReachabilityPathAnalyzer'
-import { StepFieldInventory } from '../../../../concerns/answer-cleardown/contracts/stepFieldInventory.type'
+import { StepFieldInventory } from '../../../answer-cleardown/contracts/stepFieldInventory.type'
 
 export default class ReachabilityStateProjector {
   project(

@@ -1,5 +1,5 @@
-import type { ReachabilityEvaluation } from '../../../../contracts/reachability/reachabilityEvaluation.type'
-import type { HttpMethod } from '../../../../../framework/types/request.type'
+import type { ReachabilityEvaluation } from '../contracts/reachabilityEvaluation.type'
+import type { HttpMethod } from '../../../../framework/types/request.type'
 
 export function resolveBacklinkRouteTemplatePath(evaluation: ReachabilityEvaluation): string | undefined {
   const currentStep = evaluation.steps.find(step => step.stepId === evaluation.currentStepId)

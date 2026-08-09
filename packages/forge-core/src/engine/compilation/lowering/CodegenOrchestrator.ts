@@ -20,8 +20,8 @@ import type {
   StepCompilationInputs,
 } from '../../contracts/plans/compilationPlan.type'
 import StepValidationCompiler from '../../concerns/validation/lowering/StepValidationCompiler'
-import ReachabilityCompiler from './phase-compilers/reachability/ReachabilityCompiler'
-import { evaluateReachabilityState } from './function-construction/reachability/evaluateReachabilityState'
+import ReachabilityCompiler from '../../concerns/reachability/lowering/ReachabilityCompiler'
+import { evaluateReachabilityState } from '../../concerns/reachability/lowering/graph/evaluateReachabilityState'
 import StepResolveCompiler from '../../concerns/resolve/lowering/StepResolveCompiler'
 import StepAnswerPreparationCompiler from '../../concerns/answer-preparation/lowering/StepAnswerPreparationCompiler'
 import HookLifecycleCompiler from '../../concerns/hooks/lowering/HookLifecycleCompiler'

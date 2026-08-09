@@ -7,11 +7,11 @@ import type {
   ReachabilityEvaluation,
   ReachabilityNode,
   ResumeOutcome,
-} from '../../../../contracts/reachability/reachabilityEvaluation.type'
+} from '../../contracts/reachabilityEvaluation.type'
 import type {
   ReachabilityStateInput,
   ReachabilityEvaluationResult,
-} from '../../../../contracts/reachability/generatedReachabilityEvaluation.type'
+} from '../../contracts/generatedReachabilityEvaluation.type'
 
 /**
  * The compiled reachability state function's body. From precomputed facts (the

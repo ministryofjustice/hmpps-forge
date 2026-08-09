@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AnswerHistory } from '../../../contracts/runtime/answerHistory.type'
-import type { JourneyReachabilityProjection } from '../../../contracts/reachability/journeyReachabilityProjection.type'
+import type { JourneyReachabilityProjection } from '../../reachability/contracts/journeyReachabilityProjection.type'
 import { evaluateAnswerCleardown } from './evaluateAnswerCleardown'
 
 function evaluate(

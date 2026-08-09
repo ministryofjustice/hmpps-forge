@@ -124,7 +124,7 @@ import { REQUEST_PIPELINE_WORK_HANDLER } from '../request/RequestPipelineWorkHan
 import {
   REQUEST_REACHABILITY_WORK_HANDLER,
   REQUEST_REACHABILITY_WORK_INSTRUMENTATION,
-} from '../request/RequestReachabilityWorkHandler'
+} from '../../../concerns/reachability/runtime/RequestReachabilityWorkHandler'
 import {
   REQUEST_RENDER_WORK_HANDLER,
   REQUEST_RENDER_WORK_INSTRUMENTATION,

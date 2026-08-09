@@ -1,5 +1,5 @@
 import { NodeId } from '../../../../contracts/ast/ast.type'
-import { ReachabilityNode } from '../../../../contracts/reachability/reachabilityEvaluation.type'
+import { ReachabilityNode } from '../../contracts/reachabilityEvaluation.type'
 
 export interface ReachabilityPathAnalysis {
   canonicalPathRouteTemplatePaths: string[]

@@ -1,5 +1,5 @@
 import type { NodeId } from '../ast/ast.type'
-import type { ReachabilityEvaluation } from '../reachability/reachabilityEvaluation.type'
+import type { ReachabilityEvaluation } from '../../concerns/reachability/contracts/reachabilityEvaluation.type'
 import type { StepValidityResult } from '../../concerns/validation/contracts/stepValidityResult.type'
 import type { ValidationView } from '../../concerns/validation/contracts/validationView.type'
 import type FunctionRegistry from '../../registries/FunctionRegistry'

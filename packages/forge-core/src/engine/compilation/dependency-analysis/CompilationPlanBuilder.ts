@@ -12,7 +12,7 @@ import type { ReachabilityStateTable } from '../../contracts/plans/runtimePlans.
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import FieldInventoryAnalyzer from './shared/FieldInventoryAnalyzer'
 import RuntimePlanAnalyzer from './shared/RuntimePlanAnalyzer'
-import ReachabilityPlanAnalyzer from './reachability/ReachabilityPlanAnalyzer'
+import ReachabilityPlanAnalyzer from '../../concerns/reachability/analysis/ReachabilityPlanAnalyzer'
 import AnswerPreparationInputAnalyzer from '../../concerns/answer-preparation/analysis/AnswerPreparationInputAnalyzer'
 import HookInputAnalyzer from '../../concerns/hooks/analysis/HookInputAnalyzer'
 import ValidationInputAnalyzer from '../../concerns/validation/analysis/ValidationInputAnalyzer'

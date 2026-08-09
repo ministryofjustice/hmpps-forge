@@ -1,8 +1,8 @@
-import type { NodeId } from '../ast/ast.type'
+import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { JourneyReachabilityProjection } from './journeyReachabilityProjection.type'
 import type { ReachabilityEvaluation } from './reachabilityEvaluation.type'
-import type { CompiledReachabilityResult } from '../compiled/compiledFunctions.type'
-import type { JourneyRouteTemplateCatalog } from '../../concerns/route/contracts/routeTree.type'
+import type { CompiledReachabilityResult } from '../../../contracts/compiled/compiledFunctions.type'
+import type { JourneyRouteTemplateCatalog } from '../../route/contracts/routeTree.type'
 
 /** Request-time input the compiled facts function needs to decide field inventory. */
 export interface ReachabilityFactsInput {

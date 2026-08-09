@@ -1,9 +1,6 @@
 import ReachabilityStateProjector from './ReachabilityStateProjector'
-import {
-  ReachabilityEvaluation,
-  ReachabilityNode,
-} from '../../../../contracts/reachability/reachabilityEvaluation.type'
-import { StepFieldInventory } from '../../../../concerns/answer-cleardown/contracts/stepFieldInventory.type'
+import { ReachabilityEvaluation, ReachabilityNode } from '../../contracts/reachabilityEvaluation.type'
+import { StepFieldInventory } from '../../../answer-cleardown/contracts/stepFieldInventory.type'
 
 describe('ReachabilityStateProjector', () => {
   const projector = new ReachabilityStateProjector()

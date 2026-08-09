@@ -1,5 +1,5 @@
 import type { AnswerHistory } from '../../../contracts/runtime/answerHistory.type'
-import type { JourneyReachabilityProjection } from '../../../contracts/reachability/journeyReachabilityProjection.type'
+import type { JourneyReachabilityProjection } from '../../reachability/contracts/journeyReachabilityProjection.type'
 
 /**
  * Resolves the answers of steps no active path can reach and clears each in place,

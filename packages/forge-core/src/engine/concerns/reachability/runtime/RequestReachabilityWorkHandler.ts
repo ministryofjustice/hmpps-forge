@@ -1,7 +1,7 @@
-import { buildCompiledReachabilityContext } from '../context/compiledEvaluationContext'
-import { resolveRedirect } from '../phases/reachability/reachabilityRedirects'
-import { isStepValid } from '../../../concerns/validation/runtime/stepValidity'
-import { captureContextSnapshot } from '../work/tracing/contextSnapshot'
+import { buildCompiledReachabilityContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
+import { resolveRedirect } from './reachabilityRedirects'
+import { isStepValid } from '../../validation/runtime/stepValidity'
+import { captureContextSnapshot } from '../../../runtime/evaluation/work/tracing/contextSnapshot'
 import type {
   WorkBegin,
   WorkContextContract,
@@ -9,13 +9,10 @@ import type {
   WorkInstrumentation,
 } from '../../../contracts/runtime/work.type'
 import type { RequestReachabilityWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type {
-  ReachabilityFactsInput,
-  ReachabilityStateInput,
-} from '../../../contracts/reachability/generatedReachabilityEvaluation.type'
+import type { ReachabilityFactsInput, ReachabilityStateInput } from '../contracts/generatedReachabilityEvaluation.type'
 import type { NodeId } from '../../../contracts/ast/ast.type'
-import type { ReachabilityEvaluation } from '../../../contracts/reachability/reachabilityEvaluation.type'
-import type { StepValidityResult } from '../../../concerns/validation/contracts/stepValidityResult.type'
+import type { ReachabilityEvaluation } from '../contracts/reachabilityEvaluation.type'
+import type { StepValidityResult } from '../../validation/contracts/stepValidityResult.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 

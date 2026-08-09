@@ -1,4 +1,4 @@
-import type { ReachabilityEvaluationResult } from '../reachability/generatedReachabilityEvaluation.type'
+import type { ReachabilityEvaluationResult } from '../../concerns/reachability/contracts/generatedReachabilityEvaluation.type'
 import type {
   CompiledAccessHookResult,
   CompiledSubmitHookResult,

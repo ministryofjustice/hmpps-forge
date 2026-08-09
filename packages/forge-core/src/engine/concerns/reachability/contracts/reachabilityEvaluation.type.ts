@@ -1,5 +1,5 @@
-import { NodeId } from '../ast/ast.type'
-import type { UnreachableRedirectTarget } from '../../../authoring/types/structures.type'
+import { NodeId } from '../../../contracts/ast/ast.type'
+import type { UnreachableRedirectTarget } from '../../../../authoring/types/structures.type'
 
 export type ResumeOutcome = 'no-op' | 'redirect'
 

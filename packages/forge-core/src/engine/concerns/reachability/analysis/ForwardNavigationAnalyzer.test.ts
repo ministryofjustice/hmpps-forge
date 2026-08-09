@@ -3,7 +3,7 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { RedirectOutcomeASTNode, SubmitHookASTNode } from '../../../contracts/ast/expressions.type'
 import type { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
 import type { StepASTNode } from '../../../contracts/ast/structures.type'
-import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
+import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
 import ForwardNavigationAnalyzer from './ForwardNavigationAnalyzer'
 
 function createSubmitHookWithRedirect(

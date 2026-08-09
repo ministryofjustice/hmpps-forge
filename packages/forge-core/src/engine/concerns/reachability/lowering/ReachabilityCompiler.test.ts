@@ -1,22 +1,22 @@
-import { ASTTestFactory } from '../../../ast/testing-helpers/ASTTestFactory'
-import { ASTNodeType } from '../../../../contracts/ast/enums'
-import { ExpressionType, FunctionType, OutcomeType, PredicateType } from '../../../../../authoring/types/enums'
-import { FunctionASTNode, ReferenceASTNode, RedirectOutcomeASTNode } from '../../../../contracts/ast/expressions.type'
-import { TestPredicateASTNode } from '../../../../contracts/ast/predicates.type'
+import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
+import { ASTNodeType } from '../../../contracts/ast/enums'
+import { ExpressionType, FunctionType, OutcomeType, PredicateType } from '../../../../authoring/types/enums'
+import { FunctionASTNode, ReferenceASTNode, RedirectOutcomeASTNode } from '../../../contracts/ast/expressions.type'
+import { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
 import type {
   ForwardOutcomeGroup,
   ReachabilityStateTable,
   ReachabilityCompilationEntry,
   ReachabilityCompilationPlan,
-} from '../../../../contracts/plans/runtimePlans.type'
-import type { ASTNode, NodeId } from '../../../../contracts/ast/ast.type'
-import FunctionRegistry from '../../../../registries/FunctionRegistry'
-import ComponentRegistry from '../../../../registries/ComponentRegistry'
-import type { CompilationDependencies } from '../../compilationDependencies.type'
-import { getForgeRuntimeEvaluationDiagnostics } from '../../../../errors/ForgeRuntimeEvaluationError'
+} from '../../../contracts/plans/runtimePlans.type'
+import type { ASTNode, NodeId } from '../../../contracts/ast/ast.type'
+import FunctionRegistry from '../../../registries/FunctionRegistry'
+import ComponentRegistry from '../../../registries/ComponentRegistry'
+import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import ReachabilityCompiler from './ReachabilityCompiler'
-import type { CompiledReachabilityContext } from '../../../../contracts/compiled/compiledContexts.type'
-import WorkTaskFactory from '../../../../runtime/evaluation/work/WorkTaskFactory'
+import type { CompiledReachabilityContext } from '../../../contracts/compiled/compiledContexts.type'
+import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
 
 function createReference(path: string[]): ReferenceASTNode {
   return {

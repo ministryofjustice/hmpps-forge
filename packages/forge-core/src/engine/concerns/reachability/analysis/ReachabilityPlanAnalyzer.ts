@@ -7,7 +7,7 @@ import type {
   ReachabilityCompilationPlan,
 } from '../../../contracts/plans/runtimePlans.type'
 import type { FieldInventoryStepSource } from '../../../contracts/plans/compilationPlan.type'
-import FieldInventoryAnalyzer from '../shared/FieldInventoryAnalyzer'
+import FieldInventoryAnalyzer from '../../../compilation/dependency-analysis/shared/FieldInventoryAnalyzer'
 import ForwardNavigationAnalyzer from './ForwardNavigationAnalyzer'
 
 export default class ReachabilityPlanAnalyzer {

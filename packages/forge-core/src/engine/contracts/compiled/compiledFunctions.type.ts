@@ -12,7 +12,7 @@ import type {
   ReachabilityEvaluationResult,
   ReachabilityFactsInput,
   ReachabilityStateInput,
-} from '../reachability/generatedReachabilityEvaluation.type'
+} from '../../concerns/reachability/contracts/generatedReachabilityEvaluation.type'
 
 export type CompiledStaticDataFunction = () => Record<string, unknown>
 

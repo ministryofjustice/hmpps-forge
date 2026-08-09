@@ -5,19 +5,22 @@
  * Dynamic result arrays are indexed by step position in `plan.entries`. The facts
  * function also emits per-step field inventory when request params are present.
  */
-import { ASTNode } from '../../../../contracts/ast/ast.type'
+import { ASTNode } from '../../../contracts/ast/ast.type'
 import type {
   ForwardOutcomeGroup,
   ReachabilityCompilationEntry,
   ReachabilityCompilationPlan,
-} from '../../../../contracts/plans/runtimePlans.type'
-import ExpressionDispatcher from '../../expressions/ExpressionDispatcher'
-import CodeEmitter from '../../emitters/CodeEmitter'
-import type { CompiledReachabilityFactsFunction } from '../../../../contracts/compiled/compiledFunctions.type'
-import { buildGeneratedSource, compileGeneratedFunction } from '../../function-construction/GeneratedFunctionCompiler'
-import type { FieldInventoryStepSource } from '../../../../contracts/plans/compilationPlan.type'
-import StepFieldInventoryCompiler from '../../../../concerns/answer-cleardown/lowering/StepFieldInventoryCompiler'
-import type { CompilationDependencies } from '../../compilationDependencies.type'
+} from '../../../contracts/plans/runtimePlans.type'
+import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
+import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import type { CompiledReachabilityFactsFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import {
+  buildGeneratedSource,
+  compileGeneratedFunction,
+} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
+import type { FieldInventoryStepSource } from '../../../contracts/plans/compilationPlan.type'
+import StepFieldInventoryCompiler from '../../answer-cleardown/lowering/StepFieldInventoryCompiler'
+import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 
 /**
  * Builds the generated reachability facts function from a reachability compilation plan.

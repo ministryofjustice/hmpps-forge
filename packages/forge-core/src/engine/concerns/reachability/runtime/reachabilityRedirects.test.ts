@@ -1,7 +1,4 @@
-import {
-  ReachabilityEvaluation,
-  ReachabilityNode,
-} from '../../../../contracts/reachability/reachabilityEvaluation.type'
+import { ReachabilityEvaluation, ReachabilityNode } from '../contracts/reachabilityEvaluation.type'
 import { resolveBacklinkRouteTemplatePath, resolveRedirect } from './reachabilityRedirects'
 
 function createReachabilityNode(overrides: Partial<ReachabilityNode> = {}): ReachabilityNode {

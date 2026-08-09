@@ -15,7 +15,7 @@ import TraceSpanSerializer from '../../../diagnostics/tracing/TraceSpanSerialize
 import type {
   ReachabilityEvaluation,
   ReachabilityNode,
-} from '../../../contracts/reachability/reachabilityEvaluation.type'
+} from '../../../concerns/reachability/contracts/reachabilityEvaluation.type'
 import type { ForgeInstrumentation } from '../../../diagnostics/ForgeTraceSinkDispatcher'
 import type { RequestPipelineResult } from '../../../contracts/runtime/RequestExecutionContext.type'
 import type { MountedNode } from '../../../registries/MountRegistry'

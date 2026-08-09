@@ -1,11 +1,11 @@
-import type { ReachabilityEvaluation } from '../../../contracts/reachability/reachabilityEvaluation.type'
+import type { ReachabilityEvaluation } from '../../reachability/contracts/reachabilityEvaluation.type'
 import type { StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
 import type { ValidationResult } from '../../validation/contracts/validationResult.type'
 import { resolvePathParams } from '../../../../shared/utils/routePath'
 import type { RenderContext } from '../../../../framework/types/rendering.type'
 import type { ViewConfig } from '../../../../authoring/types/structures.type'
 import { buildCompiledResolveContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
-import { resolveBacklinkRouteTemplatePath } from '../../../runtime/evaluation/phases/reachability/reachabilityRedirects'
+import { resolveBacklinkRouteTemplatePath } from '../../reachability/runtime/reachabilityRedirects'
 import { RESOLVE_BLOCKS_KIND } from './ResolveBlocksWorkHandler'
 import type {
   CompletedWork,
