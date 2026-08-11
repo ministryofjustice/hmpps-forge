@@ -13,7 +13,7 @@ import NodeRegistrationWalker from './ast/ast-state/NodeRegistrationWalker'
 import CompilationPlanBuilder from './dependency-analysis/CompilationPlanBuilder'
 import RouteIndexBuilder from '../concerns/route/analysis/RouteIndexBuilder'
 import CodegenOrchestrator from './lowering/CodegenOrchestrator'
-import ASTSemanticValidator from './semantic-analysis/ASTSemanticValidator'
+import ASTSemanticValidator from '../concerns/semantic-analysis/ASTSemanticValidator'
 import CompilationTracer from './tracing/CompilationTracer'
 
 type AstContext = {

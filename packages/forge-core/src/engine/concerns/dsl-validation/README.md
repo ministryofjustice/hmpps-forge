@@ -14,7 +14,7 @@ Two pre-AST checks, both driven by [`DSLValidator`](./DSLValidator.ts):
 
 Semantic rules (registered functions, registered components, reference scopes,
 effect scopes) run **after** the AST is built, inside
-[`compilation/semantic-analysis/`](../../compilation/semantic-analysis/). This follows the standard compiler
+[`semantic-analysis/`](../semantic-analysis/), the other compile-time-only concern. This follows the standard compiler
 pattern: parse first, then validate the typed IR.
 
 Unlike the other concerns, this one has no stage folders: its whole job happens before the AST exists, so

@@ -2,12 +2,17 @@
 
 ## Scope
 
-This document covers `packages/forge-core/src/engine/compilation/semantic-analysis`.
+This document covers `packages/forge-core/src/engine/concerns/semantic-analysis`.
 
 This code validates a registered AST before dependency analysis and code generation run.
 It checks that AST nodes are used in places where they're allowed and that referenced functions and components exist.
 
 This document does not cover AST creation, AST registration, dependency planning, runtime evaluation, or generated output.
+
+Like [dsl-validation](../dsl-validation/README.md), this concern has no stage folders: the whole pass runs once
+during compilation, between AST building and dependency analysis, so there is nothing to lower or execute per
+request. It sits under `concerns/` rather than the compilation chassis because it is self-contained gate logic,
+not orchestration or shared machinery — `CompilationPipeline.validateSemantics()` calls in from the chassis.
 
 ## Background
 
@@ -17,7 +22,7 @@ The AST phase has already turned the authored journey into typed nodes.
 That means semantic analysis can ask structural questions against `ASTNodeIndex` and each node's `parent` link instead of searching the raw DSL.
 For example, it can ask "is this `FunctionType.EFFECT` inside a hook?", "is this `ExpressionType.VALIDATION` inside `validWhen`?", and "is this block variant registered?".
 
-To some degree, the earlier [DSL validation](../../concerns/dsl-validation/README.md) stage protects the broad shape
+To some degree, the earlier [DSL validation](../dsl-validation/README.md) stage protects the broad shape
 of the authored definition. It can check that a value looks like an iterator, a reference, a hook, or a block.
 That's about it, it cannot decide whether those values are semantically valid in their current position.
 For example, Zod can accept an `Item()` reference because the reference has the right shape.

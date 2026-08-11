@@ -21,7 +21,7 @@ import ForgeReferenceScopeError from '../../errors/ForgeReferenceScopeError'
 import ForgeUnregisteredFunctionError from '../../errors/ForgeUnregisteredFunctionError'
 import ForgeUnregisteredComponentError from '../../errors/ForgeUnregisteredComponentError'
 import ForgeFunctionArityError from '../../errors/ForgeFunctionArityError'
-import CompilationPipeline from '../CompilationPipeline'
+import CompilationPipeline from '../../compilation/CompilationPipeline'
 import { finaliseBuilders } from '../../../authoring/builders/utils/finaliseBuilders'
 
 function compileJourney(

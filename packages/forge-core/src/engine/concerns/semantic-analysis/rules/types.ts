@@ -1,4 +1,4 @@
-import type ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
+import type ASTNodeIndex from '../../../compilation/ast/ast-state/ASTNodeIndex'
 import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type ComponentRegistry from '../../../registries/ComponentRegistry'
 
