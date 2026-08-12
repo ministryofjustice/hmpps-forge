@@ -1,11 +1,50 @@
 import ForgeRuntimeEvaluationError, {
-  decorateForgeRuntimeEvaluationError,
   FORGE_RUNTIME_EVALUATION_DIAGNOSTICS,
   getForgeRuntimeEvaluationDiagnostics,
 } from './ForgeRuntimeEvaluationError'
 
+const buildCause = (): Error => {
+  const cause = new Error('boom')
+
+  cause.stack = [
+    'Error: boom',
+    '    at Object.evaluate (/app/server/forms/effects/loadPreferences.ts:256:11)',
+    '    at invokeEffect (/app/node_modules/@ministryofjustice/hmpps-forge/dist/forge-core/lowering/GeneratedFunctionHelpers.js:88:15)',
+    '    at WorkExecutor.executeTask (/app/node_modules/@ministryofjustice/hmpps-forge/dist/forge-core/runtime/WorkExecutor.js:141:26)',
+    '    at WorkExecutor.runUnit (/app/node_modules/@ministryofjustice/hmpps-forge/dist/forge-core/runtime/WorkExecutor.js:64:19)',
+  ].join('\n')
+
+  return cause
+}
+
 describe('ForgeRuntimeEvaluationError', () => {
   describe('stack', () => {
+    it('should include the cause message in the wrapper message when the cause is an Error', () => {
+      // Arrange
+      const error = new ForgeRuntimeEvaluationError({ phase: 'hooks', cause: buildCause() })
+
+      // Act
+      const { message } = error
+
+      // Assert
+      expect(message).toBe('Failed to evaluate compiled Forge hooks function: boom')
+    })
+
+    it('should render the cause author frames and fold the forge-internal run', () => {
+      // Arrange
+      const error = new ForgeRuntimeEvaluationError({ phase: 'hooks', cause: buildCause() })
+
+      // Act
+      const stack = error.stack
+
+      // Assert
+      expect(stack).toContain('    at Object.evaluate (/app/server/forms/effects/loadPreferences.ts:256:11)')
+      expect(stack).toContain(
+        '    ... 3 forge frames (invokeEffect → WorkExecutor.runUnit) — FORGE_FULL_STACK=1 to expand',
+      )
+      expect(stack).not.toContain('    at WorkExecutor.executeTask')
+    })
+
     it('should include diagnostic fields when loggers serialise the stack', () => {
       // Arrange
       const error = new ForgeRuntimeEvaluationError({
@@ -21,18 +60,18 @@ describe('ForgeRuntimeEvaluationError', () => {
       const stack = error.stack
 
       // Assert
-      expect(stack).toContain('Path: journey > step > blocks[0]')
-      expect(stack).toContain('Node: compile_ast:1')
-      expect(stack).toContain('Function: explode')
-      expect(stack).toContain('Type: FunctionType.Generator')
+      expect(stack).toContain('    Forge diagnostics:')
+      expect(stack).toContain('      Phase: render')
+      expect(stack).toContain('      Path: journey > step > blocks[0]')
+      expect(stack).toContain('      Function: explode')
+      expect(stack).toContain('      Type: FunctionType.Generator')
     })
 
-    it('should include the defined-at frame in the appended diagnostics block', () => {
+    it('should not render the node id in the diagnostics block', () => {
       // Arrange
       const error = new ForgeRuntimeEvaluationError({
         phase: 'render',
-        functionName: 'explode',
-        definedAt: 'myJourney (/app/journeys/goals.journey.ts:12:5)',
+        nodeId: 'compile_ast:1',
         cause: new Error('boom'),
       })
 
@@ -40,67 +79,107 @@ describe('ForgeRuntimeEvaluationError', () => {
       const stack = error.stack
 
       // Assert
-      expect(stack).toContain('Forge diagnostics:')
-      expect(stack).toContain('Defined at: myJourney (/app/journeys/goals.journey.ts:12:5)')
+      expect(stack).not.toContain('Node:')
+      expect(error.nodeId).toBe('compile_ast:1')
+    })
+
+    it('should render the defined-at chain as [defined] frames instead of a diagnostics row', () => {
+      // Arrange
+      const error = new ForgeRuntimeEvaluationError({
+        phase: 'hooks',
+        definedAt: 'effects (/app/forms/index.ts:40:40)\nonAccess (/app/forms/hooks.ts:18:22)',
+        cause: new Error('boom'),
+      })
+
+      // Act
+      const stack = error.stack
+
+      // Assert
+      expect(stack).toContain('    at [defined] effects (/app/forms/index.ts:40:40)')
+      expect(stack).toContain('    at [defined] onAccess (/app/forms/hooks.ts:18:22)')
+      expect(stack).not.toContain('Defined at:')
+    })
+
+    it('should render every frame when FORGE_FULL_STACK is set', () => {
+      // Arrange
+      const error = new ForgeRuntimeEvaluationError({ phase: 'hooks', cause: buildCause() })
+
+      // Act
+      process.env.FORGE_FULL_STACK = '1'
+      const stack = error.stack
+      delete process.env.FORGE_FULL_STACK
+
+      // Assert
+      expect(stack).toContain('    at WorkExecutor.executeTask')
+      expect(stack).not.toContain('forge frames (')
+    })
+
+    it('should leave the author error stack untouched', () => {
+      // Arrange
+      const cause = buildCause()
+      const originalStack = cause.stack
+
+      // Act
+      const error = new ForgeRuntimeEvaluationError({ phase: 'hooks', formattedPath: 'a > b', cause })
+      const renderedStack = error.stack
+
+      // Assert
+      expect(renderedStack).toContain('Forge diagnostics:')
+      expect(cause.stack).toBe(originalStack)
+      expect(cause.stack).not.toContain('Forge diagnostics:')
+    })
+
+    it('should keep the unfolded wrapper frames reachable via rawStack', () => {
+      // Arrange
+      const error = new ForgeRuntimeEvaluationError({ phase: 'hooks', cause: buildCause() })
+
+      // Act
+      const { rawStack } = error
+
+      // Assert
+      expect(rawStack).toContain('ForgeRuntimeEvaluationError: Failed to evaluate compiled Forge hooks function: boom')
+      expect(rawStack).toContain('ForgeRuntimeEvaluationError.test.ts')
+      expect(rawStack).not.toContain('forge frames (')
+      expect(Object.keys(error)).not.toContain('rawStack')
     })
   })
 
-  describe('decorateForgeRuntimeEvaluationError()', () => {
-    it('should preserve the original error and append Forge diagnostics to its stack', () => {
+  describe('cause', () => {
+    it('should expose the author error on cause', () => {
       // Arrange
-      const error = new Error('Internal Server Error')
+      const cause = buildCause()
 
       // Act
-      const result = decorateForgeRuntimeEvaluationError(error, {
-        phase: 'hooks',
-        formattedPath: 'example > / > onAccess[0] > effects[1] (effect - LoadCurrentTime)',
-        functionName: 'LoadCurrentTime',
-        functionType: 'FunctionType.Effect',
-      })
+      const error = new ForgeRuntimeEvaluationError({ phase: 'hooks', cause })
 
       // Assert
-      expect(result).toBe(error)
-      expect(result.message).toBe('Internal Server Error')
-      expect(result.stack).toContain('Error: Internal Server Error')
-      expect(result.stack).toContain('Forge diagnostics:')
-      expect(result.stack).toContain('Phase: hooks')
-      expect(result.stack).toContain('Path: example > / > onAccess[0] > effects[1] (effect - LoadCurrentTime)')
-      expect(result.stack).toContain('Function: LoadCurrentTime')
-      expect(result.stack).toContain('Type: FunctionType.Effect')
+      expect(error.cause).toBe(cause)
     })
+  })
 
-    it('should store Forge diagnostics as non-enumerable metadata', () => {
+  describe('getForgeRuntimeEvaluationDiagnostics()', () => {
+    it('should expose structured diagnostics as non-enumerable metadata', () => {
       // Arrange
-      const error = new Error('boom')
+      const error = new ForgeRuntimeEvaluationError({
+        phase: 'render',
+        nodeId: 'compile_ast:1',
+        cause: new Error('boom'),
+      })
 
       // Act
-      decorateForgeRuntimeEvaluationError(error, {
-        phase: 'render',
-        nodeId: 'compile_ast:1',
-      })
+      const diagnostics = getForgeRuntimeEvaluationDiagnostics(error)
 
       // Assert
-      expect(getForgeRuntimeEvaluationDiagnostics(error)).toEqual({
-        phase: 'render',
-        nodeId: 'compile_ast:1',
-      })
+      expect(diagnostics).toEqual({ phase: 'render', nodeId: 'compile_ast:1' })
       expect(Object.prototype.propertyIsEnumerable.call(error, FORGE_RUNTIME_EVALUATION_DIAGNOSTICS)).toBe(false)
     })
 
-    it('should not append Forge diagnostics more than once', () => {
-      // Arrange
-      const error = new Error('boom')
-      const diagnostics = {
-        phase: 'render',
-        formattedPath: 'journey > step > blocks[0]',
-      }
-
+    it('should return undefined for an error without diagnostics', () => {
       // Act
-      decorateForgeRuntimeEvaluationError(error, diagnostics)
-      decorateForgeRuntimeEvaluationError(error, diagnostics)
+      const diagnostics = getForgeRuntimeEvaluationDiagnostics(new Error('boom'))
 
       // Assert
-      expect(error.stack?.match(/Forge diagnostics:/g)).toHaveLength(1)
+      expect(diagnostics).toBeUndefined()
     })
   })
 })

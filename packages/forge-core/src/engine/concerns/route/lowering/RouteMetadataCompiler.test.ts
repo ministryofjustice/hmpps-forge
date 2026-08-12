@@ -119,7 +119,7 @@ describe('RouteMetadataCompiler', () => {
         throw new Error('Expected the failing title expression to throw')
       }
 
-      expect(thrown.message).toBe('Title failed')
+      expect(thrown.message).toBe('Failed to evaluate compiled Forge route-tree function: Title failed')
       expect(getForgeRuntimeEvaluationDiagnostics(thrown)).toMatchObject({ phase: 'route-tree' })
     })
   })

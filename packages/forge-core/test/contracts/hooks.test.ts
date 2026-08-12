@@ -763,12 +763,13 @@ describe('hooks and effects contracts', () => {
 
       // Assert
       expectErrorOutcome(result)
-      expect(result.error).toBe(accidentalEffectError)
+      expect(result.error).toBeInstanceOf(ForgeRuntimeEvaluationError)
+      expect(result.error.cause).toBe(accidentalEffectError)
       expect(traces).toHaveLength(1)
       expect(traces[0].trace.outcome).toBe('error')
       expect(traces[0].trace.error).toEqual({
-        message: accidentalEffectError.message,
-        stack: accidentalEffectError.stack,
+        message: result.error.message,
+        stack: result.error.stack,
       })
     })
   })
@@ -783,15 +784,18 @@ describe('hooks and effects contracts', () => {
 
       // Assert
       expectErrorOutcome(result)
-      expect(result.error).toBe(httpEffectError)
+      expect(result.error).toBeInstanceOf(ForgeRuntimeEvaluationError)
+      expect(result.error.cause).toBe(httpEffectError)
       expect(result.error.status).toBe(404)
       expect(result.error.statusCode).toBe(404)
       expect(result.error.stack).toContain('Booking not found')
       expect(result.error.stack).toContain('Forge diagnostics:')
-      expect(result.error).toMatchObject({ dependency: 'bookingStore' })
+      expect(result.error.cause).toMatchObject({ dependency: 'bookingStore' })
       expect(getForgeRuntimeEvaluationDiagnostics(result.error)).toBeDefined()
-      expect(result.error.stack).toContain('Defined at: ')
+      expect(result.error.stack).toContain('at [defined] ')
       expect(result.error.stack).toContain('hooks.fixtures.ts')
+      expect(result.error.stack).toContain('FORGE_FULL_STACK=1 to expand')
+      expect(result.error.stack).toContain('    Forge diagnostics:')
       expect(getForgeRuntimeEvaluationDiagnostics(result.error)?.definedAt).toContain('hooks.fixtures.ts')
     })
 
@@ -804,8 +808,9 @@ describe('hooks and effects contracts', () => {
 
       // Assert
       expectErrorOutcome(result)
-      expect(result.error).toBe(accidentalEffectError)
-      expect(result.error).toBeInstanceOf(SyntaxError)
+      expect(result.error).toBeInstanceOf(ForgeRuntimeEvaluationError)
+      expect(result.error.cause).toBe(accidentalEffectError)
+      expect(result.error.cause).toBeInstanceOf(SyntaxError)
       expect(result.error.status).toBeUndefined()
       expect(result.error.statusCode).toBeUndefined()
       expect(result.error.stack).toContain('Unexpected token in booking data')

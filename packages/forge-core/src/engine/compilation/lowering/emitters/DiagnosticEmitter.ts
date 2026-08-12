@@ -1,5 +1,5 @@
 import { FunctionType } from '../../../../authoring/types/enums'
-import { formatCallsite } from '../../../../shared/diagnostics/formatCallsite'
+import { formatCallsiteChain } from '../../../../shared/diagnostics/formatCallsite'
 
 interface DiagnosticMetadata {
   readonly nodeId?: string
@@ -110,7 +110,9 @@ export default class DiagnosticEmitter {
       return undefined
     }
 
-    return formatCallsite({ stack })
+    const chain = formatCallsiteChain({ stack })
+
+    return chain.length > 0 ? chain.join('\n') : undefined
   }
 
   private getFormattedPath(source: unknown): string | undefined {

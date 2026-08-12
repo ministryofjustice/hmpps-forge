@@ -12,12 +12,19 @@ const AsyncFunctionConstructor = Object.getPrototypeOf(async function compiledAs
  * normal function body. Runtime callers still await the result so both shapes
  * share the same orchestration path.
  */
+interface CreateCompiledFunctionOptions {
+  usesAwait: boolean
+  /** Named script origin so eval'd frames render as `forge:compiled/...` instead of `<anonymous>` */
+  sourceName?: string
+}
+
 export function createCompiledFunction<TFunction extends GeneratedFunction>(
   parameterNames: string[],
   source: string,
-  usesAwait: boolean,
+  options: CreateCompiledFunctionOptions,
 ): TFunction {
-  const constructor = usesAwait ? AsyncFunctionConstructor : Function
+  const constructor = options.usesAwait ? AsyncFunctionConstructor : Function
+  const namedSource = options.sourceName === undefined ? source : `${source}\n//# sourceURL=${options.sourceName}`
 
-  return new constructor(...parameterNames, source) as TFunction
+  return new constructor(...parameterNames, namedSource) as TFunction
 }

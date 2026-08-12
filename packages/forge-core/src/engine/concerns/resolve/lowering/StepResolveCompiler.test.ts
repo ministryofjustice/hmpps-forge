@@ -1273,10 +1273,11 @@ describe('StepResolveCompiler', () => {
       }
 
       // Assert
-      if (!(thrown instanceof TypeError)) {
-        throw new Error('Expected FormatDate to throw the original TypeError')
+      if (!(thrown instanceof Error)) {
+        throw new Error('Expected FormatDate to throw')
       }
 
+      expect(thrown.cause).toBeInstanceOf(TypeError)
       expect(getForgeRuntimeEvaluationDiagnostics(thrown)).toMatchObject({
         phase: 'resolve',
         functionName: 'String.FormatDate',
@@ -1339,7 +1340,7 @@ describe('StepResolveCompiler', () => {
         throw new Error('Expected throwingCount to throw the original Error')
       }
 
-      expect(thrown.message).toBe('Count failed')
+      expect(thrown.message).toBe('Failed to evaluate compiled Forge resolve function: Count failed')
       expect(getForgeRuntimeEvaluationDiagnostics(thrown)).toMatchObject({
         phase: 'resolve',
         functionName: 'throwingCount',
@@ -1348,7 +1349,7 @@ describe('StepResolveCompiler', () => {
         definedAt: 'journeyAuthor (/app/journeys/goals.journey.ts:12:5)',
       })
       expect(thrown.stack).toContain('Forge diagnostics:')
-      expect(thrown.stack).toContain('Defined at: ')
+      expect(thrown.stack).toContain('at [defined] journeyAuthor (/app/journeys/goals.journey.ts:12:5)')
     })
   })
 })

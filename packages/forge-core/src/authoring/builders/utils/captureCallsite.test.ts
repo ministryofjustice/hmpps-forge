@@ -28,6 +28,19 @@ describe('captureCallsite', () => {
     expect(site.stack).not.toContain('at captureCallsite')
   })
 
+  it('should keep the outermost caller of a deep wrapper chain within the capture budget', () => {
+    // Arrange
+    const entry = (): Callsite => captureCallsite(entry)
+    const wrap = (depth: number): Callsite => (depth === 0 ? entry() : wrap(depth - 1))
+    const outermostWrapperCaller = (): Callsite => wrap(8)
+
+    // Act
+    const site = outermostWrapperCaller()
+
+    // Assert
+    expect(site.stack).toContain('outermostWrapperCaller')
+  })
+
   it('should restore the stack trace limit after capturing', () => {
     // Arrange
     const previousLimit = Error.stackTraceLimit

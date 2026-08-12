@@ -29,7 +29,7 @@ describe('GeneratedFunctionCompiler', () => {
       expect(compile).toThrow(ForgeCompilationError)
     })
 
-    it('should preserve Error failures and attach Forge diagnostics', () => {
+    it('should wrap Error failures in ForgeRuntimeEvaluationError with the author error on cause', () => {
       // Arrange
       const expr = new ExpressionDispatcher(dependencies)
       const fn = compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'throw new Error("boom");', {
@@ -40,17 +40,18 @@ describe('GeneratedFunctionCompiler', () => {
       const evaluate = () => Reflect.apply(fn, undefined, [{}])
 
       // Assert
-      expect(evaluate).toThrow(Error)
-
       try {
         evaluate()
+        throw new Error('Expected generated function to throw')
       } catch (error) {
-        if (!(error instanceof Error)) {
-          throw new Error('Expected generated function to throw the original Error')
+        if (!(error instanceof ForgeRuntimeEvaluationError)) {
+          throw new Error('Expected generated function to throw ForgeRuntimeEvaluationError')
         }
 
-        expect(error).not.toBeInstanceOf(ForgeRuntimeEvaluationError)
-        expect(error.message).toBe('boom')
+        expect(error.message).toContain('boom')
+        expect(error.cause).toBeInstanceOf(Error)
+        expect((error.cause as Error).message).toBe('boom')
+        expect((error.cause as Error).stack).not.toContain('Forge diagnostics:')
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toEqual({ phase: 'render' })
         expect(error.stack).toContain('Forge diagnostics:')
         expect(error.stack).toContain('Phase: render')
@@ -86,12 +87,12 @@ describe('GeneratedFunctionCompiler', () => {
           throw new Error('Expected generated function to throw the original Error')
         }
 
-        expect(error.message).toBe('boom')
+        expect(error.message).toContain('boom')
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
           phase: 'render',
           definedAt: 'myJourney (/app/journeys/goals.journey.ts:12:5)',
         })
-        expect(error.stack).toContain('Defined at: ')
+        expect(error.stack).toContain('at [defined] myJourney (/app/journeys/goals.journey.ts:12:5)')
       }
     })
 

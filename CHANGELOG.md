@@ -58,7 +58,8 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 A tidy-up of the authoring surface - the GOV.UK utility wrappers are real components
 now, `createForgePackage()` is mandatory and stamps provenance on every node so errors
 point at the line in your code that defined the offending definition, and everything
-the engine throws is one exported family of `Forge*` error classes.
+the engine throws is one exported family of `Forge*` error classes with author-first
+stack rendering.
 
 ### Added
 
@@ -84,6 +85,22 @@ the engine throws is one exported family of `Forge*` error classes.
   passed through it, and `journey` also accepts a JSON string ([#209])
 - The engine's errors follow one `Forge`-prefixed naming scheme on a shared
   `ForgeBaseError` base class ([#229])
+- A failure thrown by one of your functions during a request surfaces as a
+  `ForgeRuntimeEvaluationError` with your error untouched on `cause` - previously
+  forge appended its diagnostics prose to your error's own `stack`. The wrapper's
+  message carries yours (`Failed to evaluate compiled Forge hooks function: <yours>`)
+  and HTTP `status`/`statusCode` are mirrored from the cause, so express error
+  handling picks the same response code. Breaking only if a host error handler
+  matched on the thrown instance - match on `error.cause` instead ([#238])
+- Runtime error stacks read author-first - your frames render as-is, each run of
+  forge-internal frames folds to one summary line (`FORGE_FULL_STACK=1` expands it,
+  and the unfolded original stays on a non-enumerable `rawStack`), the definition
+  site renders as `at [defined]` frames that error trackers ingest as clickable
+  in-app frames, and the `Node:` row is gone from the diagnostics block (`nodeId`
+  stays on the error object) ([#238])
+- The runtime `definedAt` is a chain now, and callsite capture is deeper (15 frames,
+  up from 5) - if you wrap forge builders in your own utilities, the chain reads past
+  the wrapper file to the line in your code ([#238])
 - `core/framework` is types-only - the path utilities are no longer exported, so copy
   the ones you used into your adapter; they're a few lines each ([#212])
 
@@ -195,6 +212,12 @@ make impossible. ([#229])
   ...) owns its whole slice under `engine/concerns/<name>/{analysis,lowering,runtime,contracts}`
   instead of spreading across the compilation and runtime stage folders, with eslint
   import zones enforcing the boundaries. Public exports are unchanged ([#236])
+- `ForgeBaseError` renders `stack` through a lazy getter - raw frames are captured
+  once at construction and the folding, defined-at frames, and diagnostics block are
+  assembled on read, so a caught-and-handled error never pays for formatting.
+  `ForgeInternalError` never folds - when the engine itself is broken, the internals
+  are the story. Generated functions carry a `//# sourceURL=forge:compiled/<phase>`
+  so eval'd frames stop rendering as `<anonymous>` ([#238])
 - Runtime validation is reworked around one `validation.current-step` operation -
   both triggers (matching `validateOnEntry` groups on GET, the submit lifecycle on
   POST) schedule the same task, rule group filtering happens before rule conditions
@@ -214,6 +237,7 @@ make impossible. ([#229])
 [#230]: https://github.com/ministryofjustice/hmpps-forge/pull/230
 [#236]: https://github.com/ministryofjustice/hmpps-forge/pull/236
 [#237]: https://github.com/ministryofjustice/hmpps-forge/pull/237
+[#238]: https://github.com/ministryofjustice/hmpps-forge/pull/238
 
 ---
 

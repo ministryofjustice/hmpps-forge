@@ -168,11 +168,15 @@ Most Forge custom errors keep their native stack trace and expose diagnostic
 fields only through an overridden `toString()`.
 
 Runtime evaluation errors are the exception. Because production loggers often
-serialise `error.stack`, `ForgeRuntimeEvaluationError` (and any foreign error
-decorated via `decorateForgeRuntimeEvaluationError`) appends a `Forge
-diagnostics:` block to its native stack. This means diagnostic fields for those
-errors appear in logs that serialise `error.stack`, not only in direct calls to
-`error.toString()`.
+serialise `error.stack`, every failure thrown while evaluating a compiled
+function is wrapped in a `ForgeRuntimeEvaluationError` — the author's error
+stays pristine on `cause` — and the wrapper renders the whole story through a
+lazy `stack` getter: the cause's author frames, forge-internal frames folded to
+one summary line per run (`FORGE_FULL_STACK=1` expands them), the defined-at
+chain as `at [defined]` frames, and a `Forge diagnostics:` block. The unfolded
+frames stay reachable via the non-enumerable `rawStack`. This means diagnostic
+fields for those errors appear in logs that serialise `error.stack`, not only
+in direct calls to `error.toString()`.
 
 The rule is simple: if a custom error has useful diagnostic fields, its
 `toString()` output should include them, and runtime evaluation errors should

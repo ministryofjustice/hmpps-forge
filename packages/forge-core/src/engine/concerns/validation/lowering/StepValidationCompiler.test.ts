@@ -745,7 +745,7 @@ describe('StepValidationCompiler', () => {
           throw new Error('Expected throwingCondition to throw the original Error')
         }
 
-        expect(error.message).toBe('Unexpected failure')
+        expect(error.message).toBe('Failed to evaluate compiled Forge validation function: Unexpected failure')
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
           phase: 'validation',
           functionName: 'throwingCondition',
@@ -801,7 +801,7 @@ describe('StepValidationCompiler', () => {
           throw new Error('Expected messageGenerator to throw the original Error')
         }
 
-        expect(error.message).toBe('Message failed')
+        expect(error.message).toBe('Failed to evaluate compiled Forge validation function: Message failed')
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
           phase: 'validation',
           functionName: 'messageGenerator',

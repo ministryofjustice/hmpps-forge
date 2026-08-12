@@ -311,7 +311,7 @@ describe('HookLifecycleCompiler', () => {
         throw new Error('Expected throwingEffect to throw the original Error')
       }
 
-      expect(thrown.message).toBe('Effect failed')
+      expect(thrown.message).toBe('Failed to evaluate compiled Forge hooks function: Effect failed')
       expect(getForgeRuntimeEvaluationDiagnostics(thrown)).toMatchObject({
         phase: 'hooks',
         functionName: 'throwingEffect',

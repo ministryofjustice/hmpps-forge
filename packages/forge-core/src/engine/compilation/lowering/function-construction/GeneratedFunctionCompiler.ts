@@ -2,10 +2,7 @@ import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
 import { createCompiledFunction, GeneratedFunction } from './compiledFunctionFactory'
 import { generatedFunctionHelpers } from './GeneratedFunctionHelpers'
 import ForgeCompilationError from '../../../errors/ForgeCompilationError'
-import ForgeRuntimeEvaluationError, {
-  decorateForgeRuntimeEvaluationError,
-  type ForgeRuntimeEvaluationDiagnostics,
-} from '../../../errors/ForgeRuntimeEvaluationError'
+import ForgeRuntimeEvaluationError from '../../../errors/ForgeRuntimeEvaluationError'
 
 interface CompileOptions {
   forceAsync?: boolean
@@ -84,7 +81,7 @@ export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
         compiled = createCompiledFunction<GeneratedFunction>(
           [...parameterNames, GENERATED_FUNCTION_HELPERS_PARAM, RUNTIME_DIAGNOSTICS_PARAM],
           source,
-          usesAwait,
+          { usesAwait, sourceName: `forge:compiled/${phase}` },
         )
       } catch (cause) {
         throw new ForgeCompilationError({ phase, cause })
@@ -130,21 +127,14 @@ const createRuntimeDiagnostics = (phase: string): RuntimeEvaluationDiagnostics =
       }
 
       const current = diagnostics.current
-      const runtimeDiagnostics: ForgeRuntimeEvaluationDiagnostics = {
+
+      return new ForgeRuntimeEvaluationError({
         phase,
         nodeId: nodeId ?? current?.nodeId,
         formattedPath: formattedPath ?? current?.formattedPath,
         functionName: functionName ?? current?.functionName,
         functionType: functionType ?? current?.functionType,
         definedAt: definedAt ?? current?.definedAt,
-      }
-
-      if (error instanceof Error) {
-        return decorateForgeRuntimeEvaluationError(error, runtimeDiagnostics)
-      }
-
-      return new ForgeRuntimeEvaluationError({
-        ...runtimeDiagnostics,
         cause: error,
       })
     },
