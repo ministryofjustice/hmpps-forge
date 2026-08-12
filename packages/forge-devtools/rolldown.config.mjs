@@ -17,7 +17,7 @@ const createPluginConfig = (name, input, plugins) => ({
     entryFileNames: '[name].js',
   },
   resolve: {
-    tsconfigFilename: './tsconfig.json',
+    tsconfigFilename: './forge-devtools/src/plugin/tsconfig.json',
     alias: { 'react/jsx-runtime': 'preact/jsx-runtime', 'react/jsx-dev-runtime': 'preact/jsx-runtime' },
   },
   jsx: { mode: 'automatic', importSource: 'preact' },
