@@ -4,13 +4,13 @@ import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { RuntimeContext } from '../../../contracts/runtime/evaluationState.type'
 import { buildCompiledValidationContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
 import { createWorkTask, isWorkTask } from '../../../runtime/evaluation/work/workTask'
-import type { StepValidationWorkTask } from '../contracts/ValidationWork.type'
+import type { StepValidationWorkTask, ValidationRuleFilter } from '../contracts/ValidationWork.type'
 import { STEP_VALIDATION_WORK_HANDLER } from './StepValidationWorkHandler'
 
 /**
  * The work task key a step's validation task is built under. The step id
- * is encoded into the key so the eager validities phase can map each completed
- * child back to its step in `complete` without a per-unit side-channel.
+ * is encoded into the key so the reachability validities phase can map each
+ * completed child back to its step in `complete` without a per-unit side-channel.
  */
 export function validationTaskKey(stepId: NodeId): string {
   return `validation:${stepId}`
@@ -19,24 +19,25 @@ export function validationTaskKey(stepId: NodeId): string {
 /**
  * Builds (without executing) a step's validation task, re-keyed to the
  * step so callers can tell sibling step validations apart. Callers run it
- * through the main executor — the eager validities phase as concurrent
- * children, submit validation as a single discovered child — so there is
- * no nested executor. Returns undefined when the step has no compiled
- * validation.
+ * through the main executor — the reachability validities phase as concurrent
+ * children, current-step validation as a single discovered child — so there is
+ * no nested executor. The filter selects which rules the run executes; the
+ * compiled function applies it before evaluating any rule condition. Returns
+ * undefined when the step has no compiled validation.
  */
 export async function buildStepValidationTask(
   compiledValidation: CompiledValidationFunction | undefined,
   stepId: NodeId,
   context: RuntimeContext,
   functionRegistry: FunctionRegistry,
-  isSubmission: boolean,
+  filter: ValidationRuleFilter,
 ): Promise<StepValidationWorkTask | undefined> {
   if (!compiledValidation) {
     return undefined
   }
 
   const validationContext = buildCompiledValidationContext(context, functionRegistry)
-  const task = await compiledValidation(validationContext, isSubmission)
+  const task = await compiledValidation(validationContext, filter)
 
   if (!isStepValidationWorkTask(task)) {
     return undefined

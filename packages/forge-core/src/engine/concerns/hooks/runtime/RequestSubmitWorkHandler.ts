@@ -20,9 +20,10 @@ export const REQUEST_SUBMIT_WORK_INSTRUMENTATION: WorkInstrumentation<RequestSub
 
 /**
  * The submit phase as work (POST steps only). `begin` runs the compiled submit
- * lifecycle (its validation runs as nested `submit.validation` work, which reads
- * the hoisted validation builder off the threaded context); `complete` maps the
- * hook result to a halt or continue and surfaces validation state for render.
+ * lifecycle (its validation stage is the validation-owned `validation.current-step`
+ * task, which owns execution, result storage, and the display signal); `complete`
+ * maps the hook result to a halt or continue — submit outcomes only, never
+ * validation display state.
  */
 export const REQUEST_SUBMIT_WORK_HANDLER: WorkHandler<'request.submit', RequestSubmitWorkProps> = {
   kind: REQUEST_SUBMIT_KIND,
@@ -43,7 +44,7 @@ export const REQUEST_SUBMIT_WORK_HANDLER: WorkHandler<'request.submit', RequestS
   },
 
   complete(
-    ctx: WorkContextContract<RequestExecutionContext, RequestSubmitWorkProps>,
+    _ctx: WorkContextContract<RequestExecutionContext, RequestSubmitWorkProps>,
     children: readonly CompletedWork[],
   ): PhaseWorkOutput {
     const result = singleChildOutput(children, SUBMIT_LIFECYCLE_KIND)
@@ -52,16 +53,11 @@ export const REQUEST_SUBMIT_WORK_HANDLER: WorkHandler<'request.submit', RequestS
       throw new ForgeInternalError('Submit lifecycle work task completed with an invalid submit result')
     }
 
-    const output = toOutput(ctx, result)
-
-    return output
+    return toOutput(result)
   },
 }
 
-function toOutput(
-  ctx: WorkContextContract<RequestExecutionContext>,
-  result: CompiledSubmitHookResult,
-): PhaseWorkOutput {
+function toOutput(result: CompiledSubmitHookResult): PhaseWorkOutput {
   if (result.outcome === 'redirect') {
     if (result.redirect === undefined) {
       throw new ForgeInternalError('Hook redirect target is missing')
@@ -73,8 +69,6 @@ function toOutput(
   if (result.outcome === 'error') {
     return { action: 'halt-error', status: result.status ?? 500, message: result.message || 'Submission error' }
   }
-
-  ctx.request.showValidationFailures = result.validated
 
   return { action: 'continue' }
 }

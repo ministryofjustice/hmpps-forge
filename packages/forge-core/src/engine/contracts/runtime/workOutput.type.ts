@@ -5,6 +5,7 @@ import type {
 } from '../../concerns/hooks/contracts/hookLifecycle.type'
 import type { DomainValidationFailure, StepValidationFailure } from './evaluationState.type'
 import type { StepValidityResult } from '../../concerns/validation/contracts/stepValidityResult.type'
+import type { ValidationView } from '../../concerns/validation/contracts/validationView.type'
 import type { RenderBlock } from '../../../framework/types/rendering.type'
 import type {
   AnswerPreparationFieldResult,
@@ -45,11 +46,11 @@ type WorkOutputByKind = {
   readonly 'submit.hook': CompiledSubmitHookResult
   readonly 'submit.predicate': HookStageResult<CompiledSubmitHookResult>
   readonly 'submit.branch': HookStageResult<CompiledSubmitHookResult>
-  readonly 'submit.validation': HookStageResult<CompiledSubmitHookResult>
   readonly 'hook.effect': HookStageResult<never>
   readonly 'reachability.evaluation': ReachabilityEvaluationResult
   readonly 'answer.preparation': AnswerPreparationResult
   readonly 'answer.preparation.field': AnswerPreparationFieldResult
+  readonly 'validation.current-step': ValidationView
   readonly 'validation.step': StepValidityResult
   readonly 'validation.field': readonly StepValidationFailure[]
   readonly 'validation.domain': readonly DomainValidationFailure[]

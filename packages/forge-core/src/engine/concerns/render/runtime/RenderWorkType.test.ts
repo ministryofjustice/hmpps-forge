@@ -78,7 +78,6 @@ function createRequestContext(traceEnabled = false): RequestExecutionContext {
     hasRenderer: true,
     traceEnabled,
     buildStepValidation: () => undefined,
-    recordStepValidation: () => {},
   }
 }
 

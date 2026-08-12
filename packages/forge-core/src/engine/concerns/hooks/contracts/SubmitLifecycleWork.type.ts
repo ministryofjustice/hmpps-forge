@@ -1,4 +1,5 @@
 import type { WorkTask } from '../../../contracts/runtime/work.type'
+import type { CurrentStepValidationWorkTask } from '../../validation/contracts/ValidationWork.type'
 import type { HookEffectWorkTask } from './HookEffectWork.type'
 
 export interface SubmitLifecycleWorkProps {
@@ -9,7 +10,7 @@ export interface SubmitHookWorkProps {
   readonly when: SubmitHookPredicateWorkTask
   readonly guards: SubmitHookPredicateWorkTask
   readonly onAlways: SubmitBranchWorkTask
-  readonly validation?: SubmitValidationWorkTask
+  readonly validation?: CurrentStepValidationWorkTask
   readonly onValid?: SubmitBranchWorkTask
   readonly onInvalid?: SubmitBranchWorkTask
 }
@@ -22,12 +23,7 @@ export interface SubmitHookPredicateWorkProps {
 export interface SubmitBranchWorkProps {
   readonly name: SubmitBranchName
   readonly effects: readonly HookEffectWorkTask[]
-  readonly groups: readonly string[]
   readonly next: () => SubmitHookNextResult | Promise<SubmitHookNextResult>
-}
-
-export interface SubmitValidationWorkProps {
-  readonly groups: readonly string[]
 }
 
 export type SubmitBranchName = 'onAlways' | 'onValid' | 'onInvalid'
@@ -44,5 +40,3 @@ export type SubmitHookWorkTask = WorkTask<'submit.hook', SubmitHookWorkProps>
 type SubmitHookPredicateWorkTask = WorkTask<'submit.predicate', SubmitHookPredicateWorkProps>
 
 type SubmitBranchWorkTask = WorkTask<'submit.branch', SubmitBranchWorkProps>
-
-type SubmitValidationWorkTask = WorkTask<'submit.validation', SubmitValidationWorkProps>

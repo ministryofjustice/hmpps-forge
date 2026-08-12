@@ -46,14 +46,12 @@ function createRequestContext(
     componentRegistry: new ComponentRegistry(),
     hasRenderer: false,
     traceEnabled: false,
-    showValidationFailures: true,
-    validation: {
+    currentPageValidation: {
       isValid: false,
       fieldFailures: [failure],
       domainFailures: [],
     },
     buildStepValidation: () => undefined,
-    recordStepValidation: () => {},
   }
 
   return {

@@ -9,8 +9,6 @@ import type {
 } from '../../../contracts/runtime/work.type'
 import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
 import { findChildByTask, findTerminalStage, isTerminalStage } from '../../../runtime/evaluation/work/workTask'
-import { isStepValid } from '../../validation/runtime/stepValidity'
-import { getStepValidity } from '../../validation/runtime/stepValidityState'
 import type { SubmitHookWorkProps } from '../contracts/SubmitLifecycleWork.type'
 
 export const SUBMIT_HOOK_KIND = 'submit.hook'
@@ -28,8 +26,11 @@ export const SUBMIT_HOOK_WORK_INSTRUMENTATION: WorkInstrumentation<SubmitHookWor
 /**
  * A single submit hook as a fixed ordered stage list: when → guards → onAlways →
  * validation → onValid → onInvalid (configured stages only), run as one `first-match`
- * group that stops at the first stage to produce a terminal result. `complete` is a
- * pure fold: return the terminal stage's result, or the "ran to completion" default.
+ * group that stops at the first stage to produce a terminal result. The validation
+ * stage is the validation-owned `validation.current-step` task, scheduled here so it
+ * runs after `onAlways` exactly once; the hook owns only its position. `complete` is
+ * a pure fold: return the terminal stage's result, or the "ran to completion"
+ * default with validity read off the stored current-page result.
  */
 export const SUBMIT_HOOK_WORK_HANDLER: WorkHandler<'submit.hook', SubmitHookWorkProps> = {
   kind: SUBMIT_HOOK_KIND,
@@ -66,10 +67,7 @@ export const SUBMIT_HOOK_WORK_HANDLER: WorkHandler<'submit.hook', SubmitHookWork
       return { executed: true, validated: false, outcome: 'continue' }
     }
 
-    const isValid = isStepValid(getStepValidity(ctx.request.context, ctx.request.currentStepId), {
-      isSubmission: true,
-      groups: ctx.props.validation?.props.groups,
-    })
+    const isValid = ctx.request.currentPageValidation?.isValid ?? true
 
     return { executed: true, validated: true, isValid, outcome: 'continue' }
   },

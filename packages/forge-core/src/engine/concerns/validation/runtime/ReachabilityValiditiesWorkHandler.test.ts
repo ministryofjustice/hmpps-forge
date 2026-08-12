@@ -19,7 +19,6 @@ function createRequestContext(overrides: Partial<RequestExecutionContext> = {}):
     hasRenderer: false,
     traceEnabled: false,
     buildStepValidation: () => undefined,
-    recordStepValidation: () => {},
     ...overrides,
   } as RequestExecutionContext
 
@@ -35,7 +34,7 @@ function stubValidation(stepId: NodeId, result: StepValidityResult) {
   return createWorkTask(validationTaskKey(stepId), workHandler, { fields: [], domains: [] })
 }
 
-describe('RequestValiditiesWorkHandler', () => {
+describe('ReachabilityValiditiesWorkHandler', () => {
   describe('execute()', () => {
     it('should run and record only steps in the journey validation map', async () => {
       // Arrange
@@ -43,24 +42,44 @@ describe('RequestValiditiesWorkHandler', () => {
       const nonValidatingStepId = 'non-validating-step' as NodeId
       const result: StepValidityResult = { fieldFailures: [], domainFailures: [] }
       const buildStepValidation = vi.fn((stepId: NodeId) => stubValidation(stepId, result))
-      const recordStepValidation = vi.fn()
       const compiledValidation = vi.fn() as unknown as CompiledValidationFunction
+      const context = createRequestContext({ buildStepValidation })
       const validities = WorkTaskFactory.requestValidities({
         compiledStepValidations: new Map([[validatingStepId, compiledValidation]]),
       })
 
       // Act
-      const completed = await new WorkExecutor().execute(
-        validities,
-        createRequestContext({ buildStepValidation, recordStepValidation }),
-      )
+      const completed = await new WorkExecutor().execute(validities, context)
 
       // Assert
       expect(completed.output).toEqual({ action: 'continue' })
-      expect(buildStepValidation).toHaveBeenCalledWith(validatingStepId, false)
-      expect(buildStepValidation).not.toHaveBeenCalledWith(nonValidatingStepId, false)
-      expect(recordStepValidation).toHaveBeenCalledWith(validatingStepId, result)
-      expect(recordStepValidation).not.toHaveBeenCalledWith(nonValidatingStepId, result)
+      expect(buildStepValidation).toHaveBeenCalledWith(validatingStepId, {
+        groups: ['default'],
+        includeSubmissionOnly: false,
+      })
+      expect(buildStepValidation).toHaveBeenCalledTimes(1)
+      expect(context.request.context.evaluation.reachabilityValidities?.get(validatingStepId)).toEqual(result)
+      expect(context.request.context.evaluation.reachabilityValidities?.has(nonValidatingStepId)).toBe(false)
+    })
+
+    it('should record navigation facts without touching current-page validation', async () => {
+      // Arrange
+      const currentStepId = 'current-step' as NodeId
+      const result: StepValidityResult = { fieldFailures: [], domainFailures: [] }
+      const buildStepValidation = vi.fn((stepId: NodeId) => stubValidation(stepId, result))
+      const compiledValidation = vi.fn() as unknown as CompiledValidationFunction
+      const context = createRequestContext({ buildStepValidation, currentStepId })
+      const validities = WorkTaskFactory.requestValidities({
+        compiledStepValidations: new Map([[currentStepId, compiledValidation]]),
+      })
+
+      // Act
+      const completed = await new WorkExecutor().execute(validities, context)
+
+      // Assert
+      expect(completed.output).toEqual({ action: 'continue' })
+      expect(context.request.context.evaluation.reachabilityValidities?.get(currentStepId)).toEqual(result)
+      expect(context.request.currentPageValidation).toBeUndefined()
     })
   })
 })

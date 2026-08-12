@@ -38,9 +38,9 @@ interface SnapshotOptions {
   readonly key?: string
   readonly answers?: SnapshotUnit['answers']
   readonly data?: SnapshotUnit['data']
-  // stepValidities is keyed by the branded NodeId in core, so accept plain string keys here and
+  // reachabilityValidities is keyed by the branded NodeId in core, so accept plain string keys here and
   // widen at the fixture boundary rather than fabricate NodeId values.
-  readonly stepValidities?: Record<string, unknown>
+  readonly reachabilityValidities?: Record<string, unknown>
   readonly reachability?: NonNullable<SnapshotUnit['reachability']>
 }
 
@@ -54,7 +54,7 @@ function contextSnapshotUnit(options: SnapshotOptions = {}): RequestTraceUnit {
     children: [],
     answers: options.answers ?? {},
     data: options.data ?? {},
-    stepValidities: options.stepValidities as SnapshotUnit['stepValidities'],
+    reachabilityValidities: options.reachabilityValidities as SnapshotUnit['reachabilityValidities'],
     reachability: options.reachability,
   }
 }
@@ -225,7 +225,7 @@ describe('TraceMessageBuilder', () => {
         key: 'after-render',
         answers: { firstName: { current: 'Ada', mutations: [] } },
         data: { referenceNumber: 'ABC123' },
-        stepValidities: { 'journey::step': { fieldFailures: [], domainFailures: [] } },
+        reachabilityValidities: { 'journey::step': { fieldFailures: [], domainFailures: [] } },
         reachability: { reachableSteps: [{ path: '/step' }], unreachableSteps: [] },
       })
 
@@ -239,7 +239,7 @@ describe('TraceMessageBuilder', () => {
         snapshot: {
           answers: { firstName: { current: 'Ada', mutations: [] } },
           data: { referenceNumber: 'ABC123' },
-          stepValidities: { 'journey::step': { fieldFailures: [], domainFailures: [] } },
+          reachabilityValidities: { 'journey::step': { fieldFailures: [], domainFailures: [] } },
           reachability: { reachableSteps: [{ path: '/step' }], unreachableSteps: [] },
         },
         children: [],

@@ -17,7 +17,7 @@ describe('captureContextSnapshot()', () => {
         data: { loaded: true },
       },
       evaluation: {
-        stepValidities: new Map([
+        reachabilityValidities: new Map([
           [
             'compiled:name',
             {
@@ -49,7 +49,7 @@ describe('captureContextSnapshot()', () => {
     context.domain.answers.name.current = 'Grace'
     context.domain.answers.name.parsed = { normalised: 'grace' }
     context.domain.data.loaded = false
-    context.evaluation.stepValidities!.get('compiled:name')!.fieldFailures[0].details!.minLength = 2
+    context.evaluation.reachabilityValidities!.get('compiled:name')!.fieldFailures[0].details!.minLength = 2
     context.evaluation.reachability!.reachableSteps[0].fieldCodes!.push('other')
 
     // Assert
@@ -62,7 +62,7 @@ describe('captureContextSnapshot()', () => {
         },
       },
       data: { loaded: true },
-      stepValidities: {
+      reachabilityValidities: {
         'compiled:name': {
           fieldFailures: [
             {

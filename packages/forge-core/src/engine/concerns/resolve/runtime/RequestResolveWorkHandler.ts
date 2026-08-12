@@ -35,9 +35,9 @@ export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', Reques
   kind: REQUEST_RESOLVE_KIND,
 
   async begin(ctx: WorkContextContract<RequestExecutionContext, RequestResolveWorkProps>) {
-    const fieldFailures: Record<string, ValidationResult[]> = ctx.request.showValidationFailures
-      ? groupFieldFailuresByBlockId(ctx.request.validation?.fieldFailures ?? [])
-      : {}
+    const fieldFailures: Record<string, ValidationResult[]> = groupFieldFailuresByBlockId(
+      ctx.request.currentPageValidation?.fieldFailures ?? [],
+    )
 
     const compiledResolveContext = buildCompiledResolveContext(
       ctx.request.context,
@@ -71,9 +71,13 @@ export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', Reques
     const view = resolveView(ancestors, stepMetadata.view)
     const step = view === undefined ? stepMetadata : { ...stepMetadata, view }
 
-    const showValidationFailures = ctx.request.showValidationFailures ?? false
-    const fieldFailures = showValidationFailures ? (ctx.request.validation?.fieldFailures ?? []) : []
-    const domainFailures = showValidationFailures ? (ctx.request.validation?.domainFailures ?? []) : []
+    // The presence of a current-page result is the display signal: present means
+    // validation ran (possibly passing with no failures), absent means it never ran.
+    const validation = ctx.request.currentPageValidation
+
+    const showValidationFailures = validation !== undefined
+    const fieldFailures = validation?.fieldFailures ?? []
+    const domainFailures = validation?.domainFailures ?? []
 
     const renderContext: RenderContext = {
       routeTree: ctx.request.routeTree ?? [],

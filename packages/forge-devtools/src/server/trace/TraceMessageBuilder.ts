@@ -5,7 +5,7 @@ type RuntimeContextSnapshotTrace = Extract<RequestTraceUnit, { readonly kind: 'c
 interface TraceSnapshotMessage {
   readonly answers: Record<string, unknown>
   readonly data: Record<string, unknown>
-  readonly stepValidities?: Record<string, unknown>
+  readonly reachabilityValidities?: Record<string, unknown>
   readonly reachability?: unknown
 }
 
@@ -145,7 +145,7 @@ export default class TraceMessageBuilder {
         snapshot: {
           answers: unit.answers,
           data: unit.data,
-          stepValidities: unit.stepValidities,
+          reachabilityValidities: unit.reachabilityValidities,
           reachability: unit.reachability,
         },
         children: [],

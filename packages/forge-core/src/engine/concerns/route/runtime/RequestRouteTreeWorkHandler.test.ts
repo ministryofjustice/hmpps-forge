@@ -58,7 +58,6 @@ function createContext(
     hasRenderer: false,
     traceEnabled: false,
     buildStepValidation: () => undefined,
-    recordStepValidation: () => {},
   }
 
   return {

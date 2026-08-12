@@ -16,7 +16,7 @@ export interface RuntimeContextSnapshotTrace {
   readonly children: readonly []
   readonly answers: Record<string, AnswerHistory>
   readonly data: Record<string, unknown>
-  readonly stepValidities?: Record<NodeId, StepValidityResult>
+  readonly reachabilityValidities?: Record<NodeId, StepValidityResult>
   readonly reachability?: JourneyReachabilityProjection
 }
 

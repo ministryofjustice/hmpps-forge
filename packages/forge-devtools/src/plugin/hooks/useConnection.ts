@@ -7,7 +7,7 @@ type ConnectionStatus = 'disconnected' | 'connecting' | 'authenticating' | 'conn
 export interface TraceSnapshotMessage {
   readonly answers: Record<string, unknown>
   readonly data: Record<string, unknown>
-  readonly stepValidities?: Record<string, unknown>
+  readonly reachabilityValidities?: Record<string, unknown>
   readonly reachability?: unknown
 }
 

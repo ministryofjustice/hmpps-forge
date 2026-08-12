@@ -31,7 +31,7 @@ interface DomainContextState {
 }
 
 interface EvaluationContextState {
-  stepValidities?: Map<NodeId, StepValidityResult>
+  reachabilityValidities?: Map<NodeId, StepValidityResult>
   reachability?: JourneyReachabilityProjection
   fieldsToClear?: readonly string[]
 }

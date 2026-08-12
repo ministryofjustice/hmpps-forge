@@ -178,9 +178,9 @@ export default class HookLifecycleCompiler {
     emitter.scope(() => {
       const propsVar = emitter.const('submitHookProps', '{}')
 
-      // The hook's validation groups select which group-tagged failures gate its
-      // onValid/onInvalid branches at read time, matching the groups its validation
-      // stage records under. Resolved once so every branch reads the same groups.
+      // The hook's validation groups select which rules its validation stage
+      // executes; the stage's stored current-page result is what the
+      // onValid/onInvalid branches gate on. Resolved once at compile time.
       const validationGroups =
         hook.properties.validationGroups.length > 0 ? hook.properties.validationGroups : ['default']
 
@@ -194,45 +194,27 @@ export default class HookLifecycleCompiler {
       )
       emitter.assign(
         `${propsVar}["onAlways"]`,
-        this.compileSubmitBranchTask(
-          hook.properties.onAlways,
-          `${hookKey}-onAlways`,
-          'onAlways',
-          validationGroups,
-          emitter,
-        ),
+        this.compileSubmitBranchTask(hook.properties.onAlways, `${hookKey}-onAlways`, 'onAlways', emitter),
       )
 
       if (hook.properties.validate) {
         emitter.assign(
           `${propsVar}["validation"]`,
-          this.compileSubmitValidationTask(`${hookKey}-validation`, validationGroups),
+          this.compileCurrentStepValidationTask(`${hookKey}-validation`, validationGroups),
         )
       }
 
       if (hook.properties.onValid !== undefined) {
         emitter.assign(
           `${propsVar}["onValid"]`,
-          this.compileSubmitBranchTask(
-            hook.properties.onValid,
-            `${hookKey}-onValid`,
-            'onValid',
-            validationGroups,
-            emitter,
-          ),
+          this.compileSubmitBranchTask(hook.properties.onValid, `${hookKey}-onValid`, 'onValid', emitter),
         )
       }
 
       if (hook.properties.onInvalid !== undefined) {
         emitter.assign(
           `${propsVar}["onInvalid"]`,
-          this.compileSubmitBranchTask(
-            hook.properties.onInvalid,
-            `${hookKey}-onInvalid`,
-            'onInvalid',
-            validationGroups,
-            emitter,
-          ),
+          this.compileSubmitBranchTask(hook.properties.onInvalid, `${hookKey}-onInvalid`, 'onInvalid', emitter),
         )
       }
 
@@ -268,7 +250,6 @@ export default class HookLifecycleCompiler {
     branch: { effects?: ASTNode[]; next?: ASTNode[] } | undefined,
     key: string,
     name: 'onAlways' | 'onValid' | 'onInvalid',
-    groups: readonly string[],
     emitter: CodeEmitter,
   ): string {
     const effectsVar = emitter.const(`${name}Effects`, '[]')
@@ -282,7 +263,6 @@ export default class HookLifecycleCompiler {
       `{
         name: ${JSON.stringify(name)},
         effects: ${effectsVar},
-        groups: ${JSON.stringify(groups)},
         next: ${this.compileOutcomeFunction(branch?.next)}
       }`,
     )
@@ -290,8 +270,8 @@ export default class HookLifecycleCompiler {
     return `ctx.workTasks.submitBranch(${JSON.stringify(key)}, ${propsVar})`
   }
 
-  private compileSubmitValidationTask(key: string, groups: readonly string[]): string {
-    return `ctx.workTasks.submitValidation(${JSON.stringify(key)}, ${JSON.stringify(groups)})`
+  private compileCurrentStepValidationTask(key: string, groups: readonly string[]): string {
+    return `ctx.workTasks.currentStepValidation(${JSON.stringify(key)}, { groups: ${JSON.stringify(groups)}, includeSubmissionOnly: true })`
   }
 
   private compileOutcomeFunction(next: ASTNode[] | undefined): string {

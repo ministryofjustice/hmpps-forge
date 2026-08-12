@@ -132,7 +132,7 @@ export default class RequestPipelineTraceProjector {
       children: [],
       answers: data.answers,
       data: data.data,
-      stepValidities: data.stepValidities,
+      reachabilityValidities: data.reachabilityValidities,
       reachability: data.reachability,
     }
   }

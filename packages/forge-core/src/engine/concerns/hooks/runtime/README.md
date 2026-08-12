@@ -26,7 +26,7 @@ Runtime still needs to decide which stages run, which branch is selected, when v
 - Run submit hook lifecycles in first-match order.
 - Gate hooks with `when` and guard predicates.
 - Run hook effects for side effects.
-- Run submit validation as a hook stage.
+- Schedule the validation-owned `validation.current-step` task as a hook stage.
 - Select `onAlways`, `onValid`, and `onInvalid` branches.
 - Map hook `next()` outcomes to compiled hook results.
 - Omit empty unselected branch traces where possible.
@@ -44,7 +44,7 @@ Submit work uses:
 - `submit.lifecycle`.
 - `submit.hook`.
 - `submit.predicate`.
-- `submit.validation`.
+- `validation.current-step` (owned by [validation](../../validation/runtime/README.md)).
 - `submit.branch`.
 - `hook.effect`.
 
@@ -99,7 +99,7 @@ flowchart TD
   hook --> when["submit.predicate when"]
   when --> guards["submit.predicate guards"]
   guards --> always["submit.branch onAlways"]
-  always --> validation["submit.validation"]
+  always --> validation["validation.current-step"]
   validation --> valid["submit.branch onValid"]
   validation --> invalid["submit.branch onInvalid"]
   valid --> result["CompiledSubmitHookResult"]
@@ -113,8 +113,8 @@ flowchart TD
 - [SubmitLifecycleWorkHandler.ts](SubmitLifecycleWorkHandler.ts) runs submit hooks until one executes.
 - [SubmitHookWorkHandler.ts](SubmitHookWorkHandler.ts) runs one submit hook's ordered stages.
 - [SubmitHookPredicateWorkHandler.ts](SubmitHookPredicateWorkHandler.ts) stops a submit hook when `when` or guards fail.
-- [SubmitValidationWorkHandler.ts](../../validation/runtime/SubmitValidationWorkHandler.ts) runs step validation and records validation state.
-  It belongs to the validation concern, not this one, because the work it does is validation; it only runs as a hook stage.
+- [CurrentStepValidationWorkHandler.ts](../../validation/runtime/CurrentStepValidationWorkHandler.ts) runs current-page validation and stores `currentPageValidation`.
+  It belongs to the validation concern, not this one, because the work it does is validation; the hook lifecycle only owns its position after `onAlways`.
 - [SubmitBranchWorkHandler.ts](SubmitBranchWorkHandler.ts) gates and runs `onAlways`, `onValid`, or `onInvalid`.
 - [HookEffectWorkHandler.ts](HookEffectWorkHandler.ts) runs one effect and always continues.
 
@@ -126,8 +126,8 @@ flowchart TD
   Request handlers should not know hook internals.
 - Predicate handlers own early non-execution.
   Effects should never run when predicates fail.
-- `SubmitValidationWorkHandler` owns recording validation for submit.
-  Branches should read stored validity, not run validation themselves.
+- `CurrentStepValidationWorkHandler` owns executing validation and storing `currentPageValidation`.
+  Branches read `currentPageValidation.isValid`; they never run validation or write validation state themselves.
 - Branch handlers own valid/invalid selection.
   Submit hook lowering should only provide branch tasks.
 - Effect handlers own running effects.
@@ -158,8 +158,8 @@ flowchart TD
   Sequentially running all stages would execute branches or effects that should be skipped.
 - Keep effects as non-terminal.
   Effects can mutate state but should not end a hook by themselves.
-- Keep submit validation using `buildStepValidation()` and `recordStepValidation()`.
-  That keeps submit branches and render aligned on the same stored result.
+- Keep the validation stage scheduling `validation.current-step` with the hook's groups and `includeSubmissionOnly: true`.
+  That keeps submit branches and render aligned on the same stored current-page result.
 
 ## Editing Notes
 
@@ -167,14 +167,14 @@ flowchart TD
 - To change one access hook's stage order, start in `AccessHookWorkHandler`.
 - To change submit lifecycle selection, start in `SubmitLifecycleWorkHandler`.
 - To change one submit hook's stage order, start in `SubmitHookWorkHandler`.
-- To change validation stage behavior, start in `SubmitValidationWorkHandler`.
+- To change validation stage behavior, start in the validation concern's `CurrentStepValidationWorkHandler`.
 - To change valid/invalid branch selection, start in `SubmitBranchWorkHandler`.
 - To change effect execution, start in `HookEffectWorkHandler`.
 
 ## Entry Points
 
 - [RequestAccessWorkHandler.ts](RequestAccessWorkHandler.ts) answers how the `request.access` phase can halt a request.
-- [RequestSubmitWorkHandler.ts](RequestSubmitWorkHandler.ts) answers how the `request.submit` phase halts, continues, or shows validation failures.
+- [RequestSubmitWorkHandler.ts](RequestSubmitWorkHandler.ts) answers how the `request.submit` phase maps hook results to halts or continues.
 - [AccessLifecycleWorkHandler.ts](AccessLifecycleWorkHandler.ts) answers how access hooks are sequenced.
 - [AccessHookWorkHandler.ts](AccessHookWorkHandler.ts) answers how one access hook runs.
 - [AccessHookWhenWorkHandler.ts](AccessHookWhenWorkHandler.ts) answers how access `when` gates a hook.
@@ -182,6 +182,6 @@ flowchart TD
 - [SubmitLifecycleWorkHandler.ts](SubmitLifecycleWorkHandler.ts) answers how submit hooks are sequenced.
 - [SubmitHookWorkHandler.ts](SubmitHookWorkHandler.ts) answers how one submit hook runs.
 - [SubmitHookPredicateWorkHandler.ts](SubmitHookPredicateWorkHandler.ts) answers how submit predicates gate execution.
-- [SubmitValidationWorkHandler.ts](../../validation/runtime/SubmitValidationWorkHandler.ts) answers how submit validation is recorded.
+- [CurrentStepValidationWorkHandler.ts](../../validation/runtime/CurrentStepValidationWorkHandler.ts) answers how the validation stage runs and stores its result.
 - [SubmitBranchWorkHandler.ts](SubmitBranchWorkHandler.ts) answers how submit branches select and return outcomes.
 - [HookEffectWorkHandler.ts](HookEffectWorkHandler.ts) answers how hook effects run.
