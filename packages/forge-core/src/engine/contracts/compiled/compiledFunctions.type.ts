@@ -7,12 +7,10 @@ import type {
 } from './compiledContexts.type'
 import { NodeId } from '../ast/ast.type'
 import { BlockType } from '../../../authoring/types/enums'
-import type { StepFieldInventory } from '../plans/stepFieldInventory.type'
 import type {
   ReachabilityEvaluationResult,
-  ReachabilityFactsInput,
   ReachabilityStateInput,
-} from '../reachability/generatedReachabilityEvaluation.type'
+} from '../../concerns/reachability/contracts/generatedReachabilityEvaluation.type'
 
 export type CompiledStaticDataFunction = () => Record<string, unknown>
 
@@ -112,19 +110,16 @@ export interface CompiledReachabilityResult {
   tieBreakerPriorities: (number | undefined)[]
   /** Whether the journey's resume condition evaluated to true */
   resumeActive: boolean
-  /** Per-step field inventory for projection (present only when request params were available) */
-  fieldInventory?: StepFieldInventory[]
 }
 
 /**
  * Evaluates the journey's dynamic reachability expressions (entry predicates,
- * forward outcomes, tie-breakers, resume condition) and, when request params are
- * supplied, the per-step field inventory. The static graph walk that turns these
- * facts into reachability state lives in `CompiledReachabilityStateFunction`.
+ * forward outcomes, tie-breakers, resume condition). The static graph walk that
+ * turns these facts into reachability state lives in
+ * `CompiledReachabilityStateFunction`.
  */
 export type CompiledReachabilityFactsFunction = (
   ctx: CompiledReachabilityContext,
-  factsInput?: ReachabilityFactsInput,
 ) => CompiledReachabilityResult | Promise<CompiledReachabilityResult>
 
 /**

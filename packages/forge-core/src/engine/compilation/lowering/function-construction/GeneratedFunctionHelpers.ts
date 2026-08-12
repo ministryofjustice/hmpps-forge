@@ -1,5 +1,5 @@
 import type { ZodType } from 'zod'
-import { RENDER_BLOCK_BRAND } from '../../../contracts/compiled/renderBlock.brand'
+import { RENDER_BLOCK_BRAND } from '../../../concerns/render/contracts/renderBlock.brand'
 import { FunctionType } from '../../../../authoring/types/enums'
 
 interface AnswerHistory {

@@ -24,10 +24,7 @@ export interface ReachabilityStateTableEntry {
   stepId: NodeId
   code?: string
   isEntryPoint: boolean
-  forwardOutcomeEvaluation?: ForwardOutcomeEvaluation
 }
-
-export type ForwardOutcomeEvaluation = 'exact' | 'over-approximate'
 
 export interface ReachabilityCompilationPlan {
   stateTable: ReachabilityStateTable

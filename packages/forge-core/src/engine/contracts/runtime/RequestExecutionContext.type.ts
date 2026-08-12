@@ -1,14 +1,14 @@
 import type { NodeId } from '../ast/ast.type'
-import type { ReachabilityEvaluation } from '../reachability/reachabilityEvaluation.type'
-import type { StepValidityResult } from './stepValidityResult.type'
-import type { ValidationView } from './validationView.type'
+import type { ReachabilityEvaluation } from '../../concerns/reachability/contracts/reachabilityEvaluation.type'
+import type { StepValidityResult } from '../../concerns/validation/contracts/stepValidityResult.type'
+import type { ValidationView } from '../../concerns/validation/contracts/validationView.type'
 import type FunctionRegistry from '../../registries/FunctionRegistry'
 import type { RuntimeContext } from './evaluationState.type'
 import type { ResponseBindings } from '../../../framework/types/responseBindings.type'
 import type { ComponentRegistry } from '../../../framework/types/adapter.type'
 import type { RenderContext } from '../../../framework/types/rendering.type'
 import type { RouteTree } from '../../../framework/types/routeTree.type'
-import type { StepValidationWorkTask } from './ValidationWork.type'
+import type { StepValidationWorkTask } from '../../concerns/validation/contracts/ValidationWork.type'
 
 type StepValidationTaskResult = StepValidationWorkTask | undefined
 

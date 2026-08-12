@@ -5,9 +5,12 @@
 This document covers `packages/forge-core/src/engine/runtime`.
 
 This code executes compiled Forge journeys for one mounted node and one `RequestSnapshot`.
-It builds request work, runs runtime phases, records traces, and returns a `ForgeOutcome`.
+It builds request work, orders the runtime phases, runs them through the work executor, records traces, and returns a `ForgeOutcome`.
 
-This document does not cover compilation, package loading, authoring schema validation, framework adapter routing, or component implementation.
+The phases themselves live with their concern, under `concerns/<name>/runtime`.
+This folder owns the order they run in and the machinery they run on.
+
+This document does not cover phase internals, compilation, package loading, authoring schema validation, framework adapter routing, or component implementation.
 
 ## Background
 
@@ -81,8 +84,8 @@ It is one of:
 `ForgeOutcome` is the public runtime output.
 `RequestEvaluator.buildOutcome()` turns redirects into navigation URLs, errors into error outcomes, and render results into render outcomes.
 
-Route-tree state lives beside request execution.
-`RouteTreeBuilder` builds `RouteTreeIndex`, `StoredRouteTree`, `JourneyRouteTemplateCatalog`, `JourneyRouteContext`, and `StepRouteContext` from compiled route indexes.
+Route-tree state is built before request execution.
+`RouteTreeBuilder`, in the [route](../concerns/route/README.md) concern, builds `RouteTreeIndex`, `StoredRouteTree`, `JourneyRouteTemplateCatalog`, `JourneyRouteContext`, and `StepRouteContext` from compiled route indexes.
 `MountRegistry` uses those structures to create mounted nodes.
 
 ## Flow
@@ -136,24 +139,25 @@ Runtime has a deliberate symmetry with compilation, but the phases do different 
 Compilation chooses what work exists.
 Runtime executes that work against one request.
 
-| Runtime concern | Compiled artifact | Runtime phase |
+| Concern | Compiled artifact | Runtime phase |
 |---|---|---|
-| Access | `compiledAccessLifecycle` | `request.access` runs `access.lifecycle` |
-| Answer preparation | `compiledAnswerPreparation` | `request.answer-preparation` runs `answer.preparation` |
-| Step validities | `compiledStepValidations` journey index | `request.validities` runs `validation.step` tasks when reachability checks are enabled |
-| Reachability | `compiledReachabilityFacts` + `compiledReachabilityState` | `request.reachability` evaluates reachability and resolves redirects |
-| Answer cleardown | reachability state + `JourneyReachabilityProjection` | `request.answer-cleardown` clears stale answers |
-| Entry validation | `compiledEntryValidation` | `request.entry-validation` projects stored validity |
-| Submit | `compiledSubmitHooks` and `compiledValidation` | `request.submit` runs submit hooks and validation |
-| Route metadata | `compiledRouteMetadata` | `request.route-tree` resolves route metadata and hydrates the route tree |
-| Resolve | `compiledResolve` | `request.resolve` builds `RenderContext` |
-| Render | `componentRegistry` and `renderer` | `request.render` renders blocks and assembles output |
+| [hooks](../concerns/hooks/README.md) | `compiledAccessLifecycle` | `request.access` runs `access.lifecycle` |
+| [answer-preparation](../concerns/answer-preparation/README.md) | `compiledAnswerPreparation` | `request.answer-preparation` runs `answer.preparation` |
+| [validation](../concerns/validation/README.md) | `compiledStepValidations` journey index | `request.validities` runs `validation.step` tasks when reachability checks are enabled |
+| [reachability](../concerns/reachability/README.md) | `compiledReachabilityFacts` + `compiledReachabilityState` | `request.reachability` evaluates reachability and resolves redirects |
+| [answer-cleardown](../concerns/answer-cleardown/README.md) | `compiledFieldInventory` | `request.reachability` evaluates it on step requests; `request.answer-cleardown` clears stale answers against the projection built from it |
+| [entry-validation](../concerns/entry-validation/README.md) | `compiledEntryValidation` | `request.entry-validation` projects stored validity |
+| [hooks](../concerns/hooks/README.md) | `compiledSubmitHooks` and `compiledValidation` | `request.submit` runs submit hooks and validation |
+| [route](../concerns/route/README.md) | `compiledRouteMetadata` | `request.route-tree` resolves route metadata and hydrates the route tree |
+| [resolve](../concerns/resolve/README.md) | `compiledResolve` | `request.resolve` builds `RenderContext` |
+| [render](../concerns/render/README.md) | `componentRegistry` and `renderer` | `request.render` renders blocks and assembles output |
 
 - [RequestEvaluator.ts](RequestEvaluator.ts) owns runtime entry, pipeline execution, trace projection, and outcome conversion.
 - [evaluation/request/README.md](evaluation/request/README.md) covers request phase order and cross-phase request state.
 - [evaluation/work/README.md](evaluation/work/README.md) covers `WorkTask`, `WorkExecutor`, child groups, and work traces.
-- [evaluation/phases/README.md](evaluation/phases/README.md) covers phase work handlers such as hooks, validation, reachability, route-tree, resolve, and render.
-- [routing/RouteTreeBuilder.ts](routing/RouteTreeBuilder.ts) builds route-tree data used by mounting and route-aware render context.
+- [evaluation/context](evaluation/context) builds the compiled-function contexts each phase passes to its compiled function.
+- [../concerns](../concerns) holds the phase handlers themselves, one folder per concern.
+- [../concerns/route/runtime/RouteTreeBuilder.ts](../concerns/route/runtime/RouteTreeBuilder.ts) builds route-tree data used by mounting and route-aware render context.
 
 ## Boundaries
 
@@ -165,6 +169,7 @@ Runtime executes that work against one request.
   It should not know about request phase semantics, hooks, validation, or rendering.
 - Request work handlers own request-level orchestration.
   They should call compiled functions and phase tasks, not recreate compiler decisions.
+  They live in their concern's `runtime/` folder; only `RequestContextPreparationWorkHandler` is chassis, because copying the snapshot belongs to no concern.
 - Phase work handlers own phase-specific runtime behavior.
   They should not alter request phase order.
 - `RuntimeContext` owns request-time state.
@@ -224,11 +229,11 @@ Runtime executes that work against one request.
   Then document the phase in [evaluation/request/README.md](evaluation/request/README.md).
 - To change work execution behavior, start in [evaluation/work/WorkExecutor.ts](evaluation/work/WorkExecutor.ts).
   Update order, failure, and trace tests together.
-- To change a phase's internal behavior, start in the matching child folder under [evaluation/phases](evaluation/phases).
+- To change a phase's internal behavior, start in that concern's `runtime/` folder under [../concerns](../concerns).
   Keep request ordering rules in request evaluation.
-- To change render block attachment, start in [evaluation/request/RequestResolveWorkHandler.ts](evaluation/request/RequestResolveWorkHandler.ts) and the resolve phase docs.
+- To change render block attachment, start in [../concerns/resolve/runtime/RequestResolveWorkHandler.ts](../concerns/resolve/runtime/RequestResolveWorkHandler.ts) and the resolve concern docs.
   Keep matching by block ID.
-- To change route tree shape, start in [routing/RouteTreeBuilder.ts](routing/RouteTreeBuilder.ts) and route tree contracts.
+- To change route tree shape, start in [../concerns/route/runtime/RouteTreeBuilder.ts](../concerns/route/runtime/RouteTreeBuilder.ts) and route tree contracts.
   Then check mounted node creation in `MountRegistry`.
 - To change trace output, start in [evaluation/request/RequestPipelineTraceProjector.ts](evaluation/request/RequestPipelineTraceProjector.ts) and [evaluation/work/tracing](evaluation/work/tracing).
 
@@ -237,8 +242,8 @@ Runtime executes that work against one request.
 - [RequestEvaluator.ts](RequestEvaluator.ts) answers how one mounted request becomes a `ForgeOutcome`.
 - [evaluation/request/README.md](evaluation/request/README.md) explains request pipeline order and `RequestExecutionContext`.
 - [evaluation/work/README.md](evaluation/work/README.md) explains the runtime work executor and trace tree.
-- [evaluation/phases/README.md](evaluation/phases/README.md) explains the phase work-handler families.
-- [routing/RouteTreeBuilder.ts](routing/RouteTreeBuilder.ts) answers how compiled route indexes become runtime route-tree data.
+- [../concerns](../concerns) explains what each phase actually does, one README per concern.
+- [../concerns/route/runtime/RouteTreeBuilder.ts](../concerns/route/runtime/RouteTreeBuilder.ts) answers how compiled route indexes become runtime route-tree data.
 - [../registries/MountRegistry.ts](../registries/MountRegistry.ts) answers how compiled package artifacts become `MountedNode` values.
 - [../contracts/runtime/RequestExecutionContext.type.ts](../contracts/runtime/RequestExecutionContext.type.ts) defines `RequestExecutionContext`, `PhaseWorkOutput`, and `RequestPipelineResult`.
 - [../contracts/runtime/evaluationState.type.ts](../contracts/runtime/evaluationState.type.ts) defines `RuntimeContext`.

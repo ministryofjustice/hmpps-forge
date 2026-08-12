@@ -43,7 +43,7 @@ describe('CompilationPlanBuilder', () => {
       expect(result.stepInputs.get(firstStepNode.id)?.core.runtimePlan.path).toBe('first')
       expect(reachabilityInputs?.reachabilityId).toBe(journeyNode.id)
       expect(reachabilityInputs?.reachabilityPlan.stateTable).toBe(reachabilityInputs?.stateTable)
-      expect(reachabilityInputs?.fieldInventorySources).toEqual([
+      expect(result.journeyInputs.get(journeyNode.id)?.answerCleardown.fieldInventorySources).toEqual([
         {
           stepId: firstStepNode.id,
           fieldBlocks: [],

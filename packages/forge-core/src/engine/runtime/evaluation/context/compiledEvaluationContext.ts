@@ -7,8 +7,8 @@ import type {
   CompiledRouteMetadataContext,
   CompiledValidationContext,
 } from '../../../contracts/compiled/compiledContexts.type'
-import type { CompiledHookLifecycleContext } from '../../../contracts/runtime/hookLifecycle.type'
-import type { ValidationResult } from '../../../contracts/runtime/validationResult.type'
+import type { CompiledHookLifecycleContext } from '../../../concerns/hooks/contracts/hookLifecycle.type'
+import type { ValidationResult } from '../../../concerns/validation/contracts/validationResult.type'
 import type { HookType } from '../../../contracts/runtime/answerHistory.type'
 import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
 import FunctionRegistry from '../../../registries/FunctionRegistry'

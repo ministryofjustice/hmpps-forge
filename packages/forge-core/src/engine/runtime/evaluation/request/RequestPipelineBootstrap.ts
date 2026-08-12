@@ -1,11 +1,11 @@
 import type { ForgeRenderer } from '../../../../framework/types/rendering.type'
 import type { NodeId } from '../../../contracts/ast/ast.type'
-import type { StepValidityResult } from '../../../contracts/runtime/stepValidityResult.type'
+import type { StepValidityResult } from '../../../concerns/validation/contracts/stepValidityResult.type'
 import type { HttpMethod } from '../../../../framework/types/request.type'
 import type { RequestSnapshot } from '../../../../framework/types/snapshot.type'
 import type { MountedNode, MountedStepNode } from '../../../registries/MountRegistry'
-import { buildStepValidationTask } from '../phases/validation/stepValidationStore'
-import { recordStepValidationState } from '../phases/validation/stepValidityState'
+import { buildStepValidationTask } from '../../../concerns/validation/runtime/stepValidationStore'
+import { recordStepValidationState } from '../../../concerns/validation/runtime/stepValidityState'
 import type { PipelineState } from '../../../contracts/runtime/RequestExecution.type'
 import type { WorkTask } from '../../../contracts/runtime/work.type'
 import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
@@ -84,6 +84,7 @@ export default class RequestPipelineBootstrap {
       mode: node.kind,
       compiledReachabilityFacts: node.compiledReachabilityFacts,
       compiledReachabilityState: node.compiledReachabilityState,
+      compiledFieldInventory: node.compiledFieldInventory,
       routeTemplateCatalog: node.routeTemplateCatalog,
       method,
     })

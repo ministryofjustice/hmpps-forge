@@ -1,4 +1,4 @@
-import type TraceSpan from '../../../diagnostics/tracing/TraceSpan'
+import type TraceSpan from '../../../tracing/TraceSpan'
 
 /**
  * Thrown by `WorkExecutor.executeWithUnit` when execution fails mid-tree. It

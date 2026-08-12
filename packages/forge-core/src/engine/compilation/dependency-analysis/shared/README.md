@@ -16,7 +16,6 @@ This document does not cover phase-specific input assembly.
 - validating field blocks under a step.
 - map iterate nodes under a step.
 - all iterate nodes under a step.
-- field inventory sources for reachability entries.
 
 `RuntimePlanAnalyzer` builds runtime metadata:
 - `StepRuntimePlan`, with the step ID and normalized step path.

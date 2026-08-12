@@ -4,7 +4,7 @@ import type { NodeId } from '../contracts/ast/ast.type'
 import type {
   CompiledAccessLifecycleFunction,
   CompiledSubmitHooksFunction,
-} from '../contracts/runtime/hookLifecycle.type'
+} from '../concerns/hooks/contracts/hookLifecycle.type'
 import type {
   CompiledAnswerPreparationFunction,
   CompiledEntryValidationFunction,
@@ -15,6 +15,7 @@ import type {
   CompiledStaticDataFunction,
   CompiledValidationFunction,
 } from '../contracts/compiled/compiledFunctions.type'
+import type { CompiledFieldInventoryFunction } from '../concerns/answer-cleardown/contracts/compiledFieldInventory.type'
 import type FunctionRegistry from './FunctionRegistry'
 import type { ComponentRegistry } from '../../framework/types/adapter.type'
 import {
@@ -24,9 +25,9 @@ import {
   RouteTreeIndex,
   StepRouteContext,
   StoredRouteTree,
-} from '../contracts/routing/routeTree.type'
-import type { JourneyRouteIndex, StepRouteIndex } from '../contracts/routing/routeDescriptors.type'
-import RouteTreeBuilder from '../runtime/routing/RouteTreeBuilder'
+} from '../concerns/route/contracts/routeTree.type'
+import type { JourneyRouteIndex, StepRouteIndex } from '../concerns/route/contracts/routeDescriptors.type'
+import RouteTreeBuilder from '../concerns/route/runtime/RouteTreeBuilder'
 import type { ForgeRoute, ForgeTopology } from '../../framework/types/topology.type'
 
 interface MountedNodeBase {
@@ -41,6 +42,7 @@ interface MountedNodeBase {
   readonly componentRegistry: ComponentRegistry
   readonly compiledReachabilityFacts: CompiledReachabilityFactsFunction
   readonly compiledReachabilityState: CompiledReachabilityStateFunction
+  readonly compiledFieldInventory: CompiledFieldInventoryFunction | undefined
   readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
   readonly compiledStaticData: CompiledStaticDataFunction
   readonly compiledAccessLifecycle: CompiledAccessLifecycleFunction
@@ -144,6 +146,7 @@ export default class MountRegistry {
         componentRegistry,
         compiledReachabilityFacts: compiledStep.compiledReachabilityFacts,
         compiledReachabilityState: compiledStep.compiledReachabilityState,
+        compiledFieldInventory: compiledStep.compiledFieldInventory,
         routeTemplateCatalog: ctx.routeTemplateCatalog,
         compiledStaticData: compiledStep.compiledStaticData,
         compiledAccessLifecycle: compiledStep.compiledAccessLifecycle,
@@ -191,6 +194,7 @@ export default class MountRegistry {
         componentRegistry,
         compiledReachabilityFacts: compiledJourney.compiledReachabilityFacts,
         compiledReachabilityState: compiledJourney.compiledReachabilityState,
+        compiledFieldInventory: compiledJourney.compiledFieldInventory,
         routeTemplateCatalog,
         compiledStaticData: compiledJourney.compiledStaticData,
         compiledAccessLifecycle: compiledJourney.compiledAccessLifecycle,

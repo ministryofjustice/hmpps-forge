@@ -1,4 +1,4 @@
-import DiagnosticErrorFormatter from '../diagnostics/DiagnosticErrorFormatter'
+import DiagnosticErrorFormatter from './DiagnosticErrorFormatter'
 import ForgeBaseError from './ForgeBaseError'
 
 interface ForgeRuntimeEvaluationErrorOptions {

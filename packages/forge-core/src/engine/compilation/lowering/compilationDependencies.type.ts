@@ -1,6 +1,6 @@
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import ComponentRegistry from '../../registries/ComponentRegistry'
-import type CompilationTracer from '../../diagnostics/tracing/CompilationTracer'
+import type CompilationTracer from '../tracing/CompilationTracer'
 
 export interface CompilationDependencies {
   readonly functionRegistry: FunctionRegistry

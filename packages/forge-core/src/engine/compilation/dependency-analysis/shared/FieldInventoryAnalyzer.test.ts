@@ -1,27 +1,11 @@
-import { BlockType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../contracts/ast/enums'
+import { BlockType } from '../../../../authoring/types/enums'
 import type { ASTNode } from '../../../contracts/ast/engine.type'
-import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import FieldInventoryAnalyzer from './FieldInventoryAnalyzer'
 
 function setParent(child: ASTNode, parent: ASTNode): void {
   Object.defineProperty(child, 'parent', { value: parent, enumerable: false })
-}
-
-function createMapIterateNode(): IterateASTNode {
-  return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.ITERATE,
-    id: ASTTestFactory.getId(),
-    properties: {
-      input: ASTTestFactory.reference(['data', 'items']),
-      iterator: {
-        type: IteratorType.MAP,
-      },
-    },
-  } as IterateASTNode
 }
 
 describe('FieldInventoryAnalyzer', () => {
@@ -64,52 +48,4 @@ describe('FieldInventoryAnalyzer', () => {
     })
   })
 
-  describe('buildFieldInventorySources()', () => {
-    it('should build field inventory sources from reachability entries', () => {
-      // Arrange
-      const nodeRegistry = new ASTNodeIndex()
-      const stepNode = ASTTestFactory.step().build()
-      const fieldBlock = ASTTestFactory.block('TextInput', BlockType.FIELD)
-        .withCode('fieldA')
-        .build()
-      const iterateNode = createMapIterateNode()
-
-      setParent(fieldBlock, stepNode)
-      setParent(iterateNode, stepNode)
-      nodeRegistry.register(stepNode.id, stepNode)
-      nodeRegistry.register(fieldBlock.id, fieldBlock)
-      nodeRegistry.register(iterateNode.id, iterateNode)
-
-      const analyzer = new FieldInventoryAnalyzer(nodeRegistry)
-
-      // Act
-      const result = analyzer.buildFieldInventorySources({
-        stateTable: {
-          entries: [],
-          unreachableRedirect: 'entry',
-          reachabilityDisabled: false,
-        },
-        entries: [
-          {
-            stepId: stepNode.id,
-            isEntryPoint: false,
-            forwardOutcomeGroups: [],
-            cleardownFieldCodes: ['fieldA'],
-            reachabilityTieBreakers: [],
-          },
-        ],
-        resumeAlways: false,
-      })
-
-      // Assert
-      expect(result).toEqual([
-        {
-          stepId: stepNode.id,
-          fieldBlocks: [fieldBlock],
-          iterateNodes: [iterateNode],
-          cleardownFieldCodes: ['fieldA'],
-        },
-      ])
-    })
-  })
 })

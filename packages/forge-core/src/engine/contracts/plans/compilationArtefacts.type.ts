@@ -1,7 +1,11 @@
 import type { NodeId } from '../ast/ast.type'
-import type { JourneyRouteIndex, StepRouteIndex } from '../routing/routeDescriptors.type'
+import type { JourneyRouteIndex, StepRouteIndex } from '../../concerns/route/contracts/routeDescriptors.type'
 import type { JourneyRuntimePlan, StepRuntimePlan } from './runtimePlans.type'
-import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from '../runtime/hookLifecycle.type'
+import type { CompiledFieldInventoryFunction } from '../../concerns/answer-cleardown/contracts/compiledFieldInventory.type'
+import type {
+  CompiledAccessLifecycleFunction,
+  CompiledSubmitHooksFunction,
+} from '../../concerns/hooks/contracts/hookLifecycle.type'
 import type {
   CompiledAnswerPreparationFunction,
   CompiledEntryValidationFunction,
@@ -20,6 +24,7 @@ export interface CompiledPackageFunctions {
 export interface CompiledJourneyFunctions {
   compiledReachabilityFacts: CompiledReachabilityFactsFunction
   compiledReachabilityState: CompiledReachabilityStateFunction
+  compiledFieldInventory: CompiledFieldInventoryFunction | undefined
   compiledStaticData: CompiledStaticDataFunction
   compiledAccessLifecycle: CompiledAccessLifecycleFunction
   compiledAnswerPreparation: CompiledAnswerPreparationFunction
@@ -40,6 +45,7 @@ export interface CompiledStep {
   runtimePlan: StepRuntimePlan
   compiledReachabilityFacts: CompiledReachabilityFactsFunction
   compiledReachabilityState: CompiledReachabilityStateFunction
+  compiledFieldInventory: CompiledFieldInventoryFunction | undefined
   compiledStaticData: CompiledStaticDataFunction
   compiledAccessLifecycle: CompiledAccessLifecycleFunction
   compiledSubmitHooks: CompiledSubmitHooksFunction
@@ -55,6 +61,7 @@ export interface CompiledJourney {
   runtimePlan: JourneyRuntimePlan
   compiledReachabilityFacts: CompiledReachabilityFactsFunction
   compiledReachabilityState: CompiledReachabilityStateFunction
+  compiledFieldInventory: CompiledFieldInventoryFunction | undefined
   compiledStaticData: CompiledStaticDataFunction
   compiledAccessLifecycle: CompiledAccessLifecycleFunction
   compiledAnswerPreparation: CompiledAnswerPreparationFunction

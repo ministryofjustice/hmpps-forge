@@ -2,8 +2,8 @@ export { default as Forge } from './engine/Forge'
 export { default as FunctionRegistry } from './engine/registries/FunctionRegistry'
 export { default as ComponentRegistry } from './engine/registries/ComponentRegistry'
 export { default as EffectFunctionContext } from './engine/runtime/evaluation/context/EffectFunctionContext'
-export { isRenderBlock } from './engine/runtime/evaluation/phases/resolve/typeguards'
-export { RENDER_BLOCK_BRAND } from './engine/contracts/compiled/renderBlock.brand'
+export { isRenderBlock } from './engine/concerns/resolve/runtime/typeguards'
+export { RENDER_BLOCK_BRAND } from './engine/concerns/render/contracts/renderBlock.brand'
 export { default as ForgeBaseError } from './engine/errors/ForgeBaseError'
 export { default as ForgeAuthoringError } from './engine/errors/ForgeAuthoringError'
 export { default as ForgeInternalError } from './engine/errors/ForgeInternalError'
@@ -26,8 +26,8 @@ export type {
   ForgeInstrumentation,
   ForgeInstrumentationOptions,
   ForgeInstrumentationSink,
-} from './engine/diagnostics/ForgeTraceSinkDispatcher'
-export type { ValidationResult } from './engine/contracts/runtime/validationResult.type'
+} from './engine/tracing/ForgeTraceSinkDispatcher'
+export type { ValidationResult } from './engine/concerns/validation/contracts/validationResult.type'
 export type { HookType } from './engine/contracts/runtime/answerHistory.type'
 export type { RuntimeContext } from './engine/contracts/runtime/evaluationState.type'
 export type {
@@ -51,5 +51,5 @@ export type {
   CompilationTraceError,
   CompilationTraceEvent,
   CompilationTracePhase,
-} from './engine/diagnostics/tracing/compilationTrace.type'
-export type { SerializedTraceSpan } from './engine/diagnostics/tracing/traceSpan.type'
+} from './engine/compilation/tracing/compilationTrace.type'
+export type { SerializedTraceSpan } from './engine/tracing/traceSpan.type'

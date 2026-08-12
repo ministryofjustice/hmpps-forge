@@ -1,0 +1,242 @@
+import { describe, expect, it, vi } from 'vitest'
+import WorkContext from '../../../runtime/evaluation/work/WorkContext'
+import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
+import type { CompiledHookLifecycleContext } from '../contracts/hookLifecycle.type'
+import type { StepValidityResult } from '../../validation/contracts/stepValidityResult.type'
+import type { WorkHandler } from '../../../contracts/runtime/work.type'
+import { createWorkTask } from '../../../runtime/evaluation/work/workTask'
+import { HOOK_EFFECT_WORK_HANDLER } from './HookEffectWorkHandler'
+import { SUBMIT_BRANCH_WORK_HANDLER } from './SubmitBranchWorkHandler'
+import { SUBMIT_HOOK_PREDICATE_WORK_HANDLER } from './SubmitHookPredicateWorkHandler'
+import { SUBMIT_HOOK_WORK_HANDLER } from './SubmitHookWorkHandler'
+import { SUBMIT_LIFECYCLE_WORK_HANDLER } from './SubmitLifecycleWorkHandler'
+import { SUBMIT_VALIDATION_WORK_HANDLER } from '../../validation/runtime/SubmitValidationWorkHandler'
+import type { SubmitHookNextResult } from '../contracts/SubmitLifecycleWork.type'
+
+function createContext(overrides: Record<string, unknown> = {}): WorkContext<CompiledHookLifecycleContext> {
+  const stepValidities =
+    (overrides.stepValidities as Map<string, StepValidityResult> | undefined) ?? new Map<string, StepValidityResult>()
+
+  return new WorkContext({
+    answers: {},
+    data: {},
+    session: {},
+    params: {},
+    query: {},
+    post: {},
+    request: {},
+    conditions: { get: vi.fn() } as unknown as CompiledHookLifecycleContext['conditions'],
+    effectFunctionContext: {},
+    accessLifecycleWorkHandler: {},
+    accessHookWorkHandler: {},
+    accessHookWhenWorkHandler: {},
+    hookEffectWorkHandler: {},
+    submitLifecycleWorkHandler: {},
+    submitHookWorkHandler: {},
+    submitHookPredicateWorkHandler: {},
+    submitBranchWorkHandler: {},
+    submitValidationWorkHandler: {},
+    currentStepId: 'step-1',
+    context: { evaluation: { stepValidities }, domain: { data: {}, answers: {} }, request: {} },
+    recordStepValidation: (stepId: string, result: StepValidityResult) => stepValidities.set(stepId, result),
+    ...overrides,
+  } as unknown as CompiledHookLifecycleContext)
+}
+
+function createHook(
+  key: string,
+  options: {
+    readonly when?: () => boolean | Promise<boolean>
+    readonly guards?: () => boolean | Promise<boolean>
+    readonly onAlwaysEffects?: readonly (() => void | Promise<void>)[]
+    readonly onAlwaysNext?: () => SubmitHookNextResult | Promise<SubmitHookNextResult>
+    readonly validationGroups?: readonly string[]
+    readonly onValidEffects?: readonly (() => void | Promise<void>)[]
+    readonly onValidNext?: () => SubmitHookNextResult | Promise<SubmitHookNextResult>
+    readonly onInvalidEffects?: readonly (() => void | Promise<void>)[]
+    readonly onInvalidNext?: () => SubmitHookNextResult | Promise<SubmitHookNextResult>
+  } = {},
+) {
+  const branchGroups = options.validationGroups ?? ['default']
+
+  return createWorkTask(key, SUBMIT_HOOK_WORK_HANDLER, {
+    when: createWorkTask(`${key}-when`, SUBMIT_HOOK_PREDICATE_WORK_HANDLER, {
+      name: 'when',
+      evaluate: options.when ?? (() => true),
+    }),
+    guards: createWorkTask(`${key}-guards`, SUBMIT_HOOK_PREDICATE_WORK_HANDLER, {
+      name: 'guards',
+      evaluate: options.guards ?? (() => true),
+    }),
+    onAlways: createBranch(`${key}-onAlways`, 'onAlways', branchGroups, options.onAlwaysEffects, options.onAlwaysNext),
+    validation:
+      options.validationGroups === undefined
+        ? undefined
+        : createWorkTask(`${key}-validation`, SUBMIT_VALIDATION_WORK_HANDLER, {
+            groups: options.validationGroups,
+          }),
+    onValid:
+      options.onValidEffects === undefined && options.onValidNext === undefined
+        ? undefined
+        : createBranch(`${key}-onValid`, 'onValid', branchGroups, options.onValidEffects, options.onValidNext),
+    onInvalid:
+      options.onInvalidEffects === undefined && options.onInvalidNext === undefined
+        ? undefined
+        : createBranch(`${key}-onInvalid`, 'onInvalid', branchGroups, options.onInvalidEffects, options.onInvalidNext),
+  })
+}
+
+function createBranch(
+  key: string,
+  name: 'onAlways' | 'onValid' | 'onInvalid',
+  groups: readonly string[],
+  effects: readonly (() => void | Promise<void>)[] = [],
+  next: () => SubmitHookNextResult | Promise<SubmitHookNextResult> = () => undefined,
+) {
+  return createWorkTask(key, SUBMIT_BRANCH_WORK_HANDLER, {
+    name,
+    effects: effects.map((effect, index) =>
+      createWorkTask(`${key}-effect-${index}`, HOOK_EFFECT_WORK_HANDLER, {
+        name: `${key}-effect-${index}`,
+        run: effect,
+      }),
+    ),
+    groups,
+    next,
+  })
+}
+
+describe('SubmitLifecycleWorkHandler', () => {
+  describe('execute()', () => {
+    it('should stop submit hooks after the first executed hook', async () => {
+      // Arrange
+      const calls: string[] = []
+      const executor = new WorkExecutor()
+      const lifecycle = createWorkTask('submit-lifecycle', SUBMIT_LIFECYCLE_WORK_HANDLER, {
+        hooks: [
+          createHook('first', {
+            onAlwaysNext: () => {
+              calls.push('first')
+
+              return { type: 'redirect', value: '/next' }
+            },
+          }),
+          createHook('second', {
+            onAlwaysNext: () => {
+              calls.push('second')
+
+              return undefined
+            },
+          }),
+        ],
+      })
+
+      // Act
+      const result = await executor.execute(lifecycle, createContext())
+
+      // Assert
+      expect(calls).toEqual(['first'])
+      expect(result.output).toEqual({
+        executed: true,
+        validated: false,
+        outcome: 'redirect',
+        redirect: '/next',
+      })
+      expect(result.children.map(child => child.key)).toEqual(['first'])
+    })
+
+    it('should not evaluate guards or branches when when predicate is false', async () => {
+      // Arrange
+      const calls: string[] = []
+      const executor = new WorkExecutor()
+      const lifecycle = createWorkTask('submit-lifecycle', SUBMIT_LIFECYCLE_WORK_HANDLER, {
+        hooks: [
+          createHook('first', {
+            when: () => false,
+            guards: () => {
+              calls.push('guards')
+
+              return true
+            },
+            onAlwaysEffects: [
+              () => {
+                calls.push('effect')
+              },
+            ],
+          }),
+        ],
+      })
+
+      // Act
+      const result = await executor.execute(lifecycle, createContext())
+
+      // Assert
+      expect(calls).toEqual([])
+      expect(result.output).toEqual({ executed: false, validated: false, outcome: 'continue' })
+      expect(result.children[0].children.map(child => child.key)).toEqual(['first-when'])
+    })
+
+    it('should run onAlways before validation and then the selected valid branch', async () => {
+      // Arrange
+      const calls: string[] = []
+      const result: StepValidityResult = { fieldFailures: [], domainFailures: [] }
+      const buildStepValidation = vi.fn((_groups: string[]) => {
+        const workType: WorkHandler<'validation.step', Record<string, never>> = {
+          kind: 'validation.step',
+          begin: () => {
+            calls.push('validation')
+
+            return { output: result }
+          },
+        }
+
+        return createWorkTask('validation:stub', workType, {})
+      })
+      const stepValidities = new Map<string, StepValidityResult>()
+      const recordStepValidation = vi.fn((stepId: string, validity: StepValidityResult) =>
+        stepValidities.set(stepId, validity),
+      )
+      const executor = new WorkExecutor()
+      const lifecycle = createWorkTask('submit-lifecycle', SUBMIT_LIFECYCLE_WORK_HANDLER, {
+        hooks: [
+          createHook('first', {
+            onAlwaysEffects: [
+              () => {
+                calls.push('always effect')
+              },
+            ],
+            validationGroups: ['lookup'],
+            onValidEffects: [
+              () => {
+                calls.push('valid effect')
+              },
+            ],
+            onValidNext: () => {
+              calls.push('valid next')
+
+              return { type: 'redirect', value: '/valid' }
+            },
+          }),
+        ],
+      })
+
+      // Act
+      const lifecycleResult = await executor.execute(
+        lifecycle,
+        createContext({ buildStepValidation, recordStepValidation, stepValidities }),
+      )
+
+      // Assert
+      expect(calls).toEqual(['always effect', 'validation', 'valid effect', 'valid next'])
+      expect(buildStepValidation).toHaveBeenCalledWith('step-1', true)
+      expect(recordStepValidation).toHaveBeenCalledWith('step-1', result)
+      expect(lifecycleResult.output).toEqual({
+        executed: true,
+        validated: true,
+        isValid: true,
+        outcome: 'redirect',
+        redirect: '/valid',
+      })
+    })
+  })
+})

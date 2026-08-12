@@ -11,8 +11,12 @@ import type {
   CompiledStaticDataFunction,
   CompiledValidationFunction,
 } from '../compiled/compiledFunctions.type'
-import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from './hookLifecycle.type'
-import type { JourneyRouteTemplateCatalog, StoredRouteTree } from '../routing/routeTree.type'
+import type { CompiledFieldInventoryFunction } from '../../concerns/answer-cleardown/contracts/compiledFieldInventory.type'
+import type {
+  CompiledAccessLifecycleFunction,
+  CompiledSubmitHooksFunction,
+} from '../../concerns/hooks/contracts/hookLifecycle.type'
+import type { JourneyRouteTemplateCatalog, StoredRouteTree } from '../../concerns/route/contracts/routeTree.type'
 import type { HttpMethod } from '../../../framework/types/request.type'
 import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
 import type { WorkTask } from './work.type'
@@ -55,6 +59,7 @@ export interface RequestReachabilityWorkProps {
   readonly mode: 'step' | 'journey'
   readonly compiledReachabilityFacts: CompiledReachabilityFactsFunction
   readonly compiledReachabilityState: CompiledReachabilityStateFunction
+  readonly compiledFieldInventory: CompiledFieldInventoryFunction | undefined
   readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
   readonly method: HttpMethod
 }

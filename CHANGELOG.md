@@ -191,6 +191,10 @@ make impossible. ([#229])
   unused devDependencies are gone. The contract tests' `test/` folder is typechecked
   now too, which caught stale imports from the `framework/types` move and a
   declared-but-never-implemented effect in the hooks fixtures ([#230])
+- The engine is concern-first now - each concern (hooks, validation, reachability,
+  ...) owns its whole slice under `engine/concerns/<name>/{analysis,lowering,runtime,contracts}`
+  instead of spreading across the compilation and runtime stage folders, with eslint
+  import zones enforcing the boundaries. Public exports are unchanged ([#236])
 
 [#203]: https://github.com/ministryofjustice/hmpps-forge/pull/203
 [#206]: https://github.com/ministryofjustice/hmpps-forge/pull/206
@@ -202,6 +206,7 @@ make impossible. ([#229])
 [#219]: https://github.com/ministryofjustice/hmpps-forge/pull/219
 [#229]: https://github.com/ministryofjustice/hmpps-forge/pull/229
 [#230]: https://github.com/ministryofjustice/hmpps-forge/pull/230
+[#236]: https://github.com/ministryofjustice/hmpps-forge/pull/236
 
 ---
 

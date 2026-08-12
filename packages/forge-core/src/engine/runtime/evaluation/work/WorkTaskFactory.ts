@@ -10,62 +10,71 @@ import type {
   AnswerPreparationWorkProps,
   FieldAnswerPreparationWorkProps,
   FieldAnswerPreparationWorkTask,
-} from '../../../contracts/runtime/AnswerPreparationWork.type'
+} from '../../../concerns/answer-preparation/contracts/AnswerPreparationWork.type'
 import {
   ANSWER_PREPARATION_WORK_HANDLER,
   ANSWER_PREPARATION_WORK_INSTRUMENTATION,
-} from '../phases/answer-preparation/AnswerPreparationWorkHandler'
+} from '../../../concerns/answer-preparation/runtime/AnswerPreparationWorkHandler'
 import {
   FIELD_ANSWER_PREPARATION_WORK_HANDLER,
   FIELD_ANSWER_PREPARATION_WORK_INSTRUMENTATION,
-} from '../phases/answer-preparation/FieldAnswerPreparationWorkHandler'
+} from '../../../concerns/answer-preparation/runtime/FieldAnswerPreparationWorkHandler'
 import type {
   DomainValidationWorkProps,
   DomainValidationWorkTask,
   FieldValidationWorkProps,
   FieldValidationWorkTask,
-} from '../../../contracts/runtime/ValidationWork.type'
+} from '../../../concerns/validation/contracts/ValidationWork.type'
 import {
   STEP_VALIDATION_WORK_HANDLER,
   STEP_VALIDATION_WORK_INSTRUMENTATION,
-} from '../phases/validation/StepValidationWorkHandler'
+} from '../../../concerns/validation/runtime/StepValidationWorkHandler'
 import {
   FIELD_VALIDATION_WORK_HANDLER,
   FIELD_VALIDATION_WORK_INSTRUMENTATION,
-} from '../phases/validation/FieldValidationWorkHandler'
+} from '../../../concerns/validation/runtime/FieldValidationWorkHandler'
 import {
   DOMAIN_VALIDATION_WORK_HANDLER,
   DOMAIN_VALIDATION_WORK_INSTRUMENTATION,
-} from '../phases/validation/DomainValidationWorkHandler'
+} from '../../../concerns/validation/runtime/DomainValidationWorkHandler'
 import {
   RESOLVE_BLOCK_WORK_HANDLER,
   RESOLVE_BLOCK_WORK_INSTRUMENTATION,
   type ResolveBlockWorkTask,
-} from '../phases/resolve/ResolveBlockWorkHandler'
+} from '../../../concerns/resolve/runtime/ResolveBlockWorkHandler'
 import {
   RESOLVE_BLOCKS_WORK_HANDLER,
   RESOLVE_BLOCKS_WORK_INSTRUMENTATION,
-} from '../phases/resolve/ResolveBlocksWorkHandler'
-import { RENDER_BLOCK_WORK_HANDLER, RENDER_BLOCK_WORK_INSTRUMENTATION } from '../phases/render/RenderBlockWorkHandler'
+} from '../../../concerns/resolve/runtime/ResolveBlocksWorkHandler'
+import {
+  RENDER_BLOCK_WORK_HANDLER,
+  RENDER_BLOCK_WORK_INSTRUMENTATION,
+} from '../../../concerns/render/runtime/RenderBlockWorkHandler'
 import {
   RENDER_BLOCKS_WORK_HANDLER,
   RENDER_BLOCKS_WORK_INSTRUMENTATION,
-} from '../phases/render/RenderBlocksWorkHandler'
+} from '../../../concerns/render/runtime/RenderBlocksWorkHandler'
 import {
   RENDER_ASSEMBLE_PAGE_WORK_HANDLER,
   RENDER_ASSEMBLE_PAGE_WORK_INSTRUMENTATION,
-} from '../phases/render/RenderAssemblePageWorkHandler'
+} from '../../../concerns/render/runtime/RenderAssemblePageWorkHandler'
 import type {
   AccessHookWhenWorkProps,
   AccessHookWorkProps,
   AccessLifecycleWorkTask,
   AccessHookWorkTask,
-} from '../../../contracts/runtime/AccessLifecycleWork.type'
-import { ACCESS_LIFECYCLE_WORK_HANDLER } from '../phases/hooks/AccessLifecycleWorkHandler'
-import { ACCESS_HOOK_WORK_HANDLER, ACCESS_HOOK_WORK_INSTRUMENTATION } from '../phases/hooks/AccessHookWorkHandler'
-import { ACCESS_HOOK_WHEN_WORK_HANDLER } from '../phases/hooks/AccessHookWhenWorkHandler'
-import type { HookEffectWorkProps } from '../../../contracts/runtime/HookEffectWork.type'
-import { HOOK_EFFECT_WORK_HANDLER, HOOK_EFFECT_WORK_INSTRUMENTATION } from '../phases/hooks/HookEffectWorkHandler'
+} from '../../../concerns/hooks/contracts/AccessLifecycleWork.type'
+import { ACCESS_LIFECYCLE_WORK_HANDLER } from '../../../concerns/hooks/runtime/AccessLifecycleWorkHandler'
+import {
+  ACCESS_HOOK_WORK_HANDLER,
+  ACCESS_HOOK_WORK_INSTRUMENTATION,
+} from '../../../concerns/hooks/runtime/AccessHookWorkHandler'
+import { ACCESS_HOOK_WHEN_WORK_HANDLER } from '../../../concerns/hooks/runtime/AccessHookWhenWorkHandler'
+import type { HookEffectWorkProps } from '../../../concerns/hooks/contracts/HookEffectWork.type'
+import {
+  HOOK_EFFECT_WORK_HANDLER,
+  HOOK_EFFECT_WORK_INSTRUMENTATION,
+} from '../../../concerns/hooks/runtime/HookEffectWorkHandler'
 import type {
   SubmitBranchWorkProps,
   SubmitHookPredicateWorkProps,
@@ -73,19 +82,28 @@ import type {
   SubmitValidationWorkProps,
   SubmitLifecycleWorkTask,
   SubmitHookWorkTask,
-} from '../../../contracts/runtime/SubmitLifecycleWork.type'
-import { SUBMIT_LIFECYCLE_WORK_HANDLER } from '../phases/hooks/SubmitLifecycleWorkHandler'
-import { SUBMIT_HOOK_WORK_HANDLER, SUBMIT_HOOK_WORK_INSTRUMENTATION } from '../phases/hooks/SubmitHookWorkHandler'
+} from '../../../concerns/hooks/contracts/SubmitLifecycleWork.type'
+import { SUBMIT_LIFECYCLE_WORK_HANDLER } from '../../../concerns/hooks/runtime/SubmitLifecycleWorkHandler'
+import {
+  SUBMIT_HOOK_WORK_HANDLER,
+  SUBMIT_HOOK_WORK_INSTRUMENTATION,
+} from '../../../concerns/hooks/runtime/SubmitHookWorkHandler'
 import {
   SUBMIT_HOOK_PREDICATE_WORK_HANDLER,
   SUBMIT_HOOK_PREDICATE_WORK_INSTRUMENTATION,
-} from '../phases/hooks/SubmitHookPredicateWorkHandler'
-import { SUBMIT_BRANCH_WORK_HANDLER, SUBMIT_BRANCH_WORK_INSTRUMENTATION } from '../phases/hooks/SubmitBranchWorkHandler'
+} from '../../../concerns/hooks/runtime/SubmitHookPredicateWorkHandler'
+import {
+  SUBMIT_BRANCH_WORK_HANDLER,
+  SUBMIT_BRANCH_WORK_INSTRUMENTATION,
+} from '../../../concerns/hooks/runtime/SubmitBranchWorkHandler'
 import {
   SUBMIT_VALIDATION_WORK_HANDLER,
   SUBMIT_VALIDATION_WORK_INSTRUMENTATION,
-} from '../phases/hooks/SubmitValidationWorkHandler'
-import { REQUEST_ACCESS_WORK_HANDLER, REQUEST_ACCESS_WORK_INSTRUMENTATION } from '../request/RequestAccessWorkHandler'
+} from '../../../concerns/validation/runtime/SubmitValidationWorkHandler'
+import {
+  REQUEST_ACCESS_WORK_HANDLER,
+  REQUEST_ACCESS_WORK_INSTRUMENTATION,
+} from '../../../concerns/hooks/runtime/RequestAccessWorkHandler'
 import {
   REQUEST_CONTEXT_PREPARATION_WORK_HANDLER,
   REQUEST_CONTEXT_PREPARATION_WORK_INSTRUMENTATION,
@@ -93,34 +111,40 @@ import {
 import {
   REQUEST_ANSWER_CLEARDOWN_WORK_HANDLER,
   REQUEST_ANSWER_CLEARDOWN_WORK_INSTRUMENTATION,
-} from '../request/RequestAnswerCleardownWorkHandler'
+} from '../../../concerns/answer-cleardown/runtime/RequestAnswerCleardownWorkHandler'
 import {
   REQUEST_ANSWER_PREPARATION_WORK_HANDLER,
   REQUEST_ANSWER_PREPARATION_WORK_INSTRUMENTATION,
-} from '../request/RequestAnswerPreparationWorkHandler'
+} from '../../../concerns/answer-preparation/runtime/RequestAnswerPreparationWorkHandler'
 import {
   REQUEST_ENTRY_VALIDATION_WORK_HANDLER,
   REQUEST_ENTRY_VALIDATION_WORK_INSTRUMENTATION,
-} from '../request/RequestEntryValidationWorkHandler'
+} from '../../../concerns/entry-validation/runtime/RequestEntryValidationWorkHandler'
 import { REQUEST_PIPELINE_WORK_HANDLER } from '../request/RequestPipelineWorkHandler'
 import {
   REQUEST_REACHABILITY_WORK_HANDLER,
   REQUEST_REACHABILITY_WORK_INSTRUMENTATION,
-} from '../request/RequestReachabilityWorkHandler'
-import { REQUEST_RENDER_WORK_HANDLER, REQUEST_RENDER_WORK_INSTRUMENTATION } from '../request/RequestRenderWorkHandler'
+} from '../../../concerns/reachability/runtime/RequestReachabilityWorkHandler'
+import {
+  REQUEST_RENDER_WORK_HANDLER,
+  REQUEST_RENDER_WORK_INSTRUMENTATION,
+} from '../../../concerns/render/runtime/RequestRenderWorkHandler'
 import {
   REQUEST_RESOLVE_WORK_HANDLER,
   REQUEST_RESOLVE_WORK_INSTRUMENTATION,
-} from '../request/RequestResolveWorkHandler'
+} from '../../../concerns/resolve/runtime/RequestResolveWorkHandler'
 import {
   REQUEST_ROUTE_TREE_WORK_HANDLER,
   REQUEST_ROUTE_TREE_WORK_INSTRUMENTATION,
-} from '../request/RequestRouteTreeWorkHandler'
-import { REQUEST_SUBMIT_WORK_HANDLER, REQUEST_SUBMIT_WORK_INSTRUMENTATION } from '../request/RequestSubmitWorkHandler'
+} from '../../../concerns/route/runtime/RequestRouteTreeWorkHandler'
+import {
+  REQUEST_SUBMIT_WORK_HANDLER,
+  REQUEST_SUBMIT_WORK_INSTRUMENTATION,
+} from '../../../concerns/hooks/runtime/RequestSubmitWorkHandler'
 import {
   REQUEST_VALIDITIES_WORK_HANDLER,
   REQUEST_VALIDITIES_WORK_INSTRUMENTATION,
-} from '../request/RequestValiditiesWorkHandler'
+} from '../../../concerns/validation/runtime/RequestValiditiesWorkHandler'
 import type {
   RequestAccessWorkProps,
   RequestAnswerCleardownWorkProps,

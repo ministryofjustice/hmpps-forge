@@ -5,8 +5,8 @@ import { ForgeTestHarness } from '../../src/testing'
 import Forge from '../../src/engine/Forge'
 import type { JourneyDefinition } from '../../src/authoring/types/structures.type'
 import type { FieldBlockDefinition } from '../../src/components/types/structures.type'
-import type { CompilationTraceEvent } from '../../src/engine/diagnostics/tracing/compilationTrace.type'
-import type { SerializedTraceSpan } from '../../src/engine/diagnostics/tracing/traceSpan.type'
+import type { CompilationTraceEvent } from '../../src/engine/compilation/tracing/compilationTrace.type'
+import type { SerializedTraceSpan } from '../../src/engine/tracing/traceSpan.type'
 
 const silentLogger = {
   log: () => {},

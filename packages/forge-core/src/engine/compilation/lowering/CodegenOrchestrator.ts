@@ -19,14 +19,16 @@ import type {
   RouteMetadataCompilationInputs,
   StepCompilationInputs,
 } from '../../contracts/plans/compilationPlan.type'
-import StepValidationCompiler from './phase-compilers/validation/StepValidationCompiler'
-import ReachabilityCompiler from './phase-compilers/reachability/ReachabilityCompiler'
-import { evaluateReachabilityState } from './function-construction/reachability/evaluateReachabilityState'
-import StepResolveCompiler from './phase-compilers/resolve/StepResolveCompiler'
-import StepAnswerPreparationCompiler from './phase-compilers/answer-preparation/StepAnswerPreparationCompiler'
-import HookLifecycleCompiler from './phase-compilers/hooks/HookLifecycleCompiler'
-import RouteMetadataCompiler from './phase-compilers/route-tree/RouteMetadataCompiler'
-import CompilationTracer from '../../diagnostics/tracing/CompilationTracer'
+import StepValidationCompiler from '../../concerns/validation/lowering/StepValidationCompiler'
+import EntryValidationCompiler from '../../concerns/entry-validation/lowering/EntryValidationCompiler'
+import ReachabilityCompiler from '../../concerns/reachability/lowering/ReachabilityCompiler'
+import { evaluateReachabilityState } from '../../concerns/reachability/lowering/graph/evaluateReachabilityState'
+import StepFieldInventoryCompiler from '../../concerns/answer-cleardown/lowering/StepFieldInventoryCompiler'
+import StepResolveCompiler from '../../concerns/resolve/lowering/StepResolveCompiler'
+import StepAnswerPreparationCompiler from '../../concerns/answer-preparation/lowering/StepAnswerPreparationCompiler'
+import HookLifecycleCompiler from '../../concerns/hooks/lowering/HookLifecycleCompiler'
+import RouteMetadataCompiler from '../../concerns/route/lowering/RouteMetadataCompiler'
+import CompilationTracer from '../tracing/CompilationTracer'
 import ForgeInternalError from '../../errors/ForgeInternalError'
 
 export default class CodegenOrchestrator {
@@ -70,6 +72,7 @@ export default class CodegenOrchestrator {
                   runtimePlan: stepInputs.core.runtimePlan,
                   compiledReachabilityFacts: journeyFunctions.compiledReachabilityFacts,
                   compiledReachabilityState: journeyFunctions.compiledReachabilityState,
+                  compiledFieldInventory: journeyFunctions.compiledFieldInventory,
                   compiledStepValidations: journeyFunctions.compiledStepValidations,
                   ...stepFunctions,
                   ...packageFunctions,
@@ -100,6 +103,7 @@ export default class CodegenOrchestrator {
     const hookCompiler = new HookLifecycleCompiler(this.dependencies)
     const answerPrepCompiler = new StepAnswerPreparationCompiler(this.dependencies)
     const validationCompiler = new StepValidationCompiler(this.dependencies)
+    const entryValidationCompiler = new EntryValidationCompiler(this.dependencies)
     const resolveCompiler = new StepResolveCompiler(this.dependencies)
 
     return {
@@ -116,7 +120,7 @@ export default class CodegenOrchestrator {
         inputs.validation.stepNode.properties.validWhen,
         inputs.validation.mapIterateNodes,
       ),
-      compiledEntryValidation: validationCompiler.compileOnEntryValidation(
+      compiledEntryValidation: entryValidationCompiler.compileOnEntryValidation(
         inputs.validation.stepNode.properties.validateOnEntry,
       ),
       compiledResolve: resolveCompiler.compile(
@@ -134,15 +138,14 @@ export default class CodegenOrchestrator {
   ): CompiledJourneyFunctions {
     const { stateTable } = reachabilityInputs
     const reachabilityCompiler = new ReachabilityCompiler(this.dependencies)
+    const fieldInventoryCompiler = new StepFieldInventoryCompiler(this.dependencies)
     const hookCompiler = new HookLifecycleCompiler(this.dependencies)
     const answerPrepCompiler = new StepAnswerPreparationCompiler(this.dependencies)
 
     return {
-      compiledReachabilityFacts: reachabilityCompiler.compileFacts(
-        reachabilityInputs.reachabilityPlan,
-        reachabilityInputs.fieldInventorySources,
-      ),
+      compiledReachabilityFacts: reachabilityCompiler.compileFacts(reachabilityInputs.reachabilityPlan),
       compiledReachabilityState: input => evaluateReachabilityState(stateTable, input),
+      compiledFieldInventory: fieldInventoryCompiler.compile(inputs.answerCleardown.fieldInventorySources),
       compiledStaticData: this.compileStaticData(inputs.staticData),
       compiledAccessLifecycle: hookCompiler.compileAccessLifecycle(inputs.accessHooks),
       compiledAnswerPreparation: answerPrepCompiler.compile(inputs.stepFieldBlocks, inputs.stepMapIterateNodes),

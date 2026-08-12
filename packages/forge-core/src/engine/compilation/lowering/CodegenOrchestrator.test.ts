@@ -5,7 +5,7 @@ import type { ReachabilityStateTable, ReachabilityCompilationPlan } from '../../
 import type { FieldBlockASTNode, StepASTNode } from '../../contracts/ast/structures.type'
 import ComponentRegistry from '../../registries/ComponentRegistry'
 import FunctionRegistry from '../../registries/FunctionRegistry'
-import CompilationTracer from '../../diagnostics/tracing/CompilationTracer'
+import CompilationTracer from '../tracing/CompilationTracer'
 import CodegenOrchestrator from './CodegenOrchestrator'
 
 describe('CodegenOrchestrator', () => {
@@ -87,6 +87,7 @@ describe('CodegenOrchestrator', () => {
               stepFieldBlocks: [],
               stepMapIterateNodes: [],
               accessHooks: [],
+              answerCleardown: { fieldInventorySources: [] },
             },
           ],
         ]),
@@ -97,7 +98,6 @@ describe('CodegenOrchestrator', () => {
               reachabilityId: journeyNode.id,
               stateTable,
               reachabilityPlan,
-              fieldInventorySources: [],
             },
           ],
         ]),
@@ -216,6 +216,7 @@ describe('CodegenOrchestrator', () => {
               stepFieldBlocks: [],
               stepMapIterateNodes: [],
               accessHooks: [],
+              answerCleardown: { fieldInventorySources: [] },
             },
           ],
         ]),
@@ -226,7 +227,6 @@ describe('CodegenOrchestrator', () => {
               reachabilityId: journeyNode.id,
               stateTable,
               reachabilityPlan,
-              fieldInventorySources: [],
             },
           ],
         ]),
@@ -284,11 +284,12 @@ describe('CodegenOrchestrator', () => {
               stepFieldBlocks: [],
               stepMapIterateNodes: [],
               accessHooks: [],
+              answerCleardown: { fieldInventorySources: [] },
             },
           ],
         ]),
         reachabilityInputs: new Map([
-          [journeyNode.id, { reachabilityId: journeyNode.id, stateTable, reachabilityPlan, fieldInventorySources: [] }],
+          [journeyNode.id, { reachabilityId: journeyNode.id, stateTable, reachabilityPlan }],
         ]),
         routeMetadataInputs: new Map(),
       }
