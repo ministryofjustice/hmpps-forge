@@ -7,8 +7,6 @@ import type {
   WorkInstrumentation,
 } from '../../../contracts/runtime/work.type'
 import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
-import { isStepValid } from '../../validation/runtime/stepValidity'
-import { getStepValidity } from '../../validation/runtime/stepValidityState'
 import type { HookStageResult } from '../contracts/HookStage.type'
 import type {
   SubmitBranchName,
@@ -33,8 +31,8 @@ export const SUBMIT_BRANCH_WORK_INSTRUMENTATION: WorkInstrumentation<
 
 /**
  * A submit hook branch (`onAlways`, `onValid`, or `onInvalid`). It self-gates on its
- * name and the current step's validity: `onAlways` always runs; `onValid` runs only
- * when valid, `onInvalid` only when invalid. An unselected branch runs no effects,
+ * name and the stored current-page validity: `onAlways` always runs; `onValid` runs
+ * only when valid, `onInvalid` only when invalid. An unselected branch runs no effects,
  * continues, and drops its own (empty) trace unit. A selected branch runs its effects
  * then `next()`, ending the hook on a redirect/error and otherwise continuing.
  */
@@ -66,10 +64,7 @@ export const SUBMIT_BRANCH_WORK_HANDLER: WorkHandler<'submit.branch', SubmitBran
 }
 
 function currentStepValid(ctx: WorkContextContract<RequestExecutionContext, SubmitBranchWorkProps>): boolean {
-  return isStepValid(getStepValidity(ctx.request.context, ctx.request.currentStepId), {
-    isSubmission: true,
-    groups: ctx.props.groups,
-  })
+  return ctx.request.currentPageValidation?.isValid ?? true
 }
 
 function isSelected(name: SubmitBranchName, isValid: boolean): boolean {

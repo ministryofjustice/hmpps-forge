@@ -1,6 +1,5 @@
 import { buildCompiledReachabilityContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
 import { resolveRedirect } from './reachabilityRedirects'
-import { isStepValid } from '../../validation/runtime/stepValidity'
 import { captureContextSnapshot } from '../../../runtime/evaluation/work/tracing/contextSnapshot'
 import type {
   WorkBegin,
@@ -17,10 +16,6 @@ import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contract
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 const REQUEST_REACHABILITY_KIND = 'request.reachability'
-
-// Reachability reads each step's non-submission, default-group validity, so
-// `submissionOnly` and off-default failures never gate forward reachability.
-const REACHABILITY_VALIDITY_FILTER = { isSubmission: false, groups: ['default'] }
 
 export const REQUEST_REACHABILITY_WORK_INSTRUMENTATION: WorkInstrumentation<
   RequestReachabilityWorkProps,
@@ -70,7 +65,7 @@ export const REQUEST_REACHABILITY_WORK_HANDLER: WorkHandler<'request.reachabilit
     const { compiledReachabilityFacts, compiledReachabilityState } = ctx.props
 
     const reachabilityContext = buildCompiledReachabilityContext(ctx.request.context, ctx.request.functionRegistry)
-    const stepValidities = toReachabilityValidities(ctx.request.context.evaluation.stepValidities)
+    const stepValidities = toReachabilityValidities(ctx.request.context.evaluation.reachabilityValidities)
     const params = ctx.request.context.request.params
 
     const facts = await compiledReachabilityFacts(reachabilityContext)
@@ -126,14 +121,17 @@ function resolvePhaseOutput(evaluation: ReachabilityEvaluation, props: RequestRe
   return { action: 'continue' }
 }
 
+// The reachability validities phase already executed only the rules reachability
+// cares about (default group, no `submissionOnly`), so a stored result is valid
+// exactly when it recorded no failures.
 function toReachabilityValidities(
-  stepValidities: ReadonlyMap<NodeId, StepValidityResult> | undefined,
+  reachabilityValidities: ReadonlyMap<NodeId, StepValidityResult> | undefined,
 ): Map<NodeId, boolean> {
-  const reachabilityValidities = new Map<NodeId, boolean>()
+  const validityByStepId = new Map<NodeId, boolean>()
 
-  stepValidities?.forEach((result, stepId) => {
-    reachabilityValidities.set(stepId, isStepValid(result, REACHABILITY_VALIDITY_FILTER))
+  reachabilityValidities?.forEach((result, stepId) => {
+    validityByStepId.set(stepId, result.fieldFailures.length === 0 && result.domainFailures.length === 0)
   })
 
-  return reachabilityValidities
+  return validityByStepId
 }

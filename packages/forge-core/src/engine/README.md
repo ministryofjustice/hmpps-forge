@@ -3,7 +3,7 @@
 The engine is the core Forge pipeline.
 
 It takes an authored journey, checks it, compiles it, mounts it, and evaluates it for requests.
-Most maintainers should understand the four broad stages and the nine concerns before changing a subsystem.
+Most maintainers should understand the four broad stages and the eight concerns before changing a subsystem.
 
 ## The Shape
 
@@ -119,7 +119,7 @@ flowchart TD
 
 Read [runtime/README.md](runtime/README.md) for details.
 
-## The Nine Concerns
+## The Eight Concerns
 
 Each concern under [concerns](concerns) owns its whole vertical slice: how its inputs are gathered at compile
 time, how they are lowered into a compiled function, how that function is executed at request time, and the types
@@ -132,10 +132,9 @@ Read in pipeline order, they are:
 |---|---|---|
 | [hooks](concerns/hooks/README.md) | `request.access`, `request.submit` | Whether authored lifecycle work halts, redirects, or branches the request |
 | [answer-preparation](concerns/answer-preparation/README.md) | `request.answer-preparation` | What the request's values become in the answer store |
-| [validation](concerns/validation/README.md) | `request.validities` | Which fields and domains fail, for every reader that asks |
+| [validation](concerns/validation/README.md) | `request.validities`, `request.entry-validation` | Which rules fail: reachability validity facts per step, and the current page's one displayed result |
 | [reachability](concerns/reachability/README.md) | `request.reachability` | Which steps the user can reach, and where to send them if not this one |
 | [answer-cleardown](concerns/answer-cleardown/README.md) | `request.answer-cleardown` | Which answers belong to steps no path can reach any more |
-| [entry-validation](concerns/entry-validation/README.md) | `request.entry-validation` | Which validation groups show on a step `GET` |
 | [route](concerns/route/README.md) | `request.route-tree` | Where the request is in the route tree, and where a redirect target points |
 | [resolve](concerns/resolve/README.md) | `request.resolve` | What the renderer receives as `RenderContext` |
 | [render](concerns/render/README.md) | `request.render` | What the renderer produces for the page |

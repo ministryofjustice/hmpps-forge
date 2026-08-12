@@ -65,10 +65,10 @@ When reachability checks are disabled for the journey, this index is empty becau
 It has three branches:
 - `request`, copied from `RequestSnapshot`.
 - `domain`, with `data` and `answers`.
-- `evaluation`, with step validities, reachability, and answer-cleardown state.
+- `evaluation`, with reachability validities, reachability, and answer-cleardown state.
 
 `RequestExecutionContext` wraps `RuntimeContext`.
-It adds request-phase signals such as `reachabilityEvaluation`, `validation`, `showValidationFailures`, `renderContext`, `renderedBlocks`, and `pipelineResult`.
+It adds request-phase signals such as `reachabilityEvaluation`, `currentPageValidation`, `renderContext`, `renderedBlocks`, and `pipelineResult`.
 It also carries `functionRegistry`, `responseBindings`, `currentStepId`, `hasRenderer`, `buildStepValidation()`, and `recordStepValidation()`.
 
 `WorkTask` is the runtime execution unit.
@@ -143,10 +143,9 @@ Runtime executes that work against one request.
 |---|---|---|
 | [hooks](../concerns/hooks/README.md) | `compiledAccessLifecycle` | `request.access` runs `access.lifecycle` |
 | [answer-preparation](../concerns/answer-preparation/README.md) | `compiledAnswerPreparation` | `request.answer-preparation` runs `answer.preparation` |
-| [validation](../concerns/validation/README.md) | `compiledStepValidations` journey index | `request.validities` runs `validation.step` tasks when reachability checks are enabled |
+| [validation](../concerns/validation/README.md) | `compiledStepValidations` journey index, `compiledEntryValidation` | `request.validities` runs `validation.step` tasks when reachability checks are enabled; `request.entry-validation` triggers `validation.current-step` |
 | [reachability](../concerns/reachability/README.md) | `compiledReachabilityFacts` + `compiledReachabilityState` | `request.reachability` evaluates reachability and resolves redirects |
 | [answer-cleardown](../concerns/answer-cleardown/README.md) | `compiledFieldInventory` | `request.reachability` evaluates it on step requests; `request.answer-cleardown` clears stale answers against the projection built from it |
-| [entry-validation](../concerns/entry-validation/README.md) | `compiledEntryValidation` | `request.entry-validation` projects stored validity |
 | [hooks](../concerns/hooks/README.md) | `compiledSubmitHooks` and `compiledValidation` | `request.submit` runs submit hooks and validation |
 | [route](../concerns/route/README.md) | `compiledRouteMetadata` | `request.route-tree` resolves route metadata and hydrates the route tree |
 | [resolve](../concerns/resolve/README.md) | `compiledResolve` | `request.resolve` builds `RenderContext` |

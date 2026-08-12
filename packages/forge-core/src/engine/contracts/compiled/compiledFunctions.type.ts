@@ -11,6 +11,7 @@ import type {
   ReachabilityEvaluationResult,
   ReachabilityStateInput,
 } from '../../concerns/reachability/contracts/generatedReachabilityEvaluation.type'
+import type { ValidationRuleFilter } from '../../concerns/validation/contracts/ValidationWork.type'
 
 export type CompiledStaticDataFunction = () => Record<string, unknown>
 
@@ -40,7 +41,7 @@ export type CompiledRouteMetadataFunction = (
 
 export type CompiledValidationFunction = (
   ctx: CompiledValidationContext,
-  isSubmission: boolean,
+  filter: ValidationRuleFilter,
 ) => CompiledValidationWorkTask | Promise<CompiledValidationWorkTask>
 
 export type CompiledEntryValidationFunction = (ctx: CompiledValidationContext) => string[] | Promise<string[]>

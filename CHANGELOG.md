@@ -195,6 +195,12 @@ make impossible. ([#229])
   ...) owns its whole slice under `engine/concerns/<name>/{analysis,lowering,runtime,contracts}`
   instead of spreading across the compilation and runtime stage folders, with eslint
   import zones enforcing the boundaries. Public exports are unchanged ([#236])
+- Runtime validation is reworked around one `validation.current-step` operation -
+  both triggers (matching `validateOnEntry` groups on GET, the submit lifecycle on
+  POST) schedule the same task, rule group filtering happens before rule conditions
+  evaluate, and a single `currentPageValidation` field is the display signal.
+  Reachability keeps its own validity store, so navigation facts can't leak into
+  display ([#237])
 
 [#203]: https://github.com/ministryofjustice/hmpps-forge/pull/203
 [#206]: https://github.com/ministryofjustice/hmpps-forge/pull/206
@@ -207,6 +213,7 @@ make impossible. ([#229])
 [#229]: https://github.com/ministryofjustice/hmpps-forge/pull/229
 [#230]: https://github.com/ministryofjustice/hmpps-forge/pull/230
 [#236]: https://github.com/ministryofjustice/hmpps-forge/pull/236
+[#237]: https://github.com/ministryofjustice/hmpps-forge/pull/237
 
 ---
 

@@ -4,32 +4,37 @@
 
 This document covers `packages/forge-core/src/engine/concerns/validation/runtime`.
 
-This code runs compiled step validation tasks and stores or projects their results.
-It separates field failures from domain failures and applies validation group filters when readers ask for a view.
+This code runs compiled step validation tasks and stores their results for the two validation rounds:
+reachability validities for navigation, and the current-page result for hook branches and rendering.
 
 This document does not cover semantic validation, generated validation source, submit hook ordering, or request phase ordering.
 
 ## Background
 
-Validation records the full failure set for a step, then projects it for each reader.
+Forge has two validation rounds with separate orchestration and separate result stores, because they answer
+different questions:
 
-Compiled validation decides which field and domain validation tasks exist.
-The runtime validation phase decides how to execute those tasks and how to fold their outputs.
-Reachability asks for non-submission default-group validity.
-Submit hooks ask for submission-mode validity with their configured groups.
-Entry validation asks which groups should show on initial render.
+- The reachability round answers "which steps could the user navigate through", for the reachability walk.
+- The current-page round answers "did the page handling this request pass, and what should render show".
 
-The stored result is broader than any one view.
-That matters because the same step validity can be read by navigation, submit branches, and render.
-Filtering too early would throw away failures that another reader still needs.
+Rule selection happens at execution time: every run passes a `ValidationRuleFilter` down to the compiled
+validation function, which skips rules outside the active groups (and `submissionOnly` rules unless included)
+before evaluating any rule condition. Stored results are therefore already filtered — validity is just "no
+failures recorded".
+
+The current-page round has one implementation (`validation.current-step`) and two legitimate triggers:
+matching `validateOnEntry` conditions on GET, and the submit lifecycle after `onAlways` on POST. The triggers
+cannot be unified into one because submit validation must stay at its position in the hook lifecycle
+(`when → guards → onAlways → validation → onValid/onInvalid`) — `onAlways` may transform data that validation
+depends on.
 
 ## Responsibilities
 
 - Run field validation tasks concurrently.
 - Run domain validation tasks concurrently.
 - Fold child failures into `StepValidityResult`.
-- Store step validity results by `NodeId`.
-- Project stored failures through `stepValidity()`.
+- Store reachability-round results by `NodeId` in `reachabilityValidities`.
+- Store the current-page result on `RequestExecutionContext.currentPageValidation`.
 - Build step validation tasks from compiled validation functions.
 - Keep field failure `blockId` available for resolve.
 
@@ -46,114 +51,97 @@ Filtering too early would throw away failures that another reader still needs.
 
 `DomainValidationWorkProps` contains `run()`, the compiled function that returns `DomainValidationFailure[]`.
 
-`StepValidityResult` stores:
-- `fieldFailures`.
-- `domainFailures`.
+`CurrentStepValidationWorkProps` is the `ValidationRuleFilter` both triggers supply:
+- entry validation passes `{ groups: matchingEntryGroups, includeSubmissionOnly: false }`.
+- the submit lifecycle passes `{ groups: hook.validationGroups, includeSubmissionOnly: true }`.
 
-`ValidationView` is a filtered read model with:
-- `isValid`.
-- filtered `fieldFailures`.
-- filtered `domainFailures`.
+`StepValidityResult` stores `fieldFailures` and `domainFailures`.
 
-`context.evaluation.stepValidities` stores full `StepValidityResult` values keyed by step `NodeId`.
+`ValidationView` is the current-page read model with `isValid` plus the failure lists.
 
-### Example
-
-A stored result can contain submission-only and grouped failures:
-
-```ts
-{
-  fieldFailures: [
-    { blockId: 'compile_ast:1', blockCode: 'name', message: 'Required', submissionOnly: true, groups: ['default'], passed: false },
-  ],
-  domainFailures: [],
-}
-```
-
-Reachability reads it in non-submission mode:
-
-```ts
-stepValidity(stored, { isSubmission: false, groups: ['default'] })
-// => { isValid: true, fieldFailures: [], domainFailures: [] }
-```
-
-Submit reads it in submission mode:
-
-```ts
-stepValidity(stored, { isSubmission: true, groups: ['default'] })
-// => { isValid: false, fieldFailures: [...], domainFailures: [] }
-```
+`context.evaluation.reachabilityValidities` stores reachability-round `StepValidityResult` values keyed by step
+`NodeId`. `RequestExecutionContext.currentPageValidation` stores the one current-page `ValidationView`; its
+presence is the display signal.
 
 ## Flow
 
 ```mermaid
 flowchart TD
-  compiled["CompiledValidationFunction"] -->|"buildStepValidationTask()"| task["validation.step"]
+  entry["request.entry-validation (GET, groups matched)"] --> current["validation.current-step"]
+  submit["submit lifecycle, after onAlways (POST)"] --> current
+  validities["request.validities"] -->|"per step"| task["validation.step"]
+  current -->|"buildStepValidation(stepId, filter)"| task
   task -->|"concurrent"| fields["validation.field[]"]
   task -->|"concurrent"| domains["validation.domain[]"]
   fields --> fold["StepValidationWorkHandler.complete()"]
   domains --> fold
   fold --> result["StepValidityResult"]
-  result --> store["context.evaluation.stepValidities"]
-  store --> view["stepValidity()"]
+  result -->|"validities round"| store["context.evaluation.reachabilityValidities"]
+  result -->|"current-page round"| view["request.currentPageValidation"]
 ```
 
+- [ReachabilityValiditiesWorkHandler.ts](ReachabilityValiditiesWorkHandler.ts) fans out every validating step under the reachability filter and records navigation facts.
+- [RequestEntryValidationWorkHandler.ts](RequestEntryValidationWorkHandler.ts) runs the compiled `validateOnEntry` selector and schedules `validation.current-step` when groups match.
+- [CurrentStepValidationWorkHandler.ts](CurrentStepValidationWorkHandler.ts) owns the current-page operation and its result store.
 - [StepValidationWorkHandler.ts](StepValidationWorkHandler.ts) runs field and domain validation children and folds failures.
 - [FieldValidationWorkHandler.ts](FieldValidationWorkHandler.ts) calls one compiled field validation `run()`.
 - [DomainValidationWorkHandler.ts](DomainValidationWorkHandler.ts) calls one compiled domain validation `run()`.
-- [stepValidationStore.ts](stepValidationStore.ts) builds and re-keys validation tasks and re-exports validation state helpers.
-- [stepValidityState.ts](stepValidityState.ts) reads and writes stored `StepValidityResult` values.
-- [stepValidity.ts](stepValidity.ts) filters stored failures into a `ValidationView`.
+- [stepValidationStore.ts](stepValidationStore.ts) builds and re-keys validation tasks from compiled validation functions.
+- [reachabilityValidityState.ts](reachabilityValidityState.ts) writes the reachability validity map.
 
 ## Boundaries
 
 - Work handlers own task execution and output folding.
-  They should not decide request visibility.
-- `stepValidity()` owns group and submission filtering.
-  Callers should not duplicate that filtering.
-- `stepValidationStore.ts` owns the bridge from compiled validation function to `validation.step` task.
-  Request code should use `buildStepValidation()`.
-- Resolve owns attaching failures to rendered fields.
-  Validation must keep `blockId`, but it should not mutate render props.
+- `validation.current-step` owns the complete current-page operation: rule selection (via the filter it passes
+  down), execution, validity, and the result store. Triggers only decide whether and with what filter it runs.
+- Hooks own sequencing; they never construct validation results or set rendering flags.
+- The reachability round never touches `currentPageValidation` or validation display.
+- Resolve derives the public render shape from the presence of `currentPageValidation`; it does not decide
+  whether validation should be displayed.
+- Resolve owns attaching failures to rendered fields. Validation must keep `blockId`, but it should not mutate
+  render props.
 
 ## Quirks
 
 - Field and domain validations both run concurrently.
   The folded failure arrays still follow child order, because `WorkExecutor` preserves the group order when it returns completed child work.
-- Group filtering happens at read time.
-  Generated validation stores every failure with its groups intact.
+- Group and `submissionOnly` filtering happen inside the generated function, before rule conditions are
+  evaluated. A stored result only ever contains failures from rules the filter selected.
 - Missing stored validity means valid.
   A step with no validation task should not block reachability.
-- Submit validation overwrites the current step's stored result.
-  That lets submit branches and render read the submission-mode result.
+- The reachability round includes the current step. Resume and frontier resolution need its navigation
+  validity, and the round runs before either current-page trigger could supply one. The result is a navigation
+  fact only and never reaches display.
+- A present `currentPageValidation` may be valid with no failures — "validation ran and passed" is distinct
+  from "validation did not run", and render surfaces both.
 
 ## Constraints
 
 - Preserve `blockId` on `StepValidationFailure`.
   Resolve uses it to match failures to rendered fields by block identity.
-- Do not filter failures before storing `StepValidityResult`.
-  Other readers may need different groups or submission mode.
 - Keep `validationTaskKey(stepId)` stable.
-  Eager validities maps completed child work back to step IDs through that key.
+  The validities phase maps completed child work back to step IDs through that key.
 - Keep `isStepValidationWorkTask()` strict.
   It prevents unrelated work tasks from being recorded as validation.
+- Only `CurrentStepValidationWorkHandler` may write `currentPageValidation`; only
+  `ReachabilityValiditiesWorkHandler` may write `reachabilityValidities`.
 
 ## Editing Notes
 
 - To change validation execution order, start in `StepValidationWorkHandler`.
   Preserve folded failure order unless the caller explicitly wants a different display order.
-- To change group filtering, start in `stepValidity.ts`.
-- To change validation storage, start in `stepValidityState.ts`.
+- To change rule filtering, edit the lowering validation compiler — filtering is generated code, not a runtime helper.
+- To change the current-page operation or its result, start in `CurrentStepValidationWorkHandler`.
 - To change how compiled validation is wrapped for runtime, start in `stepValidationStore.ts`.
 - To change generated validation failures, edit the lowering validation compiler instead.
 
 ## Entry Points
 
-- [RequestValiditiesWorkHandler.ts](RequestValiditiesWorkHandler.ts) answers how the `request.validities` phase populates step validities before reachability.
-- [SubmitValidationWorkHandler.ts](SubmitValidationWorkHandler.ts) answers how submit validation runs as a hook stage.
+- [ReachabilityValiditiesWorkHandler.ts](ReachabilityValiditiesWorkHandler.ts) answers how the `request.validities` phase populates navigation validity facts before reachability.
+- [RequestEntryValidationWorkHandler.ts](RequestEntryValidationWorkHandler.ts) answers how GET entry conditions trigger current-page validation.
+- [CurrentStepValidationWorkHandler.ts](CurrentStepValidationWorkHandler.ts) answers how the current page is validated and displayed.
 - [StepValidationWorkHandler.ts](StepValidationWorkHandler.ts) answers how validation child tasks run.
 - [FieldValidationWorkHandler.ts](FieldValidationWorkHandler.ts) answers how one field validation runs.
 - [DomainValidationWorkHandler.ts](DomainValidationWorkHandler.ts) answers how one domain validation runs.
 - [stepValidationStore.ts](stepValidationStore.ts) answers how compiled validation is converted to runtime work.
-- [stepValidity.ts](stepValidity.ts) answers how stored failures become a filtered validation view.
-- [stepValidityState.ts](stepValidityState.ts) answers how step validity is stored on `RuntimeContext`.
+- [reachabilityValidityState.ts](reachabilityValidityState.ts) answers how navigation validity is stored on `RuntimeContext`.

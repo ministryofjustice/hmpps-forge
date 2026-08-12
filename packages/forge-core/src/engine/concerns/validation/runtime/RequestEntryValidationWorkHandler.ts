@@ -1,13 +1,17 @@
 import { buildCompiledValidationContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
-import { stepValidity } from '../../validation/runtime/stepValidity'
-import { getStepValidity } from '../../validation/runtime/stepValidityState'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
 } from '../../../contracts/runtime/work.type'
+import { createWorkTask, singleTaskGroup } from '../../../runtime/evaluation/work/workTask'
 import { phaseInstrumentation } from '../../../runtime/evaluation/request/requestPhase'
+import {
+  CURRENT_STEP_VALIDATION_WORK_HANDLER,
+  CURRENT_STEP_VALIDATION_WORK_INSTRUMENTATION,
+} from './CurrentStepValidationWorkHandler'
+import type { CurrentStepValidationWorkProps } from '../contracts/ValidationWork.type'
 import type { RequestEntryValidationWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 
@@ -19,12 +23,13 @@ export const REQUEST_ENTRY_VALIDATION_WORK_INSTRUMENTATION: WorkInstrumentation<
 > = phaseInstrumentation()
 
 /**
- * The entry-validation phase as work (GET steps only). It computes nothing: the eager
- * `validities` phase already ran every non-`submissionOnly` rule across all groups for
- * every step. This phase only selects which groups to surface on GET — running the
- * compiled entry selector for its active groups, then projecting the current step's
- * stored failure set in non-submission mode onto `request.validation` for render.
- * Optional: with no compiled entry validation, or no resolved groups, it shows nothing.
+ * The entry-validation phase as work (GET steps only). It runs the compiled
+ * `validateOnEntry` selector, which combines the groups from every matching entry,
+ * and — when at least one group is active — schedules the shared
+ * `validation.current-step` task in non-submission mode. The task owns the whole
+ * current-page operation and its result store; this phase only decides whether to
+ * trigger it. With no compiled entry validation or no resolved groups, nothing runs
+ * and nothing is displayed.
  */
 export const REQUEST_ENTRY_VALIDATION_WORK_HANDLER: WorkHandler<
   'request.entry-validation',
@@ -40,13 +45,16 @@ export const REQUEST_ENTRY_VALIDATION_WORK_HANDLER: WorkHandler<
       return { groups: [] }
     }
 
-    ctx.request.validation = stepValidity(getStepValidity(ctx.request.context, ctx.request.currentStepId), {
-      isSubmission: false,
-      groups,
-    })
-    ctx.request.showValidationFailures = true
+    const props: CurrentStepValidationWorkProps = { groups, includeSubmissionOnly: false }
 
-    return { groups: [] }
+    return singleTaskGroup(
+      createWorkTask(
+        'entry-validation',
+        CURRENT_STEP_VALIDATION_WORK_HANDLER,
+        props,
+        CURRENT_STEP_VALIDATION_WORK_INSTRUMENTATION,
+      ),
+    )
   },
 
   complete(

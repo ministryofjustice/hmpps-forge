@@ -20,6 +20,7 @@ import {
   FIELD_ANSWER_PREPARATION_WORK_INSTRUMENTATION,
 } from '../../../concerns/answer-preparation/runtime/FieldAnswerPreparationWorkHandler'
 import type {
+  CurrentStepValidationWorkProps,
   DomainValidationWorkProps,
   DomainValidationWorkTask,
   FieldValidationWorkProps,
@@ -79,7 +80,6 @@ import type {
   SubmitBranchWorkProps,
   SubmitHookPredicateWorkProps,
   SubmitHookWorkProps,
-  SubmitValidationWorkProps,
   SubmitLifecycleWorkTask,
   SubmitHookWorkTask,
 } from '../../../concerns/hooks/contracts/SubmitLifecycleWork.type'
@@ -97,9 +97,9 @@ import {
   SUBMIT_BRANCH_WORK_INSTRUMENTATION,
 } from '../../../concerns/hooks/runtime/SubmitBranchWorkHandler'
 import {
-  SUBMIT_VALIDATION_WORK_HANDLER,
-  SUBMIT_VALIDATION_WORK_INSTRUMENTATION,
-} from '../../../concerns/validation/runtime/SubmitValidationWorkHandler'
+  CURRENT_STEP_VALIDATION_WORK_HANDLER,
+  CURRENT_STEP_VALIDATION_WORK_INSTRUMENTATION,
+} from '../../../concerns/validation/runtime/CurrentStepValidationWorkHandler'
 import {
   REQUEST_ACCESS_WORK_HANDLER,
   REQUEST_ACCESS_WORK_INSTRUMENTATION,
@@ -119,7 +119,7 @@ import {
 import {
   REQUEST_ENTRY_VALIDATION_WORK_HANDLER,
   REQUEST_ENTRY_VALIDATION_WORK_INSTRUMENTATION,
-} from '../../../concerns/entry-validation/runtime/RequestEntryValidationWorkHandler'
+} from '../../../concerns/validation/runtime/RequestEntryValidationWorkHandler'
 import { REQUEST_PIPELINE_WORK_HANDLER } from '../request/RequestPipelineWorkHandler'
 import {
   REQUEST_REACHABILITY_WORK_HANDLER,
@@ -142,9 +142,9 @@ import {
   REQUEST_SUBMIT_WORK_INSTRUMENTATION,
 } from '../../../concerns/hooks/runtime/RequestSubmitWorkHandler'
 import {
-  REQUEST_VALIDITIES_WORK_HANDLER,
-  REQUEST_VALIDITIES_WORK_INSTRUMENTATION,
-} from '../../../concerns/validation/runtime/RequestValiditiesWorkHandler'
+  REACHABILITY_VALIDITIES_WORK_HANDLER,
+  REACHABILITY_VALIDITIES_WORK_INSTRUMENTATION,
+} from '../../../concerns/validation/runtime/ReachabilityValiditiesWorkHandler'
 import type {
   RequestAccessWorkProps,
   RequestAnswerCleardownWorkProps,
@@ -289,10 +289,13 @@ export default class WorkTaskFactory {
     return createWorkTask(key, SUBMIT_BRANCH_WORK_HANDLER, props, SUBMIT_BRANCH_WORK_INSTRUMENTATION)
   }
 
-  static submitValidation(key: string, groups: readonly string[]) {
-    const props: SubmitValidationWorkProps = { groups }
-
-    return createWorkTask(key, SUBMIT_VALIDATION_WORK_HANDLER, props, SUBMIT_VALIDATION_WORK_INSTRUMENTATION)
+  static currentStepValidation(key: string, props: CurrentStepValidationWorkProps) {
+    return createWorkTask(
+      key,
+      CURRENT_STEP_VALIDATION_WORK_HANDLER,
+      props,
+      CURRENT_STEP_VALIDATION_WORK_INSTRUMENTATION,
+    )
   }
 
   static requestPipeline(props: RequestPipelineWorkProps): WorkTask<'request.pipeline', RequestPipelineWorkProps> {
@@ -328,7 +331,12 @@ export default class WorkTaskFactory {
   static requestValidities(
     props: RequestValiditiesWorkProps,
   ): WorkTask<'request.validities', RequestValiditiesWorkProps> {
-    return createWorkTask('validities', REQUEST_VALIDITIES_WORK_HANDLER, props, REQUEST_VALIDITIES_WORK_INSTRUMENTATION)
+    return createWorkTask(
+      'validities',
+      REACHABILITY_VALIDITIES_WORK_HANDLER,
+      props,
+      REACHABILITY_VALIDITIES_WORK_INSTRUMENTATION,
+    )
   }
 
   static requestReachability(

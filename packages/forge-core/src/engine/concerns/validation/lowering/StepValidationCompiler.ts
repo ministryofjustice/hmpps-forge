@@ -1,9 +1,13 @@
 /**
- * Compiles the submit-validation function needed by one step.
+ * Compiles the step-validation function needed by one step.
  *
- * Submit validation evaluates the field/domain `validWhen` slots, recursively
- * flattens arrays produced by iterators, and turns failing validation results
- * into field or domain failures.
+ * The generated function serves both validation rounds — the reachability
+ * validities pass and the current-page operation — and takes a
+ * `ValidationRuleFilter` selecting which rules the run executes. Group and
+ * `submissionOnly` filtering happen before any rule condition is evaluated, so
+ * rules outside the active groups never run. It evaluates the eligible
+ * field/domain `validWhen` slots, recursively flattens arrays produced by
+ * iterators, and turns failing validation results into field or domain failures.
  *
  * Static fields are already present in the shared AST, while fields inside MAP
  * iterators remain as template nodes. Iterator field validation emits loops over
@@ -64,9 +68,9 @@ export default class StepValidationCompiler {
   }
 
   /**
-   * Builds the generated validation function used by submit hooks and reachability checks.
+   * Builds the generated validation function used by the current-page and reachability rounds.
    */
-  compileOnSubmitValidation(
+  compileStepValidation(
     stepNode: StepASTNode,
     fieldBlocks: FieldBlockASTNode[],
     domainValidWhen: unknown,
@@ -74,30 +78,30 @@ export default class StepValidationCompiler {
   ): CompiledValidationFunction {
     return compileGeneratedFunction<CompiledValidationFunction>(
       this.expr,
-      ['ctx', 'isSubmission'],
-      () => this.buildSubmitValidationSource(fieldBlocks, domainValidWhen, iterateNodes),
+      ['ctx', 'filter'],
+      () => this.buildStepValidationSource(fieldBlocks, domainValidWhen, iterateNodes),
       { phase: 'validation' },
     )
   }
 
   /**
-   * Produces inspectable submit-validation source for tests and local debugging.
+   * Produces inspectable step-validation source for tests and local debugging.
    */
-  generateOnSubmitValidationSource(
+  generateStepValidationSource(
     stepNode: StepASTNode,
     fieldBlocks: FieldBlockASTNode[],
     domainValidWhen: unknown,
     iterateNodes: IterateASTNode[] = [],
   ): string {
     return buildGeneratedSource(this.expr, () =>
-      this.buildSubmitValidationSource(fieldBlocks, domainValidWhen, iterateNodes),
+      this.buildStepValidationSource(fieldBlocks, domainValidWhen, iterateNodes),
     )
   }
 
   /**
-   * Emits the full submit-validation source: active-group setup, field validations, and domain validations.
+   * Emits the full step-validation source: rule-filter setup, field validations, and domain validations.
    */
-  private buildSubmitValidationSource(
+  private buildStepValidationSource(
     fieldBlocks: FieldBlockASTNode[],
     domainValidWhen: unknown,
     iterateNodes: IterateASTNode[],
@@ -106,7 +110,8 @@ export default class StepValidationCompiler {
 
     emitter.code('"use strict";')
 
-    emitter.comment('StepValidationCompiler.buildSubmitValidationSource')
+    emitter.comment('StepValidationCompiler.buildStepValidationSource')
+    this.compileRuleFilterSetup(emitter)
 
     const fieldValidationsVar = emitter.const('fieldValidations', '[]')
     const domainValidationsVar = emitter.const('domainValidations', '[]')
@@ -358,6 +363,34 @@ export default class StepValidationCompiler {
   }
 
   /**
+   * Emits the rule-filter setup shared by every validation slot: the active-group
+   * set derived from the caller's filter, and the predicate each rule must pass
+   * before its condition is evaluated. A rule outside the active groups, or a
+   * `submissionOnly` rule when the filter excludes them, never runs. Rules and
+   * filters with no declared groups default to `['default']`.
+   */
+  private compileRuleFilterSetup(emitter: CodeEmitter): void {
+    emitter.comment('StepValidationCompiler.compileRuleFilterSetup')
+    emitter.declareConst('activeGroupSet', 'Object.create(null)')
+    emitter.code(
+      '(filter.groups.length > 0 ? filter.groups : ["default"]).forEach(function (activeGroup) { activeGroupSet[String(activeGroup)] = true; });',
+    )
+    emitter.emitBlock('function ruleIsActive(rule)', () => {
+      const ruleGroupsVar = emitter.const(
+        'ruleGroups',
+        'rule.groups !== undefined && rule.groups.length > 0 ? rule.groups : ["default"]',
+      )
+
+      emitter.if(`!${ruleGroupsVar}.some(function (group) { return activeGroupSet[String(group)] === true; })`, () =>
+        emitter.return('false'),
+      )
+
+      emitter.return('rule.submissionOnly !== true || filter.includeSubmissionOnly === true')
+    })
+    emitter.emitBlank()
+  }
+
+  /**
    * Emits the shared flatten/filter loop used by field and domain validation slots.
    */
   private emitValidationResultLoop(
@@ -386,7 +419,7 @@ export default class StepValidationCompiler {
         emitter.continue()
       })
 
-      emitter.if(`${resultVar}.submissionOnly === true && !isSubmission`, () => emitter.continue())
+      emitter.if(`!ruleIsActive(${resultVar})`, () => emitter.continue())
 
       const passedVar = emitter.let(
         `${varPrefix}Passed`,

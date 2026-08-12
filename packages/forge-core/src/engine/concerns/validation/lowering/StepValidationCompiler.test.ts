@@ -34,7 +34,7 @@ import type {
   CompiledValidationWorkTask,
 } from '../../../contracts/compiled/compiledFunctions.type'
 import type { StepValidityResult } from '../contracts/stepValidityResult.type'
-import { stepValidity, type ValidationView } from '../runtime/stepValidity'
+import type { ValidationView } from '../contracts/validationView.type'
 import WorkContext from '../../../runtime/evaluation/work/WorkContext'
 import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
 import { isWorkTask } from '../../../runtime/evaluation/work/workTask'
@@ -173,13 +173,17 @@ function createCtx(overrides: Partial<CompiledValidationContext> = {}): Compiled
 async function executeValidation(
   fn: CompiledValidationFunction,
   ctx: CompiledValidationContext,
-  isSubmission: boolean,
-  groups?: string[],
+  includeSubmissionOnly: boolean,
+  groups: string[] = ['default'],
 ): Promise<ValidationView> {
-  const task = await fn(ctx, isSubmission)
+  const task = await fn(ctx, { groups, includeSubmissionOnly })
   const stored = await executeValidationTask(task, ctx)
 
-  return stepValidity(stored, { isSubmission, groups })
+  return {
+    isValid: stored.fieldFailures.length === 0 && stored.domainFailures.length === 0,
+    fieldFailures: stored.fieldFailures,
+    domainFailures: stored.domainFailures,
+  }
 }
 
 async function executeValidationTask(
@@ -218,15 +222,18 @@ describe('StepValidationCompiler', () => {
     compiler = new StepValidationCompiler(dependencies)
   })
 
-  describe('compileOnSubmitValidation()', () => {
+  describe('compileStepValidation()', () => {
     it('should return an empty validation task when no validation rules are configured', async () => {
       // Arrange
       const step = createStep()
       const ctx = createCtx()
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [], undefined)
-      const result = await executeValidationTask(await fn(ctx, false), ctx)
+      const fn = compiler.compileStepValidation(step, [], undefined)
+      const result = await executeValidationTask(
+        await fn(ctx, { groups: ['default'], includeSubmissionOnly: false }),
+        ctx,
+      )
 
       // Assert
       expect(result).toEqual({ fieldFailures: [], domainFailures: [] })
@@ -253,13 +260,13 @@ describe('StepValidationCompiler', () => {
       const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = localCompiler.generateOnSubmitValidationSource(step, [block], [], [])
-      const fn = localCompiler.compileOnSubmitValidation(step, [block], [], [])
+      const source = localCompiler.generateStepValidationSource(step, [block], [], [])
+      const fn = localCompiler.compileStepValidation(step, [block], [], [])
       const ctx = createCtx({
         answers: { firstName: { current: 'Ada' } },
         conditions: functionRegistry,
       })
-      const task = fn!(ctx, false)
+      const task = fn!(ctx, { groups: ['default'], includeSubmissionOnly: false })
 
       // Assert
       expect(source).not.toContain('await')
@@ -296,8 +303,8 @@ describe('StepValidationCompiler', () => {
       const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = localCompiler.generateOnSubmitValidationSource(step, [block], [], [])
-      const fn = localCompiler.compileOnSubmitValidation(step, [block], [], [])
+      const source = localCompiler.generateStepValidationSource(step, [block], [], [])
+      const fn = localCompiler.compileStepValidation(step, [block], [], [])
       const result = await executeValidation(
         fn!,
         createCtx({
@@ -325,7 +332,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { firstName: { current: '' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
 
       // Assert
       expect(fn).toBeDefined()
@@ -364,8 +371,8 @@ describe('StepValidationCompiler', () => {
       const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = localCompiler.generateOnSubmitValidationSource(step, [block], [], [])
-      const fn = localCompiler.compileOnSubmitValidation(step, [block], [], [])
+      const source = localCompiler.generateStepValidationSource(step, [block], [], [])
+      const fn = localCompiler.compileStepValidation(step, [block], [], [])
       const result = await executeValidation(
         fn!,
         createCtx({
@@ -395,7 +402,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { firstName: { current: 'John' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -419,7 +426,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { email: { current: '' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -447,7 +454,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -475,7 +482,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -498,7 +505,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { name: { current: '' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -520,7 +527,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { name: { current: '' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, true)
 
       // Assert
@@ -540,7 +547,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { name: { current: '' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -564,8 +571,41 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { postcode: { current: '' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false, ['contact'])
+
+      // Assert
+      expect(result.isValid).toBe(true)
+      expect(result.fieldFailures).toHaveLength(0)
+    })
+
+    it('should not evaluate submissionOnly rule conditions outside the active groups', async () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('title')
+      const ref = createReference(['answers', 'title'])
+      const throwingCond = createConditionFunction('throwingCondition')
+      const validation = createValidation(createTestPredicate(ref, throwingCond), 'Publish rule', {
+        groups: ['publish'],
+        submissionOnly: true,
+      })
+
+      block.properties.validWhen = [validation]
+
+      const ctx = createCtx({
+        answers: { title: { current: '' } },
+        conditions: {
+          get: vi.fn(() => ({
+            evaluate: () => {
+              throw new Error('Rule condition must not run')
+            },
+          })),
+        } as unknown as CompiledValidationContext['conditions'],
+      })
+
+      // Act
+      const fn = compiler.compileStepValidation(step, [block], [])
+      const result = await executeValidation(fn!, ctx, true, ['save'])
 
       // Assert
       expect(result.isValid).toBe(true)
@@ -588,7 +628,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { postcode: { current: '' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false, ['address'])
 
       // Assert
@@ -612,7 +652,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { postcode: { current: '' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false, ['lookup'])
 
       // Assert
@@ -636,7 +676,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { name: { current: '' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false, ['contact'])
 
       // Assert
@@ -665,7 +705,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -694,7 +734,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
 
       // Assert
       try {
@@ -750,7 +790,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
 
       // Assert
       try {
@@ -796,7 +836,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { field: { current: 'hello' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -827,7 +867,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { field: { current: 'a' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -854,7 +894,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { field: { current: 'ok' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -885,7 +925,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { a: { current: 'yes' }, b: { current: '' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -904,7 +944,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { field: { current: 'banned' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -929,7 +969,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -949,7 +989,7 @@ describe('StepValidationCompiler', () => {
       block.properties.validWhen = [validation]
 
       // Act
-      const source = compiler.generateOnSubmitValidationSource(step, [block], [])
+      const source = compiler.generateStepValidationSource(step, [block], [])
 
       // Assert
       expect(source).toContain('ctx.data?.["maxAge"]')
@@ -968,7 +1008,7 @@ describe('StepValidationCompiler', () => {
       block.properties.validWhen = [validation]
 
       // Act
-      const source = compiler.generateOnSubmitValidationSource(step, [block], [])
+      const source = compiler.generateStepValidationSource(step, [block], [])
 
       // Assert
       expect(source).toContain('ctx.session')
@@ -986,7 +1026,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { password: { current: '' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [], [domainValidation])
+      const fn = compiler.compileStepValidation(step, [], [domainValidation])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1006,7 +1046,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { password: { current: '' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [], [domainValidation])
+      const fn = compiler.compileStepValidation(step, [], [domainValidation])
       const inactiveResult = await executeValidation(fn!, ctx, false, ['default'])
       const activeResult = await executeValidation(fn!, ctx, false, ['security'])
 
@@ -1018,7 +1058,7 @@ describe('StepValidationCompiler', () => {
     })
   })
 
-  describe('generateOnSubmitValidationSource()', () => {
+  describe('generateStepValidationSource()', () => {
     it('should produce readable source code', () => {
       // Arrange
       const step = createStep()
@@ -1031,7 +1071,7 @@ describe('StepValidationCompiler', () => {
       block.properties.validWhen = [validation]
 
       // Act
-      const source = compiler.generateOnSubmitValidationSource(step, [block], [])
+      const source = compiler.generateStepValidationSource(step, [block], [])
 
       // Assert
       expect(source).toContain('"use strict"')
@@ -1059,7 +1099,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { field: { current: '' } } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(step, [block], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1129,7 +1169,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1190,7 +1230,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1246,7 +1286,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
       const inactiveResult = await executeValidation(fn!, ctx, false, ['default'])
       const activeResult = await executeValidation(fn!, ctx, false, ['items'])
 
@@ -1314,7 +1354,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1406,7 +1446,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1470,7 +1510,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1534,7 +1574,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1589,7 +1629,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1620,7 +1660,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [], [])
+      const fn = compiler.compileStepValidation(step, [block], [], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1653,7 +1693,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [], [])
+      const fn = compiler.compileStepValidation(step, [block], [], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1682,7 +1722,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [block], [], [])
+      const fn = compiler.compileStepValidation(step, [block], [], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1709,7 +1749,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [], [iterateNode], [])
+      const fn = compiler.compileStepValidation(step, [], [iterateNode], [])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1760,7 +1800,7 @@ describe('StepValidationCompiler', () => {
       )
 
       // Act
-      const source = compiler.generateOnSubmitValidationSource(step, [], [], [iterateNode])
+      const source = compiler.generateStepValidationSource(step, [], [], [iterateNode])
 
       // Assert
       expect(source).toContain('while (iteratorIndex < iteratorInput.length)')
@@ -1815,7 +1855,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ data: { items: [] } })
 
       // Act
-      const fn = compiler.compileOnSubmitValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert

@@ -20,7 +20,7 @@ import type {
   StepCompilationInputs,
 } from '../../contracts/plans/compilationPlan.type'
 import StepValidationCompiler from '../../concerns/validation/lowering/StepValidationCompiler'
-import EntryValidationCompiler from '../../concerns/entry-validation/lowering/EntryValidationCompiler'
+import EntryValidationCompiler from '../../concerns/validation/lowering/EntryValidationCompiler'
 import ReachabilityCompiler from '../../concerns/reachability/lowering/ReachabilityCompiler'
 import { evaluateReachabilityState } from '../../concerns/reachability/lowering/graph/evaluateReachabilityState'
 import StepFieldInventoryCompiler from '../../concerns/answer-cleardown/lowering/StepFieldInventoryCompiler'
@@ -114,7 +114,7 @@ export default class CodegenOrchestrator {
         inputs.answerPreparation.fieldBlocks,
         inputs.answerPreparation.mapIterateNodes,
       ),
-      compiledValidation: validationCompiler.compileOnSubmitValidation(
+      compiledValidation: validationCompiler.compileStepValidation(
         inputs.validation.stepNode,
         inputs.validation.validatingFieldBlocks,
         inputs.validation.stepNode.properties.validWhen,
@@ -176,7 +176,7 @@ export default class CodegenOrchestrator {
 
       compiledStepValidations.set(
         entry.stepId,
-        validationCompiler.compileOnSubmitValidation(
+        validationCompiler.compileStepValidation(
           stepInputs.validation.stepNode,
           stepInputs.validation.validatingFieldBlocks,
           stepInputs.validation.stepNode.properties.validWhen,

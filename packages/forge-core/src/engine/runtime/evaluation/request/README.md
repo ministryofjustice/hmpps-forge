@@ -64,11 +64,11 @@ It contains:
 - `hasRenderer`, which decides whether resolve is terminal.
 - `reachabilityEvaluation`, written by `request.reachability`.
 - `routeTree`, written by `request.route-tree` and read by resolve.
-- `validation` and `showValidationFailures`, written by submit or entry validation and read by resolve.
+- `currentPageValidation`, written only by the `validation.current-step` task and read by resolve; its presence is the display signal.
 - `renderContext`, written by resolve when a renderer is present and read by render.
 - `renderedBlocks`, written by the render-blocks work and read by page assembly.
 - `pipelineResult`, written by `request.pipeline` for `RequestEvaluator`.
-- `buildStepValidation()` and `recordStepValidation()`, shared validation hooks used by validities and submit validation.
+- `buildStepValidation()`, the shared validation-task builder used by the validities phase and current-step validation.
 
 `PhaseWorkOutput` is the common output contract for request phases:
 - `continue`, for phases that finish and let the next phase run.
@@ -119,13 +119,13 @@ If submit validation fails but does not redirect, the pipeline still reaches res
 
 ```ts
 request.submit
-// writes:
-ctx.request.showValidationFailures = true
+// its validation.current-step stage writes:
+ctx.request.currentPageValidation
 
 request.resolve
 // reads:
-ctx.request.validation?.fieldFailures
-ctx.request.showValidationFailures
+ctx.request.currentPageValidation?.fieldFailures
+ctx.request.currentPageValidation !== undefined
 
 // returns or stores:
 RenderContext
@@ -175,11 +175,11 @@ flowchart TD
 - [RequestAccessWorkHandler.ts](../../../concerns/hooks/runtime/RequestAccessWorkHandler.ts) runs the compiled access lifecycle and maps its result to continue, redirect, or error.
 - [RequestAnswerPreparationWorkHandler.ts](../../../concerns/answer-preparation/runtime/RequestAnswerPreparationWorkHandler.ts) runs compiled answer preparation.
   It relies on answer preparation work to mutate `context.domain.answers`.
-- [RequestValiditiesWorkHandler.ts](../../../concerns/validation/runtime/RequestValiditiesWorkHandler.ts) eagerly validates compiled steps in non-submission mode and records step validities.
+- [ReachabilityValiditiesWorkHandler.ts](../../../concerns/validation/runtime/ReachabilityValiditiesWorkHandler.ts) eagerly validates compiled steps under the reachability filter and records reachability validities.
   Journeys with disabled reachability checks compile an empty step-validations index, so this phase has no cross-step validation work for those journeys.
 - [RequestReachabilityWorkHandler.ts](../../../concerns/reachability/runtime/RequestReachabilityWorkHandler.ts) runs compiled navigation evaluation and decides journey redirects, unreachable-step redirects, and resume redirects.
 - [RequestAnswerCleardownWorkHandler.ts](../../../concerns/answer-cleardown/runtime/RequestAnswerCleardownWorkHandler.ts) clears stale answers after reachability has been evaluated.
-- [RequestEntryValidationWorkHandler.ts](../../../concerns/entry-validation/runtime/RequestEntryValidationWorkHandler.ts) selects entry-validation groups on step `GET` and projects stored validation failures for render.
+- [RequestEntryValidationWorkHandler.ts](../../../concerns/validation/runtime/RequestEntryValidationWorkHandler.ts) selects entry-validation groups on step `GET` and schedules current-step validation when groups match.
 - [RequestSubmitWorkHandler.ts](../../../concerns/hooks/runtime/RequestSubmitWorkHandler.ts) runs compiled submit hooks on step `POST` and decides whether validation failures should be shown.
 - [RequestRouteTreeWorkHandler.ts](../../../concerns/route/runtime/RequestRouteTreeWorkHandler.ts) evaluates compiled route metadata and hydrates the route tree before resolve.
 - [RequestResolveWorkHandler.ts](../../../concerns/resolve/runtime/RequestResolveWorkHandler.ts) runs compiled resolve, builds `RenderContext`, and attaches validation errors.
@@ -214,7 +214,7 @@ flowchart TD
   Reachability reads step validities to decide whether navigation can pass through validation-gated steps.
   It runs the mounted node's journey-scoped `compiledStepValidations` index, not every step's local `compiledValidation` function.
   When reachability checks are disabled, that journey-scoped index is empty.
-- `request.entry-validation` does not run field validation itself.
+- `request.entry-validation` contains no validation implementation; it only triggers `validation.current-step`.
   It selects active groups and projects the already-stored current step validity.
 - `request.submit` does not write `ctx.request.validation` directly.
   Submit validation runs inside the hook lifecycle through `buildStepValidation()` and `recordStepValidation()`.
@@ -285,10 +285,10 @@ flowchart TD
 - [RequestContextPreparationWorkHandler.ts](RequestContextPreparationWorkHandler.ts) answers how `RequestSnapshot` becomes `RuntimeContext.request`.
 - [RequestAccessWorkHandler.ts](../../../concerns/hooks/runtime/RequestAccessWorkHandler.ts) answers how access hooks can halt a request.
 - [RequestAnswerPreparationWorkHandler.ts](../../../concerns/answer-preparation/runtime/RequestAnswerPreparationWorkHandler.ts) answers where compiled answer preparation runs.
-- [RequestValiditiesWorkHandler.ts](../../../concerns/validation/runtime/RequestValiditiesWorkHandler.ts) answers how step validities are populated before navigation.
+- [ReachabilityValiditiesWorkHandler.ts](../../../concerns/validation/runtime/ReachabilityValiditiesWorkHandler.ts) answers how reachability validities are populated before navigation.
 - [RequestReachabilityWorkHandler.ts](../../../concerns/reachability/runtime/RequestReachabilityWorkHandler.ts) answers how navigation evaluation redirects or continues.
 - [RequestAnswerCleardownWorkHandler.ts](../../../concerns/answer-cleardown/runtime/RequestAnswerCleardownWorkHandler.ts) answers when stale answers are cleared.
-- [RequestEntryValidationWorkHandler.ts](../../../concerns/entry-validation/runtime/RequestEntryValidationWorkHandler.ts) answers how GET validation groups are selected for render.
+- [RequestEntryValidationWorkHandler.ts](../../../concerns/validation/runtime/RequestEntryValidationWorkHandler.ts) answers how GET validation groups are selected and current-step validation is triggered.
 - [RequestSubmitWorkHandler.ts](../../../concerns/hooks/runtime/RequestSubmitWorkHandler.ts) answers how POST submit hooks halt, continue, or show validation failures.
 - [RequestRouteTreeWorkHandler.ts](../../../concerns/route/runtime/RequestRouteTreeWorkHandler.ts) answers how route metadata is resolved and the route tree hydrated.
 - [RequestResolveWorkHandler.ts](../../../concerns/resolve/runtime/RequestResolveWorkHandler.ts) answers how resolved blocks become `RenderContext`.

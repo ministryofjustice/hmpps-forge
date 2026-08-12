@@ -17,14 +17,15 @@ trace each stage and stop at the right point.
 
 This concern owns `request.access` and `request.submit`. Access work runs as `access.lifecycle`, `access.hook`,
 `access.hook.when`, `access.hook.next`, and `hook.effect`. Submit work runs as `submit.lifecycle`, `submit.hook`,
-`submit.predicate`, `submit.branch`, and `hook.effect`. The `submit.validation` stage that sits between
-`onAlways` and the valid/invalid branches belongs to [validation](../validation/README.md), because the work it
-does is validation - it only runs as a hook stage.
+`submit.predicate`, `submit.branch`, and `hook.effect`. The validation stage that sits between `onAlways` and the
+valid/invalid branches is [validation](../validation/README.md)'s `validation.current-step` task: hooks own its
+position in the lifecycle, validation owns its execution and result. Hooks never construct validation results or
+set rendering flags — the `onValid`/`onInvalid` branches read `currentPageValidation.isValid` off the request
+context.
 
 ## Cross-concern edges
 
-- Hooks import **validation** for `stepValidity`, `stepValidityState`, and the validity result types.
-- **Validation** imports hooks for the work-stage contracts `SubmitValidationWorkHandler` implements.
+- Hooks import **validation** for the `validation.current-step` work task type and the validity result types the
+  submit lifecycle schedules and reads.
 
-That is a genuine two-way pair: submit validation is validation work scheduled by the hook lifecycle. Every other
-concern edge is blocked by the zones in [eslint.config.mjs](../../../../eslint.config.mjs).
+Every other concern edge is blocked by the zones in [eslint.config.mjs](../../../../eslint.config.mjs).

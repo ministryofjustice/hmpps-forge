@@ -9,13 +9,10 @@ import { createWorkTask } from '../../../runtime/evaluation/work/workTask'
 import { SUBMIT_BRANCH_WORK_HANDLER } from './SubmitBranchWorkHandler'
 import { SUBMIT_HOOK_PREDICATE_WORK_HANDLER } from './SubmitHookPredicateWorkHandler'
 import { SUBMIT_HOOK_WORK_HANDLER } from './SubmitHookWorkHandler'
-import { SUBMIT_VALIDATION_WORK_HANDLER } from '../../validation/runtime/SubmitValidationWorkHandler'
+import { CURRENT_STEP_VALIDATION_WORK_HANDLER } from '../../validation/runtime/CurrentStepValidationWorkHandler'
 import type { SubmitHookNextResult } from '../contracts/SubmitLifecycleWork.type'
 
 function createContext(overrides: Record<string, unknown> = {}): WorkContext<CompiledHookLifecycleContext> {
-  const stepValidities =
-    (overrides.stepValidities as Map<string, StepValidityResult> | undefined) ?? new Map<string, StepValidityResult>()
-
   return new WorkContext({
     answers: {},
     data: {},
@@ -34,10 +31,8 @@ function createContext(overrides: Record<string, unknown> = {}): WorkContext<Com
     submitHookWorkHandler: {},
     submitHookPredicateWorkHandler: {},
     submitBranchWorkHandler: {},
-    submitValidationWorkHandler: {},
     currentStepId: 'step-1',
-    context: { evaluation: { stepValidities }, domain: { data: {}, answers: {} }, request: {} },
-    recordStepValidation: (stepId: string, result: StepValidityResult) => stepValidities.set(stepId, result),
+    context: { evaluation: {}, domain: { data: {}, answers: {} }, request: {} },
     ...overrides,
   } as unknown as CompiledHookLifecycleContext)
 }
@@ -52,8 +47,6 @@ function createHook(
     readonly onInvalidNext?: () => SubmitHookNextResult | Promise<SubmitHookNextResult>
   } = {},
 ) {
-  const branchGroups = options.validationGroups ?? ['default']
-
   return createWorkTask(key, SUBMIT_HOOK_WORK_HANDLER, {
     when: createWorkTask(`${key}-when`, SUBMIT_HOOK_PREDICATE_WORK_HANDLER, {
       name: 'when',
@@ -63,34 +56,31 @@ function createHook(
       name: 'guards',
       evaluate: options.guards ?? (() => true),
     }),
-    onAlways: createBranch(`${key}-onAlways`, 'onAlways', branchGroups, options.onAlwaysNext),
+    onAlways: createBranch(`${key}-onAlways`, 'onAlways', options.onAlwaysNext),
     validation:
       options.validationGroups === undefined
         ? undefined
-        : createWorkTask(`${key}-validation`, SUBMIT_VALIDATION_WORK_HANDLER, {
+        : createWorkTask(`${key}-validation`, CURRENT_STEP_VALIDATION_WORK_HANDLER, {
             groups: options.validationGroups,
+            includeSubmissionOnly: true,
           }),
     onValid:
-      options.onValidNext === undefined
-        ? undefined
-        : createBranch(`${key}-onValid`, 'onValid', branchGroups, options.onValidNext),
+      options.onValidNext === undefined ? undefined : createBranch(`${key}-onValid`, 'onValid', options.onValidNext),
     onInvalid:
       options.onInvalidNext === undefined
         ? undefined
-        : createBranch(`${key}-onInvalid`, 'onInvalid', branchGroups, options.onInvalidNext),
+        : createBranch(`${key}-onInvalid`, 'onInvalid', options.onInvalidNext),
   })
 }
 
 function createBranch(
   key: string,
   name: 'onAlways' | 'onValid' | 'onInvalid',
-  groups: readonly string[],
   next: () => SubmitHookNextResult | Promise<SubmitHookNextResult> = () => undefined,
 ) {
   return createWorkTask(key, SUBMIT_BRANCH_WORK_HANDLER, {
     name,
     effects: [],
-    groups,
     next,
   })
 }
@@ -166,6 +156,7 @@ describe('SubmitHookWorkHandler', () => {
       const result = await new WorkExecutor().execute(hook, createContext({ buildStepValidation }))
 
       // Assert
+      expect(buildStepValidation).toHaveBeenCalledWith('step-1', { groups: ['lookup'], includeSubmissionOnly: true })
       expect(onValidNext).toHaveBeenCalledTimes(1)
       expect(onInvalidNext).not.toHaveBeenCalled()
       expect(result.output).toEqual({

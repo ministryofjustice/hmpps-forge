@@ -414,7 +414,11 @@ describe('HookLifecycleCompiler', () => {
 
       // Assert
       expect(lifecycleTask.props.hooks[0]?.props.validation?.props.groups).toEqual(['lookup'])
-      expect(buildStepValidation).toHaveBeenCalledWith('submit-step', true)
+      expect(lifecycleTask.props.hooks[0]?.props.validation?.props.includeSubmissionOnly).toBe(true)
+      expect(buildStepValidation).toHaveBeenCalledWith('submit-step', {
+        groups: ['lookup'],
+        includeSubmissionOnly: true,
+      })
       expect(result).toEqual({
         executed: true,
         validated: true,

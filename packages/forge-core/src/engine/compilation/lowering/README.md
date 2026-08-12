@@ -300,5 +300,5 @@ flowchart TD
 - [../../concerns/answer-cleardown/lowering/StepFieldInventoryCompiler.ts](../../concerns/answer-cleardown/lowering/StepFieldInventoryCompiler.ts) compiles the step field inventory the reachability phase evaluates on step requests.
 - [../../concerns/resolve/lowering/StepResolveCompiler.ts](../../concerns/resolve/lowering/StepResolveCompiler.ts) compiles resolve/render work.
 - [../../concerns/route/lowering/RouteMetadataCompiler.ts](../../concerns/route/lowering/RouteMetadataCompiler.ts) compiles route metadata for the route tree.
-- [../../concerns/validation/lowering/StepValidationCompiler.ts](../../concerns/validation/lowering/StepValidationCompiler.ts) compiles submit-validation work.
-- [../../concerns/entry-validation/lowering/EntryValidationCompiler.ts](../../concerns/entry-validation/lowering/EntryValidationCompiler.ts) compiles the entry-validation group selector.
+- [../../concerns/validation/lowering/StepValidationCompiler.ts](../../concerns/validation/lowering/StepValidationCompiler.ts) compiles step-validation work.
+- [../../concerns/validation/lowering/EntryValidationCompiler.ts](../../concerns/validation/lowering/EntryValidationCompiler.ts) compiles the entry-validation group selector.

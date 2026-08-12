@@ -144,11 +144,9 @@ export default [
             // concern may import another concern's files. One zone per concern lists every
             // other concern it may NOT import; each zone omits the concerns it is sanctioned
             // to import. The sanctioned edges (importer -> imported) are:
-            //   entry-validation -> validation       (validity store read API)
-            //   hooks            -> validation       (stepValidity / stepValidityState / validity result types)
-            //   reachability     -> validation       (validity filter read)
+            //   hooks            -> validation       (current-step validation work task + validity result types)
+            //   reachability     -> validation       (reachability validity result type)
             //   resolve          -> validation       (validationResult type)
-            //   validation       -> hooks            (SubmitValidationWorkHandler uses the hook work-stage contracts)
             //   resolve          -> render           (renderBlock brand)
             //   resolve          -> reachability     (backlink + redirect helpers, evaluation type)
             //   answer-cleardown -> reachability     (JourneyReachabilityProjection)
@@ -163,7 +161,6 @@ export default [
               from: [
                 './forge-core/src/engine/concerns/answer-preparation/**',
                 './forge-core/src/engine/concerns/dsl-validation/**',
-                './forge-core/src/engine/concerns/entry-validation/**',
                 './forge-core/src/engine/concerns/hooks/**',
                 './forge-core/src/engine/concerns/render/**',
                 './forge-core/src/engine/concerns/resolve/**',
@@ -179,7 +176,6 @@ export default [
               from: [
                 './forge-core/src/engine/concerns/answer-cleardown/**',
                 './forge-core/src/engine/concerns/dsl-validation/**',
-                './forge-core/src/engine/concerns/entry-validation/**',
                 './forge-core/src/engine/concerns/hooks/**',
                 './forge-core/src/engine/concerns/reachability/**',
                 './forge-core/src/engine/concerns/render/**',
@@ -192,28 +188,11 @@ export default [
                 'concerns must not import other concerns except sanctioned edges — see the comment above these zones.',
             },
             {
-              target: './forge-core/src/engine/concerns/entry-validation/**',
-              from: [
-                './forge-core/src/engine/concerns/answer-cleardown/**',
-                './forge-core/src/engine/concerns/answer-preparation/**',
-                './forge-core/src/engine/concerns/dsl-validation/**',
-                './forge-core/src/engine/concerns/hooks/**',
-                './forge-core/src/engine/concerns/reachability/**',
-                './forge-core/src/engine/concerns/render/**',
-                './forge-core/src/engine/concerns/resolve/**',
-                './forge-core/src/engine/concerns/route/**',
-                './forge-core/src/engine/concerns/semantic-analysis/**',
-              ],
-              message:
-                'concerns must not import other concerns except sanctioned edges — see the comment above these zones.',
-            },
-            {
               target: './forge-core/src/engine/concerns/hooks/**',
               from: [
                 './forge-core/src/engine/concerns/answer-cleardown/**',
                 './forge-core/src/engine/concerns/answer-preparation/**',
                 './forge-core/src/engine/concerns/dsl-validation/**',
-                './forge-core/src/engine/concerns/entry-validation/**',
                 './forge-core/src/engine/concerns/reachability/**',
                 './forge-core/src/engine/concerns/render/**',
                 './forge-core/src/engine/concerns/resolve/**',
@@ -228,7 +207,6 @@ export default [
               from: [
                 './forge-core/src/engine/concerns/answer-preparation/**',
                 './forge-core/src/engine/concerns/dsl-validation/**',
-                './forge-core/src/engine/concerns/entry-validation/**',
                 './forge-core/src/engine/concerns/hooks/**',
                 './forge-core/src/engine/concerns/render/**',
                 './forge-core/src/engine/concerns/resolve/**',
@@ -243,7 +221,6 @@ export default [
                 './forge-core/src/engine/concerns/answer-cleardown/**',
                 './forge-core/src/engine/concerns/answer-preparation/**',
                 './forge-core/src/engine/concerns/dsl-validation/**',
-                './forge-core/src/engine/concerns/entry-validation/**',
                 './forge-core/src/engine/concerns/hooks/**',
                 './forge-core/src/engine/concerns/reachability/**',
                 './forge-core/src/engine/concerns/resolve/**',
@@ -260,7 +237,6 @@ export default [
                 './forge-core/src/engine/concerns/answer-cleardown/**',
                 './forge-core/src/engine/concerns/answer-preparation/**',
                 './forge-core/src/engine/concerns/dsl-validation/**',
-                './forge-core/src/engine/concerns/entry-validation/**',
                 './forge-core/src/engine/concerns/hooks/**',
                 './forge-core/src/engine/concerns/route/**',
                 './forge-core/src/engine/concerns/semantic-analysis/**',
@@ -274,7 +250,6 @@ export default [
                 './forge-core/src/engine/concerns/answer-cleardown/**',
                 './forge-core/src/engine/concerns/answer-preparation/**',
                 './forge-core/src/engine/concerns/dsl-validation/**',
-                './forge-core/src/engine/concerns/entry-validation/**',
                 './forge-core/src/engine/concerns/hooks/**',
                 './forge-core/src/engine/concerns/reachability/**',
                 './forge-core/src/engine/concerns/render/**',
@@ -291,7 +266,7 @@ export default [
                 './forge-core/src/engine/concerns/answer-cleardown/**',
                 './forge-core/src/engine/concerns/answer-preparation/**',
                 './forge-core/src/engine/concerns/dsl-validation/**',
-                './forge-core/src/engine/concerns/entry-validation/**',
+                './forge-core/src/engine/concerns/hooks/**',
                 './forge-core/src/engine/concerns/reachability/**',
                 './forge-core/src/engine/concerns/render/**',
                 './forge-core/src/engine/concerns/resolve/**',
@@ -306,7 +281,6 @@ export default [
               from: [
                 './forge-core/src/engine/concerns/answer-cleardown/**',
                 './forge-core/src/engine/concerns/answer-preparation/**',
-                './forge-core/src/engine/concerns/entry-validation/**',
                 './forge-core/src/engine/concerns/hooks/**',
                 './forge-core/src/engine/concerns/reachability/**',
                 './forge-core/src/engine/concerns/render/**',
@@ -330,7 +304,6 @@ export default [
                 './forge-core/src/engine/concerns/answer-cleardown/**',
                 './forge-core/src/engine/concerns/answer-preparation/**',
                 './forge-core/src/engine/concerns/dsl-validation/**',
-                './forge-core/src/engine/concerns/entry-validation/**',
                 './forge-core/src/engine/concerns/hooks/**',
                 './forge-core/src/engine/concerns/reachability/**',
                 './forge-core/src/engine/concerns/render/**',
