@@ -64,12 +64,12 @@ describe('GovUKBody', () => {
       expect(output).toBe('<p class="govuk-body" data-qa="intro">Text</p>')
     })
 
-    it('should escape HTML in the text', () => {
+    it('should render HTML in the text unescaped', () => {
       // Arrange & Act
-      const output = render({ text: '<script>alert(1)</script>' })
+      const output = render({ text: 'Area of need: <strong>drug use</strong>' })
 
       // Assert
-      expect(output).toBe('<p class="govuk-body">&lt;script&gt;alert(1)&lt;/script&gt;</p>')
+      expect(output).toBe('<p class="govuk-body">Area of need: <strong>drug use</strong></p>')
     })
   })
 })

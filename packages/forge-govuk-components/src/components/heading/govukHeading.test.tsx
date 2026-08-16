@@ -62,13 +62,13 @@ describe('GovUKHeading', () => {
       expect(output).toBe('<h1 class="govuk-heading-l app-title" id="main-title">Title</h1>')
     })
 
-    it('should escape HTML in the text and caption', () => {
+    it('should render HTML in the text and caption unescaped', () => {
       // Arrange & Act
-      const output = render({ text: 'a < b', caption: '"quoted"' })
+      const output = render({ text: 'Goal: <strong>saving</strong>', caption: '<abbr title="Sentence Plan">SP</abbr>' })
 
       // Assert
       expect(output).toBe(
-        '<h1 class="govuk-heading-l"><span class="govuk-caption-l">&quot;quoted&quot;</span>a &lt; b</h1>',
+        '<h1 class="govuk-heading-l"><span class="govuk-caption-l"><abbr title="Sentence Plan">SP</abbr></span>Goal: <strong>saving</strong></h1>',
       )
     })
   })
