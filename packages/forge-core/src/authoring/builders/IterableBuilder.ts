@@ -13,6 +13,7 @@ import {
 } from '../types/expressions.type'
 import { ExpressionType, IteratorType, PredicateType } from '../types/enums'
 import { ExpressionBuilder } from './ExpressionBuilder'
+import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { splitKey } from './utils/splitKey'
 
 /**
@@ -176,12 +177,16 @@ export class IterableBuilder {
    *   .match(Condition.Array.IsEmpty())
    */
   match(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
-    return {
+    const predicate: PredicateTestExpr = {
       type: PredicateType.TEST,
       subject: this.expression,
       negate: this.negated,
       condition,
     }
+
+    stampCallsite(predicate, captureCallsite(this.match))
+
+    return predicate
   }
 
   /**

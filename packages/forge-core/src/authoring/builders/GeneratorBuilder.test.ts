@@ -169,6 +169,20 @@ describe('GeneratorBuilder', () => {
         condition,
       })
     })
+
+    it('should stamp the predicate with the match callsite', () => {
+      // Arrange
+      const builder = GeneratorBuilder.create('Now', [])
+      const condition = mockCondition('IsFutureDate')
+
+      // Act
+      const result = builder.match(condition)
+
+      // Assert
+      const callsite = Object.getOwnPropertyDescriptor(result, '__callsite')?.value as { stack?: string } | undefined
+
+      expect(callsite?.stack).toContain('GeneratorBuilder.test.ts')
+    })
   })
 
   describe('not', () => {

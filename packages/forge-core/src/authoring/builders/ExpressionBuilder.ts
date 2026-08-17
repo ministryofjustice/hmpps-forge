@@ -12,6 +12,7 @@ import {
 } from '../types/expressions.type'
 import { ExpressionType, IteratorType, PredicateType } from '../types/enums'
 import { IterableBuilder } from './IterableBuilder'
+import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { splitKey } from './utils/splitKey'
 
 /**
@@ -164,12 +165,16 @@ export class ExpressionBuilder<T extends ResolvableValue> {
    * Self().not.match(Condition.IsRequired())
    */
   match(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
-    return {
+    const predicate: PredicateTestExpr = {
       type: PredicateType.TEST,
       subject: this.expression,
       negate: this.negate,
       condition,
     }
+
+    stampCallsite(predicate, captureCallsite(this.match))
+
+    return predicate
   }
 
   /**
