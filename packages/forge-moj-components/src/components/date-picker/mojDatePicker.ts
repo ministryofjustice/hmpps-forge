@@ -184,6 +184,8 @@ function toUKDateFormat(value: unknown): string | undefined {
 export const MOJDatePicker = nunjucksComponent<MOJDatePicker>('mojDatePicker', {
   field: true,
   inputSchema: z.string(),
+  // The rendered input's id matches the render params below, so error summary links land on it.
+  errorAnchor: props => props.id ?? props.code,
   render: (props, nunjucksEnv) => {
     const params = {
       id: props.id ?? props.code,
