@@ -91,6 +91,26 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
+   * Compiles a nested function body under its own await tracking and reports
+   * whether that body emitted an `await`. An await inside a nested function
+   * makes that function async, not the enclosing one, so the enclosing
+   * function's flag is restored afterwards.
+   */
+  trackNestedFunctionAwait(compileBody: () => void): boolean {
+    const enclosingUsedAwait = this.usedAwait
+
+    this.usedAwait = false
+
+    try {
+      compileBody()
+
+      return this.usedAwait
+    } finally {
+      this.usedAwait = enclosingUsedAwait
+    }
+  }
+
+  /**
    * Clears per-function generation state so a concern compiler can start fresh.
    */
   reset(): void {

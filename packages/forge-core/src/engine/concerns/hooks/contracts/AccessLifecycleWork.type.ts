@@ -6,9 +6,12 @@ export interface AccessLifecycleWorkProps {
 }
 
 export interface AccessHookWorkProps {
-  readonly when: AccessHookWhenWorkTask
-  readonly effects: readonly HookEffectWorkTask[]
-  readonly next: () => AccessHookNextResult | Promise<AccessHookNextResult>
+  /** Absent means the hook has no condition and always runs. */
+  readonly when?: AccessHookWhenWorkTask
+  /** Absent means the hook runs no effects. */
+  readonly effects?: readonly HookEffectWorkTask[]
+  /** Absent means the hook produces no outcome and always continues. */
+  readonly next?: () => AccessHookNextResult | Promise<AccessHookNextResult>
 }
 
 export interface AccessHookWhenWorkProps {

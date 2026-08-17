@@ -33,7 +33,6 @@ export enum CompilationPhase {
 }
 
 interface CompileOptions {
-  forceAsync?: boolean
   phase?: CompilationPhase
   /** Journey/step identity segment for the script URL, e.g. `guide.defining-steps` */
   label?: string
@@ -81,9 +80,9 @@ export function renderGeneratedSource(expr: ExpressionDispatcher, buildSource: (
 /**
  * Compiles a generated-source node tree into either `Function` or `AsyncFunction`.
  *
- * Most compilers become async only when the expression dispatcher finds an
- * `await` in the generated code. Hook lifecycles are the exception: they
- * force async because effects must finish before outcomes are inspected.
+ * A compiler becomes async only when the expression dispatcher finds an
+ * `await` at the top level of the generated code; awaits inside nested
+ * function expressions belong to those functions and do not count.
  */
 export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
   expr: ExpressionDispatcher,
@@ -101,7 +100,7 @@ export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
       const generatedSource = buildGeneratedSource(expr, buildSource)
       const diagnosticCatalogue = expr.diagnosticCatalogue
       const wrapperNodes = wrapGeneratedBody(generatedSource, phase)
-      const usesAwait = options.forceAsync === true || expr.usesAwait
+      const usesAwait = expr.usesAwait
       const { source, segmentsByLine } = new SourceRenderer().render(wrapperNodes)
       const sourceMapUrl = resolveSourceMapUrl(segmentsByLine, usesAwait)
       let compiled: GeneratedFunction

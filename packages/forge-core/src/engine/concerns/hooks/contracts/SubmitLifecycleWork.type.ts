@@ -7,9 +7,12 @@ export interface SubmitLifecycleWorkProps {
 }
 
 export interface SubmitHookWorkProps {
-  readonly when: SubmitHookPredicateWorkTask
-  readonly guards: SubmitHookPredicateWorkTask
-  readonly onAlways: SubmitBranchWorkTask
+  /** Absent means the hook has no condition and always runs. */
+  readonly when?: SubmitHookPredicateWorkTask
+  /** Absent means no guards were authored and the hook proceeds. */
+  readonly guards?: SubmitHookPredicateWorkTask
+  /** Absent means the authored onAlways branch has no effects or outcomes. */
+  readonly onAlways?: SubmitBranchWorkTask
   readonly validation?: CurrentStepValidationWorkTask
   readonly onValid?: SubmitBranchWorkTask
   readonly onInvalid?: SubmitBranchWorkTask
@@ -22,8 +25,10 @@ export interface SubmitHookPredicateWorkProps {
 
 export interface SubmitBranchWorkProps {
   readonly name: SubmitBranchName
-  readonly effects: readonly HookEffectWorkTask[]
-  readonly next: () => SubmitHookNextResult | Promise<SubmitHookNextResult>
+  /** Absent means the branch runs no effects. */
+  readonly effects?: readonly HookEffectWorkTask[]
+  /** Absent means the branch produces no outcome and always continues. */
+  readonly next?: () => SubmitHookNextResult | Promise<SubmitHookNextResult>
 }
 
 export type SubmitBranchName = 'onAlways' | 'onValid' | 'onInvalid'

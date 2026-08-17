@@ -480,5 +480,39 @@ describe('HookLifecycleCompiler', () => {
       expect(source).toContain('_forgeHelpers.evaluateFunctionAsync')
       expect(source).toContain('"loadProfile"')
     })
+
+    it('should emit an async run function only when the effect function is async', () => {
+      // Arrange
+      const hook = ASTTestFactory.hook(HookType.ACCESS)
+        .withProperty('effects', [
+          ASTTestFactory.functionExpression(FunctionType.EFFECT, 'markAction'),
+          ASTTestFactory.functionExpression(FunctionType.EFFECT, 'loadProfile'),
+        ])
+        .build() as AccessHookASTNode
+
+      // Act
+      const source = compiler.generateAccessSource(accessModel([hook]))
+
+      // Assert
+      expect(source).toContain('function runMarkAction')
+      expect(source).not.toContain('async function runMarkAction')
+      expect(source).toContain('async function runLoadProfile')
+    })
+
+    it('should emit sync when and next functions when no expression awaits', () => {
+      // Arrange
+      const hook = ASTTestFactory.hook(HookType.ACCESS)
+        .withProperty('when', createPredicate('allowed'))
+        .withProperty('next', [ASTTestFactory.redirectOutcome({ goto: '/login' })])
+        .build() as AccessHookASTNode
+
+      // Act
+      const source = compiler.generateAccessSource(accessModel([hook]))
+
+      // Assert
+      expect(source).toContain('function evaluateAccessHookWhen')
+      expect(source).toContain('function resolveAccessHookNext')
+      expect(source).not.toContain('async')
+    })
   })
 })

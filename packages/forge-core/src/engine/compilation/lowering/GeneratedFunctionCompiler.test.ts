@@ -238,23 +238,6 @@ describe('GeneratedFunctionCompiler', () => {
       expect(span?.completed).toBe(true)
     })
 
-    it('should record async completion metadata when the function is forced async', () => {
-      // Arrange
-      const tracer = new CompilationTracer({ enabled: true })
-      const expr = new ExpressionDispatcher({ ...dependencies, tracer })
-
-      // Act
-      compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => trustedGeneratedSource('return true;'), {
-        phase: 'render' as CompilationPhase,
-        forceAsync: true,
-      })
-
-      // Assert
-      const span = tracer.root?.children.find(child => child.kind === 'codegen.function')
-
-      expect(span?.completeFields).toEqual({ async: true })
-    })
-
     it('should leave the codegen.function span incomplete when source construction fails', () => {
       // Arrange
       const tracer = new CompilationTracer({ enabled: true })
