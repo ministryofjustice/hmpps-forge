@@ -224,6 +224,26 @@ declared `errorAnchor`, so the link opens the right reveal. Duplicate literal co
 where a copy is missing `dependentWhen` are rejected at registration; a single field
 per code behaves exactly as before. ([#248])
 
+#### Debugging generated functions
+
+Previously the compiled functions were assembled from concatenated strings - a runtime
+error's stack pointed into anonymous eval'd code, and working out which part of your
+journey definition it came from was guesswork. Now the generated source reads like
+hand-written JavaScript and every compiled function ships a source map, so a runtime
+error's stack lands on the line in your definition that defined the failing node. The
+published package ships its sources too, so the maps resolve inside consuming apps.
+You can set a breakpoint on a builder call and the debugger stops there when the
+compiled function evaluates it, and compiled functions appear as their own named
+scripts (`forge:compiled/<phase>/<journey>.<step>...js`) in debugger panels rather
+than a pile of `<anonymous>` entries. ([#247])
+
+Error reporting points into your form the same way: when a request blows up, the
+error names the failing node and carries a `Defined at:` line with the file and line
+of the builder call that defined it, and the stack renders author-first - your frames
+as-is, runs of forge internals folded to a single summary line. The first thing you
+read is where in your own definition the problem lives, not where in the engine it
+surfaced. ([#209], [#210], [#247])
+
 #### Under the hood
 
 - The authoring builders are reorganised into domain files (structures, values,
