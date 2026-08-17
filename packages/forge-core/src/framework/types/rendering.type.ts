@@ -16,6 +16,16 @@ export interface RenderBlock {
 }
 
 /**
+ * A field validation failure prepared for rendering. `anchor` is the failing
+ * block instance's document anchor (its `idPrefix` or code) for error summary
+ * links; several blocks may share one code, so the code alone cannot identify
+ * the instance.
+ */
+export interface RenderValidationError extends ValidationResult {
+  anchor?: string
+}
+
+/**
  * Journey ancestor in the render context, including its evaluated view configuration.
  */
 export interface JourneyAncestor {
@@ -60,7 +70,7 @@ export interface RenderContext {
   showValidationFailures: boolean
 
   /** Failed validation results from field blocks (only populated when showValidationFailures is true) */
-  fieldValidationErrors: ValidationResult[]
+  fieldValidationErrors: RenderValidationError[]
 
   /** Failed domain validation results from step-level validations (only populated when showValidationFailures is true) */
   domainValidationErrors: ValidationResult[]

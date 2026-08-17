@@ -265,6 +265,8 @@ export interface GovUKTextInput extends FieldBlockDefinition {
 export const GovUKTextInput = nunjucksComponent<GovUKTextInput>('govukTextInput', {
   field: true,
   inputSchema: z.string(),
+  // The rendered input's id matches the render params below, so error summary links land on it.
+  errorAnchor: props => props.id ?? props.code,
   render: (props, nunjucksEnv) => {
     const params = {
       id: props.id ?? props.code,

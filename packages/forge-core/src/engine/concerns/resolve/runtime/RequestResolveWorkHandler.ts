@@ -2,7 +2,7 @@ import type { ReachabilityEvaluation } from '../../reachability/contracts/reacha
 import type { StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
 import type { ValidationResult } from '../../validation/contracts/validationResult.type'
 import { resolvePathParams } from '../../../../shared/utils/routePath'
-import type { RenderContext } from '../../../../framework/types/rendering.type'
+import type { RenderContext, RenderValidationError } from '../../../../framework/types/rendering.type'
 import type { ViewConfig } from '../../../../authoring/types/structures.type'
 import { buildCompiledResolveContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
 import { resolveBacklinkRouteTemplatePath } from '../../reachability/runtime/reachabilityRedirects'
@@ -38,11 +38,16 @@ export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', Reques
     const fieldFailures: Record<string, ValidationResult[]> = groupFieldFailuresByBlockId(
       ctx.request.currentPageValidation?.fieldFailures ?? [],
     )
+    const fieldFailureAnchors: Record<string, string> = {}
+
+    ctx.request.fieldFailureAnchors = fieldFailureAnchors
 
     const compiledResolveContext = buildCompiledResolveContext(
       ctx.request.context,
       ctx.request.functionRegistry,
+      ctx.request.componentRegistry,
       fieldFailures,
+      fieldFailureAnchors,
     )
 
     return runTaskPhase(
@@ -85,7 +90,9 @@ export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', Reques
       ancestors,
       blocks: [...output.blocks],
       showValidationFailures,
-      fieldValidationErrors: fieldFailures.map(stripBlockId),
+      fieldValidationErrors: fieldFailures.map(failure =>
+        toRenderValidationError(failure, ctx.request.fieldFailureAnchors ?? {}),
+      ),
       domainValidationErrors: domainFailures,
       answers: ctx.request.context.domain.answers,
       data: ctx.request.context.domain.data,
@@ -166,4 +173,16 @@ function stripBlockId(failure: StepValidationFailure): ValidationResult {
   const { blockId: _, ...validation } = failure
 
   return validation
+}
+
+// Pairs a failure with its failing block instance's document anchor, recorded
+// during block resolution, so the error summary links to the right instance
+// even when several blocks share one code.
+function toRenderValidationError(
+  failure: StepValidationFailure,
+  fieldFailureAnchors: Record<string, string>,
+): RenderValidationError {
+  const anchor = fieldFailureAnchors[failure.blockId]
+
+  return anchor === undefined ? stripBlockId(failure) : { ...stripBlockId(failure), anchor }
 }

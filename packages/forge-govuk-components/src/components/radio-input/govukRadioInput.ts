@@ -281,6 +281,8 @@ interface GovUKRadioInputDivider {
 export const GovUKRadioInput = nunjucksComponent<GovUKRadioInput>('govukRadioInput', {
   field: true,
   inputSchema: z.string(),
+  // The first rendered radio's id is the idPrefix, so error summary links land there.
+  errorAnchor: props => props.idPrefix || props.code,
   render: (props, nunjucksEnv) => {
     const items = props.items
       .filter(option => option.visibleWhen !== false)

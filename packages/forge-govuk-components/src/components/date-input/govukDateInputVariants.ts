@@ -233,6 +233,8 @@ const monthDayPaths = { month: 'month', day: 'day' }
 export const GovUKDateInputFull = nunjucksComponent<GovUKDateInputFull>('govukDateInputFull', {
   field: true,
   inputSchema: z.object({ year: z.string(), month: z.string(), day: z.string() }).partial(),
+  // The rendered inputs are `${id}-day/-month/-year`, so error summary links land on the first.
+  errorAnchor: props => `${props.id || props.code}-day`,
   prepare: props => ({
     ...props,
     formatters: [Transformer.Object.ToISO(fullDatePaths), ...(props.formatters ?? [])],
@@ -278,6 +280,8 @@ export const GovUKDateInputFull = nunjucksComponent<GovUKDateInputFull>('govukDa
 export const GovUKDateInputYearMonth = nunjucksComponent<GovUKDateInputYearMonth>('govukDateInputYearMonth', {
   field: true,
   inputSchema: z.object({ year: z.string(), month: z.string() }).partial(),
+  // The rendered inputs are `${id}-month/-year`, so error summary links land on the first.
+  errorAnchor: props => `${props.id || props.code}-month`,
   prepare: props => ({
     ...props,
     formatters: [Transformer.Object.ToISO(yearMonthPaths), ...(props.formatters ?? [])],
@@ -322,6 +326,8 @@ export const GovUKDateInputYearMonth = nunjucksComponent<GovUKDateInputYearMonth
 export const GovUKDateInputMonthDay = nunjucksComponent<GovUKDateInputMonthDay>('govukDateInputMonthDay', {
   field: true,
   inputSchema: z.object({ month: z.string(), day: z.string() }).partial(),
+  // The rendered inputs are `${id}-day/-month`, so error summary links land on the first.
+  errorAnchor: props => `${props.id || props.code}-day`,
   prepare: props => ({
     ...props,
     formatters: [Transformer.Object.ToISO(monthDayPaths), ...(props.formatters ?? [])],

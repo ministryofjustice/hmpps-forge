@@ -46,6 +46,14 @@ export interface RequestExecutionContext {
   renderedBlocks?: readonly unknown[]
 
   /**
+   * Document anchors for failing field blocks, keyed by render block ID.
+   * Written during block resolution (each failing field records its `idPrefix`
+   * or code) and read back when the resolve phase assembles the render
+   * context's field validation errors.
+   */
+  fieldFailureAnchors?: Record<string, string>
+
+  /**
    * The pipeline's resolved outcome, published by `request.pipeline` on completion so the
    * surrounding adapter work tree (render, commit) can read it — executor siblings can't
    * read each other's outputs, only the shared context.

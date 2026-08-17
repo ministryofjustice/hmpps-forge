@@ -487,10 +487,11 @@ describe('StepAnswerPreparationCompiler', () => {
       // Assert
       expect(source).toContain('const fieldDefinitions = [];')
       expect(source).toContain(
-        'const prepareFieldAnswer = answerPreparationMode === "POST" ? _forgeHelpers.preparePostedFieldAnswer : _forgeHelpers.prepareStoredFieldAnswer;',
+        'const prepareFieldAnswer = answerPreparationMode === "POST" ? _forgeHelpers.preparePostedFieldAnswerGroup : _forgeHelpers.prepareStoredFieldAnswerGroup;',
       )
-      expect(source).toContain('const fieldPreparations = fieldDefinitions.map(')
-      expect(source).toContain('return prepareFieldAnswer(ctx, field);')
+      expect(source).toContain('const fieldGroups = _forgeHelpers.groupFieldDefinitionsByCode(fieldDefinitions);')
+      expect(source).toContain('const fieldPreparations = fieldGroups.map(')
+      expect(source).toContain('return prepareFieldAnswer(ctx, fieldGroup);')
       expect(source).not.toContain('function preparePostedFieldAnswer')
       expect(source).not.toContain('function prepareStoredFieldAnswer')
       expect(source).not.toContain('compileRegisteredField')
@@ -880,6 +881,163 @@ describe('StepAnswerPreparationCompiler', () => {
           functionType: FunctionType.CONDITION,
         })
       }
+    })
+  })
+
+  describe('same-code variant groups', () => {
+    function createVariant(
+      code: string,
+      dependencyFlag: string,
+      props: Record<string, unknown> = {},
+    ): FieldBlockASTNode {
+      const ref = createReference(['answers', dependencyFlag])
+      const cond = createConditionFunction('isRequired')
+
+      return createFieldBlock(code, { dependentWhen: createTestPredicate(ref, cond), ...props })
+    }
+
+    function activeFlag(): { current: string; mutations: never[] } {
+      return { current: 'yes', mutations: [] }
+    }
+
+    it('should keep the submitted value when the active variant is not the last declared', async () => {
+      // Arrange
+      const variants = [
+        createVariant('employed', 'showA'),
+        createVariant('employed', 'showB'),
+        createVariant('employed', 'showC'),
+      ]
+      const localCompiler = createSyncCompiler('isRequired')
+      const ctx = createCtx({
+        post: { employed: 'yes' },
+        answers: { showA: activeFlag() },
+      })
+
+      // Act
+      const source = localCompiler.generateSource(prepModel(variants))
+      await runGeneratedSource(source, ctx)
+
+      // Assert
+      expect(ctx.answers.employed.current).toBe('yes')
+      expect(ctx.answers.employed.mutations).toEqual([{ value: 'yes', source: 'post' }])
+    })
+
+    it('should prepare with the middle variant when it alone is active', async () => {
+      // Arrange
+      const variants = [
+        createVariant('employed', 'showA'),
+        createVariant('employed', 'showB'),
+        createVariant('employed', 'showC'),
+      ]
+      const localCompiler = createSyncCompiler('isRequired')
+      const ctx = createCtx({
+        post: { employed: 'no' },
+        answers: { showB: activeFlag() },
+      })
+
+      // Act
+      const source = localCompiler.generateSource(prepModel(variants))
+      await runGeneratedSource(source, ctx)
+
+      // Assert
+      expect(ctx.answers.employed.current).toBe('no')
+    })
+
+    it('should clear the answer once when no variant is active on POST', async () => {
+      // Arrange
+      const variants = [createVariant('employed', 'showA'), createVariant('employed', 'showB')]
+      const localCompiler = createSyncCompiler('isRequired')
+      const ctx = createCtx({
+        post: { employed: 'yes' },
+        answers: { employed: { current: 'stale', mutations: [] } },
+      })
+
+      // Act
+      const source = localCompiler.generateSource(prepModel(variants))
+      await runGeneratedSource(source, ctx)
+
+      // Assert
+      expect(ctx.answers.employed.current).toBeUndefined()
+      expect(ctx.answers.employed.mutations).toEqual([{ value: undefined, source: 'dependentWhen' }])
+    })
+
+    it('should apply only the active variant formatters when variants differ', async () => {
+      // Arrange
+      const variants = [
+        createVariant('employed', 'showA', { formatters: [createTransformerFunction('trim')] }),
+        createVariant('employed', 'showB', { formatters: [createTransformerFunction('toUpperCase')] }),
+      ]
+      const localCompiler = createSyncCompiler('isRequired', 'trim', 'toUpperCase')
+      const ctx = createCtx({
+        post: { employed: '  yes  ' },
+        answers: { showB: activeFlag() },
+      })
+
+      // Act
+      const source = localCompiler.generateSource(prepModel(variants))
+      await runGeneratedSource(source, ctx)
+
+      // Assert
+      expect(ctx.answers.employed.current).toBe('  YES  ')
+    })
+
+    it('should apply only the active variant default on GET', async () => {
+      // Arrange
+      const variants = [
+        createVariant('employed', 'showA', { defaultValue: 'default-a' }),
+        createVariant('employed', 'showB', { defaultValue: 'default-b' }),
+      ]
+      const localCompiler = createSyncCompiler('isRequired')
+      const ctx = createCtx({
+        request: { method: 'GET' },
+        answers: { showB: activeFlag() },
+      })
+
+      // Act
+      const source = localCompiler.generateSource(prepModel(variants))
+      await runGeneratedSource(source, ctx)
+
+      // Assert
+      expect(ctx.answers.employed.current).toBe('default-b')
+    })
+
+    it('should skip defaults on GET when no variant is active', async () => {
+      // Arrange
+      const variants = [
+        createVariant('employed', 'showA', { defaultValue: 'default-a' }),
+        createVariant('employed', 'showB', { defaultValue: 'default-b' }),
+      ]
+      const localCompiler = createSyncCompiler('isRequired')
+      const ctx = createCtx({ request: { method: 'GET' } })
+
+      // Act
+      const source = localCompiler.generateSource(prepModel(variants))
+      await runGeneratedSource(source, ctx)
+
+      // Assert
+      expect(ctx.answers.employed).toBeUndefined()
+    })
+
+    it('should create one preparation task per code group', async () => {
+      // Arrange
+      const variants = [createVariant('employed', 'showA'), createVariant('employed', 'showB')]
+      const other = createFieldBlock('name')
+      const localCompiler = createSyncCompiler('isRequired')
+      const ctx = createCtx({
+        post: { employed: 'yes', name: 'Jo' },
+        answers: { showA: activeFlag() },
+      })
+      const fieldAnswerPreparation = vi.spyOn(WorkTaskFactory, 'fieldAnswerPreparation')
+
+      // Act
+      const source = localCompiler.generateSource(prepModel([...variants, other]))
+      await runGeneratedSource(source, ctx)
+
+      // Assert
+      expect(fieldAnswerPreparation).toHaveBeenCalledTimes(2)
+      expect(fieldAnswerPreparation).toHaveBeenCalledWith('field:employed', expect.anything())
+      expect(fieldAnswerPreparation).toHaveBeenCalledWith('field:name', expect.anything())
+      fieldAnswerPreparation.mockRestore()
     })
   })
 

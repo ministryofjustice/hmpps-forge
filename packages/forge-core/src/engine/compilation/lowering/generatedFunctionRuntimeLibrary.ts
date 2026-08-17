@@ -23,8 +23,9 @@ interface RenderFieldValueContext {
   request: Record<string, unknown>
 }
 
-interface RenderFieldFailureContext {
+interface RenderFieldFailureContext extends ComponentInputContext {
   fieldFailures: Record<string, unknown[]>
+  fieldFailureAnchors: Record<string, string>
 }
 
 export interface FunctionRegistryLookupEntry {
@@ -43,6 +44,7 @@ interface FunctionEvaluationContext {
 
 interface ComponentRegistryLookupEntry {
   inputSchema?: ZodType
+  errorAnchor?(props: Record<string, unknown>): string | undefined
 }
 
 interface ComponentInputContext {
@@ -134,12 +136,24 @@ export interface GeneratedFunctionRuntimeLibrary {
   pushAnswerMutation(answerHistory: AnswerHistory, value: unknown, source: string): void
   normalizePostValue(rawValue: unknown, multiple: boolean): unknown
   checkComponentInputValue(ctx: ComponentInputContext, variant: string, value: unknown, multiple: boolean): unknown
-  preparePostedFieldAnswer(ctx: FieldPreparationContext, field: PreparedFieldDefinition): Promise<PreparedFieldAnswer>
-  prepareStoredFieldAnswer(ctx: AnswerHistoryContext, field: PreparedFieldDefinition): Promise<PreparedFieldAnswer>
+  groupFieldDefinitionsByCode(definitions: readonly PreparedFieldDefinition[]): PreparedFieldDefinition[][]
+  preparePostedFieldAnswerGroup(
+    ctx: FieldPreparationContext,
+    fields: readonly PreparedFieldDefinition[],
+  ): Promise<PreparedFieldAnswer>
+  prepareStoredFieldAnswerGroup(
+    ctx: AnswerHistoryContext,
+    fields: readonly PreparedFieldDefinition[],
+  ): Promise<PreparedFieldAnswer>
   applyTransformerPipeline(value: unknown, transformers: readonly TransformerThunk[]): unknown
   applyTransformerPipelineAsync(value: unknown, transformers: readonly TransformerThunk[]): Promise<unknown>
   resolveFieldValue(ctx: RenderFieldValueContext, blockProps: Record<string, unknown>): void
-  resolveFieldFailures(ctx: RenderFieldFailureContext, blockId: unknown, blockProps: Record<string, unknown>): void
+  resolveFieldFailures(
+    ctx: RenderFieldFailureContext,
+    blockId: unknown,
+    variant: string,
+    blockProps: Record<string, unknown>,
+  ): void
   evaluateFunction(
     ctx: FunctionEvaluationContext,
     diagnostics: RuntimeEvaluationDiagnostics | undefined,
@@ -188,14 +202,15 @@ export const generatedFunctionRuntimeLibrary: GeneratedFunctionRuntimeLibrary = 
   renderBlockBrand: RENDER_BLOCK_BRAND,
 
   // Answer-preparation functions are detached from this object by generated
-  // code (`mode === "POST" ? _forgeHelpers.preparePostedFieldAnswer : ...`),
+  // code (`mode === "POST" ? _forgeHelpers.preparePostedFieldAnswerGroup : ...`),
   // so they and everything they call live as module functions free of `this`.
   ensureAnswerHistory,
   pushAnswerMutation,
   normalizePostValue,
   checkComponentInputValue,
-  preparePostedFieldAnswer,
-  prepareStoredFieldAnswer,
+  groupFieldDefinitionsByCode,
+  preparePostedFieldAnswerGroup,
+  prepareStoredFieldAnswerGroup,
   applyTransformerPipeline,
   applyTransformerPipelineAsync,
 
@@ -217,7 +232,7 @@ export const generatedFunctionRuntimeLibrary: GeneratedFunctionRuntimeLibrary = 
     blockProps.value = resolveGetFieldValue(answerHistory, blockProps.defaultValue)
   },
 
-  resolveFieldFailures(ctx, blockId, blockProps) {
+  resolveFieldFailures(ctx, blockId, variant, blockProps) {
     // Validation shows for the whole step at once: when any field failed, every
     // field carries errors - its own failures, or [] when it passed. When nothing
     // failed there is no errors property, matching the un-validated render.
@@ -225,7 +240,22 @@ export const generatedFunctionRuntimeLibrary: GeneratedFunctionRuntimeLibrary = 
       return
     }
 
-    blockProps.errors = ctx.fieldFailures[String(blockId)] ?? []
+    const failures = ctx.fieldFailures[String(blockId)] ?? []
+
+    blockProps.errors = failures
+
+    if (failures.length === 0) {
+      return
+    }
+
+    // The failing block instance's document anchor, for the error summary link.
+    // The component owns the ids it renders, so it declares how to derive the
+    // anchor; without a declaration the anchor is the field code.
+    const anchor = ctx.components.get(variant)?.errorAnchor?.(blockProps) ?? blockProps.code
+
+    if (typeof anchor === 'string') {
+      ctx.fieldFailureAnchors[String(blockId)] = anchor
+    }
   },
 
   evaluateFunction(ctx, diagnostics, diagnosticReference, functionName, args) {
@@ -364,10 +394,112 @@ function checkComponentInputValue(
   return multiple ? [] : undefined
 }
 
+/**
+ * Groups same-code field definitions into variant groups, preserving
+ * declaration order. Runs at request time because iterator template fields
+ * only resolve their codes per request; entries without a resolvable code
+ * each stay in their own group.
+ */
+function groupFieldDefinitionsByCode(definitions: readonly PreparedFieldDefinition[]): PreparedFieldDefinition[][] {
+  const groups: PreparedFieldDefinition[][] = []
+  const groupsByCode = new Map<string, PreparedFieldDefinition[]>()
+
+  definitions.forEach(definition => {
+    const existingGroup = definition.code === undefined ? undefined : groupsByCode.get(definition.code)
+
+    if (existingGroup !== undefined) {
+      existingGroup.push(definition)
+
+      return
+    }
+
+    const group = [definition]
+
+    groups.push(group)
+    if (definition.code !== undefined) {
+      groupsByCode.set(definition.code, group)
+    }
+  })
+
+  return groups
+}
+
+/**
+ * Picks the active owner of a same-code variant group: the first field in
+ * declaration order whose `dependentWhen` holds (or which has none). Only the
+ * owner runs preparation; inactive variants contribute nothing.
+ */
+async function findActiveFieldVariant(
+  fields: readonly PreparedFieldDefinition[],
+): Promise<PreparedFieldDefinition | undefined> {
+  // Sequential on purpose: first active variant in declaration order wins.
+  for (const field of fields) {
+    if (field.evaluateDependentWhen === undefined || (await field.evaluateDependentWhen())) {
+      return field
+    }
+  }
+
+  return undefined
+}
+
+async function preparePostedFieldAnswerGroup(
+  ctx: FieldPreparationContext,
+  fields: readonly PreparedFieldDefinition[],
+): Promise<PreparedFieldAnswer> {
+  if (fields.length === 1) {
+    return preparePostedFieldAnswer(ctx, fields[0])
+  }
+
+  const activeField = await findActiveFieldVariant(fields)
+
+  if (activeField === undefined) {
+    // No variant is active, so the logical field clears its stale answer once.
+    pushAnswerMutation(ensureAnswerHistory(ctx, fields[0].code), undefined, 'dependentWhen')
+
+    return buildPreparedFieldAnswer(ctx, fields[0].code, 'POST')
+  }
+
+  await runPostedFieldPipeline(ctx, activeField)
+
+  return buildPreparedFieldAnswer(ctx, activeField.code, 'POST')
+}
+
+async function prepareStoredFieldAnswerGroup(
+  ctx: AnswerHistoryContext,
+  fields: readonly PreparedFieldDefinition[],
+): Promise<PreparedFieldAnswer> {
+  if (fields.length === 1) {
+    return prepareStoredFieldAnswer(ctx, fields[0])
+  }
+
+  const activeField = await findActiveFieldVariant(fields)
+
+  if (activeField === undefined) {
+    // No variant is active: no defaults, no parsing, just the stored view.
+    return buildPreparedFieldAnswer(ctx, fields[0].code, 'GET')
+  }
+
+  return prepareStoredFieldAnswer(ctx, activeField)
+}
+
 async function preparePostedFieldAnswer(
   ctx: FieldPreparationContext,
   field: PreparedFieldDefinition,
 ): Promise<PreparedFieldAnswer> {
+  await runPostedFieldPipeline(ctx, field)
+
+  if (field.evaluateDependentWhen !== undefined) {
+    const dependentWhenResult = await field.evaluateDependentWhen()
+
+    if (!dependentWhenResult) {
+      pushAnswerMutation(ensureAnswerHistory(ctx, field.code), undefined, 'dependentWhen')
+    }
+  }
+
+  return buildPreparedFieldAnswer(ctx, field.code, 'POST')
+}
+
+async function runPostedFieldPipeline(ctx: FieldPreparationContext, field: PreparedFieldDefinition): Promise<void> {
   const answerHistory = ensureAnswerHistory(ctx, field.code)
   let rawValue = normalizePostValue(ctx.post[field.code], field.acceptsMultipleValues)
 
@@ -384,16 +516,6 @@ async function preparePostedFieldAnswer(
       pushAnswerMutation(answerHistory, formattedValue, 'processed')
     }
   }
-
-  if (field.evaluateDependentWhen !== undefined) {
-    const dependentWhenResult = await field.evaluateDependentWhen()
-
-    if (!dependentWhenResult) {
-      pushAnswerMutation(answerHistory, undefined, 'dependentWhen')
-    }
-  }
-
-  return buildPreparedFieldAnswer(ctx, field.code, 'POST')
 }
 
 async function prepareStoredFieldAnswer(

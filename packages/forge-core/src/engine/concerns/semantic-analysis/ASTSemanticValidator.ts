@@ -13,6 +13,7 @@ import { validateHookScope } from './rules/validateHookScope'
 import { validateTieBreakerScope } from './rules/validateTieBreakerScope'
 import { validateStructureScope } from './rules/validateStructureScope'
 import { validateBlockScope } from './rules/validateBlockScope'
+import { validateFieldCodeUniqueness } from './rules/validateFieldCodeUniqueness'
 import { validateFunctionArguments } from './rules/validateFunctionArguments'
 import { validateContainerTypes } from './rules/validateContainerTypes'
 
@@ -28,6 +29,7 @@ const RULES: readonly ASTValidationRule[] = [
   validateTieBreakerScope,
   validateStructureScope,
   validateBlockScope,
+  validateFieldCodeUniqueness,
   validateFunctionArguments,
   validateContainerTypes,
 ]

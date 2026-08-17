@@ -175,6 +175,8 @@ export interface GovUKSelectInput extends FieldBlockDefinition {
 export const GovUKSelectInput = nunjucksComponent<GovUKSelectInput>('govukSelectInput', {
   field: true,
   inputSchema: z.string(),
+  // The rendered select's id matches the render params below, so error summary links land on it.
+  errorAnchor: props => props.id ?? props.code,
   render: (props, nunjucksEnv) => {
     const params = {
       id: props.id ?? props.code,

@@ -278,7 +278,7 @@ export default class StepAnswerPreparationCompiler {
 
     return generator.const(
       'prepareFieldAnswer',
-      code`${mode} === "POST" ? ${HELPERS}.preparePostedFieldAnswer : ${HELPERS}.prepareStoredFieldAnswer`,
+      code`${mode} === "POST" ? ${HELPERS}.preparePostedFieldAnswerGroup : ${HELPERS}.prepareStoredFieldAnswerGroup`,
     )
   }
 
@@ -288,14 +288,14 @@ export default class StepAnswerPreparationCompiler {
     prepareFieldAnswer: IdentifierName,
     generator: CodeGenerator,
   ): IdentifierName {
-    generator.comment('Create one preparation task per field')
+    generator.comment('Create one preparation task per field; same-code fields form one variant group')
     const createFieldPreparation = generator.functionExpression(
       'createFieldPreparation',
-      ['field'],
-      (body, [field]) => {
-        const fieldCode = body.const('fieldCode', code`${field}.code`)
+      ['fieldGroup'],
+      (body, [fieldGroup]) => {
+        const fieldCode = body.const('fieldCode', code`${fieldGroup}[0].code`)
         const run = body.functionExpression('runFieldPreparation', [], runBody => {
-          runBody.return(callCode(prepareFieldAnswer, [CONTEXT, field]))
+          runBody.return(callCode(prepareFieldAnswer, [CONTEXT, fieldGroup]))
         })
         const props = body.const(
           'fieldAnswerPreparationProps',
@@ -311,8 +311,12 @@ export default class StepAnswerPreparationCompiler {
         )
       },
     )
+    const fieldGroups = generator.const(
+      'fieldGroups',
+      callCode(code`${HELPERS}.groupFieldDefinitionsByCode`, [code`${fieldDefinitions}`]),
+    )
 
-    return generator.const('fieldPreparations', callCode(code`${fieldDefinitions}.map`, [createFieldPreparation]))
+    return generator.const('fieldPreparations', callCode(code`${fieldGroups}.map`, [createFieldPreparation]))
   }
 
   private compileTransformerCall(transformer: TransformerPipeline[number], value: IdentifierName): CodeFragment {

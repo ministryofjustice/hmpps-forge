@@ -48,6 +48,7 @@ interface ResolveResultNames {
 interface BlockPropsCompilation {
   readonly properties: readonly ResolvePropertyModel[]
   readonly blockType: string
+  readonly variant: string
   readonly resolvesFieldValue: boolean
   readonly blockId: SafeCode
   readonly codeExpression: SafeCode | undefined
@@ -270,6 +271,7 @@ export default class StepResolveCompiler {
     return {
       properties: block.properties,
       blockType: block.blockType,
+      variant: block.variant,
       resolvesFieldValue: block.resolvesFieldValue,
       blockId,
       codeExpression,
@@ -382,7 +384,9 @@ export default class StepResolveCompiler {
       generator.statement(code`${HELPERS}.resolveFieldValue(${CONTEXT}, ${props})`)
     }
 
-    generator.statement(code`${HELPERS}.resolveFieldFailures(${CONTEXT}, ${plan.blockId}, ${props})`)
+    generator.statement(
+      code`${HELPERS}.resolveFieldFailures(${CONTEXT}, ${plan.blockId}, ${literal(plan.variant)}, ${props})`,
+    )
   }
 
   private compilePropertyAssignment(
@@ -456,6 +460,7 @@ export default class StepResolveCompiler {
     return {
       properties: block.entries,
       blockType: block.blockType,
+      variant: block.variant,
       resolvesFieldValue: this.nestedBlockResolvesFieldValue(block.entries),
       blockId,
       codeExpression: undefined,

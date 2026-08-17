@@ -51,12 +51,16 @@ export function buildCompiledAnswerPreparationContext(
 export function buildCompiledResolveContext(
   context: RuntimeContext,
   functionRegistry: FunctionRegistry,
+  componentRegistry: ComponentRegistry,
   fieldFailures: Record<string, ValidationResult[]>,
+  fieldFailureAnchors: Record<string, string>,
 ): CompiledResolveContext {
   return {
     ...buildCompiledBaseContext(context, functionRegistry),
     post: context.request.post,
     fieldFailures,
+    fieldFailureAnchors,
+    components: componentRegistry,
   }
 }
 
