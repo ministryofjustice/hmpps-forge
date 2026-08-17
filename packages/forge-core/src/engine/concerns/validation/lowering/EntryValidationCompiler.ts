@@ -68,7 +68,13 @@ export default class EntryValidationCompiler {
 
     generator.directive('use strict')
 
-    generator.comment('EntryValidationCompiler.buildEntryValidationSource')
+    if (entries.length === 0) {
+      generator.note('This step declares no validateOnEntry rules, so no groups are selected.')
+      generator.return(code`[]`)
+
+      return generator
+    }
+
     const groups = generator.const('groups', code`[]`)
     const seen = generator.const('seen', code`Object.create(null)`)
     const addGroup = this.compileEntryValidationGroupAccumulator(groups, seen, generator)
@@ -87,7 +93,7 @@ export default class EntryValidationCompiler {
     seen: IdentifierName,
     generator: CodeGenerator,
   ): IdentifierName {
-    generator.comment('EntryValidationCompiler.compileEntryValidationGroupAccumulator')
+    generator.comment('Record each matching group once, in first-declared order')
 
     return generator.function('addGroup', ['group'], (functionGenerator, [group]) => {
       const groupKey = functionGenerator.const('groupKey', code`String(${group})`)
@@ -107,7 +113,7 @@ export default class EntryValidationCompiler {
     addGroup: IdentifierName,
     generator: CodeGenerator,
   ): void {
-    generator.comment('EntryValidationCompiler.compileEntryValidationRule')
+    generator.comment(`Entry rule — groups ${entry.groups.map(group => `"${group}"`).join(', ')}`)
     generator.scope(() => {
       if (entry.when === true) {
         this.compileEntryValidationGroups(entry.groups, addGroup, generator)

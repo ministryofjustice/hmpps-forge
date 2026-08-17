@@ -72,6 +72,16 @@ describe('EntryValidationCompiler', () => {
       expect(groups).toEqual([])
     })
 
+    it('should collapse to a bare empty return when no entries are configured', () => {
+      // Act
+      const source = compiler.generateOnEntryValidationSource(entryModel(undefined))
+
+      // Assert
+      expect(source).toContain('return [];')
+      expect(source).not.toContain('addGroup')
+      expect(source).not.toContain('seen')
+    })
+
     it('should collect groups for matching entries', async () => {
       // Arrange
       const functionRegistry = new FunctionRegistry()

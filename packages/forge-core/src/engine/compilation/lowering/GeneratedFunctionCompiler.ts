@@ -238,8 +238,8 @@ const PHASE_PURPOSES: Record<CompilationPhase, readonly string[]> = {
     'that decides error display.',
   ],
   [CompilationPhase.ENTRY_VALIDATION]: [
-    "Evaluates this step's entry conditions; a failing condition redirects",
-    'away before the step renders.',
+    'Selects which validation groups to display when this step first renders:',
+    'each validateOnEntry rule whose condition holds contributes its groups.',
   ],
   [CompilationPhase.HOOKS]: [
     'Runs the authored hook lifecycle: each hook evaluates its condition, then',
