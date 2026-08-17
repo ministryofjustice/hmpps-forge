@@ -255,6 +255,8 @@ export interface GovUKPasswordInput extends FieldBlockDefinition {
 export const GovUKPasswordInput = nunjucksComponent<GovUKPasswordInput>('govukPasswordInput', {
   field: true,
   inputSchema: z.string(),
+  // The rendered input's id matches the render params below, so error summary links land on it.
+  errorAnchor: props => props.id ?? props.code,
   render: (props, nunjucksEnv) => {
     const params = {
       id: props.id ?? props.code,

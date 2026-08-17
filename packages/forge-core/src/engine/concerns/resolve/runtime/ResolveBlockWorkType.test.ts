@@ -1,5 +1,6 @@
 import { BlockType } from '../../../../authoring/types/enums'
 import type { CompiledResolveContext } from '../../../contracts/compiled/compiledContexts.type'
+import ComponentRegistry from '../../../registries/ComponentRegistry'
 import WorkContext from '../../../runtime/evaluation/work/WorkContext'
 import TraceSpan from '../../../tracing/TraceSpan'
 import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
@@ -16,6 +17,8 @@ function createContext(): WorkContext<CompiledResolveContext> {
     query: {},
     post: {},
     fieldFailures: {},
+    fieldFailureAnchors: {},
+    components: new ComponentRegistry(),
     request: {},
     workTasks: {},
     conditions: {

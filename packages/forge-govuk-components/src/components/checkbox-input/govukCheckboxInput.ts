@@ -334,6 +334,8 @@ export const GovUKCheckboxInput = nunjucksComponent<GovUKCheckboxInput>('govukCh
   field: true,
   inputSchema: z.array(z.string()),
   multiple: true,
+  // The first rendered checkbox's id is the idPrefix, so error summary links land there.
+  errorAnchor: props => props.idPrefix || props.code,
   render: (props, nunjucksEnv) => {
     // At render time, items has been evaluated (Collection expressions resolved to arrays)
     const evaluatedItems = props.items as EvaluatedBlock<GovUKCheckboxInputItem | GovUKCheckboxInputDivider>[]

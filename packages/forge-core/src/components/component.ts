@@ -38,7 +38,7 @@ export function component<TBlock extends BlockDefinition, TOutput = string, TRen
 ): ForgeComponent<TBlock, TOutput> {
   // TBlock is still generic here, so the conditional options type is unresolved - read it
   // through a shape carrying every member either arm can contribute.
-  const { render, prepare, field, inputSchema, multiple } = options as BaseComponentOptions<
+  const { render, prepare, field, inputSchema, multiple, errorAnchor } = options as BaseComponentOptions<
     TBlock,
     TOutput,
     TRenderer
@@ -63,5 +63,6 @@ export function component<TBlock extends BlockDefinition, TOutput = string, TRen
     render: (block: EvaluatedBlock<TBlock>, renderer?: unknown) => render(block, renderer as TRenderer),
     ...(inputSchema !== undefined && { inputSchema }),
     ...(multiple !== undefined && { multiple }),
+    ...(errorAnchor !== undefined && { errorAnchor }),
   })
 }

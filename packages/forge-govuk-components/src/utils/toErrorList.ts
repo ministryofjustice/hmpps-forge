@@ -1,6 +1,8 @@
 interface ValidationError {
   message: string
   blockCode?: string
+  /** Document anchor of the failing block instance; falls back to blockCode when absent. */
+  anchor?: string
 }
 
 interface ErrorListItem {
@@ -23,13 +25,17 @@ export function getErrorSummaryList(this: NunjucksGlobalContext): ErrorListItem[
   return (
     [...domainErrors, ...fieldErrors]
       .filter(error => {
-        const key = error.blockCode ?? error.message
+        const key = error.anchor ?? error.blockCode ?? error.message
 
         return !seen.has(key) && seen.add(key)
       })
-      .map(error => ({
-        text: error.message,
-        href: error.blockCode ? `#${error.blockCode}` : undefined,
-      }))
+      .map(error => {
+        const anchor = error.anchor ?? error.blockCode
+
+        return {
+          text: error.message,
+          href: anchor ? `#${anchor}` : undefined,
+        }
+      })
   )
 }

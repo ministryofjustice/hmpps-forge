@@ -62,7 +62,9 @@ the engine throws is one exported family of `Forge*` error classes with author-f
 stack rendering. The code generator is reworked on top of a typed IR too - compiled
 functions now read like hand-written JavaScript, runtime errors point straight back at
 the line in your journey definition, and you can even drop breakpoints in your
-definitions and step through them.
+definitions and step through them. Steps can also ask the same question in more than
+one place now - same-code field copies gated by `dependentWhen` behave as one field,
+with error summary links that land on the right copy.
 
 ### Added
 
@@ -89,6 +91,17 @@ definitions and step through them.
   `forge:compiled/<phase>/<journey>.<step>...js` and content-fingerprinted, so an IDE
   never reuses stale generated source after reconnecting to a restarted process
   ([#247])
+- Same-code field variants - one question can appear as several copies on a step,
+  each nested under a different parent option via `dependentWhen`. The first active
+  copy in declaration order owns preparation, formatters, parsers, defaults and
+  validation; when no copy is active the answer clears once. Duplicate literal field
+  codes without `dependentWhen` on every copy are rejected at registration ([#248])
+- `errorAnchor` on field components - a component whose rendered control ids can
+  differ from the field code declares where an error summary link should land
+  (`errorAnchor: props => props.idPrefix ?? props.code`), and the engine falls back
+  to the field code when it's not declared. `fieldValidationErrors` entries carry the
+  failing instance's `anchor`, and `getErrorSummaryList` links it over `blockCode`
+  ([#248])
 
 ### Changed
 
@@ -147,6 +160,10 @@ definitions and step through them.
   `unknown` like the rest ([#210])
 - The deprecated `defineFunction` helpers never stamped callsites on the handles they
   build, so their errors lacked a `Defined at` line - they stamp now ([#210])
+- Error summary links land on the rendered control when a GOV.UK field has a custom
+  `id` or `idPrefix` - previously the link was always `#<code>`, which matched
+  nothing. Date inputs link to their first inner input (`#<id>-day`) instead of the
+  wrapper id no element carries ([#248])
 
 ### Details
 
@@ -190,6 +207,22 @@ exported from core so you can catch and narrow with `instanceof`. The codes and
 are new: `ForgeAuthoringError` for authoring API misuse caught while the builders are
 still assembling the definition, and `ForgeInternalError` for states the engine should
 make impossible. ([#229])
+
+#### Same-code field variants
+
+Previously a step could not ask the same question in more than one place - two field
+blocks sharing a code silently clobbered each other's answers (last writer won,
+formatters and parsers split between copies), and the error summary anchored every
+failure to the shared code. Now same-code copies that each declare `dependentWhen`
+form one logical field: the first copy in declaration order whose condition holds is
+the active one, and it alone runs answer preparation, formatters, parsers, defaults
+and validation. When no copy is active the answer clears once. This is the "one
+question nested under several radio reveals" shape - three copies of *Have they been
+employed before?*, one inside each parent option's conditional reveal, storing a
+single answer. The error summary links to the failing copy through the component's
+declared `errorAnchor`, so the link opens the right reveal. Duplicate literal codes
+where a copy is missing `dependentWhen` are rejected at registration; a single field
+per code behaves exactly as before. ([#248])
 
 #### Under the hood
 
@@ -266,6 +299,7 @@ make impossible. ([#229])
 [#236]: https://github.com/ministryofjustice/hmpps-forge/pull/236
 [#237]: https://github.com/ministryofjustice/hmpps-forge/pull/237
 [#247]: https://github.com/ministryofjustice/hmpps-forge/pull/247
+[#248]: https://github.com/ministryofjustice/hmpps-forge/pull/248
 
 ---
 

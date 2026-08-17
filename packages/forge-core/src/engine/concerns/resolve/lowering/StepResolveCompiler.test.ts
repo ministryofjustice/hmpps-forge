@@ -92,6 +92,8 @@ function createCtx(overrides: Partial<CompiledResolveContext> = {}): CompiledRes
     query: {},
     post: {},
     fieldFailures: {},
+    fieldFailureAnchors: {},
+    components: new ComponentRegistry(),
     request: { method: 'GET' },
     workTasks: WorkTaskFactory,
     conditions: {
@@ -217,7 +219,7 @@ describe('StepResolveCompiler', () => {
           '};',
           '',
           '_forgeHelpers.resolveFieldValue(ctx, textInputProps);',
-          `_forgeHelpers.resolveFieldFailures(ctx, "${field.id}", textInputProps);`,
+          `_forgeHelpers.resolveFieldFailures(ctx, "${field.id}", "text-input", textInputProps);`,
           `blocks.push(ctx.workTasks.resolveBlock("${field.id}", "text-input", "BlockType.field", textInputProps));`,
           '',
           'return ctx.workTasks.resolveBlocks(blocks, step, ancestors);',
@@ -603,7 +605,7 @@ describe('StepResolveCompiler', () => {
       const result = await compiled(createCtx({ fieldFailures: { [block.id]: [failure] } }))
 
       // Assert
-      expect(source).toContain(`resolveFieldFailures(ctx, "${block.id}", textInputProps)`)
+      expect(source).toContain(`resolveFieldFailures(ctx, "${block.id}", "text-input", textInputProps)`)
       expect(result.props.blocks[0].props.properties.errors).toEqual([failure])
     })
 

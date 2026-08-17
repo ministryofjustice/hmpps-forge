@@ -53,10 +53,17 @@ export type CompiledValidationContext = CompiledBaseContext
  * Context passed to the compiled render function. Field value resolution reads the
  * AnswerHistory produced by compiled answer preparation, including parsed values
  * and mutation sources. `fieldFailures` is keyed by render block ID, not field code.
+ * Block resolution records each failing field block's document anchor (the
+ * component's declared `errorAnchor`, or the field code) into
+ * `fieldFailureAnchors`, also keyed by render block ID, so the error summary can
+ * link to the right block instance. `components` is how the anchor is derived -
+ * the failing block's registry entry declares where focus should land.
  */
 export interface CompiledResolveContext extends CompiledBaseContext {
   post: Record<string, unknown>
   fieldFailures: Record<string, ValidationResult[]>
+  fieldFailureAnchors: Record<string, string>
+  components: ComponentRegistry
 }
 
 /**
