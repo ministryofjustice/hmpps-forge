@@ -59,7 +59,10 @@ A tidy-up of the authoring surface - the GOV.UK utility wrappers are real compon
 now, `createForgePackage()` is mandatory and stamps provenance on every node so errors
 point at the line in your code that defined the offending definition, and everything
 the engine throws is one exported family of `Forge*` error classes with author-first
-stack rendering.
+stack rendering. The code generator is reworked on top of a typed IR too - compiled
+functions now read like hand-written JavaScript, runtime errors point straight back at
+the line in your journey definition, and you can even drop breakpoints in your
+definitions and step through them.
 
 ### Added
 
@@ -75,6 +78,17 @@ stack rendering.
   each block renders inside its own `<li>` ([#203])
 - `Format()` takes a resolvable template - a reference or any string-valued expression
   works: `Format(Answer('template'), ...)` ([#210])
+- Source maps on every compiled function - a runtime error's stack lands on the line
+  in your journey definition that defined the failing node, not in generated code,
+  and the published package ships its sources so the maps resolve inside consuming
+  apps ([#247])
+- Breakpoints in your journey definitions - set one on a builder call and the
+  debugger stops there when the compiled function evaluates it. Still a bit rough
+  around the edges ([#247])
+- Compiled functions are their own scripts in debugger panels - named
+  `forge:compiled/<phase>/<journey>.<step>...js` and content-fingerprinted, so an IDE
+  never reuses stale generated source after reconnecting to a restarted process
+  ([#247])
 
 ### Changed
 
@@ -91,18 +105,23 @@ stack rendering.
   message carries yours (`Failed to evaluate compiled Forge hooks function: <yours>`)
   and HTTP `status`/`statusCode` are mirrored from the cause, so express error
   handling picks the same response code. Breaking only if a host error handler
-  matched on the thrown instance - match on `error.cause` instead ([#238])
+  matched on the thrown instance - match on `error.cause` instead ([#247])
 - Runtime error stacks read author-first - your frames render as-is, each run of
   forge-internal frames folds to one summary line (`FORGE_FULL_STACK=1` expands it,
   and the unfolded original stays on a non-enumerable `rawStack`), the definition
   site renders as `at [defined]` frames that error trackers ingest as clickable
   in-app frames, and the `Node:` row is gone from the diagnostics block (`nodeId`
-  stays on the error object) ([#238])
+  stays on the error object) ([#247])
 - The runtime `definedAt` is a chain now, and callsite capture is deeper (15 frames,
   up from 5) - if you wrap forge builders in your own utilities, the chain reads past
-  the wrapper file to the line in your code ([#238])
+  the wrapper file to the line in your code ([#247])
 - `core/framework` is types-only - the path utilities are no longer exported, so copy
   the ones you used into your adapter; they're a few lines each ([#212])
+- Generated code reads like hand-written JavaScript - blocks, validation rules, and
+  hooks compile to named function units, static route metadata and field inventories
+  are plain literals, reachability cascades are labelled if/else chains, and every
+  generated function opens with a header saying what it does and when it runs ([#247])
+- Generated hook functions are only `async` when their bodies actually await ([#247])
 
 ### Removed
 
@@ -217,13 +236,22 @@ make impossible. ([#229])
   assembled on read, so a caught-and-handled error never pays for formatting.
   `ForgeInternalError` never folds - when the engine itself is broken, the internals
   are the story. Generated functions carry a `//# sourceURL=forge:compiled/<phase>`
-  so eval'd frames stop rendering as `<anonymous>` ([#238])
+  so eval'd frames stop rendering as `<anonymous>` ([#247])
 - Runtime validation is reworked around one `validation.current-step` operation -
   both triggers (matching `validateOnEntry` groups on GET, the submit lifecycle on
   POST) schedule the same task, rule group filtering happens before rule conditions
   evaluate, and a single `currentPageValidation` field is the display signal.
   Reachability keeps its own validity store, so navigation facts can't leak into
   display ([#237])
+- The code generator is a typed IR now - phase compilers build a node tree of
+  statements and typed code fragments, and a renderer turns the tree into source with
+  positions carried through for the source maps. The string-concatenation emitters
+  are binned ([#247])
+- Analysis builds one hierarchical compilation model per package - field occurrences,
+  hook lifecycles, and authored values are classified once, and the phase compilers
+  consume the models instead of re-walking the AST ([#247])
+- Shared answer-preparation machinery lives in the runtime library handed to compiled
+  functions, instead of being re-emitted into every script ([#247])
 
 [#203]: https://github.com/ministryofjustice/hmpps-forge/pull/203
 [#206]: https://github.com/ministryofjustice/hmpps-forge/pull/206
@@ -237,7 +265,7 @@ make impossible. ([#229])
 [#230]: https://github.com/ministryofjustice/hmpps-forge/pull/230
 [#236]: https://github.com/ministryofjustice/hmpps-forge/pull/236
 [#237]: https://github.com/ministryofjustice/hmpps-forge/pull/237
-[#238]: https://github.com/ministryofjustice/hmpps-forge/pull/238
+[#247]: https://github.com/ministryofjustice/hmpps-forge/pull/247
 
 ---
 
