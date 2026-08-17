@@ -73,7 +73,14 @@ export default class StepValidationCompiler {
     const generator = CodeGenerator.forFunction(['ctx', 'filter'])
 
     generator.directive('use strict')
-    generator.comment('Validation groups')
+
+    if (model.fields.length === 0 && model.domainRules === undefined) {
+      generator.note('This step declares no validation rules.')
+      generator.return(code`${CONTEXT}.workTasks.stepValidation([], [])`)
+
+      return generator
+    }
+
     const ruleIsActive = this.compileRuleFilterSetup(generator)
     const fieldValidations = generator.const('fieldValidations', code`[]`)
     const domainValidations = generator.const('domainValidations', code`[]`)
@@ -262,33 +269,24 @@ export default class StepValidationCompiler {
       functionPrefix,
       [],
       body => {
-        const errors = body.const('errors', code`[]`)
         const validationResults = this.compileValidationRules(
           rules,
           this.compileValidationEvaluationPrefix(functionPrefix),
           body,
         )
-        const failures = this.compileValidationFailures(validationResults, ruleIsActive, 'validationFailures', body)
+        const fieldIdentity = objectCode([
+          { key: 'blockId', value: blockId },
+          { key: 'blockCode', value: blockCode },
+        ])
 
-        body.forRange('failureIndex', literal(0), code`${failures}.length`, failureIndex => {
-          const failure = body.const('validationFailure', code`${failures}[${failureIndex}]`)
-
-          body.note('Return this failed rule as a field validation error.')
-          body.statement(
-            code`${errors}.push(${objectCode([
-              { key: 'blockId', value: blockId },
-              { key: 'blockCode', value: blockCode },
-              { key: 'passed', value: literal(false) },
-              { key: 'message', value: code`${failure}.message` },
-              { key: 'submissionOnly', value: code`${failure}.rule.submissionOnly === true` },
-              { key: 'groups', value: code`${failure}.rule.groups` },
-              { key: 'details', value: code`${failure}.details` },
-            ])})`,
-          )
-        })
-        body.return(errors)
+        body.blank()
+        this.compileValidationFailuresReturn(
+          'collectFieldValidationFailures',
+          [validationResults, ruleIsActive, fieldIdentity],
+          body,
+        )
       },
-      { async: true },
+      { async: () => this.expr.usesAwait },
     )
   }
 
@@ -301,32 +299,12 @@ export default class StepValidationCompiler {
       'validateStep',
       [],
       body => {
-        const domainErrors = body.const('domainErrors', code`[]`)
         const validationResults = this.compileValidationRules(rules, 'step', body)
-        const failures = this.compileValidationFailures(
-          validationResults,
-          ruleIsActive,
-          'domainValidationFailures',
-          body,
-        )
 
-        body.forRange('failureIndex', literal(0), code`${failures}.length`, failureIndex => {
-          const failure = body.const('domainValidationFailure', code`${failures}[${failureIndex}]`)
-
-          body.note('Return this failed rule as a step validation error.')
-          body.statement(
-            code`${domainErrors}.push(${objectCode([
-              { key: 'passed', value: literal(false) },
-              { key: 'message', value: code`${failure}.message` },
-              { key: 'submissionOnly', value: code`${failure}.rule.submissionOnly === true` },
-              { key: 'groups', value: code`${failure}.rule.groups` },
-              { key: 'details', value: code`${failure}.details` },
-            ])})`,
-          )
-        })
-        body.return(domainErrors)
+        body.blank()
+        this.compileValidationFailuresReturn('collectDomainValidationFailures', [validationResults, ruleIsActive], body)
       },
-      { async: true },
+      { async: () => this.expr.usesAwait },
     )
   }
 
@@ -372,20 +350,24 @@ export default class StepValidationCompiler {
     return ruleIsActive
   }
 
-  private compileValidationFailures(
-    validationResults: IdentifierName,
-    ruleIsActive: IdentifierName,
-    resultPrefix: string,
+  /**
+   * Emits the run function's return: one runtime-library call that evaluates
+   * the rules and shapes the failed ones into validation failures.
+   *
+   * Async discovery is monotonic within a build, so this `usesAwait` read is
+   * safe only because this run function's rules were compiled just above; a
+   * rule that discovered an async call flips the helper (and, via the async
+   * thunk on the enclosing function, the run function itself) to async.
+   */
+  private compileValidationFailuresReturn(
+    helperBaseName: string,
+    helperArguments: readonly SafeCode[],
     generator: CodeGenerator,
-  ): IdentifierName {
-    generator.comment('Evaluate validation results')
-    // Async discovery is monotonic within a build, so this read is safe only
-    // because this slot's rules were compiled by compileValidationRules just
-    // above; a rule that discovered an async call flips the helper here.
-    const helperName = this.expr.usesAwait ? 'collectValidationFailuresAsync' : 'collectValidationFailures'
-    const helperCall = code`_forgeHelpers${propertyCode(helperName)}(${validationResults}, ${ruleIsActive})`
+  ): void {
+    const helperName = this.expr.usesAwait ? `${helperBaseName}Async` : helperBaseName
+    const helperCall = callCode(code`_forgeHelpers${propertyCode(helperName)}`, helperArguments)
 
-    return generator.const(resultPrefix, this.expr.usesAwait ? code`await ${helperCall}` : helperCall)
+    generator.return(this.expr.usesAwait ? code`await ${helperCall}` : helperCall)
   }
 
   private compileValidationRules(

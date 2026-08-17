@@ -291,6 +291,7 @@ describe('StepValidationCompiler', () => {
 
       // Assert
       expect(source).not.toContain('await')
+      expect(source).not.toContain('async function')
       expect(task).not.toBeInstanceOf(Promise)
 
       if (task instanceof Promise) {
@@ -405,7 +406,7 @@ describe('StepValidationCompiler', () => {
 
       // Assert
       expect(source).toContain('String(')
-      expect(source).toContain('async function validateField()')
+      expect(source).toContain('function validateField()')
       expect(source).toContain('function evaluate_field_condition()')
       expect(source).not.toContain('validate_123')
       expect(result.isValid).toBe(false)
@@ -1138,7 +1139,7 @@ describe('StepValidationCompiler', () => {
       expect(source).not.toContain('Object.create(null)')
       expect(source).not.toContain('registerActiveValidationGroup')
       expect(source).not.toContain('String(activeGroup)')
-      expect(source).toContain('const errors = []')
+      expect(source).not.toContain('const errors = []')
       expect(source).toContain('async function validate_name()')
       expect(source).toContain('"run": validate_name')
       expect(source).not.toContain('"run": async function validate_name')
@@ -1146,19 +1147,24 @@ describe('StepValidationCompiler', () => {
       expect(source).not.toContain('function create_name_validation()')
       expect(source).not.toContain('function evaluate_name_validation()')
       expect(source).toContain('"condition": async function evaluate_name_condition()')
-      expect(source).toContain('function evaluate_name_hasMaxLength()')
+      expect(source).not.toContain('function evaluate_name_hasMaxLength()')
       expect(source).not.toContain('function evaluate_name_message()')
       expect(source).not.toContain('function evaluate_name_details()')
       expect(source).toContain('const subject =')
       expect(source).toContain('const functionArgument1 = 10')
-      expect(source).toContain('const functionResult = await _forgeHelpers.evaluateFunctionAsync(')
-      expect(source).toContain('"hasMaxLength",\n                [subject, functionArgument1]')
-      expect(source).not.toContain('"hasMaxLength", [_forgeHelpers.evaluateTracked')
-      expect(source).toContain('const conditionResult = await')
-      expect(source).toContain('return conditionResult')
+      expect(source).toContain('return (await _forgeHelpers.evaluateFunctionAsync(')
+      expect(source).not.toContain('evaluateTracked')
+      expect(source).not.toContain('const functionResult')
+      expect(source).not.toContain('const conditionResult')
       expect(source).not.toContain('_forgeHelpers.evaluateValidationCondition')
       expect(source).toContain(
-        'const validationFailures = await _forgeHelpers.collectValidationFailuresAsync(validationRules, ruleIsActive)',
+        [
+          '      return await _forgeHelpers.collectFieldValidationFailuresAsync(',
+          '        validationRules,',
+          '        ruleIsActive,',
+          '        { "blockId": "compile_ast:2", "blockCode": "name" }',
+          '      );',
+        ].join('\n'),
       )
       expect(source).not.toContain('const validationStack = [results]')
       expect(source).not.toContain('RuntimeValueCompiler.compileArrayValue')
@@ -1167,31 +1173,16 @@ describe('StepValidationCompiler', () => {
           '      const validationRules = [',
           '        {',
           '          "condition": async function evaluate_name_condition() {',
-          '            // Evaluate the authored condition for this validation rule.',
-          '            const conditionResult = await (await (async function evaluate_name_hasMaxLength() {',
-          '              // Resolve the arguments passed to hasMaxLength.',
-          '              const subject = _forgeHelpers.evaluateTracked(',
-          '                _forgeRuntimeDiagnostics,',
-          '                0,',
-          '                function evaluate_root() {',
-          '                  return (ctx.answers["name"]?.current);',
-          '                }',
-          '              );',
-          '              const functionArgument1 = 10;',
+          '            const subject = ctx.answers["name"]?.current;',
+          '            const functionArgument1 = 10;',
           '',
-          '              // Call the registered hasMaxLength function.',
-          '              const functionResult = await _forgeHelpers.evaluateFunctionAsync(',
-          '                ctx,',
-          '                _forgeRuntimeDiagnostics,',
-          '                1,',
-          '                "hasMaxLength",',
-          '                [subject, functionArgument1]',
-          '              );',
-          '',
-          '              return functionResult;',
-          '            })());',
-          '',
-          '            return conditionResult;',
+          '            return (await _forgeHelpers.evaluateFunctionAsync(',
+          '              ctx,',
+          '              _forgeRuntimeDiagnostics,',
+          '              0,',
+          '              "hasMaxLength",',
+          '              [subject, functionArgument1]',
+          '            ));',
           '          },',
           '          "message": "Enter your name",',
           '          "submissionOnly": false,',
@@ -1201,7 +1192,6 @@ describe('StepValidationCompiler', () => {
           '      ];',
         ].join('\n'),
       )
-      expect(source).toContain('// Return this failed rule as a field validation error.')
       expect(source).toContain('ctx.answers["name"]?.current')
       expect(source).toContain('_forgeHelpers.evaluateFunction')
       expect(source).toContain('"hasMaxLength"')
@@ -1213,6 +1203,20 @@ describe('StepValidationCompiler', () => {
       expect(source).toContain('"Enter your name"')
       expect(source).toContain('ctx.workTasks.fieldValidation')
       expect(source).toContain('return ctx.workTasks.stepValidation(fieldValidations, domainValidations)')
+    })
+
+    it('should emit only the empty validation task when no rules are configured', () => {
+      // Arrange
+      const step = createStep()
+
+      // Act
+      const source = compiler.generateStepValidationSource(valModel(step, [], undefined))
+
+      // Assert
+      expect(source).toContain('// This step declares no validation rules.')
+      expect(source).toContain('return ctx.workTasks.stepValidation([], [])')
+      expect(source).not.toContain('ruleIsActive')
+      expect(source).not.toContain('const fieldValidations')
     })
   })
 

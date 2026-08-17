@@ -80,6 +80,25 @@ interface RuntimeValidationFailure {
   readonly details: unknown
 }
 
+/** Identifies the field a validation failure belongs to; template fields compute their block id per iteration. */
+interface FieldValidationIdentity {
+  readonly blockId: unknown
+  readonly blockCode: unknown
+}
+
+interface RuntimeDomainValidationFailure {
+  readonly passed: false
+  readonly message: unknown
+  readonly submissionOnly: boolean
+  readonly groups: unknown
+  readonly details: unknown
+}
+
+interface RuntimeFieldValidationFailure extends RuntimeDomainValidationFailure {
+  readonly blockId: unknown
+  readonly blockCode: unknown
+}
+
 const VALIDATION_CONDITION_FUNCTION_TYPE = 'FunctionType.Condition'
 
 export interface GeneratedFunctionRuntimeLibrary {
@@ -114,14 +133,24 @@ export interface GeneratedFunctionRuntimeLibrary {
     diagnosticReference: number,
     evaluate: () => Promise<unknown>,
   ): Promise<unknown>
-  collectValidationFailures(
+  collectFieldValidationFailures(
     results: unknown,
     ruleIsActive: (rule: RuntimeValidationRule) => boolean,
-  ): RuntimeValidationFailure[]
-  collectValidationFailuresAsync(
+    identity: FieldValidationIdentity,
+  ): RuntimeFieldValidationFailure[]
+  collectFieldValidationFailuresAsync(
     results: unknown,
     ruleIsActive: (rule: RuntimeValidationRule) => boolean,
-  ): Promise<RuntimeValidationFailure[]>
+    identity: FieldValidationIdentity,
+  ): Promise<RuntimeFieldValidationFailure[]>
+  collectDomainValidationFailures(
+    results: unknown,
+    ruleIsActive: (rule: RuntimeValidationRule) => boolean,
+  ): RuntimeDomainValidationFailure[]
+  collectDomainValidationFailuresAsync(
+    results: unknown,
+    ruleIsActive: (rule: RuntimeValidationRule) => boolean,
+  ): Promise<RuntimeDomainValidationFailure[]>
 }
 
 export const generatedFunctionRuntimeLibrary: GeneratedFunctionRuntimeLibrary = {
@@ -266,47 +295,94 @@ export const generatedFunctionRuntimeLibrary: GeneratedFunctionRuntimeLibrary = 
     return evaluateWithDiagnosticsAsync(diagnostics, diagnosticReference, evaluate)
   },
 
-  collectValidationFailures(results, ruleIsActive) {
-    const failures: RuntimeValidationFailure[] = []
-    const validationStack = [results]
-    let validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
-
-    while (validationRule !== undefined) {
-      const validationPassed = evaluateValidationRule(validationRule)
-
-      if (!validationPassed) {
-        const validationMessage = resolveValidationRuleValue(validationRule, validationRule.message, '')
-        const validationDetails = resolveValidationRuleValue(validationRule, validationRule.details, undefined)
-
-        failures.push({ rule: validationRule, message: validationMessage, details: validationDetails })
-      }
-
-      validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
-    }
-
-    return failures
+  collectFieldValidationFailures(results, ruleIsActive, identity) {
+    return collectValidationFailures(results, ruleIsActive).map(failure => toFieldValidationFailure(failure, identity))
   },
 
-  async collectValidationFailuresAsync(results, ruleIsActive) {
-    const failures: RuntimeValidationFailure[] = []
-    const validationStack = [results]
-    let validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
+  async collectFieldValidationFailuresAsync(results, ruleIsActive, identity) {
+    const failures = await collectValidationFailuresAsync(results, ruleIsActive)
 
-    while (validationRule !== undefined) {
-      const validationPassed = await evaluateValidationRuleAsync(validationRule)
+    return failures.map(failure => toFieldValidationFailure(failure, identity))
+  },
 
-      if (!validationPassed) {
-        const validationMessage = await resolveValidationRuleValue(validationRule, validationRule.message, '')
-        const validationDetails = await resolveValidationRuleValue(validationRule, validationRule.details, undefined)
+  collectDomainValidationFailures(results, ruleIsActive) {
+    return collectValidationFailures(results, ruleIsActive).map(toDomainValidationFailure)
+  },
 
-        failures.push({ rule: validationRule, message: validationMessage, details: validationDetails })
-      }
+  async collectDomainValidationFailuresAsync(results, ruleIsActive) {
+    const failures = await collectValidationFailuresAsync(results, ruleIsActive)
 
-      validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
+    return failures.map(toDomainValidationFailure)
+  },
+}
+
+function collectValidationFailures(
+  results: unknown,
+  ruleIsActive: (rule: RuntimeValidationRule) => boolean,
+): RuntimeValidationFailure[] {
+  const failures: RuntimeValidationFailure[] = []
+  const validationStack = [results]
+  let validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
+
+  while (validationRule !== undefined) {
+    const validationPassed = evaluateValidationRule(validationRule)
+
+    if (!validationPassed) {
+      const validationMessage = resolveValidationRuleValue(validationRule, validationRule.message, '')
+      const validationDetails = resolveValidationRuleValue(validationRule, validationRule.details, undefined)
+
+      failures.push({ rule: validationRule, message: validationMessage, details: validationDetails })
     }
 
-    return failures
-  },
+    validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
+  }
+
+  return failures
+}
+
+async function collectValidationFailuresAsync(
+  results: unknown,
+  ruleIsActive: (rule: RuntimeValidationRule) => boolean,
+): Promise<RuntimeValidationFailure[]> {
+  const failures: RuntimeValidationFailure[] = []
+  const validationStack = [results]
+  let validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
+
+  while (validationRule !== undefined) {
+    const validationPassed = await evaluateValidationRuleAsync(validationRule)
+
+    if (!validationPassed) {
+      const validationMessage = await resolveValidationRuleValue(validationRule, validationRule.message, '')
+      const validationDetails = await resolveValidationRuleValue(validationRule, validationRule.details, undefined)
+
+      failures.push({ rule: validationRule, message: validationMessage, details: validationDetails })
+    }
+
+    validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
+  }
+
+  return failures
+}
+
+function toFieldValidationFailure(
+  failure: RuntimeValidationFailure,
+  identity: FieldValidationIdentity,
+): RuntimeFieldValidationFailure {
+  return {
+    blockId: identity.blockId,
+    blockCode: identity.blockCode,
+    ...toDomainValidationFailure(failure),
+  }
+}
+
+function toDomainValidationFailure(failure: RuntimeValidationFailure): RuntimeDomainValidationFailure {
+  return {
+    passed: false,
+    message: failure.message,
+    submissionOnly: failure.rule.submissionOnly === true,
+    groups: failure.rule.groups,
+    details: failure.details,
+  }
 }
 
 export function validateOutput(entry: FunctionRegistryLookupEntry, functionName: string, result: unknown): void {

@@ -35,9 +35,14 @@ export default class PipelineNodeCompiler {
     const stepProps = (step.properties ?? step) as Record<string, unknown>
     const funcName = stepProps.name as string
     const funcArgs = (stepProps.arguments ?? []) as unknown[]
-    const argExprs = funcArgs.map(arg => this.ctx.compileOperandCode(arg))
-    const callExpr = this.ctx.compileFunctionCallCode(funcName, [code`${PIPELINE_VALUE_PARAM}`, ...argExprs], step, {
-      argumentPrefixes: ['pipelineValue', ...funcArgs.map((_, index) => `functionArgument${index + 1}`)],
+    // The step call lands inside the transform IIFE and references its
+    // pipeline-value parameter, so nothing here may hoist out of that scope.
+    const callExpr = this.ctx.withoutCallHoisting(() => {
+      const argExprs = funcArgs.map(arg => this.ctx.compileOperandCode(arg))
+
+      return this.ctx.compileFunctionCallCode(funcName, [code`${PIPELINE_VALUE_PARAM}`, ...argExprs], step, {
+        argumentPrefixes: ['pipelineValue', ...funcArgs.map((_, index) => `functionArgument${index + 1}`)],
+      })
     })
 
     return this.compileOptionalPipelineCall(inputExpr, callExpr)

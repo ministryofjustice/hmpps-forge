@@ -28,7 +28,9 @@ const componentContextFor = (entry: StubComponentEntry | undefined) => ({
 })
 
 describe('generatedFunctionRuntimeLibrary', () => {
-  describe('collectValidationFailures()', () => {
+  describe('collectFieldValidationFailures()', () => {
+    const fieldIdentity = { blockId: 'block:1', blockCode: 'firstName' }
+
     it('should flatten rules while preserving active-rule evaluation order and laziness', () => {
       // Arrange
       const passingMessage = vi.fn(() => 'unused')
@@ -40,13 +42,24 @@ describe('generatedFunctionRuntimeLibrary', () => {
       )
 
       // Act
-      const failures = generatedFunctionRuntimeLibrary.collectValidationFailures(
+      const failures = generatedFunctionRuntimeLibrary.collectFieldValidationFailures(
         [passingRule, [undefined, inactiveRule, failingRule]],
         ruleIsActive,
+        fieldIdentity,
       )
 
       // Assert
-      expect(failures).toEqual([{ rule: failingRule, message: '', details: { reason: 'required' } }])
+      expect(failures).toEqual([
+        {
+          blockId: 'block:1',
+          blockCode: 'firstName',
+          passed: false,
+          message: '',
+          submissionOnly: false,
+          groups: undefined,
+          details: { reason: 'required' },
+        },
+      ])
       expect(passingRule.evaluate).toHaveBeenCalledOnce()
       expect(passingMessage).not.toHaveBeenCalled()
       expect(inactiveRule.evaluate).not.toHaveBeenCalled()
@@ -61,13 +74,29 @@ describe('generatedFunctionRuntimeLibrary', () => {
           throw new TypeError('Wrong input shape')
         }),
         message: 'Invalid value',
+        submissionOnly: true,
+        groups: ['default'],
       }
 
       // Act
-      const failures = generatedFunctionRuntimeLibrary.collectValidationFailures([conditionRule], () => true)
+      const failures = generatedFunctionRuntimeLibrary.collectFieldValidationFailures(
+        [conditionRule],
+        () => true,
+        fieldIdentity,
+      )
 
       // Assert
-      expect(failures).toEqual([{ rule: conditionRule, message: 'Invalid value', details: undefined }])
+      expect(failures).toEqual([
+        {
+          blockId: 'block:1',
+          blockCode: 'firstName',
+          passed: false,
+          message: 'Invalid value',
+          submissionOnly: true,
+          groups: ['default'],
+          details: undefined,
+        },
+      ])
       expect(conditionRule.condition).toHaveBeenCalledOnce()
     })
 
@@ -80,14 +109,17 @@ describe('generatedFunctionRuntimeLibrary', () => {
       }
 
       // Act
-      const collect = () => generatedFunctionRuntimeLibrary.collectValidationFailures([evaluateRule], () => true)
+      const collect = () =>
+        generatedFunctionRuntimeLibrary.collectFieldValidationFailures([evaluateRule], () => true, fieldIdentity)
 
       // Assert
       expect(collect).toThrow('Broken custom validation')
     })
   })
 
-  describe('collectValidationFailuresAsync()', () => {
+  describe('collectFieldValidationFailuresAsync()', () => {
+    const fieldIdentity = { blockId: 'block:1', blockCode: 'firstName' }
+
     it('should await each failed rule before advancing to the next rule', async () => {
       // Arrange
       const evaluationOrder: string[] = []
@@ -113,9 +145,10 @@ describe('generatedFunctionRuntimeLibrary', () => {
       }
 
       // Act
-      const failures = await generatedFunctionRuntimeLibrary.collectValidationFailuresAsync(
+      const failures = await generatedFunctionRuntimeLibrary.collectFieldValidationFailuresAsync(
         [firstRule, secondRule],
         () => true,
+        fieldIdentity,
       )
 
       // Assert
@@ -133,11 +166,58 @@ describe('generatedFunctionRuntimeLibrary', () => {
       }
 
       // Act
-      const failures = await generatedFunctionRuntimeLibrary.collectValidationFailuresAsync([conditionRule], () => true)
+      const failures = await generatedFunctionRuntimeLibrary.collectFieldValidationFailuresAsync(
+        [conditionRule],
+        () => true,
+        fieldIdentity,
+      )
 
       // Assert
-      expect(failures).toEqual([{ rule: conditionRule, message: 'Invalid value', details: undefined }])
+      expect(failures).toEqual([
+        {
+          blockId: 'block:1',
+          blockCode: 'firstName',
+          passed: false,
+          message: 'Invalid value',
+          submissionOnly: false,
+          groups: undefined,
+          details: undefined,
+        },
+      ])
       expect(conditionRule.condition).toHaveBeenCalledOnce()
+    })
+  })
+
+  describe('collectDomainValidationFailures()', () => {
+    it('should shape failed rules as step-level failures without field identity', () => {
+      // Arrange
+      const failingRule = { evaluate: () => false, message: 'Broken', submissionOnly: true, groups: ['default'] }
+
+      // Act
+      const failures = generatedFunctionRuntimeLibrary.collectDomainValidationFailures([failingRule], () => true)
+
+      // Assert
+      expect(failures).toEqual([
+        { passed: false, message: 'Broken', submissionOnly: true, groups: ['default'], details: undefined },
+      ])
+    })
+  })
+
+  describe('collectDomainValidationFailuresAsync()', () => {
+    it('should shape failed rules as step-level failures when conditions are async', async () => {
+      // Arrange
+      const failingRule = { condition: async () => false, message: 'Broken' }
+
+      // Act
+      const failures = await generatedFunctionRuntimeLibrary.collectDomainValidationFailuresAsync(
+        [failingRule],
+        () => true,
+      )
+
+      // Assert
+      expect(failures).toEqual([
+        { passed: false, message: 'Broken', submissionOnly: false, groups: undefined, details: undefined },
+      ])
     })
   })
 

@@ -123,6 +123,33 @@ export class CodeFragment {
     return this.codeItems.length === 0
   }
 
+  /**
+   * True when the fragment contains a structured call or function-expression
+   * token. A fragment without either is a plain read (property chains,
+   * literals, arithmetic) that cannot invoke authored code.
+   */
+  get containsInvocation(): boolean {
+    return this.codeItems.some(item => {
+      if (typeof item === 'string') {
+        return false
+      }
+
+      if (item instanceof PositionedCodeToken) {
+        return item.value.containsInvocation
+      }
+
+      if (item instanceof ArrayExpressionToken) {
+        return item.values.some(value => value.containsInvocation)
+      }
+
+      if (item instanceof ObjectExpressionToken) {
+        return item.properties.some(property => property.value.containsInvocation)
+      }
+
+      return true
+    })
+  }
+
   toString(): string {
     return (
       this.codeItems

@@ -71,7 +71,9 @@ export default class PredicateNodeCompiler {
     empty: CodeFragment,
   ): CodeFragment {
     const operands = (properties.operands ?? []) as unknown[]
-    const compiled = operands.map(op => this.ctx.compileOperandCode(op))
+    // Operands after the first evaluate conditionally under short-circuiting,
+    // so none of them may hoist call statements out of the expression.
+    const compiled = this.ctx.withoutCallHoisting(() => operands.map(op => this.ctx.compileOperandCode(op)))
 
     if (compiled.length === 0) {
       return empty
@@ -92,7 +94,9 @@ export default class PredicateNodeCompiler {
    */
   private compileXor(properties: Record<string, unknown>): CodeFragment {
     const operands = (properties.operands ?? []) as unknown[]
-    const compiled = operands.map(op => code`Boolean(${this.ctx.compileOperandCode(op)})`)
+    const compiled = this.ctx.withoutCallHoisting(() =>
+      operands.map(op => code`Boolean(${this.ctx.compileOperandCode(op)})`),
+    )
 
     return code`(${arrayCode(compiled)}.filter(Boolean).length === 1)`
   }

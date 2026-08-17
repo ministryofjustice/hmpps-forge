@@ -16,13 +16,17 @@ export default class MatchNodeCompiler {
     const branches = (properties.branches ?? []) as Array<Record<string, unknown>>
     const otherwise = properties.otherwise
 
-    const fallbackExpr = otherwise !== undefined ? this.ctx.compileOperandCode(otherwise) : literal(undefined)
+    // Only the first matching branch evaluates, so call statements must not
+    // hoist out of the ternary chain.
+    return this.ctx.withoutCallHoisting(() => {
+      const fallbackExpr = otherwise !== undefined ? this.ctx.compileOperandCode(otherwise) : literal(undefined)
 
-    return branches.reduceRight<CodeFragment>((nextExpr, branch) => {
-      const predicateExpr = this.ctx.compileOperandCode(branch.predicate)
-      const valueExpr = this.ctx.compileOperandCode(branch.value)
+      return branches.reduceRight<CodeFragment>((nextExpr, branch) => {
+        const predicateExpr = this.ctx.compileOperandCode(branch.predicate)
+        const valueExpr = this.ctx.compileOperandCode(branch.value)
 
-      return code`(${predicateExpr} ? ${valueExpr} : ${nextExpr})`
-    }, fallbackExpr)
+        return code`(${predicateExpr} ? ${valueExpr} : ${nextExpr})`
+      }, fallbackExpr)
+    })
   }
 }

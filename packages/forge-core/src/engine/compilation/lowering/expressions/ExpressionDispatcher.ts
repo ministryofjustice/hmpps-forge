@@ -37,6 +37,13 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
 
   private readonly validationFunctionPrefixes: string[] = []
 
+  /**
+   * Function bodies that sequential call statements may be emitted into.
+   * `undefined` entries mark positions where hoisting is unsafe (conditional
+   * evaluation or a nested function scope); see `withoutCallHoisting`.
+   */
+  private readonly callHoistingScopes: (CodeGenerator | undefined)[] = []
+
   private readonly references = new ReferenceNodeCompiler(this)
 
   private readonly predicates = new PredicateNodeCompiler(this)
@@ -90,9 +97,50 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     this.iteratorFrames.length = 0
     this.selfCodeExprs.length = 0
     this.validationFunctionPrefixes.length = 0
+    this.callHoistingScopes.length = 0
     this.diagnostics.reset()
     this.usedAwait = false
     this.fragmentGenerator = new CodeGenerator()
+  }
+
+  /**
+   * Compiles an expression whose statements may be emitted directly into
+   * `bodyGenerator`: function calls hoist their argument consts as statements
+   * and reduce to a bare call instead of wrapping themselves in an IIFE.
+   *
+   * Only safe when everything compiled inside `compile` is evaluated exactly
+   * once, unconditionally, in source order, within `bodyGenerator`'s scope.
+   * Compilers that break any of those guarantees for a sub-expression must
+   * clear the scope with `withoutCallHoisting`.
+   */
+  withCallHoistingScope<T>(bodyGenerator: CodeGenerator, compile: () => T): T {
+    this.callHoistingScopes.push(bodyGenerator)
+
+    try {
+      return compile()
+    } finally {
+      this.callHoistingScopes.pop()
+    }
+  }
+
+  /**
+   * Compiles a sub-expression with call hoisting disabled — used for positions
+   * that evaluate conditionally (`&&`/`||` operands, ternary branches) or
+   * inside a nested function scope (pipeline steps, iterator bodies), where a
+   * hoisted statement would run eagerly or reference out-of-scope variables.
+   */
+  withoutCallHoisting<T>(compile: () => T): T {
+    this.callHoistingScopes.push(undefined)
+
+    try {
+      return compile()
+    } finally {
+      this.callHoistingScopes.pop()
+    }
+  }
+
+  private get callHoistingScope(): CodeGenerator | undefined {
+    return this.callHoistingScopes[this.callHoistingScopes.length - 1]
   }
 
   /**
@@ -186,6 +234,10 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       return expression
     }
 
+    if (this.isThrowFreeReference(expressionType, expression)) {
+      return this.diagnostics.attachPositions(expression, node)
+    }
+
     return this.diagnostics.wrapExpression(expression, node, this.usedAwait, this.generator)
   }
 
@@ -209,7 +261,21 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       return expression
     }
 
+    if (this.isThrowFreeReference(expressionType, expression)) {
+      return this.diagnostics.attachPositions(expression, node)
+    }
+
     return this.diagnostics.wrapExpression(expression, node, this.usedAwait, this.generator)
+  }
+
+  /**
+   * Reference chains compile to `?.`-guarded property reads, so unless a
+   * dynamic segment introduced a call they cannot throw. Tracking them through
+   * `evaluateTracked` would allocate a callback purely to attribute an error
+   * that can never happen.
+   */
+  private isThrowFreeReference(expressionType: string | undefined, expression: CodeFragment): boolean {
+    return expressionType === ExpressionType.REFERENCE && !expression.containsInvocation
   }
 
   private hasOwnDiagnosticBoundary(expressionType: string | undefined): boolean {
@@ -303,19 +369,23 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
         }
       | undefined
 
-    if (iterator?.type === IteratorType.MAP) {
-      return this.compileMapIterator(properties.input, iterator.yieldTemplate)
-    }
+    // Iterator input and templates compile into the iterator's own IIFE scope
+    // and loop body, so statements must not hoist past that boundary.
+    return this.withoutCallHoisting(() => {
+      if (iterator?.type === IteratorType.MAP) {
+        return this.compileMapIterator(properties.input, iterator.yieldTemplate)
+      }
 
-    if (iterator?.type === IteratorType.FILTER) {
-      return this.compileFilterIterator(properties.input, iterator.predicateTemplate)
-    }
+      if (iterator?.type === IteratorType.FILTER) {
+        return this.compileFilterIterator(properties.input, iterator.predicateTemplate)
+      }
 
-    if (iterator?.type === IteratorType.FIND) {
-      return this.compileFindIterator(properties.input, iterator.predicateTemplate)
-    }
+      if (iterator?.type === IteratorType.FIND) {
+        return this.compileFindIterator(properties.input, iterator.predicateTemplate)
+      }
 
-    return literal(undefined)
+      return literal(undefined)
+    })
   }
 
   /**
@@ -329,35 +399,26 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       return literal(undefined)
     }
 
-    const conditionExpr = this.compileOperandCode(condition)
     const messageValue = properties.message
-    const messageExpr = messageValue !== undefined ? this.compileOperandCode(messageValue) : literal('')
     const submissionOnlyExpr = literal(properties.submissionOnly === true)
     const groupsExpr = properties.groups !== undefined ? this.compileOperandCode(properties.groups) : literal(undefined)
     const detailsValue = properties.details
-    const detailsExpr = detailsValue !== undefined ? this.compileOperandCode(detailsValue) : literal(undefined)
     const functionPrefix = this.validationFunctionPrefixes[this.validationFunctionPrefixes.length - 1] ?? 'validation'
     const validationCondition = this.compileReturnFunctionExpression(
-      conditionExpr,
+      () => this.compileOperandCode(condition),
       `evaluate_${functionPrefix}_condition`,
-      'conditionResult',
-      'Evaluate the authored condition for this validation rule.',
     )
     const message = this.isStaticOperand(messageValue)
-      ? messageExpr
+      ? this.compileStaticOperand(messageValue, literal(''))
       : this.compileReturnFunctionExpression(
-          messageExpr,
+          () => this.compileOperandCode(messageValue),
           `evaluate_${functionPrefix}_message`,
-          'validationMessage',
-          'Resolve the message returned when this validation rule fails.',
         )
     const details = this.isStaticOperand(detailsValue)
-      ? detailsExpr
+      ? this.compileStaticOperand(detailsValue, literal(undefined))
       : this.compileReturnFunctionExpression(
-          detailsExpr,
+          () => this.compileOperandCode(detailsValue),
           `evaluate_${functionPrefix}_details`,
-          'validationDetails',
-          'Resolve the structured details returned with this validation failure.',
         )
 
     return objectCode([
@@ -635,6 +696,20 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     options: FunctionCallCompileOptions,
     callIsAsync: boolean,
   ): CodeFragment {
+    const hoistingScope = this.callHoistingScope
+    // Flattening is restricted to calls whose arguments contain no further
+    // invocations: hoisting an argument that itself calls authored code could
+    // reorder it against sibling calls, where the inline IIFE cannot.
+    const argumentsAreInvocationFree = argExprs.every(argument => !argument.containsInvocation)
+
+    if (hoistingScope !== undefined && argumentsAreInvocationFree) {
+      const helperCall = this.compileNamedArgumentHelperCall(helperName, funcName, argExprs, source, options, scope =>
+        hoistingScope.const(scope.prefix, scope.argument),
+      )
+
+      return callIsAsync ? code`(await ${helperCall})` : helperCall
+    }
+
     const functionName = `evaluate_${validationPrefix}_${this.compileFunctionNamePart(funcName)}`
 
     return compileIifeExpression({
@@ -643,28 +718,40 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       isAsync: () => this.usedAwait,
       name: functionName,
       compileBody: generator => {
-        if (argExprs.length > 0) {
-          generator.note(`Resolve the arguments passed to ${funcName}.`)
-        }
-
-        const argumentValues = argExprs.map((argument, index) => {
-          const prefix = options.argumentPrefixes?.[index] ?? `functionArgument${index + 1}`
-
-          return generator.const(prefix, argument)
-        })
-
-        generator.note(`Call the registered ${funcName} function.`)
-        const helperCall = this.diagnostics.wrapFunctionCall(
-          helperName,
-          funcName,
-          argumentValues.map(argument => code`${argument}`),
-          source,
+        const helperCall = this.compileNamedArgumentHelperCall(helperName, funcName, argExprs, source, options, scope =>
+          generator.const(scope.prefix, scope.argument),
         )
-        const functionResult = generator.const('functionResult', callIsAsync ? code`await ${helperCall}` : helperCall)
 
-        generator.return(functionResult)
+        generator.return(callIsAsync ? code`await ${helperCall}` : helperCall)
       },
     })
+  }
+
+  /**
+   * Assigns each argument to a named const (via `declareArgument`) before the
+   * helper call, so a developer paused in the debugger can inspect the exact
+   * values passed to the registered function.
+   */
+  private compileNamedArgumentHelperCall(
+    helperName: string,
+    funcName: string,
+    argExprs: readonly CodeFragment[],
+    source: unknown,
+    options: FunctionCallCompileOptions,
+    declareArgument: (scope: { prefix: string; argument: CodeFragment }) => IdentifierName,
+  ): CodeFragment {
+    const argumentValues = argExprs.map((argument, index) => {
+      const prefix = options.argumentPrefixes?.[index] ?? `functionArgument${index + 1}`
+
+      return declareArgument({ prefix, argument })
+    })
+
+    return this.diagnostics.wrapFunctionCall(
+      helperName,
+      funcName,
+      argumentValues.map(argument => code`${argument}`),
+      source,
+    )
   }
 
   private compileFunctionNamePart(funcName: string): string {
@@ -681,20 +768,24 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     return isDeepStaticValue(value)
   }
 
-  private compileReturnFunctionExpression(
-    expression: CodeFragment,
-    name: string,
-    resultPrefix: string,
-    explanation: string,
-  ): CodeFragment {
+  private compileStaticOperand(value: unknown, fallback: CodeFragment): CodeFragment {
+    return value !== undefined ? this.compileOperandCode(value) : fallback
+  }
+
+  /**
+   * Wraps a lazily-evaluated validation value (condition, message, details) in
+   * a named function expression. The expression compiles inside the function
+   * body with call hoisting active, so unconditional function calls emit their
+   * argument consts as statements and return directly instead of nesting IIFEs.
+   */
+  private compileReturnFunctionExpression(compileExpression: () => CodeFragment, name: string): CodeFragment {
     return this.generator.functionExpression(
       name,
       [],
       functionGenerator => {
-        functionGenerator.note(explanation)
-        const result = functionGenerator.const(resultPrefix, this.usedAwait ? code`await ${expression}` : expression)
+        const expression = this.withCallHoistingScope(functionGenerator, compileExpression)
 
-        functionGenerator.return(result)
+        functionGenerator.return(expression)
       },
       { async: () => this.usedAwait },
     )

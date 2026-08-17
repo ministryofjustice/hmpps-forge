@@ -38,6 +38,15 @@ export default class DiagnosticEmitter {
     return Object.freeze(this.metadataEntries.map(metadata => Object.freeze({ ...metadata })))
   }
 
+  /**
+   * Binds authored source positions to a fragment without routing it through a
+   * tracked helper call. For expressions that cannot throw, tracking buys no
+   * error attribution — only the source-map positions matter.
+   */
+  attachPositions(expression: CodeFragment, source: unknown): CodeFragment {
+    return positionedCode(expression, this.resolvePositions(source))
+  }
+
   wrapExpression(
     expression: CodeFragment,
     source: unknown,
