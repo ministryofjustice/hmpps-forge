@@ -108,9 +108,10 @@ export default class CodegenOrchestrator {
 
     return {
       compiledStaticData: this.compileStaticData(inputs.core.staticData),
-      compiledAccessLifecycle: hookCompiler.compileAccessLifecycle(inputs.hooks.accessHooks),
-      compiledSubmitHooks: hookCompiler.compileSubmitHooks(inputs.hooks.submitHooks),
+      compiledAccessLifecycle: hookCompiler.compileAccessLifecycle(inputs.core.stepNode, inputs.hooks.accessHooks),
+      compiledSubmitHooks: hookCompiler.compileSubmitHooks(inputs.core.stepNode, inputs.hooks.submitHooks),
       compiledAnswerPreparation: answerPrepCompiler.compile(
+        inputs.core.stepNode,
         inputs.answerPreparation.fieldBlocks,
         inputs.answerPreparation.mapIterateNodes,
       ),
@@ -121,6 +122,7 @@ export default class CodegenOrchestrator {
         inputs.validation.mapIterateNodes,
       ),
       compiledEntryValidation: entryValidationCompiler.compileOnEntryValidation(
+        inputs.core.stepNode,
         inputs.validation.stepNode.properties.validateOnEntry,
       ),
       compiledResolve: resolveCompiler.compile(
@@ -147,8 +149,12 @@ export default class CodegenOrchestrator {
       compiledReachabilityState: input => evaluateReachabilityState(stateTable, input),
       compiledFieldInventory: fieldInventoryCompiler.compile(inputs.answerCleardown.fieldInventorySources),
       compiledStaticData: this.compileStaticData(inputs.staticData),
-      compiledAccessLifecycle: hookCompiler.compileAccessLifecycle(inputs.accessHooks),
-      compiledAnswerPreparation: answerPrepCompiler.compile(inputs.stepFieldBlocks, inputs.stepMapIterateNodes),
+      compiledAccessLifecycle: hookCompiler.compileAccessLifecycle(undefined, inputs.accessHooks),
+      compiledAnswerPreparation: answerPrepCompiler.compile(
+        undefined,
+        inputs.stepFieldBlocks,
+        inputs.stepMapIterateNodes,
+      ),
       compiledStepValidations: this.tracer.span('validation-index', 'codegen.validation-index', () =>
         this.compileJourneyValidationIndex(plan, stateTable),
       ),

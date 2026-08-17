@@ -19,6 +19,7 @@ import {
   buildGeneratedSource,
   compileGeneratedFunction,
   deriveScriptLabel,
+  ScriptLabelSource,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 
@@ -40,14 +41,15 @@ export default class EntryValidationCompiler {
   /**
    * Builds the generated group-selector used before rendering a GET request.
    */
-  compileOnEntryValidation(entries: StepEntryValidationAST[] | undefined): CompiledEntryValidationFunction {
-    const whenNodes = (entries ?? []).map(entry => entry.when).filter(when => typeof when === 'object')
-
+  compileOnEntryValidation(
+    stepNode: ScriptLabelSource | undefined,
+    entries: StepEntryValidationAST[] | undefined,
+  ): CompiledEntryValidationFunction {
     return compileGeneratedFunction<CompiledEntryValidationFunction>(
       this.expr,
       ['ctx'],
       () => this.buildEntryValidationSource(entries ?? []),
-      { phase: 'entry-validation', label: deriveScriptLabel(whenNodes) },
+      { phase: 'entry-validation', label: deriveScriptLabel([stepNode]) },
     )
   }
 

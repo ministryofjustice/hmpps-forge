@@ -319,6 +319,23 @@ describe('CodeEmitter', () => {
     })
   })
 
+  describe('note()', () => {
+    it('should emit a plain comment without a banner or forced blank line', () => {
+      // Arrange
+      const emitter = new CodeEmitter()
+
+      // Act
+      emitter.assign('value', 'readValue()')
+      emitter.note('Explains the line below.')
+      emitter.return('value')
+
+      // Assert
+      expect(emitter.toString()).toBe(
+        ['value = readValue();', '// Explains the line below.', 'return value;'].join('\n'),
+      )
+    })
+  })
+
   describe('comment()', () => {
     it('should emit line comments at the current indentation', () => {
       // Arrange

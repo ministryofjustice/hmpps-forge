@@ -14,6 +14,7 @@ import {
   buildGeneratedSource,
   compileGeneratedFunction,
   deriveScriptLabel,
+  ScriptLabelSource,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '../../../contracts/ast/outcome-nodes'
@@ -26,21 +27,24 @@ export default class HookLifecycleCompiler {
     this.expr = new ExpressionDispatcher(dependencies)
   }
 
-  compileAccessLifecycle(hooks: AccessHookASTNode[]): CompiledAccessLifecycleFunction {
+  compileAccessLifecycle(
+    stepNode: ScriptLabelSource | undefined,
+    hooks: AccessHookASTNode[],
+  ): CompiledAccessLifecycleFunction {
     return compileGeneratedFunction<CompiledAccessLifecycleFunction>(
       this.expr,
       ['ctx'],
       () => this.buildAccessSource(hooks),
-      { forceAsync: true, phase: 'hooks', label: deriveScriptLabel(hooks) },
+      { forceAsync: true, phase: 'hooks', label: deriveScriptLabel([stepNode, ...hooks]) },
     )
   }
 
-  compileSubmitHooks(hooks: SubmitHookASTNode[]): CompiledSubmitHooksFunction {
+  compileSubmitHooks(stepNode: ScriptLabelSource | undefined, hooks: SubmitHookASTNode[]): CompiledSubmitHooksFunction {
     return compileGeneratedFunction<CompiledSubmitHooksFunction>(
       this.expr,
       ['ctx'],
       () => this.buildSubmitSource(hooks),
-      { forceAsync: true, phase: 'hooks', label: deriveScriptLabel(hooks) },
+      { forceAsync: true, phase: 'hooks', label: deriveScriptLabel([stepNode, ...hooks]) },
     )
   }
 

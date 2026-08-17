@@ -205,6 +205,17 @@ export default class CodeEmitter {
   }
 
   /**
+   * Adds an explanatory comment for the developer reading the generated source
+   * in a debugger. Sits tight above the code it explains — no banner, no
+   * forced blank line — and disappears entirely in compact rendering.
+   */
+  note(text: string): void {
+    text.split('\n').forEach(line => {
+      this.pushRenderedNode({ kind: CodeNodeKind.COMMENT, text: `// ${line}` })
+    })
+  }
+
+  /**
    * Adds a generated-source breadcrumb that links emitted code back to a compiler method.
    */
   comment(text: string): void {

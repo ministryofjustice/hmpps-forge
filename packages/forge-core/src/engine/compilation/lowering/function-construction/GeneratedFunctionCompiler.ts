@@ -35,7 +35,7 @@ interface RuntimeEvaluationDiagnostics {
   ) => unknown
 }
 
-interface ScriptLabelSource {
+export interface ScriptLabelSource {
   readonly diagnostics?: {
     readonly source: { readonly formattedPath: string }
   }
@@ -83,7 +83,7 @@ export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
     `codegen:${phase}`,
     'codegen.function',
     span => {
-      const wrapperNodes = wrapGeneratedBody(buildGeneratedSource(expr, buildSource))
+      const wrapperNodes = wrapGeneratedBody(buildGeneratedSource(expr, buildSource), phase)
       const usesAwait = options.forceAsync === true || expr.usesAwait
       const { source, segmentsByLine } = new SourceRenderer().render(wrapperNodes)
       let compiled: GeneratedFunction
@@ -170,7 +170,9 @@ const nextSourceName = (phase: string, label: string | undefined): string => {
  * formatted path: the leading journey/step segments of
  * `"dump > form > blocks[1] (govukInsetText) > hidden"` become `dump.form`.
  * Structural segments (indexed wiring like `onAccess[0]`, parenthesised kinds)
- * end the walk — they describe a position inside the step, not its identity.
+ * end the walk — they describe a position inside the step, not its identity —
+ * so nested journeys keep every ancestor segment without needing a depth cap.
+ * `maxDepth` truncates deliberately journey-level labels (e.g. reachability).
  */
 export const deriveScriptLabel = (
   nodes: readonly (ScriptLabelSource | undefined)[],
@@ -186,7 +188,7 @@ export const deriveScriptLabel = (
 
   formattedPath
     .split(' > ')
-    .slice(0, options.maxDepth ?? 2)
+    .slice(0, options.maxDepth ?? Number.POSITIVE_INFINITY)
     .some(segment => {
       if (segment.includes('[') || segment.includes('(')) {
         return true
@@ -226,16 +228,61 @@ const createRuntimeDiagnostics = (phase: string): RuntimeEvaluationDiagnostics =
 }
 
 /**
+ * Explains each compiled function to the developer reading it in a debugger:
+ * what it does, when it runs, and what it returns. Rendered as the header
+ * comment block ahead of the generated body.
+ */
+const PHASE_PURPOSES: Record<string, readonly string[]> = {
+  'answer-preparation': [
+    "Prepares this step's field answers before validation: POST requests normalise",
+    'the submitted values, GET requests surface stored answers and defaults.',
+    'Returns one preparation task per field for the work executor to run.',
+  ],
+  validation: [
+    "Builds this step's validation plan: one entry per field rule plus any",
+    'domain-level checks. The work executor runs it and stores the outcome',
+    'that decides error display.',
+  ],
+  'entry-validation': [
+    "Evaluates this step's entry conditions; a failing condition redirects",
+    'away before the step renders.',
+  ],
+  hooks: [
+    'Runs the authored hook lifecycle: each hook evaluates its condition, then',
+    'its effects, in authored order. Effects are awaited before any outcome',
+    'is inspected.',
+  ],
+  reachability: [
+    'Computes reachability facts for the journey: which steps can currently be',
+    'entered and where forward redirects should land.',
+  ],
+  'field-inventory': [
+    'Lists every field each step owns, so answers belonging to steps that',
+    'become unreachable can be cleared down.',
+  ],
+  resolve: [
+    "Resolves this step's blocks into render-ready props, evaluating conditions",
+    'and dynamic values against the current request context.',
+  ],
+  'route-tree': ['Resolves the metadata carried on each route-tree node for the current request.'],
+}
+
+/**
  * Hoists any `"use strict"` directive above the wrapper, then folds the body
  * into a try/catch that routes escaping errors through the runtime
  * diagnostics so author-facing stacks carry node identity.
  */
-const wrapGeneratedBody = (built: string | CodeEmitter): CodeNode[] => {
+const wrapGeneratedBody = (built: string | CodeEmitter, phase: string): CodeNode[] => {
   const { strictDirective, bodyNodes } = splitStrictDirective(built)
+
+  while (bodyNodes[0]?.kind === CodeNodeKind.BLANK_LINE) {
+    bodyNodes.shift()
+  }
 
   return [
     ...(strictDirective === undefined ? [] : [lineNode(strictDirective)]),
-    { kind: CodeNodeKind.COMMENT, text: '// Compiled by Forge from the journey definition.' },
+    commentNode('// Compiled by Forge from the journey definition.'),
+    ...(PHASE_PURPOSES[phase] ?? []).map(purposeLine => commentNode(`// ${purposeLine}`)),
     {
       kind: CodeNodeKind.TRY_CATCH,
       tryBody: bodyNodes,
@@ -269,6 +316,8 @@ const toBodyNodes = (body: string): CodeNode[] =>
     .map((line): CodeNode => (line.length === 0 ? { kind: CodeNodeKind.BLANK_LINE } : lineNode(line)))
 
 const lineNode = (text: string): CodeNode => ({ kind: CodeNodeKind.LINE, text })
+
+const commentNode = (text: string): CodeNode => ({ kind: CodeNodeKind.COMMENT, text })
 
 const getStrictDirective = (source: string): string | undefined => {
   if (source.startsWith('"use strict";')) {

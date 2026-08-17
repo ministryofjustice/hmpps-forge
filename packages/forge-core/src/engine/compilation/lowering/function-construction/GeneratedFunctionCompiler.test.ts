@@ -275,6 +275,17 @@ describe('GeneratedFunctionCompiler', () => {
       expect(label).toBe('dump.form')
     })
 
+    it('should keep every ancestor segment when journeys nest', () => {
+      // Arrange
+      const node = { diagnostics: { source: { formattedPath: 'guide > building-journeys > defining-steps' } } }
+
+      // Act
+      const label = deriveScriptLabel([node])
+
+      // Assert
+      expect(label).toBe('guide.building-journeys.defining-steps')
+    })
+
     it('should stop at the first structural segment when the node sits on the journey', () => {
       // Arrange
       const node = { diagnostics: { source: { formattedPath: 'dump > onAccess[0] > effects[0]' } } }

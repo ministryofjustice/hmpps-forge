@@ -14,6 +14,7 @@ import {
   buildGeneratedSource,
   compileGeneratedFunction,
   deriveScriptLabel,
+  ScriptLabelSource,
   GENERATED_FUNCTION_HELPERS_PARAM,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
@@ -71,14 +72,21 @@ export default class StepAnswerPreparationCompiler {
   }
 
   /**
-   * Builds the generated answer-preparation function for a step.
+   * Builds the generated answer-preparation function for a step. The step node
+   * names the compiled script; fieldless steps would otherwise fall back to an
+   * opaque counter. Journey-level aggregation passes undefined and labels from
+   * the field nodes instead.
    */
-  compile(fieldBlocks: FieldBlockASTNode[], iterateNodes: IterateASTNode[] = []): CompiledAnswerPreparationFunction {
+  compile(
+    stepNode: ScriptLabelSource | undefined,
+    fieldBlocks: FieldBlockASTNode[],
+    iterateNodes: IterateASTNode[] = [],
+  ): CompiledAnswerPreparationFunction {
     return compileGeneratedFunction<CompiledAnswerPreparationFunction>(
       this.expr,
       ['ctx'],
       () => this.buildSource(fieldBlocks, iterateNodes),
-      { phase: 'answer-preparation', label: deriveScriptLabel([...fieldBlocks, ...iterateNodes]) },
+      { phase: 'answer-preparation', label: deriveScriptLabel([stepNode, ...fieldBlocks, ...iterateNodes]) },
     )
   }
 
@@ -100,14 +108,15 @@ export default class StepAnswerPreparationCompiler {
     emitter.comment('StepAnswerPreparationCompiler.buildSource')
     const fieldPreparationsVar = emitter.const('fieldPreparations', '[]')
 
-    emitter.declareConst('isPost', 'ctx.request.method === "POST"')
-
     if (fieldBlocks.length > 0 || iterateNodes.length > 0) {
+      emitter.declareConst('isPost', 'ctx.request.method === "POST"')
       emitter.if(
         'isPost',
         () => this.compileMode('POST', fieldBlocks, iterateNodes, fieldPreparationsVar, emitter),
         () => this.compileMode('GET', fieldBlocks, iterateNodes, fieldPreparationsVar, emitter),
       )
+    } else {
+      emitter.note('This step declares no form fields, so there is nothing to prepare.')
     }
 
     emitter.emitBlank()

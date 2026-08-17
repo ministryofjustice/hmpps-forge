@@ -54,7 +54,7 @@ describe('EntryValidationCompiler', () => {
   describe('compileOnEntryValidation()', () => {
     it('should return an empty group selector when no entries are configured', async () => {
       // Act
-      const fn = compiler.compileOnEntryValidation(undefined)
+      const fn = compiler.compileOnEntryValidation(undefined, undefined)
       const groups = await fn(createCtx())
 
       // Assert
@@ -89,7 +89,7 @@ describe('EntryValidationCompiler', () => {
         functionRegistry,
         componentRegistry: new ComponentRegistry(),
       })
-      const fn = localCompiler.compileOnEntryValidation(entries)
+      const fn = localCompiler.compileOnEntryValidation(undefined, entries)
 
       // Act
       const result = await fn!(createCtx({ conditions: functionRegistry, data: { addressLoaded: true } }))
@@ -125,7 +125,7 @@ describe('EntryValidationCompiler', () => {
         functionRegistry,
         componentRegistry: new ComponentRegistry(),
       })
-      const fn = localCompiler.compileOnEntryValidation(entries)
+      const fn = localCompiler.compileOnEntryValidation(undefined, entries)
 
       // Act
       const result = await fn!(createCtx({ conditions: functionRegistry, data: { addressLoaded: true } }))
@@ -141,7 +141,7 @@ describe('EntryValidationCompiler', () => {
         { groups: ['contact', 'address'], when: true },
       ]
 
-      const fn = compiler.compileOnEntryValidation(entries)
+      const fn = compiler.compileOnEntryValidation(undefined, entries)
 
       // Act
       const result = await fn!(createCtx())
@@ -156,7 +156,7 @@ describe('EntryValidationCompiler', () => {
         { groups: ['address'], when: createReference(['data', 'entryActive']) },
       ]
 
-      const fn = compiler.compileOnEntryValidation(entries)
+      const fn = compiler.compileOnEntryValidation(undefined, entries)
 
       // Act
       const result = await fn!(createCtx({ data: { entryActive: true } }))
@@ -171,7 +171,7 @@ describe('EntryValidationCompiler', () => {
         { groups: ['address'], when: createReference(['data', 'entryActive']) },
       ]
 
-      const fn = compiler.compileOnEntryValidation(entries)
+      const fn = compiler.compileOnEntryValidation(undefined, entries)
 
       // Act
       const result = await fn!(createCtx({ data: { entryActive: false } }))

@@ -245,7 +245,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx()
 
       // Act
-      const fn = compiler.compile([])
+      const fn = compiler.compile(undefined, [])
 
       await executeAnswerPreparation(fn, ctx)
 
@@ -280,7 +280,7 @@ describe('StepAnswerPreparationCompiler', () => {
 
       // Act
       const source = localCompiler.generateSource([block], [])
-      const fn = localCompiler.compile([block], [])
+      const fn = localCompiler.compile(undefined, [block], [])
       const result = fn!(ctx)
 
       await executeAnswerPreparationTask(result, ctx)
@@ -316,7 +316,7 @@ describe('StepAnswerPreparationCompiler', () => {
 
       // Act
       const source = localCompiler.generateSource([block], [])
-      const fn = localCompiler.compile([block], [])
+      const fn = localCompiler.compile(undefined, [block], [])
 
       await executeAnswerPreparation(fn!, ctx)
 
@@ -355,7 +355,7 @@ describe('StepAnswerPreparationCompiler', () => {
 
       // Act
       const source = localCompiler.generateSource([block], [])
-      const fn = localCompiler.compile([block], [])
+      const fn = localCompiler.compile(undefined, [block], [])
 
       await executeAnswerPreparation(fn!, ctx)
 
@@ -390,7 +390,7 @@ describe('StepAnswerPreparationCompiler', () => {
 
       // Act
       const source = localCompiler.generateSource([block], [])
-      const fn = localCompiler.compile([block], [])
+      const fn = localCompiler.compile(undefined, [block], [])
 
       await executeAnswerPreparation(fn!, ctx)
 
@@ -700,7 +700,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const fn = localCompiler.compile([block])
+      const fn = localCompiler.compile(undefined, [block])
 
       await executeAnswerPreparation(fn!, ctx)
 
@@ -727,7 +727,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const fn = localCompiler.compile([block])
+      const fn = localCompiler.compile(undefined, [block])
 
       // Assert
       await expect(executeAnswerPreparation(fn!, ctx)).rejects.toThrow('Formatter failed')
@@ -827,7 +827,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const fn = localCompiler.compile([block])
+      const fn = localCompiler.compile(undefined, [block])
 
       // Assert
       await expect(executeAnswerPreparation(fn!, ctx)).rejects.toThrow('boom')
