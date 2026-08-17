@@ -20,7 +20,12 @@ type ListType = 'bullet' | 'number'
  * ```
  */
 export interface GovUKList extends BlockDefinition {
-  /** The list items - strings, child blocks, or a dynamic expression evaluating to an array. */
+  /**
+   * The list items - strings, child blocks, or a dynamic expression evaluating to an array.
+   *
+   * **String items are rendered as raw HTML without sanitization** - escape untrusted data
+   * with `Transformer.String.EscapeHtml()` before interpolating it.
+   */
   items: ResolvableArray<ResolvableString | BlockDefinition>
 
   /** List style. 'bullet' for unordered, 'number' for ordered. Omit for plain list. */
@@ -58,7 +63,7 @@ export const GovUKList = jsxComponent<GovUKList>('govukList', {
     return (
       <Tag class={className} {...props.attributes}>
         {props.items.map(item => (
-          <li>{typeof item === 'object' && item !== null ? raw(item.html) : item}</li>
+          <li>{raw(typeof item === 'object' && item !== null ? item.html : item)}</li>
         ))}
       </Tag>
     )

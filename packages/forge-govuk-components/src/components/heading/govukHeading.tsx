@@ -1,5 +1,5 @@
 import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
-import { jsxComponent } from '@ministryofjustice/hmpps-forge/jsx-components'
+import { jsxComponent, raw } from '@ministryofjustice/hmpps-forge/jsx-components'
 
 type HeadingSize = 'xl' | 'l' | 'm' | 's'
 type HeadingLevel = 1 | 2 | 3 | 4
@@ -25,7 +25,12 @@ const defaultLevels: Record<HeadingSize, HeadingLevel> = {
  * ```
  */
 export interface GovUKHeading extends BlockDefinition {
-  /** Heading text content. Supports dynamic expressions. */
+  /**
+   * Heading text content. Supports dynamic expressions.
+   *
+   * **Rendered as raw HTML without sanitization** - escape untrusted data with
+   * `Transformer.String.EscapeHtml()` before interpolating it.
+   */
   text: ResolvableString
 
   /** Visual size of the heading. Defaults to 'l'. */
@@ -34,7 +39,12 @@ export interface GovUKHeading extends BlockDefinition {
   /** HTML heading level (1-4). Defaults based on size: xl/l→h1, m→h2, s→h3. */
   level?: HeadingLevel
 
-  /** Optional caption displayed above the heading. Matches the heading size class automatically. */
+  /**
+   * Optional caption displayed above the heading. Matches the heading size class automatically.
+   *
+   * **Rendered as raw HTML without sanitization** - escape untrusted data with
+   * `Transformer.String.EscapeHtml()` before interpolating it.
+   */
   caption?: ResolvableString
 
   /** Additional CSS classes to append to the heading. */
@@ -64,8 +74,8 @@ export const GovUKHeading = jsxComponent<GovUKHeading>('govukHeading', {
 
     return (
       <Tag class={className} {...props.attributes}>
-        {props.caption && <span class={`govuk-caption-${size}`}>{props.caption}</span>}
-        {props.text}
+        {props.caption && <span class={`govuk-caption-${size}`}>{raw(props.caption)}</span>}
+        {raw(props.text)}
       </Tag>
     )
   },

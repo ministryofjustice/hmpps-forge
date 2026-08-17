@@ -77,12 +77,12 @@ describe('GovUKList', () => {
       )
     })
 
-    it('should escape HTML in the items', () => {
+    it('should render HTML in string items unescaped', () => {
       // Arrange & Act
-      const output = render({ items: ['a < b'] })
+      const output = render({ items: ['<a href="/help">Get help</a>'] })
 
       // Assert
-      expect(output).toBe('<ul class="govuk-list"><li>a &lt; b</li></ul>')
+      expect(output).toBe('<ul class="govuk-list"><li><a href="/help">Get help</a></li></ul>')
     })
   })
 })
