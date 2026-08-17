@@ -3,6 +3,7 @@ import type { WorkContextContract, WorkGroup, WorkInstrumentation } from '../../
 import type { WorkKind } from '../../../contracts/runtime/workOutput.type'
 import { captureContextSnapshot } from '../work/tracing/contextSnapshot'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 /**
  * Awaits a compiled work task, asserts its kind, and wraps it as the phase's child
@@ -18,7 +19,7 @@ export async function runTaskPhase(
   const resolved = await task
 
   if (!isWorkTaskOfKind(resolved, kind)) {
-    throw new Error(invalidMessage)
+    throw new ForgeInternalError(invalidMessage)
   }
 
   return singleTaskGroup(resolved)

@@ -1,9 +1,10 @@
 import WorkContext from './WorkContext'
 import WorkExecutionError from './WorkExecutionError'
-import TraceSpan from '../../../diagnostics/tracing/TraceSpan'
-import type { TraceSpanFields } from '../../../diagnostics/tracing/traceSpan.type'
+import TraceSpan from '../../../tracing/TraceSpan'
+import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
 import type { CompletedWork, WorkGroup, WorkTask } from '../../../contracts/runtime/work.type'
 import type { WorkOutputOf } from '../../../contracts/runtime/workOutput.type'
+import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 type FirstMatchWorkGroup = Extract<WorkGroup, { readonly mode: 'first-match' }>
 type InstrumentedWorkTask<TWorkKind extends string> = WorkTask<TWorkKind> & {
@@ -48,7 +49,7 @@ export default class WorkExecutor {
     const parentTraceSpan = ctx.work
 
     if (parentTraceSpan !== undefined && !(parentTraceSpan instanceof TraceSpan)) {
-      throw new Error('[Forge] Work context parent must be a TraceSpan to nest in the trace tree')
+      throw new ForgeInternalError('Work context parent must be a TraceSpan to nest in the trace tree')
     }
 
     const traceSpan = new TraceSpan(task.key, task.handler.kind, parentTraceSpan)
@@ -188,7 +189,7 @@ export default class WorkExecutor {
 }
 
 function assertNever(value: never): never {
-  throw new Error(`[Forge] Unhandled work group mode: ${JSON.stringify(value)}`)
+  throw new ForgeInternalError(`Unhandled work group mode: ${JSON.stringify(value)}`)
 }
 
 function isInstrumentedWorkTask<TWorkKind extends string>(

@@ -1,8 +1,7 @@
 import type { BlockDefinition } from '../../components/types/structures.type'
-import RegistryDuplicateError from '../errors/RegistryDuplicateError'
-import RegistryValidationError from '../errors/RegistryValidationError'
+import ForgeRegistryDuplicateError from '../errors/ForgeRegistryDuplicateError'
+import ForgeRegistryValidationError from '../errors/ForgeRegistryValidationError'
 import { ComponentRegistryEntry } from '../../components/types/components.type'
-import { coreComponents } from '../../components/builtins'
 
 /**
  * Registry for managing UI components in forge.
@@ -14,8 +13,8 @@ export default class ComponentRegistry {
   /**
    * Register multiple components at once
    * @param components - Array of components to register
-   * @throws RegistryDuplicateError if a component with the same variant already exists
-   * @throws RegistryValidationError if a component is invalid
+   * @throws ForgeRegistryDuplicateError if a component with the same variant already exists
+   * @throws ForgeRegistryValidationError if a component is invalid
    * @throws AggregateError if multiple validation errors occur
    */
   registerMany(components: ComponentRegistryEntry<BlockDefinition, unknown>[]): void {
@@ -28,7 +27,7 @@ export default class ComponentRegistry {
     components.forEach(component => {
       if (!component?.variant) {
         errors.push(
-          new RegistryValidationError({
+          new ForgeRegistryValidationError({
             registryType: 'component',
             expected: 'variant property',
             received: 'no variant',
@@ -37,7 +36,7 @@ export default class ComponentRegistry {
         )
       } else if (!component.render || typeof component.render !== 'function') {
         errors.push(
-          new RegistryValidationError({
+          new ForgeRegistryValidationError({
             registryType: 'component',
             itemName: component.variant,
             expected: 'render function',
@@ -47,7 +46,7 @@ export default class ComponentRegistry {
         )
       } else if (this.components.has(component.variant)) {
         errors.push(
-          new RegistryDuplicateError({
+          new ForgeRegistryDuplicateError({
             registryType: 'component',
             itemName: component.variant,
           }),
@@ -60,10 +59,6 @@ export default class ComponentRegistry {
     if (errors.length > 0) {
       throw new AggregateError(errors, 'Component registration failed')
     }
-  }
-
-  registerBuiltInComponents() {
-    this.registerMany([...coreComponents])
   }
 
   /**

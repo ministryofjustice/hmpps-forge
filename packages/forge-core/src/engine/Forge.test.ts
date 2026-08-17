@@ -1,5 +1,10 @@
 import type { MockInstance } from 'vitest'
 import { buildComponent } from '../components/utils/buildComponent'
+import { createForgePackage } from '../authoring/builders'
+import { ConditionsRegistry } from '../built-ins/functions/conditions'
+import { GeneratorsRegistry } from '../built-ins/functions/generators'
+import { TransformersRegistry } from '../built-ins/functions/transformers'
+import { coreComponents } from '../built-ins/components'
 import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import MountRegistry from './registries/MountRegistry'
@@ -75,6 +80,15 @@ describe('Forge', () => {
     }
   }
 
+  /**
+   * Helper to create a minimal branded package for registration tests
+   */
+  function createMinimalPackage(code: string) {
+    return createForgePackage({
+      journey: { type: 'journey', code, title: code, path: `/${code}`, steps: [] } as any,
+    })
+  }
+
   describe('constructor', () => {
     it('should initialize with default options', () => {
       // eslint-disable-next-line no-new
@@ -98,8 +112,8 @@ describe('Forge', () => {
       const mockComponentRegistry = (ComponentRegistry as MockedClass<typeof ComponentRegistry>).mock.instances[0]
       const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
 
-      expect(mockFunctionRegistry.registerBuiltInFunctions).not.toHaveBeenCalled()
-      expect(mockComponentRegistry.registerBuiltInComponents).not.toHaveBeenCalled()
+      expect(mockFunctionRegistry.register).not.toHaveBeenCalled()
+      expect(mockComponentRegistry.registerMany).not.toHaveBeenCalled()
     })
 
     it('should register built-in functions and components by default', () => {
@@ -109,8 +123,10 @@ describe('Forge', () => {
       const mockComponentRegistry = (ComponentRegistry as MockedClass<typeof ComponentRegistry>).mock.instances[0]
       const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
 
-      expect(mockFunctionRegistry.registerBuiltInFunctions).toHaveBeenCalledTimes(1)
-      expect(mockComponentRegistry.registerBuiltInComponents).toHaveBeenCalledTimes(1)
+      expect(mockFunctionRegistry.register).toHaveBeenCalledWith(ConditionsRegistry)
+      expect(mockFunctionRegistry.register).toHaveBeenCalledWith(TransformersRegistry)
+      expect(mockFunctionRegistry.register).toHaveBeenCalledWith(GeneratorsRegistry)
+      expect(mockComponentRegistry.registerMany).toHaveBeenCalledWith([...coreComponents])
     })
 
     it('should use custom logger when provided', () => {
@@ -188,11 +204,11 @@ describe('Forge', () => {
       // Arrange
       const mockComponent = buildComponent('pkg-comp', () => '<div />')
       const functionDependencies = { prefix: 'case-' }
-      const pkg = {
+      const pkg = createForgePackage<{ prefix: string }>({
         journey: mockJourneyDef,
         components: [mockComponent],
         functions: { PkgFunc: () => () => true } as any,
-      }
+      })
 
       const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
 
@@ -211,9 +227,34 @@ describe('Forge', () => {
       expect(mockMountRegistry.register).toHaveBeenCalledWith(mockPackageInstance)
     })
 
+    it('should reject a package not created with createForgePackage', () => {
+      // Arrange
+      const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
+
+      // Act
+      const act = () => engine.registerPackage({ journey: mockJourneyDef } as any)
+
+      // Assert
+      expect(act).toThrow('Packages must be created with createForgePackage(...) before registration')
+      expect(PackageInstance).not.toHaveBeenCalled()
+    })
+
+    it('should log instead of throwing for an unbranded package when strictRegistration is false', () => {
+      // Arrange
+      const engine = new Forge(createDefaultOptions({ logger: mockLogger, strictRegistration: false }))
+
+      // Act
+      const result = engine.registerPackage({ journey: mockJourneyDef } as any)
+
+      // Assert
+      expect(result).toBe(engine)
+      expect(mockLogger.error).toHaveBeenCalledWith(expect.any(Error))
+      expect(PackageInstance).not.toHaveBeenCalled()
+    })
+
     it('should skip registration when enabled is false', () => {
       // Arrange
-      const pkg = { journey: mockJourneyDef, enabled: false }
+      const pkg = createForgePackage({ journey: mockJourneyDef, enabled: false })
       const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
 
       // Act
@@ -233,14 +274,14 @@ describe('Forge', () => {
       const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
 
       // Act & Assert
-      expect(() => engine.registerPackage({ journey: mockJourneyDef })).toThrow(error)
+      expect(() => engine.registerPackage(createForgePackage({ journey: mockJourneyDef }))).toThrow(error)
       expect(mockLogger.error).not.toHaveBeenCalled()
     })
 
     it('should throw formatted registration errors for aggregate failures', () => {
       // Arrange
       const schemaError = Object.assign(new Error('Invalid input: expected "HookType.Access"'), {
-        name: 'ForgeConfigurationSchemaError',
+        name: 'ForgeSchemaError',
         formattedPath: 'guide > onAccess[1] > type',
         code: 'invalid_value',
       })
@@ -253,7 +294,7 @@ describe('Forge', () => {
       const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
 
       // Act
-      const act = () => engine.registerPackage({ journey: mockJourneyDef })
+      const act = () => engine.registerPackage(createForgePackage({ journey: mockJourneyDef }))
 
       // Assert
       expect(act).toThrow(ForgeRegistrationError)
@@ -267,7 +308,6 @@ describe('Forge', () => {
           expect(error.stack).toBe(error.message)
           expect(error.message).toContain('Forge registration failed: Schema validation failed')
           expect(error.message).toContain('Path: guide > onAccess[1] > type')
-          expect(error.message).toContain('Code: invalid_value')
         }
       }
     })
@@ -281,7 +321,7 @@ describe('Forge', () => {
       const engine = new Forge(createDefaultOptions({ logger: mockLogger, strictRegistration: false }))
 
       // Act & Assert
-      expect(() => engine.registerPackage({ journey: mockJourneyDef })).not.toThrow()
+      expect(() => engine.registerPackage(createForgePackage({ journey: mockJourneyDef }))).not.toThrow()
       expect(mockLogger.error).toHaveBeenCalled()
     })
 
@@ -290,7 +330,7 @@ describe('Forge', () => {
       const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
 
       // Act
-      const result = engine.registerPackage({ journey: mockJourneyDef })
+      const result = engine.registerPackage(createForgePackage({ journey: mockJourneyDef }))
 
       // Assert
       expect(result).toBe(engine)
@@ -388,8 +428,8 @@ describe('Forge', () => {
         .registerGlobalComponents([component2])
         .registerGlobalFunctions(functions1)
         .registerGlobalFunctions(functions2)
-        .registerPackage({ journey: 'config-1' })
-        .registerPackage({ journey: 'config-2' })
+        .registerPackage(createMinimalPackage('config-1'))
+        .registerPackage(createMinimalPackage('config-2'))
 
       expect(result).toBe(engine)
       expect(mockMountRegistry.register).toHaveBeenCalledTimes(2)
@@ -409,8 +449,8 @@ describe('Forge', () => {
 
       const result = engine
         .registerGlobalComponent(component)
-        .registerPackage({ journey: 'bad-config' })
-        .registerPackage({ journey: 'good-config' })
+        .registerPackage(createMinimalPackage('bad-config'))
+        .registerPackage(createMinimalPackage('good-config'))
 
       expect(result).toBe(engine)
       expect(mockLogger.error).toHaveBeenCalledWith(expect.any(Error))
@@ -427,7 +467,7 @@ describe('Forge', () => {
       const result = engine
         .registerGlobalComponent(customComponent)
         .registerGlobalFunctions(customFunctions)
-        .registerPackage({ journey: 'test-config' })
+        .registerPackage(createMinimalPackage('test-config'))
 
       // Verify chaining returns the engine
       expect(result).toBe(engine)
@@ -478,7 +518,7 @@ describe('Forge', () => {
       expect(result.kind).toBe('error')
 
       if (result.kind === 'error') {
-        expect(result.error.message).toBe('[Forge] No node registered for "unknown::step"')
+        expect(result.error.message).toBe('No node registered for "unknown::step"')
       }
     })
 

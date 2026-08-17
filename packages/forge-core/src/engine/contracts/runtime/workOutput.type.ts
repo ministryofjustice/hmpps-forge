@@ -1,12 +1,19 @@
-import type { ReachabilityEvaluationResult } from '../reachability/generatedReachabilityEvaluation.type'
-import type { CompiledAccessHookResult, CompiledSubmitHookResult } from './hookLifecycle.type'
+import type { ReachabilityEvaluationResult } from '../../concerns/reachability/contracts/generatedReachabilityEvaluation.type'
+import type {
+  CompiledAccessHookResult,
+  CompiledSubmitHookResult,
+} from '../../concerns/hooks/contracts/hookLifecycle.type'
 import type { DomainValidationFailure, StepValidationFailure } from './evaluationState.type'
-import type { StepValidityResult } from './stepValidityResult.type'
-import type { RenderBlock } from '../../../framework/rendering/types'
-import type { AnswerPreparationFieldResult, AnswerPreparationResult } from './AnswerPreparationWork.type'
-import type { HookStageResult } from './HookStage.type'
+import type { StepValidityResult } from '../../concerns/validation/contracts/stepValidityResult.type'
+import type { ValidationView } from '../../concerns/validation/contracts/validationView.type'
+import type { RenderBlock } from '../../../framework/types/rendering.type'
+import type {
+  AnswerPreparationFieldResult,
+  AnswerPreparationResult,
+} from '../../concerns/answer-preparation/contracts/AnswerPreparationWork.type'
+import type { HookStageResult } from '../../concerns/hooks/contracts/HookStage.type'
 import type { PhaseWorkOutput, RequestPipelineResult } from './RequestExecutionContext.type'
-import type { ResolveBlocksOutput } from './resolveBlocksOutput.type'
+import type { ResolveBlocksOutput } from '../../concerns/resolve/contracts/resolveBlocksOutput.type'
 
 /**
  * Single source of truth mapping every work `kind` to the output its work handler
@@ -15,7 +22,7 @@ import type { ResolveBlocksOutput } from './resolveBlocksOutput.type'
  * and the typed child-output accessors return the precise type for a given kind
  * (consumer side). One entry per work handler; reading one sibling predicts the rest.
  */
-export type WorkOutputByKind = {
+type WorkOutputByKind = {
   readonly 'request.pipeline': RequestPipelineResult
   readonly 'request.context-preparation': PhaseWorkOutput
   readonly 'request.access': PhaseWorkOutput
@@ -39,11 +46,11 @@ export type WorkOutputByKind = {
   readonly 'submit.hook': CompiledSubmitHookResult
   readonly 'submit.predicate': HookStageResult<CompiledSubmitHookResult>
   readonly 'submit.branch': HookStageResult<CompiledSubmitHookResult>
-  readonly 'submit.validation': HookStageResult<CompiledSubmitHookResult>
   readonly 'hook.effect': HookStageResult<never>
   readonly 'reachability.evaluation': ReachabilityEvaluationResult
   readonly 'answer.preparation': AnswerPreparationResult
   readonly 'answer.preparation.field': AnswerPreparationFieldResult
+  readonly 'validation.current-step': ValidationView
   readonly 'validation.step': StepValidityResult
   readonly 'validation.field': readonly StepValidationFailure[]
   readonly 'validation.domain': readonly DomainValidationFailure[]

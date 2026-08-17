@@ -1,12 +1,12 @@
 import { ASTNodeType } from './enums'
-import type { ASTNodeDiagnostics } from '../../diagnostics/sourceLocation.type'
+import type { ASTNodeDiagnostics } from '../../../shared/diagnostics/sourceLocation.type'
 
 /**
  * Template literal types for enforcing NodeID structure
  */
 export type CompileAstNodeId = `compile_ast:${number}`
 export type TemplateNodeId = `template:${number}`
-export type CompiledNodeId = `compiled:${string}`
+type CompiledNodeId = `compiled:${string}`
 
 /**
  * Union of all valid NodeId formats

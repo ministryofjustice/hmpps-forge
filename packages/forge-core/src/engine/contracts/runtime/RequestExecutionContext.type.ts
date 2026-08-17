@@ -1,25 +1,28 @@
 import type { NodeId } from '../ast/ast.type'
-import type { ReachabilityEvaluation } from '../reachability/reachabilityEvaluation.type'
-import type { StepValidityResult } from './stepValidityResult.type'
-import type { ValidationView } from './validationView.type'
+import type { ReachabilityEvaluation } from '../../concerns/reachability/contracts/reachabilityEvaluation.type'
+import type { ValidationView } from '../../concerns/validation/contracts/validationView.type'
 import type FunctionRegistry from '../../registries/FunctionRegistry'
 import type { RuntimeContext } from './evaluationState.type'
 import type { ResponseBindings } from '../../../framework/types/responseBindings.type'
 import type { ComponentRegistry } from '../../../framework/types/adapter.type'
-import type { RenderContext, RouteTree } from '../../../framework/rendering/types'
-import type { StepValidationWorkTask } from './ValidationWork.type'
+import type { RenderContext } from '../../../framework/types/rendering.type'
+import type { RouteTree } from '../../../framework/types/routeTree.type'
+import type {
+  StepValidationWorkTask,
+  ValidationRuleFilter,
+} from '../../concerns/validation/contracts/ValidationWork.type'
 
-export type StepValidationTaskResult = StepValidationWorkTask | undefined
+type StepValidationTaskResult = StepValidationWorkTask | undefined
 
 /**
  * The single context threaded through the whole request work tree.
  *
  * The phase work handlers read `context`/`request`/`responseBindings` to build each
  * phase's compiled context and invoke its compiled function, and write the mutable
- * per-request signalling (`reachabilityEvaluation`/`validation`/`showValidationFailures`)
- * that the render phase reads back. Validation-bearing work — the eager `validities`
- * phase, `submit.validation`, and on-entry validation — uses `buildStepValidation`/
- * `recordStepValidation` (always provided by the bootstrap) and `currentStepId`.
+ * per-request signalling (`reachabilityEvaluation`/`currentPageValidation`) that the
+ * render phase reads back. Validation-bearing work — the reachability validities
+ * phase and the current-step validation task — uses `buildStepValidation` (always
+ * provided by the bootstrap) and `currentStepId`.
  */
 export interface RequestExecutionContext {
   readonly context: RuntimeContext
@@ -31,10 +34,24 @@ export interface RequestExecutionContext {
   readonly traceEnabled: boolean
   reachabilityEvaluation?: ReachabilityEvaluation
   routeTree?: RouteTree
-  validation?: ValidationView
-  showValidationFailures?: boolean
+
+  /**
+   * The result of the current-page validation round, written only by the
+   * `validation.current-step` work handler. Its presence is the display signal:
+   * present means current-page validation ran and should be surfaced (a present
+   * result may be valid and carry no failures); absent means it never ran.
+   */
+  currentPageValidation?: ValidationView
   renderContext?: RenderContext
   renderedBlocks?: readonly unknown[]
+
+  /**
+   * Document anchors for failing field blocks, keyed by render block ID.
+   * Written during block resolution (each failing field records its `idPrefix`
+   * or code) and read back when the resolve phase assembles the render
+   * context's field validation errors.
+   */
+  fieldFailureAnchors?: Record<string, string>
 
   /**
    * The pipeline's resolved outcome, published by `request.pipeline` on completion so the
@@ -45,10 +62,8 @@ export interface RequestExecutionContext {
 
   buildStepValidation(
     stepId: NodeId,
-    isSubmission: boolean,
+    filter: ValidationRuleFilter,
   ): StepValidationTaskResult | Promise<StepValidationTaskResult>
-
-  recordStepValidation(stepId: NodeId, result: StepValidityResult): void
 }
 
 /**

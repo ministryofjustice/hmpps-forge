@@ -12,13 +12,8 @@ import {
 import { ExpressionType, IteratorType, PredicateType } from '../types/enums'
 import { ExpressionBuilder } from './ExpressionBuilder'
 import { IterableBuilder } from './IterableBuilder'
-
-/**
- * Split a key string into path segments.
- * 'user.name' -> ['user', 'name']
- * 'simple' -> ['simple']
- */
-const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') : [key])
+import { captureCallsite, stampCallsite } from './utils/captureCallsite'
+import { splitKey } from './utils/splitKey'
 
 /**
  * Immutable builder for ReferenceExpr with path navigation support.
@@ -29,8 +24,12 @@ const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') 
  * @example
  * Data('user').path('address.city')  // path: ['data', 'user', 'address', 'city']
  * Answer('email').pipe(Transformer.String.Trim).match(Condition.IsRequired())
+ *
+ * @internal Exposed to authors via the ChainableRef interface.
  */
 export class ReferenceBuilder {
+  readonly nodeKind = 'forge-builder' as const
+
   private readonly reference: ReferenceExpr
 
   private readonly negated: boolean
@@ -149,12 +148,16 @@ export class ReferenceBuilder {
    * Self().not.match(Condition.IsRequired())
    */
   match(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
-    return {
+    const predicate: PredicateTestExpr = {
       type: PredicateType.TEST,
       subject: this.reference,
       negate: this.negated,
       condition,
     }
+
+    stampCallsite(predicate, captureCallsite(this.match))
+
+    return predicate
   }
 
   /**

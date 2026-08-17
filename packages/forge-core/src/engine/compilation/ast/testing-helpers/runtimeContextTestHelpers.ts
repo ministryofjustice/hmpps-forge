@@ -1,12 +1,12 @@
 import { vi } from 'vitest'
 import type { AnswerHistory, AnswerSource } from '../../../contracts/runtime/answerHistory.type'
-import { extractPathname } from '../../../../framework/path/routePath'
+import { extractPathname } from '../../../../testing/extractPathname'
 import type { RuntimeContext } from '../../../contracts/runtime/evaluationState.type'
 import type { ResponseBindings } from '../../../../framework/types/responseBindings.type'
 
-export type MockAnswerInput = unknown | AnswerHistory
+type MockAnswerInput = unknown | AnswerHistory
 
-export interface MockRequestData {
+interface MockRequestData {
   method?: 'GET' | 'POST'
   url?: string
   session?: unknown

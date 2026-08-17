@@ -108,8 +108,8 @@ The second pass (`NodeRegistrationWalker.register()`) walks that tree to assign 
 ```mermaid
 flowchart TD
   authoringDefinition["Authoring definition"] -->|enter AST creation| nodeFactory["NodeFactory.createNode()"]
-  nodeFactory -->|match authoring shape with typeguards| specificFactory["Specific node factory"]
-  specificFactory -->|create node and transform nested values| astNode["AST node"]
+  nodeFactory -->|look up creator by type discriminant| nodeCreator["Node creator"]
+  nodeCreator -->|create node and transform nested values| astNode["AST node"]
   astNode -->|attach source diagnostics| diagnosticNode["AST node with diagnostics"]
   diagnosticNode -->|start registration walk| registrationWalker["NodeRegistrationWalker"]
   registrationWalker -->|inspect value| templateCheck{"Template node?"}
@@ -121,13 +121,16 @@ flowchart TD
 ```
 
 - [NodeFactory.ts](nodes/NodeFactory.ts) starts node creation.
-  `createNode()` checks that the input is an object, identifies the authoring type with typeguards, and delegates to a specific factory.
-- The specific factory creates one AST node.
+  `createNode()` checks that the input is an object, then looks up the creator for its `type` discriminant in the `creatorsByType` table.
+  The table has one row per discriminant enum value; discriminant values are namespaced strings, so one flat map covers every node family.
+- The creator builds one AST node.
   Node-specific values go under `properties`.
-- Factories call back into `NodeFactory` for nested values that may contain another node.
-  The methods are `createChildNode()`, `transformChild()`, and `transformValue()`.
-- `NodeFactory` tracks the current DSL path during recursion.
-  `withDiagnostics()` uses that path to attach source information to the node.
+  Creators are grouped into one file per family (`structures.ts`, `expressions.ts`, `predicates.ts`, `hooks.ts`, `outcomes.ts`).
+- Creators call back into the walker through their `NodeBuildContext` for nested values that may contain another node.
+  The members are `createNode()` (child must be a node), `transformValue()` (child may be a primitive, array, object, or node), `nextId()`, `compileTemplate()`, and `diagnosticsFor()`.
+- Inline-only types (condition combinators, iterator configs) have table rows that always throw.
+  They are consumed by the match and iterate creators directly and are never standalone AST nodes; the throwing row keeps a stray one failing compilation with an error that says where it belongs.
+- `withDiagnostics()` reads the `__source`/`__callsite` stamps off the authored object to attach source information to the node.
 - [NodeRegistrationWalker.ts](ast-state/NodeRegistrationWalker.ts) starts registration.
   The walker skips template nodes, assigns a compile ID when an AST-shaped value has no ID, resolves `Self()` references, wires each node's `parent` link, and registers each ordinary AST node in `ASTNodeIndex`.
 
@@ -139,7 +142,7 @@ flowchart TD
   That includes missing compile IDs, parent links, and `Self()` resolution.
 - Lookup and ancestry are separately handled.
   `ASTNodeIndex` owns lookup by type, and ancestry lives on each node's `parent` link.
-- `TemplateFactory` owns conversion of AST-shaped values into template nodes.
+- `compileTemplate` owns conversion of AST-shaped values into template nodes.
   Template nodes should not be treated as ordinary AST nodes.
 
 ## Quirks
@@ -148,7 +151,7 @@ flowchart TD
   Iterate payloads describe forms that do not exist until runtime data provides collection items.
   They are kept as templates so compile-time planning does not treat those forms as already materialised.
 - Templates are compiled at compile time, but the iterated form only exists at request time.
-  `TemplateFactory.compile()` runs at compile time, freezing the iterator payload into a template.
+  `compileTemplate()` runs at compile time, freezing the iterator payload into a template.
   Templates are never rebuilt into AST nodes at request time. Lowering compiles the template's values inline into generated source (see `ScopedTemplateCompiler`), and the generated loop evaluates them once per collection item, using the template ID as the stable prefix for generated instance IDs.
   Deferring evaluation to runtime is the reason templates exist: the form is materialised only when the iterated collection is known.
 - `Self()` is resolved during registration.
@@ -183,21 +186,21 @@ flowchart TD
 
 ## Editing Notes
 
-- To add a new authoring node type, update `NodeFactory.createNode()`.
-  It should recognise the new typeguard and delegate to a factory.
+- To add a new authoring node type, write a creator in its family file and add a row to the `creatorsByType` table.
+  The completeness test in `NodeFactory.test.ts` fails until every value of the new discriminant enum has a row.
 - To add a new expression, predicate, hook, outcome, or block subtype, return the broad `ASTNodeType` plus the subtype field used by that family.
   If the subtype should be queryable through `ASTNodeIndex.findByType()`, add it to `ASTNodeIndex.getNodeSubType()`.
-- To transform nested authoring values, call back into `NodeFactory`.
-  Use `createChildNode()` when the child must be an AST node.
-  Use `transformChild()` when the child may be a primitive, array, object, or AST node.
-- To add data that should not be transformed, assign it directly in the factory.
+- To transform nested authoring values, call back through `NodeBuildContext`.
+  Use `createNode()` when the child must be an AST node.
+  Use `transformValue()` when the child may be a primitive, array, object, or AST node.
+- To add data that should not be transformed, assign it directly in the creator.
   Existing examples include `metadata`, `data`, and some config values.
-- To change iterate template behavior, start in `IterateFactory` and `TemplateFactory`.
+- To change iterate template behavior, start in `createIterateNode` and `compileTemplate`.
   Do not make iterator payloads ordinary registered descendants unless the registration behavior is also changed.
 
 ## Entry Points
 
-- [NodeFactory.ts](nodes/NodeFactory.ts) dispatches authoring definitions to node factories.
+- [NodeFactory.ts](nodes/NodeFactory.ts) holds the `creatorsByType` registry of `type` discriminants and dispatches authoring definitions through it.
 - [NodeRegistrationWalker.ts](ast-state/NodeRegistrationWalker.ts) registers nodes and handles `Self()`.
 - [ASTNodeIndex.ts](ast-state/ASTNodeIndex.ts) registers frozen nodes and indexes them by type.
-- [TemplateFactory.ts](nodes/template/TemplateFactory.ts) compiles AST-shaped values into template nodes.
+- [template.ts](nodes/template.ts) compiles AST-shaped values into template nodes.

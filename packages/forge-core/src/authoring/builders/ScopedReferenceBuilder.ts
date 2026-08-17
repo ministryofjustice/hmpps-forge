@@ -1,11 +1,5 @@
 import { ReferenceBuilder } from './ReferenceBuilder'
-
-/**
- * Split a key string into path segments.
- * 'user.name' -> ['user', 'name']
- * 'simple' -> ['simple']
- */
-const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') : [key])
+import { splitKey } from './utils/splitKey'
 
 /**
  * Immutable builder for creating item references within iterator contexts.
@@ -26,8 +20,12 @@ const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') 
  *
  * // Chain with pipe and match
  * Item().path('price').pipe(Transformer.Number.Parse).match(Condition.Number.GreaterThan(0))
+ *
+ * @internal Exposed to authors via the ChainableScopedRef interface.
  */
 export class ScopedReferenceBuilder {
+  readonly nodeKind = 'forge-builder' as const
+
   private readonly level: number
 
   private constructor(level: number) {

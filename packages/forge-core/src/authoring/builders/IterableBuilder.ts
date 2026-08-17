@@ -13,13 +13,8 @@ import {
 } from '../types/expressions.type'
 import { ExpressionType, IteratorType, PredicateType } from '../types/enums'
 import { ExpressionBuilder } from './ExpressionBuilder'
-
-/**
- * Split a key string into path segments.
- * 'user.name' -> ['user', 'name']
- * 'simple' -> ['simple']
- */
-const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') : [key])
+import { captureCallsite, stampCallsite } from './utils/captureCallsite'
+import { splitKey } from './utils/splitKey'
 
 /**
  * Immutable builder for chainable iterate expressions.
@@ -36,8 +31,12 @@ const splitKey = (key: string): string[] => (key.includes('.') ? key.split('.') 
  * - Immutable: Each method returns a NEW instance
  * - Chainable: Multiple .each() calls compose iterators
  * - Escapable: .pipe() exits iteration mode to operate on the result array
+ *
+ * @internal Exposed to authors via the ChainableIterable interface.
  */
 export class IterableBuilder {
+  readonly nodeKind = 'forge-builder' as const
+
   private readonly expression: IterateExpr
 
   private readonly negated: boolean
@@ -178,12 +177,16 @@ export class IterableBuilder {
    *   .match(Condition.Array.IsEmpty())
    */
   match(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
-    return {
+    const predicate: PredicateTestExpr = {
       type: PredicateType.TEST,
       subject: this.expression,
       negate: this.negated,
       condition,
     }
+
+    stampCallsite(predicate, captureCallsite(this.match))
+
+    return predicate
   }
 
   /**

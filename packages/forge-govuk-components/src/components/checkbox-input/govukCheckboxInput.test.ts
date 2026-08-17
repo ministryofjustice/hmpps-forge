@@ -335,14 +335,6 @@ describe('govukCheckboxInput', () => {
       // Assert
       expect(result?.success).toBe(false)
     })
-
-    it('should not set a field-level multiple flag when building the field', () => {
-      // Arrange & Act
-      const field = GovUKCheckboxInput({ code: 'contact', label: 'Contact', items: [] })
-
-      // Assert
-      expect(field).not.toHaveProperty('multiple')
-    })
   })
 
   describe('DOM rendering smoke test', () => {

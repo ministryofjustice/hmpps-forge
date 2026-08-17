@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { GovUKButton, GovUKTextInput, govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
-import { field, journey, step } from '../../src/authoring'
+import { createForgePackage, field, journey, step } from '../../src/authoring'
 import { ForgeTestHarness } from '../../src/testing'
 import Forge from '../../src/engine/Forge'
 import type { JourneyDefinition } from '../../src/authoring/types/structures.type'
 import type { FieldBlockDefinition } from '../../src/components/types/structures.type'
-import type { CompilationTraceEvent } from '../../src/engine/diagnostics/tracing/compilationTrace.type'
-import type { SerializedTraceSpan } from '../../src/engine/diagnostics/tracing/traceSpan.type'
+import type { CompilationTraceEvent } from '../../src/engine/compilation/tracing/compilationTrace.type'
+import type { SerializedTraceSpan } from '../../src/engine/tracing/traceSpan.type'
 
 const silentLogger = {
   log: () => {},
@@ -54,7 +54,7 @@ function collectTrace(captureGeneratedSource: boolean): CompilationTraceEvent {
     },
   })
     .registerGlobalComponents(govukComponents)
-    .registerPackage({ journey: traceJourney })
+    .registerPackage(createForgePackage({ journey: traceJourney }))
 
   return events[0]
 }
@@ -70,7 +70,7 @@ function registerAndCollect(
     instrumentation: { sinks: [{ onRequestTrace: () => {}, onCompilationTrace: event => events.push(event) }] },
   }).registerGlobalComponents(govukComponents)
 
-  return { register: () => forge.registerPackage({ journey: targetJourney }), events }
+  return { register: () => forge.registerPackage(createForgePackage({ journey: targetJourney })), events }
 }
 
 function someUnit(units: readonly SerializedTraceSpan[], predicate: (unit: SerializedTraceSpan) => boolean): boolean {
@@ -93,14 +93,7 @@ describe('Forge compilation tracing', () => {
       expect(event.journeyCode).toBe('compilation-trace')
       expect(event.trace.outcome).toBe('compiled')
       expect(event.trace.phases.map(phase => phase.phase)).toEqual(
-        expect.arrayContaining([
-          'dsl-validation',
-          'ast',
-          'semantic-analysis',
-          'dependency-analysis',
-          'lowering',
-          'routes',
-        ]),
+        expect.arrayContaining(['dsl-validation', 'ast', 'semantic-analysis', 'analysis', 'lowering', 'routes']),
       )
       expect(event.trace.phases).toHaveLength(6)
     })

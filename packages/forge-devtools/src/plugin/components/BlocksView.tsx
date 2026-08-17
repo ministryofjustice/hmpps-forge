@@ -218,9 +218,9 @@ function latestStepValidities(trace: TraceMessage): Record<string, StepValidityM
   const snapshots = trace.trace.phases
     .flatMap(phase => collectUnits(phase.units))
     .map(unit => unit.snapshot)
-    .filter(snapshot => snapshot?.stepValidities !== undefined)
+    .filter(snapshot => snapshot?.reachabilityValidities !== undefined)
 
-  const stepValidities = snapshots[snapshots.length - 1]?.stepValidities
+  const stepValidities = snapshots[snapshots.length - 1]?.reachabilityValidities
 
   if (stepValidities === undefined) {
     return {}

@@ -57,10 +57,19 @@ export interface ComponentRegistryEntry<T extends BlockDefinition, TRenderOutput
   inputSchema?: ZodType
 
   /**
-   * Component-level (fixed-shape) override of the field-level `multiple` flag. Fixed-shape
-   * components such as checkboxes declare it here rather than leaving it an author decision.
+   * Whether the component keeps every submitted value rather than the first non-empty one.
+   * Fixed-shape components such as checkboxes declare it here, so it is a component
+   * property rather than an author decision.
    */
   multiple?: boolean
+
+  /**
+   * Derives the document anchor an error summary link should target when this
+   * component's block fails validation. The component owns the ids it renders,
+   * so only it can say where focus should land. Returning `undefined` (or not
+   * declaring this) falls back to the field code.
+   */
+  errorAnchor?(props: ResolvedPropsOf<T>): string | undefined
 }
 
 /**
@@ -166,6 +175,20 @@ export interface FieldComponentOptions<TBlock extends BlockDefinition, TOutput, 
    * one. Declare it when the component's shape fixes it - checkboxes, for instance.
    */
   multiple?: boolean
+
+  /**
+   * Derives the document anchor an error summary link should target when this
+   * component's block fails validation - the id of the control focus should land
+   * on. Declare it whenever the component renders ids that can differ from the
+   * field code (an `id` or `idPrefix` prop, a suffixed first input). Without it
+   * the error summary links to the field code.
+   *
+   * @example
+   * ```typescript
+   * errorAnchor: props => props.idPrefix ?? props.code
+   * ```
+   */
+  errorAnchor?: (props: ResolvedPropsOf<TBlock>) => string | undefined
 }
 
 /**

@@ -1,7 +1,7 @@
 export * from './builders'
-export { Condition, ConditionsRegistry } from './conditions'
-export { Generator, GeneratorsRegistry } from './generators'
-export { Transformer, TransformersRegistry } from './transformers'
+export { Condition, ConditionsRegistry } from '../built-ins/functions/conditions'
+export { Generator, GeneratorsRegistry } from '../built-ins/functions/generators'
+export { Transformer, TransformersRegistry } from '../built-ins/functions/transformers'
 
 export { BaseFunctionRegistry } from './registries/BaseFunctionRegistry'
 export { default as ConditionRegistry } from './registries/ConditionRegistry'
@@ -25,12 +25,8 @@ export type { FunctionImplementations, FunctionShapeMap } from './utils/deprecat
 export { EffectFunctionContext } from '../engine/runtime/evaluation/context/EffectFunctionContext'
 
 export { StructureType, BlockType, FunctionType, ExpressionType, ConditionCombinatorType } from './types/enums'
-export { ConditionalExprBuilder } from './builders/ConditionalExprBuilder'
-export { GeneratorBuilder } from './builders/GeneratorBuilder'
-export { MatchExprBuilder } from './builders/MatchExprBuilder'
-export { PredicateTestExprBuilder } from './builders/PredicateTestExprBuilder'
 
-export type { ForgePackage } from './types/package.type'
+export type { ForgePackage, RegisteredForgePackage } from './types/package.type'
 export type { FunctionEvaluator, FunctionRegistryEntry, FunctionRegistryObject } from './types/functions.type'
 export type {
   JourneyDefinition,
@@ -46,25 +42,21 @@ export type {
 } from './types/structures.type'
 export type {
   AccessHook,
-  ConditionalExpr,
-  ConditionAndExpr,
-  ConditionBranchExpr,
-  ConditionCombinatorExpr,
-  ConditionFunctionExpr,
-  ConditionNotExpr,
-  ConditionOrExpr,
-  ConditionXorExpr,
-  EffectFunctionExpr,
-  FunctionExpr,
-  GeneratorFunctionExpr,
-  IterateExpr,
-  MatchExpr,
-  PipelineExpr,
-  PredicateExpr,
-  ReferenceExpr,
   Resolvable,
   ResolvableExpression,
   SubmitHook,
-  TransformerFunctionExpr,
+  RedirectOutcome,
+  ThrowErrorOutcome,
+  PredicateExpr,
   ResolvableValue,
+  ReferenceExpr,
+  PipelineExpr,
+  ConditionalExpr,
+  MatchExpr,
+  IterateExpr,
+  FunctionExpr,
+  ConditionFunctionExpr,
+  TransformerFunctionExpr,
+  EffectFunctionExpr,
+  GeneratorFunctionExpr,
 } from './types/expressions.type'

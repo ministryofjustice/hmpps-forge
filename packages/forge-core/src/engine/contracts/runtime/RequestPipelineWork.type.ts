@@ -1,5 +1,5 @@
 import type { ComponentRegistry } from '../../../framework/types/adapter.type'
-import type { ForgeRenderer } from '../../../framework/rendering/types'
+import type { ForgeRenderer } from '../../../framework/types/rendering.type'
 import type { NodeId } from '../ast/ast.type'
 import type {
   CompiledAnswerPreparationFunction,
@@ -11,8 +11,12 @@ import type {
   CompiledStaticDataFunction,
   CompiledValidationFunction,
 } from '../compiled/compiledFunctions.type'
-import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from './hookLifecycle.type'
-import type { JourneyRouteTemplateCatalog, StoredRouteTree } from '../routing/routeTree.type'
+import type { CompiledFieldInventoryFunction } from '../../concerns/answer-cleardown/contracts/compiledFieldInventory.type'
+import type {
+  CompiledAccessLifecycleFunction,
+  CompiledSubmitHooksFunction,
+} from '../../concerns/hooks/contracts/hookLifecycle.type'
+import type { JourneyRouteTemplateCatalog, StoredRouteTree } from '../../concerns/route/contracts/routeTree.type'
 import type { HttpMethod } from '../../../framework/types/request.type'
 import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
 import type { WorkTask } from './work.type'
@@ -26,7 +30,7 @@ export interface RequestPipelineWorkProps {
  * Access, answer-preparation, entry-validation, submit, and render all instantiate
  * it; `compiled` is the phase's compiled function.
  */
-export interface PhaseWorkProps<TCompiled> {
+interface PhaseWorkProps<TCompiled> {
   readonly compiled: TCompiled
   readonly path: string
 }
@@ -55,6 +59,7 @@ export interface RequestReachabilityWorkProps {
   readonly mode: 'step' | 'journey'
   readonly compiledReachabilityFacts: CompiledReachabilityFactsFunction
   readonly compiledReachabilityState: CompiledReachabilityStateFunction
+  readonly compiledFieldInventory: CompiledFieldInventoryFunction | undefined
   readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
   readonly method: HttpMethod
 }

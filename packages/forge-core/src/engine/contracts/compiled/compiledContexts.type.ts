@@ -1,6 +1,6 @@
 import type FunctionRegistry from '../../registries/FunctionRegistry'
 import type { ComponentRegistry } from '../../../framework/types/adapter.type'
-import type { ValidationResult } from '../runtime/validationResult.type'
+import type { ValidationResult } from '../../concerns/validation/contracts/validationResult.type'
 
 /**
  * The answer snapshot the generated source reads at the compiled-function boundary:
@@ -9,7 +9,7 @@ import type { ValidationResult } from '../runtime/validationResult.type'
  * assigns to this; the boundary stays deliberately loose (only generated source
  * reads these fields, never type-checked code).
  */
-export interface CompiledAnswerSnapshot {
+interface CompiledAnswerSnapshot {
   current: unknown
   parsed?: unknown
   mutations?: { value: unknown; source: string }[]
@@ -19,7 +19,7 @@ export interface CompiledAnswerSnapshot {
  * The answer snapshot after compiled answer preparation has run — `mutations` is
  * guaranteed present, since the answer-preparation phase is the one that produces it.
  */
-export interface CompiledPreparedAnswer extends CompiledAnswerSnapshot {
+interface CompiledPreparedAnswer extends CompiledAnswerSnapshot {
   mutations: { value: unknown; source: string }[]
 }
 
@@ -53,10 +53,17 @@ export type CompiledValidationContext = CompiledBaseContext
  * Context passed to the compiled render function. Field value resolution reads the
  * AnswerHistory produced by compiled answer preparation, including parsed values
  * and mutation sources. `fieldFailures` is keyed by render block ID, not field code.
+ * Block resolution records each failing field block's document anchor (the
+ * component's declared `errorAnchor`, or the field code) into
+ * `fieldFailureAnchors`, also keyed by render block ID, so the error summary can
+ * link to the right block instance. `components` is how the anchor is derived -
+ * the failing block's registry entry declares where focus should land.
  */
 export interface CompiledResolveContext extends CompiledBaseContext {
   post: Record<string, unknown>
   fieldFailures: Record<string, ValidationResult[]>
+  fieldFailureAnchors: Record<string, string>
+  components: ComponentRegistry
 }
 
 /**

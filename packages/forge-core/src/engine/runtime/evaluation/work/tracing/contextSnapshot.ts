@@ -1,7 +1,7 @@
 import type {
   JourneyReachabilityProjection,
   StepReachabilityProjection,
-} from '../../../../contracts/reachability/journeyReachabilityProjection.type'
+} from '../../../../concerns/reachability/contracts/journeyReachabilityProjection.type'
 import type { AnswerHistory, AnswerMutation } from '../../../../contracts/runtime/answerHistory.type'
 import type {
   DomainValidationFailure,
@@ -9,7 +9,7 @@ import type {
   RuntimeContext,
 } from '../../../../contracts/runtime/evaluationState.type'
 import type { NodeId } from '../../../../contracts/ast/ast.type'
-import type { StepValidityResult } from '../../../../contracts/runtime/stepValidityResult.type'
+import type { StepValidityResult } from '../../../../concerns/validation/contracts/stepValidityResult.type'
 
 /**
  * A deep-cloned, point-in-time copy of the request's runtime evaluation state.
@@ -20,7 +20,7 @@ import type { StepValidityResult } from '../../../../contracts/runtime/stepValid
 export type ContextSnapshotData = {
   readonly answers: Record<string, AnswerHistory>
   readonly data: Record<string, unknown>
-  readonly stepValidities?: Record<NodeId, StepValidityResult>
+  readonly reachabilityValidities?: Record<NodeId, StepValidityResult>
   readonly reachability?: JourneyReachabilityProjection
 }
 
@@ -28,7 +28,7 @@ export function captureContextSnapshot(context: RuntimeContext): ContextSnapshot
   return {
     answers: cloneAnswers(context.domain.answers),
     data: cloneRecord(context.domain.data),
-    stepValidities: cloneStepValidities(context.evaluation.stepValidities),
+    reachabilityValidities: cloneReachabilityValidities(context.evaluation.reachabilityValidities),
     reachability: cloneReachability(context.evaluation.reachability),
   }
 }
@@ -60,16 +60,16 @@ function cloneRecord(record: Record<string, unknown>): Record<string, unknown> {
   }, {})
 }
 
-function cloneStepValidities(
-  stepValidities: ReadonlyMap<NodeId, StepValidityResult> | undefined,
+function cloneReachabilityValidities(
+  reachabilityValidities: ReadonlyMap<NodeId, StepValidityResult> | undefined,
 ): Record<NodeId, StepValidityResult> | undefined {
-  if (stepValidities === undefined) {
+  if (reachabilityValidities === undefined) {
     return undefined
   }
 
   const cloned: Record<NodeId, StepValidityResult> = {}
 
-  stepValidities.forEach((validity, stepId) => {
+  reachabilityValidities.forEach((validity, stepId) => {
     cloned[stepId] = {
       fieldFailures: validity.fieldFailures.map(failure => cloneStepValidationFailure(failure)),
       domainFailures: validity.domainFailures.map(failure => cloneDomainValidationFailure(failure)),

@@ -31,7 +31,7 @@ export const showsList = GovUKList({
     'Submit hooks that route "add another" and "continue" to different steps',
     'A fallback message when the collection is empty',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const startButton = GovUKLinkButton({

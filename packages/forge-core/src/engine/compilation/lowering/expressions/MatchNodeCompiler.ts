@@ -1,27 +1,32 @@
+import { CodeFragment, code, literal } from '../codegen/fragments/CodeFragment'
 import { NodeCompilationContext } from './types'
 
 /**
- * Compiles match expressions into a first-match-wins expression cascade.
- * Keeping this expression-shaped lets callers embed matches inside larger
- * generated values without introducing statement-level temporary variables.
+ * Compiles match expressions into a first-match-wins chain of ternaries.
+ * The output is a pure JavaScript expression (not statements), so callers can
+ * embed matches inside larger generated values without temporary variables.
  */
 export default class MatchNodeCompiler {
   constructor(private readonly ctx: NodeCompilationContext) {}
 
   /**
-   * Emits right-associated ternaries so earlier branches retain priority.
+   * Nests ternaries from right to left so earlier branches are checked first.
    */
-  compile(properties: Record<string, unknown>): string {
+  compile(properties: Record<string, unknown>): CodeFragment {
     const branches = (properties.branches ?? []) as Array<Record<string, unknown>>
     const otherwise = properties.otherwise
 
-    const fallbackExpr = otherwise !== undefined ? this.ctx.compileOperand(otherwise) : 'undefined'
+    // Only the first matching branch evaluates, so call statements must not
+    // hoist out of the ternary chain.
+    return this.ctx.withoutCallHoisting(() => {
+      const fallbackExpr = otherwise !== undefined ? this.ctx.compileOperandCode(otherwise) : literal(undefined)
 
-    return branches.reduceRight((nextExpr, branch) => {
-      const predicateExpr = this.ctx.compileOperand(branch.predicate)
-      const valueExpr = this.ctx.compileOperand(branch.value)
+      return branches.reduceRight<CodeFragment>((nextExpr, branch) => {
+        const predicateExpr = this.ctx.compileOperandCode(branch.predicate)
+        const valueExpr = this.ctx.compileOperandCode(branch.value)
 
-      return `(${predicateExpr} ? ${valueExpr} : ${nextExpr})`
-    }, fallbackExpr)
+        return code`(${predicateExpr} ? ${valueExpr} : ${nextExpr})`
+      }, fallbackExpr)
+    })
   }
 }

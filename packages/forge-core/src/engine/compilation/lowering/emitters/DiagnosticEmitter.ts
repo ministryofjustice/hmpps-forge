@@ -1,35 +1,77 @@
 import { FunctionType } from '../../../../authoring/types/enums'
-import type { DSLPathSegment, DSLSourceLocation } from '../../../diagnostics/sourceLocation.type'
+import { formatCallsiteChain, resolveCallsitePositionChain } from '../../../../shared/diagnostics/formatCallsite'
+import {
+  CodeFragment,
+  arrayCode,
+  callCode,
+  code,
+  literal,
+  positionedCode,
+  propertyCode,
+} from '../codegen/fragments/CodeFragment'
+import CodeGenerator from '../codegen/CodeGenerator'
+import IdentifierName from '../codegen/fragments/IdentifierName'
 
-interface DiagnosticMetadata {
+export interface DiagnosticMetadata {
   readonly nodeId?: string
-  readonly path?: readonly DSLPathSegment[]
   readonly formattedPath?: string
   readonly functionName?: string
   readonly functionType?: string
+  readonly definedAt?: string
 }
 
-const GENERATED_FUNCTION_HELPERS_PARAM = '_forgeHelpers'
-const RUNTIME_DIAGNOSTICS_PARAM = '_forgeRuntimeDiagnostics'
+const GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM = new IdentifierName('_forgeHelpers')
+const RUNTIME_DIAGNOSTICS_PARAM = new IdentifierName('_forgeRuntimeDiagnostics')
+const CONTEXT_PARAM = new IdentifierName('ctx')
 
 export default class DiagnosticEmitter {
-  wrapExpression(expression: string, source: unknown, usesAwait: boolean): string {
+  private readonly metadataByKey = new Map<string, number>()
+
+  private readonly metadataEntries: DiagnosticMetadata[] = []
+
+  reset(): void {
+    this.metadataByKey.clear()
+    this.metadataEntries.length = 0
+  }
+
+  snapshot(): readonly DiagnosticMetadata[] {
+    return Object.freeze(this.metadataEntries.map(metadata => Object.freeze({ ...metadata })))
+  }
+
+  /**
+   * Binds authored source positions to a fragment without routing it through a
+   * tracked helper call. For expressions that cannot throw, tracking buys no
+   * error attribution — only the source-map positions matter.
+   */
+  attachPositions(expression: CodeFragment, source: unknown): CodeFragment {
+    return positionedCode(expression, this.resolvePositions(source))
+  }
+
+  wrapExpression(
+    expression: CodeFragment,
+    source: unknown,
+    usesAwait: boolean,
+    generator: CodeGenerator,
+  ): CodeFragment {
     const metadata = this.getMetadata(source)
 
     if (metadata === undefined) {
       return expression
     }
 
-    const returnStatement = usesAwait ? `return await (${expression});` : `return (${expression});`
     const helperName = usesAwait ? 'evaluateTrackedAsync' : 'evaluateTracked'
-    const callbackPrefix = usesAwait ? 'async ' : ''
-    const helperCall = this.compileTrackedHelperCall(helperName, metadata, callbackPrefix, returnStatement)
+    const callback = generator.functionExpression(
+      this.compileCallbackName(metadata),
+      [],
+      callbackGenerator => {
+        callbackGenerator.return(usesAwait ? code`await (${expression})` : code`(${expression})`)
+      },
+      { async: usesAwait },
+    )
+    const helperCall = this.compileTrackedHelperCall(helperName, this.intern(metadata), callback)
+    const wrappedCall = usesAwait ? code`(await ${helperCall})` : helperCall
 
-    if (usesAwait) {
-      return `(await ${helperCall})`
-    }
-
-    return helperCall
+    return positionedCode(wrappedCall, this.resolvePositions(source))
   }
 
   /**
@@ -37,14 +79,22 @@ export default class DiagnosticEmitter {
    * required parameter, not derived from `source`), so metadata is always
    * worth tracking and this always routes through the helper call.
    */
-  wrapFunctionCall(helperName: string, funcName: string, argExprs: string[], source: unknown): string {
+  wrapFunctionCall(
+    helperName: string,
+    funcName: string,
+    argExprs: readonly CodeFragment[],
+    source: unknown,
+  ): CodeFragment {
     const metadata: DiagnosticMetadata = {
       ...this.getSourceDiagnostics(source),
       functionName: funcName,
       functionType: this.getFunctionType(source),
     }
 
-    return this.compileFunctionHelperCall(helperName, metadata, funcName, argExprs)
+    return positionedCode(
+      this.compileFunctionHelperCall(helperName, this.intern(metadata), funcName, argExprs),
+      this.resolvePositions(source),
+    )
   }
 
   private getMetadata(source: unknown, functionName?: string): DiagnosticMetadata | undefined {
@@ -54,8 +104,8 @@ export default class DiagnosticEmitter {
 
     if (
       sourceDiagnostics.nodeId === undefined &&
-      sourceDiagnostics.path === undefined &&
       sourceDiagnostics.formattedPath === undefined &&
+      sourceDiagnostics.definedAt === undefined &&
       resolvedFunctionName === undefined &&
       functionType === undefined
     ) {
@@ -70,23 +120,67 @@ export default class DiagnosticEmitter {
   }
 
   private getSourceDiagnostics(source: unknown): DiagnosticMetadata {
-    const sourceLocation = this.getSourceLocation(source)
+    const formattedPath = this.getFormattedPath(source)
+    const definedAt = this.getDefinedAt(source)
 
     if (!isRecord(source)) {
       return {
-        path: sourceLocation?.path,
-        formattedPath: sourceLocation?.formattedPath,
+        formattedPath,
+        definedAt,
       }
     }
 
     return {
       nodeId: typeof source.id === 'string' ? source.id : undefined,
-      path: sourceLocation?.path,
-      formattedPath: sourceLocation?.formattedPath,
+      formattedPath,
+      definedAt,
     }
   }
 
-  private getSourceLocation(source: unknown): DSLSourceLocation | undefined {
+  private getDefinedAt(source: unknown): string | undefined {
+    const callsite = this.getCallsite(source)
+
+    if (callsite === undefined) {
+      return undefined
+    }
+
+    const chain = formatCallsiteChain(callsite)
+
+    return chain.length > 0 ? chain.join('\n') : undefined
+  }
+
+  /** Resolves the chain of authored call-site positions (innermost first) for source-map output. */
+  private resolvePositions(source: unknown) {
+    return resolveCallsitePositionChain(this.getCallsite(source))
+  }
+
+  private getCallsite(source: unknown): { stack?: string } | undefined {
+    if (!isRecord(source)) {
+      return undefined
+    }
+
+    const diagnostics = source.diagnostics
+
+    if (!isRecord(diagnostics)) {
+      return undefined
+    }
+
+    const callsite = diagnostics.callsite
+
+    if (!isRecord(callsite)) {
+      return undefined
+    }
+
+    const { stack } = callsite
+
+    if (stack !== undefined && typeof stack !== 'string') {
+      return undefined
+    }
+
+    return { stack }
+  }
+
+  private getFormattedPath(source: unknown): string | undefined {
     if (!isRecord(source)) {
       return undefined
     }
@@ -103,13 +197,7 @@ export default class DiagnosticEmitter {
       return undefined
     }
 
-    const { path, formattedPath } = sourceLocation
-
-    if (!isDSLPath(path) || typeof formattedPath !== 'string') {
-      return undefined
-    }
-
-    return { path, formattedPath }
+    return typeof sourceLocation.formattedPath === 'string' ? sourceLocation.formattedPath : undefined
   }
 
   private getFunctionName(source: unknown): string | undefined {
@@ -143,73 +231,68 @@ export default class DiagnosticEmitter {
 
   private compileTrackedHelperCall(
     helperName: string,
-    metadata: DiagnosticMetadata,
-    callbackPrefix: string,
-    returnStatement: string,
-  ): string {
-    const callback = `${callbackPrefix}function() {\n${indentSource(returnStatement)}\n}`
-    const args = [compileRuntimeDiagnosticsArg(), this.compileMetadataLiteral(metadata), callback]
+    diagnosticReference: number,
+    callback: CodeFragment,
+  ): CodeFragment {
+    return callCode(code`${GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM}${propertyCode(helperName)}`, [
+      RUNTIME_DIAGNOSTICS_PARAM,
+      literal(diagnosticReference),
+      callback,
+    ])
+  }
 
-    return `${GENERATED_FUNCTION_HELPERS_PARAM}.${helperName}(\n${indentSource(args.join(',\n'))}\n)`
+  /**
+   * Names the tracked callback after the node it evaluates so debugger stacks
+   * show `evaluate_hidden` instead of `<anonymous>`. The `evaluate_` prefix
+   * avoids clashing with any variable name the compilers emit, so the inner
+   * expression can never be accidentally shadowed.
+   */
+  private compileCallbackName(metadata: DiagnosticMetadata): string {
+    const pathTail = metadata.formattedPath?.split(' > ').at(-1) ?? metadata.functionName
+
+    if (pathTail === undefined) {
+      return 'evaluate_expression'
+    }
+
+    const identifier = pathTail.replace(/[^\w$]+/g, '_').replace(/^_+|_+$/g, '')
+
+    return identifier.length > 0 ? `evaluate_${identifier}` : 'evaluate_expression'
   }
 
   private compileFunctionHelperCall(
     helperName: string,
-    metadata: DiagnosticMetadata,
+    diagnosticReference: number,
     funcName: string,
-    argExprs: string[],
-  ): string {
+    argExprs: readonly CodeFragment[],
+  ): CodeFragment {
     const args = [
-      'ctx',
-      compileRuntimeDiagnosticsArg(),
-      this.compileMetadataLiteral(metadata),
-      JSON.stringify(funcName),
-      `[${argExprs.join(', ')}]`,
+      CONTEXT_PARAM,
+      RUNTIME_DIAGNOSTICS_PARAM,
+      literal(diagnosticReference),
+      literal(funcName),
+      arrayCode(argExprs),
     ]
 
-    return `${GENERATED_FUNCTION_HELPERS_PARAM}.${helperName}(\n${indentSource(args.join(',\n'))}\n)`
+    return callCode(code`${GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM}${propertyCode(helperName)}`, args)
   }
 
-  private compileMetadataLiteral(metadata: DiagnosticMetadata): string {
-    return [
-      '{',
-      indentSource(
-        [
-          `nodeId: ${toSourceLiteral(metadata.nodeId)},`,
-          `path: ${toSourceLiteral(metadata.path)},`,
-          `formattedPath: ${toSourceLiteral(metadata.formattedPath)},`,
-          `functionName: ${toSourceLiteral(metadata.functionName)},`,
-          `functionType: ${toSourceLiteral(metadata.functionType)}`,
-        ].join('\n'),
-      ),
-      '}',
-    ].join('\n')
+  private intern(metadata: DiagnosticMetadata): number {
+    const key = JSON.stringify(metadata)
+    const existingReference = this.metadataByKey.get(key)
+
+    if (existingReference !== undefined) {
+      return existingReference
+    }
+
+    const reference = this.metadataEntries.length
+
+    this.metadataEntries.push(metadata)
+    this.metadataByKey.set(key, reference)
+
+    return reference
   }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value)
-}
-
-function isDSLPath(value: unknown): value is readonly DSLPathSegment[] {
-  return Array.isArray(value) && value.every(segment => typeof segment === 'string' || typeof segment === 'number')
-}
-
-function indentSource(source: string): string {
-  return source
-    .split('\n')
-    .map(line => (line.length === 0 ? line : `  ${line}`))
-    .join('\n')
-}
-
-function compileRuntimeDiagnosticsArg(): string {
-  return `typeof ${RUNTIME_DIAGNOSTICS_PARAM} === "undefined" ? undefined : ${RUNTIME_DIAGNOSTICS_PARAM}`
-}
-
-function toSourceLiteral(value: unknown): string {
-  if (value === undefined) {
-    return 'undefined'
-  }
-
-  return JSON.stringify(value) ?? 'undefined'
 }

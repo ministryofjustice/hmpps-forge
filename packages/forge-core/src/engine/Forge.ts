@@ -5,21 +5,26 @@ import ComponentRegistry from './registries/ComponentRegistry'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import type { BlockDefinition } from '../components/types/structures.type'
 import { createFunctionsRegistry } from '../authoring/utils/deprecated/createFunctionsRegistry'
+import { ConditionsRegistry } from '../built-ins/functions/conditions'
+import { GeneratorsRegistry } from '../built-ins/functions/generators'
+import { TransformersRegistry } from '../built-ins/functions/transformers'
+import { coreComponents } from '../built-ins/components'
 import { isFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
 import { ForgeDeprecations } from '../shared/utils/ForgeDeprecations'
 import type { FunctionImplementations, FunctionShapeMap } from '../authoring/utils/deprecated/defineFunction.type'
 import type { Logger } from '../framework/types/adapter.type'
-import type { ForgeRenderer } from '../framework/rendering/types'
+import type { ForgeRenderer } from '../framework/types/rendering.type'
 import type { ForgeError, ForgeOutcome } from '../framework/types/outcome.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
 import type { ResponseBindings } from '../framework/types/responseBindings.type'
 import type { ForgeTopology } from '../framework/types/topology.type'
 import MountRegistry from './registries/MountRegistry'
 import RequestEvaluator from './runtime/RequestEvaluator'
-import ForgeTraceSinkDispatcher from './diagnostics/ForgeTraceSinkDispatcher'
-import type { ForgeInstrumentation, ForgeInstrumentationOptions } from './diagnostics/ForgeTraceSinkDispatcher'
+import ForgeTraceSinkDispatcher from './tracing/ForgeTraceSinkDispatcher'
+import type { ForgeInstrumentation, ForgeInstrumentationOptions } from './tracing/ForgeTraceSinkDispatcher'
 import RegistrationErrorFormatter from './errors/RegistrationErrorFormatter'
 import ForgeRegistrationError from './errors/ForgeRegistrationError'
+import ForgeInternalError from './errors/ForgeInternalError'
 
 export interface ForgeExecutionRequest {
   readonly snapshot: RequestSnapshot
@@ -135,11 +140,13 @@ export default class Forge {
     }
 
     if (!this.options.disableBuiltInFunctions) {
-      this.functionRegistry.registerBuiltInFunctions()
+      this.functionRegistry.register(ConditionsRegistry)
+      this.functionRegistry.register(TransformersRegistry)
+      this.functionRegistry.register(GeneratorsRegistry)
     }
 
     if (!this.options.disableBuiltInComponents) {
-      this.componentRegistry.registerBuiltInComponents()
+      this.componentRegistry.registerMany([...coreComponents])
     }
 
     this.dependencies = {
@@ -211,6 +218,17 @@ export default class Forge {
    * ```
    */
   registerPackage<TDeps>(pkg: ForgePackageRegistration<TDeps>, deps?: TDeps): this {
+    if (!pkg || (pkg as { forgePackage?: unknown }).forgePackage !== true) {
+      this.handleRegistrationError(
+        new Error(
+          'Packages must be created with createForgePackage(...) before registration. ' +
+            'Wrap your package definition: registerPackage(createForgePackage({ journey, ... }))',
+        ),
+      )
+
+      return this
+    }
+
     if (pkg.enabled === false) {
       return this
     }
@@ -296,7 +314,7 @@ export default class Forge {
       const node = this.mountRegistry.getNode(request.snapshot.nodeId)
 
       if (!node) {
-        throw new Error(`[Forge] No node registered for "${request.snapshot.nodeId}"`)
+        throw new ForgeInternalError(`No node registered for "${request.snapshot.nodeId}"`)
       }
 
       return await this.requestEvaluator.evaluate({ node, ...request })

@@ -1,45 +1,54 @@
 import { ConditionBranchExpr, MatchExpr, ResolvableValue } from '../types/expressions.type'
 import { ExpressionType } from '../types/enums'
-import { BranchValue } from './ConditionalExprBuilder'
+import { BranchValue, ChainableMatch } from './types'
+import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 
 /**
- * Fluent builder for creating match expressions.
+ * Immutable fluent builder for creating match expressions.
  * Provides a flat alternative to deeply nested when().then().else() chains.
  * Branch conditions may be a single condition or a combinator tree of them,
  * with the subject applied to every condition leaf.
+ * Each method returns a NEW instance, so partially-built matches
+ * can be safely reused and forked.
+ *
+ * @internal Exposed to authors via the ChainableMatch interface.
  */
-export class MatchExprBuilder {
+export class MatchExprBuilder implements ChainableMatch {
+  readonly nodeKind = 'forge-builder' as const
+
   private readonly subject: ResolvableValue
 
-  private readonly branches: Array<{ condition: ConditionBranchExpr; value: BranchValue }> = []
+  private readonly branches: ReadonlyArray<{ condition: ConditionBranchExpr; value: BranchValue }>
 
-  private otherwiseValue?: BranchValue
+  private readonly otherwiseValue?: BranchValue
 
-  constructor(subject: ResolvableValue) {
+  constructor(
+    subject: ResolvableValue,
+    branches: ReadonlyArray<{ condition: ConditionBranchExpr; value: BranchValue }> = [],
+    otherwiseValue?: BranchValue,
+  ) {
     this.subject = subject
+    this.branches = branches
+    this.otherwiseValue = otherwiseValue
   }
 
   /**
    * Adds a branch to the match expression.
    * @param condition - The condition, or combinator tree of conditions, to test against the subject
    * @param value - The value to return when this condition matches
-   * @returns This builder for method chaining
+   * @returns A new builder with the branch appended
    */
-  branch(condition: ConditionBranchExpr, value: BranchValue): this {
-    this.branches.push({ condition, value })
-
-    return this
+  branch(condition: ConditionBranchExpr, value: BranchValue): MatchExprBuilder {
+    return new MatchExprBuilder(this.subject, [...this.branches, { condition, value }], this.otherwiseValue)
   }
 
   /**
    * Sets the fallback value when no branch matches.
    * @param value - The value to return when no branch condition matches
-   * @returns This builder for method chaining
+   * @returns A new builder with the fallback set
    */
-  otherwise(value: BranchValue): this {
-    this.otherwiseValue = value
-
-    return this
+  otherwise(value: BranchValue): MatchExprBuilder {
+    return new MatchExprBuilder(this.subject, this.branches, value)
   }
 
   /**
@@ -67,7 +76,7 @@ export class MatchExprBuilder {
  * and()/or()/xor()/not(); the subject is applied to every condition leaf.
  *
  * @param subject - The value to match against
- * @returns A MatchExprBuilder for fluent branch building
+ * @returns A chainable match for fluent branch building
  *
  * @example
  * match(Item().path('status'))
@@ -76,6 +85,8 @@ export class MatchExprBuilder {
  *   .branch(or(Condition.Equals('COMPLETED'), Condition.Equals('APPROVED')), 'Completed')
  *   .otherwise('Unknown')
  */
-export const match = (subject: BranchValue): MatchExprBuilder => {
-  return new MatchExprBuilder(subject)
+export const match = (subject: BranchValue): ChainableMatch => {
+  const builder = new MatchExprBuilder(subject)
+  stampCallsite(builder, captureCallsite(match))
+  return builder
 }

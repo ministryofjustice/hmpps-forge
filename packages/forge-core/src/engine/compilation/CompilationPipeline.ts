@@ -1,19 +1,20 @@
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import type { JourneyASTNode, StepASTNode } from '../contracts/ast/structures.type'
 import { ASTNodeType } from '../contracts/ast/enums'
-import type { ASTNode, NodeId } from '../contracts/ast/engine.type'
+import type { NodeId } from '../contracts/ast/engine.type'
 import type { CompiledJourney, CompiledStep, CompiledPackage } from '../contracts/plans/compilationArtefacts.type'
-import type { CompilationPlan } from '../contracts/plans/compilationPlan.type'
-import type { JourneyRouteIndex, StepRouteIndex } from '../contracts/routing/routeDescriptors.type'
+import type { CompilationModel } from '../contracts/models/compilationModel.type'
+import type { JourneyRouteIndex, StepRouteIndex } from '../concerns/route/contracts/routeDescriptors.type'
 import type { CompilationDependencies } from './lowering/compilationDependencies.type'
 import { NodeIDGenerator } from './ast/ast-state/NodeIDGenerator'
 import { NodeFactory } from './ast/nodes/NodeFactory'
 import ASTNodeIndex from './ast/ast-state/ASTNodeIndex'
 import NodeRegistrationWalker from './ast/ast-state/NodeRegistrationWalker'
-import CompilationPlanBuilder from './dependency-analysis/CompilationPlanBuilder'
+import CompilationModelBuilder from './analysis/CompilationModelBuilder'
+import RouteIndexBuilder from '../concerns/route/analysis/RouteIndexBuilder'
 import CodegenOrchestrator from './lowering/CodegenOrchestrator'
-import ASTSemanticValidator from './semantic-analysis/ASTSemanticValidator'
-import CompilationTracer from '../diagnostics/tracing/CompilationTracer'
+import ASTSemanticValidator from '../concerns/semantic-analysis/ASTSemanticValidator'
+import CompilationTracer from './tracing/CompilationTracer'
 
 type AstContext = {
   rootNode: JourneyASTNode
@@ -34,11 +35,11 @@ export default class CompilationPipeline {
 
     this.tracer.span('validate-semantics', 'compilation.semantic-analysis', () => this.validateSemantics(ast))
 
-    const plan = this.tracer.span('build-compilation-plan', 'compilation.dependency-analysis', () =>
-      this.buildCompilationPlan(ast),
+    const model = this.tracer.span('build-compilation-model', 'compilation.analysis', () =>
+      this.buildCompilationModel(ast),
     )
-    const compiledArtifacts = this.tracer.span('lower-compilation-plan', 'compilation.lowering', () =>
-      this.lowerCompilationPlan(plan),
+    const compiledArtifacts = this.tracer.span('lower-compilation-model', 'compilation.lowering', () =>
+      this.lowerCompilationModel(model),
     )
     const routes = this.tracer.span('build-route-indexes', 'compilation.routes', () => this.buildRouteIndexes(ast))
 
@@ -51,7 +52,7 @@ export default class CompilationPipeline {
 
   private buildAstTree(journeyDef: JourneyDefinition): AstContext {
     const nodeIdGenerator = new NodeIDGenerator()
-    const nodeFactory = new NodeFactory(nodeIdGenerator, journeyDef)
+    const nodeFactory = new NodeFactory(nodeIdGenerator)
     const nodeRegistry = new ASTNodeIndex()
 
     const rootNode = nodeFactory.createNode(journeyDef) as JourneyASTNode
@@ -73,78 +74,39 @@ export default class CompilationPipeline {
     validator.validate()
   }
 
-  private buildCompilationPlan({ nodeRegistry }: AstContext): CompilationPlan {
+  private buildCompilationModel({ nodeRegistry }: AstContext): CompilationModel {
     const stepNodes = nodeRegistry.findByType<StepASTNode>(ASTNodeType.STEP)
-    const journeyNodes = nodeRegistry.findByType<JourneyASTNode>(ASTNodeType.JOURNEY)
-
     const stepIndex = new Map(stepNodes.map(stepNode => [stepNode.id, stepNode]))
-    const journeyIndex = new Map(journeyNodes.map(journeyNode => [journeyNode.id, journeyNode]))
 
-    const planBuilder = new CompilationPlanBuilder(nodeRegistry)
+    const modelBuilder = new CompilationModelBuilder(nodeRegistry, {
+      componentRegistry: this.dependencies.componentRegistry,
+      functionRegistry: this.dependencies.functionRegistry,
+    })
 
-    return planBuilder.buildPlan(stepIndex, journeyIndex)
+    return modelBuilder.build(stepIndex)
   }
 
-  private lowerCompilationPlan(plan: CompilationPlan): {
+  private lowerCompilationModel(model: CompilationModel): {
     steps: Map<NodeId, CompiledStep>
     journeys: Map<NodeId, CompiledJourney>
   } {
     const codegen = new CodegenOrchestrator(this.dependencies)
 
-    return codegen.compileAll(plan)
+    return codegen.compileAll(model)
   }
 
   private buildRouteIndexes({ nodeRegistry }: AstContext): {
     stepRouteIndex: StepRouteIndex
     journeyRouteIndex: JourneyRouteIndex
   } {
+    const routeIndexBuilder = new RouteIndexBuilder()
+
     const stepNodes = nodeRegistry.findByType<StepASTNode>(ASTNodeType.STEP)
     const journeyNodes = nodeRegistry.findByType<JourneyASTNode>(ASTNodeType.JOURNEY)
 
     return {
-      stepRouteIndex: this.buildStepRouteIndex(stepNodes),
-      journeyRouteIndex: this.buildJourneyRouteIndex(journeyNodes),
+      stepRouteIndex: routeIndexBuilder.buildStepRouteIndex(stepNodes),
+      journeyRouteIndex: routeIndexBuilder.buildJourneyRouteIndex(journeyNodes),
     }
-  }
-
-  private buildJourneyRouteIndex(journeyNodes: JourneyASTNode[]): JourneyRouteIndex {
-    return new Map(
-      journeyNodes.map(node => [
-        node.id,
-        {
-          nodeId: node.id,
-          path: node.properties.path,
-          ancestorJourneyIds: this.ancestorJourneyIds(node),
-        },
-      ]),
-    )
-  }
-
-  private buildStepRouteIndex(stepNodes: StepASTNode[]): StepRouteIndex {
-    return new Map(
-      stepNodes.map(node => [
-        node.id,
-        {
-          nodeId: node.id,
-          path: node.properties.path,
-          ancestorJourneyIds: this.ancestorJourneyIds(node.parent),
-        },
-      ]),
-    )
-  }
-
-  /** Journey NodeIds from the outermost ancestor down, walking `parent` from `start`. */
-  private ancestorJourneyIds(start: ASTNode | undefined): NodeId[] {
-    const ids: NodeId[] = []
-    let current = start
-
-    while (current !== undefined) {
-      ids.push(current.id)
-      current = current.parent
-    }
-
-    ids.reverse()
-
-    return ids
   }
 }

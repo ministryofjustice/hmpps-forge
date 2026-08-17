@@ -1,6 +1,6 @@
 import type { JourneyDefinition } from '../authoring/types/structures.type'
 import type { ForgePackageRegistration, PackageDependencies, NodeId } from './contracts/ast/engine.type'
-import { DSLValidator } from './validation/DSLValidator'
+import { DSLValidator } from './concerns/dsl-validation/DSLValidator'
 import { createFunctionsRegistry } from '../authoring/utils/deprecated/createFunctionsRegistry'
 import { isFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
 import ComponentRegistry from './registries/ComponentRegistry'
@@ -8,12 +8,13 @@ import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
 import CompilationPipeline from './compilation/CompilationPipeline'
-import CompilationTracer from './diagnostics/tracing/CompilationTracer'
-import CompilationTraceProjector from './diagnostics/tracing/CompilationTraceProjector'
-import type { ForgeInstrumentation } from './diagnostics/ForgeTraceSinkDispatcher'
+import CompilationTracer from './compilation/tracing/CompilationTracer'
+import CompilationTraceProjector from './compilation/tracing/CompilationTraceProjector'
+import type { ForgeInstrumentation } from './tracing/ForgeTraceSinkDispatcher'
 
 import type { CompiledJourney, CompiledStep, CompiledPackage } from './contracts/plans/compilationArtefacts.type'
-import type { JourneyRouteIndex, StepRouteIndex } from './contracts/routing/routeDescriptors.type'
+import type { JourneyRouteIndex, StepRouteIndex } from './concerns/route/contracts/routeDescriptors.type'
+import ForgeInternalError from './errors/ForgeInternalError'
 
 export interface PackageInstanceOptions<TDeps> {
   readonly functionRegistry: FunctionRegistry
@@ -71,7 +72,7 @@ export default class PackageInstance {
     const step = this.compilation.steps.get(stepId)
 
     if (!step) {
-      throw new Error(`Step "${stepId}" not found in compiled journey`)
+      throw new ForgeInternalError(`Step "${stepId}" not found in compiled journey`)
     }
 
     return step
@@ -101,13 +102,11 @@ export default class PackageInstance {
     return this.compilation.journeyCode
   }
 
-  private static loadConfiguration(configuration: string | JourneyDefinition): JourneyDefinition {
-    const parsedConfiguration: unknown = typeof configuration === 'string' ? JSON.parse(configuration) : configuration
+  private static loadConfiguration(configuration: JourneyDefinition): JourneyDefinition {
+    DSLValidator.validateJSON(configuration)
+    DSLValidator.validateSchema(configuration)
 
-    DSLValidator.validateJSON(parsedConfiguration)
-    DSLValidator.validateSchema(parsedConfiguration)
-
-    return parsedConfiguration
+    return configuration
   }
 
   private static resolveFunctionRegistry(

@@ -27,7 +27,7 @@ export const showsList = GovUKList({
     'Session() references in access hook conditions',
     'Composing multiple access hooks on a single step (auth + role)',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const startButton = GovUKLinkButton({

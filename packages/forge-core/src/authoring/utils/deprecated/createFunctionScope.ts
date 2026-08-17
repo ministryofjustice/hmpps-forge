@@ -1,4 +1,5 @@
 import { GeneratorBuilder } from '../../builders/GeneratorBuilder'
+import type { ChainableGenerator } from '../../builders/types'
 import { ForgeDeprecations } from '../../../shared/utils/ForgeDeprecations'
 import { FunctionType } from '../../types/enums'
 import type {
@@ -54,7 +55,7 @@ export interface FunctionScope<TDeps = NoDeps> {
     name: string,
     factory: ScopedGeneratorFactory<TDeps, TArgs>,
     ...args: TArgs
-  ): GeneratorBuilder<TArgs>
+  ): ChainableGenerator
 }
 
 const ensureNameIsValid = (name: string): void => {
@@ -157,7 +158,7 @@ export function createFunctionScope<TDeps = NoDeps>(): FunctionScope<TDeps> {
       name: string,
       factory: ScopedGeneratorFactory<TDeps, TArgs>,
       ...args: TArgs
-    ): GeneratorBuilder<TArgs> => {
+    ): ChainableGenerator => {
       register(name, factory)
 
       return GeneratorBuilder.create(name, args)

@@ -3,7 +3,7 @@ import { phaseInstrumentation } from './requestPhase'
 import type { RequestContextPreparationWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
 
-export const REQUEST_CONTEXT_PREPARATION_KIND = 'request.context-preparation'
+const REQUEST_CONTEXT_PREPARATION_KIND = 'request.context-preparation'
 
 export const REQUEST_CONTEXT_PREPARATION_WORK_INSTRUMENTATION: WorkInstrumentation<
   RequestContextPreparationWorkProps,

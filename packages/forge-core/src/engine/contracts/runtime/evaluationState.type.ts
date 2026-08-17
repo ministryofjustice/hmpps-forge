@@ -1,9 +1,9 @@
 import type { NodeId } from '../ast/engine.type'
 import type { AnswerHistory } from './answerHistory.type'
-import type { JourneyReachabilityProjection } from '../reachability/journeyReachabilityProjection.type'
+import type { JourneyReachabilityProjection } from '../../concerns/reachability/contracts/journeyReachabilityProjection.type'
 import type { RequestLocation } from '../../../framework/types/request.type'
-import type { ValidationResult } from './validationResult.type'
-import type { StepValidityResult } from './stepValidityResult.type'
+import type { ValidationResult } from '../../concerns/validation/contracts/validationResult.type'
+import type { StepValidityResult } from '../../concerns/validation/contracts/stepValidityResult.type'
 
 export interface StepValidationFailure extends ValidationResult {
   blockId: NodeId
@@ -11,7 +11,7 @@ export interface StepValidationFailure extends ValidationResult {
 
 export type DomainValidationFailure = ValidationResult
 
-export interface RequestContextState {
+interface RequestContextState {
   url: string
   path: string
   method: string
@@ -25,13 +25,13 @@ export interface RequestContextState {
   session: Record<string, unknown>
 }
 
-export interface DomainContextState {
+interface DomainContextState {
   data: Record<string, unknown>
   answers: Record<string, AnswerHistory>
 }
 
-export interface EvaluationContextState {
-  stepValidities?: Map<NodeId, StepValidityResult>
+interface EvaluationContextState {
+  reachabilityValidities?: Map<NodeId, StepValidityResult>
   reachability?: JourneyReachabilityProjection
   fieldsToClear?: readonly string[]
 }

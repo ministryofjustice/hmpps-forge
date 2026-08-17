@@ -5,8 +5,12 @@ import { ReferenceBuilder } from './ReferenceBuilder'
  *
  * This mirrors Nunjucks' loop object: Item() references the current item, while
  * Loop references metadata about the current iteration.
+ *
+ * @internal Exposed to authors via the ChainableLoopRef interface.
  */
 export class LoopReferenceBuilder {
+  readonly nodeKind = 'forge-builder' as const
+
   private readonly level: number
 
   private constructor(level: number) {

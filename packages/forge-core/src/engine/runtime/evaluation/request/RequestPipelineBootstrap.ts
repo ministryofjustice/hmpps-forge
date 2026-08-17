@@ -1,10 +1,10 @@
-import type { ForgeRenderer } from '../../../../framework/rendering/types'
+import type { ForgeRenderer } from '../../../../framework/types/rendering.type'
 import type { NodeId } from '../../../contracts/ast/ast.type'
-import type { StepValidityResult } from '../../../contracts/runtime/stepValidityResult.type'
+import type { ValidationRuleFilter } from '../../../concerns/validation/contracts/ValidationWork.type'
 import type { HttpMethod } from '../../../../framework/types/request.type'
 import type { RequestSnapshot } from '../../../../framework/types/snapshot.type'
 import type { MountedNode, MountedStepNode } from '../../../registries/MountRegistry'
-import { buildStepValidationTask, recordStepValidationState } from '../phases/validation/stepValidationStore'
+import { buildStepValidationTask } from '../../../concerns/validation/runtime/stepValidationStore'
 import type { PipelineState } from '../../../contracts/runtime/RequestExecution.type'
 import type { WorkTask } from '../../../contracts/runtime/work.type'
 import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
@@ -32,17 +32,14 @@ export default class RequestPipelineBootstrap {
     const { functionRegistry, componentRegistry, compiledStepValidations } = node
     const compiledValidation = node.kind === 'step' ? node.compiledValidation : undefined
 
-    const buildStepValidation = (stepId: NodeId, isSubmission: boolean) =>
+    const buildStepValidation = (stepId: NodeId, filter: ValidationRuleFilter) =>
       buildStepValidationTask(
         compiledStepValidations.get(stepId) ?? compiledValidation,
         stepId,
         state.context,
         functionRegistry,
-        isSubmission,
+        filter,
       )
-
-    const recordStepValidation = (stepId: NodeId, result: StepValidityResult): void =>
-      recordStepValidationState(state.context, stepId, result)
 
     return {
       context: state.context,
@@ -53,7 +50,6 @@ export default class RequestPipelineBootstrap {
       hasRenderer: this.config.renderer !== undefined,
       traceEnabled: this.config.traceEnabled,
       buildStepValidation,
-      recordStepValidation,
     }
   }
 
@@ -83,6 +79,7 @@ export default class RequestPipelineBootstrap {
       mode: node.kind,
       compiledReachabilityFacts: node.compiledReachabilityFacts,
       compiledReachabilityState: node.compiledReachabilityState,
+      compiledFieldInventory: node.compiledFieldInventory,
       routeTemplateCatalog: node.routeTemplateCatalog,
       method,
     })

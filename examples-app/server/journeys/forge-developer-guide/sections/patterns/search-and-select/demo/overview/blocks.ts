@@ -28,7 +28,7 @@ export const showsList = GovUKList({
     'Item() path accessors inside an Iterator.Map to display each result',
     'A detail page that loads a specific record by route parameter',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const startButton = GovUKLinkButton({

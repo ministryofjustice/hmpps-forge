@@ -25,7 +25,7 @@ export type NunjucksComponentRenderer<T extends BlockDefinition> = (
  *
  * @param variant - The block variant identifier
  * @param render - Render function that receives (block, nunjucksEnv)
- * @param options - Optional input schema and fixed-shape `multiple` override for the entry
+ * @param options - Optional input schema and fixed-shape `multiple` flag for the entry
  * @returns A component ready for registration with Forge
  *
  * @example

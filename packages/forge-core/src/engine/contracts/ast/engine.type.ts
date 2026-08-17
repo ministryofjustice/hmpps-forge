@@ -1,14 +1,12 @@
 import ComponentRegistry from '../../registries/ComponentRegistry'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import type { Logger } from '../../../framework/types/adapter.type'
-import type { JourneyDefinition } from '../../../authoring/types/structures.type'
-import type { ComponentRegistryEntry } from '../../../components/types/components.type'
-import type { BlockDefinition } from '../../../components/types/structures.type'
+import type { RegisteredForgePackage } from '../../../authoring/types/package.type'
 import type { FunctionEvaluator } from '../../../authoring/types/functions.type'
 import type { BaseFunctionRegistry } from '../../../authoring/registries/BaseFunctionRegistry'
 import type { FunctionImplementations, FunctionShapeMap } from '../../../authoring/utils/deprecated/defineFunction.type'
 
-export type { ASTNode, AstNodeId, CompiledNodeId, CompileAstNodeId, NodeId, TemplateNodeId } from './ast.type'
+export type { ASTNode, AstNodeId, NodeId, TemplateNodeId } from './ast.type'
 
 export interface ForgeDependencies {
   logger: Logger | Console
@@ -27,9 +25,8 @@ export type ForgePackageFunctions<TDeps> =
   | BaseFunctionRegistry<TDeps>
   | BaseFunctionRegistry<TDeps>[]
 
-export interface ForgePackageRegistration<TDeps = Record<string, never>> {
-  journey: string | JourneyDefinition
-  functions?: ForgePackageFunctions<TDeps>
-  components?: ComponentRegistryEntry<BlockDefinition, unknown>[]
-  enabled?: boolean
-}
+/**
+ * A package accepted by `Forge.registerPackage()`: the branded output of
+ * `createForgePackage()`. Raw package literals are rejected at registration.
+ */
+export type ForgePackageRegistration<TDeps = Record<string, never>> = RegisteredForgePackage<TDeps>

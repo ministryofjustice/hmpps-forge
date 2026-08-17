@@ -1,7 +1,7 @@
 import { z } from 'zod'
-import { ChainableExpr } from '@ministryofjustice/hmpps-forge/core/authoring'
 import {
   BlockDefinition,
+  ResolvableArray,
   ResolvableBoolean,
   ResolvableString,
   EvaluatedBlock,
@@ -180,9 +180,7 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition {
    * // Dynamic items using Iterator
    * Data('areas').each(Iterator.Map({ value: Item().path('value'), text: Item().path('text') }))
    */
-  items:
-    | (GovUKCheckboxInputItem | GovUKCheckboxInputDivider)[]
-    | ChainableExpr<(GovUKCheckboxInputItem | GovUKCheckboxInputDivider)[]>
+  items: ResolvableArray<GovUKCheckboxInputItem | GovUKCheckboxInputDivider>
 }
 
 /**
@@ -336,6 +334,8 @@ export const GovUKCheckboxInput = nunjucksComponent<GovUKCheckboxInput>('govukCh
   field: true,
   inputSchema: z.array(z.string()),
   multiple: true,
+  // The first rendered checkbox's id is the idPrefix, so error summary links land there.
+  errorAnchor: props => props.idPrefix || props.code,
   render: (props, nunjucksEnv) => {
     // At render time, items has been evaluated (Collection expressions resolved to arrays)
     const evaluatedItems = props.items as EvaluatedBlock<GovUKCheckboxInputItem | GovUKCheckboxInputDivider>[]

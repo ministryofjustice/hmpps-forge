@@ -1,6 +1,9 @@
 import { z, type ZodType } from 'zod'
 import { FunctionType } from '../types/enums'
+import ForgeAuthoringError from '../../engine/errors/ForgeAuthoringError'
+import ForgeRegistryDuplicateError from '../../engine/errors/ForgeRegistryDuplicateError'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
+import { captureCallsite, stampCallsite } from '../builders/utils/captureCallsite'
 import type { FunctionRegistryObject } from '../types/functions.type'
 
 export interface RegistrationOptions {
@@ -10,7 +13,7 @@ export interface RegistrationOptions {
   prepare?: (...args: any[]) => any[]
 }
 
-export interface RegistrationWithFactory<TDeps = any> extends RegistrationOptions {
+interface RegistrationWithFactory<TDeps = any> extends RegistrationOptions {
   factory: (deps: TDeps) => (...args: any[]) => any
 }
 
@@ -82,9 +85,9 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> {
     const { factory } = options as RegistrationWithFactory<TDeps>
 
     if (!factory) {
-      throw new Error(
-        `The ${this.functionType} registration "${name}" has no factory - pass one positionally or as options.factory`,
-      )
+      throw new ForgeAuthoringError({
+        message: `The ${this.functionType} registration "${name}" has no factory - pass one positionally or as options.factory`,
+      })
     }
 
     return factory
@@ -92,7 +95,11 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> {
 
   protected store(name: string, options: RegistrationOptions, factory: (deps: TDeps) => (...args: any[]) => any): void {
     if (this.registrations.has(name)) {
-      throw new Error(`A ${this.functionType} is already registered under the name "${name}"`)
+      throw new ForgeRegistryDuplicateError({
+        registryType: 'function',
+        itemName: name,
+        message: `A ${this.functionType} is already registered under the name "${name}"`,
+      })
     }
 
     this.registrations.set(name, {
@@ -109,18 +116,26 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> {
     const type = this.functionType
 
     if (type === FunctionType.GENERATOR) {
-      return (...args: any[]) => {
+      const generatorHandle = (...args: any[]) => {
         const prepared = prepare ? prepare(...args) : args
+        const builder = GeneratorBuilder.create(name, prepared)
 
-        return GeneratorBuilder.create(name, prepared)
+        stampCallsite(builder, captureCallsite(generatorHandle))
+        return builder
       }
+
+      return generatorHandle
     }
 
-    return (...args: any[]) => {
+    const expressionHandle = (...args: any[]) => {
       const prepared = prepare ? prepare(...args) : args
+      const expr = { type, name, arguments: prepared }
 
-      return { type, name, arguments: prepared }
+      stampCallsite(expr, captureCallsite(expressionHandle))
+      return expr
     }
+
+    return expressionHandle
   }
 
   build(deps?: TDeps): FunctionRegistryObject {

@@ -27,18 +27,6 @@ export interface ReferenceASTNode extends ExpressionASTNode {
 }
 
 /**
- * Next Expression AST node
- * @deprecated Use RedirectOutcomeASTNode instead
- */
-export interface NextASTNode extends ExpressionASTNode {
-  expressionType: ExpressionType.NEXT
-  properties: {
-    when?: ASTNode
-    goto: ASTNode | string
-  }
-}
-
-/**
  * Outcome AST node - represents hook outcomes (redirects and errors)
  */
 export interface OutcomeASTNode extends ASTNode {
@@ -169,7 +157,7 @@ export interface TieBreakerASTNode extends ExpressionASTNode {
 /**
  * Hook AST node - represents lifecycle hooks
  */
-export interface HookASTNode extends ASTNode {
+interface HookASTNode extends ASTNode {
   type: ASTNodeType.HOOK
   hookType: HookType
 }

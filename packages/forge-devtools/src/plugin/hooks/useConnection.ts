@@ -2,12 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'preact/hooks'
 
 const DEFAULT_DEVTOOLS_PATH = '/__forge-devtools/ws'
 
-export type ConnectionStatus = 'disconnected' | 'connecting' | 'authenticating' | 'connected' | 'error'
+type ConnectionStatus = 'disconnected' | 'connecting' | 'authenticating' | 'connected' | 'error'
 
 export interface TraceSnapshotMessage {
   readonly answers: Record<string, unknown>
   readonly data: Record<string, unknown>
-  readonly stepValidities?: Record<string, unknown>
+  readonly reachabilityValidities?: Record<string, unknown>
   readonly reachability?: unknown
 }
 
@@ -27,7 +27,7 @@ export interface TraceUnitMessage {
   readonly children?: readonly TraceUnitMessage[]
 }
 
-export interface PhaseMessage {
+interface PhaseMessage {
   readonly phase: string
   readonly outcome: string
   readonly durationMs: number
@@ -36,7 +36,7 @@ export interface PhaseMessage {
   readonly units: readonly TraceUnitMessage[]
 }
 
-export interface TraceRouteContext {
+interface TraceRouteContext {
   readonly journeyCode: string
   readonly journeyTitle: string
   readonly stepTitle?: string

@@ -53,6 +53,276 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.4.0
+
+A tidy-up of the authoring surface - the GOV.UK utility wrappers are real components
+now, `createForgePackage()` is mandatory and stamps provenance on every node so errors
+point at the line in your code that defined the offending definition, and everything
+the engine throws is one exported family of `Forge*` error classes with author-first
+stack rendering. The code generator is reworked on top of a typed IR too - compiled
+functions now read like hand-written JavaScript, runtime errors point straight back at
+the line in your journey definition, and you can even drop breakpoints in your
+definitions and step through them. Steps can also ask the same question in more than
+one place now - same-code field copies gated by `dependentWhen` behave as one field,
+with error summary links that land on the right copy.
+
+### Added
+
+- The `Forge*` error classes are exported from core - catch and narrow with
+  `instanceof`, and a single `instanceof ForgeBaseError` check answers "did Forge
+  throw this" ([#229])
+- `ForgeAuthoringError` for authoring API misuse caught while builders are still
+  assembling the definition, and `ForgeInternalError` for states the engine should
+  make impossible - seeing one is a bug in Forge ([#229])
+- `Defined at:` lines on every author-facing error, pointing at the builder call that
+  defined the offending node ([#209], [#210])
+- List items can be blocks - `GovUKList` items may mix strings with child blocks, and
+  each block renders inside its own `<li>` ([#203])
+- `Format()` takes a resolvable template - a reference or any string-valued expression
+  works: `Format(Answer('template'), ...)` ([#210])
+- Source maps on every compiled function - a runtime error's stack lands on the line
+  in your journey definition that defined the failing node, not in generated code,
+  and the published package ships its sources so the maps resolve inside consuming
+  apps ([#247])
+- Breakpoints in your journey definitions - set one on a builder call and the
+  debugger stops there when the compiled function evaluates it. Still a bit rough
+  around the edges ([#247])
+- Compiled functions are their own scripts in debugger panels - named
+  `forge:compiled/<phase>/<journey>.<step>...js` and content-fingerprinted, so an IDE
+  never reuses stale generated source after reconnecting to a restarted process
+  ([#247])
+- Same-code field variants - one question can appear as several copies on a step,
+  each nested under a different parent option via `dependentWhen`. The first active
+  copy in declaration order owns preparation, formatters, parsers, defaults and
+  validation; when no copy is active the answer clears once. Duplicate literal field
+  codes without `dependentWhen` on every copy are rejected at registration ([#248])
+- `errorAnchor` on field components - a component whose rendered control ids can
+  differ from the field code declares where an error summary link should land
+  (`errorAnchor: props => props.idPrefix ?? props.code`), and the engine falls back
+  to the field code when it's not declared. `fieldValidationErrors` entries carry the
+  failing instance's `anchor`, and `getErrorSummaryList` links it over `blockCode`
+  ([#248])
+
+### Changed
+
+- The GOV.UK utility wrappers are real registered components written in the
+  experimental JSX API - `GovUKList`'s `type` prop is now `style`, and the standalone
+  `GovUK*Props` interfaces are gone ([#203])
+- `createForgePackage()` is mandatory - registration rejects anything that hasn't
+  passed through it, and `journey` also accepts a JSON string ([#209])
+- The engine's errors follow one `Forge`-prefixed naming scheme on a shared
+  `ForgeBaseError` base class ([#229])
+- A failure thrown by one of your functions during a request surfaces as a
+  `ForgeRuntimeEvaluationError` with your error untouched on `cause` - previously
+  forge appended its diagnostics prose to your error's own `stack`. The wrapper's
+  message carries yours (`Failed to evaluate compiled Forge hooks function: <yours>`)
+  and HTTP `status`/`statusCode` are mirrored from the cause, so express error
+  handling picks the same response code. Breaking only if a host error handler
+  matched on the thrown instance - match on `error.cause` instead ([#247])
+- Runtime error stacks read author-first - your frames render as-is, each run of
+  forge-internal frames folds to one summary line (`FORGE_FULL_STACK=1` expands it,
+  and the unfolded original stays on a non-enumerable `rawStack`), the definition
+  site renders as `at [defined]` frames that error trackers ingest as clickable
+  in-app frames, and the `Node:` row is gone from the diagnostics block (`nodeId`
+  stays on the error object) ([#247])
+- The runtime `definedAt` is a chain now, and callsite capture is deeper (15 frames,
+  up from 5) - if you wrap forge builders in your own utilities, the chain reads past
+  the wrapper file to the line in your code ([#247])
+- `core/framework` is types-only - the path utilities are no longer exported, so copy
+  the ones you used into your adapter; they're a few lines each ([#212])
+- Generated code reads like hand-written JavaScript - blocks, validation rules, and
+  hooks compile to named function units, static route metadata and field inventories
+  are plain literals, reachability cascades are labelled if/else chains, and every
+  generated function opens with a header saying what it does and when it runs ([#247])
+- Generated hook functions are only `async` when their bodies actually await ([#247])
+
+### Removed
+
+- The field-level `multiple` flag - it overlapped with the flag that array-shaped
+  components like checkboxes already declare on their registry entry, so keeping every
+  posted value is solely the component's decision now. Setting `multiple` on a field
+  block is a type error; just remove it ([#206])
+- The expression builder classes and the granular condition variant types from the
+  authoring exports - the factories (`Conditional()`, `Match()`, ...) were always the
+  intended surface, and `ConditionalExpr` covers the variant types.
+  `PredicateTestExprBuilder` is deleted outright; it was dead code ([#208])
+- Error codes and the error `toString()` implementations - the class is the
+  discriminator now ([#229])
+
+### Fixed
+
+- Sharing a partially built `Conditional()`/`Match()` chain no longer
+  cross-contaminates - each chain step returns a fresh builder ([#208])
+- Builders are detected by a `nodeKind` marker instead of `'build' in value`
+  duck-typing, so an authored object that happens to have a `build` property can't be
+  mistaken for a builder and swallowed during finalisation ([#209])
+- The two validation rules missing the `formattedPath` fallback now default it to
+  `unknown` like the rest ([#210])
+- The deprecated `defineFunction` helpers never stamped callsites on the handles they
+  build, so their errors lacked a `Defined at` line - they stamp now ([#210])
+- Error summary links land on the rendered control when a GOV.UK field has a custom
+  `id` or `idPrefix` - previously the link was always `#<code>`, which matched
+  nothing. Date inputs link to their first inner input (`#<id>-day`) instead of the
+  wrapper id no element carries ([#248])
+
+### Details
+
+#### GOV.UK wrappers as real components
+
+Previously `GovUKBody`, `GovUKHeading`, `GovUKList`, `GovUKGridRow`,
+`GovUKSectionBreak` and `GovUKButtonGroup` were authoring functions that expanded into
+generic `html`/`template` blocks. They now register and render like every other
+component, with their renders written in the experimental JSX API. Builder names and
+props are unchanged, with one exception: `GovUKList`'s `type` prop is now `style`
+(`type` is the engine's structure discriminator on real components). The standalone
+`GovUK*Props` interfaces are gone - each component's single interface (`GovUKBody`,
+`GovUKList`, ...) is both the props and the block type. If you register
+`govukComponents` wholesale nothing else changes; if you cherry-pick registry entries,
+add the six new ones. ([#203])
+
+#### Mandatory `createForgePackage()` and callsite attribution
+
+Previously `createForgePackage()` was a typing convenience - `registerPackage()` took
+anything with the right properties - and errors could only name the DSL path, leaving
+you to hunt the definition down yourself. Now registration rejects anything that
+hasn't passed through `createForgePackage()`, which finalises the builders in the
+journey tree and stamps every node with its source location and the callsite that
+defined it. Every author-facing error - registration validation, schema and
+serialisation failures, runtime evaluation errors - then carries a
+`Defined at: journeySteps (/app/journeys/tax/steps.ts:42:13)` line pointing at the
+builder call that defined the offending node. The frame picked is the first one
+outside forge-core, node internals and `node_modules`, so when a component from a
+published package produces an error, it points at your usage site rather than inside
+the package. If you already wrap your package, nothing changes; if not, it's
+`registerPackage(createForgePackage({ journey, ... }))`. ([#209], [#210])
+
+#### One family of Forge errors
+
+Previously the engine threw a mixture of plain `Error`s and per-concern classes - some
+`Forge`-prefixed, some not, each carrying a string `code` and its own `toString()`,
+and none of them exported. Now there's one family: every class extends
+`ForgeBaseError`, the names all follow the `Forge*` scheme, and the whole set is
+exported from core so you can catch and narrow with `instanceof`. The codes and
+`toString()` implementations are binned - the class is the discriminator. Two classes
+are new: `ForgeAuthoringError` for authoring API misuse caught while the builders are
+still assembling the definition, and `ForgeInternalError` for states the engine should
+make impossible. ([#229])
+
+#### Same-code field variants
+
+Previously a step could not ask the same question in more than one place - two field
+blocks sharing a code silently clobbered each other's answers (last writer won,
+formatters and parsers split between copies), and the error summary anchored every
+failure to the shared code. Now same-code copies that each declare `dependentWhen`
+form one logical field: the first copy in declaration order whose condition holds is
+the active one, and it alone runs answer preparation, formatters, parsers, defaults
+and validation. When no copy is active the answer clears once. This is the "one
+question nested under several radio reveals" shape - three copies of *Have they been
+employed before?*, one inside each parent option's conditional reveal, storing a
+single answer. The error summary links to the failing copy through the component's
+declared `errorAnchor`, so the link opens the right reveal. Duplicate literal codes
+where a copy is missing `dependentWhen` are rejected at registration; a single field
+per code behaves exactly as before. ([#248])
+
+#### Debugging generated functions
+
+Previously the compiled functions were assembled from concatenated strings - a runtime
+error's stack pointed into anonymous eval'd code, and working out which part of your
+journey definition it came from was guesswork. Now the generated source reads like
+hand-written JavaScript and every compiled function ships a source map, so a runtime
+error's stack lands on the line in your definition that defined the failing node. The
+published package ships its sources too, so the maps resolve inside consuming apps.
+You can set a breakpoint on a builder call and the debugger stops there when the
+compiled function evaluates it, and compiled functions appear as their own named
+scripts (`forge:compiled/<phase>/<journey>.<step>...js`) in debugger panels rather
+than a pile of `<anonymous>` entries. ([#247])
+
+Error reporting points into your form the same way: when a request blows up, the
+error names the failing node and carries a `Defined at:` line with the file and line
+of the builder call that defined it, and the stack renders author-first - your frames
+as-is, runs of forge internals folded to a single summary line. The first thing you
+read is where in your own definition the problem lives, not where in the engine it
+surfaced. ([#209], [#210], [#247])
+
+#### Under the hood
+
+- The authoring builders are reorganised into domain files (structures, values,
+  references, expressions) with a curated export list, and `Format` is a
+  registry-backed generator now with the hand-rolled `FormatString` implementation
+  inlined away ([#208])
+- Finalisation stamps every object node with non-enumerable `__source` and
+  `__callsite` provenance - the callsite capture is lazy (V8's `.stack` accessor), so
+  there's no formatting cost unless an error actually reads it - and hook helpers are
+  plain taggers now, with finalisation doing the walking they used to do themselves
+  ([#209])
+- Runtime diagnostics carry a preformatted `definedAt` baked into the generated source
+  metadata at emit time - `formatCallsite` in shared diagnostics does the
+  frame-picking, and display stays lazy everywhere else ([#210])
+- The built-in conditions, transformers, generators and core components live together
+  under `forge-core/src/built-ins/{functions,components}` - the authoring and
+  components barrels re-export them, so the published subpaths are unchanged. The
+  registries' `registerBuiltIn*` methods are gone too: `Forge`'s constructor registers
+  the built-ins through the ordinary `register()`/`registerMany()` path, leaving the
+  registry classes content-agnostic ([#211])
+- `routePath.ts` lives in `shared/utils` now, trimmed to the four functions the engine
+  uses - `resolveMountedPath` had no callers at all and is deleted. The express
+  adapter and the test client each carry their own `extractPathname`: turning a raw
+  URL into snapshot terms is the adapter role's job, whichever side plays it ([#212])
+- The framework types are one folder now - `rendering/types.ts` became
+  `types/rendering.type.ts` to match its siblings, with the route tree types split out
+  into `types/routeTree.type.ts`. Public exports are unchanged ([#212])
+- `NodeFactory` is table-driven dispatch now - a creator table with one row per node
+  type, and `ForgeUnknownNodeTypeError` for a type the table has no row for ([#219])
+- Raw `Error` throws across the engine and authoring internals moved onto the Forge
+  error classes ([#229])
+- A tidy-up of the export surface - a bunch of symbols only used inside their own
+  file are no longer exported, dead typeguards and type aliases are deleted, and four
+  unused devDependencies are gone. The contract tests' `test/` folder is typechecked
+  now too, which caught stale imports from the `framework/types` move and a
+  declared-but-never-implemented effect in the hooks fixtures ([#230])
+- The engine is concern-first now - each concern (hooks, validation, reachability,
+  ...) owns its whole slice under `engine/concerns/<name>/{analysis,lowering,runtime,contracts}`
+  instead of spreading across the compilation and runtime stage folders, with eslint
+  import zones enforcing the boundaries. Public exports are unchanged ([#236])
+- `ForgeBaseError` renders `stack` through a lazy getter - raw frames are captured
+  once at construction and the folding, defined-at frames, and diagnostics block are
+  assembled on read, so a caught-and-handled error never pays for formatting.
+  `ForgeInternalError` never folds - when the engine itself is broken, the internals
+  are the story. Generated functions carry a `//# sourceURL=forge:compiled/<phase>`
+  so eval'd frames stop rendering as `<anonymous>` ([#247])
+- Runtime validation is reworked around one `validation.current-step` operation -
+  both triggers (matching `validateOnEntry` groups on GET, the submit lifecycle on
+  POST) schedule the same task, rule group filtering happens before rule conditions
+  evaluate, and a single `currentPageValidation` field is the display signal.
+  Reachability keeps its own validity store, so navigation facts can't leak into
+  display ([#237])
+- The code generator is a typed IR now - phase compilers build a node tree of
+  statements and typed code fragments, and a renderer turns the tree into source with
+  positions carried through for the source maps. The string-concatenation emitters
+  are binned ([#247])
+- Analysis builds one hierarchical compilation model per package - field occurrences,
+  hook lifecycles, and authored values are classified once, and the phase compilers
+  consume the models instead of re-walking the AST ([#247])
+- Shared answer-preparation machinery lives in the runtime library handed to compiled
+  functions, instead of being re-emitted into every script ([#247])
+
+[#203]: https://github.com/ministryofjustice/hmpps-forge/pull/203
+[#206]: https://github.com/ministryofjustice/hmpps-forge/pull/206
+[#208]: https://github.com/ministryofjustice/hmpps-forge/pull/208
+[#209]: https://github.com/ministryofjustice/hmpps-forge/pull/209
+[#210]: https://github.com/ministryofjustice/hmpps-forge/pull/210
+[#211]: https://github.com/ministryofjustice/hmpps-forge/pull/211
+[#212]: https://github.com/ministryofjustice/hmpps-forge/pull/212
+[#219]: https://github.com/ministryofjustice/hmpps-forge/pull/219
+[#229]: https://github.com/ministryofjustice/hmpps-forge/pull/229
+[#230]: https://github.com/ministryofjustice/hmpps-forge/pull/230
+[#236]: https://github.com/ministryofjustice/hmpps-forge/pull/236
+[#237]: https://github.com/ministryofjustice/hmpps-forge/pull/237
+[#247]: https://github.com/ministryofjustice/hmpps-forge/pull/247
+[#248]: https://github.com/ministryofjustice/hmpps-forge/pull/248
+
+---
+
 ## 0.3.6
 
 A typing-focused release - registered function handles now know what their arguments

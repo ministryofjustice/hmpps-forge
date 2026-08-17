@@ -5,7 +5,7 @@ import { OutcomeASTNode, RedirectOutcomeASTNode, ThrowErrorOutcomeASTNode } from
 /**
  * Check if an AST node is any type of Outcome node
  */
-export function isOutcomeNode(obj: any): obj is OutcomeASTNode {
+function isOutcomeNode(obj: any): obj is OutcomeASTNode {
   return obj != null && obj.type === ASTNodeType.OUTCOME
 }
 

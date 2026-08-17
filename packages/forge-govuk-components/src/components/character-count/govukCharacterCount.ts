@@ -242,6 +242,8 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
 export const GovUKCharacterCount = nunjucksComponent<GovUKCharacterCount>('govukCharacterCount', {
   field: true,
   inputSchema: z.string(),
+  // The rendered textarea's id matches the render params below, so error summary links land on it.
+  errorAnchor: props => props.id ?? props.code,
   render: (props, nunjucksEnv) => {
     const id = props.id ?? props.code
 

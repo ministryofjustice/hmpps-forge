@@ -1,9 +1,9 @@
+import { formatCallsite } from '../../shared/diagnostics/formatCallsite'
+
 interface DiagnosticError {
   readonly name?: unknown
   readonly message?: unknown
   readonly formattedPath?: unknown
-  readonly path?: unknown
-  readonly code?: unknown
   readonly expected?: unknown
   readonly functionName?: unknown
   readonly functionType?: unknown
@@ -11,6 +11,7 @@ interface DiagnosticError {
   readonly phase?: unknown
   readonly nodeId?: unknown
   readonly cause?: unknown
+  readonly callsite?: { readonly stack?: string }
 }
 
 export default class RegistrationErrorFormatter {
@@ -56,19 +57,15 @@ export default class RegistrationErrorFormatter {
       return []
     }
 
-    const path =
-      RegistrationErrorFormatter.formatValue(diagnostic.formattedPath) ??
-      RegistrationErrorFormatter.formatPath(diagnostic.path)
-
     const fields = [
       { label: 'Phase', value: RegistrationErrorFormatter.formatValue(diagnostic.phase) },
-      { label: 'Path', value: path },
+      { label: 'Path', value: RegistrationErrorFormatter.formatValue(diagnostic.formattedPath) },
       { label: 'Node', value: RegistrationErrorFormatter.formatValue(diagnostic.nodeId) },
-      { label: 'Code', value: RegistrationErrorFormatter.formatValue(diagnostic.code) },
       { label: 'Expected', value: RegistrationErrorFormatter.formatValue(diagnostic.expected) },
       { label: 'Function', value: RegistrationErrorFormatter.formatValue(diagnostic.functionName) },
       { label: 'Type', value: RegistrationErrorFormatter.formatValue(diagnostic.functionType) },
       { label: 'Variant', value: RegistrationErrorFormatter.formatValue(diagnostic.variant) },
+      { label: 'Defined at', value: RegistrationErrorFormatter.formatCallsiteValue(diagnostic.callsite) },
       { label: 'Cause', value: RegistrationErrorFormatter.formatValue(diagnostic.cause) },
     ]
 
@@ -85,12 +82,8 @@ export default class RegistrationErrorFormatter {
     return error as DiagnosticError
   }
 
-  private static formatPath(value: unknown): string | undefined {
-    if (Array.isArray(value)) {
-      return value.length > 0 ? value.map(pathPart => String(pathPart)).join('.') : 'root'
-    }
-
-    return RegistrationErrorFormatter.formatValue(value)
+  private static formatCallsiteValue(callsite: { readonly stack?: string } | undefined): string | undefined {
+    return typeof callsite?.stack === 'string' ? formatCallsite(callsite) : undefined
   }
 
   private static formatValue(value: unknown): string | undefined {

@@ -1,4 +1,4 @@
-import type { TraceSpanFields, TraceSpanReference } from '../../diagnostics/tracing/traceSpan.type'
+import type { TraceSpanFields, TraceSpanReference } from '../../tracing/traceSpan.type'
 import type { WorkOutputOf } from './workOutput.type'
 
 export const FORGE_WORK = Symbol.for('forge.work')

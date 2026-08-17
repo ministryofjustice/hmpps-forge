@@ -28,7 +28,7 @@ export const showsList = GovUKList({
     'CollectionBlock with Data() to render the current page of results',
     'Conditional Previous and Next links using visibleWhen with Data checks',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const startButton = GovUKLinkButton({

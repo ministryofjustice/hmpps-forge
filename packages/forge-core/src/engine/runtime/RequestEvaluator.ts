@@ -4,17 +4,18 @@ import type { MountedNode } from '../registries/MountRegistry'
 import type { PipelineState } from '../contracts/runtime/RequestExecution.type'
 import type { RequestExecutionContext, RequestPipelineResult } from '../contracts/runtime/RequestExecutionContext.type'
 import RequestPipelineBootstrap from './evaluation/request/RequestPipelineBootstrap'
-import { resolveRedirectTarget } from './evaluation/phases/reachability/redirectTarget'
+import { resolveRedirectTarget } from '../concerns/route/runtime/redirectTarget'
 import type { RuntimeContext } from '../contracts/runtime/evaluationState.type'
 import WorkContext from './evaluation/work/WorkContext'
 import WorkExecutor from './evaluation/work/WorkExecutor'
 import WorkExecutionError from './evaluation/work/WorkExecutionError'
 import type { WorkTask } from '../contracts/runtime/work.type'
-import type { ForgeInstrumentation } from '../diagnostics/ForgeTraceSinkDispatcher'
-import type { ForgeRenderer } from '../../framework/rendering/types'
+import type { ForgeInstrumentation } from '../tracing/ForgeTraceSinkDispatcher'
+import type { ForgeRenderer } from '../../framework/types/rendering.type'
 import RequestPipelineTraceProjector from './evaluation/request/RequestPipelineTraceProjector'
-import { resolvePathParams } from '../../framework/path/routePath'
+import { resolvePathParams } from '../../shared/utils/routePath'
 import { NO_OP_RESPONSE_BINDINGS, type ResponseBindings } from '../../framework/types/responseBindings.type'
+import ForgeInternalError from '../errors/ForgeInternalError'
 
 export interface RequestEvaluatorOptions {
   readonly instrumentation: ForgeInstrumentation
@@ -103,7 +104,7 @@ export default class RequestEvaluator {
       const pipelineResult = requestExecutionContext.pipelineResult
 
       if (pipelineResult === undefined) {
-        throw new Error('[Forge] Request pipeline completed without a result')
+        throw new ForgeInternalError('Request pipeline completed without a result')
       }
 
       this.traceProjector.emitTrace(

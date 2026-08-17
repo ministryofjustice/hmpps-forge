@@ -1,4 +1,4 @@
-import { RENDER_BLOCK_BRAND } from '../../../contracts/compiled/renderBlock.brand'
+import { RENDER_BLOCK_BRAND } from '../../../concerns/render/contracts/renderBlock.brand'
 import { FORGE_WORK } from '../../../contracts/runtime/work.type'
 import type { CompletedWork, WorkHandler, WorkInstrumentation } from '../../../contracts/runtime/work.type'
 import { createWorkTask, findChildByTask, isWorkTask, isWorkTaskOfKind } from './workTask'

@@ -2,7 +2,7 @@ import { Answer, Self } from './index'
 import { ConditionalExprBuilder, when } from './ConditionalExprBuilder'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import { ConditionalExpr, PredicateTestExpr } from '../types/expressions.type'
-import { Condition } from '../conditions'
+import { Condition } from '../../built-ins/functions/conditions'
 import { FunctionType, ExpressionType, PredicateType } from '../types/enums'
 
 describe('ConditionalExprBuilder', () => {
@@ -34,11 +34,15 @@ describe('ConditionalExprBuilder', () => {
   })
 
   describe('then()', () => {
-    it('sets the then value and returns the builder', () => {
+    it('sets the then value and returns a new builder', () => {
+      // Arrange
       const builder = when(simplePredicate())
+
+      // Act
       const result = builder.then('Success')
 
-      expect(result).toBe(builder) // Fluent interface
+      // Assert
+      expect(result).not.toBe(builder)
       expect(result).toBeInstanceOf(ConditionalExprBuilder)
     })
 
@@ -61,12 +65,29 @@ describe('ConditionalExprBuilder', () => {
   })
 
   describe('else()', () => {
-    it('sets the else value and returns the builder', () => {
+    it('sets the else value and returns a new builder', () => {
+      // Arrange
       const builder = when(simplePredicate())
+
+      // Act
       const result = builder.else('Failure')
 
-      expect(result).toBe(builder) // Fluent interface
+      // Assert
+      expect(result).not.toBe(builder)
       expect(result).toBeInstanceOf(ConditionalExprBuilder)
+    })
+
+    it('leaves the original builder unchanged when forked', () => {
+      // Arrange
+      const base = when(simplePredicate()).then('Yes')
+
+      // Act
+      const a = finaliseBuilders(base.else('A')) as ConditionalExpr
+      const b = finaliseBuilders(base.else('B')) as ConditionalExpr
+
+      // Assert
+      expect(a.elseValue).toBe('A')
+      expect(b.elseValue).toBe('B')
     })
 
     it('accepts string values', () => {

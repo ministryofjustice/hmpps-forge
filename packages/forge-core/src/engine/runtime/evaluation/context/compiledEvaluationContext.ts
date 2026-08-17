@@ -7,8 +7,8 @@ import type {
   CompiledRouteMetadataContext,
   CompiledValidationContext,
 } from '../../../contracts/compiled/compiledContexts.type'
-import type { CompiledHookLifecycleContext } from '../../../contracts/runtime/hookLifecycle.type'
-import type { ValidationResult } from '../../../contracts/runtime/validationResult.type'
+import type { CompiledHookLifecycleContext } from '../../../concerns/hooks/contracts/hookLifecycle.type'
+import type { ValidationResult } from '../../../concerns/validation/contracts/validationResult.type'
 import type { HookType } from '../../../contracts/runtime/answerHistory.type'
 import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
@@ -22,10 +22,7 @@ import WorkTaskFactory from '../work/WorkTaskFactory'
  * generated-function boundary explicit and prevents controller-specific objects
  * leaking into codegen as the compiler surface changes.
  */
-export function buildCompiledBaseContext(
-  context: RuntimeContext,
-  functionRegistry: FunctionRegistry,
-): CompiledBaseContext {
+function buildCompiledBaseContext(context: RuntimeContext, functionRegistry: FunctionRegistry): CompiledBaseContext {
   return {
     answers: context.domain.answers,
     data: context.domain.data,
@@ -54,12 +51,16 @@ export function buildCompiledAnswerPreparationContext(
 export function buildCompiledResolveContext(
   context: RuntimeContext,
   functionRegistry: FunctionRegistry,
+  componentRegistry: ComponentRegistry,
   fieldFailures: Record<string, ValidationResult[]>,
+  fieldFailureAnchors: Record<string, string>,
 ): CompiledResolveContext {
   return {
     ...buildCompiledBaseContext(context, functionRegistry),
     post: context.request.post,
     fieldFailures,
+    fieldFailureAnchors,
+    components: componentRegistry,
   }
 }
 

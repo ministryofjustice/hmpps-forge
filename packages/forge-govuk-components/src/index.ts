@@ -25,26 +25,21 @@ export { govukComponents } from './components/index'
 export { GovUKUtilityClasses } from './utils/govukUtilityClasses'
 export { GovUKValidations } from './utils/govukValidations'
 export { registerForgeGovUKComponentsGlobals } from './utils/registerForgeGovUKComponentsGlobals'
-export { GovUKButtonGroup } from './wrappers/govukButtonGroup'
-export { GovUKGridRow } from './wrappers/govukGridRow'
-export { GovUKSectionBreak } from './wrappers/govukSectionBreak'
-export { GovUKHeading } from './wrappers/govukHeading'
-export { GovUKBody } from './wrappers/govukBody'
-export { GovUKList } from './wrappers/govukList'
-export type { GovUKButtonGroupProps } from './wrappers/govukButtonGroup'
-export type { GovUKGridRowProps, GovUKGridColumn } from './wrappers/govukGridRow'
-export type { GovUKSectionBreakProps } from './wrappers/govukSectionBreak'
-export type { GovUKHeadingProps } from './wrappers/govukHeading'
-export type { GovUKBodyProps } from './wrappers/govukBody'
-export type { GovUKListProps } from './wrappers/govukList'
+export type { GovUKGridColumn } from './components'
 
 // Re-export component wrapper functions and types
 export {
   GovUKAccordion,
   GovUKBackLink,
+  GovUKBody,
   GovUKBreadcrumbs,
   GovUKButton,
   GovUKLinkButton,
+  GovUKButtonGroup,
+  GovUKGridRow,
+  GovUKHeading,
+  GovUKList,
+  GovUKSectionBreak,
   GovUKTextInput,
   GovUKPasswordInput,
   GovUKSelectInput,

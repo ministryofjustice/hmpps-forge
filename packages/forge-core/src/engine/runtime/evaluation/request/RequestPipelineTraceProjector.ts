@@ -10,17 +10,17 @@ import type {
   RequestTraceUnit,
   RuntimeContextSnapshotTrace,
 } from '../../../contracts/runtime/trace.type'
-import type TraceSpan from '../../../diagnostics/tracing/TraceSpan'
-import TraceSpanSerializer from '../../../diagnostics/tracing/TraceSpanSerializer'
+import type TraceSpan from '../../../tracing/TraceSpan'
+import TraceSpanSerializer from '../../../tracing/TraceSpanSerializer'
 import type {
   ReachabilityEvaluation,
   ReachabilityNode,
-} from '../../../contracts/reachability/reachabilityEvaluation.type'
-import type { ForgeInstrumentation } from '../../../diagnostics/ForgeTraceSinkDispatcher'
+} from '../../../concerns/reachability/contracts/reachabilityEvaluation.type'
+import type { ForgeInstrumentation } from '../../../tracing/ForgeTraceSinkDispatcher'
 import type { RequestPipelineResult } from '../../../contracts/runtime/RequestExecutionContext.type'
 import type { MountedNode } from '../../../registries/MountRegistry'
 import type { NodeId } from '../../../contracts/ast/ast.type'
-import type { RouteTree, RouteTreeNode } from '../../../../framework/rendering/types'
+import type { RouteTree, RouteTreeNode } from '../../../../framework/types/routeTree.type'
 
 export default class RequestPipelineTraceProjector {
   private readonly serializer = new TraceSpanSerializer()
@@ -132,7 +132,7 @@ export default class RequestPipelineTraceProjector {
       children: [],
       answers: data.answers,
       data: data.data,
-      stepValidities: data.stepValidities,
+      reachabilityValidities: data.reachabilityValidities,
       reachability: data.reachability,
     }
   }

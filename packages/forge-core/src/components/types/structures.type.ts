@@ -1,20 +1,17 @@
 import {
   FunctionExpr,
   IterateExpr,
-  PipelineExpr,
   PredicateExpr,
-  ReferenceExpr,
   TransformerFunctionExpr,
-  GeneratorFunctionExpr,
-  ConditionalExpr,
-  MatchExpr,
-  ResolvableValue,
 } from '../../authoring/types/expressions.type'
-import { PredicateTestExprBuilder } from '../../authoring/builders/PredicateTestExprBuilder'
-import { ConditionalExprBuilder } from '../../authoring/builders/ConditionalExprBuilder'
-import { MatchExprBuilder } from '../../authoring/builders/MatchExprBuilder'
-import { GeneratorBuilder } from '../../authoring/builders/GeneratorBuilder'
-import { ChainableExpr, ChainableIterable, ChainableRef } from '../../authoring/builders/types'
+import {
+  ChainableConditional,
+  ChainableExpr,
+  ChainableGenerator,
+  ChainableIterable,
+  ChainableMatch,
+  ChainableRef,
+} from '../../authoring/builders/types'
 import { BlockType, StructureType } from '../../authoring/types/enums'
 import type { ValidationExpr } from '../../authoring/types/structures.type'
 
@@ -131,16 +128,6 @@ export interface FieldBlockProps extends BasicBlockProps {
    * dependentWhen: Answer('appointmentType').match(Condition.Equals('phone'))
    */
   dependentWhen?: PredicateExpr
-
-  /**
-   * Whether to keep all values when an array is returned (e.g., checkboxes).
-   * When false (default), only the first non-empty value is used.
-   * When true, all values in the array are kept.
-   *
-   * @default false
-   * @example true // For checkbox groups
-   */
-  multiple?: boolean
 }
 
 /**
@@ -149,33 +136,28 @@ export interface FieldBlockProps extends BasicBlockProps {
  */
 export interface FieldBlockDefinition extends BlockDefinition, FieldBlockProps {}
 
-type DynamicExpression =
-  | ReferenceExpr
-  | PipelineExpr
-  | ConditionalExpr
-  | MatchExpr
-  | ConditionalExprBuilder
-  | MatchExprBuilder
-  | GeneratorFunctionExpr
-  | GeneratorBuilder<ResolvableValue[]>
-  | ChainableRef
-  | ChainableExpr<any>
+/**
+ * The fluent wrappers the authoring DSL returns.
+ * Authors only ever see this side; the finalisation walk unwraps these into the
+ * wire-format expressions (ReferenceExpr, PipelineExpr, ...) the engine consumes.
+ */
+type ChainableValue = ChainableRef | ChainableExpr | ChainableConditional | ChainableMatch | ChainableGenerator
 
-export type ResolvableString = string | DynamicExpression
+export type ResolvableString = string | ChainableValue
 
-export type ResolvableBoolean = boolean | DynamicExpression | PredicateExpr | PredicateTestExprBuilder
+export type ResolvableBoolean = boolean | ChainableValue | PredicateExpr
 
-export type ResolvableNumber = number | DynamicExpression
+export type ResolvableNumber = number | ChainableValue
 
-export type ResolvableArray<T> = T[] | DynamicExpression | ChainableIterable
+export type ResolvableArray<T> = T[] | ChainableValue | ChainableIterable
 
-export type ResolvableObject<T extends object> = T | DynamicExpression
+export type ResolvableObject<T extends object> = T | ChainableValue
 
 export type RenderedBlock<TOutput = string> = {
   block: BlockDefinition
 } & ([TOutput] extends [string] ? { html: string } : { output: TOutput })
 
-type Resolved<T> = Exclude<T, DynamicExpression | ChainableIterable | PredicateExpr | PredicateTestExprBuilder>
+type Resolved<T> = Exclude<T, ChainableValue | ChainableIterable | IterateExpr | PredicateExpr>
 
 export type EvaluatedBlock<T, IsRoot extends boolean = true, TRenderedBlock = RenderedBlock> =
   Resolved<T> extends infer R

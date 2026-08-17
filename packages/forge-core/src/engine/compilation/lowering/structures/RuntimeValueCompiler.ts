@@ -1,579 +1,482 @@
-import { ExpressionType, IteratorType } from '../../../../authoring/types/enums'
-import { ASTNode } from '../../../contracts/ast/ast.type'
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import { TemplateNode } from '../../../contracts/ast/template.type'
-import CodeEmitter from '../emitters/CodeEmitter'
+import { IteratorType } from '../../../../authoring/types/enums'
+import type { ASTNode } from '../../../contracts/ast/ast.type'
+import type { TemplateNode } from '../../../contracts/ast/template.type'
+import {
+  AuthoredValueKind,
+  toRawOperand,
+  type AuthoredValue,
+  type BlockValue,
+  type ConditionalValue,
+  type IterationValue,
+  type ListValue,
+  type MatchValue,
+  type RecordValue,
+} from '../../../contracts/models/authoredValue.type'
+import ForgeInternalError from '../../../errors/ForgeInternalError'
+import {
+  CodeFragment,
+  arrayCode,
+  code,
+  literal,
+  objectCode,
+  propertyCode,
+  structuredLiteralCode,
+  SafeCode,
+} from '../codegen/fragments/CodeFragment'
+import CodeGenerator from '../codegen/CodeGenerator'
+import IdentifierName from '../codegen/fragments/IdentifierName'
+import IteratorLoopEmitter from '../emitters/IteratorLoopEmitter'
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
-import { IteratorScopeFrame } from '../expressions/types'
 
 export interface RuntimeValueCompileOptions {
-  readonly expressionErrorFallback?: string
+  readonly expressionErrorFallback?: CodeFragment
   readonly expressionErrorMode?: RuntimeValueErrorMode
   readonly omitUndefinedArrayItems?: boolean
 }
 
 export interface RuntimeValueCompilerPolicy {
-  readonly expressionErrorFallback: string
+  readonly expressionErrorFallback: CodeFragment
   readonly expressionErrorMode?: RuntimeValueErrorMode
   readonly omitUndefinedArrayItems: boolean
-  readonly isStructuralValue?: (value: unknown) => boolean
-  readonly compileStructuralValue?: (value: unknown, emitter: CodeEmitter, targetVar: string) => boolean
-  readonly noteInlineIterator?: (nodeId: string) => void
+  /**
+   * Emits a nested `BlockValue` as its own named unit (comment, props const,
+   * resolve const) and returns the name to reference. Only the resolve concern
+   * (which turns blocks into render-ready props) handles nested blocks; a
+   * policy without this callback treats a nested block as an impossible state.
+   */
+  readonly compileBlockValue?: (block: BlockValue, generator: CodeGenerator, nameHint: string) => SafeCode
 }
 
 type RuntimeValueErrorMode = 'fallback' | 'throw'
 
-interface MatchBranch {
-  readonly predicate?: unknown
-  readonly value?: unknown
-}
-
-interface IteratorValueScope {
-  readonly inputVar: string
-  readonly indexVar: string
-  readonly itemVar: string
-  readonly rawItemExpr: string
-  readonly inputLengthExpr: string
-}
-
-/**
- * Materialises authored values into generated runtime values.
- *
- * The expression dispatcher handles inline expressions. This class handles the
- * statement-shaped cases around them: arrays, objects, conditional branches,
- * matches, and iterators whose yielded values may themselves contain structures
- * a domain compiler wants to own.
- */
+/** Turns authored values (the raw values journey authors write) into generated JavaScript code that produces them at runtime. */
 export default class RuntimeValueCompiler {
-  private readonly expr: ExpressionDispatcher
+  private readonly loops: IteratorLoopEmitter
 
-  private readonly policy: RuntimeValueCompilerPolicy
-
-  constructor(expr: ExpressionDispatcher, policy: RuntimeValueCompilerPolicy) {
-    this.expr = expr
-    this.policy = policy
+  constructor(
+    private readonly expr: ExpressionDispatcher,
+    private readonly policy: RuntimeValueCompilerPolicy,
+  ) {
+    this.loops = new IteratorLoopEmitter(this.expr)
   }
 
-  /**
-   * Emits assignment for one property, using a temporary value for dynamic structures.
-   *
-   * Static values can assign directly. Dynamic values need a stable temporary so
-   * nested compilers can emit statement-shaped code before the final property
-   * assignment preserves the old "assign even when undefined" behaviour.
-   */
   compileAssignment(
-    value: unknown,
-    emitter: CodeEmitter,
-    targetObj: string,
+    value: AuthoredValue,
+    generator: CodeGenerator,
+    targetObject: SafeCode,
     key: string,
     options: RuntimeValueCompileOptions = {},
   ): void {
-    if (this.isStaticValue(value)) {
-      emitter.assign(`${targetObj}[${JSON.stringify(key)}]`, this.toLiteral(value))
+    const target = code`${targetObject}${propertyCode(key)}`
+
+    if (value.kind === AuthoredValueKind.EXPRESSION) {
+      this.compileExpressionInto(value.node, generator, target, options)
 
       return
     }
 
-    emitter.comment('RuntimeValueCompiler.compileAssignment')
-    emitter.scope(() => {
-      const resultVar = emitter.let(this.toPropertyValueVariablePrefix(key))
-
-      this.compileValue(value, emitter, resultVar, options)
-      emitter.assign(`${targetObj}[${JSON.stringify(key)}]`, resultVar)
-    })
+    generator.assign(target, this.compileValueExpression(value, generator, key, options))
   }
 
   /**
-   * Emits code that materialises any authored value into an existing target variable.
+   * Compiles a value to an expression usable inside a literal. Values that
+   * need statements — nested blocks, invoking expressions, conditionals,
+   * matches, iterations — are hoisted into named consts emitted just above,
+   * in authored order, and the returned expression references the name.
    */
+  compileValueExpression(
+    value: AuthoredValue,
+    generator: CodeGenerator,
+    nameHint: string,
+    options: RuntimeValueCompileOptions = {},
+  ): SafeCode {
+    switch (value.kind) {
+      case AuthoredValueKind.STATIC:
+        return structuredLiteralCode(value.value)
+      case AuthoredValueKind.EXPRESSION:
+        return this.compileExpressionOperand(value.node, generator, nameHint, options)
+      case AuthoredValueKind.RECORD:
+        return this.compileRecordExpression(value, generator, options)
+      case AuthoredValueKind.LIST:
+        return this.compileListExpression(value, generator, nameHint, options)
+      case AuthoredValueKind.BLOCK:
+        return this.compileBlockExpression(value, generator, nameHint)
+      default: {
+        const result = generator.let(this.toPropertyValueVariablePrefix(nameHint))
+
+        this.compileValue(value, generator, result, options)
+
+        return result
+      }
+    }
+  }
+
   compileValue(
-    value: unknown,
-    emitter: CodeEmitter,
-    targetVar: string,
+    value: AuthoredValue,
+    generator: CodeGenerator,
+    target: IdentifierName,
     options: RuntimeValueCompileOptions = {},
   ): void {
-    if (value === null || value === undefined) {
-      emitter.assign(targetVar, this.toLiteral(value))
+    switch (value.kind) {
+      case AuthoredValueKind.STATIC:
+        generator.assign(target, structuredLiteralCode(value.value))
 
-      return
+        return
+      case AuthoredValueKind.EXPRESSION:
+        this.compileExpressionValue(value.node, generator, target, options)
+
+        return
+      case AuthoredValueKind.CONDITIONAL:
+        this.compileConditionalValue(value, generator, target, options)
+
+        return
+      case AuthoredValueKind.MATCH:
+        this.compileMatchValue(value, generator, target, options)
+
+        return
+      case AuthoredValueKind.ITERATION:
+        this.compileIterationValue(value, generator, target, options)
+
+        return
+      case AuthoredValueKind.LIST:
+        generator.assign(target, this.compileListExpression(value, generator, target.value, options))
+
+        return
+      case AuthoredValueKind.RECORD:
+        generator.assign(target, this.compileRecordExpression(value, generator, options))
+
+        return
+      case AuthoredValueKind.BLOCK:
+        generator.assign(target, this.compileBlockExpression(value, generator, target.value))
+
+        return
+      default:
+        throw new ForgeInternalError('Unclassified authored value reached the runtime value compiler')
     }
-
-    if (this.policy.compileStructuralValue?.(value, emitter, targetVar) === true) {
-      return
-    }
-
-    if (this.expr.isTemplateNode(value)) {
-      this.compileNodeValue(value, emitter, targetVar, options)
-
-      return
-    }
-
-    if (this.expr.isCompilableNode(value)) {
-      this.compileNodeValue(value, emitter, targetVar, options)
-
-      return
-    }
-
-    if (Array.isArray(value)) {
-      this.compileArrayValue(value, emitter, targetVar, options)
-
-      return
-    }
-
-    if (isRecord(value)) {
-      this.compileObjectValue(value, emitter, targetVar, options)
-
-      return
-    }
-
-    emitter.assign(targetVar, this.toLiteral(value))
   }
 
-  isStaticValue(value: unknown): boolean {
-    if (value === null || value === undefined) {
-      return true
-    }
-
-    if (typeof value !== 'object') {
-      return true
-    }
-
-    if (this.policy.isStructuralValue?.(value) === true) {
-      return false
-    }
-
-    if (this.expr.isCompilableNode(value) || this.expr.isTemplateNode(value)) {
-      return false
-    }
-
-    if (Array.isArray(value)) {
-      return value.every(item => this.isStaticValue(item))
-    }
-
-    return Object.values(value as Record<string, unknown>).every(item => this.isStaticValue(item))
-  }
-
-  private compileNodeValue(
+  private compileExpressionValue(
     node: ASTNode | TemplateNode,
-    emitter: CodeEmitter,
-    targetVar: string,
+    generator: CodeGenerator,
+    target: IdentifierName,
     options: RuntimeValueCompileOptions,
   ): void {
-    const expressionType = this.getExpressionType(node)
-
-    if (expressionType === ExpressionType.CONDITIONAL) {
-      this.compileConditionalValue(node, emitter, targetVar, options)
-
-      return
-    }
-
-    if (expressionType === ExpressionType.MATCH) {
-      this.compileMatchValue(node, emitter, targetVar, options)
-
-      return
-    }
-
-    if (expressionType === ExpressionType.ITERATE) {
-      this.compileIterateValue(node, emitter, targetVar, options)
-
-      return
-    }
-
-    if (this.expr.isTemplateNode(node)) {
-      this.compileExpressionWithCatch(this.expr.compileTemplateExpression(node), emitter, targetVar, options)
-
-      return
-    }
-
-    this.compileExpressionWithCatch(this.expr.compileExpression(node), emitter, targetVar, options)
+    this.compileExpressionInto(node, generator, target, options)
   }
 
   /**
-   * Emits expression evaluation with the configured fallback behaviour.
+   * Assigns a compiled expression to `target`. In throw mode the assignment is
+   * an unconditional statement, so function calls may hoist their argument
+   * consts into the surrounding body; in fallback mode every temp must stay
+   * inside the try block, so hoisting stays off.
    */
-  private compileExpressionWithCatch(
-    expression: string,
-    emitter: CodeEmitter,
-    targetVar: string,
+  private compileExpressionInto(
+    node: ASTNode | TemplateNode,
+    generator: CodeGenerator,
+    target: SafeCode,
     options: RuntimeValueCompileOptions,
   ): void {
     const errorMode = options.expressionErrorMode ?? this.policy.expressionErrorMode ?? 'fallback'
 
     if (errorMode === 'throw') {
-      emitter.assign(targetVar, expression)
+      const expression = this.expr.withCallHoistingScope(generator, () => this.compileNodeExpression(node))
+
+      generator.assign(target, expression)
+
+      return
+    }
+
+    const expression = this.compileNodeExpression(node)
+    const fallback = options.expressionErrorFallback ?? this.policy.expressionErrorFallback
+
+    generator.tryCatch(
+      () => generator.assign(target, expression),
+      'error',
+      () => generator.assign(target, fallback),
+    )
+  }
+
+  private compileNodeExpression(node: ASTNode | TemplateNode): CodeFragment {
+    return this.expr.isTemplateNode(node)
+      ? this.expr.compileTemplateExpressionCode(node)
+      : this.expr.compileExpressionCode(node)
+  }
+
+  private compileExpressionWithCatch(
+    expression: CodeFragment,
+    generator: CodeGenerator,
+    target: IdentifierName,
+    options: RuntimeValueCompileOptions,
+  ): void {
+    const errorMode = options.expressionErrorMode ?? this.policy.expressionErrorMode ?? 'fallback'
+
+    if (errorMode === 'throw') {
+      generator.assign(target, expression)
 
       return
     }
 
     const fallback = options.expressionErrorFallback ?? this.policy.expressionErrorFallback
 
-    emitter.tryCatch(
-      () => emitter.assign(targetVar, expression),
+    generator.tryCatch(
+      () => generator.assign(target, expression),
       'error',
-      () => emitter.assign(targetVar, fallback),
+      () => generator.assign(target, fallback),
     )
   }
 
   /**
-   * Emits an array value while preserving undefined-skipping policy for dynamic items.
+   * Compiles an expression operand for a literal position. Invocation-bearing
+   * expressions are hoisted into a named const so authored calls keep their
+   * source order and stay inspectable; plain reads are inlined. Fallback-mode
+   * expressions always hoist, because the try/catch needs statements.
    */
-  private compileArrayValue(
-    value: unknown[],
-    emitter: CodeEmitter,
-    targetVar: string,
+  private compileExpressionOperand(
+    node: ASTNode | TemplateNode,
+    generator: CodeGenerator,
+    nameHint: string,
     options: RuntimeValueCompileOptions,
-  ): void {
+  ): SafeCode {
+    const errorMode = options.expressionErrorMode ?? this.policy.expressionErrorMode ?? 'fallback'
+
+    if (errorMode === 'throw') {
+      const expression = this.expr.withCallHoistingScope(generator, () => this.compileNodeExpression(node))
+
+      if (!expression.containsInvocation) {
+        return expression
+      }
+
+      return generator.const(this.toPropertyValueVariablePrefix(nameHint), expression)
+    }
+
+    const result = generator.let(this.toPropertyValueVariablePrefix(nameHint))
+
+    this.compileExpressionInto(node, generator, result, options)
+
+    return result
+  }
+
+  private compileRecordExpression(
+    value: RecordValue,
+    generator: CodeGenerator,
+    options: RuntimeValueCompileOptions,
+  ): CodeFragment {
+    return objectCode(
+      value.entries.map(entry => ({
+        key: entry.key,
+        value: this.compileValueExpression(entry.value, generator, entry.key, options),
+      })),
+    )
+  }
+
+  /**
+   * Lists inline as array literals when no item can resolve to `undefined`.
+   * When one can and undefined items must be dropped, the list falls back to
+   * push-based construction under a named const.
+   */
+  private compileListExpression(
+    value: ListValue,
+    generator: CodeGenerator,
+    nameHint: string,
+    options: RuntimeValueCompileOptions,
+  ): SafeCode {
     const omitUndefined = options.omitUndefinedArrayItems ?? this.policy.omitUndefinedArrayItems
 
-    emitter.comment('RuntimeValueCompiler.compileArrayValue')
-    emitter.scope(() => {
-      const arrVar = emitter.const('arrayValue', '[]')
+    if (omitUndefined && value.items.some(item => this.mayResolveUndefined(item))) {
+      return this.compileListConstruction(value, generator, this.toPropertyValueVariablePrefix(nameHint), options)
+    }
 
-      value.forEach(element => {
-        if (this.isStaticValue(element)) {
-          emitter.code(`${arrVar}.push(${this.toLiteral(element)});`)
+    return arrayCode(value.items.map(item => this.compileValueExpression(item, generator, nameHint, options)))
+  }
 
-          return
-        }
+  private mayResolveUndefined(value: AuthoredValue): boolean {
+    if (value.kind === AuthoredValueKind.STATIC) {
+      return value.value === undefined
+    }
 
-        emitter.scope(() => {
-          const elemVar = emitter.let('arrayItem')
+    return value.kind !== AuthoredValueKind.RECORD &&
+      value.kind !== AuthoredValueKind.LIST &&
+      value.kind !== AuthoredValueKind.BLOCK
+  }
 
-          this.compileValue(element, emitter, elemVar, options)
+  private compileListConstruction(
+    value: ListValue,
+    generator: CodeGenerator,
+    namePrefix: string,
+    options: RuntimeValueCompileOptions,
+  ): IdentifierName {
+    const omitUndefined = options.omitUndefinedArrayItems ?? this.policy.omitUndefinedArrayItems
+    const arrayValue = generator.const(namePrefix, code`[]`)
 
-          if (omitUndefined) {
-            emitter.if(`${elemVar} !== undefined`, () => emitter.code(`${arrVar}.push(${elemVar});`))
+    value.items.forEach(element => {
+      if (element.kind === AuthoredValueKind.STATIC) {
+        generator.statement(code`${arrayValue}.push(${structuredLiteralCode(element.value)})`)
 
-            return
-          }
+        return
+      }
 
-          emitter.code(`${arrVar}.push(${elemVar});`)
+      const arrayItem = generator.let('arrayItem')
+
+      this.compileValue(element, generator, arrayItem, options)
+
+      if (omitUndefined) {
+        generator.if(code`${arrayItem} !== undefined`, () => {
+          generator.statement(code`${arrayValue}.push(${arrayItem})`)
         })
-      })
 
-      emitter.assign(targetVar, arrVar)
+        return
+      }
+
+      generator.statement(code`${arrayValue}.push(${arrayItem})`)
     })
+
+    return arrayValue
   }
 
-  /**
-   * Emits an object value through property assignments so nested values can compile statements.
-   */
-  private compileObjectValue(
-    value: Record<string, unknown>,
-    emitter: CodeEmitter,
-    targetVar: string,
-    options: RuntimeValueCompileOptions,
-  ): void {
-    emitter.comment('RuntimeValueCompiler.compileObjectValue')
-    emitter.scope(() => {
-      const objVar = emitter.const('objectValue', '{}')
-
-      Object.entries(value).forEach(([key, entry]) => {
-        this.compileAssignment(entry, emitter, objVar, key, options)
-      })
-
-      emitter.assign(targetVar, objVar)
-    })
-  }
-
-  /**
-   * Emits a conditional expression whose branches may need statement-shaped value compilation.
-   */
   private compileConditionalValue(
-    node: ASTNode | TemplateNode,
-    emitter: CodeEmitter,
-    targetVar: string,
+    value: ConditionalValue,
+    generator: CodeGenerator,
+    target: IdentifierName,
     options: RuntimeValueCompileOptions,
   ): void {
-    emitter.comment('RuntimeValueCompiler.compileConditionalValue')
-    const properties = this.getProperties(node)
-    const predVar = emitter.let('conditionalPredicate')
+    const predicate = generator.let('conditionalPredicate')
 
-    this.compileExpressionWithCatch(this.expr.compileOperand(properties.predicate), emitter, predVar, {
+    this.compileExpressionWithCatch(this.expr.compileOperandCode(toRawOperand(value.predicate)), generator, predicate, {
       ...options,
-      expressionErrorFallback: 'false',
+      expressionErrorFallback: literal(false),
     })
 
-    emitter.if(
-      predVar,
-      () => this.compileValue(properties.thenValue, emitter, targetVar, options),
-      () => this.compileValue(properties.elseValue, emitter, targetVar, options),
+    generator.if(
+      predicate,
+      () => this.compileValue(value.thenValue, generator, target, options),
+      () => this.compileValue(value.elseValue, generator, target, options),
     )
   }
 
-  /**
-   * Emits a match expression while preserving eager predicate evaluation order.
-   */
   private compileMatchValue(
-    node: ASTNode | TemplateNode,
-    emitter: CodeEmitter,
-    targetVar: string,
+    value: MatchValue,
+    generator: CodeGenerator,
+    target: IdentifierName,
     options: RuntimeValueCompileOptions,
   ): void {
-    emitter.comment('RuntimeValueCompiler.compileMatchValue')
-    const properties = this.getProperties(node)
-    const branches = this.getMatchBranches(properties.branches)
-    const emittedBranches = branches.map(branch => {
-      const predVar = emitter.let('matchPredicate')
+    const compiledBranches = value.branches.map(branch => {
+      const predicate = generator.let('matchPredicate')
 
-      this.compileExpressionWithCatch(this.expr.compileOperand(branch.predicate), emitter, predVar, {
-        ...options,
-        expressionErrorFallback: 'false',
-      })
+      this.compileExpressionWithCatch(
+        this.expr.compileOperandCode(toRawOperand(branch.predicate)),
+        generator,
+        predicate,
+        { ...options, expressionErrorFallback: literal(false) },
+      )
 
       return {
-        condition: predVar,
-        body: () => this.compileValue(branch.value, emitter, targetVar, options),
+        condition: predicate,
+        body: () => this.compileValue(branch.value, generator, target, options),
       }
     })
+    const { otherwise } = value
 
-    emitter.ifChain(
-      emittedBranches,
-      properties.otherwise === undefined
-        ? undefined
-        : () => this.compileValue(properties.otherwise, emitter, targetVar, options),
+    generator.ifChain(
+      compiledBranches,
+      otherwise === undefined ? undefined : () => this.compileValue(otherwise, generator, target, options),
     )
   }
 
-  /**
-   * Routes iterator expressions to their value-producing compiler.
-   */
-  private compileIterateValue(
-    node: ASTNode | TemplateNode,
-    emitter: CodeEmitter,
-    targetVar: string,
+  private compileIterationValue(
+    value: IterationValue,
+    generator: CodeGenerator,
+    target: IdentifierName,
     options: RuntimeValueCompileOptions,
   ): void {
-    const iterator = this.getIteratorProperties(node)
-
-    this.noteInlineIterator(node)
-
-    if (iterator?.type === IteratorType.MAP) {
-      this.compileMapValue(node, emitter, targetVar, options)
+    if (value.iterator === IteratorType.MAP) {
+      this.compileMapValue(value, generator, target, options)
 
       return
     }
 
-    if (iterator?.type === IteratorType.FILTER) {
-      this.compileFilterValue(node, emitter, targetVar)
+    if (value.iterator === IteratorType.FILTER) {
+      this.compileFilterValue(value, generator, target)
 
       return
     }
 
-    if (iterator?.type === IteratorType.FIND) {
-      this.compileFindValue(node, emitter, targetVar)
+    if (value.iterator === IteratorType.FIND) {
+      this.compileFindValue(value, generator, target)
 
       return
     }
 
-    emitter.assign(targetVar, 'undefined')
+    generator.assign(target, literal(undefined))
   }
 
-  /**
-   * Emits a MAP iterator used as a property value.
-   */
   private compileMapValue(
-    node: ASTNode | TemplateNode,
-    emitter: CodeEmitter,
-    targetVar: string,
+    value: IterationValue,
+    generator: CodeGenerator,
+    target: IdentifierName,
     options: RuntimeValueCompileOptions,
   ): void {
-    const properties = this.getProperties(node)
-    const iterator = this.getIteratorProperties(node)
+    const mapValue = generator.const('mapValue', code`[]`)
 
-    emitter.comment('RuntimeValueCompiler.compileMapValue')
-    emitter.scope(() => {
-      const arrVar = emitter.const('mapValue', '[]')
+    this.loops.compileLoop(toRawOperand(value.input), generator, () => {
+      const mapItem = generator.let('mapItem')
 
-      this.compileIteratorLoop(properties.input, emitter, () => {
-        const yieldVar = emitter.let('mapItem')
+      if (value.yieldTemplate === undefined) {
+        generator.assign(mapItem, literal(undefined))
+      } else {
+        this.compileValue(value.yieldTemplate, generator, mapItem, options)
+      }
 
-        this.compileValue(iterator?.yieldTemplate, emitter, yieldVar, options)
-        emitter.if(`${yieldVar} !== undefined`, () => emitter.code(`${arrVar}.push(${yieldVar});`))
+      generator.if(code`${mapItem} !== undefined`, () => {
+        generator.statement(code`${mapValue}.push(${mapItem})`)
       })
-
-      emitter.assign(targetVar, arrVar)
     })
+
+    generator.assign(target, mapValue)
   }
 
-  /**
-   * Emits a FILTER iterator used as a property value.
-   */
-  private compileFilterValue(node: ASTNode | TemplateNode, emitter: CodeEmitter, targetVar: string): void {
-    const properties = this.getProperties(node)
-    const iterator = this.getIteratorProperties(node)
+  private compileFilterValue(value: IterationValue, generator: CodeGenerator, target: IdentifierName): void {
+    const filterValue = generator.const('filterValue', code`[]`)
 
-    emitter.comment('RuntimeValueCompiler.compileFilterValue')
-    emitter.scope(() => {
-      const arrVar = emitter.const('filterValue', '[]')
+    this.loops.compileLoop(toRawOperand(value.input), generator, scope => {
+      const predicate = generator.let('filterPredicate')
 
-      this.compileIteratorLoop(properties.input, emitter, scope => {
-        const predVar = emitter.let('filterPredicate')
-
-        this.compileExpressionWithCatch(this.expr.compileOperand(iterator?.predicateTemplate), emitter, predVar, {
-          expressionErrorFallback: 'false',
-        })
-        emitter.if(predVar, () => emitter.code(`${arrVar}.push(${scope.rawItemExpr});`))
+      this.compileExpressionWithCatch(this.expr.compileOperandCode(this.toRawPredicate(value)), generator, predicate, {
+        expressionErrorFallback: literal(false),
       })
-
-      emitter.assign(targetVar, arrVar)
+      generator.if(predicate, () => {
+        generator.statement(code`${filterValue}.push(${scope.rawItem})`)
+      })
     })
+
+    generator.assign(target, filterValue)
   }
 
-  /**
-   * Emits a FIND iterator used as a property value.
-   */
-  private compileFindValue(node: ASTNode | TemplateNode, emitter: CodeEmitter, targetVar: string): void {
-    const properties = this.getProperties(node)
-    const iterator = this.getIteratorProperties(node)
+  private compileFindValue(value: IterationValue, generator: CodeGenerator, target: IdentifierName): void {
+    this.loops.compileLoop(toRawOperand(value.input), generator, scope => {
+      const predicate = generator.let('findPredicate')
 
-    emitter.comment('RuntimeValueCompiler.compileFindValue')
-    this.compileIteratorLoop(properties.input, emitter, scope => {
-      const predVar = emitter.let('findPredicate')
-
-      this.compileExpressionWithCatch(this.expr.compileOperand(iterator?.predicateTemplate), emitter, predVar, {
-        expressionErrorFallback: 'false',
+      this.compileExpressionWithCatch(this.expr.compileOperandCode(this.toRawPredicate(value)), generator, predicate, {
+        expressionErrorFallback: literal(false),
       })
-      emitter.if(predVar, () => {
-        emitter.assign(targetVar, scope.rawItemExpr)
-        emitter.break()
+      generator.if(predicate, () => {
+        generator.assign(target, scope.rawItem)
+        generator.break()
       })
     })
   }
 
-  /**
-   * Emits the shared iterator loop skeleton used by MAP, FILTER, and FIND value expressions.
-   */
-  private compileIteratorLoop(
-    input: unknown,
-    emitter: CodeEmitter,
-    compileItem: (scope: IteratorValueScope) => void,
-  ): void {
-    const inputVar = emitter.let('iteratorInput', this.expr.compileOperand(input))
-
-    this.compileNormalizeIteratorInput(inputVar, emitter)
-
-    emitter.if(`Array.isArray(${inputVar})`, () => {
-      const indexVar = emitter.let('iteratorIndex', '0')
-
-      emitter.while(`${indexVar} < ${inputVar}.length`, () => {
-        const currentIndexVar = emitter.const('currentIteratorIndex', indexVar)
-        const rawItemVar = emitter.const('rawIteratorItem', `${inputVar}[${currentIndexVar}]`)
-
-        emitter.assign(indexVar, `${indexVar} + 1`)
-        emitter.if(`${rawItemVar} == null`, () => emitter.continue())
-
-        const itemVar = emitter.const('iteratorItem', this.compileIteratorItemScope(rawItemVar))
-        const inputLengthExpr = `${inputVar}.length`
-        const scope: IteratorValueScope = {
-          inputVar,
-          indexVar: currentIndexVar,
-          itemVar,
-          rawItemExpr: rawItemVar,
-          inputLengthExpr,
-        }
-        const frame: IteratorScopeFrame = {
-          itemVar,
-          indexVar: currentIndexVar,
-          inputLengthExpr,
-          rawItemExpr: rawItemVar,
-        }
-
-        this.expr.withIteratorFrame(frame, () => {
-          compileItem(scope)
-        })
-      })
-    })
-  }
-
-  /**
-   * Normalizes object and array iterator inputs before MAP/FILTER/FIND loop bodies run.
-   */
-  private compileNormalizeIteratorInput(inputVar: string, emitter: CodeEmitter): void {
-    emitter.if(`${inputVar} != null && !Array.isArray(${inputVar}) && typeof ${inputVar} === "object"`, () => {
-      emitter.assign(
-        inputVar,
-        `Object.entries(${inputVar}).map(function(entry) { return typeof entry[1] === "object" && entry[1] !== null ? Object.assign({"@key": entry[0]}, entry[1]) : {"@key": entry[0], "@value": entry[1]}; })`,
-      )
-    })
-    emitter.if(`Array.isArray(${inputVar})`, () => {
-      emitter.assign(inputVar, `${inputVar}.filter(function(item) { return item != null; })`)
-    })
-  }
-
-  /**
-   * Produces the scoped iterator item object exposed to @item references.
-   */
-  private compileIteratorItemScope(rawItemExpr: string): string {
-    return `typeof ${rawItemExpr} === "object" && ${rawItemExpr} !== null ? Object.assign({}, ${rawItemExpr}) : { "@value": ${rawItemExpr} }`
-  }
-
-  /**
-   * Reports inline iterator compilation to phase compilers that need to avoid duplicate emission.
-   */
-  private noteInlineIterator(node: ASTNode | TemplateNode): void {
-    this.policy.noteInlineIterator?.(node.id)
-  }
-
-  /**
-   * Reads expression type from registered AST nodes and template nodes using their different shapes.
-   */
-  private getExpressionType(node: ASTNode | TemplateNode): string | undefined {
-    if (this.expr.isTemplateNode(node)) {
-      return node.originalType === ASTNodeType.EXPRESSION && typeof node.expressionType === 'string'
-        ? node.expressionType
-        : undefined
+  private compileBlockExpression(value: BlockValue, generator: CodeGenerator, nameHint: string): SafeCode {
+    if (this.policy.compileBlockValue === undefined) {
+      throw new ForgeInternalError('A nested block value is only compilable by the resolve concern')
     }
 
-    const expressionType = (node as { expressionType?: unknown }).expressionType
-
-    return node.type === ASTNodeType.EXPRESSION && typeof expressionType === 'string' ? expressionType : undefined
+    return this.policy.compileBlockValue(value, generator, nameHint)
   }
 
-  /**
-   * Reads iterator configuration from a node when it has one.
-   */
-  private getIteratorProperties(node: ASTNode | TemplateNode): Record<string, unknown> | undefined {
-    const iterator = this.getProperties(node).iterator
-
-    return isRecord(iterator) ? iterator : undefined
+  private toRawPredicate(value: IterationValue): unknown {
+    return value.predicate === undefined ? undefined : toRawOperand(value.predicate)
   }
 
-  /**
-   * Normalizes node properties access across registered AST nodes and template nodes.
-   */
-  private getProperties(node: ASTNode | TemplateNode): Record<string, unknown> {
-    return (node.properties ?? {}) as Record<string, unknown>
-  }
-
-  /**
-   * Reads well-formed match branches while ignoring malformed authoring values.
-   */
-  private getMatchBranches(value: unknown): MatchBranch[] {
-    if (!Array.isArray(value)) {
-      return []
-    }
-
-    return value.filter(isRecord).map(branch => ({
-      predicate: branch.predicate,
-      value: branch.value,
-    }))
-  }
-
-  /**
-   * Converts JavaScript values into generated source literals.
-   */
-  private toLiteral(value: unknown): string {
-    if (value === undefined) {
-      return 'undefined'
-    }
-
-    return JSON.stringify(value) ?? 'undefined'
-  }
-
-  /**
-   * Derives readable temporary names from authored property keys.
-   */
   private toPropertyValueVariablePrefix(key: string): string {
     const words = key.match(/[A-Za-z0-9]+/g)?.map(word => word.toLowerCase()) ?? []
 
@@ -583,20 +486,16 @@ export default class RuntimeValueCompiler {
 
     const firstWord = words[0] ?? 'property'
     const restWords = words.slice(1)
-    const variablePrefix = `${firstWord}${restWords.map(capitaliseWord).join('')}Value`
+    const variablePrefix = `${firstWord}${restWords.map(word => this.capitaliseWord(word)).join('')}Value`
 
     if (/^[A-Za-z_$]/.test(variablePrefix)) {
       return variablePrefix
     }
 
-    return `property${capitaliseWord(variablePrefix)}`
+    return `property${this.capitaliseWord(variablePrefix)}`
   }
-}
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value)
-}
-
-function capitaliseWord(value: string): string {
-  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`
+  private capitaliseWord(value: string): string {
+    return `${value.charAt(0).toUpperCase()}${value.slice(1)}`
+  }
 }

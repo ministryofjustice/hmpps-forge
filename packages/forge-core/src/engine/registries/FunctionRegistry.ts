@@ -1,8 +1,5 @@
-import RegistryDuplicateError from '../errors/RegistryDuplicateError'
-import RegistryValidationError from '../errors/RegistryValidationError'
-import { ConditionsRegistry } from '../../authoring/conditions'
-import { GeneratorsRegistry } from '../../authoring/generators'
-import { TransformersRegistry } from '../../authoring/transformers'
+import ForgeRegistryDuplicateError from '../errors/ForgeRegistryDuplicateError'
+import ForgeRegistryValidationError from '../errors/ForgeRegistryValidationError'
 import { FunctionRegistryEntry, FunctionRegistryObject } from '../../authoring/types/functions.type'
 
 /**
@@ -15,8 +12,8 @@ export default class FunctionRegistry {
   /**
    * Register functions - accepts either an array of functions or a registry object
    * @param input - Registry object created by the authoring function helpers
-   * @throws RegistryDuplicateError if a function with the same name already exists
-   * @throws RegistryValidationError if a function has invalid structure
+   * @throws ForgeRegistryDuplicateError if a function with the same name already exists
+   * @throws ForgeRegistryValidationError if a function has invalid structure
    * @throws AggregateError if multiple validation errors occur
    */
   register(input: FunctionRegistryObject): void {
@@ -25,7 +22,7 @@ export default class FunctionRegistry {
     Object.values(input || {}).forEach(entry => {
       if (!entry.name) {
         errors.push(
-          new RegistryValidationError({
+          new ForgeRegistryValidationError({
             registryType: 'function',
             expected: 'object with name property',
             received: entry ? 'object without name' : 'no object',
@@ -38,7 +35,7 @@ export default class FunctionRegistry {
 
       if (!entry.evaluate || typeof entry.evaluate !== 'function') {
         errors.push(
-          new RegistryValidationError({
+          new ForgeRegistryValidationError({
             registryType: 'function',
             itemName: entry.name,
             expected: 'evaluate function',
@@ -52,7 +49,7 @@ export default class FunctionRegistry {
 
       if (this.functions.has(entry.name)) {
         errors.push(
-          new RegistryDuplicateError({
+          new ForgeRegistryDuplicateError({
             registryType: 'function',
             itemName: entry.name,
           }),
@@ -67,15 +64,6 @@ export default class FunctionRegistry {
     if (errors.length > 0) {
       throw new AggregateError(errors, 'Function registration failed')
     }
-  }
-
-  /**
-   * Register all built-in conditions, transformers, and generators
-   */
-  registerBuiltInFunctions() {
-    this.register(ConditionsRegistry)
-    this.register(TransformersRegistry)
-    this.register(GeneratorsRegistry)
   }
 
   /**

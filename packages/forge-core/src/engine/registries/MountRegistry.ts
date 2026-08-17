@@ -1,10 +1,10 @@
-import { normalizeBasePath } from '../../framework/path/routePath'
+import { normalizeBasePath } from '../../shared/utils/routePath'
 import type PackageInstance from '../PackageInstance'
 import type { NodeId } from '../contracts/ast/ast.type'
 import type {
   CompiledAccessLifecycleFunction,
   CompiledSubmitHooksFunction,
-} from '../contracts/runtime/hookLifecycle.type'
+} from '../concerns/hooks/contracts/hookLifecycle.type'
 import type {
   CompiledAnswerPreparationFunction,
   CompiledEntryValidationFunction,
@@ -15,6 +15,7 @@ import type {
   CompiledStaticDataFunction,
   CompiledValidationFunction,
 } from '../contracts/compiled/compiledFunctions.type'
+import type { CompiledFieldInventoryFunction } from '../concerns/answer-cleardown/contracts/compiledFieldInventory.type'
 import type FunctionRegistry from './FunctionRegistry'
 import type { ComponentRegistry } from '../../framework/types/adapter.type'
 import {
@@ -24,9 +25,9 @@ import {
   RouteTreeIndex,
   StepRouteContext,
   StoredRouteTree,
-} from '../contracts/routing/routeTree.type'
-import type { JourneyRouteIndex, StepRouteIndex } from '../contracts/routing/routeDescriptors.type'
-import RouteTreeBuilder from '../runtime/routing/RouteTreeBuilder'
+} from '../concerns/route/contracts/routeTree.type'
+import type { JourneyRouteIndex, StepRouteIndex } from '../concerns/route/contracts/routeDescriptors.type'
+import RouteTreeBuilder from '../concerns/route/runtime/RouteTreeBuilder'
 import type { ForgeRoute, ForgeTopology } from '../../framework/types/topology.type'
 
 interface MountedNodeBase {
@@ -41,6 +42,7 @@ interface MountedNodeBase {
   readonly componentRegistry: ComponentRegistry
   readonly compiledReachabilityFacts: CompiledReachabilityFactsFunction
   readonly compiledReachabilityState: CompiledReachabilityStateFunction
+  readonly compiledFieldInventory: CompiledFieldInventoryFunction | undefined
   readonly routeTemplateCatalog: JourneyRouteTemplateCatalog
   readonly compiledStaticData: CompiledStaticDataFunction
   readonly compiledAccessLifecycle: CompiledAccessLifecycleFunction
@@ -58,7 +60,7 @@ export interface MountedStepNode extends MountedNodeBase {
   readonly routeTree: StoredRouteTree
 }
 
-export interface MountedJourneyNode extends MountedNodeBase {
+interface MountedJourneyNode extends MountedNodeBase {
   readonly kind: 'journey'
 }
 
@@ -129,21 +131,22 @@ export default class MountRegistry {
   ): void {
     stepContexts.forEach(ctx => {
       const compiledStep = packageInstance.getCompiledStep(ctx.stepId)
-      const { runtimePlan } = compiledStep
+      const { mountInfo } = compiledStep
       const mountKey = MountRegistry.scopedRouteKey(journeyCode, ctx.stepId)
 
       this.nodesByMountKey.set(mountKey, {
         kind: 'step',
         mountKey,
-        nodeId: runtimePlan.stepId,
+        nodeId: mountInfo.stepId,
         journeyCode,
-        path: runtimePlan.path,
+        path: mountInfo.path,
         templatePath: ctx.routeTemplatePath,
         basePath: ctx.journeyBasePath,
         functionRegistry,
         componentRegistry,
         compiledReachabilityFacts: compiledStep.compiledReachabilityFacts,
         compiledReachabilityState: compiledStep.compiledReachabilityState,
+        compiledFieldInventory: compiledStep.compiledFieldInventory,
         routeTemplateCatalog: ctx.routeTemplateCatalog,
         compiledStaticData: compiledStep.compiledStaticData,
         compiledAccessLifecycle: compiledStep.compiledAccessLifecycle,
@@ -176,21 +179,22 @@ export default class MountRegistry {
         return
       }
 
-      const { runtimePlan } = compiledJourney
+      const { mountInfo } = compiledJourney
       const mountKey = MountRegistry.scopedRouteKey(journeyCode, journeyId)
 
       this.nodesByMountKey.set(mountKey, {
         kind: 'journey',
         mountKey,
-        nodeId: runtimePlan.journeyId,
+        nodeId: mountInfo.journeyId,
         journeyCode,
-        path: runtimePlan.path,
+        path: mountInfo.path,
         templatePath,
         basePath: templatePath,
         functionRegistry,
         componentRegistry,
         compiledReachabilityFacts: compiledJourney.compiledReachabilityFacts,
         compiledReachabilityState: compiledJourney.compiledReachabilityState,
+        compiledFieldInventory: compiledJourney.compiledFieldInventory,
         routeTemplateCatalog,
         compiledStaticData: compiledJourney.compiledStaticData,
         compiledAccessLifecycle: compiledJourney.compiledAccessLifecycle,

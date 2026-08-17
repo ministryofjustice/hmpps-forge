@@ -4,7 +4,7 @@ import type { FieldBlockDefinition } from '../../components/types/structures.typ
 import { buildComponent } from '../../components/utils/buildComponent'
 import ComponentRegistry from '../registries/ComponentRegistry'
 import FunctionRegistry from '../registries/FunctionRegistry'
-import CompilationTracer from '../diagnostics/tracing/CompilationTracer'
+import CompilationTracer from './tracing/CompilationTracer'
 import CompilationPipeline from './CompilationPipeline'
 
 describe('CompilationPipeline', () => {
@@ -27,7 +27,7 @@ describe('CompilationPipeline', () => {
       expect(root?.children.map(child => child.kind)).toEqual([
         'compilation.ast',
         'compilation.semantic-analysis',
-        'compilation.dependency-analysis',
+        'compilation.analysis',
         'compilation.lowering',
         'compilation.routes',
       ])

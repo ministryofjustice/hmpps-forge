@@ -1,6 +1,7 @@
 import { FORGE_WORK } from '../../../contracts/runtime/work.type'
 import type { CompletedWork, WorkTask } from '../../../contracts/runtime/work.type'
 import { isWorkTask } from './workTask'
+import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 /**
  * Collects work tasks embedded anywhere in a props value and, once the executor
@@ -34,7 +35,7 @@ export default class WorkTaskPropsWalker {
       const completedWork = completedWorks[completedWorkIndex]
 
       if (completedWork === undefined) {
-        throw new Error(`Missing completed work for task "${workTask.key}"`)
+        throw new ForgeInternalError(`Missing completed work for task "${workTask.key}"`)
       }
 
       completedWorkIndex += 1
@@ -45,7 +46,9 @@ export default class WorkTaskPropsWalker {
     const result = this.replaceValue(value, nextCompletedWork, new WeakSet<object>())
 
     if (completedWorkIndex < completedWorks.length) {
-      throw new Error(`Unused completed work remains from task "${completedWorks[completedWorkIndex].key}"`)
+      throw new ForgeInternalError(
+        `Unused completed work remains from task "${completedWorks[completedWorkIndex].key}"`,
+      )
     }
 
     return result
@@ -121,7 +124,7 @@ export default class WorkTaskPropsWalker {
 
   private assertCompletedWorkMatches(workTask: WorkTask, completedWork: CompletedWork): void {
     if (completedWork.key !== workTask.key || completedWork.kind !== workTask.handler.kind) {
-      throw new Error(
+      throw new ForgeInternalError(
         `Completed work "${completedWork.key}" of kind "${completedWork.kind}" does not match task "${workTask.key}" of kind "${workTask.handler.kind}"`,
       )
     }
@@ -129,7 +132,7 @@ export default class WorkTaskPropsWalker {
 
   private assertNotCyclic(value: object, ancestors: WeakSet<object>): void {
     if (ancestors.has(value)) {
-      throw new Error('Cannot walk cyclic work task props')
+      throw new ForgeInternalError('Cannot walk cyclic work task props')
     }
   }
 

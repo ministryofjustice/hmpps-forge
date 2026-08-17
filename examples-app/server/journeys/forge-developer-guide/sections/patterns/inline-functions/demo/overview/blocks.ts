@@ -28,7 +28,7 @@ export const showsList = GovUKList({
     'Goals and compliance summaries computed by inline transformers instead of the effect',
     'How the rendered output stays identical while the source becomes dramatically shorter',
   ]),
-  type: 'bullet',
+  style: 'bullet',
 })
 
 export const startButton = GovUKLinkButton({

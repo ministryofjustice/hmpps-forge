@@ -4,7 +4,7 @@ import type { HookType } from '../engine/contracts/runtime/answerHistory.type'
 import type { ResponseBindings } from '../framework/types/responseBindings.type'
 import type { RuntimeContext } from '../engine/contracts/runtime/evaluationState.type'
 import { EffectFunctionContext } from '../engine/runtime/evaluation/context/EffectFunctionContext'
-import { extractPathname } from '../framework/path/routePath'
+import { extractPathname } from './extractPathname'
 
 /**
  * In-memory seed for {@link createTestEffectContext}. Every field is optional and

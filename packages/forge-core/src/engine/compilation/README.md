@@ -31,8 +31,8 @@ Runtime receives `CompiledPackage` and executes what is already there.
 - Accept a validated `JourneyDefinition`.
 - Build and register the AST for the journey.
 - Validate semantic rules that depend on AST structure and registries.
-- Build a `CompilationPlan` from registered AST nodes.
-- Lower the `CompilationPlan` into `CompiledStep` and `CompiledJourney` maps.
+- Build a `CompilationModel` from registered AST nodes.
+- Lower the `CompilationModel` into `CompiledStep` and `CompiledJourney` maps.
 - Build `StepRouteIndex` and `JourneyRouteIndex` from the AST.
 - Return a `CompiledPackage`.
 - Keep phase orchestration in one place without moving phase-specific rules into the root pipeline.
@@ -54,7 +54,7 @@ It contains:
 
 Parent and ancestor lookup happens through the `parent` link on each registered node, not through a separate tree structure.
 
-`CompilationPlan` is produced by dependency analysis.
+`CompilationModel` is produced by analysis.
 It contains `stepInputs`, `journeyInputs`, and `reachabilityInputs`.
 Those maps are shaped around lowering phases.
 
@@ -68,7 +68,7 @@ It contains:
 
 Route indexes and compiled maps are siblings in the final result.
 Route indexes are built from AST structure.
-Compiled maps are built from dependency analysis and lowering.
+Compiled maps are built from analysis and lowering.
 AST nodes and `ASTNodeIndex` do not leave compilation.
 The only AST-derived value that crosses the boundary is `NodeId`, because route descriptors and compiled artifacts need the same stable key.
 
@@ -83,8 +83,8 @@ flowchart TD
   pipeline -->|create and register nodes| ast["buildAstTree()"]
   ast -->|return compiler state| astContext["AstContext: rootNode, ASTNodeIndex"]
   astContext -->|check semantic rules| semantics["validateSemantics()"]
-  semantics -->|gather phase inputs| dependency["CompilationPlanBuilder.buildPlan()"]
-  dependency -->|produce lowering input| plan["CompilationPlan"]
+  semantics -->|gather phase inputs| dependency["CompilationModelBuilder.build()"]
+  dependency -->|produce lowering input| plan["CompilationModel"]
   plan -->|emit compiled functions| lowering["CodegenOrchestrator.compileAll()"]
   lowering -->|return compiled maps| compiledMaps["steps and journeys"]
   astContext -->|derive route descriptors| routes["buildRouteIndexes()"]
@@ -107,34 +107,38 @@ flowchart LR
 ```
 
 Compilation also has a deliberate symmetry with runtime phases.
-Dependency analysis gathers inputs for the same concerns that the runtime later executes.
+Analysis gathers inputs for the same concerns that the runtime later executes.
 Lowering compiles those inputs into functions that usually return `WorkTask`s.
 The request pipeline then runs those tasks through request-level handlers and phase work handlers.
 
-The names are intentionally close, but they do not mean the same thing:
+That symmetry is why the per-concern analyzers and phase compilers do not live in this folder.
+An analyzer, the compiler it feeds, and the runtime phase that runs the result are one concern read three ways,
+so they sit together under [../concerns](../concerns) and each concern's README explains all three at once.
+What stays here is the chassis: phase order, the AST, plan assembly, the emitters and expression
+layer every compiler shares, and generated-function construction. The semantic rule pass is gate logic rather
+than chassis, so it lives with the concerns too — see [../concerns/semantic-analysis/README.md](../concerns/semantic-analysis/README.md).
 
-| Concern | Compilation input | Lowering output | Runtime request phase |
-|---|---|---|---|
-| Access hooks | `HookInputAnalyzer` collects inherited access hooks | `HookLifecycleCompiler.compileAccessLifecycle()` | `request.access` runs `access.lifecycle` |
-| Submit hooks | `HookInputAnalyzer` collects step submit hooks | `HookLifecycleCompiler.compileSubmitHooks()` | `request.submit` runs `submit.lifecycle` on POST |
-| Answer preparation | `AnswerPreparationInputAnalyzer` selects fields and map iterates | `StepAnswerPreparationCompiler.compile()` | `request.answer-preparation` runs `answer.preparation` |
-| Validation | `ValidationInputAnalyzer` selects validating fields and map iterates | `StepValidationCompiler.compileOnSubmitValidation()` and `compileOnEntryValidation()` | `request.validities`, `request.entry-validation`, and `submit.validation` read or run validation work |
-| Reachability | `ReachabilityPlanAnalyzer` builds the reachability state table, plan, and field inventory sources | `ReachabilityCompiler.compileFacts()` | `request.reachability` evaluates reachability |
-| Resolve | `ResolveInputAnalyzer` selects the step, ancestors, and iterates | `StepResolveCompiler.compile()` | `request.resolve` runs `resolve.blocks` |
-| Route metadata | `RouteMetadataInputAnalyzer` collects step and journey title/description/metadata | `RouteMetadataCompiler.compile()` (package scope) | `request.route-tree` hydrates the route tree |
-
-*Note: Some runtime phases do not have lowering phase compilers.*
+- [../concerns/hooks/README.md](../concerns/hooks/README.md) covers access and submit hook compilation.
+- [../concerns/answer-preparation/README.md](../concerns/answer-preparation/README.md) covers answer-preparation compilation.
+- [../concerns/validation/README.md](../concerns/validation/README.md) covers submit and entry validation compilation.
+- [../concerns/reachability/README.md](../concerns/reachability/README.md) covers the reachability facts and state functions.
+- [../concerns/answer-cleardown/README.md](../concerns/answer-cleardown/README.md) covers the step field inventory.
+- [../concerns/resolve/README.md](../concerns/resolve/README.md) covers resolve compilation.
+- [../concerns/route/README.md](../concerns/route/README.md) covers route metadata compilation.
 
 - [CompilationPipeline.ts](CompilationPipeline.ts) owns phase order.
-  `compile()` runs AST building, semantic analysis, dependency analysis, lowering, and route index construction.
+  `compile()` runs AST building, semantic analysis, analysis, lowering, and route index construction.
 - [ast/README.md](ast/README.md) covers AST creation and registration.
   This phase builds `rootNode` and `ASTNodeIndex`, and wires the `parent` link on each node.
-- [semantic-analysis/README.md](semantic-analysis/README.md) covers semantic checks.
+- [../concerns/semantic-analysis/README.md](../concerns/semantic-analysis/README.md) covers semantic checks.
   This phase reads the registered AST and registries, then rejects legal-looking nodes that are illegal in their current compiler context.
-- [dependency-analysis/README.md](dependency-analysis/README.md) covers plan building.
-  This phase turns the registered AST into `CompilationPlan` inputs for step, journey, and reachability compilation.
+  `CompilationPipeline.validateSemantics()` drives the pass; the validator and its rules live in the semantic-analysis concern.
+- [analysis/README.md](analysis/README.md) covers plan building.
+  This phase turns the registered AST into `CompilationModel` inputs for step, journey, and reachability compilation.
+  `CompilationModelBuilder` assembles the plan; the analyzers it calls live in each concern's `analysis/` folder.
 - [lowering/README.md](lowering/README.md) covers code generation.
-  This phase turns the `CompilationPlan` into `CompiledStep` and `CompiledJourney` maps.
+  This phase turns the `CompilationModel` into `CompiledStep` and `CompiledJourney` maps.
+  `CodegenOrchestrator` owns compile order; the phase compilers it drives live in each concern's `lowering/` folder.
 - `CompilationPipeline.buildRouteIndexes()` builds route descriptors from `JourneyASTNode` and `StepASTNode`.
   It walks `parent` links so route consumers can see the journey ancestry for each route.
 
@@ -146,14 +150,16 @@ The names are intentionally close, but they do not mean the same thing:
   It should return route descriptors and compiled artifacts, not AST nodes or AST indexes.
 - `ast/` owns AST creation, registration, node IDs, `Self()` resolution, and AST lookup structures.
   It should not validate semantic placement rules or emit runtime functions.
-- `semantic-analysis/` owns compiler semantic checks.
+- `../concerns/semantic-analysis/` owns compiler semantic checks.
   It should not mutate AST nodes, register dependencies, or generate code.
-- `dependency-analysis/` owns `CompilationPlan` creation.
+- `analysis/` owns `CompilationModel` creation.
   It should not generate JavaScript or execute runtime work.
 - `lowering/` owns generated source and compiled functions.
   It should not query the raw authored DSL or run request lifecycles.
+- `concerns/*/analysis/` and `concerns/*/lowering/` own one concern's compile-time work.
+  They may depend on `ast/` and contracts, and must not import runtime code or another concern except along a sanctioned edge.
 - Route index construction currently lives in `CompilationPipeline`.
-  It should stay separate from `CompilationPlan` unless route descriptors become lowering inputs.
+  It should stay separate from `CompilationModel` unless route descriptors become lowering inputs.
 
 ## Quirks
 
@@ -170,14 +176,14 @@ The names are intentionally close, but they do not mean the same thing:
   The compiler assumes the broad authoring shape has already been checked.
 - Keep AST registration before semantic analysis.
   Semantic rules need `ASTNodeIndex` and the `parent` links that registration wires onto each node.
-- Keep semantic analysis before dependency analysis.
+- Keep semantic analysis before analysis.
   Dependency analyzers assume placement rules and registry references are already valid.
-- Keep dependency analysis before lowering.
-  `CodegenOrchestrator.compileAll()` consumes `CompilationPlan`, not raw journey definitions.
+- Keep analysis before lowering.
+  `CodegenOrchestrator.compileAll()` consumes `CompilationModel`, not raw journey definitions.
 - Do not execute compiled functions during compilation.
   Generated functions may produce `WorkTask`s at request time, and the runtime executor owns that work.
 - Do not run any compilation phase at request time.
-  AST creation, semantic analysis, dependency analysis, lowering, and route index construction are package-load work.
+  AST creation, semantic analysis, analysis, lowering, and route index construction are package-load work.
   Running them during a request would move compiler cost and compiler failures into the runtime path.
 - Keep route descriptor ancestry based on AST `parent` links.
   Rebuilding it from paths would lose the actual nested journey structure.
@@ -191,10 +197,10 @@ The names are intentionally close, but they do not mean the same thing:
 - To change compile order, start in [CompilationPipeline.ts](CompilationPipeline.ts).
   Check every child README before moving a phase, because most phases assume the previous phase's output.
 - To add a new compiler phase before lowering, add the data contract first.
-  Then update `CompilationPipeline.buildCompilationPlan()` or `CompilationPipeline.lowerCompilationPlan()` depending on where the phase belongs.
+  Then update `CompilationPipeline.buildCompilationModel()` or `CompilationPipeline.lowerCompilationModel()` depending on where the phase belongs.
 - To add a new lowering output on `CompiledStep` or `CompiledJourney`, start in `contracts/plans/compilationArtefacts.type.ts`.
-  Then update dependency analysis inputs, lowering, and the runtime consumer together.
-- To change route descriptor shape, update `contracts/routing/routeDescriptors.type.ts` and `CompilationPipeline.buildRouteIndexes()`.
+  Then update analysis inputs, lowering, and the runtime consumer together.
+- To change route descriptor shape, update `concerns/route/contracts/routeDescriptors.type.ts` and `CompilationPipeline.buildRouteIndexes()`.
   Then check route consumers in the runtime layer.
 - To change how AST facts are found, update the child phase that owns the fact.
   Do not add raw AST searches to unrelated phases just because `CompilationPipeline` has access to `ASTNodeIndex`.
@@ -203,8 +209,9 @@ The names are intentionally close, but they do not mean the same thing:
 
 - [CompilationPipeline.ts](CompilationPipeline.ts) answers what order the compiler phases run in.
 - [ast/README.md](ast/README.md) explains how authored configuration becomes registered AST.
-- [semantic-analysis/README.md](semantic-analysis/README.md) explains which AST placements and references are legal.
-- [dependency-analysis/README.md](dependency-analysis/README.md) explains how compiler inputs are gathered for lowering.
+- [../concerns/semantic-analysis/README.md](../concerns/semantic-analysis/README.md) explains which AST placements and references are legal.
+- [analysis/README.md](analysis/README.md) explains how compiler inputs are gathered for lowering.
 - [lowering/README.md](lowering/README.md) explains how phase inputs become compiled functions.
 - [../contracts/plans/compilationArtefacts.type.ts](../contracts/plans/compilationArtefacts.type.ts) defines `CompiledStep`, `CompiledJourney`, and `CompiledPackage`.
-- [../contracts/routing/routeDescriptors.type.ts](../contracts/routing/routeDescriptors.type.ts) defines `StepRouteIndex`, `JourneyRouteIndex`, and their route descriptors.
+- [../concerns/route/contracts/routeDescriptors.type.ts](../concerns/route/contracts/routeDescriptors.type.ts) defines `StepRouteIndex`, `JourneyRouteIndex`, and their route descriptors.
+- [../concerns](../concerns) holds the per-concern analyzers and phase compilers this pipeline drives.

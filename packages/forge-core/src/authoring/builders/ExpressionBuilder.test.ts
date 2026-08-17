@@ -205,6 +205,20 @@ describe('ExpressionBuilder', () => {
         condition,
       })
     })
+
+    it('should stamp the predicate with the match callsite', () => {
+      // Arrange
+      const builder = ExpressionBuilder.from(mockRef())
+      const condition = mockCondition('isRequired')
+
+      // Act
+      const result = builder.match(condition)
+
+      // Assert
+      const callsite = Object.getOwnPropertyDescriptor(result, '__callsite')?.value as { stack?: string } | undefined
+
+      expect(callsite?.stack).toContain('ExpressionBuilder.test.ts')
+    })
   })
 
   describe('not', () => {

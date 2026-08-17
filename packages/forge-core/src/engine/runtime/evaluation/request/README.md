@@ -7,6 +7,10 @@ This document covers `packages/forge-core/src/engine/runtime/evaluation/request`
 This code turns one mounted route and one `RequestSnapshot` into a request work pipeline.
 It orders runtime phases, threads `RequestExecutionContext`, handles redirects and render outcomes, and records phase trace snapshots.
 
+`RequestPipelineBootstrap` is the single source of phase order, which is why the order table below stays here even
+though every phase handler except `RequestContextPreparationWorkHandler` now lives with its concern under
+`concerns/<name>/runtime`. This folder decides what runs and when; the concerns decide what each phase means.
+
 This document does not cover phase internals, work execution mechanics, compiled source generation, routing lookup, or component rendering.
 
 ## Background
@@ -60,11 +64,11 @@ It contains:
 - `hasRenderer`, which decides whether resolve is terminal.
 - `reachabilityEvaluation`, written by `request.reachability`.
 - `routeTree`, written by `request.route-tree` and read by resolve.
-- `validation` and `showValidationFailures`, written by submit or entry validation and read by resolve.
+- `currentPageValidation`, written only by the `validation.current-step` task and read by resolve; its presence is the display signal.
 - `renderContext`, written by resolve when a renderer is present and read by render.
 - `renderedBlocks`, written by the render-blocks work and read by page assembly.
 - `pipelineResult`, written by `request.pipeline` for `RequestEvaluator`.
-- `buildStepValidation()` and `recordStepValidation()`, shared validation hooks used by validities and submit validation.
+- `buildStepValidation()`, the shared validation-task builder used by the validities phase and current-step validation.
 
 `PhaseWorkOutput` is the common output contract for request phases:
 - `continue`, for phases that finish and let the next phase run.
@@ -115,13 +119,13 @@ If submit validation fails but does not redirect, the pipeline still reaches res
 
 ```ts
 request.submit
-// writes:
-ctx.request.showValidationFailures = true
+// its validation.current-step stage writes:
+ctx.request.currentPageValidation
 
 request.resolve
 // reads:
-ctx.request.validation?.fieldFailures
-ctx.request.showValidationFailures
+ctx.request.currentPageValidation?.fieldFailures
+ctx.request.currentPageValidation !== undefined
 
 // returns or stores:
 RenderContext
@@ -168,18 +172,18 @@ flowchart TD
 - [RequestPipelineWorkHandler.ts](RequestPipelineWorkHandler.ts) runs phases as one `first-match` work group.
   It stops on the first `PhaseWorkOutput` whose `action` is not `continue`.
 - [RequestContextPreparationWorkHandler.ts](RequestContextPreparationWorkHandler.ts) copies `RequestSnapshot` into `RuntimeContext.request` and merges static data.
-- [RequestAccessWorkHandler.ts](RequestAccessWorkHandler.ts) runs the compiled access lifecycle and maps its result to continue, redirect, or error.
-- [RequestAnswerPreparationWorkHandler.ts](RequestAnswerPreparationWorkHandler.ts) runs compiled answer preparation.
+- [RequestAccessWorkHandler.ts](../../../concerns/hooks/runtime/RequestAccessWorkHandler.ts) runs the compiled access lifecycle and maps its result to continue, redirect, or error.
+- [RequestAnswerPreparationWorkHandler.ts](../../../concerns/answer-preparation/runtime/RequestAnswerPreparationWorkHandler.ts) runs compiled answer preparation.
   It relies on answer preparation work to mutate `context.domain.answers`.
-- [RequestValiditiesWorkHandler.ts](RequestValiditiesWorkHandler.ts) eagerly validates compiled steps in non-submission mode and records step validities.
+- [ReachabilityValiditiesWorkHandler.ts](../../../concerns/validation/runtime/ReachabilityValiditiesWorkHandler.ts) eagerly validates compiled steps under the reachability filter and records reachability validities.
   Journeys with disabled reachability checks compile an empty step-validations index, so this phase has no cross-step validation work for those journeys.
-- [RequestReachabilityWorkHandler.ts](RequestReachabilityWorkHandler.ts) runs compiled navigation evaluation and decides journey redirects, unreachable-step redirects, and resume redirects.
-- [RequestAnswerCleardownWorkHandler.ts](RequestAnswerCleardownWorkHandler.ts) clears stale answers after reachability has been evaluated.
-- [RequestEntryValidationWorkHandler.ts](RequestEntryValidationWorkHandler.ts) selects entry-validation groups on step `GET` and projects stored validation failures for render.
-- [RequestSubmitWorkHandler.ts](RequestSubmitWorkHandler.ts) runs compiled submit hooks on step `POST` and decides whether validation failures should be shown.
-- [RequestRouteTreeWorkHandler.ts](RequestRouteTreeWorkHandler.ts) evaluates compiled route metadata and hydrates the route tree before resolve.
-- [RequestResolveWorkHandler.ts](RequestResolveWorkHandler.ts) runs compiled resolve, builds `RenderContext`, and attaches validation errors.
-- [RequestRenderWorkHandler.ts](RequestRenderWorkHandler.ts) renders blocks, then assembles the page.
+- [RequestReachabilityWorkHandler.ts](../../../concerns/reachability/runtime/RequestReachabilityWorkHandler.ts) runs compiled navigation evaluation and decides journey redirects, unreachable-step redirects, and resume redirects.
+- [RequestAnswerCleardownWorkHandler.ts](../../../concerns/answer-cleardown/runtime/RequestAnswerCleardownWorkHandler.ts) clears stale answers after reachability has been evaluated.
+- [RequestEntryValidationWorkHandler.ts](../../../concerns/validation/runtime/RequestEntryValidationWorkHandler.ts) selects entry-validation groups on step `GET` and schedules current-step validation when groups match.
+- [RequestSubmitWorkHandler.ts](../../../concerns/hooks/runtime/RequestSubmitWorkHandler.ts) runs compiled submit hooks on step `POST` and decides whether validation failures should be shown.
+- [RequestRouteTreeWorkHandler.ts](../../../concerns/route/runtime/RequestRouteTreeWorkHandler.ts) evaluates compiled route metadata and hydrates the route tree before resolve.
+- [RequestResolveWorkHandler.ts](../../../concerns/resolve/runtime/RequestResolveWorkHandler.ts) runs compiled resolve, builds `RenderContext`, and attaches validation errors.
+- [RequestRenderWorkHandler.ts](../../../concerns/render/runtime/RequestRenderWorkHandler.ts) renders blocks, then assembles the page.
 - [requestPhase.ts](requestPhase.ts) contains shared helpers for compiled-task phases and phase trace snapshots.
 - [RequestPipelineTraceProjector.ts](RequestPipelineTraceProjector.ts) turns the work-unit tree into request trace phases.
 
@@ -192,7 +196,7 @@ flowchart TD
 - Phase work handlers own request-level orchestration for one phase.
   They should build compiled contexts, call compiled functions, and translate child output into `PhaseWorkOutput`.
 - Phase work handlers should not implement phase internals.
-  Those belong in `runtime/evaluation/phases/*`.
+  Those belong in the concern that owns the phase, under `concerns/<name>/runtime`.
 - Compiled functions own generated runtime logic.
   Request handlers should call them, not recreate their source-time decisions.
 - `RequestExecutionContext` owns mutable cross-phase signals.
@@ -200,7 +204,7 @@ flowchart TD
 - `RequestPipelineTraceProjector` owns request trace projection.
   It should not change work execution or request state.
 - Runtime request evaluation must not own compilation.
-  It must not build `CompilationPlan`, lower source, register AST nodes, or inspect authored DSL.
+  It must not build `CompilationModel`, lower source, register AST nodes, or inspect authored DSL.
 
 ## Quirks
 
@@ -210,7 +214,7 @@ flowchart TD
   Reachability reads step validities to decide whether navigation can pass through validation-gated steps.
   It runs the mounted node's journey-scoped `compiledStepValidations` index, not every step's local `compiledValidation` function.
   When reachability checks are disabled, that journey-scoped index is empty.
-- `request.entry-validation` does not run field validation itself.
+- `request.entry-validation` contains no validation implementation; it only triggers `validation.current-step`.
   It selects active groups and projects the already-stored current step validity.
 - `request.submit` does not write `ctx.request.validation` directly.
   Submit validation runs inside the hook lifecycle through `buildStepValidation()` and `recordStepValidation()`.
@@ -279,16 +283,16 @@ flowchart TD
 - [RequestPipelineBootstrap.ts](RequestPipelineBootstrap.ts) answers which phases are created for a mounted node and request method.
 - [RequestPipelineWorkHandler.ts](RequestPipelineWorkHandler.ts) answers how phases stop or complete the request.
 - [RequestContextPreparationWorkHandler.ts](RequestContextPreparationWorkHandler.ts) answers how `RequestSnapshot` becomes `RuntimeContext.request`.
-- [RequestAccessWorkHandler.ts](RequestAccessWorkHandler.ts) answers how access hooks can halt a request.
-- [RequestAnswerPreparationWorkHandler.ts](RequestAnswerPreparationWorkHandler.ts) answers where compiled answer preparation runs.
-- [RequestValiditiesWorkHandler.ts](RequestValiditiesWorkHandler.ts) answers how step validities are populated before navigation.
-- [RequestReachabilityWorkHandler.ts](RequestReachabilityWorkHandler.ts) answers how navigation evaluation redirects or continues.
-- [RequestAnswerCleardownWorkHandler.ts](RequestAnswerCleardownWorkHandler.ts) answers when stale answers are cleared.
-- [RequestEntryValidationWorkHandler.ts](RequestEntryValidationWorkHandler.ts) answers how GET validation groups are selected for render.
-- [RequestSubmitWorkHandler.ts](RequestSubmitWorkHandler.ts) answers how POST submit hooks halt, continue, or show validation failures.
-- [RequestRouteTreeWorkHandler.ts](RequestRouteTreeWorkHandler.ts) answers how route metadata is resolved and the route tree hydrated.
-- [RequestResolveWorkHandler.ts](RequestResolveWorkHandler.ts) answers how resolved blocks become `RenderContext`.
-- [RequestRenderWorkHandler.ts](RequestRenderWorkHandler.ts) answers how a stored `RenderContext` becomes renderer output.
+- [RequestAccessWorkHandler.ts](../../../concerns/hooks/runtime/RequestAccessWorkHandler.ts) answers how access hooks can halt a request.
+- [RequestAnswerPreparationWorkHandler.ts](../../../concerns/answer-preparation/runtime/RequestAnswerPreparationWorkHandler.ts) answers where compiled answer preparation runs.
+- [ReachabilityValiditiesWorkHandler.ts](../../../concerns/validation/runtime/ReachabilityValiditiesWorkHandler.ts) answers how reachability validities are populated before navigation.
+- [RequestReachabilityWorkHandler.ts](../../../concerns/reachability/runtime/RequestReachabilityWorkHandler.ts) answers how navigation evaluation redirects or continues.
+- [RequestAnswerCleardownWorkHandler.ts](../../../concerns/answer-cleardown/runtime/RequestAnswerCleardownWorkHandler.ts) answers when stale answers are cleared.
+- [RequestEntryValidationWorkHandler.ts](../../../concerns/validation/runtime/RequestEntryValidationWorkHandler.ts) answers how GET validation groups are selected and current-step validation is triggered.
+- [RequestSubmitWorkHandler.ts](../../../concerns/hooks/runtime/RequestSubmitWorkHandler.ts) answers how POST submit hooks halt, continue, or show validation failures.
+- [RequestRouteTreeWorkHandler.ts](../../../concerns/route/runtime/RequestRouteTreeWorkHandler.ts) answers how route metadata is resolved and the route tree hydrated.
+- [RequestResolveWorkHandler.ts](../../../concerns/resolve/runtime/RequestResolveWorkHandler.ts) answers how resolved blocks become `RenderContext`.
+- [RequestRenderWorkHandler.ts](../../../concerns/render/runtime/RequestRenderWorkHandler.ts) answers how a stored `RenderContext` becomes renderer output.
 - [requestPhase.ts](requestPhase.ts) answers how compiled phase tasks are validated and how phase snapshots are recorded.
 - [RequestPipelineTraceProjector.ts](RequestPipelineTraceProjector.ts) answers how request work traces are projected for instrumentation.
 - [../../../contracts/runtime/RequestExecutionContext.type.ts](../../../contracts/runtime/RequestExecutionContext.type.ts) defines `RequestExecutionContext`, `PhaseWorkOutput`, and `RequestPipelineResult`.
