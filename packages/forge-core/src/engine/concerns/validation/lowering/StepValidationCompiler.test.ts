@@ -1185,9 +1185,7 @@ describe('StepValidationCompiler', () => {
           '            ));',
           '          },',
           '          message: "Enter your name",',
-          '          submissionOnly: false,',
-          '          groups: undefined,',
-          '          details: undefined',
+          '          submissionOnly: false',
           '        }',
           '      ];',
         ].join('\n'),
@@ -1201,7 +1199,9 @@ describe('StepValidationCompiler', () => {
       expect(source).not.toContain('"functionType"')
       expect(source).not.toContain('"definedAt"')
       expect(source).toContain('"Enter your name"')
-      expect(source).toContain('ctx.workTasks.fieldValidation')
+      expect(source).toContain('ctx.workTasks.fieldValidation("field:compile_ast:2"')
+      expect(source).not.toContain('"field:" + String')
+      expect(source).not.toContain('details: undefined')
       expect(source).toContain('return ctx.workTasks.stepValidation(fieldValidations, domainValidations)')
     })
 

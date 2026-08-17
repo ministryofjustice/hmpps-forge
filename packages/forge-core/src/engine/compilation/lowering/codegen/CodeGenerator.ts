@@ -51,20 +51,16 @@ export default class CodeGenerator {
 
   private readonly scopeStack: ScopeFrame[]
 
-  private readonly startsInsideBlock: boolean
-
   private variableCounter: number
 
   constructor(
     variableCounter = 0,
     functionNames: Set<string> = new Set(),
     scopeStack: ScopeFrame[] = [createScopeFrame()],
-    startsInsideBlock = false,
   ) {
     this.variableCounter = variableCounter
     this.functionNames = functionNames
     this.scopeStack = scopeStack
-    this.startsInsideBlock = startsInsideBlock
   }
 
   static forFunction(parameterPrefixes: readonly string[]): CodeGenerator {
@@ -79,7 +75,6 @@ export default class CodeGenerator {
       this.variableCounter,
       new Set(this.functionNames),
       this.scopeStack.map(frame => createScopeFrame(frame.names)),
-      this.startsInsideBlock,
     )
   }
 
@@ -234,7 +229,7 @@ export default class CodeGenerator {
     options: FunctionOptions = {},
   ): IdentifierName {
     const name = this.allocateLexicalName(prefix)
-    const functionGenerator = new CodeGenerator(this.variableCounter, new Set(), [createScopeFrame()], true)
+    const functionGenerator = new CodeGenerator(this.variableCounter, new Set(), [createScopeFrame()])
     const parameters = parameterPrefixes.map(parameter => new IdentifierName(parameter))
 
     parameters.forEach(parameter => functionGenerator.reserveFunctionName(parameter))
@@ -253,7 +248,7 @@ export default class CodeGenerator {
     options: FunctionOptions = {},
   ): CodeFragment {
     const name = prefix === undefined ? undefined : this.allocateFunctionName(prefix)
-    const functionGenerator = new CodeGenerator(this.variableCounter, new Set(), [createScopeFrame()], true)
+    const functionGenerator = new CodeGenerator(this.variableCounter, new Set(), [createScopeFrame()])
     const parameters = parameterPrefixes.map(parameter => new IdentifierName(parameter))
 
     parameters.forEach(parameter => functionGenerator.reserveFunctionName(parameter))
@@ -287,10 +282,7 @@ export default class CodeGenerator {
   comment(text: string): void {
     const previousNode = this.currentBody[this.currentBody.length - 1]
 
-    if (
-      (previousNode !== undefined && !(previousNode instanceof BlankLineCodeNode)) ||
-      (previousNode === undefined && (this.nodeFrames.length > 1 || this.startsInsideBlock))
-    ) {
+    if (previousNode !== undefined && !(previousNode instanceof BlankLineCodeNode)) {
       this.blank()
     }
 

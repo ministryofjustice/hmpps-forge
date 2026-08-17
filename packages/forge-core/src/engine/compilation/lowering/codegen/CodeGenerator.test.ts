@@ -112,7 +112,6 @@ describe('CodeGenerator', () => {
       expect(new SourceRenderer().render(generator.toNodes()).source).toBe(
         [
           'const run = async function validate_contactPhone(fieldCode) {',
-          '',
           '  // --- ValidationCompiler.compileField ---',
           '  return ctx.answers[fieldCode];',
           '};',
@@ -252,7 +251,7 @@ describe('CodeGenerator', () => {
       expect(() => Reflect.apply(compiled, undefined, [() => undefined])).not.toThrow()
     })
 
-    it('should leave spacing after a generated function header before its first breadcrumb', () => {
+    it('should not pad a generated function header before its first breadcrumb', () => {
       // Arrange
       const generator = new CodeGenerator()
 
@@ -265,7 +264,7 @@ describe('CodeGenerator', () => {
 
       // Assert
       expect(rendered.source).toBe(
-        ['function validate() {', '', '  // --- ValidationCompiler.compileRule ---', '  return true;', '}'].join('\n'),
+        ['function validate() {', '  // --- ValidationCompiler.compileRule ---', '  return true;', '}'].join('\n'),
       )
     })
   })

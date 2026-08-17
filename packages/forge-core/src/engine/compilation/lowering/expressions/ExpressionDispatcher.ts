@@ -3,7 +3,15 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import { ExpressionType, FunctionType, IteratorType } from '../../../../authoring/types/enums'
 import { TemplateNode } from '../../../contracts/ast/template.type'
 import ForgeUnregisteredFunctionError from '../../../errors/ForgeUnregisteredFunctionError'
-import { CodeFragment, arrayCode, code, literal, objectCode, SafeCode } from '../codegen/fragments/CodeFragment'
+import {
+  CodeFragment,
+  arrayCode,
+  code,
+  literal,
+  objectCode,
+  ObjectCodeProperty,
+  SafeCode,
+} from '../codegen/fragments/CodeFragment'
 import CodeGenerator from '../codegen/CodeGenerator'
 import IdentifierName from '../codegen/fragments/IdentifierName'
 import DiagnosticEmitter, { type DiagnosticMetadata } from '../emitters/DiagnosticEmitter'
@@ -420,8 +428,6 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     }
 
     const messageValue = properties.message
-    const submissionOnlyExpr = literal(properties.submissionOnly === true)
-    const groupsExpr = properties.groups !== undefined ? this.compileOperandCode(properties.groups) : literal(undefined)
     const detailsValue = properties.details
     const functionPrefix = this.validationFunctionPrefixes[this.validationFunctionPrefixes.length - 1] ?? 'validation'
     const validationCondition = this.compileReturnFunctionExpression(
@@ -434,20 +440,28 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
           () => this.compileOperandCode(messageValue),
           `evaluate_${functionPrefix}_message`,
         )
-    const details = this.isStaticOperand(detailsValue)
-      ? this.compileStaticOperand(detailsValue, literal(undefined))
-      : this.compileReturnFunctionExpression(
-          () => this.compileOperandCode(detailsValue),
-          `evaluate_${functionPrefix}_details`,
-        )
-
-    return objectCode([
+    const ruleProperties: ObjectCodeProperty[] = [
       { key: 'condition', value: validationCondition },
       { key: 'message', value: message },
-      { key: 'submissionOnly', value: submissionOnlyExpr },
-      { key: 'groups', value: groupsExpr },
-      { key: 'details', value: details },
-    ])
+      { key: 'submissionOnly', value: literal(properties.submissionOnly === true) },
+    ]
+
+    if (properties.groups !== undefined) {
+      ruleProperties.push({ key: 'groups', value: this.compileOperandCode(properties.groups) })
+    }
+
+    if (detailsValue !== undefined) {
+      const details = this.isStaticOperand(detailsValue)
+        ? this.compileStaticOperand(detailsValue, literal(undefined))
+        : this.compileReturnFunctionExpression(
+            () => this.compileOperandCode(detailsValue),
+            `evaluate_${functionPrefix}_details`,
+          )
+
+      ruleProperties.push({ key: 'details', value: details })
+    }
+
+    return objectCode(ruleProperties)
   }
 
   /**

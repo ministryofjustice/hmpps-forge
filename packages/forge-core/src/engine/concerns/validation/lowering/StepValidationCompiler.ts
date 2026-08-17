@@ -134,7 +134,7 @@ export default class StepValidationCompiler {
           generator.if(this.expr.compileExpressionCode(dependentWhen), () => {
             this.compileFieldValidationSlot(
               rules,
-              literal(field.source.id),
+              field.source.id,
               blockCode,
               fieldValidations,
               ruleIsActive,
@@ -148,7 +148,7 @@ export default class StepValidationCompiler {
 
         this.compileFieldValidationSlot(
           rules,
-          literal(field.source.id),
+          field.source.id,
           blockCode,
           fieldValidations,
           ruleIsActive,
@@ -206,18 +206,21 @@ export default class StepValidationCompiler {
 
   private compileFieldValidationSlot(
     rules: ValidationRulesModel,
-    blockId: CodeFragment,
+    blockId: string | CodeFragment,
     blockCode: SafeCode,
     fieldValidations: IdentifierName,
     ruleIsActive: IdentifierName,
     functionPrefix: string,
     generator: CodeGenerator,
   ): void {
+    const blockIdCode = typeof blockId === 'string' ? literal(blockId) : blockId
+    const taskKey = typeof blockId === 'string' ? literal(`field:${blockId}`) : code`"field:" + String(${blockId})`
+
     generator.comment('Register field validation')
     generator.scope(() => {
       const runValidation = this.compileFieldValidationRunFunction(
         rules,
-        blockId,
+        blockIdCode,
         blockCode,
         ruleIsActive,
         functionPrefix,
@@ -226,15 +229,13 @@ export default class StepValidationCompiler {
       const props = generator.const(
         'fieldValidationProps',
         objectCode([
-          { key: 'blockId', value: blockId },
+          { key: 'blockId', value: blockIdCode },
           { key: 'blockCode', value: blockCode },
           { key: 'run', value: runValidation },
         ]),
       )
 
-      generator.statement(
-        code`${fieldValidations}.push(${CONTEXT}.workTasks.fieldValidation("field:" + String(${blockId}), ${props}))`,
-      )
+      generator.statement(code`${fieldValidations}.push(${CONTEXT}.workTasks.fieldValidation(${taskKey}, ${props}))`)
     })
   }
 
@@ -403,9 +404,9 @@ export default class StepValidationCompiler {
     return field.validation.rules
   }
 
-  private compileTemplateBlockId(field: FieldModel): CodeFragment {
+  private compileTemplateBlockId(field: FieldModel): string | CodeFragment {
     if (!isTemplateNode(field.source)) {
-      return literal(field.source.id)
+      return field.source.id
     }
 
     return this.templates.compileTemplateInstanceIdExpression(field.source)
