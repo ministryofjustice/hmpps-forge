@@ -38,10 +38,10 @@ interface FieldModelOptions {
 }
 
 /**
- * Builds a real `StepAnalysisContext` for analyzer tests: ownership and field
- * models come from the registered nodes, and any variant the arranged blocks
- * use is auto-registered so component resolution never trips a test that is
- * not about components.
+ * Builds a real `StepAnalysisContext` for analyzer tests. Ownership and field
+ * models are derived from the registered nodes, and any component variant
+ * used by the arranged blocks is auto-registered so tests that aren't about
+ * component resolution don't fail on missing variants.
  */
 export function createStepAnalysisContext(options: StepContextOptions): StepAnalysisContext {
   const nodeRegistry = options.nodeRegistry ?? new ASTNodeIndex()
@@ -103,8 +103,8 @@ export function createJourneyAnalysisContext(options: JourneyContextOptions): Jo
 }
 
 /**
- * Classifies loose block/iterate arrangements into field models without an
- * `ASTNodeIndex`, for compiler tests that build models straight from nodes.
+ * Builds field models directly from block and iterate nodes, without needing
+ * an `ASTNodeIndex`. Useful for compiler tests that construct nodes by hand.
  */
 export function buildStepFieldModels(options: FieldModelOptions): FieldModel[] {
   const componentRegistry = options.componentRegistry ?? new ComponentRegistry()

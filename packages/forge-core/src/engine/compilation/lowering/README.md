@@ -30,7 +30,7 @@ Generated functions do not usually run their child work directly.
 They return `WorkTask` objects through `ctx.workTasks`, and the runtime work executor decides how to run those tasks.
 
 "Is this just runtime logic built out of strings?" The final output is JavaScript source, but compilers do not assemble it as strings.
-They build typed `Code`, `Name`, and statement nodes through `CodeGenerator`, following the same safe-fragment approach as Ajv's code generator.
+They build typed `CodeFragment`, `IdentifierName`, and statement nodes through `CodeGenerator`, following the same safe-fragment approach as Ajv's code generator.
 `SourceRenderer` turns that IR into source and source-map segments in one pass, and the result is tested both as source and as executable functions.
 The runtime executes the compiled functions later; lowering does not run request lifecycles itself.
 
@@ -47,7 +47,7 @@ under heavy-load - so Forge remains performant!
 - Emit inspectable JavaScript source for phase compilers.
 - Construct sync or async functions based on discovered `await` usage.
 - Build generated functions that return `WorkTask`s instead of running child work directly.
-- Pass runtime helper functions into generated functions through `_forgeHelpers`.
+- Pass the runtime library into generated functions through `_forgeHelpers`.
 - Attach runtime diagnostics so generated failures can point back to AST nodes and DSL paths.
 - Keep generated-function construction errors separate from runtime evaluation errors.
 
@@ -86,7 +86,7 @@ The source is captured before the `Function` construction, so a failed compile s
 
 The main source-building helpers are:
 - `CodeGenerator`, which owns structured statements, functions, scopes, and variable names.
-- `Code` and `Name`, which keep executable fragments distinct from literal values.
+- `CodeFragment` and `IdentifierName`, which keep executable fragments distinct from literal values.
 - `SourceRenderer`, which renders source and authored-position segments directly from the IR.
 - `ExpressionDispatcher`, which compiles expressions and tracks iterator scope, `@self`, and `usesAwait`.
 - `RuntimeValueCompiler`, which materialises classified `AuthoredValue` trees into runtime values.
@@ -191,7 +191,7 @@ flowchart TD
   [route](../../concerns/route/lowering/README.md), and
   [validation](../../concerns/validation/lowering/README.md).
 - [expressions/ExpressionDispatcher.ts](expressions/ExpressionDispatcher.ts) is the shared expression entry point used by the phase compilers.
-- [function-construction/GeneratedFunctionCompiler.ts](function-construction/GeneratedFunctionCompiler.ts) wraps generated source, attaches diagnostics, injects helpers, and constructs the executable function.
+- [GeneratedFunctionCompiler.ts](GeneratedFunctionCompiler.ts) wraps generated source, attaches diagnostics, injects the runtime library, and constructs the executable function.
 
 ## Boundaries
 
@@ -274,7 +274,7 @@ flowchart TD
 - To change function call emission, start in `PipelineNodeCompiler.compileFunction()` and `DiagnosticEmitter`.
   Keep function metadata attached for runtime diagnostics.
 - To change generated variable naming, start in `CodeGenerator`; for indentation and layout, start in `SourceRenderer`.
-  Keep phase compilers on typed `Code` and structured nodes rather than hand-formatting source.
+  Keep phase compilers on typed `CodeFragment` and structured nodes rather than hand-formatting source.
 - To change iterator template behavior, start in `ScopedTemplateCompiler`.
   Then check answer preparation, validation, resolve, and field inventory.
 - To change template block identity, keep resolve and validation on `ScopedTemplateCompiler.compileTemplateInstanceIdExpression()`.
@@ -290,11 +290,10 @@ flowchart TD
 
 - [CodegenOrchestrator.ts](CodegenOrchestrator.ts) compiles the full `CompilationModel`.
 - [compilationDependencies.type.ts](compilationDependencies.type.ts) defines the registries available during lowering.
-- [function-construction/GeneratedFunctionCompiler.ts](function-construction/GeneratedFunctionCompiler.ts) wraps source, injects helpers, and compiles generated functions.
-- [function-construction/compiledFunctionFactory.ts](function-construction/compiledFunctionFactory.ts) is the only `Function` and `AsyncFunction` construction site.
-- [function-construction/GeneratedFunctionHelpers.ts](function-construction/GeneratedFunctionHelpers.ts) defines `_forgeHelpers` used by generated source.
-- [../codegen/CodeGenerator.ts](../codegen/CodeGenerator.ts) builds structured generated-code IR with scoped names.
-- [../codegen/SourceRenderer.ts](../codegen/SourceRenderer.ts) renders readable JavaScript and source-map segments.
+- [GeneratedFunctionCompiler.ts](GeneratedFunctionCompiler.ts) wraps source, injects the runtime library, and compiles generated functions.
+- [generatedFunctionRuntimeLibrary.ts](generatedFunctionRuntimeLibrary.ts) is the runtime library injected into generated source as `_forgeHelpers`.
+- [codegen/CodeGenerator.ts](codegen/CodeGenerator.ts) builds structured generated-code IR with scoped names.
+- [codegen/rendering/SourceRenderer.ts](codegen/rendering/SourceRenderer.ts) renders readable JavaScript and source-map segments.
 - [emitters/DiagnosticEmitter.ts](emitters/DiagnosticEmitter.ts) emits runtime diagnostic wrappers.
 - [emitters/FieldCodeEmitter.ts](emitters/FieldCodeEmitter.ts) emits field-code expressions for answers, metadata, and `Self()`.
 - [expressions/ExpressionDispatcher.ts](expressions/ExpressionDispatcher.ts) compiles AST and template expressions.

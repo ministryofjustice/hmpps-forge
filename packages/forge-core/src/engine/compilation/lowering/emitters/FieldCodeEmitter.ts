@@ -1,31 +1,31 @@
 import { isTemplateNode } from '../../../contracts/ast/nodes'
 import { TemplateNode } from '../../../contracts/ast/template.type'
 import { FieldCodeKind, type DynamicFieldCode, type StaticFieldCode } from '../../../contracts/models/fieldModel.type'
-import { Code, code, literal, SafeCode } from '../../codegen/Code'
-import CodeGenerator from '../../codegen/CodeGenerator'
-import Name from '../../codegen/Name'
+import { CodeFragment, code, literal, SafeCode } from '../codegen/fragments/CodeFragment'
+import CodeGenerator from '../codegen/CodeGenerator'
+import IdentifierName from '../codegen/fragments/IdentifierName'
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
 
 /**
  * Emits field code expressions consistently across generated-function compilers.
  *
- * Field codes can be static strings or authored expressions. The compilers use
- * the resulting expression for answer lookup, Self() resolution, validation
- * metadata, and field inventory, so this keeps their string coercion rules in
- * one place.
+ * A field code identifies a field -- it can be a static string or an authored
+ * expression. Compilers use the resulting expression for answer lookup,
+ * `Self()` resolution, validation metadata, and field inventory, so this
+ * class keeps the string coercion rules in one place.
  */
 export default class FieldCodeEmitter {
   constructor(private readonly expr: ExpressionDispatcher) {}
 
   /**
-   * Emits a classified field-code model as either a string literal or a scoped
-   * const. Dynamic template codes compile under the current iterator scope, so
-   * callers must already be inside the occurrence's loop nest.
+   * Emits a field-code model as either a string literal or a scoped `const`.
+   * Dynamic codes (those derived from an expression) compile under the current
+   * iterator scope, so callers must already be inside the enclosing loop.
    */
   compileModelExpression(
     fieldCode: StaticFieldCode | DynamicFieldCode | undefined,
     generator: CodeGenerator,
-  ): Code | Name | undefined {
+  ): CodeFragment | IdentifierName | undefined {
     if (fieldCode === undefined) {
       return undefined
     }
@@ -46,7 +46,7 @@ export default class FieldCodeEmitter {
     fieldCode: unknown,
     generator: CodeGenerator,
     variableName = 'fieldCode',
-  ): Code | Name | undefined {
+  ): CodeFragment | IdentifierName | undefined {
     const codeExpression = this.compileRegisteredInlineExpression(fieldCode)
 
     if (codeExpression === undefined) {
@@ -63,7 +63,7 @@ export default class FieldCodeEmitter {
   /**
    * Emits a registered field code as an inline expression, used when assigning block properties.
    */
-  compileRegisteredInlineExpression(fieldCode: unknown): Code | undefined {
+  compileRegisteredInlineExpression(fieldCode: unknown): CodeFragment | undefined {
     if (typeof fieldCode === 'string') {
       return literal(fieldCode)
     }
@@ -82,7 +82,7 @@ export default class FieldCodeEmitter {
     node: TemplateNode,
     generator: CodeGenerator,
     variableName = 'templateCode',
-  ): Code | Name | undefined {
+  ): CodeFragment | IdentifierName | undefined {
     const fieldCode = node.properties?.code
 
     if (typeof fieldCode === 'string') {

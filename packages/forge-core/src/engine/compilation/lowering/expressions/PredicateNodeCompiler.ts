@@ -1,21 +1,22 @@
 import { PredicateType } from '../../../../authoring/types/enums'
-import { Code, arrayCode, code, joinCode, literal } from '../../codegen/Code'
+import { CodeFragment, arrayCode, code, joinCode, literal } from '../codegen/fragments/CodeFragment'
 import { NodeCompilationContext } from './types'
 
 /**
  * Compiles predicate nodes into boolean JavaScript expressions.
  *
  * Predicate nodes are shared across validation, reachability, rendering guards,
- * and hooks, so this compiler keeps the output expression-shaped and delegates
- * registered condition calls back through the shared context.
+ * and hooks, so this compiler keeps the output as a pure expression (not
+ * statements) and delegates registered condition function calls back through
+ * the `ExpressionDispatcher`.
  */
 export default class PredicateNodeCompiler {
   constructor(private readonly ctx: NodeCompilationContext) {}
 
   /**
-   * Dispatches each authored predicate shape to its expression emitter.
+   * Dispatches each predicate type (TEST, AND, OR, NOT, XOR) to its compiler.
    */
-  compile(predicateType: string, properties: Record<string, unknown>): Code {
+  compile(predicateType: string, properties: Record<string, unknown>): CodeFragment {
     switch (predicateType) {
       case PredicateType.TEST:
         return this.compileTest(properties)
@@ -33,9 +34,10 @@ export default class PredicateNodeCompiler {
   }
 
   /**
-   * Emits a registered condition call, with optional predicate-level negation.
+   * Compiles a TEST predicate by calling a registered condition function,
+   * optionally wrapping the result in logical negation.
    */
-  private compileTest(properties: Record<string, unknown>): Code {
+  private compileTest(properties: Record<string, unknown>): CodeFragment {
     const subject = properties.subject
     const condition = properties.condition as Record<string, unknown> | undefined
     const negate = properties.negate === true
@@ -63,7 +65,11 @@ export default class PredicateNodeCompiler {
   /**
    * Preserves JavaScript's short-circuit behaviour for AND and OR predicates.
    */
-  private compileLogical(properties: Record<string, unknown>, operator: Code, empty: Code): Code {
+  private compileLogical(
+    properties: Record<string, unknown>,
+    operator: CodeFragment,
+    empty: CodeFragment,
+  ): CodeFragment {
     const operands = (properties.operands ?? []) as unknown[]
     const compiled = operands.map(op => this.ctx.compileOperandCode(op))
 
@@ -77,14 +83,14 @@ export default class PredicateNodeCompiler {
   /**
    * Emits logical negation around a nested predicate operand.
    */
-  private compileNot(properties: Record<string, unknown>): Code {
+  private compileNot(properties: Record<string, unknown>): CodeFragment {
     return code`(!(${this.ctx.compileOperandCode(properties.operand)}))`
   }
 
   /**
    * Counts truthy operands so XOR remains correct for more than two inputs.
    */
-  private compileXor(properties: Record<string, unknown>): Code {
+  private compileXor(properties: Record<string, unknown>): CodeFragment {
     const operands = (properties.operands ?? []) as unknown[]
     const compiled = operands.map(op => code`Boolean(${this.ctx.compileOperandCode(op)})`)
 

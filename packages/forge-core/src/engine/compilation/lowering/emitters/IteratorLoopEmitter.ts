@@ -1,24 +1,25 @@
-import { Code, code, literal, objectCode } from '../../codegen/Code'
-import CodeGenerator from '../../codegen/CodeGenerator'
-import Name from '../../codegen/Name'
+import { CodeFragment, code, literal, objectCode } from '../codegen/fragments/CodeFragment'
+import CodeGenerator from '../codegen/CodeGenerator'
+import IdentifierName from '../codegen/fragments/IdentifierName'
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
 import { IteratorScopeFrame } from '../expressions/types'
 
 /** The emitted loop's bindings, exposed to per-item compile callbacks. */
 export interface IteratorEmitScope {
-  readonly input: Name
-  readonly index: Name
-  readonly item: Name
-  readonly rawItem: Name
-  readonly inputLength: Code
+  readonly input: IdentifierName
+  readonly index: IdentifierName
+  readonly item: IdentifierName
+  readonly rawItem: IdentifierName
+  readonly inputLength: CodeFragment
 }
 
 /**
- * Emits the shared iterator loop every phase compiler uses: normalize the
- * input collection, guard on arrays, walk with index/raw-item/item bindings,
- * and run the per-item callback inside an iterator frame so Item()/Loop()
- * references resolve. The single home of this emission — `RuntimeValueCompiler`
- * and `ScopedTemplateCompiler` both delegate here.
+ * Emits the shared iterator loop that every phase compiler (the per-concern
+ * code generators in lowering) uses. It normalises the input collection,
+ * guards on arrays, walks with index/raw-item/item bindings, and runs the
+ * per-item callback inside an iterator scope frame so `Item()` and `Loop()`
+ * expression references resolve correctly. Both `RuntimeValueCompiler` and
+ * `ScopedTemplateCompiler` delegate here.
  */
 export default class IteratorLoopEmitter {
   constructor(private readonly expr: ExpressionDispatcher) {}
@@ -56,7 +57,7 @@ export default class IteratorLoopEmitter {
   }
 
   /** Normalizes object inputs to keyed entries and drops empty array items. */
-  private compileNormalizeInput(input: Name, generator: CodeGenerator): void {
+  private compileNormalizeInput(input: IdentifierName, generator: CodeGenerator): void {
     generator.if(code`${input} != null && !Array.isArray(${input}) && typeof ${input} === "object"`, () => {
       const normalizeEntry = generator.functionExpression('normalizeIteratorEntry', ['entry'], (body, [entry]) => {
         body.return(
@@ -80,8 +81,8 @@ export default class IteratorLoopEmitter {
     })
   }
 
-  /** Produces the scoped iterator item object exposed to @item references. */
-  private compileItemScope(rawItem: Name): Code {
+  /** Produces the per-iteration item object that `Item()` expressions read from. */
+  private compileItemScope(rawItem: IdentifierName): CodeFragment {
     return code`typeof ${rawItem} === "object" && ${rawItem} !== null ? Object.assign({}, ${rawItem}) : ${objectCode([
       { key: '@value', value: rawItem },
     ])}`

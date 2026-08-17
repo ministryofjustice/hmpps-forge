@@ -1,12 +1,12 @@
-import { Code } from '../../codegen/Code'
-import CodeGenerator from '../../codegen/CodeGenerator'
-import Name from '../../codegen/Name'
+import { CodeFragment } from '../codegen/fragments/CodeFragment'
+import CodeGenerator from '../codegen/CodeGenerator'
+import IdentifierName from '../codegen/fragments/IdentifierName'
 
 export interface IteratorScopeFrame {
-  readonly itemVar: Name
-  readonly indexVar: Name
-  readonly inputLengthExpr: Code | Name
-  readonly rawItemExpr: Code | Name
+  readonly itemVar: IdentifierName
+  readonly indexVar: IdentifierName
+  readonly inputLengthExpr: CodeFragment | IdentifierName
+  readonly rawItemExpr: CodeFragment | IdentifierName
 }
 
 export interface FunctionCallCompileOptions {
@@ -14,23 +14,24 @@ export interface FunctionCallCompileOptions {
 }
 
 export interface NodeCompilationContext {
-  compileOperandCode(value: unknown): Code
+  compileOperandCode(value: unknown): CodeFragment
   compileFunctionCallCode(
     funcName: string,
-    argExprs: readonly Code[],
+    argExprs: readonly CodeFragment[],
     source?: unknown,
     options?: FunctionCallCompileOptions,
-  ): Code
-  namespaceToCtxCode(namespace: string): Code
+  ): CodeFragment
+  namespaceToCtxCode(namespace: string): CodeFragment
   readonly generator: CodeGenerator
   readonly iteratorStack: readonly IteratorScopeFrame[]
-  readonly selfCodeExpr: Code | undefined
+  readonly selfCodeExpr: CodeFragment | undefined
 
   /**
-   * Indicates that the generated expression body has async dependencies.
+   * True when the generated expression body contains async function calls.
    *
-   * Expression compilers use this to emit awaitable wrappers while preserving
-   * the same expression-shaped contract for sync and async source.
+   * Expression compilers use this to decide whether to wrap results in
+   * `await` while still producing a single expression for both sync and
+   * async cases.
    */
   readonly usesAwait: boolean
 }

@@ -23,7 +23,7 @@ export default class AnswerPreparationAnalyzer
     }
   }
 
-  /** The journey model is a projection of the owned steps' fields, in step order. */
+  /** The journey model combines fields from all owned steps, preserving step order. */
   analyzeJourney(context: JourneyAnalysisContext): AnswerPreparationModel {
     const { stepNodes, ownership, labels } = context
     const inventoryNodes = stepNodes.flatMap(stepNode => [

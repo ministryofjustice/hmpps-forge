@@ -29,11 +29,11 @@ interface TemplateMapIteratorProperties {
 }
 
 /**
- * Classifies every field occurrence a step can produce — registered field
- * blocks first, then template fields under MAP iterators in document order —
- * into `FieldModel`s. This is the analysis stage's single template walk: the
- * lowering compilers iterate the resulting flat list and never re-derive
- * template structure at emission time.
+ * Builds a `FieldModel` for every field a step can produce — registered field
+ * blocks first, then fields inside MAP iterator templates, in document order.
+ * This is the analysis stage's single walk over template structure: the
+ * lowering compilers (which turn analysis models into generated JavaScript)
+ * iterate the resulting flat list and never re-walk the template tree.
  */
 export default class FieldModelBuilder {
   constructor(
@@ -198,7 +198,7 @@ export default class FieldModelBuilder {
     }
   }
 
-  /** Non-node entries are skipped; a node entry that is not a transformer call is authoring-impossible. */
+  /** Entries that aren't AST nodes are skipped. A node that isn't a transformer call can't happen in valid authored code. */
   private classifyTransformers(transformers: unknown): TransformerPipeline | undefined {
     if (!Array.isArray(transformers)) {
       return undefined

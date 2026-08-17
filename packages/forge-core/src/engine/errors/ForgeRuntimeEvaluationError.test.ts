@@ -9,7 +9,7 @@ const buildCause = (): Error => {
   cause.stack = [
     'Error: boom',
     '    at Object.evaluate (/app/server/forms/effects/loadPreferences.ts:256:11)',
-    '    at invokeEffect (/app/node_modules/@ministryofjustice/hmpps-forge/dist/forge-core/lowering/GeneratedFunctionHelpers.js:88:15)',
+    '    at invokeEffect (/app/node_modules/@ministryofjustice/hmpps-forge/dist/forge-core/lowering/GeneratedFunctionRuntimeLibrary.js:88:15)',
     '    at WorkExecutor.executeTask (/app/node_modules/@ministryofjustice/hmpps-forge/dist/forge-core/runtime/WorkExecutor.js:141:26)',
     '    at WorkExecutor.runUnit (/app/node_modules/@ministryofjustice/hmpps-forge/dist/forge-core/runtime/WorkExecutor.js:64:19)',
   ].join('\n')

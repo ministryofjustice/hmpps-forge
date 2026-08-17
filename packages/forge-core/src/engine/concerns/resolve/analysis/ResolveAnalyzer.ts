@@ -15,14 +15,15 @@ import type {
 } from '../contracts/resolveModel.type'
 
 /**
- * Builds the resolve concern's semantic model: which authored properties are
- * render-facing, how ancestor paths compose, which blocks the step renders,
- * and which MAP iterators stand alone as block producers rather than property
- * values. All of it is decided here so `StepResolveCompiler` only materialises
- * typed model fields.
+ * Builds the analysis model for the resolve concern (the stage that prepares
+ * data for rendering). Decides which authored properties are render-facing,
+ * how ancestor journey paths compose, which blocks the step renders, and which
+ * MAP iterators stand alone as block producers rather than property values.
+ * All decisions happen here so `StepResolveCompiler` only turns model fields
+ * into generated code.
  */
 export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> {
-  /** Authored props that belong to other concerns, not the render context. */
+  /** Properties owned by other concerns (validation, hooks, etc.) — excluded from the render context. */
   private static readonly BLOCK_SKIP_PROPS = new Set(['formatters', 'parsers', 'validWhen', 'dependentWhen'])
 
   private static readonly STEP_SKIP_PROPS = new Set(['onAccess', 'onSubmission', 'blocks', 'reachability'])
@@ -131,9 +132,9 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
   }
 
   /**
-   * Classifies authored properties into ordered render-facing entries,
-   * dropping the concern's skip props and pruning the same skip props from any
-   * nested block values the classification finds.
+   * Classifies authored properties (the raw values journey authors write) into
+   * ordered render-facing entries. Drops the skipped properties (those owned by
+   * other concerns) and recursively removes them from nested block values too.
    */
   private classifyProperties(
     context: StepAnalysisContext,
@@ -145,7 +146,7 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
       .map(([key, value]) => ({ key, value: this.pruneNestedBlockProps(context.classifier.classify(value)) }))
   }
 
-  /** Rebuilds nested `BlockValue` arms without the block skip props. */
+  /** Recursively strips block-level skip properties from nested `BlockValue` branches. */
   private pruneNestedBlockProps(value: AuthoredValue): AuthoredValue {
     switch (value.kind) {
       case AuthoredValueKind.BLOCK:
@@ -192,9 +193,9 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
   }
 
   /**
-   * Iterators reachable as property values are "inline": their loops are
-   * emitted where the value is materialised, so they must not also stand alone
-   * as block producers.
+   * Iterators that appear inside a property value are "inline" — their loops
+   * are generated at the point the property is evaluated, so they must not
+   * also appear as standalone block producers.
    */
   private collectInlineIterateIds(
     step: readonly ResolvePropertyModel[],
@@ -259,7 +260,7 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
     }
   }
 
-  /** Template blocks yielded by a standalone iterator, outermost matches only. */
+  /** Finds block nodes inside a standalone iterator's yield template, collecting only the outermost matches. */
   private findTemplateBlocks(template: TemplateValue): TemplateNode[] {
     const results: TemplateNode[] = []
 

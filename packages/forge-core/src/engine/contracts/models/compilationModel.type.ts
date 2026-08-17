@@ -1,5 +1,5 @@
 import type { NodeId } from '../ast/ast.type'
-import type { JourneyRuntimePlan, StepRuntimePlan } from '../plans/runtimePlans.type'
+import type { JourneyMountInfo, StepMountInfo } from '../plans/mountInfo.type'
 import type { FieldModel } from './fieldModel.type'
 import type { AnswerPreparationModel } from '../../concerns/answer-preparation/contracts/answerPreparationModel.type'
 import type { CleardownModel } from '../../concerns/answer-cleardown/contracts/cleardownModel.type'
@@ -29,7 +29,7 @@ export interface JourneyModel {
   readonly journeyId: NodeId
   /** Script-URL identity segment; `undefined` leaves scripts unlabelled. */
   readonly label?: string
-  readonly runtimePlan: JourneyRuntimePlan
+  readonly mountInfo: JourneyMountInfo
   /** Opaque authored payload — spread into runtime state, never inspected. */
   readonly staticData: Record<string, unknown>
   readonly hooks: JourneyHookModel
@@ -44,7 +44,7 @@ export interface StepModel {
   readonly stepId: NodeId
   /** Script-URL identity segment; `undefined` leaves scripts unlabelled. */
   readonly label?: string
-  readonly runtimePlan: StepRuntimePlan
+  readonly mountInfo: StepMountInfo
   /** Opaque authored payload — spread into runtime state, never inspected. */
   readonly staticData: Record<string, unknown>
   /** Every field occurrence the step owns; concern models hold projections of these. */

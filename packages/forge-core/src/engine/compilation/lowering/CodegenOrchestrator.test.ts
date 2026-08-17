@@ -201,7 +201,7 @@ function createStepModel({
   return {
     stepId: stepNode.id,
     label: undefined,
-    runtimePlan: {
+    mountInfo: {
       stepId: stepNode.id,
       path: stepNode.properties.path,
     },
@@ -265,7 +265,7 @@ function createJourneyModel({
   return {
     journeyId: journeyNode.id,
     label: undefined,
-    runtimePlan: {
+    mountInfo: {
       journeyId: journeyNode.id,
       path: 'journey',
     },

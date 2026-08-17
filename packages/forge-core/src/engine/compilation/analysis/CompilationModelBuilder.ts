@@ -11,7 +11,7 @@ import AuthoredValueClassifier from './shared/AuthoredValueClassifier'
 import FieldModelBuilder from './shared/FieldModelBuilder'
 import NodeLabeller from './shared/NodeLabeller'
 import OwnershipIndex from './shared/OwnershipIndex'
-import RuntimePlanAnalyzer from './shared/RuntimePlanAnalyzer'
+import MountInfoAnalyzer from './shared/MountInfoAnalyzer'
 import ReachabilityAnalyzer from '../../concerns/reachability/analysis/ReachabilityAnalyzer'
 import AnswerCleardownAnalyzer from '../../concerns/answer-cleardown/analysis/AnswerCleardownAnalyzer'
 import AnswerPreparationAnalyzer from '../../concerns/answer-preparation/analysis/AnswerPreparationAnalyzer'
@@ -34,7 +34,7 @@ export default class CompilationModelBuilder {
 
   private readonly fieldModelBuilder: FieldModelBuilder
 
-  private readonly runtimePlanAnalyzer: RuntimePlanAnalyzer
+  private readonly mountInfoAnalyzer: MountInfoAnalyzer
 
   private readonly reachabilityAnalyzer = new ReachabilityAnalyzer()
 
@@ -56,7 +56,7 @@ export default class CompilationModelBuilder {
   ) {
     this.ownershipIndex = new OwnershipIndex(nodeRegistry, this.ancestry)
     this.fieldModelBuilder = new FieldModelBuilder(registries.componentRegistry)
-    this.runtimePlanAnalyzer = new RuntimePlanAnalyzer(this.ancestry)
+    this.mountInfoAnalyzer = new MountInfoAnalyzer(this.ancestry)
   }
 
   build(stepIndex: StepIndex): CompilationModel {
@@ -70,9 +70,9 @@ export default class CompilationModelBuilder {
       }
     })
 
-    // One walk covers every journey — container journeys included, with empty
-    // step maps — so route metadata needs no separate collection pass and the
-    // step order matches the reachability state table's document order.
+    // One walk covers every journey — including container-only journeys that
+    // have no steps — so route metadata is collected in the same pass and steps
+    // stay in document order (which the reachability state table depends on).
     this.ownershipIndex.journeys().forEach(({ journeyNode, stepNodes }) => {
       const journeyContext = this.createJourneyContext(journeyNode, stepNodes, stepFields)
 
@@ -117,8 +117,8 @@ export default class CompilationModelBuilder {
     return {
       journeyId: context.journeyNode.id,
       label: reachability.label,
-      runtimePlan: this.runtimePlanAnalyzer.buildJourneyRuntimePlan(context.journeyNode),
-      staticData: this.runtimePlanAnalyzer.resolveStaticData(context.journeyNode),
+      mountInfo: this.mountInfoAnalyzer.buildJourneyMountInfo(context.journeyNode),
+      staticData: this.mountInfoAnalyzer.resolveStaticData(context.journeyNode),
       hooks: this.hookAnalyzer.analyzeJourney(context),
       reachability,
       cleardown: this.answerCleardownAnalyzer.analyzeJourney(context),
@@ -133,8 +133,8 @@ export default class CompilationModelBuilder {
     return {
       stepId: stepNode.id,
       label: this.labels.labelFrom([stepNode]),
-      runtimePlan: this.runtimePlanAnalyzer.buildStepRuntimePlan(stepNode),
-      staticData: this.runtimePlanAnalyzer.resolveStaticData(stepNode),
+      mountInfo: this.mountInfoAnalyzer.buildStepMountInfo(stepNode),
+      staticData: this.mountInfoAnalyzer.resolveStaticData(stepNode),
       fields: context.fields,
       answerPreparation: this.answerPreparationAnalyzer.analyzeStep(context),
       hooks: this.hookAnalyzer.analyzeStep(context),

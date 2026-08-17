@@ -3,9 +3,9 @@ import { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { isTemplateNode } from '../../../contracts/ast/nodes'
 import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
 import type { FieldModel, IterateRef } from '../../../contracts/models/fieldModel.type'
-import { arrayCode, Code, code, literal } from '../../codegen/Code'
-import CodeGenerator from '../../codegen/CodeGenerator'
-import Name from '../../codegen/Name'
+import { arrayCode, CodeFragment, code, literal } from '../codegen/fragments/CodeFragment'
+import CodeGenerator from '../codegen/CodeGenerator'
+import IdentifierName from '../codegen/fragments/IdentifierName'
 import FieldCodeEmitter from '../emitters/FieldCodeEmitter'
 import IteratorLoopEmitter, { IteratorEmitScope } from '../emitters/IteratorLoopEmitter'
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
@@ -30,13 +30,14 @@ interface FieldOccurrenceRun {
 }
 
 /**
- * Emits the iterator loop nests field and block occurrences sit under.
+ * Emits the iterator loop nesting that fields and blocks sit inside.
  *
  * Answer preparation, validation, field inventory, and resolve all need the
- * same MAP expansion semantics: normalize input, enter Item/Loop scope, and
- * resolve dynamic field codes under that scope. The loop body emission itself
- * lives in `IteratorLoopEmitter`; this class owns reconstructing loop nests
- * from model `iteratorPath`s and registered iterate nodes.
+ * same MAP expansion behaviour: normalise input, enter `Item()`/`Loop()`
+ * scope, and resolve dynamic field codes under that scope. The actual loop
+ * body lives in `IteratorLoopEmitter`; this class reconstructs the nesting
+ * structure from each field model's `iteratorPath` and the registered
+ * iterate nodes.
  */
 export default class ScopedTemplateCompiler {
   private readonly fieldCodes: FieldCodeEmitter
@@ -49,10 +50,10 @@ export default class ScopedTemplateCompiler {
   }
 
   /**
-   * Emits every field occurrence in model order, reconstructing the iterator
-   * loop nest from each occurrence's `iteratorPath`. Consecutive occurrences
-   * sharing a path prefix share one emitted loop, so the generated shape (and
-   * the runtime evaluation order) matches the authored template structure.
+   * Emits every field in model order, reconstructing the iterator loop nesting
+   * from each field's `iteratorPath`. Consecutive fields sharing an iterator
+   * path prefix share one emitted loop, so the generated code (and the runtime
+   * evaluation order) matches the authored template structure.
    */
   compileFieldOccurrences(
     fields: readonly FieldModel[],
@@ -63,7 +64,8 @@ export default class ScopedTemplateCompiler {
   }
 
   /**
-   * Emits a registered MAP iterator node and compiles its yield template under iterator scope.
+   * Emits a registered MAP iterator node and compiles its yield template (the
+   * per-item output shape) under iterator scope.
    */
   compileMapIterator(
     node: IterateASTNode,
@@ -84,14 +86,17 @@ export default class ScopedTemplateCompiler {
   /**
    * Resolves a template field code to generated source, including dynamic code expressions.
    */
-  compileTemplateCodeExpression(node: TemplateNode, generator: CodeGenerator): Code | Name | undefined {
+  compileTemplateCodeExpression(
+    node: TemplateNode,
+    generator: CodeGenerator,
+  ): CodeFragment | IdentifierName | undefined {
     return this.fieldCodes.compileTemplateExpression(node, generator)
   }
 
   /**
    * Emits the runtime block ID for one template node under the current iterator scope.
    */
-  compileTemplateInstanceIdExpression(node: TemplateNode): Code {
+  compileTemplateInstanceIdExpression(node: TemplateNode): CodeFragment {
     const prefix = `compiled:${String(node.id)}`
     const iteratorIndexes = this.expr.iteratorStack.map(frame => frame.indexVar)
 

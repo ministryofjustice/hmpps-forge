@@ -1,6 +1,6 @@
 import { TemplateValue } from '../../../contracts/ast/template.type'
-import { Code, code, literal } from '../../codegen/Code'
-import Name from '../../codegen/Name'
+import { CodeFragment, code, literal } from '../codegen/fragments/CodeFragment'
+import IdentifierName from '../codegen/fragments/IdentifierName'
 import { NodeCompilationContext } from './types'
 
 /**
@@ -13,9 +13,11 @@ export default class ReferenceNodeCompiler {
   constructor(private readonly ctx: NodeCompilationContext) {}
 
   /**
-   * Routes reference paths to their runtime namespace or scoped iterator frame.
+   * Routes a reference path to its runtime source: a namespace like `data` or
+   * `session`, the `@self` field, or a scoped iterator frame (the item/index
+   * variables from a surrounding loop).
    */
-  compile(properties: Record<string, unknown>): Code {
+  compile(properties: Record<string, unknown>): CodeFragment {
     const path = (properties.path ?? []) as (string | number | TemplateValue)[]
     const base = properties.base
 
@@ -56,22 +58,22 @@ export default class ReferenceNodeCompiler {
       return ctxNamespace
     }
 
-    return remaining.reduce<Code>((acc, segment) => code`${acc}?.[${String(segment)}]`, ctxNamespace)
+    return remaining.reduce<CodeFragment>((acc, segment) => code`${acc}?.[${String(segment)}]`, ctxNamespace)
   }
 
   /**
    * Applies a relative path to an already-compiled base expression.
    */
-  private compileBaseReference(base: unknown, path: (string | number | TemplateValue)[]): Code {
+  private compileBaseReference(base: unknown, path: (string | number | TemplateValue)[]): CodeFragment {
     const baseExpr = this.ctx.compileOperandCode(base)
 
-    return path.reduce<Code>((acc, segment) => code`${acc}?.[${String(segment)}]`, code`(${baseExpr})`)
+    return path.reduce<CodeFragment>((acc, segment) => code`${acc}?.[${String(segment)}]`, code`(${baseExpr})`)
   }
 
   /**
    * Resolves answers[fieldCode].current, including dynamic field-code operands.
    */
-  private compileAnswerReference(path: (string | number | TemplateValue)[]): Code {
+  private compileAnswerReference(path: (string | number | TemplateValue)[]): CodeFragment {
     if (path.length < 2) {
       return literal(undefined)
     }
@@ -96,7 +98,7 @@ export default class ReferenceNodeCompiler {
   /**
    * Resolves @self references against the field code supplied by the caller.
    */
-  private compileSelfAnswerReference(path: (string | number | TemplateValue)[]): Code {
+  private compileSelfAnswerReference(path: (string | number | TemplateValue)[]): CodeFragment {
     const selfCodeExpr = this.ctx.selfCodeExpr
 
     if (selfCodeExpr !== undefined) {
@@ -115,7 +117,7 @@ export default class ReferenceNodeCompiler {
   /**
    * Resolves @scope references from the active iterator stack frame.
    */
-  private compileIteratorScopeReference(path: (string | number | TemplateValue)[]): Code {
+  private compileIteratorScopeReference(path: (string | number | TemplateValue)[]): CodeFragment {
     if (path.length < 2) {
       return literal(undefined)
     }
@@ -159,7 +161,7 @@ export default class ReferenceNodeCompiler {
   /**
    * Resolves @loop metadata such as index, first, last, and length.
    */
-  private compileIteratorLoopReference(path: (string | number | TemplateValue)[]): Code {
+  private compileIteratorLoopReference(path: (string | number | TemplateValue)[]): CodeFragment {
     if (path.length < 3) {
       return literal(undefined)
     }
@@ -207,4 +209,5 @@ export default class ReferenceNodeCompiler {
   }
 }
 
-const toCode = (value: Code | Name): Code => (value instanceof Name ? code`${value}` : value)
+const toCode = (value: CodeFragment | IdentifierName): CodeFragment =>
+  value instanceof IdentifierName ? code`${value}` : value

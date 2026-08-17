@@ -37,7 +37,7 @@ querying**. AST nodes survive only as expression leaves (handed to `ExpressionDi
 - Classify every field occurrence - registered blocks and template fields under MAP iterators - into
   `FieldModel`s once (`FieldModelBuilder`).
 - Stamp script-URL and generated-comment labels from diagnostics (`NodeLabeller`).
-- Build runtime plans and merged static data for steps and journeys (`RuntimePlanAnalyzer`).
+- Build mount info (identity + route path) and merged static data for steps and journeys (`MountInfoAnalyzer`).
 - Call each concern's analyzer through the family interfaces and assemble their models into the spine.
 
 ## The analyzer family
@@ -117,7 +117,7 @@ A journey with two steps starts as registered AST nodes:
     'compile_ast:1' => {
       journeyId: 'compile_ast:1',
       label: 'travel-declaration',
-      runtimePlan: { journeyId: 'compile_ast:1', path: 'travel-declaration' },
+      mountInfo: { journeyId: 'compile_ast:1', path: 'travel-declaration' },
       staticData: {},
       hooks: { access: { label: ..., hooks: [...] } },
       reachability: { label: ..., stateTable: { entries: [...] }, entries: [...], resumeAlways: false },
@@ -127,7 +127,7 @@ A journey with two steps starts as registered AST nodes:
         'compile_ast:2' => {
           stepId: 'compile_ast:2',
           label: 'travel-declaration.personal-details',
-          runtimePlan: { stepId: 'compile_ast:2', path: 'personal-details' },
+          mountInfo: { stepId: 'compile_ast:2', path: 'personal-details' },
           staticData: {},
           fields: [...],
           answerPreparation: { label: ..., fields: [...] },
@@ -172,7 +172,7 @@ flowchart TD
 - [shared/Ancestry.ts](shared/Ancestry.ts) names the three ancestor-chain patterns.
 - [shared/FieldModelBuilder.ts](shared/FieldModelBuilder.ts) classifies each step's field occurrences (registered and template) into `FieldModel`s.
 - [shared/NodeLabeller.ts](shared/NodeLabeller.ts) derives script-URL identity labels from diagnostics.
-- [shared/RuntimePlanAnalyzer.ts](shared/RuntimePlanAnalyzer.ts) builds `StepRuntimePlan` and `JourneyRuntimePlan`.
+- [shared/MountInfoAnalyzer.ts](shared/MountInfoAnalyzer.ts) builds `StepMountInfo` and `JourneyMountInfo`.
   It normalizes paths and merges static `data` from ancestor journeys and the current node.
 - The analyzers `CompilationModelBuilder` calls live in their concerns.
   Each concern's `analysis/README.md` explains which model it builds and the rules behind it:
@@ -190,7 +190,7 @@ flowchart TD
   It should not contain the details of any concern's classification rules.
 - Analyzer classes own semantic classification for one concern.
   They live in that concern's `analysis/` folder, not here, and produce that concern's model.
-- The model is strictly pre-codegen: no `Code`, no `Name`, no generated identifiers.
+- The model is strictly pre-codegen: no `CodeFragment`, no `IdentifierName`, no generated identifiers.
 - Reachability analysis owns compile-time navigation facts.
   Runtime navigation still evaluates the compiled navigation function with request data.
 - `FieldModelBuilder` owns field-occurrence classification; `OwnershipIndex` owns field and iterate lookup.
@@ -239,7 +239,7 @@ flowchart TD
 - [shared/Ancestry.ts](shared/Ancestry.ts) answers ancestor questions through the three named patterns.
 - [shared/FieldModelBuilder.ts](shared/FieldModelBuilder.ts) classifies field occurrences into `FieldModel`s.
 - [shared/NodeLabeller.ts](shared/NodeLabeller.ts) derives script-URL identity labels.
-- [shared/RuntimePlanAnalyzer.ts](shared/RuntimePlanAnalyzer.ts) answers what runtime metadata belongs to a step or journey.
+- [shared/MountInfoAnalyzer.ts](shared/MountInfoAnalyzer.ts) answers what runtime metadata belongs to a step or journey.
 - [../../concerns/answer-cleardown/analysis/AnswerCleardownAnalyzer.ts](../../concerns/answer-cleardown/analysis/AnswerCleardownAnalyzer.ts) answers which field codes each step in a journey can hold.
 - [../../concerns/answer-preparation/analysis/AnswerPreparationAnalyzer.ts](../../concerns/answer-preparation/analysis/AnswerPreparationAnalyzer.ts) answers what answer preparation needs to compile for a step or journey.
 - [../../concerns/hooks/analysis/HookAnalyzer.ts](../../concerns/hooks/analysis/HookAnalyzer.ts) answers which hooks apply to a step or journey and classifies them into hook models.

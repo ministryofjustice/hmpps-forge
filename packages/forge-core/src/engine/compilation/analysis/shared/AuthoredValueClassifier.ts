@@ -16,12 +16,13 @@ import {
 } from '../../../contracts/models/authoredValue.type'
 
 /**
- * Eagerly classifies authored values into the `AuthoredValue` union — the
- * analysis stage's single answer to "what kind of value is this?". Lowering
- * consumes the classified tree and never re-derives value kinds at emission
- * time. Classification is lossless: node-backed arms keep their source node as
- * the expression leaf, so operand positions can hand the dispatcher exactly
- * what the author wrote.
+ * Classifies every authored value (the raw values journey authors write) into
+ * the `AuthoredValue` union — the analysis stage's single answer to "what kind
+ * of value is this?". Lowering (the stage that turns analysis models into
+ * generated JavaScript) reads the classified tree and never re-derives value
+ * kinds during code generation. Classification is lossless: branches backed by
+ * AST or template nodes keep their source node, so the code generator receives
+ * exactly what the author wrote.
  */
 export default class AuthoredValueClassifier {
   classify(value: unknown): AuthoredValue {

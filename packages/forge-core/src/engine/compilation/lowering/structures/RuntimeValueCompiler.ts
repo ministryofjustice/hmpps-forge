@@ -13,32 +13,33 @@ import {
   type RecordValue,
 } from '../../../contracts/models/authoredValue.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
-import { Code, code, literal, SafeCode } from '../../codegen/Code'
-import CodeGenerator from '../../codegen/CodeGenerator'
-import Name from '../../codegen/Name'
+import { CodeFragment, code, literal, SafeCode } from '../codegen/fragments/CodeFragment'
+import CodeGenerator from '../codegen/CodeGenerator'
+import IdentifierName from '../codegen/fragments/IdentifierName'
 import IteratorLoopEmitter from '../emitters/IteratorLoopEmitter'
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
 
 export interface RuntimeValueCompileOptions {
-  readonly expressionErrorFallback?: Code
+  readonly expressionErrorFallback?: CodeFragment
   readonly expressionErrorMode?: RuntimeValueErrorMode
   readonly omitUndefinedArrayItems?: boolean
 }
 
 export interface RuntimeValueCompilerPolicy {
-  readonly expressionErrorFallback: Code
+  readonly expressionErrorFallback: CodeFragment
   readonly expressionErrorMode?: RuntimeValueErrorMode
   readonly omitUndefinedArrayItems: boolean
   /**
-   * Emits a nested `BlockValue`. Only the resolve concern renders nested
-   * blocks; a policy without this callback treats one as an impossible state.
+   * Emits a nested `BlockValue`. Only the resolve concern (which turns blocks
+   * into render-ready props) handles nested blocks; a policy without this
+   * callback treats a nested block as an impossible state.
    */
-  readonly compileBlockValue?: (block: BlockValue, generator: CodeGenerator, target: Name) => void
+  readonly compileBlockValue?: (block: BlockValue, generator: CodeGenerator, target: IdentifierName) => void
 }
 
 type RuntimeValueErrorMode = 'fallback' | 'throw'
 
-/** Materialises classified authored values into generated runtime values. */
+/** Turns authored values (the raw values journey authors write) into generated JavaScript code that produces them at runtime. */
 export default class RuntimeValueCompiler {
   private readonly loops: IteratorLoopEmitter
 
@@ -74,7 +75,7 @@ export default class RuntimeValueCompiler {
   compileValue(
     value: AuthoredValue,
     generator: CodeGenerator,
-    target: Name,
+    target: IdentifierName,
     options: RuntimeValueCompileOptions = {},
   ): void {
     switch (value.kind) {
@@ -118,7 +119,7 @@ export default class RuntimeValueCompiler {
   private compileExpressionValue(
     node: ASTNode | TemplateNode,
     generator: CodeGenerator,
-    target: Name,
+    target: IdentifierName,
     options: RuntimeValueCompileOptions,
   ): void {
     const expression = this.expr.isTemplateNode(node)
@@ -129,9 +130,9 @@ export default class RuntimeValueCompiler {
   }
 
   private compileExpressionWithCatch(
-    expression: Code,
+    expression: CodeFragment,
     generator: CodeGenerator,
-    target: Name,
+    target: IdentifierName,
     options: RuntimeValueCompileOptions,
   ): void {
     const errorMode = options.expressionErrorMode ?? this.policy.expressionErrorMode ?? 'fallback'
@@ -154,7 +155,7 @@ export default class RuntimeValueCompiler {
   private compileListValue(
     value: ListValue,
     generator: CodeGenerator,
-    target: Name,
+    target: IdentifierName,
     options: RuntimeValueCompileOptions,
   ): void {
     const omitUndefined = options.omitUndefinedArrayItems ?? this.policy.omitUndefinedArrayItems
@@ -194,7 +195,7 @@ export default class RuntimeValueCompiler {
   private compileRecordValue(
     value: RecordValue,
     generator: CodeGenerator,
-    target: Name,
+    target: IdentifierName,
     options: RuntimeValueCompileOptions,
   ): void {
     generator.comment('RuntimeValueCompiler.compileObjectValue')
@@ -212,7 +213,7 @@ export default class RuntimeValueCompiler {
   private compileConditionalValue(
     value: ConditionalValue,
     generator: CodeGenerator,
-    target: Name,
+    target: IdentifierName,
     options: RuntimeValueCompileOptions,
   ): void {
     generator.comment('RuntimeValueCompiler.compileConditionalValue')
@@ -233,7 +234,7 @@ export default class RuntimeValueCompiler {
   private compileMatchValue(
     value: MatchValue,
     generator: CodeGenerator,
-    target: Name,
+    target: IdentifierName,
     options: RuntimeValueCompileOptions,
   ): void {
     generator.comment('RuntimeValueCompiler.compileMatchValue')
@@ -263,7 +264,7 @@ export default class RuntimeValueCompiler {
   private compileIterationValue(
     value: IterationValue,
     generator: CodeGenerator,
-    target: Name,
+    target: IdentifierName,
     options: RuntimeValueCompileOptions,
   ): void {
     if (value.iterator === IteratorType.MAP) {
@@ -290,7 +291,7 @@ export default class RuntimeValueCompiler {
   private compileMapValue(
     value: IterationValue,
     generator: CodeGenerator,
-    target: Name,
+    target: IdentifierName,
     options: RuntimeValueCompileOptions,
   ): void {
     generator.comment('RuntimeValueCompiler.compileMapValue')
@@ -315,7 +316,7 @@ export default class RuntimeValueCompiler {
     })
   }
 
-  private compileFilterValue(value: IterationValue, generator: CodeGenerator, target: Name): void {
+  private compileFilterValue(value: IterationValue, generator: CodeGenerator, target: IdentifierName): void {
     generator.comment('RuntimeValueCompiler.compileFilterValue')
     generator.scope(() => {
       const filterValue = generator.const('filterValue', code`[]`)
@@ -338,7 +339,7 @@ export default class RuntimeValueCompiler {
     })
   }
 
-  private compileFindValue(value: IterationValue, generator: CodeGenerator, target: Name): void {
+  private compileFindValue(value: IterationValue, generator: CodeGenerator, target: IdentifierName): void {
     generator.comment('RuntimeValueCompiler.compileFindValue')
     this.loops.compileLoop(toRawOperand(value.input), generator, scope => {
       const predicate = generator.let('findPredicate')
@@ -353,7 +354,7 @@ export default class RuntimeValueCompiler {
     })
   }
 
-  private compileBlockValue(value: BlockValue, generator: CodeGenerator, target: Name): void {
+  private compileBlockValue(value: BlockValue, generator: CodeGenerator, target: IdentifierName): void {
     if (this.policy.compileBlockValue === undefined) {
       throw new ForgeInternalError('A nested block value is only compilable by the resolve concern')
     }

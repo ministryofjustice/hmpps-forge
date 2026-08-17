@@ -19,12 +19,12 @@ export interface JourneyOwnership {
 }
 
 /**
- * Buckets the registered AST by owning step and journey in one pass.
+ * Groups every AST node by its owning step and journey in a single pass.
  *
- * Registration order is `NodeRegistrationWalker`'s top-down depth-first
- * descent, so bucketing the registry's type lists by nearest owner preserves
- * document order inside every bucket — replacing the per-step parent-chain
- * rescans that made ownership lookups O(steps × nodes).
+ * Nodes are registered in top-down depth-first order (by
+ * `NodeRegistrationWalker`), so grouping by nearest owner preserves document
+ * order within each bucket. This replaces the old approach of re-scanning
+ * parent chains per step, which was O(steps x nodes).
  */
 export default class OwnershipIndex {
   private readonly stepBuckets = new Map<NodeId, StepOwnership>()
@@ -70,8 +70,8 @@ export default class OwnershipIndex {
     return [...this.journeyBuckets.values()]
   }
 
-  // Accessors copy their bucket (matching ASTNodeIndex.findByType) so callers
-  // can never mutate the index's document-ordered internals.
+  // Accessors return a copy of the bucket (like `ASTNodeIndex.findByType`) so
+  // callers can't mutate the index's internal lists.
   fieldBlocksOf(stepId: NodeId): FieldBlockASTNode[] {
     return [...(this.stepBuckets.get(stepId)?.fieldBlocks ?? [])]
   }
@@ -84,8 +84,9 @@ export default class OwnershipIndex {
     return [...(this.stepBuckets.get(stepId)?.allIterateNodes ?? [])]
   }
 
-  // A step without a registered parent journey stays unattached; the plan
-  // builder owns rejecting that state so partial test registries stay usable.
+  // A step without a registered parent journey stays unattached. The
+  // compilation model builder rejects that state, so partial test registries
+  // can still work here without errors.
   private journeyBucketFor(stepNode: StepASTNode): JourneyOwnership | undefined {
     const parentJourney = stepNode.parent
 

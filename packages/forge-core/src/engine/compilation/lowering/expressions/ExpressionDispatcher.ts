@@ -3,9 +3,9 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import { ExpressionType, FunctionType, IteratorType } from '../../../../authoring/types/enums'
 import { TemplateNode } from '../../../contracts/ast/template.type'
 import ForgeUnregisteredFunctionError from '../../../errors/ForgeUnregisteredFunctionError'
-import { Code, arrayCode, code, literal, objectCode, SafeCode } from '../../codegen/Code'
-import CodeGenerator from '../../codegen/CodeGenerator'
-import Name from '../../codegen/Name'
+import { CodeFragment, arrayCode, code, literal, objectCode, SafeCode } from '../codegen/fragments/CodeFragment'
+import CodeGenerator from '../codegen/CodeGenerator'
+import IdentifierName from '../codegen/fragments/IdentifierName'
 import DiagnosticEmitter, { type DiagnosticMetadata } from '../emitters/DiagnosticEmitter'
 import { FunctionCallCompileOptions, IteratorScopeFrame, NodeCompilationContext } from './types'
 import ReferenceNodeCompiler from './ReferenceNodeCompiler'
@@ -22,16 +22,18 @@ import { compileIifeExpression } from './IifeExpressionCompiler'
 export type { IteratorScopeFrame } from './types'
 
 /**
- * Coordinates expression-node compilers and owns transient code-generation state.
+ * Coordinates the individual expression-node compilers and owns the temporary
+ * state accumulated while generating a single function.
  *
- * Phase compilers use this as the single entry point for compiling AST and
- * template expressions so iterator scope, @self scope, diagnostics, and async
- * function-call discovery stay consistent across generated functions.
+ * Concern compilers (e.g. validation, reachability, hooks) use this as the
+ * single entry point for compiling AST and template expressions. Routing
+ * everything through here keeps iterator scope, `@self` scope, diagnostics,
+ * and async function-call discovery consistent across generated functions.
  */
 export default class ExpressionDispatcher implements NodeCompilationContext {
   private readonly iteratorFrames: IteratorScopeFrame[] = []
 
-  private readonly selfCodeExprs: Code[] = []
+  private readonly selfCodeExprs: CodeFragment[] = []
 
   private readonly validationFunctionPrefixes: string[] = []
 
@@ -61,7 +63,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     return this.iteratorFrames.length
   }
 
-  get selfCodeExpr(): Code | undefined {
+  get selfCodeExpr(): CodeFragment | undefined {
     return this.selfCodeExprs[this.selfCodeExprs.length - 1]
   }
 
@@ -82,7 +84,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Clears per-function generation state before a phase compiler builds source.
+   * Clears per-function generation state so a concern compiler can start fresh.
    */
   reset(): void {
     this.iteratorFrames.length = 0
@@ -94,7 +96,8 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Compiles a nested expression with @scope and @loop bound to an iterator frame.
+   * Compiles a nested expression with `@scope` and `@loop` bound to an iterator
+   * frame (the item, index, and length variables for one level of iteration).
    */
   withIteratorFrame<T>(frame: IteratorScopeFrame, compile: () => T): T {
     this.iteratorFrames.push(frame)
@@ -109,7 +112,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   /**
    * Adds the current field-code expression for @self answer references.
    */
-  pushSelfCodeExpression(codeExpr: Code): void {
+  pushSelfCodeExpression(codeExpr: CodeFragment): void {
     this.selfCodeExprs.push(codeExpr)
   }
 
@@ -128,7 +131,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       return compile()
     }
 
-    const typedCodeExpression = codeExpr instanceof Name ? code`${codeExpr}` : codeExpr
+    const typedCodeExpression = codeExpr instanceof IdentifierName ? code`${codeExpr}` : codeExpr
 
     this.pushSelfCodeExpression(typedCodeExpression)
 
@@ -141,7 +144,8 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
 
   /**
    * Gives validation callbacks a stable developer-facing identity while their
-   * authored value is lowered through the shared runtime-value compiler.
+   * authored value (the raw value a journey author wrote) is compiled into
+   * generated code through the shared runtime-value compiler.
    */
   withValidationFunctionPrefix<T>(prefix: string, compile: () => T): T {
     this.validationFunctionPrefixes.push(prefix)
@@ -154,11 +158,12 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Registered AST nodes and iterator template nodes share the same expression
-   * compilers. Keeping the dispatch split here lets render, validation, answer
-   * prep, reachability, and hooks all use one scope and async model.
+   * Registered AST nodes and iterator template nodes (expression nodes
+   * embedded inside authored templates) share the same expression compilers.
+   * Keeping the dispatch split here lets render, validation, answer prep,
+   * reachability, and hooks all use one scope and async model.
    */
-  compileExpressionCode(node: ASTNode): Code {
+  compileExpressionCode(node: ASTNode): CodeFragment {
     if (!this.isCompilableNode(node)) {
       return literal(node)
     }
@@ -185,9 +190,10 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Compiles template-embedded expression nodes using the same scope model as registered AST nodes.
+   * Compiles expression nodes found inside templates, using the same scope
+   * and dispatch logic as top-level AST nodes.
    */
-  compileTemplateExpressionCode(node: TemplateNode): Code {
+  compileTemplateExpressionCode(node: TemplateNode): CodeFragment {
     const properties = (node.properties ?? {}) as Record<string, unknown>
     let expressionType: string | undefined
     let expression = literal(undefined)
@@ -223,7 +229,11 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     return this.validationFunctionPrefixes.length > 0 && nodeType === ASTNodeType.PREDICATE
   }
 
-  private dispatchExpression(expressionType: string, properties: Record<string, unknown>, source?: unknown): Code {
+  private dispatchExpression(
+    expressionType: string,
+    properties: Record<string, unknown>,
+    source?: unknown,
+  ): CodeFragment {
     switch (expressionType) {
       case ExpressionType.REFERENCE:
         return this.references.compile(properties)
@@ -251,7 +261,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
    * containers containing any of those. Compiling them recursively here keeps
    * function arguments and block properties on the same rules.
    */
-  compileOperandCode(value: unknown): Code {
+  compileOperandCode(value: unknown): CodeFragment {
     if (this.isTemplateNode(value)) {
       return this.compileTemplateExpressionCode(value)
     }
@@ -281,9 +291,10 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Dispatches authored iterators to expression-level MAP, FILTER, and FIND emitters.
+   * Dispatches authored iterators to the MAP, FILTER, and FIND compilers,
+   * each of which produces a JavaScript expression (not statements).
    */
-  private compileIterate(properties: Record<string, unknown>): Code {
+  private compileIterate(properties: Record<string, unknown>): CodeFragment {
     const iterator = properties.iterator as
       | {
           type?: unknown
@@ -308,9 +319,10 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Builds the validation result object used by field and domain validation slots.
+   * Builds the validation result object used by field-level and journey-level
+   * validation rules.
    */
-  private compileValidation(properties: Record<string, unknown>): Code {
+  private compileValidation(properties: Record<string, unknown>): CodeFragment {
     const condition = properties.condition
 
     if (condition === undefined) {
@@ -358,9 +370,10 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Emits expression-level map iteration when a template value needs a returned array.
+   * Compiles a map iterator into a JavaScript expression that builds an array
+   * by evaluating the yield template for each input item.
    */
-  private compileMapIterator(input: unknown, yieldTemplate: unknown): Code {
+  private compileMapIterator(input: unknown, yieldTemplate: unknown): CodeFragment {
     const inputExpr = this.compileOperandCode(input)
 
     return compileIifeExpression({
@@ -399,9 +412,10 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Emits expression-level filter iteration while preserving iterator scope references.
+   * Compiles a filter iterator into a JavaScript expression that keeps only
+   * items matching the predicate template.
    */
-  private compileFilterIterator(input: unknown, predicateTemplate: unknown): Code {
+  private compileFilterIterator(input: unknown, predicateTemplate: unknown): CodeFragment {
     const inputExpr = this.compileOperandCode(input)
 
     return compileIifeExpression({
@@ -439,9 +453,10 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Emits expression-level find iteration with the first matching item as the result.
+   * Compiles a find iterator into a JavaScript expression that returns the
+   * first item matching the predicate template.
    */
-  private compileFindIterator(input: unknown, predicateTemplate: unknown): Code {
+  private compileFindIterator(input: unknown, predicateTemplate: unknown): CodeFragment {
     const inputExpr = this.compileOperandCode(input)
 
     return compileIifeExpression({
@@ -482,7 +497,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   /**
    * Normalizes object inputs to keyed items so iterator templates can use @key and @value.
    */
-  private compileNormalizeIteratorInput(inputVar: Name, generator: CodeGenerator): void {
+  private compileNormalizeIteratorInput(inputVar: IdentifierName, generator: CodeGenerator): void {
     generator.if(code`${inputVar} != null && !Array.isArray(${inputVar}) && typeof ${inputVar} === "object"`, () => {
       const mapEntry = generator.functionExpression(
         'normalise_iterator_entry',
@@ -515,7 +530,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   /**
    * Creates the per-item object exposed to @scope references inside iterator templates.
    */
-  private compileIteratorItemScope(rawItemExpr: Code, generator: CodeGenerator): Name {
+  private compileIteratorItemScope(rawItemExpr: CodeFragment, generator: CodeGenerator): IdentifierName {
     return generator.const(
       '_item',
       code`typeof ${rawItemExpr} === "object" && ${rawItemExpr} !== null ? Object.assign({}, ${rawItemExpr}) : ${objectCode([{ key: '@value', value: rawItemExpr }])}`,
@@ -525,7 +540,12 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   /**
    * Isolates iterator expressions so local item and index variables cannot leak outward.
    */
-  private compileScopedIteratorExpression(expr: Code, itemVar: Name, indexVar: Name, generator: CodeGenerator): Code {
+  private compileScopedIteratorExpression(
+    expr: CodeFragment,
+    itemVar: IdentifierName,
+    indexVar: IdentifierName,
+    generator: CodeGenerator,
+  ): CodeFragment {
     return compileIifeExpression({
       args: [code`${itemVar}`, code`${indexVar}`],
       awaitResult: () => this.usedAwait,
@@ -544,9 +564,9 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   private compileIteratorArrayLoop(
-    inputVar: Name,
+    inputVar: IdentifierName,
     generator: CodeGenerator,
-    compileItem: (indexVar: Name, rawItemExpr: Code) => void,
+    compileItem: (indexVar: IdentifierName, rawItemExpr: CodeFragment) => void,
   ): void {
     generator.if(code`Array.isArray(${inputVar})`, () => {
       generator.forRange('_index', literal(0), code`${inputVar}.length`, indexVar => {
@@ -563,10 +583,10 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
 
   compileFunctionCallCode(
     funcName: string,
-    argExprs: readonly Code[],
+    argExprs: readonly CodeFragment[],
     source?: unknown,
     options: FunctionCallCompileOptions = {},
-  ): Code {
+  ): CodeFragment {
     const registeredFunction = this.dependencies.functionRegistry.get(funcName)
 
     if (!registeredFunction) {
@@ -609,12 +629,12 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   private compileDebuggableValidationFunctionCall(
     helperName: string,
     funcName: string,
-    argExprs: readonly Code[],
+    argExprs: readonly CodeFragment[],
     source: unknown,
     validationPrefix: string,
     options: FunctionCallCompileOptions,
     callIsAsync: boolean,
-  ): Code {
+  ): CodeFragment {
     const functionName = `evaluate_${validationPrefix}_${this.compileFunctionNamePart(funcName)}`
 
     return compileIifeExpression({
@@ -662,11 +682,11 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   private compileReturnFunctionExpression(
-    expression: Code,
+    expression: CodeFragment,
     name: string,
     resultPrefix: string,
     explanation: string,
-  ): Code {
+  ): CodeFragment {
     return this.generator.functionExpression(
       name,
       [],
@@ -681,9 +701,10 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Maps top-level DSL reference namespaces to their runtime context objects.
+   * Maps top-level reference namespaces (e.g. `data`, `session`, `params`) to
+   * their corresponding runtime context property.
    */
-  namespaceToCtxCode(namespace: string): Code {
+  namespaceToCtxCode(namespace: string): CodeFragment {
     switch (namespace) {
       case 'data':
         return code`ctx.data`
@@ -703,14 +724,16 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Identifies registry-backed AST nodes that can be compiled as expressions.
+   * Checks whether a value is an AST node that has been registered in the node
+   * index and can be compiled into a JavaScript expression.
    */
   isCompilableNode(value: unknown): value is ASTNode {
     return isASTNode(value) && 'id' in value
   }
 
   /**
-   * Identifies template-wrapped nodes embedded inside authored values.
+   * Checks whether a value is a template node (an expression node embedded
+   * inside an authored value such as a block property or hook argument).
    */
   isTemplateNode(value: unknown): value is TemplateNode {
     return value !== null &&

@@ -1,6 +1,6 @@
-import { code, literal } from '../../codegen/Code'
-import CodeGenerator from '../../codegen/CodeGenerator'
-import SourceRenderer from '../../codegen/SourceRenderer'
+import { code, literal } from '../codegen/fragments/CodeFragment'
+import CodeGenerator from '../codegen/CodeGenerator'
+import SourceRenderer from '../codegen/rendering/SourceRenderer'
 import { compileIifeExpression } from './IifeExpressionCompiler'
 
 describe('compileIifeExpression()', () => {

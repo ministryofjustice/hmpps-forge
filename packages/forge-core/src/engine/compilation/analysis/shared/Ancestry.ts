@@ -1,15 +1,16 @@
 import type { ASTNode } from '../../../contracts/ast/ast.type'
 
 /**
- * Names the three inheritance patterns the analyzers ask of the registered
- * AST's `parent` chain. Every ancestor question in analysis goes
- * through one of these — no analyzer hand-rolls its own chain walk.
+ * Provides three ways to walk the `parent` chain of an AST node (the tree
+ * of journey/step/block nodes built during parsing). Every ancestor lookup
+ * in analysis goes through one of these methods — no analyzer walks the
+ * chain manually.
  */
 export default class Ancestry {
   /**
-   * Values extracted along the node's chain, root-first and including the node
-   * itself, so a descendant's value lands after (and can override) its
-   * ancestors'. Extractions returning `undefined` are skipped.
+   * Walks from the root ancestor down to `node` (inclusive), calling `extract`
+   * on each. Returns the non-`undefined` results in root-first order, so a
+   * descendant's value appears after (and can override) its ancestors'.
    */
   valuesRootFirst<TValue>(node: ASTNode, extract: (ancestor: ASTNode) => TValue | undefined): TValue[] {
     return this.chainRootFirst(node).flatMap(ancestor => {
@@ -42,7 +43,7 @@ export default class Ancestry {
     return undefined
   }
 
-  /** Ancestors matching the guard, root-first, excluding the node itself. */
+  /** Ancestors matching the type-guard predicate, root-first, excluding the node itself. */
   ancestorsOfType<TNode extends ASTNode>(node: ASTNode, predicate: (ancestor: ASTNode) => ancestor is TNode): TNode[] {
     return this.chainRootFirst(node).slice(0, -1).filter(predicate)
   }

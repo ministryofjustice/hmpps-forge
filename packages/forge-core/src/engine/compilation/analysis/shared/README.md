@@ -32,9 +32,9 @@ This document does not cover phase-specific input assembly.
 expression, conditional, match, iteration, record, list, and block arms — so lowering consumes typed trees
 and never re-derives value kinds at emission time.
 
-`RuntimePlanAnalyzer` builds runtime metadata:
-- `StepRuntimePlan`, with the step ID and normalized step path.
-- `JourneyRuntimePlan`, with the journey ID and normalized journey path.
+`MountInfoAnalyzer` builds mount info:
+- `StepMountInfo`, with the step ID and normalized step path.
+- `JourneyMountInfo`, with the journey ID and normalized journey path.
 - merged static data, via `resolveStaticData()`, which walks the node's `parent` chain root-first.
 
 ## Rules
@@ -54,7 +54,7 @@ and never re-derives value kinds at emission time.
 - To change field ownership for any phase, start in `OwnershipIndex`.
 - To change how field occurrences are classified, start in `FieldModelBuilder`.
 - To change what counts as configured validation, start in `hasConfiguredValue()` in `contracts/models/validationRules.ts`.
-- To change static data inheritance, start in `RuntimePlanAnalyzer.resolveStaticData()`.
+- To change static data inheritance, start in `MountInfoAnalyzer.resolveStaticData()`.
 - Be careful adding one-off tree scans in phase analyzers.
   If more than one phase needs the same inventory, put it here.
 
@@ -64,4 +64,4 @@ and never re-derives value kinds at emission time.
 - [Ancestry.ts](Ancestry.ts) owns the three ancestor-chain patterns.
 - [FieldModelBuilder.ts](FieldModelBuilder.ts) owns field-occurrence classification.
 - [NodeLabeller.ts](NodeLabeller.ts) owns script-URL label derivation.
-- [RuntimePlanAnalyzer.ts](RuntimePlanAnalyzer.ts) owns runtime path and static-data plan facts.
+- [MountInfoAnalyzer.ts](MountInfoAnalyzer.ts) owns mount info (identity + route path) and static-data facts.

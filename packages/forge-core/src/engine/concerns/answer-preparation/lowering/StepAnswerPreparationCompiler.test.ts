@@ -17,7 +17,7 @@ import { NodeIDGenerator } from '../../../compilation/ast/ast-state/NodeIDGenera
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
-import { generatedFunctionHelpers } from '../../../compilation/lowering/function-construction/GeneratedFunctionHelpers'
+import { generatedFunctionRuntimeLibrary } from '../../../compilation/lowering/generatedFunctionRuntimeLibrary'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import { buildStepFieldModels } from '../../../compilation/analysis/testing-helpers/analysisContexts'
 import type { AnswerPreparationModel } from '../contracts/answerPreparationModel.type'
@@ -212,7 +212,7 @@ async function runGeneratedSource(
   diagnostics: unknown = undefined,
 ): Promise<void> {
   const fn = new Function('ctx', '_forgeHelpers', '_forgeRuntimeDiagnostics', source)
-  const task = fn(ctx, generatedFunctionHelpers, diagnostics) as unknown
+  const task = fn(ctx, generatedFunctionRuntimeLibrary, diagnostics) as unknown
 
   await executeAnswerPreparationTask(task, ctx)
 }

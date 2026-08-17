@@ -1,23 +1,23 @@
 import {
   callCode,
-  Code,
+  CodeFragment,
   code,
   literal,
   objectCode,
   ObjectCodeProperty,
   SafeCode,
-} from '../../../compilation/codegen/Code'
-import CodeGenerator from '../../../compilation/codegen/CodeGenerator'
-import Name from '../../../compilation/codegen/Name'
+} from '../../../compilation/lowering/codegen/fragments/CodeFragment'
+import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
   CompilationPhase,
   compileGeneratedFunction,
-  GENERATED_FUNCTION_HELPERS_PARAM,
+  GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM,
   renderGeneratedSource,
-} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
+} from '../../../compilation/lowering/GeneratedFunctionCompiler'
 import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
 import ScopedTemplateCompiler from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
 import { toRawOperand, type AuthoredValue } from '../../../contracts/models/authoredValue.type'
@@ -25,8 +25,8 @@ import type { FieldModel, TransformerPipeline } from '../../../contracts/models/
 import type { AnswerPreparationModel } from '../contracts/answerPreparationModel.type'
 import type { CompiledAnswerPreparationFunction } from '../../../contracts/compiled/compiledFunctions.type'
 
-const CONTEXT = new Name('ctx')
-const HELPERS = new Name(GENERATED_FUNCTION_HELPERS_PARAM)
+const CONTEXT = new IdentifierName('ctx')
+const HELPERS = new IdentifierName(GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM)
 
 /** Compiles GET/POST answer preparation for one generated step function. */
 export default class StepAnswerPreparationCompiler {
@@ -103,7 +103,7 @@ export default class StepAnswerPreparationCompiler {
 
   private compileFieldDefinitions(
     fields: readonly FieldModel[],
-    fieldDefinitions: Name,
+    fieldDefinitions: IdentifierName,
     generator: CodeGenerator,
   ): void {
     generator.comment('Field definitions')
@@ -116,7 +116,11 @@ export default class StepAnswerPreparationCompiler {
     })
   }
 
-  private compileFieldDefinitionEntry(field: FieldModel, fieldDefinitions: Name, generator: CodeGenerator): void {
+  private compileFieldDefinitionEntry(
+    field: FieldModel,
+    fieldDefinitions: IdentifierName,
+    generator: CodeGenerator,
+  ): void {
     const isRegistered = field.iteratorPath.length === 0
 
     generator.comment(isRegistered ? `Field — ${field.label}` : `Template field — ${field.label}`)
@@ -135,7 +139,7 @@ export default class StepAnswerPreparationCompiler {
     )
   }
 
-  private compileFieldDefinition(field: FieldModel, codeExpression: SafeCode, generator: CodeGenerator): Code {
+  private compileFieldDefinition(field: FieldModel, codeExpression: SafeCode, generator: CodeGenerator): CodeFragment {
     const definitionProperties: ObjectCodeProperty[] = [
       { key: 'code', value: codeExpression },
       { key: 'component', value: literal(field.component.variant) },
@@ -167,7 +171,11 @@ export default class StepAnswerPreparationCompiler {
     return objectCode(definitionProperties)
   }
 
-  private addOptionalDefinitionProperty(properties: ObjectCodeProperty[], key: string, value: Code | undefined): void {
+  private addOptionalDefinitionProperty(
+    properties: ObjectCodeProperty[],
+    key: string,
+    value: CodeFragment | undefined,
+  ): void {
     if (value === undefined) {
       return
     }
@@ -179,7 +187,7 @@ export default class StepAnswerPreparationCompiler {
     functionName: string,
     transformers: TransformerPipeline | undefined,
     generator: CodeGenerator,
-  ): Code | undefined {
+  ): CodeFragment | undefined {
     if (transformers === undefined) {
       return undefined
     }
@@ -200,7 +208,7 @@ export default class StepAnswerPreparationCompiler {
   private compileDependentWhenCallback(
     dependentWhen: AuthoredValue | undefined,
     generator: CodeGenerator,
-  ): Code | undefined {
+  ): CodeFragment | undefined {
     if (dependentWhen === undefined) {
       return undefined
     }
@@ -223,7 +231,7 @@ export default class StepAnswerPreparationCompiler {
   private compileDefaultValueCallback(
     defaultValue: AuthoredValue | undefined,
     generator: CodeGenerator,
-  ): Code | undefined {
+  ): CodeFragment | undefined {
     if (defaultValue === undefined) {
       return undefined
     }
@@ -245,7 +253,7 @@ export default class StepAnswerPreparationCompiler {
     usesInputValidation: boolean,
     usesAwait: boolean,
     generator: CodeGenerator,
-  ): Name {
+  ): IdentifierName {
     generator.comment('Prepare a submitted field')
 
     return generator.function(
@@ -303,7 +311,7 @@ export default class StepAnswerPreparationCompiler {
     )
   }
 
-  private compileStoredFieldPreparation(usesAwait: boolean, generator: CodeGenerator): Name {
+  private compileStoredFieldPreparation(usesAwait: boolean, generator: CodeGenerator): IdentifierName {
     generator.comment('Prepare a stored field')
 
     return generator.function(
@@ -347,11 +355,11 @@ export default class StepAnswerPreparationCompiler {
   }
 
   private compileFieldPreparationSelector(
-    preparePostedFieldAnswer: Name,
-    prepareStoredFieldAnswer: Name,
-    mode: Name,
+    preparePostedFieldAnswer: IdentifierName,
+    prepareStoredFieldAnswer: IdentifierName,
+    mode: IdentifierName,
     generator: CodeGenerator,
-  ): Name {
+  ): IdentifierName {
     generator.comment('Select preparation using the request method')
 
     return generator.const(
@@ -361,11 +369,11 @@ export default class StepAnswerPreparationCompiler {
   }
 
   private compileFieldPreparationTasks(
-    fieldDefinitions: Name,
-    mode: Name,
-    prepareFieldAnswer: Name,
+    fieldDefinitions: IdentifierName,
+    mode: IdentifierName,
+    prepareFieldAnswer: IdentifierName,
     generator: CodeGenerator,
-  ): Name {
+  ): IdentifierName {
     generator.comment('Create one preparation task per field')
     const createFieldPreparation = generator.functionExpression(
       'createFieldPreparation',
@@ -398,7 +406,11 @@ export default class StepAnswerPreparationCompiler {
     return generator.const('fieldPreparations', callCode(code`${fieldDefinitions}.map`, [createFieldPreparation]))
   }
 
-  private compileTransformerPipeline(transformers: TransformerPipeline, value: Name, generator: CodeGenerator): void {
+  private compileTransformerPipeline(
+    transformers: TransformerPipeline,
+    value: IdentifierName,
+    generator: CodeGenerator,
+  ): void {
     generator.comment('Apply the configured transformers in order')
     const originalValue = generator.const('originalTransformerValue', value)
     const transformerFailed = generator.let('transformerFailed', literal(false))
@@ -428,7 +440,7 @@ export default class StepAnswerPreparationCompiler {
     })
   }
 
-  private compileTransformerCall(transformer: TransformerPipeline[number], value: Name): Code {
+  private compileTransformerCall(transformer: TransformerPipeline[number], value: IdentifierName): CodeFragment {
     const argumentsCode = transformer.arguments.map(argument => this.expr.compileOperandCode(toRawOperand(argument)))
 
     return this.expr.compileFunctionCallCode(
@@ -452,11 +464,16 @@ export default class StepAnswerPreparationCompiler {
     )
   }
 
-  private maybeAwait(expression: Code, usesAwait: boolean): Code {
+  private maybeAwait(expression: CodeFragment, usesAwait: boolean): CodeFragment {
     return usesAwait ? code`await ${expression}` : expression
   }
 
-  private emitPushMutationCall(answerHistory: Name, value: SafeCode, source: string, generator: CodeGenerator): void {
+  private emitPushMutationCall(
+    answerHistory: IdentifierName,
+    value: SafeCode,
+    source: string,
+    generator: CodeGenerator,
+  ): void {
     generator.statement(code`${HELPERS}.pushAnswerMutation(${answerHistory}, ${value}, ${source})`)
   }
 }

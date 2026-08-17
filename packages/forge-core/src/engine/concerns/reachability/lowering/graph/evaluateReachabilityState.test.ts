@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { joinPaths } from '../../../../../shared/utils/routePath'
-import type { ReachabilityStateTable, ReachabilityStateTableEntry } from '../../../../contracts/plans/runtimePlans.type'
+import type { ReachabilityStateTable, ReachabilityStateTableEntry } from '../../contracts/reachabilityModel.type'
 import { CompiledReachabilityResult } from '../../../../contracts/compiled/compiledFunctions.type'
 import { NodeId } from '../../../../contracts/ast/engine.type'
 import { JourneyRouteTemplateCatalog } from '../../../route/contracts/routeTree.type'

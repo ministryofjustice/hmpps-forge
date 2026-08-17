@@ -5,26 +5,32 @@ import type {
   ReachabilityEntryModel,
   ReachabilityModel,
 } from '../contracts/reachabilityModel.type'
-import { arrayCode, Code, code, literal, objectCode } from '../../../compilation/codegen/Code'
-import CodeGenerator from '../../../compilation/codegen/CodeGenerator'
-import Name from '../../../compilation/codegen/Name'
+import {
+  arrayCode,
+  CodeFragment,
+  code,
+  literal,
+  objectCode,
+} from '../../../compilation/lowering/codegen/fragments/CodeFragment'
+import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
   CompilationPhase,
   compileGeneratedFunction,
   renderGeneratedSource,
-} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
+} from '../../../compilation/lowering/GeneratedFunctionCompiler'
 
 interface ReachabilityResultNames {
-  readonly entryResults: Name
-  readonly outcomeValues: Name
-  readonly declaredOutcomeValues: Name
-  readonly tieBreakerPriorities: Name
-  readonly resumeActive: Name
+  readonly entryResults: IdentifierName
+  readonly outcomeValues: IdentifierName
+  readonly declaredOutcomeValues: IdentifierName
+  readonly tieBreakerPriorities: IdentifierName
+  readonly resumeActive: IdentifierName
 }
 
-/** Builds the generated reachability facts function from the reachability model. */
+/** Builds the generated function that evaluates reachability facts (entry predicates, forward outcomes, and tie-breakers) from the reachability model. */
 export default class ReachabilityCompiler {
   private readonly expr: ExpressionDispatcher
 
@@ -72,7 +78,7 @@ export default class ReachabilityCompiler {
     return { entryResults, outcomeValues, declaredOutcomeValues, tieBreakerPriorities, resumeActive }
   }
 
-  private buildReachabilityResultExpression(names: ReachabilityResultNames): Code {
+  private buildReachabilityResultExpression(names: ReachabilityResultNames): CodeFragment {
     return objectCode([
       { key: 'entryResults', value: names.entryResults },
       { key: 'outcomeValues', value: names.outcomeValues },
@@ -84,7 +90,7 @@ export default class ReachabilityCompiler {
 
   private compileEntryPredicates(
     entries: readonly ReachabilityEntryModel[],
-    entryResults: Name,
+    entryResults: IdentifierName,
     generator: CodeGenerator,
   ): void {
     generator.comment('ReachabilityCompiler.compileEntryPredicates')
@@ -106,8 +112,8 @@ export default class ReachabilityCompiler {
 
   private compileForwardOutcomes(
     entries: readonly ReachabilityEntryModel[],
-    outcomeValues: Name,
-    declaredOutcomeValues: Name,
+    outcomeValues: IdentifierName,
+    declaredOutcomeValues: IdentifierName,
     generator: CodeGenerator,
   ): void {
     generator.comment('ReachabilityCompiler.compileForwardOutcomes')
@@ -122,8 +128,8 @@ export default class ReachabilityCompiler {
   private compileForwardOutcomeGroup(
     group: ForwardOutcomeGroup,
     stepIndex: number,
-    outcomeValues: Name,
-    declaredOutcomeValues: Name,
+    outcomeValues: IdentifierName,
+    declaredOutcomeValues: IdentifierName,
     generator: CodeGenerator,
   ): void {
     group.redirectOutcomes.forEach(outcome => {
@@ -165,9 +171,9 @@ export default class ReachabilityCompiler {
   private compileForwardOutcomeCascade(
     properties: { readonly when?: ASTNode; readonly goto: ASTNode | string },
     stepIndex: number,
-    outcomeMatched: Name,
+    outcomeMatched: IdentifierName,
     overApproximateWhen: boolean,
-    outcomeValues: Name,
+    outcomeValues: IdentifierName,
     generator: CodeGenerator,
   ): void {
     generator.scope(() => {
@@ -192,7 +198,7 @@ export default class ReachabilityCompiler {
   private compileDeclaredGotoResolution(
     goto: ASTNode | string,
     stepIndex: number,
-    declaredOutcomeValues: Name,
+    declaredOutcomeValues: IdentifierName,
     generator: CodeGenerator,
   ): void {
     if (typeof goto !== 'string') {
@@ -205,9 +211,9 @@ export default class ReachabilityCompiler {
   private compileGotoResolution(
     goto: ASTNode | string,
     stepIndex: number,
-    outcomeMatched: Name,
+    outcomeMatched: IdentifierName,
     marksOutcomeMatched: boolean,
-    outcomeValues: Name,
+    outcomeValues: IdentifierName,
     generator: CodeGenerator,
   ): void {
     const gotoExpression = this.compileGotoExpression(goto)
@@ -227,7 +233,7 @@ export default class ReachabilityCompiler {
     })
   }
 
-  private compileGotoExpression(goto: ASTNode | string): Code | undefined {
+  private compileGotoExpression(goto: ASTNode | string): CodeFragment | undefined {
     if (typeof goto === 'string') {
       return literal(goto)
     }
@@ -237,7 +243,7 @@ export default class ReachabilityCompiler {
 
   private compileTieBreakers(
     entries: readonly ReachabilityEntryModel[],
-    tieBreakerPriorities: Name,
+    tieBreakerPriorities: IdentifierName,
     generator: CodeGenerator,
   ): void {
     generator.comment('ReachabilityCompiler.compileTieBreakers')
@@ -273,7 +279,7 @@ export default class ReachabilityCompiler {
     })
   }
 
-  private compileResumeCondition(model: ReachabilityModel, generator: CodeGenerator): Name {
+  private compileResumeCondition(model: ReachabilityModel, generator: CodeGenerator): IdentifierName {
     generator.comment('ReachabilityCompiler.compileResumeCondition')
 
     if (model.resumeAlways) {

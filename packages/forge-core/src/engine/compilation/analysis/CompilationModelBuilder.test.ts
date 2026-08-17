@@ -49,7 +49,7 @@ describe('CompilationModelBuilder', () => {
       // Assert
       const journey = model.journeys.get(journeyNode.id)
 
-      expect(journey?.steps.get(firstStepNode.id)?.runtimePlan.path).toBe('first')
+      expect(journey?.steps.get(firstStepNode.id)?.mountInfo.path).toBe('first')
       expect([...(journey?.steps.keys() ?? [])]).toEqual(
         journey?.reachability.stateTable.entries.map(entry => entry.stepId),
       )

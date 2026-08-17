@@ -1,12 +1,12 @@
-import { code, literal } from '../../../compilation/codegen/Code'
-import CodeGenerator from '../../../compilation/codegen/CodeGenerator'
-import Name from '../../../compilation/codegen/Name'
+import { code, literal } from '../../../compilation/lowering/codegen/fragments/CodeFragment'
+import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
   CompilationPhase,
   compileGeneratedFunction,
   renderGeneratedSource,
-} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
+} from '../../../compilation/lowering/GeneratedFunctionCompiler'
 import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import type { CompiledRouteMetadataFunction } from '../../../contracts/compiled/compiledFunctions.type'
@@ -15,14 +15,15 @@ import type { RouteMetadataModel } from '../contracts/routeMetadataModel.type'
 /**
  * Compiles the package-level route-metadata function for the route-tree phase.
  *
- * Authoring lets title/description/metadata be expressions, so they cannot be
- * baked onto the route tree built once at mount. This compiler lowers every
- * step's and journey's metadata into one generated function that, given a request
- * context, returns the resolved metadata keyed by node ID. The route-tree runtime
- * phase calls it and merges the result onto the static topology.
+ * Journey authors can set title, description, and metadata as expressions, so
+ * their values can't be fixed on the route tree at mount time. This compiler
+ * turns every step's and journey's metadata into one generated function that
+ * evaluates them at request time and returns the results keyed by node ID. The
+ * route-tree runtime phase calls it and merges the result onto the static
+ * route topology.
  *
- * Unlike per-step phase compilers it is compiled once at package scope (the route
- * tree spans every node), then fanned onto every compiled step and journey.
+ * Unlike per-step compilers this is compiled once at package scope (the route
+ * tree spans every node), then shared across every compiled step and journey.
  */
 export default class RouteMetadataCompiler {
   private readonly expr: ExpressionDispatcher
@@ -78,7 +79,7 @@ export default class RouteMetadataCompiler {
   /**
    * Emits the resolved metadata object for one node.
    */
-  private compileEntry(input: RouteMetadataModel, result: Name, generator: CodeGenerator): void {
+  private compileEntry(input: RouteMetadataModel, result: IdentifierName, generator: CodeGenerator): void {
     generator.comment('RouteMetadataCompiler.compileEntry')
     generator.scope(() => {
       const entry = generator.const('routeMetadataEntry', code`{}`)

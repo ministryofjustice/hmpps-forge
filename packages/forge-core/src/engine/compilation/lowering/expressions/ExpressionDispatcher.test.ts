@@ -3,7 +3,7 @@ import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../compilationDependencies.type'
-import SourceRenderer from '../../codegen/SourceRenderer'
+import SourceRenderer from '../codegen/rendering/SourceRenderer'
 import ExpressionDispatcher from './ExpressionDispatcher'
 
 describe('ExpressionDispatcher', () => {

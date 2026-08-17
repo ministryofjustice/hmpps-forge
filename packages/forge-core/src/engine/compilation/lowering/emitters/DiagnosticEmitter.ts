@@ -1,8 +1,16 @@
 import { FunctionType } from '../../../../authoring/types/enums'
 import { formatCallsiteChain, resolveCallsitePositionChain } from '../../../../shared/diagnostics/formatCallsite'
-import { Code, arrayCode, callCode, code, literal, positionedCode, propertyCode } from '../../codegen/Code'
-import CodeGenerator from '../../codegen/CodeGenerator'
-import Name from '../../codegen/Name'
+import {
+  CodeFragment,
+  arrayCode,
+  callCode,
+  code,
+  literal,
+  positionedCode,
+  propertyCode,
+} from '../codegen/fragments/CodeFragment'
+import CodeGenerator from '../codegen/CodeGenerator'
+import IdentifierName from '../codegen/fragments/IdentifierName'
 
 export interface DiagnosticMetadata {
   readonly nodeId?: string
@@ -12,9 +20,9 @@ export interface DiagnosticMetadata {
   readonly definedAt?: string
 }
 
-const GENERATED_FUNCTION_HELPERS_PARAM = new Name('_forgeHelpers')
-const RUNTIME_DIAGNOSTICS_PARAM = new Name('_forgeRuntimeDiagnostics')
-const CONTEXT_PARAM = new Name('ctx')
+const GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM = new IdentifierName('_forgeHelpers')
+const RUNTIME_DIAGNOSTICS_PARAM = new IdentifierName('_forgeRuntimeDiagnostics')
+const CONTEXT_PARAM = new IdentifierName('ctx')
 
 export default class DiagnosticEmitter {
   private readonly metadataByKey = new Map<string, number>()
@@ -30,7 +38,12 @@ export default class DiagnosticEmitter {
     return Object.freeze(this.metadataEntries.map(metadata => Object.freeze({ ...metadata })))
   }
 
-  wrapExpression(expression: Code, source: unknown, usesAwait: boolean, generator: CodeGenerator): Code {
+  wrapExpression(
+    expression: CodeFragment,
+    source: unknown,
+    usesAwait: boolean,
+    generator: CodeGenerator,
+  ): CodeFragment {
     const metadata = this.getMetadata(source)
 
     if (metadata === undefined) {
@@ -57,7 +70,12 @@ export default class DiagnosticEmitter {
    * required parameter, not derived from `source`), so metadata is always
    * worth tracking and this always routes through the helper call.
    */
-  wrapFunctionCall(helperName: string, funcName: string, argExprs: readonly Code[], source: unknown): Code {
+  wrapFunctionCall(
+    helperName: string,
+    funcName: string,
+    argExprs: readonly CodeFragment[],
+    source: unknown,
+  ): CodeFragment {
     const metadata: DiagnosticMetadata = {
       ...this.getSourceDiagnostics(source),
       functionName: funcName,
@@ -122,7 +140,7 @@ export default class DiagnosticEmitter {
     return chain.length > 0 ? chain.join('\n') : undefined
   }
 
-  /** Resolves the authored position chain innermost-first for source-map emission. */
+  /** Resolves the chain of authored call-site positions (innermost first) for source-map output. */
   private resolvePositions(source: unknown) {
     return resolveCallsitePositionChain(this.getCallsite(source))
   }
@@ -202,8 +220,12 @@ export default class DiagnosticEmitter {
     }
   }
 
-  private compileTrackedHelperCall(helperName: string, diagnosticReference: number, callback: Code): Code {
-    return callCode(code`${GENERATED_FUNCTION_HELPERS_PARAM}${propertyCode(helperName)}`, [
+  private compileTrackedHelperCall(
+    helperName: string,
+    diagnosticReference: number,
+    callback: CodeFragment,
+  ): CodeFragment {
+    return callCode(code`${GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM}${propertyCode(helperName)}`, [
       RUNTIME_DIAGNOSTICS_PARAM,
       literal(diagnosticReference),
       callback,
@@ -212,9 +234,9 @@ export default class DiagnosticEmitter {
 
   /**
    * Names the tracked callback after the node it evaluates so debugger stacks
-   * read `evaluate_hidden` instead of `<anonymous>`. The `evaluate_` prefix
-   * keeps the (function-scope-only) name binding clear of every identifier the
-   * compilers emit, so the inner expression can never be shadowed by it.
+   * show `evaluate_hidden` instead of `<anonymous>`. The `evaluate_` prefix
+   * avoids clashing with any variable name the compilers emit, so the inner
+   * expression can never be accidentally shadowed.
    */
   private compileCallbackName(metadata: DiagnosticMetadata): string {
     const pathTail = metadata.formattedPath?.split(' > ').at(-1) ?? metadata.functionName
@@ -232,8 +254,8 @@ export default class DiagnosticEmitter {
     helperName: string,
     diagnosticReference: number,
     funcName: string,
-    argExprs: readonly Code[],
-  ): Code {
+    argExprs: readonly CodeFragment[],
+  ): CodeFragment {
     const args = [
       CONTEXT_PARAM,
       RUNTIME_DIAGNOSTICS_PARAM,
@@ -242,7 +264,7 @@ export default class DiagnosticEmitter {
       arrayCode(argExprs),
     ]
 
-    return callCode(code`${GENERATED_FUNCTION_HELPERS_PARAM}${propertyCode(helperName)}`, args)
+    return callCode(code`${GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM}${propertyCode(helperName)}`, args)
   }
 
   private intern(metadata: DiagnosticMetadata): number {

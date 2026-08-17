@@ -8,18 +8,18 @@ import {
   type BlockValue,
   type RecordEntryValue,
 } from '../../../contracts/models/authoredValue.type'
-import { Code, code, literal, SafeCode } from '../../../compilation/codegen/Code'
-import CodeGenerator from '../../../compilation/codegen/CodeGenerator'
-import Name from '../../../compilation/codegen/Name'
+import { CodeFragment, code, literal, SafeCode } from '../../../compilation/lowering/codegen/fragments/CodeFragment'
+import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
   CompilationPhase,
   compileGeneratedFunction,
-  GENERATED_FUNCTION_HELPERS_PARAM,
+  GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM,
   renderGeneratedSource,
-} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
+} from '../../../compilation/lowering/GeneratedFunctionCompiler'
 import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
 import ScopedTemplateCompiler from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
 import type { CompiledResolveFunction } from '../../../contracts/compiled/compiledFunctions.type'
@@ -31,15 +31,15 @@ import type {
 } from '../contracts/resolveModel.type'
 
 interface ResolveResultNames {
-  readonly blocks: Name
-  readonly step: Name
-  readonly ancestors: Name
+  readonly blocks: IdentifierName
+  readonly step: IdentifierName
+  readonly ancestors: IdentifierName
 }
 
-const CONTEXT = new Name('ctx')
-const HELPERS = new Name(GENERATED_FUNCTION_HELPERS_PARAM)
+const CONTEXT = new IdentifierName('ctx')
+const HELPERS = new IdentifierName(GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM)
 
-/** Phase compiler for the generated step render function. */
+/** Compiler for the resolve phase: builds the generated function that prepares a step's blocks, metadata, and ancestors for rendering. */
 export default class StepResolveCompiler {
   private readonly expr: ExpressionDispatcher
 
@@ -92,7 +92,11 @@ export default class StepResolveCompiler {
     return generator
   }
 
-  private compileStepMetadata(properties: readonly ResolvePropertyModel[], step: Name, generator: CodeGenerator): void {
+  private compileStepMetadata(
+    properties: readonly ResolvePropertyModel[],
+    step: IdentifierName,
+    generator: CodeGenerator,
+  ): void {
     generator.comment('StepResolveCompiler.compileStepMetadata')
 
     properties.forEach(property => {
@@ -102,7 +106,7 @@ export default class StepResolveCompiler {
 
   private compileAncestorMetadata(
     ancestors: readonly ResolveAncestorModel[],
-    ancestorsName: Name,
+    ancestorsName: IdentifierName,
     generator: CodeGenerator,
   ): void {
     if (ancestors.length === 0) {
@@ -111,8 +115,9 @@ export default class StepResolveCompiler {
 
     generator.comment('StepResolveCompiler.compileAncestorMetadata')
 
-    // When every ancestor path is static the chain was composed at analysis;
-    // otherwise the generated code recomposes the whole chain per request.
+    // When every ancestor path is a plain string the full path was built at
+    // compile time (during analysis); otherwise the generated code rebuilds
+    // the whole chain per request.
     if (ancestors.every(ancestor => ancestor.composedPath !== undefined)) {
       ancestors.forEach(ancestorModel => {
         generator.scope(() => {
@@ -144,7 +149,7 @@ export default class StepResolveCompiler {
     })
   }
 
-  private compileAncestorProperties(ancestorModel: ResolveAncestorModel, generator: CodeGenerator): Name {
+  private compileAncestorProperties(ancestorModel: ResolveAncestorModel, generator: CodeGenerator): IdentifierName {
     const ancestor = generator.const('ancestor', code`{}`)
 
     ancestorModel.properties.forEach(property => {
@@ -154,7 +159,11 @@ export default class StepResolveCompiler {
     return ancestor
   }
 
-  private compileBlocks(blocks: readonly ResolveBlockModel[], targetBlocks: Name, generator: CodeGenerator): void {
+  private compileBlocks(
+    blocks: readonly ResolveBlockModel[],
+    targetBlocks: IdentifierName,
+    generator: CodeGenerator,
+  ): void {
     if (blocks.length === 0) {
       return
     }
@@ -166,7 +175,7 @@ export default class StepResolveCompiler {
     })
   }
 
-  private compileBlock(block: ResolveBlockModel, targetBlocks: Name, generator: CodeGenerator): void {
+  private compileBlock(block: ResolveBlockModel, targetBlocks: IdentifierName, generator: CodeGenerator): void {
     generator.comment(`StepResolveCompiler.compileBlock — ${block.variant} (${block.label})`)
     generator.scope(() => {
       const blockId = generator.const('resolveBlockId', literal(block.id))
@@ -177,7 +186,7 @@ export default class StepResolveCompiler {
     })
   }
 
-  private compileIterateBlocks(model: ResolveModel, blocks: Name, generator: CodeGenerator): void {
+  private compileIterateBlocks(model: ResolveModel, blocks: IdentifierName, generator: CodeGenerator): void {
     model.standaloneIterateBlocks.forEach(iterateModel => {
       generator.comment('StepResolveCompiler.compileMapIteratorBlocks')
       this.templates.compileMapIterator(iterateModel.node, generator, () => {
@@ -197,7 +206,7 @@ export default class StepResolveCompiler {
   private compileTemplateBlock(
     block: ResolveBlockModel,
     codeExpression: SafeCode | undefined,
-    blocks: Name,
+    blocks: IdentifierName,
     generator: CodeGenerator,
   ): void {
     generator.comment('StepResolveCompiler.compileTemplateBlock')
@@ -213,19 +222,19 @@ export default class StepResolveCompiler {
     })
   }
 
-  private compileFieldValueResolution(props: Name, generator: CodeGenerator): void {
+  private compileFieldValueResolution(props: IdentifierName, generator: CodeGenerator): void {
     generator.comment('StepResolveCompiler.compileFieldValueResolution')
     generator.statement(code`${HELPERS}.resolveFieldValue(${CONTEXT}, ${props})`)
   }
 
-  private compileFieldFailureResolution(blockId: SafeCode, props: Name, generator: CodeGenerator): void {
+  private compileFieldFailureResolution(blockId: SafeCode, props: IdentifierName, generator: CodeGenerator): void {
     generator.comment('StepResolveCompiler.compileFieldFailureResolution')
     generator.statement(code`${HELPERS}.resolveFieldFailures(${CONTEXT}, ${blockId}, ${props})`)
   }
 
   private compileBlockProperties(
     block: ResolveBlockModel,
-    props: Name,
+    props: IdentifierName,
     blockId: SafeCode,
     codeExpression: SafeCode | undefined,
     generator: CodeGenerator,
@@ -280,14 +289,14 @@ export default class StepResolveCompiler {
 
   private compilePropertyAssignment(
     value: AuthoredValue,
-    targetObject: Name,
+    targetObject: IdentifierName,
     key: string,
     generator: CodeGenerator,
   ): void {
     this.values.compileAssignment(value, generator, targetObject, key)
   }
 
-  private compileNestedBlockValue(block: BlockValue, generator: CodeGenerator, result: Name): void {
+  private compileNestedBlockValue(block: BlockValue, generator: CodeGenerator, result: IdentifierName): void {
     if (isTemplateNode(block.source)) {
       this.compileTemplateNestedBlock(block, block.source, result, generator)
 
@@ -297,7 +306,7 @@ export default class StepResolveCompiler {
     this.compileNestedBlock(block, result, generator)
   }
 
-  private compileNestedBlock(block: BlockValue, result: Name, generator: CodeGenerator): void {
+  private compileNestedBlock(block: BlockValue, result: IdentifierName, generator: CodeGenerator): void {
     generator.comment('StepResolveCompiler.compileNestedBlock')
     generator.scope(() => {
       const blockId = generator.const('resolveBlockId', literal(block.id))
@@ -311,7 +320,7 @@ export default class StepResolveCompiler {
   private compileTemplateNestedBlock(
     block: BlockValue,
     source: TemplateNode,
-    result: Name,
+    result: IdentifierName,
     generator: CodeGenerator,
   ): void {
     generator.comment('StepResolveCompiler.compileTemplateNestedBlock')
@@ -324,7 +333,12 @@ export default class StepResolveCompiler {
     })
   }
 
-  private compileNestedBlockProperties(block: BlockValue, blockId: Name, props: Name, generator: CodeGenerator): void {
+  private compileNestedBlockProperties(
+    block: BlockValue,
+    blockId: IdentifierName,
+    props: IdentifierName,
+    generator: CodeGenerator,
+  ): void {
     block.entries.forEach(entry => {
       if (block.blockType === BlockType.FIELD && entry.key === 'code') {
         this.fieldCodes.assignProperty(toRawOperand(entry.value), generator, props, entry.key)
@@ -344,7 +358,7 @@ export default class StepResolveCompiler {
     }
   }
 
-  /** Mirrors `properties.value === undefined` on the authored block object. */
+  /** Returns true when the block has no explicit `value` property, matching the authored block's own `properties.value === undefined` check. */
   private nestedBlockResolvesFieldValue(entries: readonly RecordEntryValue[]): boolean {
     const valueEntry = entries.find(entry => entry.key === 'value')
 
@@ -353,11 +367,11 @@ export default class StepResolveCompiler {
   }
 
   private pushResolveBlockWorkTask(
-    targetBlocks: Name,
-    blockId: Name,
+    targetBlocks: IdentifierName,
+    blockId: IdentifierName,
     variant: string,
     blockType: string,
-    props: Name,
+    props: IdentifierName,
     generator: CodeGenerator,
   ): void {
     generator.statement(
@@ -366,21 +380,26 @@ export default class StepResolveCompiler {
   }
 
   private assignResolveBlockWorkTask(
-    result: Name,
-    blockId: Name,
+    result: IdentifierName,
+    blockId: IdentifierName,
     variant: string,
     blockType: string,
-    props: Name,
+    props: IdentifierName,
     generator: CodeGenerator,
   ): void {
     generator.assign(result, this.compileResolveBlockWorkTaskExpression(blockId, variant, blockType, props))
   }
 
-  private compileResolveBlockWorkTaskExpression(blockId: Name, variant: string, blockType: string, props: Name): Code {
+  private compileResolveBlockWorkTaskExpression(
+    blockId: IdentifierName,
+    variant: string,
+    blockType: string,
+    props: IdentifierName,
+  ): CodeFragment {
     return code`${CONTEXT}.workTasks.resolveBlock(${blockId}, ${variant}, ${blockType}, ${props})`
   }
 
-  private compileResolveBlocksWorkTaskExpression(names: ResolveResultNames): Code {
+  private compileResolveBlocksWorkTaskExpression(names: ResolveResultNames): CodeFragment {
     return code`${CONTEXT}.workTasks.resolveBlocks(${names.blocks}, ${names.step}, ${names.ancestors})`
   }
 }

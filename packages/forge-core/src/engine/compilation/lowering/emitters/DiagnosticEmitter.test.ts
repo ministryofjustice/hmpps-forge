@@ -1,6 +1,6 @@
-import { Code, code } from '../../codegen/Code'
-import CodeGenerator from '../../codegen/CodeGenerator'
-import SourceRenderer, { RenderedSource } from '../../codegen/SourceRenderer'
+import { CodeFragment, code } from '../codegen/fragments/CodeFragment'
+import CodeGenerator from '../codegen/CodeGenerator'
+import SourceRenderer, { RenderedSource } from '../codegen/rendering/SourceRenderer'
 import DiagnosticEmitter from './DiagnosticEmitter'
 
 const AUTHOR_STACK = 'Error\n    at journeySteps (/repo/journeys/tax/steps.ts:42:13)'
@@ -15,7 +15,7 @@ const sourceWithStack = (stack: string) => ({
   },
 })
 
-const render = (value: Code): RenderedSource => new SourceRenderer().renderCode(value)
+const render = (value: CodeFragment): RenderedSource => new SourceRenderer().renderCode(value)
 
 const wrapExpression = (emitter: DiagnosticEmitter, source: unknown, usesAwait: boolean): RenderedSource =>
   render(emitter.wrapExpression(code`1 + 1`, source, usesAwait, new CodeGenerator()))

@@ -1,13 +1,13 @@
-import { Code, code, literal, objectCode } from '../../../compilation/codegen/Code'
-import CodeGenerator from '../../../compilation/codegen/CodeGenerator'
-import Name from '../../../compilation/codegen/Name'
+import { CodeFragment, code, literal, objectCode } from '../../../compilation/lowering/codegen/fragments/CodeFragment'
+import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
   CompilationPhase,
   compileGeneratedFunction,
   renderGeneratedSource,
-} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
+} from '../../../compilation/lowering/GeneratedFunctionCompiler'
 import { toRawOperand, type ExpressionValue } from '../../../contracts/models/authoredValue.type'
 import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from '../contracts/hookLifecycle.type'
 import type {
@@ -23,7 +23,7 @@ import type {
 } from '../contracts/hookModel.type'
 import { HookOutcomeKind } from '../contracts/hookModel.type'
 
-const CONTEXT = new Name('ctx')
+const CONTEXT = new IdentifierName('ctx')
 
 /** Compiles the access-lifecycle and submit-hook functions from the hook models. */
 export default class HookLifecycleCompiler {
@@ -97,7 +97,7 @@ export default class HookLifecycleCompiler {
     return generator
   }
 
-  private compileAccessHookTask(hook: AccessHookModel, accessHooks: Name, generator: CodeGenerator): void {
+  private compileAccessHookTask(hook: AccessHookModel, accessHooks: IdentifierName, generator: CodeGenerator): void {
     generator.comment(`HookLifecycleCompiler.compileAccessHookTask — ${hook.label}`)
     generator.scope(() => {
       const effects = generator.const('accessHookEffects', code`[]`)
@@ -115,7 +115,7 @@ export default class HookLifecycleCompiler {
     })
   }
 
-  private compileEffectTask(effect: EffectCall, effects: Name, generator: CodeGenerator): void {
+  private compileEffectTask(effect: EffectCall, effects: IdentifierName, generator: CodeGenerator): void {
     generator.scope(() => {
       const props = generator.const(
         'hookEffectProps',
@@ -129,13 +129,13 @@ export default class HookLifecycleCompiler {
     })
   }
 
-  private compileAccessWhenTask(hook: AccessHookModel, key: string, generator: CodeGenerator): Code {
+  private compileAccessWhenTask(hook: AccessHookModel, key: string, generator: CodeGenerator): CodeFragment {
     return code`${CONTEXT}.workTasks.accessHookWhen(${key}, ${objectCode([
       { key: 'evaluate', value: this.compileAccessWhenFunction(hook, generator) },
     ])})`
   }
 
-  private compileAccessWhenFunction(hook: AccessHookModel, generator: CodeGenerator): Code {
+  private compileAccessWhenFunction(hook: AccessHookModel, generator: CodeGenerator): CodeFragment {
     const when = hook.when
 
     return this.compileAsyncFunctionExpression('evaluateAccessHookWhen', generator, functionGenerator => {
@@ -149,7 +149,7 @@ export default class HookLifecycleCompiler {
     })
   }
 
-  private compileAccessNextFunction(hook: AccessHookModel, generator: CodeGenerator): Code {
+  private compileAccessNextFunction(hook: AccessHookModel, generator: CodeGenerator): CodeFragment {
     return this.compileAsyncFunctionExpression('resolveAccessHookNext', generator, functionGenerator => {
       const outcome = functionGenerator.let('outcome')
 
@@ -158,13 +158,13 @@ export default class HookLifecycleCompiler {
     })
   }
 
-  private compileEffectRunFunction(effect: EffectCall, generator: CodeGenerator): Code {
+  private compileEffectRunFunction(effect: EffectCall, generator: CodeGenerator): CodeFragment {
     return this.compileAsyncFunctionExpression('runHookEffect', generator, functionGenerator => {
       functionGenerator.statement(code`await ${this.compileEffectCall(effect)}`)
     })
   }
 
-  private compileSubmitHookTask(hook: SubmitHookModel, submitHooks: Name, generator: CodeGenerator): void {
+  private compileSubmitHookTask(hook: SubmitHookModel, submitHooks: IdentifierName, generator: CodeGenerator): void {
     generator.comment(`HookLifecycleCompiler.compileSubmitHookTask — ${hook.label}`)
     generator.scope(() => {
       const props = generator.const('submitHookProps', code`{}`)
@@ -213,7 +213,7 @@ export default class HookLifecycleCompiler {
     key: string,
     name: string,
     generator: CodeGenerator,
-  ): Code {
+  ): CodeFragment {
     return code`${CONTEXT}.workTasks.submitPredicate(${key}, ${objectCode([
       { key: 'name', value: literal(name) },
       { key: 'evaluate', value: this.compileSubmitPredicateFunction(predicate, defaultValue, name, generator) },
@@ -225,7 +225,7 @@ export default class HookLifecycleCompiler {
     defaultValue: boolean,
     name: string,
     generator: CodeGenerator,
-  ): Code {
+  ): CodeFragment {
     return this.compileAsyncFunctionExpression(`evaluateSubmit${this.toFunctionNamePart(name)}`, generator, body => {
       if (predicate === undefined) {
         body.return(literal(defaultValue))
@@ -242,7 +242,7 @@ export default class HookLifecycleCompiler {
     key: string,
     name: 'onAlways' | 'onValid' | 'onInvalid',
     generator: CodeGenerator,
-  ): Code {
+  ): CodeFragment {
     const effects = generator.const(`${name}Effects`, code`[]`)
 
     branch.effects.forEach(effect => {
@@ -261,14 +261,18 @@ export default class HookLifecycleCompiler {
     return code`${CONTEXT}.workTasks.submitBranch(${key}, ${props})`
   }
 
-  private compileCurrentStepValidationTask(key: string, groups: readonly string[]): Code {
+  private compileCurrentStepValidationTask(key: string, groups: readonly string[]): CodeFragment {
     return code`${CONTEXT}.workTasks.currentStepValidation(${key}, ${objectCode([
       { key: 'groups', value: literal(groups) },
       { key: 'includeSubmissionOnly', value: literal(true) },
     ])})`
   }
 
-  private compileOutcomeFunction(outcomes: readonly HookOutcomeModel[], name: string, generator: CodeGenerator): Code {
+  private compileOutcomeFunction(
+    outcomes: readonly HookOutcomeModel[],
+    name: string,
+    generator: CodeGenerator,
+  ): CodeFragment {
     return this.compileAsyncFunctionExpression(`resolveSubmit${this.toFunctionNamePart(name)}Next`, generator, body => {
       const outcome = body.let('outcome')
 
@@ -282,7 +286,7 @@ export default class HookLifecycleCompiler {
     defaultValue: boolean,
     generator: CodeGenerator,
     prefix: string,
-  ): Name {
+  ): IdentifierName {
     if (predicate === undefined) {
       return generator.const(prefix, literal(defaultValue))
     }
@@ -290,7 +294,7 @@ export default class HookLifecycleCompiler {
     return generator.const(prefix, code`Boolean(${this.expr.compileOperandCode(predicate.node)})`)
   }
 
-  private compileEffectCall(effect: EffectCall): Code {
+  private compileEffectCall(effect: EffectCall): CodeFragment {
     const argExprs = effect.arguments.map(arg => this.expr.compileOperandCode(toRawOperand(arg)))
 
     return this.expr.compileFunctionCallCode(
@@ -302,7 +306,7 @@ export default class HookLifecycleCompiler {
 
   private compileOutcomeAssignment(
     outcomes: readonly HookOutcomeModel[],
-    outcome: Name,
+    outcome: IdentifierName,
     generator: CodeGenerator,
   ): void {
     outcomes.forEach(outcomeModel => {
@@ -318,7 +322,11 @@ export default class HookLifecycleCompiler {
     })
   }
 
-  private compileRedirectOutcome(redirect: RedirectOutcomeModel, outcome: Name, generator: CodeGenerator): void {
+  private compileRedirectOutcome(
+    redirect: RedirectOutcomeModel,
+    outcome: IdentifierName,
+    generator: CodeGenerator,
+  ): void {
     const when = this.compilePredicate(redirect.when, true, generator, 'outcomeWhen')
 
     generator.if(when, () => {
@@ -338,7 +346,7 @@ export default class HookLifecycleCompiler {
 
   private compileThrowErrorOutcome(
     errorOutcome: ThrowErrorOutcomeModel,
-    outcome: Name,
+    outcome: IdentifierName,
     generator: CodeGenerator,
   ): void {
     const when = this.compilePredicate(errorOutcome.when, true, generator, 'outcomeWhen')
@@ -365,7 +373,7 @@ export default class HookLifecycleCompiler {
     })
   }
 
-  private compileOutcomeValue(value: string | ExpressionValue): Code {
+  private compileOutcomeValue(value: string | ExpressionValue): CodeFragment {
     return typeof value === 'string' ? literal(value) : this.expr.compileOperandCode(value.node)
   }
 
@@ -373,7 +381,7 @@ export default class HookLifecycleCompiler {
     prefix: string,
     generator: CodeGenerator,
     buildBody: (generator: CodeGenerator) => void,
-  ): Code {
+  ): CodeFragment {
     return generator.functionExpression(prefix, [], buildBody, { async: true })
   }
 

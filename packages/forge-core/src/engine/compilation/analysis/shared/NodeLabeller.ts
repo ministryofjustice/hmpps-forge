@@ -1,4 +1,4 @@
-/** Anything carrying authored diagnostics — AST and template nodes both conform. */
+/** Any node that carries diagnostic info (both AST nodes and template nodes qualify). */
 export interface LabelSource {
   readonly diagnostics?: {
     readonly source: { readonly formattedPath: string }
@@ -6,13 +6,15 @@ export interface LabelSource {
 }
 
 /**
- * Derives the script-URL identity segment stamped on each concern model. The
- * leading journey/step segments of a formatted path such as
- * `"dump > form > blocks[1] (govukInsetText) > hidden"` become `dump.form`.
- * Structural segments (indexed wiring like `onAccess[0]`, parenthesised kinds)
- * end the walk — they describe a position inside the step, not its identity —
- * so nested journeys keep every ancestor segment without needing a depth cap.
- * `maxDepth` truncates deliberately journey-level labels (e.g. field inventory).
+ * Turns a node's diagnostic path into a short dot-separated label used to
+ * identify compiled output (e.g. in generated script URLs). Takes the leading
+ * journey/step name segments from a formatted path like
+ * `"dump > form > blocks[1] (govukInsetText) > hidden"` and produces
+ * `dump.form`. Segments containing `[` or `(` (like `blocks[1]` or
+ * `(govukInsetText)`) mark positions inside a step rather than its identity,
+ * so they stop the walk. Nested journeys keep every ancestor name segment.
+ * `maxDepth` caps the segment count for labels that only need journey-level
+ * granularity (e.g. the field inventory).
  */
 export default class NodeLabeller {
   labelFrom(nodes: readonly (LabelSource | undefined)[], options: { maxDepth?: number } = {}): string | undefined {

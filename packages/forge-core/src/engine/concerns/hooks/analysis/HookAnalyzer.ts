@@ -112,7 +112,7 @@ export default class HookAnalyzer implements StepModelAnalyzer<StepHookModel>, J
       validate: hook.properties.validate,
       validationGroups: validationGroups.length > 0 ? validationGroups : ['default'],
       branches: {
-        // An unauthored onAlways still compiles to an (empty) branch task.
+        // Even if the author didn't write an `onAlways` branch, we still compile an empty one.
         onAlways: this.buildSubmitBranch(hook.properties.onAlways, `${key}-onAlways`, classifier),
         onValid:
           hook.properties.onValid !== undefined

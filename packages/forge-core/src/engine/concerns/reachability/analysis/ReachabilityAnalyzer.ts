@@ -1,9 +1,12 @@
 import type { ASTNode } from '../../../contracts/ast/ast.type'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
-import type { ReachabilityStateTable } from '../../../contracts/plans/runtimePlans.type'
+import type {
+  ReachabilityStateTable,
+  ReachabilityEntryModel,
+  ReachabilityModel,
+} from '../contracts/reachabilityModel.type'
 import type { JourneyAnalysisContext, JourneyModelAnalyzer } from '../../../compilation/analysis/concernAnalyzers.type'
-import type { ReachabilityEntryModel, ReachabilityModel } from '../contracts/reachabilityModel.type'
 import ForwardNavigationAnalyzer from './ForwardNavigationAnalyzer'
 
 export default class ReachabilityAnalyzer implements JourneyModelAnalyzer<ReachabilityModel> {
@@ -63,8 +66,9 @@ export default class ReachabilityAnalyzer implements JourneyModelAnalyzer<Reacha
       ) ?? false
   }
 
-  // The label follows the journey's dynamic reachability nodes: the first one
-  // carrying diagnostics names the journey segment of the script URL.
+  // The label is derived from any reachability-related expression nodes (resume
+  // conditions, entry conditions, redirect targets). It names the journey
+  // segment of the generated function's URL for debugging.
   private deriveLabel(
     context: JourneyAnalysisContext,
     entries: readonly ReachabilityEntryModel[],

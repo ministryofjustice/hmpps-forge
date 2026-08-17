@@ -10,10 +10,10 @@ import type { RouteMetadataModel } from '../contracts/routeMetadataModel.type'
 
 /**
  * Collects the authored route metadata (title/description/metadata) from a step
- * or journey node. Steps and journeys carry the same metadata shape, so both
- * family entry points delegate to one builder — the package-level
- * route-metadata function later lowers every collected entry into one compiled
- * function.
+ * or journey node. Steps and journeys share the same metadata shape, so both
+ * `analyzeStep` and `analyzeJourney` delegate to one builder. The package-level
+ * route-metadata function later compiles every collected entry into one
+ * generated function.
  */
 export default class RouteAnalyzer
   implements StepModelAnalyzer<RouteMetadataModel>, JourneyModelAnalyzer<RouteMetadataModel>

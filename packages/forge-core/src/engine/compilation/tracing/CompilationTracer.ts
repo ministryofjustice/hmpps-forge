@@ -7,11 +7,11 @@ export interface CompilationTracerOptions {
 }
 
 /**
- * Builds the compilation trace tree while a package is compiled.
+ * Builds a trace tree of timed spans while a package is compiled.
  *
  * Synchronous-only by design: compilation never awaits, so a plain
- * current-parent stack is enough to nest spans correctly — there is no
- * interleaving to account for as there is in the runtime request pipeline.
+ * parent stack is enough to nest spans correctly -- unlike the runtime
+ * request pipeline, there's no concurrent interleaving to account for.
  */
 export default class CompilationTracer {
   /**

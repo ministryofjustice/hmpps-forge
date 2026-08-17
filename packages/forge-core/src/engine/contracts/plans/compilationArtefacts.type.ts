@@ -1,6 +1,6 @@
 import type { NodeId } from '../ast/ast.type'
 import type { JourneyRouteIndex, StepRouteIndex } from '../../concerns/route/contracts/routeDescriptors.type'
-import type { JourneyRuntimePlan, StepRuntimePlan } from './runtimePlans.type'
+import type { JourneyMountInfo, StepMountInfo } from './mountInfo.type'
 import type { CompiledFieldInventoryFunction } from '../../concerns/answer-cleardown/contracts/compiledFieldInventory.type'
 import type {
   CompiledAccessLifecycleFunction,
@@ -42,7 +42,7 @@ export interface CompiledStepFunctions {
 }
 
 export interface CompiledStep {
-  runtimePlan: StepRuntimePlan
+  mountInfo: StepMountInfo
   compiledReachabilityFacts: CompiledReachabilityFactsFunction
   compiledReachabilityState: CompiledReachabilityStateFunction
   compiledFieldInventory: CompiledFieldInventoryFunction | undefined
@@ -58,7 +58,7 @@ export interface CompiledStep {
 }
 
 export interface CompiledJourney {
-  runtimePlan: JourneyRuntimePlan
+  mountInfo: JourneyMountInfo
   compiledReachabilityFacts: CompiledReachabilityFactsFunction
   compiledReachabilityState: CompiledReachabilityStateFunction
   compiledFieldInventory: CompiledFieldInventoryFunction | undefined

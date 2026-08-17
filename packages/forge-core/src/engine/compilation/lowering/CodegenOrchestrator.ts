@@ -52,7 +52,7 @@ export default class CodegenOrchestrator {
           const journeyFunctions = this.compileJourneyFunctions(journey)
 
           journeys.set(journeyId, {
-            runtimePlan: journey.runtimePlan,
+            mountInfo: journey.mountInfo,
             ...journeyFunctions,
             ...packageFunctions,
           })
@@ -68,7 +68,7 @@ export default class CodegenOrchestrator {
                 )
 
                 steps.set(stepId, {
-                  runtimePlan: step.runtimePlan,
+                  mountInfo: step.mountInfo,
                   compiledReachabilityFacts: journeyFunctions.compiledReachabilityFacts,
                   compiledReachabilityState: journeyFunctions.compiledReachabilityState,
                   compiledFieldInventory: journeyFunctions.compiledFieldInventory,

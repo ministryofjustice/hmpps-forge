@@ -3,8 +3,8 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import { ExpressionType, FunctionType, OutcomeType, PredicateType } from '../../../../authoring/types/enums'
 import { FunctionASTNode, ReferenceASTNode, RedirectOutcomeASTNode } from '../../../contracts/ast/expressions.type'
 import { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
-import type { ReachabilityStateTable } from '../../../contracts/plans/runtimePlans.type'
 import type {
+  ReachabilityStateTable,
   ForwardOutcomeGroup,
   ReachabilityEntryModel,
   ReachabilityModel,

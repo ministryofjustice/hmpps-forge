@@ -3,15 +3,15 @@ import { toRawOperand } from '../../../contracts/models/authoredValue.type'
 import {
   arrayCode,
   callCode,
-  Code,
+  CodeFragment,
   code,
   literal,
   objectCode,
   propertyCode,
   SafeCode,
-} from '../../../compilation/codegen/Code'
-import CodeGenerator from '../../../compilation/codegen/CodeGenerator'
-import Name from '../../../compilation/codegen/Name'
+} from '../../../compilation/lowering/codegen/fragments/CodeFragment'
+import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
@@ -19,7 +19,7 @@ import {
   CompilationPhase,
   compileGeneratedFunction,
   renderGeneratedSource,
-} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
+} from '../../../compilation/lowering/GeneratedFunctionCompiler'
 import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
 import ScopedTemplateCompiler from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
 import {
@@ -32,10 +32,10 @@ import ForgeInternalError from '../../../errors/ForgeInternalError'
 import type { ValidationModel } from '../contracts/validationModel.type'
 import type { CompiledValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
 
-const CONTEXT = new Name('ctx')
-const FILTER = new Name('filter')
+const CONTEXT = new IdentifierName('ctx')
+const FILTER = new IdentifierName('filter')
 
-/** Phase compiler for step-level validation generated functions. */
+/** Compiler for the validation phase: builds the generated function that runs a step's field and domain validation rules. */
 export default class StepValidationCompiler {
   private readonly expr: ExpressionDispatcher
 
@@ -94,8 +94,8 @@ export default class StepValidationCompiler {
 
   private compileFieldOccurrence(
     field: FieldModel,
-    fieldValidations: Name,
-    ruleIsActive: Name,
+    fieldValidations: IdentifierName,
+    ruleIsActive: IdentifierName,
     generator: CodeGenerator,
   ): void {
     if (field.iteratorPath.length === 0) {
@@ -109,8 +109,8 @@ export default class StepValidationCompiler {
 
   private compileRegisteredField(
     field: FieldModel,
-    fieldValidations: Name,
-    ruleIsActive: Name,
+    fieldValidations: IdentifierName,
+    ruleIsActive: IdentifierName,
     generator: CodeGenerator,
   ): void {
     const rules = this.resolveFieldRules(field)
@@ -154,8 +154,8 @@ export default class StepValidationCompiler {
 
   private compileTemplateField(
     field: FieldModel,
-    fieldValidations: Name,
-    ruleIsActive: Name,
+    fieldValidations: IdentifierName,
+    ruleIsActive: IdentifierName,
     generator: CodeGenerator,
   ): void {
     const rules = this.resolveFieldRules(field)
@@ -199,10 +199,10 @@ export default class StepValidationCompiler {
 
   private compileFieldValidationSlot(
     rules: ValidationRulesModel,
-    blockId: Code,
+    blockId: CodeFragment,
     blockCode: SafeCode,
-    fieldValidations: Name,
-    ruleIsActive: Name,
+    fieldValidations: IdentifierName,
+    ruleIsActive: IdentifierName,
     functionPrefix: string,
     generator: CodeGenerator,
   ): void {
@@ -233,8 +233,8 @@ export default class StepValidationCompiler {
 
   private compileDomainValidationSlot(
     rules: ValidationRulesModel | undefined,
-    domainValidations: Name,
-    ruleIsActive: Name,
+    domainValidations: IdentifierName,
+    ruleIsActive: IdentifierName,
     generator: CodeGenerator,
   ): void {
     if (rules === undefined) {
@@ -252,12 +252,12 @@ export default class StepValidationCompiler {
 
   private compileFieldValidationRunFunction(
     rules: ValidationRulesModel,
-    blockId: Code,
+    blockId: CodeFragment,
     blockCode: SafeCode,
-    ruleIsActive: Name,
+    ruleIsActive: IdentifierName,
     functionPrefix: string,
     generator: CodeGenerator,
-  ): Name {
+  ): IdentifierName {
     return generator.function(
       functionPrefix,
       [],
@@ -294,9 +294,9 @@ export default class StepValidationCompiler {
 
   private compileDomainValidationRunFunction(
     rules: ValidationRulesModel,
-    ruleIsActive: Name,
+    ruleIsActive: IdentifierName,
     generator: CodeGenerator,
-  ): Name {
+  ): IdentifierName {
     return generator.function(
       'validateStep',
       [],
@@ -330,7 +330,7 @@ export default class StepValidationCompiler {
     )
   }
 
-  private compileRuleFilterSetup(generator: CodeGenerator): Name {
+  private compileRuleFilterSetup(generator: CodeGenerator): IdentifierName {
     generator.comment('Active validation groups')
     generator.note('Use the default group when the request does not select one.')
     const requestedGroups = generator.const(
@@ -373,11 +373,11 @@ export default class StepValidationCompiler {
   }
 
   private compileValidationFailures(
-    validationResults: Name,
-    ruleIsActive: Name,
+    validationResults: IdentifierName,
+    ruleIsActive: IdentifierName,
     resultPrefix: string,
     generator: CodeGenerator,
-  ): Name {
+  ): IdentifierName {
     generator.comment('Evaluate validation results')
     // Async discovery is monotonic within a build, so this read is safe only
     // because this slot's rules were compiled by compileValidationRules just
@@ -388,7 +388,11 @@ export default class StepValidationCompiler {
     return generator.const(resultPrefix, this.expr.usesAwait ? code`await ${helperCall}` : helperCall)
   }
 
-  private compileValidationRules(rules: ValidationRulesModel, functionPrefix: string, generator: CodeGenerator): Name {
+  private compileValidationRules(
+    rules: ValidationRulesModel,
+    functionPrefix: string,
+    generator: CodeGenerator,
+  ): IdentifierName {
     if (rules.kind === ValidationRulesKind.DIRECT) {
       const validationRules = this.expr.withValidationFunctionPrefix(functionPrefix, () =>
         rules.rules.map(rule => this.expr.compileOperandCode(rule.node)),
@@ -408,7 +412,7 @@ export default class StepValidationCompiler {
     return validationResults
   }
 
-  /** Analysis only models validating fields, so absent rules are an impossible state. */
+  /** The analysis phase only includes fields that have validation, so a field with no rules here is a bug. */
   private resolveFieldRules(field: FieldModel): ValidationRulesModel {
     if (field.validation === undefined) {
       throw new ForgeInternalError(`Validation model field "${field.label}" carries no validation rules`)
@@ -417,7 +421,7 @@ export default class StepValidationCompiler {
     return field.validation.rules
   }
 
-  private compileTemplateBlockId(field: FieldModel): Code {
+  private compileTemplateBlockId(field: FieldModel): CodeFragment {
     if (!isTemplateNode(field.source)) {
       return literal(field.source.id)
     }
