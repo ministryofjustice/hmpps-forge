@@ -6,10 +6,13 @@ import type { ForgeRenderer, RenderBlock, RenderContext } from '../../../../fram
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import { coreComponents } from '../../../../built-ins/components'
 import { RENDER_BLOCK_BRAND } from '../contracts/renderBlock.brand'
-import WorkContext from '../../../runtime/evaluation/work/WorkContext'
-import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
-import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import WorkContext from '../../../work/WorkContext'
+import WorkExecutor from '../../../work/WorkExecutor'
+import { createRenderBlocksTask } from './RenderBlocksWorkHandler'
+import { createAssemblePageTask } from './RenderAssemblePageWorkHandler'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import type FunctionRegistry from '../../../registries/FunctionRegistry'
+import { createTestRequestState } from '../../../runtime/pipeline/testing-helpers/requestStateTestHelpers'
 
 function createRenderBlock(
   variant: string,
@@ -45,9 +48,9 @@ function createRenderer(): ForgeRenderer<string> {
   }
 }
 
-function createRequestContext(traceEnabled = false): RequestExecutionContext {
-  return {
-    context: {
+function createRequestContext(traceEnabled = false): RequestState {
+  return createTestRequestState(
+    {
       request: {
         url: '/step',
         path: '/step',
@@ -69,16 +72,17 @@ function createRequestContext(traceEnabled = false): RequestExecutionContext {
       domain: { data: {}, answers: {} },
       evaluation: {},
     },
-    responseBindings: {
-      setHeader: vi.fn(),
-      setCookie: vi.fn(),
+    {
+      responseBindings: {
+        setHeader: vi.fn(),
+        setCookie: vi.fn(),
+      },
+      functionRegistry: { get: vi.fn() } as unknown as FunctionRegistry,
+      componentRegistry: new ComponentRegistry(),
+      hasRenderer: true,
+      traceEnabled,
     },
-    functionRegistry: { get: vi.fn() } as unknown as RequestExecutionContext['functionRegistry'],
-    componentRegistry: new ComponentRegistry(),
-    hasRenderer: true,
-    traceEnabled,
-    buildStepValidation: () => undefined,
-  }
+  )
 }
 
 function createMarkingRenderer(): ForgeRenderer<string> {
@@ -108,7 +112,7 @@ describe('Render work handlers', () => {
     const executor = new WorkExecutor()
     const renderer = createRenderer()
     const componentRegistry = createComponentRegistry('known')
-    const task = WorkTaskFactory.renderBlocks([createRenderBlock('missing')], renderer, componentRegistry)
+    const task = createRenderBlocksTask([createRenderBlock('missing')], renderer, componentRegistry)
 
     // Act / Assert
     await expect(executor.execute(task, new WorkContext(createRequestContext()))).rejects.toThrow(
@@ -124,7 +128,7 @@ describe('Render work handlers', () => {
     const parent = createRenderBlock('parent', {
       content: createRenderBlock('missing', {}, 'compile_ast:nested'),
     })
-    const task = WorkTaskFactory.renderBlocks([parent], renderer, componentRegistry)
+    const task = createRenderBlocksTask([parent], renderer, componentRegistry)
 
     // Act / Assert
     await expect(executor.execute(task, new WorkContext(createRequestContext()))).rejects.toThrow(
@@ -139,7 +143,7 @@ describe('Render work handlers', () => {
     const componentRegistry = createComponentRegistry('parent', 'child')
     const child = createRenderBlock('child', {}, 'compile_ast:child')
     const parent = createRenderBlock('parent', { content: child }, 'compile_ast:parent')
-    const task = WorkTaskFactory.renderBlocks([parent], renderer, componentRegistry)
+    const task = createRenderBlocksTask([parent], renderer, componentRegistry)
     const requestContext = createRequestContext()
 
     // Act
@@ -164,7 +168,7 @@ describe('Render work handlers', () => {
       blockType: BlockType.FIELD,
     }
     const parent = createRenderBlock('parent', { content: child }, 'compile_ast:parent')
-    const task = WorkTaskFactory.renderBlocks([parent], renderer, componentRegistry)
+    const task = createRenderBlocksTask([parent], renderer, componentRegistry)
 
     // Act
     await executor.execute(task, new WorkContext(createRequestContext()))
@@ -187,8 +191,8 @@ describe('Render work handlers', () => {
     const renderer = createRenderer()
     const renderContext = createRenderContext()
     const requestContext = createRequestContext()
-    requestContext.renderedBlocks = ['<one>', '<two>']
-    const task = WorkTaskFactory.assemblePage(renderContext, renderer)
+    requestContext.recordRenderedBlocks(['<one>', '<two>'])
+    const task = createAssemblePageTask(renderContext, renderer)
 
     // Act
     const result = await executor.execute(task, new WorkContext(requestContext))
@@ -203,7 +207,7 @@ describe('Render work handlers', () => {
     const executor = new WorkExecutor()
     const renderer = createMarkingRenderer()
     const componentRegistry = createComponentRegistry('known')
-    const task = WorkTaskFactory.renderBlocks([createRenderBlock('known')], renderer, componentRegistry)
+    const task = createRenderBlocksTask([createRenderBlock('known')], renderer, componentRegistry)
 
     // Act
     const result = await executor.execute(task, new WorkContext(createRequestContext(true)))
@@ -218,7 +222,7 @@ describe('Render work handlers', () => {
     const executor = new WorkExecutor()
     const renderer = createMarkingRenderer()
     const componentRegistry = createComponentRegistry('known')
-    const task = WorkTaskFactory.renderBlocks([createRenderBlock('known')], renderer, componentRegistry)
+    const task = createRenderBlocksTask([createRenderBlock('known')], renderer, componentRegistry)
 
     // Act
     const result = await executor.execute(task, new WorkContext(createRequestContext(false)))
@@ -233,7 +237,7 @@ describe('Render work handlers', () => {
     const executor = new WorkExecutor()
     const renderer = createRenderer()
     const componentRegistry = createComponentRegistry('known')
-    const task = WorkTaskFactory.renderBlocks([createRenderBlock('known')], renderer, componentRegistry)
+    const task = createRenderBlocksTask([createRenderBlock('known')], renderer, componentRegistry)
 
     // Act
     const result = await executor.execute(task, new WorkContext(createRequestContext(true)))
@@ -260,7 +264,7 @@ describe('Render work handlers', () => {
         createRenderBlock('child', { text: 'two' }, 'compile_ast:child2'),
       ],
     })
-    const task = WorkTaskFactory.renderBlocks([fragment], renderer, componentRegistry)
+    const task = createRenderBlocksTask([fragment], renderer, componentRegistry)
 
     // Act
     const result = await executor.execute(task, new WorkContext(createRequestContext()))

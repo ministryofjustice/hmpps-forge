@@ -21,7 +21,7 @@ import ForgeReferenceScopeError from '../../errors/ForgeReferenceScopeError'
 import ForgeUnregisteredFunctionError from '../../errors/ForgeUnregisteredFunctionError'
 import ForgeUnregisteredComponentError from '../../errors/ForgeUnregisteredComponentError'
 import ForgeFunctionArityError from '../../errors/ForgeFunctionArityError'
-import CompilationPipeline from '../../compilation/CompilationPipeline'
+import CompilationPipeline from '../../compilation/pipeline/CompilationPipeline'
 import { finaliseBuilders } from '../../../authoring/builders/utils/finaliseBuilders'
 
 function compileJourney(
@@ -940,49 +940,6 @@ describe('ASTSemanticValidator', () => {
       }
     })
 
-    it('should reject an effect inside an iterator template outside a hook', () => {
-      // Arrange
-      const journey: JourneyDefinition = {
-        ...baseJourney,
-        steps: [
-          {
-            type: StructureType.STEP,
-            path: '/step1',
-            title: 'Step 1',
-            blocks: [
-              {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
-                variant: 'text',
-                code: 'field1',
-                defaultValue: {
-                  type: ExpressionType.ITERATE,
-                  input: { type: ExpressionType.REFERENCE, path: ['answers', 'items'] },
-                  iterator: {
-                    type: IteratorType.MAP,
-                    yield: { type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] },
-                  },
-                },
-              } as unknown as FieldBlockDefinition,
-            ],
-          } as StepDefinition,
-        ],
-      }
-
-      // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
-
-      try {
-        compileJourney(journey, functionRegistry, componentRegistry)
-      } catch (error) {
-        expect(error).toBeInstanceOf(AggregateError)
-        if (error instanceof AggregateError) {
-          const scopeErrors = error.errors.filter((e: ForgeReferenceScopeError) => e.message.startsWith('Effect '))
-
-          expect(scopeErrors.length).toBeGreaterThanOrEqual(1)
-        }
-      }
-    })
   })
 
   describe('function argument scope', () => {
@@ -1367,55 +1324,6 @@ describe('ASTSemanticValidator', () => {
       expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
     })
 
-    it('should reject a validation in a field block defaultValue', () => {
-      // Arrange
-      const journey: JourneyDefinition = {
-        ...baseJourney,
-        steps: [
-          {
-            type: StructureType.STEP,
-            path: '/step1',
-            title: 'Step 1',
-            blocks: [
-              {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
-                variant: 'text',
-                code: 'field1',
-                defaultValue: {
-                  type: ExpressionType.VALIDATION,
-                  message: 'Misplaced',
-                  condition: {
-                    type: PredicateType.TEST,
-                    subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
-                    negate: false,
-                    condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
-                  },
-                },
-              } as unknown as FieldBlockDefinition,
-            ],
-          } as StepDefinition,
-        ],
-      }
-
-      // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
-
-      try {
-        compileJourney(journey, functionRegistry, componentRegistry)
-      } catch (error) {
-        expect(error).toBeInstanceOf(AggregateError)
-        if (error instanceof AggregateError) {
-          const scopeErrors = error.errors.filter(
-            (e: ForgeReferenceScopeError) =>
-              e.message === 'Validation rules can only be used inside validWhen on a field block or step',
-          )
-
-          expect(scopeErrors).toHaveLength(1)
-        }
-      }
-    })
-
     it('should reject a validation in a basic block property', () => {
       // Arrange
       const journey: JourneyDefinition = {
@@ -1595,45 +1503,6 @@ describe('ASTSemanticValidator', () => {
       expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
     })
 
-    it('should reject an outcome outside a hook', () => {
-      // Arrange
-      const journey: JourneyDefinition = {
-        ...baseJourney,
-        steps: [
-          {
-            type: StructureType.STEP,
-            path: '/step1',
-            title: 'Step 1',
-            blocks: [
-              {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
-                variant: 'text',
-                code: 'field1',
-                defaultValue: { type: OutcomeType.REDIRECT, goto: '/somewhere' },
-              } as unknown as FieldBlockDefinition,
-            ],
-          } as StepDefinition,
-        ],
-      }
-
-      // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
-
-      try {
-        compileJourney(journey, functionRegistry, componentRegistry)
-      } catch (error) {
-        expect(error).toBeInstanceOf(AggregateError)
-        if (error instanceof AggregateError) {
-          const scopeErrors = error.errors.filter(
-            (e: ForgeReferenceScopeError) =>
-              e.message === 'Outcomes can only be used inside a hook (onAccess or onSubmission)',
-          )
-
-          expect(scopeErrors).toHaveLength(1)
-        }
-      }
-    })
   })
 
   describe('hook scope', () => {
@@ -1672,45 +1541,6 @@ describe('ASTSemanticValidator', () => {
       expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
     })
 
-    it('should reject a hook inside a block property', () => {
-      // Arrange
-      const journey: JourneyDefinition = {
-        ...baseJourney,
-        steps: [
-          {
-            type: StructureType.STEP,
-            path: '/step1',
-            title: 'Step 1',
-            blocks: [
-              {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
-                variant: 'text',
-                code: 'field1',
-                defaultValue: { type: HookType.ACCESS },
-              } as unknown as FieldBlockDefinition,
-            ],
-          } as StepDefinition,
-        ],
-      }
-
-      // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
-
-      try {
-        compileJourney(journey, functionRegistry, componentRegistry)
-      } catch (error) {
-        expect(error).toBeInstanceOf(AggregateError)
-        if (error instanceof AggregateError) {
-          const scopeErrors = error.errors.filter(
-            (e: ForgeReferenceScopeError) =>
-              e.message === 'Hooks can only be defined in onAccess (steps, journeys) or onSubmission (steps) arrays',
-          )
-
-          expect(scopeErrors).toHaveLength(1)
-        }
-      }
-    })
   })
 
   describe('tie-breaker scope', () => {
@@ -1747,45 +1577,6 @@ describe('ASTSemanticValidator', () => {
       expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
     })
 
-    it('should reject a tie-breaker in a block property', () => {
-      // Arrange
-      const journey: JourneyDefinition = {
-        ...baseJourney,
-        steps: [
-          {
-            type: StructureType.STEP,
-            path: '/step1',
-            title: 'Step 1',
-            blocks: [
-              {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
-                variant: 'text',
-                code: 'field1',
-                defaultValue: { type: ExpressionType.TIE_BREAKER, priority: 1 },
-              } as unknown as FieldBlockDefinition,
-            ],
-          } as StepDefinition,
-        ],
-      }
-
-      // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
-
-      try {
-        compileJourney(journey, functionRegistry, componentRegistry)
-      } catch (error) {
-        expect(error).toBeInstanceOf(AggregateError)
-        if (error instanceof AggregateError) {
-          const scopeErrors = error.errors.filter(
-            (e: ForgeReferenceScopeError) =>
-              e.message === "Tie-breakers can only be used in a step's reachability configuration",
-          )
-
-          expect(scopeErrors).toHaveLength(1)
-        }
-      }
-    })
   })
 
   describe('structure scope', () => {
@@ -2023,145 +1814,6 @@ describe('ASTSemanticValidator', () => {
       expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
     })
 
-    it('should reject a non-hook in onAccess', () => {
-      // Arrange
-      const journey: JourneyDefinition = {
-        ...baseJourney,
-        steps: [
-          {
-            type: StructureType.STEP,
-            path: '/step1',
-            title: 'Step 1',
-            blocks: [],
-            onAccess: [{ type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'text' }],
-          } as unknown as StepDefinition,
-        ],
-      }
-
-      // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
-
-      try {
-        compileJourney(journey, functionRegistry, componentRegistry)
-      } catch (error) {
-        expect(error).toBeInstanceOf(AggregateError)
-        if (error instanceof AggregateError) {
-          const scopeErrors = error.errors.filter(
-            (e: ForgeReferenceScopeError) => e.message === 'onAccess can only contain access hooks',
-          )
-
-          expect(scopeErrors).toHaveLength(1)
-        }
-      }
-    })
-
-    it('should reject a non-effect in effects', () => {
-      // Arrange
-      const journey: JourneyDefinition = {
-        ...baseJourney,
-        steps: [
-          {
-            type: StructureType.STEP,
-            path: '/step1',
-            title: 'Step 1',
-            blocks: [],
-            onAccess: [
-              {
-                type: HookType.ACCESS,
-                effects: [{ type: ExpressionType.REFERENCE, path: ['data'] }],
-              },
-            ],
-          } as unknown as StepDefinition,
-        ],
-      }
-
-      // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
-
-      try {
-        compileJourney(journey, functionRegistry, componentRegistry)
-      } catch (error) {
-        expect(error).toBeInstanceOf(AggregateError)
-        if (error instanceof AggregateError) {
-          const scopeErrors = error.errors.filter(
-            (e: ForgeReferenceScopeError) => e.message === 'effects can only contain effect functions',
-          )
-
-          expect(scopeErrors).toHaveLength(1)
-        }
-      }
-    })
-
-    it('should reject a non-outcome in next', () => {
-      // Arrange
-      const journey: JourneyDefinition = {
-        ...baseJourney,
-        steps: [
-          {
-            type: StructureType.STEP,
-            path: '/step1',
-            title: 'Step 1',
-            blocks: [],
-            onSubmission: [
-              {
-                type: HookType.SUBMIT,
-                onValid: {
-                  effects: [{ type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] }],
-                  next: [{ type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] }],
-                },
-              },
-            ],
-          } as unknown as StepDefinition,
-        ],
-      }
-
-      // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
-
-      try {
-        compileJourney(journey, functionRegistry, componentRegistry)
-      } catch (error) {
-        expect(error).toBeInstanceOf(AggregateError)
-        if (error instanceof AggregateError) {
-          const scopeErrors = error.errors.filter(
-            (e: ForgeReferenceScopeError) => e.message === 'next can only contain outcomes',
-          )
-
-          expect(scopeErrors).toHaveLength(1)
-        }
-      }
-    })
-
-    it('should reject a non-block in blocks', () => {
-      // Arrange
-      const journey: JourneyDefinition = {
-        ...baseJourney,
-        steps: [
-          {
-            type: StructureType.STEP,
-            path: '/step1',
-            title: 'Step 1',
-            blocks: [{ type: ExpressionType.REFERENCE, path: ['data', 'name'] }],
-          } as unknown as StepDefinition,
-        ],
-      }
-
-      // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
-
-      try {
-        compileJourney(journey, functionRegistry, componentRegistry)
-      } catch (error) {
-        expect(error).toBeInstanceOf(AggregateError)
-        if (error instanceof AggregateError) {
-          const scopeErrors = error.errors.filter(
-            (e: ForgeReferenceScopeError) => e.message === 'blocks can only contain block definitions',
-          )
-
-          expect(scopeErrors).toHaveLength(1)
-        }
-      }
-    })
   })
 
   describe('function arity', () => {

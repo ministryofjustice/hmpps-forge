@@ -1,24 +1,26 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { StepValidityResult } from '../contracts/stepValidityResult.type'
-import WorkContext from '../../../runtime/evaluation/work/WorkContext'
-import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
-import type { WorkHandler } from '../../../contracts/runtime/work.type'
-import { createWorkTask } from '../../../runtime/evaluation/work/workTask'
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import WorkContext from '../../../work/WorkContext'
+import WorkExecutor from '../../../work/WorkExecutor'
+import type { WorkHandler } from '../../../contracts/work/work.type'
+import { createWorkTask } from '../../../work/workTask'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import type { RequestDependencies } from '../../../runtime/pipeline/RequestState'
+import type { RuntimeContext } from '../../../contracts/runtime/evaluationState.type'
+import { createTestRequestState } from '../../../runtime/pipeline/testing-helpers/requestStateTestHelpers'
 import type { StepValidationWorkProps } from '../contracts/ValidationWork.type'
 import { CURRENT_STEP_VALIDATION_WORK_HANDLER } from './CurrentStepValidationWorkHandler'
 
-function createContext(overrides: Partial<RequestExecutionContext> = {}): WorkContext<RequestExecutionContext> {
-  const compiled = {
-    currentStepId: 'step-1' as NodeId,
-    snapshots: { capture: vi.fn(), snapshotFor: vi.fn() },
-    answers: {},
-    context: { evaluation: {}, domain: { data: {}, answers: {} }, request: {} },
-    ...overrides,
-  } as unknown as RequestExecutionContext
+function createContext(overrides: Partial<RequestDependencies> = {}): WorkContext<RequestState> {
+  const context = { evaluation: {}, domain: { data: {}, answers: {} }, request: {} } as RuntimeContext
 
-  return new WorkContext(compiled)
+  return new WorkContext(
+    createTestRequestState(context, {
+      currentStepId: 'step-1' as NodeId,
+      ...overrides,
+    }),
+  )
 }
 
 function stubValidation(result: StepValidityResult) {
@@ -48,7 +50,7 @@ describe('CurrentStepValidationWorkHandler', () => {
       // Assert
       expect(buildStepValidation).toHaveBeenCalledWith('step-1', { groups: ['lookup'], includeSubmissionOnly: true })
       expect(completed.output).toEqual({ isValid: true, fieldFailures: [], domainFailures: [] })
-      expect(context.request.currentPageValidation).toEqual({ isValid: true, fieldFailures: [], domainFailures: [] })
+      expect(context.state.currentPageValidation).toEqual({ isValid: true, fieldFailures: [], domainFailures: [] })
       expect(completed.children.map(child => child.key)).toEqual(['validation:stub'])
     })
 
@@ -74,8 +76,8 @@ describe('CurrentStepValidationWorkHandler', () => {
 
       // Assert
       expect(buildStepValidation).toHaveBeenCalledWith('step-1', { groups: ['default'], includeSubmissionOnly: false })
-      expect(context.request.currentPageValidation?.isValid).toBe(false)
-      expect(context.request.currentPageValidation?.fieldFailures).toEqual([failure])
+      expect(context.state.currentPageValidation?.isValid).toBe(false)
+      expect(context.state.currentPageValidation?.fieldFailures).toEqual([failure])
     })
 
     it('should reject when the validation builder returns no task', async () => {

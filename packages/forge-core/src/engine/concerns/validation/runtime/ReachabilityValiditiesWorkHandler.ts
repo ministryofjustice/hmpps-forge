@@ -3,13 +3,15 @@ import type {
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/runtime/work.type'
-import { phaseInstrumentation } from '../../../runtime/evaluation/request/requestPhase'
+} from '../../../contracts/work/work.type'
+import { createWorkTask } from '../../../work/workTask'
+import { phaseInstrumentation } from '../../../runtime/pipeline/contextSnapshot'
 import { validationTaskKey } from './stepValidationStore'
 import { isStepValidityResult, recordReachabilityValidity } from './reachabilityValidityState'
 import type { ValidationRuleFilter } from '../contracts/ValidationWork.type'
 import type { RequestValiditiesWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
 
 const REQUEST_VALIDITIES_KIND = 'request.validities'
 
@@ -43,10 +45,10 @@ export const REACHABILITY_VALIDITIES_WORK_INSTRUMENTATION: WorkInstrumentation<
 export const REACHABILITY_VALIDITIES_WORK_HANDLER: WorkHandler<'request.validities', RequestValiditiesWorkProps> = {
   kind: REQUEST_VALIDITIES_KIND,
 
-  async begin(ctx: WorkContextContract<RequestExecutionContext, RequestValiditiesWorkProps>) {
+  async begin(ctx: WorkContextContract<RequestState, RequestValiditiesWorkProps>) {
     const tasks = await Promise.all(
       [...ctx.props.compiledStepValidations.keys()].map(stepId =>
-        ctx.request.buildStepValidation(stepId, REACHABILITY_VALIDATION_FILTER),
+        ctx.state.dependencies.buildStepValidation(stepId, REACHABILITY_VALIDATION_FILTER),
       ),
     )
     const present = tasks.filter(task => task !== undefined)
@@ -61,7 +63,7 @@ export const REACHABILITY_VALIDITIES_WORK_HANDLER: WorkHandler<'request.validiti
   },
 
   complete(
-    ctx: WorkContextContract<RequestExecutionContext, RequestValiditiesWorkProps>,
+    ctx: WorkContextContract<RequestState, RequestValiditiesWorkProps>,
     children: readonly CompletedWork[],
   ): PhaseWorkOutput {
     const stepIdByKey = new Map(
@@ -74,10 +76,19 @@ export const REACHABILITY_VALIDITIES_WORK_HANDLER: WorkHandler<'request.validiti
       const stepId = stepIdByKey.get(child.key)
 
       if (stepId !== undefined && isStepValidityResult(child.output)) {
-        recordReachabilityValidity(ctx.request.context, stepId, child.output)
+        recordReachabilityValidity(ctx.state.context, stepId, child.output)
       }
     })
 
     return { action: 'continue' }
   },
+}
+
+export function createReachabilityValiditiesTask(props: RequestValiditiesWorkProps) {
+  return createWorkTask(
+    'validities',
+    REACHABILITY_VALIDITIES_WORK_HANDLER,
+    props,
+    REACHABILITY_VALIDITIES_WORK_INSTRUMENTATION,
+  )
 }

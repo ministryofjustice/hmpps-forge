@@ -2,25 +2,25 @@ import { describe, expect, it, vi } from 'vitest'
 import { NO_OP_RESPONSE_BINDINGS } from '../../../../framework/types/responseBindings.type'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
-import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
+import { createResolveBlocksTask, RESOLVE_BLOCKS_KIND } from './ResolveBlocksWorkHandler'
 import { REQUEST_RESOLVE_WORK_HANDLER } from './RequestResolveWorkHandler'
-import { RESOLVE_BLOCKS_KIND } from './ResolveBlocksWorkHandler'
 import type { CompiledResolveContext } from '../../../contracts/compiled/compiledContexts.type'
 import type { CompiledResolveFunction } from '../../../contracts/compiled/compiledFunctions.type'
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
 import type { RequestResolveWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
-import type { CompletedWork, WorkContextContract } from '../../../contracts/runtime/work.type'
+import type { CompletedWork, WorkContextContract } from '../../../contracts/work/work.type'
+import { createTestRequestState } from '../../../runtime/pipeline/testing-helpers/requestStateTestHelpers'
 
 function createRequestContext(
   failure: StepValidationFailure,
-): WorkContextContract<RequestExecutionContext, RequestResolveWorkProps> {
+): WorkContextContract<RequestState, RequestResolveWorkProps> {
   const compiled: CompiledResolveFunction = vi.fn(
     (_ctx: CompiledResolveContext): Awaited<ReturnType<CompiledResolveFunction>> =>
-      WorkTaskFactory.resolveBlocks([], {}, []) as unknown as Awaited<ReturnType<CompiledResolveFunction>>,
+      createResolveBlocksTask([], {}, []) as unknown as Awaited<ReturnType<CompiledResolveFunction>>,
   )
-  const request: RequestExecutionContext = {
-    context: {
+  const request: RequestState = createTestRequestState(
+    {
       request: {
         url: '/step',
         path: '/step',
@@ -42,21 +42,21 @@ function createRequestContext(
       domain: { data: {}, answers: {} },
       evaluation: {},
     },
-    responseBindings: NO_OP_RESPONSE_BINDINGS,
-    functionRegistry: new FunctionRegistry(),
-    componentRegistry: new ComponentRegistry(),
-    hasRenderer: false,
-    traceEnabled: false,
-    currentPageValidation: {
-      isValid: false,
-      fieldFailures: [failure],
-      domainFailures: [],
+    {
+      responseBindings: NO_OP_RESPONSE_BINDINGS,
+      functionRegistry: new FunctionRegistry(),
+      componentRegistry: new ComponentRegistry(),
     },
-    buildStepValidation: () => undefined,
-  }
+  )
+
+  request.recordCurrentPageValidation({
+    isValid: false,
+    fieldFailures: [failure],
+    domainFailures: [],
+  })
 
   return {
-    request,
+    state: request,
     props: {
       compiled,
       path: '/step',
@@ -123,9 +123,9 @@ describe('REQUEST_RESOLVE_WORK_HANDLER', () => {
       await REQUEST_RESOLVE_WORK_HANDLER.begin(ctx)
 
       // Assert
-      expect(ctx.request.fieldFailureAnchors).toEqual({})
+      expect(ctx.state.fieldFailureAnchors).toEqual({})
       expect(ctx.props.compiled).toHaveBeenCalledWith(
-        expect.objectContaining({ fieldFailureAnchors: ctx.request.fieldFailureAnchors }),
+        expect.objectContaining({ fieldFailureAnchors: ctx.state.fieldFailureAnchors }),
       )
     })
   })
@@ -152,7 +152,7 @@ describe('REQUEST_RESOLVE_WORK_HANDLER', () => {
       }
       const ctx = createRequestContext(failure)
 
-      ctx.request.fieldFailureAnchors = { 'compiled:template:1:0': 'employed-unavailable' }
+      ctx.state.fieldFailureAnchors['compiled:template:1:0'] = 'employed-unavailable'
 
       // Act
       const output = await REQUEST_RESOLVE_WORK_HANDLER.complete!(ctx, [createResolvedBlocksChild()])
@@ -185,8 +185,6 @@ describe('REQUEST_RESOLVE_WORK_HANDLER', () => {
         groups: ['default'],
       }
       const ctx = createRequestContext(failure)
-
-      ctx.request.fieldFailureAnchors = {}
 
       // Act
       const output = await REQUEST_RESOLVE_WORK_HANDLER.complete!(ctx, [createResolvedBlocksChild()])

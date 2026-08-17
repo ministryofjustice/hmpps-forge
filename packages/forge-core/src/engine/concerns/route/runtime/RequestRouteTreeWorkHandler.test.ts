@@ -4,10 +4,11 @@ import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import { REQUEST_ROUTE_TREE_WORK_HANDLER } from './RequestRouteTreeWorkHandler'
 import type { CompiledRouteMetadataFunction } from '../../../contracts/compiled/compiledFunctions.type'
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
 import type { RequestRouteTreeWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { StoredRouteTree } from '../contracts/routeTree.type'
-import type { WorkContextContract } from '../../../contracts/runtime/work.type'
+import type { WorkContextContract } from '../../../contracts/work/work.type'
+import { createTestRequestState } from '../../../runtime/pipeline/testing-helpers/requestStateTestHelpers'
 
 const STORED_TREE: StoredRouteTree = [
   {
@@ -28,9 +29,9 @@ const STORED_TREE: StoredRouteTree = [
 function createContext(
   compiled: CompiledRouteMetadataFunction,
   routeTree: StoredRouteTree,
-): WorkContextContract<RequestExecutionContext, RequestRouteTreeWorkProps> {
-  const request: RequestExecutionContext = {
-    context: {
+): WorkContextContract<RequestState, RequestRouteTreeWorkProps> {
+  const request: RequestState = createTestRequestState(
+    {
       request: {
         url: '/user/abc-123/profile',
         path: '/user/abc-123/profile',
@@ -52,16 +53,15 @@ function createContext(
       domain: { data: {}, answers: {} },
       evaluation: {},
     },
-    responseBindings: NO_OP_RESPONSE_BINDINGS,
-    functionRegistry: new FunctionRegistry(),
-    componentRegistry: new ComponentRegistry(),
-    hasRenderer: false,
-    traceEnabled: false,
-    buildStepValidation: () => undefined,
-  }
+    {
+      responseBindings: NO_OP_RESPONSE_BINDINGS,
+      functionRegistry: new FunctionRegistry(),
+      componentRegistry: new ComponentRegistry(),
+    },
+  )
 
   return {
-    request,
+    state: request,
     props: {
       compiled,
       path: '/user/abc-123/profile',
@@ -89,7 +89,7 @@ describe('REQUEST_ROUTE_TREE_WORK_HANDLER', () => {
       expect(compiled).toHaveBeenCalledTimes(1)
       expect(result).toEqual({ action: 'continue' })
 
-      const tree = ctx.request.routeTree ?? []
+      const tree = ctx.state.routeTree ?? []
       const journey = tree[0]
       const step = journey.children[0]
 

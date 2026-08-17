@@ -1,16 +1,10 @@
 // eslint-disable-next-line max-classes-per-file
 import type { RequestTraceEvent } from '../contracts/runtime/trace.type'
 import type { RequestSnapshot } from '../../framework/types/snapshot.type'
-import type { CompilationTraceEvent } from '../compilation/tracing/compilationTrace.type'
+import type { CompilationTraceEvent } from '../contracts/compilation/trace.type'
 
 export interface ForgeInstrumentationOptions {
   readonly sinks?: readonly ForgeInstrumentationSink[]
-
-  /**
-   * Attaches the generated JavaScript source to compilation trace spans.
-   * Verbose, so opt-in. Default: false.
-   */
-  readonly captureGeneratedSource?: boolean
 }
 
 export interface ForgeInstrumentationSink {
@@ -27,7 +21,6 @@ export interface ForgeInstrumentationSink {
 
 export interface ForgeInstrumentation {
   readonly enabled: boolean
-  readonly captureGeneratedSource: boolean
 
   /**
    * Resolves the sinks that want this request (shouldTrace, decided once at
@@ -42,25 +35,18 @@ export interface ForgeInstrumentation {
 export default class ForgeTraceSinkDispatcher implements ForgeInstrumentation {
   private readonly sinks: readonly ForgeInstrumentationSink[]
 
-  private readonly captureGeneratedSourceOption: boolean
-
   constructor(options: ForgeInstrumentationOptions = {}) {
     this.sinks = options.sinks ?? []
-    this.captureGeneratedSourceOption = options.captureGeneratedSource === true
   }
 
   get enabled(): boolean {
     return this.sinks.length > 0
   }
 
-  get captureGeneratedSource(): boolean {
-    return this.captureGeneratedSourceOption
-  }
-
   forRequest(snapshot: RequestSnapshot): ForgeInstrumentation {
     const acceptedSinks = this.sinks.filter(sink => sink.shouldTrace?.(snapshot) ?? true)
 
-    return new RequestScopedInstrumentation(acceptedSinks, this.captureGeneratedSourceOption)
+    return new RequestScopedInstrumentation(acceptedSinks)
   }
 
   onRequestTrace(event: RequestTraceEvent): void {
@@ -77,17 +63,10 @@ export default class ForgeTraceSinkDispatcher implements ForgeInstrumentation {
 }
 
 class RequestScopedInstrumentation implements ForgeInstrumentation {
-  constructor(
-    private readonly sinks: readonly ForgeInstrumentationSink[],
-    private readonly captureGeneratedSourceOption: boolean,
-  ) {}
+  constructor(private readonly sinks: readonly ForgeInstrumentationSink[]) {}
 
   get enabled(): boolean {
     return this.sinks.length > 0
-  }
-
-  get captureGeneratedSource(): boolean {
-    return this.captureGeneratedSourceOption
   }
 
   forRequest(): ForgeInstrumentation {

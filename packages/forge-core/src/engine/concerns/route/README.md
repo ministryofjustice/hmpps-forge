@@ -17,7 +17,7 @@ redirect target strings into concrete URLs once some other phase has decided to 
 
 This concern owns `request.route-tree`, which runs on step requests just before resolve. It creates no child work
 tasks. Its other two runtime jobs sit outside the phase list: `RouteTreeBuilder` runs at mount, and
-`resolveRedirectTarget()` runs from `RequestEvaluator` after any phase has chosen to redirect.
+`resolveRedirectTarget()` runs from `RequestPipeline` after any phase has chosen to redirect.
 
 ## Cross-concern edges
 

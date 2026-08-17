@@ -24,11 +24,11 @@ import type { AnswerPreparationModel } from '../contracts/answerPreparationModel
 import StepAnswerPreparationCompiler from './StepAnswerPreparationCompiler'
 import type { CompiledAnswerPreparationFunction } from '../../../contracts/compiled/compiledFunctions.type'
 import type { CompiledAnswerPreparationContext } from '../../../contracts/compiled/compiledContexts.type'
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
-import WorkContext from '../../../runtime/evaluation/work/WorkContext'
-import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
-import { isWorkTask } from '../../../runtime/evaluation/work/workTask'
-import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import WorkContext from '../../../work/WorkContext'
+import WorkExecutor from '../../../work/WorkExecutor'
+import { isWorkTask } from '../../../work/workTask'
+import { workTaskBuilders } from '../../../runtime/context/compiledEvaluationContext'
 
 function createSyncRegistry(...funcNames: string[]): FunctionRegistry {
   const registry = new FunctionRegistry()
@@ -186,7 +186,7 @@ function createCtx(overrides: Partial<CompiledAnswerPreparationContext> = {}): C
     } as unknown as CompiledAnswerPreparationContext['conditions'],
     post: {},
     components: new ComponentRegistry(),
-    workTasks: WorkTaskFactory,
+    workTasks: workTaskBuilders,
     ...overrides,
   }
 }
@@ -231,11 +231,11 @@ async function executeAnswerPreparationTask(task: unknown, ctx: CompiledAnswerPr
     throw new Error('Expected answer preparation task')
   }
 
-  // The task's run-closures mutate `ctx.answers`; thread a RequestExecutionContext
+  // The task's run-closures mutate `ctx.answers`; thread a RequestState
   // whose context.answers aliases it, so the trace reads the same store.
   const requestContext = {
     context: { domain: { answers: ctx.answers, data: ctx.data }, evaluation: {}, request: {} },
-  } as unknown as RequestExecutionContext
+  } as unknown as RequestState
 
   await new WorkExecutor().execute(task, new WorkContext(requestContext))
 }
@@ -1027,7 +1027,7 @@ describe('StepAnswerPreparationCompiler', () => {
         post: { employed: 'yes', name: 'Jo' },
         answers: { showA: activeFlag() },
       })
-      const fieldAnswerPreparation = vi.spyOn(WorkTaskFactory, 'fieldAnswerPreparation')
+      const fieldAnswerPreparation = vi.spyOn(workTaskBuilders, 'fieldAnswerPreparation')
 
       // Act
       const source = localCompiler.generateSource(prepModel([...variants, other]))

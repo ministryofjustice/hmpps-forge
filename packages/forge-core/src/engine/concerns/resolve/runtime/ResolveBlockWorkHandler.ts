@@ -1,15 +1,18 @@
 import type { CompiledResolveBlockWorkProps } from '../../../contracts/compiled/compiledFunctions.type'
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import type { NodeId } from '../../../contracts/ast/ast.type'
+import type { BlockType } from '../../../../authoring/types/enums'
 import { RENDER_BLOCK_BRAND } from '../../render/contracts/renderBlock.brand'
 import type { RenderBlock } from '../../../../framework/types/rendering.type'
-import WorkTaskPropsWalker from '../../../runtime/evaluation/work/WorkTaskPropsWalker'
+import WorkTaskPropsWalker from '../../../work/WorkTaskPropsWalker'
+import { createWorkTask } from '../../../work/workTask'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkTask,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/runtime/work.type'
+} from '../../../contracts/work/work.type'
 import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
@@ -22,7 +25,7 @@ export const RESOLVE_BLOCK_KIND = 'resolve.block'
 const propsWalker = new WorkTaskPropsWalker()
 
 export const RESOLVE_BLOCK_WORK_INSTRUMENTATION: WorkInstrumentation<ResolveBlockWorkProps, RenderBlock> = {
-  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestExecutionContext, ResolveBlockWorkProps>) {
+  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestState, ResolveBlockWorkProps>) {
     return traceBegin(ctx.props)
   },
 
@@ -34,7 +37,7 @@ export const RESOLVE_BLOCK_WORK_INSTRUMENTATION: WorkInstrumentation<ResolveBloc
 export const RESOLVE_BLOCK_WORK_HANDLER: WorkHandler<'resolve.block', ResolveBlockWorkProps> = {
   kind: RESOLVE_BLOCK_KIND,
 
-  begin(ctx: WorkContextContract<RequestExecutionContext, ResolveBlockWorkProps>) {
+  begin(ctx: WorkContextContract<RequestState, ResolveBlockWorkProps>) {
     const children = propsWalker.collect(ctx.props.properties)
 
     if (children.length === 0) {
@@ -52,7 +55,7 @@ export const RESOLVE_BLOCK_WORK_HANDLER: WorkHandler<'resolve.block', ResolveBlo
   },
 
   complete(
-    ctx: WorkContextContract<RequestExecutionContext, ResolveBlockWorkProps>,
+    ctx: WorkContextContract<RequestState, ResolveBlockWorkProps>,
     children: readonly CompletedWork[],
   ): RenderBlock {
     const properties = replaceCompletedProperties(ctx.props, children)
@@ -97,4 +100,18 @@ function traceComplete(output: RenderBlock): TraceSpanFields {
     visible: output.properties.visibleWhen !== false,
     properties: output.properties,
   }
+}
+
+export function createResolveBlockTask(
+  id: NodeId,
+  variant: string,
+  blockType: BlockType,
+  properties: Record<PropertyKey, unknown>,
+) {
+  return createWorkTask(
+    String(id),
+    RESOLVE_BLOCK_WORK_HANDLER,
+    { id, variant, blockType, properties },
+    RESOLVE_BLOCK_WORK_INSTRUMENTATION,
+  )
 }

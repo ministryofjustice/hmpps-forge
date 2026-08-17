@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
-import { createWorkTask } from '../../../runtime/evaluation/work/workTask'
-import WorkContext from '../../../runtime/evaluation/work/WorkContext'
-import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import { createWorkTask } from '../../../work/workTask'
+import WorkContext from '../../../work/WorkContext'
+import WorkExecutor from '../../../work/WorkExecutor'
 import {
   ANSWER_PREPARATION_KIND,
   ANSWER_PREPARATION_WORK_HANDLER,
@@ -14,12 +14,12 @@ import {
   FIELD_ANSWER_PREPARATION_WORK_INSTRUMENTATION,
 } from './FieldAnswerPreparationWorkHandler'
 
-// The handler runs under the threaded RequestExecutionContext; only its instrumentation
-// reads `ctx.request.context.answers`, so the stub provides just that.
-function createContext(): WorkContext<RequestExecutionContext> {
+// The handler runs under the threaded RequestState; only its instrumentation
+// reads `ctx.state.context.answers`, so the stub provides just that.
+function createContext(): WorkContext<RequestState> {
   return new WorkContext({
     context: { domain: { answers: {}, data: {} }, evaluation: {}, request: {} },
-  } as unknown as RequestExecutionContext)
+  } as unknown as RequestState)
 }
 
 describe('AnswerPreparationWorkHandler', () => {
@@ -72,7 +72,7 @@ describe('AnswerPreparationWorkHandler', () => {
           code: 'name',
           mode: 'GET',
           run: () => {
-            context.request.context.domain.answers.name = {
+            context.state.context.domain.answers.name = {
               current: 'Ada',
               mutations: [{ value: 'Ada', source: 'default' }],
             }
@@ -94,7 +94,7 @@ describe('AnswerPreparationWorkHandler', () => {
 
       // Assert
       expect(result.traceSpan.kind).toBe(ANSWER_PREPARATION_KIND)
-      expect(result.traceSpan.completeFields.answers).toEqual(context.request.context.domain.answers)
+      expect(result.traceSpan.completeFields.answers).toEqual(context.state.context.domain.answers)
       expect(result.traceSpan.children[0].kind).toBe(FIELD_ANSWER_PREPARATION_KIND)
       expect(result.traceSpan.children[0].beginFields).toEqual({ code: 'name', mode: 'GET' })
       expect(result.traceSpan.children[0].completeFields).toEqual({

@@ -10,7 +10,7 @@ import type { CompilationDependencies } from '../../../compilation/lowering/comp
 import type { ValidationModel } from '../contracts/validationModel.type'
 import EntryValidationCompiler from './EntryValidationCompiler'
 import type { CompiledValidationContext } from '../../../contracts/compiled/compiledContexts.type'
-import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
+import { workTaskBuilders } from '../../../runtime/context/compiledEvaluationContext'
 
 function createReference(path: string[]): ReferenceASTNode {
   return {
@@ -30,7 +30,7 @@ function createCtx(overrides: Partial<CompiledValidationContext> = {}): Compiled
     params: {},
     query: {},
     request: {},
-    workTasks: WorkTaskFactory,
+    workTasks: workTaskBuilders,
     conditions: new FunctionRegistry(),
     ...overrides,
   }

@@ -1,28 +1,23 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { CompiledValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import type { RequestDependencies } from '../../../runtime/pipeline/RequestState'
+import type { RuntimeContext } from '../../../contracts/runtime/evaluationState.type'
+import { createTestRequestState } from '../../../runtime/pipeline/testing-helpers/requestStateTestHelpers'
 import type { StepValidityResult } from '../contracts/stepValidityResult.type'
 import type { StepValidationWorkProps } from '../contracts/ValidationWork.type'
-import type { WorkHandler } from '../../../contracts/runtime/work.type'
-import { createWorkTask } from '../../../runtime/evaluation/work/workTask'
-import WorkContext from '../../../runtime/evaluation/work/WorkContext'
-import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
-import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
+import type { WorkHandler } from '../../../contracts/work/work.type'
+import { createWorkTask } from '../../../work/workTask'
+import WorkContext from '../../../work/WorkContext'
+import WorkExecutor from '../../../work/WorkExecutor'
+import { createReachabilityValiditiesTask } from './ReachabilityValiditiesWorkHandler'
 import { validationTaskKey } from './stepValidationStore'
 
-function createRequestContext(overrides: Partial<RequestExecutionContext> = {}): WorkContext<RequestExecutionContext> {
-  const request: RequestExecutionContext = {
-    context: { evaluation: {}, domain: { data: {}, answers: {} }, request: {} },
-    responseBindings: {},
-    functionRegistry: {} as RequestExecutionContext['functionRegistry'],
-    hasRenderer: false,
-    traceEnabled: false,
-    buildStepValidation: () => undefined,
-    ...overrides,
-  } as RequestExecutionContext
+function createRequestContext(overrides: Partial<RequestDependencies> = {}): WorkContext<RequestState> {
+  const context = { evaluation: {}, domain: { data: {}, answers: {} }, request: {} } as RuntimeContext
 
-  return new WorkContext(request)
+  return new WorkContext(createTestRequestState(context, overrides))
 }
 
 function stubValidation(stepId: NodeId, result: StepValidityResult) {
@@ -44,7 +39,7 @@ describe('ReachabilityValiditiesWorkHandler', () => {
       const buildStepValidation = vi.fn((stepId: NodeId) => stubValidation(stepId, result))
       const compiledValidation = vi.fn() as unknown as CompiledValidationFunction
       const context = createRequestContext({ buildStepValidation })
-      const validities = WorkTaskFactory.requestValidities({
+      const validities = createReachabilityValiditiesTask({
         compiledStepValidations: new Map([[validatingStepId, compiledValidation]]),
       })
 
@@ -58,8 +53,8 @@ describe('ReachabilityValiditiesWorkHandler', () => {
         includeSubmissionOnly: false,
       })
       expect(buildStepValidation).toHaveBeenCalledTimes(1)
-      expect(context.request.context.evaluation.reachabilityValidities?.get(validatingStepId)).toEqual(result)
-      expect(context.request.context.evaluation.reachabilityValidities?.has(nonValidatingStepId)).toBe(false)
+      expect(context.state.context.evaluation.reachabilityValidities?.get(validatingStepId)).toEqual(result)
+      expect(context.state.context.evaluation.reachabilityValidities?.has(nonValidatingStepId)).toBe(false)
     })
 
     it('should record navigation facts without touching current-page validation', async () => {
@@ -69,7 +64,7 @@ describe('ReachabilityValiditiesWorkHandler', () => {
       const buildStepValidation = vi.fn((stepId: NodeId) => stubValidation(stepId, result))
       const compiledValidation = vi.fn() as unknown as CompiledValidationFunction
       const context = createRequestContext({ buildStepValidation, currentStepId })
-      const validities = WorkTaskFactory.requestValidities({
+      const validities = createReachabilityValiditiesTask({
         compiledStepValidations: new Map([[currentStepId, compiledValidation]]),
       })
 
@@ -78,8 +73,8 @@ describe('ReachabilityValiditiesWorkHandler', () => {
 
       // Assert
       expect(completed.output).toEqual({ action: 'continue' })
-      expect(context.request.context.evaluation.reachabilityValidities?.get(currentStepId)).toEqual(result)
-      expect(context.request.currentPageValidation).toBeUndefined()
+      expect(context.state.context.evaluation.reachabilityValidities?.get(currentStepId)).toEqual(result)
+      expect(context.state.currentPageValidation).toBeUndefined()
     })
   })
 })

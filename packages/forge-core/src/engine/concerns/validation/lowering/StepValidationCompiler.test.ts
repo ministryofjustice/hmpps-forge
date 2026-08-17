@@ -39,11 +39,11 @@ import type {
 } from '../../../contracts/compiled/compiledFunctions.type'
 import type { StepValidityResult } from '../contracts/stepValidityResult.type'
 import type { ValidationView } from '../contracts/validationView.type'
-import WorkContext from '../../../runtime/evaluation/work/WorkContext'
-import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
-import { isWorkTask } from '../../../runtime/evaluation/work/workTask'
-import type { WorkTask } from '../../../contracts/runtime/work.type'
-import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
+import WorkContext from '../../../work/WorkContext'
+import WorkExecutor from '../../../work/WorkExecutor'
+import { isWorkTask } from '../../../work/workTask'
+import type { WorkTask } from '../../../contracts/work/work.type'
+import { workTaskBuilders } from '../../../runtime/context/compiledEvaluationContext'
 
 function createStep(): StepASTNode {
   return ASTTestFactory.step()
@@ -135,7 +135,7 @@ function createCtx(overrides: Partial<CompiledValidationContext> = {}): Compiled
     params: {},
     query: {},
     request: {},
-    workTasks: WorkTaskFactory,
+    workTasks: workTaskBuilders,
     conditions: {
       get: vi.fn((name: string) => {
         if (name === FORMAT_STRING_GENERATOR_NAME) {

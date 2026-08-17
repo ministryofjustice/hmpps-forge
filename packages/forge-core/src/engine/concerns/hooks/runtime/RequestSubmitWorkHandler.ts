@@ -1,16 +1,17 @@
 import type { CompiledSubmitHookResult } from '../contracts/hookLifecycle.type'
-import { buildCompiledHookLifecycleContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
+import { buildCompiledHookLifecycleContext } from '../../../runtime/context/compiledEvaluationContext'
 import { SUBMIT_LIFECYCLE_KIND } from './SubmitLifecycleWorkHandler'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/runtime/work.type'
-import { singleChildOutput } from '../../../runtime/evaluation/work/workTask'
-import { phaseInstrumentation, runTaskPhase } from '../../../runtime/evaluation/request/requestPhase'
+} from '../../../contracts/work/work.type'
+import { createWorkTask, isWorkTaskOfKind, singleChildOutput, singleTaskGroup } from '../../../work/workTask'
+import { phaseInstrumentation } from '../../../runtime/pipeline/contextSnapshot'
 import type { RequestSubmitWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 const REQUEST_SUBMIT_KIND = 'request.submit'
@@ -28,23 +29,25 @@ export const REQUEST_SUBMIT_WORK_INSTRUMENTATION: WorkInstrumentation<RequestSub
 export const REQUEST_SUBMIT_WORK_HANDLER: WorkHandler<'request.submit', RequestSubmitWorkProps> = {
   kind: REQUEST_SUBMIT_KIND,
 
-  async begin(ctx: WorkContextContract<RequestExecutionContext, RequestSubmitWorkProps>) {
+  async begin(ctx: WorkContextContract<RequestState, RequestSubmitWorkProps>) {
     const hookLifecycleContext = buildCompiledHookLifecycleContext(
-      ctx.request.context,
-      ctx.request.functionRegistry,
+      ctx.state.context,
+      ctx.state.dependencies.functionRegistry,
       'submit',
-      ctx.request.responseBindings,
+      ctx.state.dependencies.responseBindings,
     )
 
-    return runTaskPhase(
-      ctx.props.compiled(hookLifecycleContext),
-      SUBMIT_LIFECYCLE_KIND,
-      'Compiled submit hooks returned an invalid work task',
-    )
+    const resolved = await ctx.props.compiled(hookLifecycleContext)
+
+    if (!isWorkTaskOfKind(resolved, SUBMIT_LIFECYCLE_KIND)) {
+      throw new ForgeInternalError('Compiled submit hooks returned an invalid work task')
+    }
+
+    return singleTaskGroup(resolved)
   },
 
   complete(
-    _ctx: WorkContextContract<RequestExecutionContext, RequestSubmitWorkProps>,
+    _ctx: WorkContextContract<RequestState, RequestSubmitWorkProps>,
     children: readonly CompletedWork[],
   ): PhaseWorkOutput {
     const result = singleChildOutput(children, SUBMIT_LIFECYCLE_KIND)
@@ -71,4 +74,8 @@ function toOutput(result: CompiledSubmitHookResult): PhaseWorkOutput {
   }
 
   return { action: 'continue' }
+}
+
+export function createRequestSubmitTask(props: RequestSubmitWorkProps) {
+  return createWorkTask('submit', REQUEST_SUBMIT_WORK_HANDLER, props, REQUEST_SUBMIT_WORK_INSTRUMENTATION)
 }

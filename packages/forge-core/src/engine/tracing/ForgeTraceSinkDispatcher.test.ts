@@ -1,6 +1,6 @@
 import type { RequestTraceEvent } from '../contracts/runtime/trace.type'
 import type { RequestSnapshot } from '../../framework/types/snapshot.type'
-import type { CompilationTraceEvent } from '../compilation/tracing/compilationTrace.type'
+import type { CompilationTraceEvent } from '../contracts/compilation/trace.type'
 import ForgeTraceSinkDispatcher from './ForgeTraceSinkDispatcher'
 
 describe('ForgeTraceSinkDispatcher', () => {
@@ -29,19 +29,6 @@ describe('ForgeTraceSinkDispatcher', () => {
       expect(enabled).toBe(true)
     })
 
-    it('should accept the captureGeneratedSource option', () => {
-      // Arrange
-      const instrumentation = new ForgeTraceSinkDispatcher({
-        sinks: [{ onRequestTrace: vi.fn() }],
-        captureGeneratedSource: true,
-      })
-
-      // Act
-      const enabled = instrumentation.enabled
-
-      // Assert
-      expect(enabled).toBe(true)
-    })
   })
 
   describe('forRequest()', () => {

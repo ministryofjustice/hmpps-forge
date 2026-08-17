@@ -24,7 +24,6 @@ import MatchNodeCompiler from './MatchNodeCompiler'
 import { isASTNode } from '../../../contracts/ast/nodes'
 import { isDeepStaticValue } from '../../../contracts/models/authoredValue.type'
 import type { CompilationDependencies } from '../compilationDependencies.type'
-import CompilationTracer from '../../tracing/CompilationTracer'
 import { compileIifeExpression } from './IifeExpressionCompiler'
 
 export type { IteratorScopeFrame } from './types'
@@ -88,10 +87,6 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
 
   get generator(): CodeGenerator {
     return this.fragmentGenerator
-  }
-
-  get tracer(): CompilationTracer {
-    return this.dependencies.tracer ?? CompilationTracer.disabled
   }
 
   get diagnosticCatalogue(): readonly DiagnosticMetadata[] {

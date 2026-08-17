@@ -1,11 +1,11 @@
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/runtime/work.type'
-import { singleChildOutput, singleTaskGroup } from '../../../runtime/evaluation/work/workTask'
+} from '../../../contracts/work/work.type'
+import { createWorkTask, singleChildOutput, singleTaskGroup } from '../../../work/workTask'
 import { STEP_VALIDATION_KIND } from './StepValidationWorkHandler'
 import type { StepValidityResult } from '../contracts/stepValidityResult.type'
 import type { CurrentStepValidationWorkProps } from '../contracts/ValidationWork.type'
@@ -18,7 +18,7 @@ export const CURRENT_STEP_VALIDATION_WORK_INSTRUMENTATION: WorkInstrumentation<
   CurrentStepValidationWorkProps,
   ValidationView
 > = {
-  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestExecutionContext, CurrentStepValidationWorkProps>) {
+  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestState, CurrentStepValidationWorkProps>) {
     return { groups: ctx.props.groups, includeSubmissionOnly: ctx.props.includeSubmissionOnly }
   },
 
@@ -42,14 +42,14 @@ export const CURRENT_STEP_VALIDATION_WORK_HANDLER: WorkHandler<
 > = {
   kind: CURRENT_STEP_VALIDATION_KIND,
 
-  async begin(ctx: WorkContextContract<RequestExecutionContext, CurrentStepValidationWorkProps>) {
-    const stepId = ctx.request.currentStepId
+  async begin(ctx: WorkContextContract<RequestState, CurrentStepValidationWorkProps>) {
+    const stepId = ctx.state.dependencies.currentStepId
 
     if (stepId === undefined) {
       throw new ForgeInternalError('Current-step validation requires a current step id')
     }
 
-    const validation = await ctx.request.buildStepValidation(stepId, ctx.props)
+    const validation = await ctx.state.dependencies.buildStepValidation(stepId, ctx.props)
 
     if (validation === undefined) {
       throw new ForgeInternalError('Current-step validation task missing')
@@ -59,7 +59,7 @@ export const CURRENT_STEP_VALIDATION_WORK_HANDLER: WorkHandler<
   },
 
   complete(
-    ctx: WorkContextContract<RequestExecutionContext, CurrentStepValidationWorkProps>,
+    ctx: WorkContextContract<RequestState, CurrentStepValidationWorkProps>,
     children: readonly CompletedWork[],
   ): ValidationView {
     const result = singleChildOutput(children, STEP_VALIDATION_KIND)
@@ -70,7 +70,7 @@ export const CURRENT_STEP_VALIDATION_WORK_HANDLER: WorkHandler<
 
     const view = toValidationView(result)
 
-    ctx.request.currentPageValidation = view
+    ctx.state.recordCurrentPageValidation(view)
 
     return view
   },
@@ -82,4 +82,8 @@ function toValidationView(result: StepValidityResult): ValidationView {
     fieldFailures: result.fieldFailures,
     domainFailures: result.domainFailures,
   }
+}
+
+export function createCurrentStepValidationTask(key: string, props: CurrentStepValidationWorkProps) {
+  return createWorkTask(key, CURRENT_STEP_VALIDATION_WORK_HANDLER, props, CURRENT_STEP_VALIDATION_WORK_INSTRUMENTATION)
 }

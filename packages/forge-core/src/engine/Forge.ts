@@ -19,7 +19,7 @@ import type { RequestSnapshot } from '../framework/types/snapshot.type'
 import type { ResponseBindings } from '../framework/types/responseBindings.type'
 import type { ForgeTopology } from '../framework/types/topology.type'
 import MountRegistry from './registries/MountRegistry'
-import RequestEvaluator from './runtime/RequestEvaluator'
+import RequestPipeline from './runtime/pipeline/RequestPipeline'
 import ForgeTraceSinkDispatcher from './tracing/ForgeTraceSinkDispatcher'
 import type { ForgeInstrumentation, ForgeInstrumentationOptions } from './tracing/ForgeTraceSinkDispatcher'
 import RegistrationErrorFormatter from './errors/RegistrationErrorFormatter'
@@ -102,7 +102,7 @@ export default class Forge {
 
   private readonly instrumentation: ForgeInstrumentation
 
-  private readonly requestEvaluator: RequestEvaluator
+  private readonly requestPipeline: RequestPipeline
 
   /**
    * Create a new Forge instance
@@ -155,7 +155,7 @@ export default class Forge {
 
     this.mountRegistry = new MountRegistry(this.options.basePath)
     this.instrumentation = new ForgeTraceSinkDispatcher(this.options.instrumentation)
-    this.requestEvaluator = new RequestEvaluator({ instrumentation: this.instrumentation })
+    this.requestPipeline = new RequestPipeline({ instrumentation: this.instrumentation })
   }
 
   /** Add a component to the global registry, making it available to all journeys. */
@@ -317,7 +317,7 @@ export default class Forge {
         throw new ForgeInternalError(`No node registered for "${request.snapshot.nodeId}"`)
       }
 
-      return await this.requestEvaluator.evaluate({ node, ...request })
+      return await this.requestPipeline.evaluate({ node, ...request })
     } catch (error) {
       return { kind: 'error', error: this.toError(error) }
     }

@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
-import WorkContext from '../../../runtime/evaluation/work/WorkContext'
-import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
+import WorkContext from '../../../work/WorkContext'
+import WorkExecutor from '../../../work/WorkExecutor'
 import type { CompiledHookLifecycleContext } from '../contracts/hookLifecycle.type'
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
 import type { StepValidityResult } from '../../validation/contracts/stepValidityResult.type'
-import type { WorkHandler } from '../../../contracts/runtime/work.type'
-import { createWorkTask } from '../../../runtime/evaluation/work/workTask'
+import type { WorkHandler } from '../../../contracts/work/work.type'
+import { createWorkTask } from '../../../work/workTask'
 import { HOOK_EFFECT_WORK_HANDLER } from './HookEffectWorkHandler'
 import { SUBMIT_BRANCH_WORK_HANDLER } from './SubmitBranchWorkHandler'
 import { SUBMIT_HOOK_PREDICATE_WORK_HANDLER } from './SubmitHookPredicateWorkHandler'
@@ -15,7 +15,7 @@ import { CURRENT_STEP_VALIDATION_WORK_HANDLER } from '../../validation/runtime/C
 import type { SubmitHookNextResult } from '../contracts/SubmitLifecycleWork.type'
 
 function createContext(overrides: Record<string, unknown> = {}): WorkContext<CompiledHookLifecycleContext> {
-  return new WorkContext({
+  const state = {
     answers: {},
     data: {},
     session: {},
@@ -36,7 +36,17 @@ function createContext(overrides: Record<string, unknown> = {}): WorkContext<Com
     currentStepId: 'step-1',
     context: { evaluation: {}, domain: { data: {}, answers: {} }, request: {} },
     ...overrides,
-  } as unknown as CompiledHookLifecycleContext)
+  } as Record<string, unknown>
+
+  state.dependencies = {
+    currentStepId: state.currentStepId,
+    buildStepValidation: state.buildStepValidation ?? (() => undefined),
+  }
+  state.recordCurrentPageValidation = (view: unknown) => {
+    state.currentPageValidation = view
+  }
+
+  return new WorkContext(state as unknown as CompiledHookLifecycleContext)
 }
 
 function createHook(
@@ -216,7 +226,7 @@ describe('SubmitLifecycleWorkHandler', () => {
       // Assert
       expect(calls).toEqual(['always effect', 'validation', 'valid effect', 'valid next'])
       expect(buildStepValidation).toHaveBeenCalledWith('step-1', { groups: ['lookup'], includeSubmissionOnly: true })
-      expect((context.request as unknown as RequestExecutionContext).currentPageValidation).toEqual({
+      expect((context.state as unknown as RequestState).currentPageValidation).toEqual({
         isValid: true,
         fieldFailures: [],
         domainFailures: [],

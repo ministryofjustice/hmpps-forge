@@ -4,7 +4,7 @@ import type { ValidationResult } from '../../validation/contracts/validationResu
 import { resolvePathParams } from '../../../../shared/utils/routePath'
 import type { RenderContext, RenderValidationError } from '../../../../framework/types/rendering.type'
 import type { ViewConfig } from '../../../../authoring/types/structures.type'
-import { buildCompiledResolveContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
+import { buildCompiledResolveContext } from '../../../runtime/context/compiledEvaluationContext'
 import { resolveBacklinkRouteTemplatePath } from '../../reachability/runtime/reachabilityRedirects'
 import { RESOLVE_BLOCKS_KIND } from './ResolveBlocksWorkHandler'
 import type {
@@ -12,11 +12,12 @@ import type {
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/runtime/work.type'
-import { singleChildOutput } from '../../../runtime/evaluation/work/workTask'
-import { phaseInstrumentation, runTaskPhase } from '../../../runtime/evaluation/request/requestPhase'
+} from '../../../contracts/work/work.type'
+import { createWorkTask, isWorkTaskOfKind, singleChildOutput, singleTaskGroup } from '../../../work/workTask'
+import { phaseInstrumentation } from '../../../runtime/pipeline/contextSnapshot'
 import type { RequestResolveWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 const REQUEST_RESOLVE_KIND = 'request.resolve'
@@ -34,31 +35,29 @@ export const REQUEST_RESOLVE_WORK_INSTRUMENTATION: WorkInstrumentation<RequestRe
 export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', RequestResolveWorkProps> = {
   kind: REQUEST_RESOLVE_KIND,
 
-  async begin(ctx: WorkContextContract<RequestExecutionContext, RequestResolveWorkProps>) {
+  async begin(ctx: WorkContextContract<RequestState, RequestResolveWorkProps>) {
     const fieldFailures: Record<string, ValidationResult[]> = groupFieldFailuresByBlockId(
-      ctx.request.currentPageValidation?.fieldFailures ?? [],
+      ctx.state.currentPageValidation?.fieldFailures ?? [],
     )
-    const fieldFailureAnchors: Record<string, string> = {}
-
-    ctx.request.fieldFailureAnchors = fieldFailureAnchors
-
     const compiledResolveContext = buildCompiledResolveContext(
-      ctx.request.context,
-      ctx.request.functionRegistry,
-      ctx.request.componentRegistry,
+      ctx.state.context,
+      ctx.state.dependencies.functionRegistry,
+      ctx.state.dependencies.componentRegistry,
       fieldFailures,
-      fieldFailureAnchors,
+      ctx.state.fieldFailureAnchors,
     )
 
-    return runTaskPhase(
-      ctx.props.compiled(compiledResolveContext),
-      RESOLVE_BLOCKS_KIND,
-      'Compiled render function returned an invalid resolve work task',
-    )
+    const resolved = await ctx.props.compiled(compiledResolveContext)
+
+    if (!isWorkTaskOfKind(resolved, RESOLVE_BLOCKS_KIND)) {
+      throw new ForgeInternalError('Compiled render function returned an invalid resolve work task')
+    }
+
+    return singleTaskGroup(resolved)
   },
 
   complete(
-    ctx: WorkContextContract<RequestExecutionContext, RequestResolveWorkProps>,
+    ctx: WorkContextContract<RequestState, RequestResolveWorkProps>,
     children: readonly CompletedWork[],
   ): PhaseWorkOutput {
     const output = singleChildOutput(children, RESOLVE_BLOCKS_KIND)
@@ -70,36 +69,36 @@ export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', Reques
     const ancestors = output.ancestors as RenderContext['ancestors']
     const stepMetadata = resolveStepMetadata(
       output.step as RenderContext['step'],
-      ctx.request.context.request.params,
-      ctx.request.reachabilityEvaluation,
+      ctx.state.context.request.params,
+      ctx.state.reachabilityEvaluation,
     )
     const view = resolveView(ancestors, stepMetadata.view)
     const step = view === undefined ? stepMetadata : { ...stepMetadata, view }
 
     // The presence of a current-page result is the display signal: present means
     // validation ran (possibly passing with no failures), absent means it never ran.
-    const validation = ctx.request.currentPageValidation
+    const validation = ctx.state.currentPageValidation
 
     const showValidationFailures = validation !== undefined
     const fieldFailures = validation?.fieldFailures ?? []
     const domainFailures = validation?.domainFailures ?? []
 
     const renderContext: RenderContext = {
-      routeTree: ctx.request.routeTree ?? [],
+      routeTree: ctx.state.routeTree ?? [],
       step,
       ancestors,
       blocks: [...output.blocks],
       showValidationFailures,
       fieldValidationErrors: fieldFailures.map(failure =>
-        toRenderValidationError(failure, ctx.request.fieldFailureAnchors ?? {}),
+        toRenderValidationError(failure, ctx.state.fieldFailureAnchors),
       ),
       domainValidationErrors: domainFailures,
-      answers: ctx.request.context.domain.answers,
-      data: ctx.request.context.domain.data,
+      answers: ctx.state.context.domain.answers,
+      data: ctx.state.context.domain.data,
     }
 
-    if (ctx.request.hasRenderer) {
-      ctx.request.renderContext = renderContext
+    if (ctx.state.dependencies.hasRenderer) {
+      ctx.state.recordRenderContext(renderContext)
 
       return { action: 'continue' }
     }
@@ -185,4 +184,8 @@ function toRenderValidationError(
   const anchor = fieldFailureAnchors[failure.blockId]
 
   return anchor === undefined ? stripBlockId(failure) : { ...stripBlockId(failure), anchor }
+}
+
+export function createRequestResolveTask(props: RequestResolveWorkProps) {
+  return createWorkTask('resolve', REQUEST_RESOLVE_WORK_HANDLER, props, REQUEST_RESOLVE_WORK_INSTRUMENTATION)
 }

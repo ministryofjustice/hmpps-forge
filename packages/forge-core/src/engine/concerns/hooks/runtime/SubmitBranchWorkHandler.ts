@@ -1,12 +1,13 @@
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
 import type { CompiledSubmitHookResult } from '../contracts/hookLifecycle.type'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/runtime/work.type'
+} from '../../../contracts/work/work.type'
 import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
+import { createWorkTask } from '../../../work/workTask'
 import type { HookStageResult } from '../contracts/HookStage.type'
 import type {
   SubmitBranchName,
@@ -20,7 +21,7 @@ export const SUBMIT_BRANCH_WORK_INSTRUMENTATION: WorkInstrumentation<
   SubmitBranchWorkProps,
   HookStageResult<CompiledSubmitHookResult>
 > = {
-  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestExecutionContext, SubmitBranchWorkProps>) {
+  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestState, SubmitBranchWorkProps>) {
     return { name: ctx.props.name }
   },
 
@@ -39,7 +40,7 @@ export const SUBMIT_BRANCH_WORK_INSTRUMENTATION: WorkInstrumentation<
 export const SUBMIT_BRANCH_WORK_HANDLER: WorkHandler<'submit.branch', SubmitBranchWorkProps> = {
   kind: SUBMIT_BRANCH_KIND,
 
-  begin(ctx: WorkContextContract<RequestExecutionContext, SubmitBranchWorkProps>) {
+  begin(ctx: WorkContextContract<RequestState, SubmitBranchWorkProps>) {
     if (!isSelected(ctx.props.name, currentStepValid(ctx))) {
       return { groups: [] }
     }
@@ -48,7 +49,7 @@ export const SUBMIT_BRANCH_WORK_HANDLER: WorkHandler<'submit.branch', SubmitBran
   },
 
   async complete(
-    ctx: WorkContextContract<RequestExecutionContext, SubmitBranchWorkProps>,
+    ctx: WorkContextContract<RequestState, SubmitBranchWorkProps>,
     _children: readonly CompletedWork[],
   ): Promise<HookStageResult<CompiledSubmitHookResult>> {
     if (!isSelected(ctx.props.name, currentStepValid(ctx))) {
@@ -63,8 +64,8 @@ export const SUBMIT_BRANCH_WORK_HANDLER: WorkHandler<'submit.branch', SubmitBran
   },
 }
 
-function currentStepValid(ctx: WorkContextContract<RequestExecutionContext, SubmitBranchWorkProps>): boolean {
-  return ctx.request.currentPageValidation?.isValid ?? true
+function currentStepValid(ctx: WorkContextContract<RequestState, SubmitBranchWorkProps>): boolean {
+  return ctx.state.currentPageValidation?.isValid ?? true
 }
 
 function isSelected(name: SubmitBranchName, isValid: boolean): boolean {
@@ -103,4 +104,8 @@ function traceComplete(
     name: props.name,
     outcome: output.status === 'terminal' ? output.result.outcome : 'continue',
   }
+}
+
+export function createSubmitBranchTask(key: string, props: SubmitBranchWorkProps) {
+  return createWorkTask(key, SUBMIT_BRANCH_WORK_HANDLER, props, SUBMIT_BRANCH_WORK_INSTRUMENTATION)
 }

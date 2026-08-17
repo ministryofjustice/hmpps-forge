@@ -3,12 +3,16 @@ import type {
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/runtime/work.type'
+} from '../../../contracts/work/work.type'
 import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
-import { childOutputs } from '../../../runtime/evaluation/work/workTask'
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import { childOutputs, createWorkTask } from '../../../work/workTask'
+import type RequestState from '../../../runtime/pipeline/RequestState'
 import { FIELD_ANSWER_PREPARATION_KIND } from './FieldAnswerPreparationWorkHandler'
-import type { AnswerPreparationResult, AnswerPreparationWorkProps } from '../contracts/AnswerPreparationWork.type'
+import type {
+  AnswerPreparationResult,
+  AnswerPreparationWorkProps,
+  FieldAnswerPreparationWorkTask,
+} from '../contracts/AnswerPreparationWork.type'
 
 export const ANSWER_PREPARATION_KIND = 'answer.preparation'
 
@@ -20,7 +24,7 @@ export const ANSWER_PREPARATION_WORK_INSTRUMENTATION: WorkInstrumentation<
     return undefined
   },
 
-  resolveTraceMetadataAtFinish(ctx: WorkContextContract<RequestExecutionContext, AnswerPreparationWorkProps>) {
+  resolveTraceMetadataAtFinish(ctx: WorkContextContract<RequestState, AnswerPreparationWorkProps>) {
     return traceComplete(ctx)
   },
 }
@@ -28,7 +32,7 @@ export const ANSWER_PREPARATION_WORK_INSTRUMENTATION: WorkInstrumentation<
 export const ANSWER_PREPARATION_WORK_HANDLER: WorkHandler<'answer.preparation', AnswerPreparationWorkProps> = {
   kind: ANSWER_PREPARATION_KIND,
 
-  begin(ctx: WorkContextContract<RequestExecutionContext, AnswerPreparationWorkProps>) {
+  begin(ctx: WorkContextContract<RequestState, AnswerPreparationWorkProps>) {
     return {
       groups: [
         {
@@ -40,7 +44,7 @@ export const ANSWER_PREPARATION_WORK_HANDLER: WorkHandler<'answer.preparation', 
   },
 
   complete(
-    _ctx: WorkContextContract<RequestExecutionContext, AnswerPreparationWorkProps>,
+    _ctx: WorkContextContract<RequestState, AnswerPreparationWorkProps>,
     children: readonly CompletedWork[],
   ): AnswerPreparationResult {
     return {
@@ -49,8 +53,19 @@ export const ANSWER_PREPARATION_WORK_HANDLER: WorkHandler<'answer.preparation', 
   },
 }
 
-function traceComplete(ctx: WorkContextContract<RequestExecutionContext>): TraceSpanFields {
+function traceComplete(ctx: WorkContextContract<RequestState>): TraceSpanFields {
   return {
-    answers: ctx.request.context.domain.answers,
+    answers: ctx.state.context.domain.answers,
   }
+}
+
+export function createAnswerPreparationTask(fields: readonly FieldAnswerPreparationWorkTask[]) {
+  const props: AnswerPreparationWorkProps = { fields }
+
+  return createWorkTask(
+    'answer-preparation',
+    ANSWER_PREPARATION_WORK_HANDLER,
+    props,
+    ANSWER_PREPARATION_WORK_INSTRUMENTATION,
+  )
 }

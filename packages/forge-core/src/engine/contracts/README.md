@@ -32,7 +32,7 @@ the pipeline speaks.
 | [`compiled/`](./compiled/) | Compiled function signatures (`CompiledResolveFunction`, `CompiledValidationFunction`, `CompiledReachabilityFactsFunction`, `CompiledRouteMetadataFunction`, etc.) and the phase context types each function receives (`CompiledValidationContext`, `CompiledResolveContext`, `CompiledAnswerPreparationContext`, `CompiledRouteMetadataContext`, all extending `CompiledBaseContext`) |
 | [`models/`](./models/) | The semantic model analysis hands to lowering: `CompilationModel` / `JourneyModel` / `StepModel`, `FieldModel`, and the shared `AuthoredValue` types and guards |
 | [`plans/`](./plans/) | `StepMountInfo` / `JourneyMountInfo` (the identity and route path that survive into runtime), and the compiled artefact wrappers (`CompiledStep`, `CompiledJourney`) |
-| [`runtime/`](./runtime/) | Request-scoped plumbing: `AnswerHistory` (the mutation log), `RuntimeContext`, `RequestExecutionContext`, the request phase props, `WorkTask` and the work output registry, and trace types |
+| [`runtime/`](./runtime/) | Request-scoped plumbing: `AnswerHistory` (the mutation log), `RuntimeContext`, the request phase props, `WorkTask` and the work output registry, and trace types |
 
 Where the concern-owned types went:
 

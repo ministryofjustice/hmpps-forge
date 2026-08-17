@@ -1,16 +1,17 @@
 import type { CompiledAccessHookResult } from '../contracts/hookLifecycle.type'
-import { buildCompiledHookLifecycleContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
+import { buildCompiledHookLifecycleContext } from '../../../runtime/context/compiledEvaluationContext'
 import { ACCESS_LIFECYCLE_KIND } from './AccessLifecycleWorkHandler'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/runtime/work.type'
-import { singleChildOutput } from '../../../runtime/evaluation/work/workTask'
-import { phaseInstrumentation, runTaskPhase } from '../../../runtime/evaluation/request/requestPhase'
+} from '../../../contracts/work/work.type'
+import { createWorkTask, isWorkTaskOfKind, singleChildOutput, singleTaskGroup } from '../../../work/workTask'
+import { phaseInstrumentation } from '../../../runtime/pipeline/contextSnapshot'
 import type { RequestAccessWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 const REQUEST_ACCESS_KIND = 'request.access'
@@ -26,23 +27,25 @@ export const REQUEST_ACCESS_WORK_INSTRUMENTATION: WorkInstrumentation<RequestAcc
 export const REQUEST_ACCESS_WORK_HANDLER: WorkHandler<'request.access', RequestAccessWorkProps> = {
   kind: REQUEST_ACCESS_KIND,
 
-  async begin(ctx: WorkContextContract<RequestExecutionContext, RequestAccessWorkProps>) {
+  async begin(ctx: WorkContextContract<RequestState, RequestAccessWorkProps>) {
     const hookLifecycleContext = buildCompiledHookLifecycleContext(
-      ctx.request.context,
-      ctx.request.functionRegistry,
+      ctx.state.context,
+      ctx.state.dependencies.functionRegistry,
       'access',
-      ctx.request.responseBindings,
+      ctx.state.dependencies.responseBindings,
     )
 
-    return runTaskPhase(
-      ctx.props.compiled(hookLifecycleContext),
-      ACCESS_LIFECYCLE_KIND,
-      'Compiled access lifecycle returned an invalid work task',
-    )
+    const resolved = await ctx.props.compiled(hookLifecycleContext)
+
+    if (!isWorkTaskOfKind(resolved, ACCESS_LIFECYCLE_KIND)) {
+      throw new ForgeInternalError('Compiled access lifecycle returned an invalid work task')
+    }
+
+    return singleTaskGroup(resolved)
   },
 
   complete(
-    ctx: WorkContextContract<RequestExecutionContext, RequestAccessWorkProps>,
+    ctx: WorkContextContract<RequestState, RequestAccessWorkProps>,
     children: readonly CompletedWork[],
   ): PhaseWorkOutput {
     const result = singleChildOutput(children, ACCESS_LIFECYCLE_KIND)
@@ -71,4 +74,8 @@ function toOutput(result: CompiledAccessHookResult): PhaseWorkOutput {
   }
 
   return { action: 'continue' }
+}
+
+export function createRequestAccessTask(props: RequestAccessWorkProps) {
+  return createWorkTask('access', REQUEST_ACCESS_WORK_HANDLER, props, REQUEST_ACCESS_WORK_INSTRUMENTATION)
 }

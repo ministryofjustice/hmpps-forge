@@ -9,7 +9,7 @@ import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import MountRegistry from './registries/MountRegistry'
 import type { MountedNode } from './registries/MountRegistry'
-import RequestEvaluator from './runtime/RequestEvaluator'
+import RequestPipeline from './runtime/pipeline/RequestPipeline'
 import type { PackageDependencies } from './contracts/ast/engine.type'
 import PackageInstance from './PackageInstance'
 import ForgeRegistrationError from './errors/ForgeRegistrationError'
@@ -19,14 +19,14 @@ vi.mock('./PackageInstance')
 vi.mock('./registries/ComponentRegistry')
 vi.mock('./registries/FunctionRegistry')
 vi.mock('./registries/MountRegistry')
-vi.mock('./runtime/RequestEvaluator')
+vi.mock('./runtime/pipeline/RequestPipeline')
 
 describe('Forge', () => {
   let mockLogger: Mocked<Console>
   let mockPackageInstance: Mocked<PackageInstance>
   let mockPackageDependencies: PackageDependencies
   let mockMountRegistry: Mocked<MountRegistry>
-  let mockRequestEvaluator: Mocked<RequestEvaluator>
+  let mockRequestPipeline: Mocked<RequestPipeline>
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -63,11 +63,11 @@ describe('Forge', () => {
       return mockMountRegistry as any
     })
 
-    mockRequestEvaluator = {
+    mockRequestPipeline = {
       evaluate: vi.fn(),
-    } as unknown as Mocked<RequestEvaluator>
-    ;(RequestEvaluator as MockedClass<typeof RequestEvaluator>).mockImplementation(function mockRequestEvaluatorCtor() {
-      return mockRequestEvaluator as any
+    } as unknown as Mocked<RequestPipeline>
+    ;(RequestPipeline as MockedClass<typeof RequestPipeline>).mockImplementation(function mockRequestPipelineCtor() {
+      return mockRequestPipeline as any
     })
   })
 
@@ -97,7 +97,7 @@ describe('Forge', () => {
       expect(ComponentRegistry).toHaveBeenCalledTimes(1)
       expect(FunctionRegistry).toHaveBeenCalledTimes(1)
       expect(MountRegistry).toHaveBeenCalledTimes(1)
-      expect(RequestEvaluator).toHaveBeenCalledTimes(1)
+      expect(RequestPipeline).toHaveBeenCalledTimes(1)
     })
 
     it('should use custom options when provided', () => {
@@ -493,7 +493,7 @@ describe('Forge', () => {
       const outcome = { kind: 'navigate', url: '/next' }
 
       vi.mocked(mockMountRegistry.getNode).mockReturnValue(mockNode)
-      vi.mocked(mockRequestEvaluator.evaluate).mockResolvedValue(outcome as never)
+      vi.mocked(mockRequestPipeline.evaluate).mockResolvedValue(outcome as never)
 
       // Act
       const result = await engine.execute(request)
@@ -501,7 +501,7 @@ describe('Forge', () => {
       // Assert
       expect(result).toBe(outcome)
       expect(mockMountRegistry.getNode).toHaveBeenCalledWith('test::step-one')
-      expect(mockRequestEvaluator.evaluate).toHaveBeenCalledWith(expect.objectContaining({ node: mockNode }))
+      expect(mockRequestPipeline.evaluate).toHaveBeenCalledWith(expect.objectContaining({ node: mockNode }))
     })
 
     it('should return an error outcome when no node is registered for the snapshot', async () => {
@@ -530,7 +530,7 @@ describe('Forge', () => {
       const error = Object.assign(new Error('Effect failed'), { status: 409, diagnostic: 'effect' })
 
       vi.mocked(mockMountRegistry.getNode).mockReturnValue(mockNode)
-      vi.mocked(mockRequestEvaluator.evaluate).mockRejectedValue(error)
+      vi.mocked(mockRequestPipeline.evaluate).mockRejectedValue(error)
 
       // Act
       const result = await engine.execute(request)
@@ -553,7 +553,7 @@ describe('Forge', () => {
       const error = new Error('Synchronous failure')
 
       vi.mocked(mockMountRegistry.getNode).mockReturnValue(mockNode)
-      vi.mocked(mockRequestEvaluator.evaluate).mockImplementation(() => {
+      vi.mocked(mockRequestPipeline.evaluate).mockImplementation(() => {
         throw error
       })
 
@@ -572,7 +572,7 @@ describe('Forge', () => {
       const failure = { reason: 'dependency unavailable' }
 
       vi.mocked(mockMountRegistry.getNode).mockReturnValue(mockNode)
-      vi.mocked(mockRequestEvaluator.evaluate).mockRejectedValue(failure)
+      vi.mocked(mockRequestPipeline.evaluate).mockRejectedValue(failure)
 
       // Act
       const result = await engine.execute(request)
