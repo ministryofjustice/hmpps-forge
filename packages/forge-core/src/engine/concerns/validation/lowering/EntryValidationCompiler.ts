@@ -18,12 +18,12 @@ import CodeGenerator from '../../../compilation/codegen/CodeGenerator'
 import Name from '../../../compilation/codegen/Name'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
+  CompilationPhase,
   compileGeneratedFunction,
-  deriveScriptLabel,
   renderGeneratedSource,
-  ScriptLabelSource,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+import type { ValidationModel } from '../contracts/validationModel.type'
 
 import type { CompiledEntryValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
 
@@ -43,29 +43,26 @@ export default class EntryValidationCompiler {
   /**
    * Builds the generated group-selector used before rendering a GET request.
    */
-  compileOnEntryValidation(
-    stepNode: ScriptLabelSource | undefined,
-    entries: StepEntryValidationAST[] | undefined,
-  ): CompiledEntryValidationFunction {
+  compileOnEntryValidation(model: ValidationModel): CompiledEntryValidationFunction {
     return compileGeneratedFunction<CompiledEntryValidationFunction>(
       this.expr,
       ['ctx'],
-      () => this.buildEntryValidationSource(entries ?? []),
-      { phase: 'entry-validation', label: deriveScriptLabel([stepNode]) },
+      () => this.buildEntryValidationSource(model.entryValidation),
+      { phase: CompilationPhase.ENTRY_VALIDATION, label: model.label },
     )
   }
 
   /**
    * Produces inspectable entry-validation source for tests and local debugging.
    */
-  generateOnEntryValidationSource(entries: StepEntryValidationAST[]): string {
-    return renderGeneratedSource(this.expr, () => this.buildEntryValidationSource(entries))
+  generateOnEntryValidationSource(model: ValidationModel): string {
+    return renderGeneratedSource(this.expr, () => this.buildEntryValidationSource(model.entryValidation))
   }
 
   /**
    * Emits the entry-validation group selector used by GET rendering.
    */
-  private buildEntryValidationSource(entries: StepEntryValidationAST[]): CodeGenerator {
+  private buildEntryValidationSource(entries: readonly StepEntryValidationAST[]): CodeGenerator {
     const generator = CodeGenerator.forFunction(['ctx'])
 
     generator.directive('use strict')

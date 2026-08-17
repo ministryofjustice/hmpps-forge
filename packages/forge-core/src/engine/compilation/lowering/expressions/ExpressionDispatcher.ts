@@ -14,6 +14,7 @@ import PipelineNodeCompiler from './PipelineNodeCompiler'
 import ConditionalNodeCompiler from './ConditionalNodeCompiler'
 import MatchNodeCompiler from './MatchNodeCompiler'
 import { isASTNode } from '../../../contracts/ast/nodes'
+import { isDeepStaticValue } from '../../../contracts/models/authoredValue.type'
 import type { CompilationDependencies } from '../compilationDependencies.type'
 import CompilationTracer from '../../tracing/CompilationTracer'
 import { compileIifeExpression } from './IifeExpressionCompiler'
@@ -657,19 +658,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   private isStaticOperand(value: unknown): boolean {
-    if (value === null || value === undefined || typeof value !== 'object') {
-      return true
-    }
-
-    if (this.isCompilableNode(value) || this.isTemplateNode(value)) {
-      return false
-    }
-
-    if (Array.isArray(value)) {
-      return value.every(entry => this.isStaticOperand(entry))
-    }
-
-    return Object.values(value).every(entry => this.isStaticOperand(entry))
+    return isDeepStaticValue(value)
   }
 
   private compileReturnFunctionExpression(

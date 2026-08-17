@@ -17,6 +17,9 @@ import type {
 } from '../contracts/hookLifecycle.type'
 import type { StepValidityResult } from '../../validation/contracts/stepValidityResult.type'
 import type { NodeId } from '../../../contracts/ast/ast.type'
+import HookAnalyzer from '../analysis/HookAnalyzer'
+import type { AccessLifecycleModel, SubmitHooksModel } from '../contracts/hookModel.type'
+import { createStepAnalysisContext } from '../../../compilation/analysis/testing-helpers/analysisContexts'
 import HookLifecycleCompiler from './HookLifecycleCompiler'
 import EffectFunctionContextImpl from '../../../runtime/evaluation/context/EffectFunctionContext'
 import WorkContext from '../../../runtime/evaluation/work/WorkContext'
@@ -25,6 +28,18 @@ import { createWorkTask, isWorkTask } from '../../../runtime/evaluation/work/wor
 import type { WorkTask, WorkHandler } from '../../../contracts/runtime/work.type'
 import type { SubmitLifecycleWorkTask } from '../contracts/SubmitLifecycleWork.type'
 import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
+
+function accessModel(hooks: AccessHookASTNode[]): AccessLifecycleModel {
+  const stepNode = ASTTestFactory.step().withProperty('onAccess', hooks).build()
+
+  return new HookAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode })).access
+}
+
+function submitModel(hooks: SubmitHookASTNode[]): SubmitHooksModel {
+  const stepNode = ASTTestFactory.step().withProperty('onSubmission', hooks).build()
+
+  return new HookAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode })).submit
+}
 
 function createPredicate(answerCode: string, functionName = 'isRequired'): TestPredicateASTNode {
   return ASTTestFactory.predicate(PredicateType.TEST, {
@@ -188,7 +203,7 @@ describe('HookLifecycleCompiler', () => {
   describe('access lifecycle', () => {
     it('should return continue when no access hooks are configured', async () => {
       // Arrange
-      const fn = compiler.compileAccessLifecycle(undefined, [])
+      const fn = compiler.compileAccessLifecycle(accessModel([]))
       const ctx = createContext(functionRegistry)
 
       // Act
@@ -205,7 +220,7 @@ describe('HookLifecycleCompiler', () => {
         .withProperty('when', createPredicate('allowed'))
         .withProperty('effects', [effect])
         .build() as AccessHookASTNode
-      const fn = compiler.compileAccessLifecycle(undefined, [hook])
+      const fn = compiler.compileAccessLifecycle(accessModel([hook]))
       const ctx = createContext(functionRegistry, {
         answers: { allowed: { current: 'yes', mutations: [] } },
       })
@@ -229,7 +244,7 @@ describe('HookLifecycleCompiler', () => {
       const stepHook = ASTTestFactory.hook(HookType.ACCESS)
         .withProperty('next', [redirect])
         .build() as AccessHookASTNode
-      const fn = compiler.compileAccessLifecycle(undefined, [outerHook, stepHook])
+      const fn = compiler.compileAccessLifecycle(accessModel([outerHook, stepHook]))
       const ctx = createContext(functionRegistry)
 
       // Act
@@ -249,7 +264,7 @@ describe('HookLifecycleCompiler', () => {
         .withProperty('effects', [syncEffect, asyncEffect])
         .withProperty('next', [redirect])
         .build() as AccessHookASTNode
-      const fn = compiler.compileAccessLifecycle(undefined, [hook])
+      const fn = compiler.compileAccessLifecycle(accessModel([hook]))
       const ctx = createContext(functionRegistry, {
         data: { redirectPath: '/sentence-plan' },
       })
@@ -275,7 +290,7 @@ describe('HookLifecycleCompiler', () => {
       const redirectHook = ASTTestFactory.hook(HookType.ACCESS)
         .withProperty('next', [ASTTestFactory.redirectOutcome({ goto: formattedGoto })])
         .build() as AccessHookASTNode
-      const fn = compiler.compileAccessLifecycle(undefined, [loadHook, redirectHook])
+      const fn = compiler.compileAccessLifecycle(accessModel([loadHook, redirectHook]))
       const ctx = createContext(functionRegistry, {
         data: { profileId: 'ABC123' },
       })
@@ -294,7 +309,7 @@ describe('HookLifecycleCompiler', () => {
       const hook = ASTTestFactory.hook(HookType.ACCESS)
         .withProperty('effects', [effect])
         .build() as AccessHookASTNode
-      const fn = compiler.compileAccessLifecycle(undefined, [hook])
+      const fn = compiler.compileAccessLifecycle(accessModel([hook]))
       const ctx = createContext(functionRegistry)
 
       // Act
@@ -323,7 +338,7 @@ describe('HookLifecycleCompiler', () => {
   describe('submit hooks', () => {
     it('should return continue when no submit hooks are configured', async () => {
       // Arrange
-      const fn = compiler.compileSubmitHooks(undefined, [])
+      const fn = compiler.compileSubmitHooks(submitModel([]))
       const ctx = createContext(functionRegistry)
 
       // Act
@@ -348,7 +363,7 @@ describe('HookLifecycleCompiler', () => {
           next: [validRedirect],
         })
         .build() as SubmitHookASTNode
-      const fn = compiler.compileSubmitHooks(undefined, [hook])
+      const fn = compiler.compileSubmitHooks(submitModel([hook]))
       const buildStepValidation = vi.fn(() => stubValidation({ fieldFailures: [], domainFailures: [] }))
       const ctx = createContext(functionRegistry, { buildStepValidation })
 
@@ -379,7 +394,7 @@ describe('HookLifecycleCompiler', () => {
           next: [errorOutcome],
         })
         .build() as SubmitHookASTNode
-      const fn = compiler.compileSubmitHooks(undefined, [hook])
+      const fn = compiler.compileSubmitHooks(submitModel([hook]))
       const ctx = createContext(functionRegistry, {
         buildStepValidation: vi.fn(() => stubValidation(invalidResult(['default']))),
       })
@@ -405,7 +420,7 @@ describe('HookLifecycleCompiler', () => {
         .withProperty('validationGroups', ['lookup'])
         .build() as SubmitHookASTNode
       const buildStepValidation = vi.fn(() => stubValidation({ fieldFailures: [], domainFailures: [] }))
-      const fn = compiler.compileSubmitHooks(undefined, [hook])
+      const fn = compiler.compileSubmitHooks(submitModel([hook]))
       const ctx = createContext(functionRegistry, { buildStepValidation })
 
       // Act
@@ -437,7 +452,7 @@ describe('HookLifecycleCompiler', () => {
         })
         .build() as SubmitHookASTNode
       const buildStepValidation = vi.fn(() => stubValidation({ fieldFailures: [], domainFailures: [] }))
-      const fn = compiler.compileSubmitHooks(undefined, [hook])
+      const fn = compiler.compileSubmitHooks(submitModel([hook]))
       const ctx = createContext(functionRegistry, { buildStepValidation })
 
       // Act
@@ -458,7 +473,7 @@ describe('HookLifecycleCompiler', () => {
         .build() as AccessHookASTNode
 
       // Act
-      const source = compiler.generateAccessSource([hook])
+      const source = compiler.generateAccessSource(accessModel([hook]))
 
       // Assert
       expect(source).toContain('ctx.effectFunctionContext')

@@ -27,7 +27,7 @@ describe('CompilationPipeline', () => {
       expect(root?.children.map(child => child.kind)).toEqual([
         'compilation.ast',
         'compilation.semantic-analysis',
-        'compilation.dependency-analysis',
+        'compilation.analysis',
         'compilation.lowering',
         'compilation.routes',
       ])

@@ -20,6 +20,12 @@ import type { CompiledResolveContext } from '../../../contracts/compiled/compile
 import type { CompiledResolveBlockWorkTask } from '../../../contracts/compiled/compiledFunctions.type'
 import { isWorkTask } from '../../../runtime/evaluation/work/workTask'
 import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
+import ASTNodeIndex from '../../../compilation/ast/ast-state/ASTNodeIndex'
+import { createStepAnalysisContext } from '../../../compilation/analysis/testing-helpers/analysisContexts'
+import type { ASTNode } from '../../../contracts/ast/engine.type'
+import type { JourneyASTNode } from '../../../contracts/ast/structures.type'
+import type { ResolveModel } from '../contracts/resolveModel.type'
+import ResolveAnalyzer from '../analysis/ResolveAnalyzer'
 import StepResolveCompiler from './StepResolveCompiler'
 
 function createStep(): StepASTNode {
@@ -101,6 +107,41 @@ function createCtx(overrides: Partial<CompiledResolveContext> = {}): CompiledRes
   }
 }
 
+function setParent(child: ASTNode, parent: ASTNode): void {
+  Object.defineProperty(child, 'parent', { value: parent, enumerable: false, configurable: true })
+}
+
+/** Builds the resolve model through the real analyzer, mirroring registration. */
+function resolveModel(
+  stepNode: StepASTNode,
+  ancestorNodes: JourneyASTNode[] = [],
+  iterateNodes: IterateASTNode[] = [],
+): ResolveModel {
+  const nodeRegistry = new ASTNodeIndex()
+  let parent: ASTNode | undefined
+
+  ancestorNodes.forEach(ancestorNode => {
+    if (parent !== undefined) {
+      setParent(ancestorNode, parent)
+    }
+
+    nodeRegistry.register(ancestorNode.id, ancestorNode)
+    parent = ancestorNode
+  })
+
+  if (parent !== undefined) {
+    setParent(stepNode, parent)
+  }
+
+  nodeRegistry.register(stepNode.id, stepNode)
+  iterateNodes.forEach(iterateNode => {
+    setParent(iterateNode, stepNode)
+    nodeRegistry.register(iterateNode.id, iterateNode)
+  })
+
+  return new ResolveAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode, nodeRegistry }))
+}
+
 describe('StepResolveCompiler', () => {
   let compiler: StepResolveCompiler
   const dependencies: CompilationDependencies = {
@@ -126,7 +167,7 @@ describe('StepResolveCompiler', () => {
     it('should return the branded resolve-blocks root task carrying blocks step and ancestors', async () => {
       // Arrange
       const block = ASTTestFactory.block('content', BlockType.BASIC).withProperty('content', 'Hello').build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [], [])
+      const compiled = compiler.compile(resolveModel(createStepWithBlocks([block]), [], []))
       const ctx = createCtx()
 
       // Act
@@ -163,8 +204,8 @@ describe('StepResolveCompiler', () => {
       const syncCompiler = new StepResolveCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = syncCompiler.generateSource(createStepWithBlocks([block]), [], [])
-      const compiled = syncCompiler.compile(createStepWithBlocks([block]), [], [])
+      const source = syncCompiler.generateSource(resolveModel(createStepWithBlocks([block]), [], []))
+      const compiled = syncCompiler.compile(resolveModel(createStepWithBlocks([block]), [], []))
       const result = compiled!(createCtx({ conditions: functionRegistry }))
 
       // Assert
@@ -197,8 +238,8 @@ describe('StepResolveCompiler', () => {
       const asyncCompiler = new StepResolveCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = asyncCompiler.generateSource(createStepWithBlocks([block]), [], [])
-      const compiled = asyncCompiler.compile(createStepWithBlocks([block]), [], [])
+      const source = asyncCompiler.generateSource(resolveModel(createStepWithBlocks([block]), [], []))
+      const compiled = asyncCompiler.compile(resolveModel(createStepWithBlocks([block]), [], []))
       const result = await compiled!(createCtx({ conditions: functionRegistry }))
 
       // Assert
@@ -211,7 +252,7 @@ describe('StepResolveCompiler', () => {
       const block = ASTTestFactory.block('content', BlockType.BASIC)
         .withProperty('content', 'Hello Ada')
         .build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [], [])
+      const compiled = compiler.compile(resolveModel(createStepWithBlocks([block]), [], []))
       const ctx = createCtx()
 
       if (!compiled) {
@@ -248,7 +289,7 @@ describe('StepResolveCompiler', () => {
       const members = [member]
       const field = createFieldBlock('memberName_0', createReference(['@scope', '0', 'memberName']))
       const iterateNode = createIterateNode(createTemplate([field]))
-      const compiled = compiler.compile(createStep(), [], [iterateNode])
+      const compiled = compiler.compile(resolveModel(createStep(), [], [iterateNode]))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -269,8 +310,9 @@ describe('StepResolveCompiler', () => {
       const members = [member]
       const field = createFieldBlock('memberName_0', createReference(['@scope', '0']))
       const iterateNode = createIterateNode(createTemplate([field]))
-      const compiled = compiler.compile(createStep(), [], [iterateNode])
-      const source = compiler.generateSource(createStep(), [], [iterateNode])
+      const model = resolveModel(createStep(), [], [iterateNode])
+      const compiled = compiler.compile(model)
+      const source = compiler.generateSource(model)
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -302,7 +344,7 @@ describe('StepResolveCompiler', () => {
       const block = ASTTestFactory.block('summary-row', BlockType.BASIC)
         .withProperty('html', addressDisplay)
         .build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [])
+      const compiled = compiler.compile(resolveModel(createStepWithBlocks([block]), []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -341,7 +383,7 @@ describe('StepResolveCompiler', () => {
       const block = ASTTestFactory.block('content', BlockType.BASIC)
         .withProperty('content', createReference(['post', 'action']))
         .build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [])
+      const compiled = compiler.compile(resolveModel(createStepWithBlocks([block]), []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -364,8 +406,8 @@ describe('StepResolveCompiler', () => {
         .withProperty('content', answerReference)
         .build()
       const step = createStepWithBlocks([block])
-      const compiled = compiler.compile(step, [])
-      const source = compiler.generateSource(step, [])
+      const compiled = compiler.compile(resolveModel(step, []))
+      const source = compiler.generateSource(resolveModel(step, []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -401,7 +443,7 @@ describe('StepResolveCompiler', () => {
       const block = ASTTestFactory.block('text-input', BlockType.FIELD)
         .withCode('addressTown')
         .build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [])
+      const compiled = compiler.compile(resolveModel(createStepWithBlocks([block]), []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -432,7 +474,7 @@ describe('StepResolveCompiler', () => {
       const block = ASTTestFactory.block('text-input', BlockType.FIELD)
         .withCode('email')
         .build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [])
+      const compiled = compiler.compile(resolveModel(createStepWithBlocks([block]), []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -465,8 +507,8 @@ describe('StepResolveCompiler', () => {
         .withProperty('code', dynamicCode)
         .build()
       const step = createStepWithBlocks([block])
-      const compiled = compiler.compile(step, [])
-      const source = compiler.generateSource(step, [])
+      const compiled = compiler.compile(resolveModel(step, []))
+      const source = compiler.generateSource(resolveModel(step, []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -502,8 +544,8 @@ describe('StepResolveCompiler', () => {
       // Arrange
       const block = ASTTestFactory.block('text-input', BlockType.FIELD).withProperty('code', 'email').build()
       const step = createStepWithBlocks([block])
-      const compiled = compiler.compile(step, [])
-      const source = compiler.generateSource(step, [])
+      const compiled = compiler.compile(resolveModel(step, []))
+      const source = compiler.generateSource(resolveModel(step, []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -529,7 +571,7 @@ describe('StepResolveCompiler', () => {
       // Arrange
       const field = ASTTestFactory.block('text-input', BlockType.FIELD).withProperty('code', 'name').build()
       const iterateNode = createIterateNode(createTemplate([field]), createReference(['data', 'members']))
-      const compiled = compiler.compile(createStep(), [], [iterateNode])
+      const compiled = compiler.compile(resolveModel(createStep(), [], [iterateNode]))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -576,7 +618,7 @@ describe('StepResolveCompiler', () => {
         )
         .build()
       const iterateNode = createIterateNode(createTemplate([templateBlock]))
-      const compiled = compiler.compile(createStep(), [], [iterateNode])
+      const compiled = compiler.compile(resolveModel(createStep(), [], [iterateNode]))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -619,7 +661,7 @@ describe('StepResolveCompiler', () => {
         .withProperty('memberName', createReference(['@scope', '0', 'memberName']))
         .build()
       const iterateNode = createIterateNode(createTemplate([templateBlock]))
-      const compiled = compiler.compile(createStep(), [], [iterateNode])
+      const compiled = compiler.compile(resolveModel(createStep(), [], [iterateNode]))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -693,7 +735,7 @@ describe('StepResolveCompiler', () => {
         .withProperty('members', innerIterateNode)
         .build()
       const iterateNode = createIterateNode(createTemplate([templateBlock]), createReference(['data', 'teams']))
-      const compiled = compiler.compile(createStep(), [], [iterateNode])
+      const compiled = compiler.compile(resolveModel(createStep(), [], [iterateNode]))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -743,7 +785,7 @@ describe('StepResolveCompiler', () => {
           ]),
         ),
       )
-      const compiled = compiler.compile(createStepWithBlocks([collection]), [])
+      const compiled = compiler.compile(resolveModel(createStepWithBlocks([collection]), []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -830,7 +872,7 @@ describe('StepResolveCompiler', () => {
           },
         ])
         .build()
-      const source = localCompiler.generateSource(createStepWithBlocks([block]), [])
+      const source = localCompiler.generateSource(resolveModel(createStepWithBlocks([block]), []))
 
       // Act / Assert
       expect(() => new Function('ctx', source)).not.toThrow()
@@ -853,7 +895,7 @@ describe('StepResolveCompiler', () => {
             .build(),
         )
         .build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [])
+      const compiled = compiler.compile(resolveModel(createStepWithBlocks([block]), []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -897,7 +939,7 @@ describe('StepResolveCompiler', () => {
           },
         ])
         .build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [])
+      const compiled = compiler.compile(resolveModel(createStepWithBlocks([block]), []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -944,7 +986,7 @@ describe('StepResolveCompiler', () => {
           },
         ])
         .build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [])
+      const compiled = compiler.compile(resolveModel(createStepWithBlocks([block]), []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -1023,7 +1065,7 @@ describe('StepResolveCompiler', () => {
       })
 
       const pipelineCompiler = new StepResolveCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const compiled = pipelineCompiler.compile(createStepWithBlocks([block]), [], [])
+      const compiled = pipelineCompiler.compile(resolveModel(createStepWithBlocks([block]), [], []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -1104,7 +1146,7 @@ describe('StepResolveCompiler', () => {
       })
 
       const findCompiler = new StepResolveCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const compiled = findCompiler.compile(createStepWithBlocks([block]), [], [])
+      const compiled = findCompiler.compile(resolveModel(createStepWithBlocks([block]), [], []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -1148,7 +1190,7 @@ describe('StepResolveCompiler', () => {
           },
         ])
         .build()
-      const compiled = compiler.compile(createStepWithBlocks([block]), [])
+      const compiled = compiler.compile(resolveModel(createStepWithBlocks([block]), []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -1184,7 +1226,7 @@ describe('StepResolveCompiler', () => {
       })
 
       const formatCompiler = new StepResolveCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const compiled = formatCompiler.compile(createStepWithBlocks([block]), [], [])
+      const compiled = formatCompiler.compile(resolveModel(createStepWithBlocks([block]), [], []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -1222,7 +1264,7 @@ describe('StepResolveCompiler', () => {
       })
 
       const skipCompiler = new StepResolveCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const compiled = skipCompiler.compile(createStepWithBlocks([block]), [], [])
+      const compiled = skipCompiler.compile(resolveModel(createStepWithBlocks([block]), [], []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -1257,7 +1299,7 @@ describe('StepResolveCompiler', () => {
         functionRegistry,
         componentRegistry: new ComponentRegistry(),
       })
-      const compiled = typeErrorCompiler.compile(createStepWithBlocks([block]), [], [])
+      const compiled = typeErrorCompiler.compile(resolveModel(createStepWithBlocks([block]), [], []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')
@@ -1320,7 +1362,7 @@ describe('StepResolveCompiler', () => {
       })
 
       const throwCompiler = new StepResolveCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
-      const compiled = throwCompiler.compile(createStepWithBlocks([block]), [], [])
+      const compiled = throwCompiler.compile(resolveModel(createStepWithBlocks([block]), [], []))
 
       if (!compiled) {
         throw new Error('Expected render compiler to produce a function')

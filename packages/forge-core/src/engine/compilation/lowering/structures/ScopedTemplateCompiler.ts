@@ -1,26 +1,14 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import { BlockType, IteratorType } from '../../../../authoring/types/enums'
+import { IteratorType } from '../../../../authoring/types/enums'
 import { IterateASTNode } from '../../../contracts/ast/expressions.type'
+import { isTemplateNode } from '../../../contracts/ast/nodes'
 import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
-import { arrayCode, Code, code, literal, objectCode } from '../../codegen/Code'
+import type { FieldModel, IterateRef } from '../../../contracts/models/fieldModel.type'
+import { arrayCode, Code, code, literal } from '../../codegen/Code'
 import CodeGenerator from '../../codegen/CodeGenerator'
 import Name from '../../codegen/Name'
 import FieldCodeEmitter from '../emitters/FieldCodeEmitter'
-import ExpressionDispatcher, { IteratorScopeFrame } from '../expressions/ExpressionDispatcher'
-
-export interface IteratorCompileScope {
-  readonly input: Name
-  readonly index: Name
-  readonly item: Name
-  readonly rawItem: Name
-  readonly inputLength: Code
-}
-
-type TemplateNodePredicate = (node: TemplateNode) => boolean
-
-interface TemplateSearchOptions {
-  readonly descendIntoMatches?: boolean
-}
+import IteratorLoopEmitter, { IteratorEmitScope } from '../emitters/IteratorLoopEmitter'
+import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
 
 interface TemplateMapIteratorProperties {
   readonly input?: unknown
@@ -30,63 +18,48 @@ interface TemplateMapIteratorProperties {
   }
 }
 
+interface FieldOccurrenceOptions {
+  readonly compileLeaf: (field: FieldModel) => void
+  /** Emitted ahead of each top-level iterator loop, e.g. `Fields produced by an iterator`. */
+  readonly loopComment?: string
+}
+
+interface FieldOccurrenceRun {
+  readonly ref: IterateRef | undefined
+  readonly fields: FieldModel[]
+}
+
 /**
- * Shared codegen for iterator/template traversal.
+ * Emits the iterator loop nests field and block occurrences sit under.
  *
- * Render, validation, answer prep, and field inventory all need the same MAP
- * expansion semantics: normalize input, enter Item/Loop scope, compile yielded
- * template values, and resolve dynamic field codes under that scope.
+ * Answer preparation, validation, field inventory, and resolve all need the
+ * same MAP expansion semantics: normalize input, enter Item/Loop scope, and
+ * resolve dynamic field codes under that scope. The loop body emission itself
+ * lives in `IteratorLoopEmitter`; this class owns reconstructing loop nests
+ * from model `iteratorPath`s and registered iterate nodes.
  */
 export default class ScopedTemplateCompiler {
   private readonly fieldCodes: FieldCodeEmitter
 
+  private readonly loops: IteratorLoopEmitter
+
   constructor(private readonly expr: ExpressionDispatcher) {
     this.fieldCodes = new FieldCodeEmitter(expr)
+    this.loops = new IteratorLoopEmitter(expr)
   }
 
   /**
-   * Emits the shared MAP iterator loop with item, index, raw item, and input length in scope.
+   * Emits every field occurrence in model order, reconstructing the iterator
+   * loop nest from each occurrence's `iteratorPath`. Consecutive occurrences
+   * sharing a path prefix share one emitted loop, so the generated shape (and
+   * the runtime evaluation order) matches the authored template structure.
    */
-  compileIteratorLoop(
-    input: unknown,
+  compileFieldOccurrences(
+    fields: readonly FieldModel[],
     generator: CodeGenerator,
-    compileItem: (scope: IteratorCompileScope) => void,
+    options: FieldOccurrenceOptions,
   ): void {
-    const inputName = generator.let('iteratorInput', this.expr.compileOperandCode(input))
-
-    this.compileNormalizeIteratorInput(inputName, generator)
-
-    generator.if(code`Array.isArray(${inputName})`, () => {
-      const indexName = generator.let('iteratorIndex', literal(0))
-
-      generator.while(code`${indexName} < ${inputName}.length`, () => {
-        const currentIndex = generator.const('currentIteratorIndex', indexName)
-        const rawItem = generator.const('rawIteratorItem', code`${inputName}[${currentIndex}]`)
-
-        generator.assign(indexName, code`${indexName} + 1`)
-        generator.if(code`${rawItem} == null`, () => generator.continue())
-
-        const item = generator.const('iteratorItem', this.compileIteratorItemScope(rawItem))
-        const inputLength = code`${inputName}.length`
-        const scope: IteratorCompileScope = {
-          input: inputName,
-          index: currentIndex,
-          item,
-          rawItem,
-          inputLength,
-        }
-        const frame: IteratorScopeFrame = {
-          itemVar: item,
-          indexVar: currentIndex,
-          inputLengthExpr: inputLength,
-          rawItemExpr: rawItem,
-        }
-
-        this.expr.withIteratorFrame(frame, () => {
-          compileItem(scope)
-        })
-      })
-    })
+    this.compileFieldOccurrenceRuns(fields, 0, generator, options)
   }
 
   /**
@@ -95,7 +68,7 @@ export default class ScopedTemplateCompiler {
   compileMapIterator(
     node: IterateASTNode,
     generator: CodeGenerator,
-    compileYield: (template: TemplateValue, scope: IteratorCompileScope) => void,
+    compileYield: (template: TemplateValue, scope: IteratorEmitScope) => void,
   ): void {
     const yieldTemplate = node.properties.iterator.yieldTemplate
 
@@ -103,29 +76,7 @@ export default class ScopedTemplateCompiler {
       return
     }
 
-    this.compileIteratorLoop(node.properties.input, generator, scope => {
-      compileYield(yieldTemplate, scope)
-    })
-  }
-
-  /**
-   * Emits a template MAP iterator node and compiles its yield template under iterator scope.
-   */
-  compileTemplateMapIterator(
-    node: TemplateNode,
-    generator: CodeGenerator,
-    compileYield: (template: TemplateValue, scope: IteratorCompileScope) => void,
-  ): void {
-    const properties = (node.properties ?? {}) as TemplateMapIteratorProperties
-    const iterator = properties.iterator
-
-    if (iterator?.type !== IteratorType.MAP || iterator.yieldTemplate === undefined) {
-      return
-    }
-
-    const yieldTemplate = iterator.yieldTemplate
-
-    this.compileIteratorLoop(properties.input, generator, scope => {
+    this.loops.compileLoop(node.properties.input, generator, scope => {
       compileYield(yieldTemplate, scope)
     })
   }
@@ -151,113 +102,56 @@ export default class ScopedTemplateCompiler {
     return code`${`${prefix}:`} + ${arrayCode(iteratorIndexes.map(index => code`${index}`))}.join(":")`
   }
 
-  /**
-   * Finds template nodes matching a predicate, optionally stopping at the first matched branch.
-   */
-  findTemplateNodes(
-    template: TemplateValue,
-    predicate: TemplateNodePredicate,
-    options: TemplateSearchOptions = {},
-  ): TemplateNode[] {
-    const results: TemplateNode[] = []
-
-    this.walkTemplate(template, predicate, options.descendIntoMatches ?? true, results)
-
-    return results
-  }
-
-  /**
-   * Checks whether a template contains at least one node matching a predicate.
-   */
-  containsTemplateNode(template: TemplateValue, predicate: TemplateNodePredicate): boolean {
-    return this.findTemplateNodes(template, predicate).length > 0
-  }
-
-  /**
-   * Normalizes object and array iterator inputs before emitted template loops run.
-   */
-  private compileNormalizeIteratorInput(input: Name, generator: CodeGenerator): void {
-    generator.if(code`${input} != null && !Array.isArray(${input}) && typeof ${input} === "object"`, () => {
-      const mapEntry = generator.functionExpression('normalizeIteratorEntry', ['entry'], (body, [entry]) => {
-        body.return(
-          code`typeof ${entry}[1] === "object" && ${entry}[1] !== null ? Object.assign(${objectCode([
-            { key: '@key', value: code`${entry}[0]` },
-          ])}, ${entry}[1]) : ${objectCode([
-            { key: '@key', value: code`${entry}[0]` },
-            { key: '@value', value: code`${entry}[1]` },
-          ])}`,
-        )
-      })
-
-      generator.assign(input, code`Object.entries(${input}).map(${mapEntry})`)
-    })
-    generator.if(code`Array.isArray(${input})`, () => {
-      const removeEmptyItems = generator.functionExpression('removeEmptyIteratorItems', ['item'], (body, [item]) => {
-        body.return(code`${item} != null`)
-      })
-
-      generator.assign(input, code`${input}.filter(${removeEmptyItems})`)
-    })
-  }
-
-  /**
-   * Produces the scoped iterator item object exposed to @item references.
-   */
-  private compileIteratorItemScope(rawItem: Name): Code {
-    return code`typeof ${rawItem} === "object" && ${rawItem} !== null ? Object.assign({}, ${rawItem}) : ${objectCode([
-      { key: '@value', value: rawItem },
-    ])}`
-  }
-
-  /**
-   * Recursively walks template values while preserving caller-controlled descent semantics.
-   */
-  private walkTemplate(
-    value: TemplateValue,
-    predicate: TemplateNodePredicate,
-    descendIntoMatches: boolean,
-    results: TemplateNode[],
+  private compileFieldOccurrenceRuns(
+    fields: readonly FieldModel[],
+    depth: number,
+    generator: CodeGenerator,
+    options: FieldOccurrenceOptions,
   ): void {
-    if (value === null || value === undefined || typeof value !== 'object') {
-      return
-    }
+    this.groupConsecutiveRuns(fields, depth).forEach(run => {
+      if (run.ref === undefined) {
+        run.fields.forEach(field => options.compileLeaf(field))
 
-    if (this.expr.isTemplateNode(value)) {
-      const isMatch = predicate(value)
-
-      if (isMatch) {
-        results.push(value)
-      }
-
-      if (isMatch && !descendIntoMatches) {
         return
       }
 
-      Object.values(value.properties ?? {}).forEach(child => {
-        this.walkTemplate(child as TemplateValue, predicate, descendIntoMatches, results)
+      if (depth === 0 && options.loopComment !== undefined) {
+        generator.comment(options.loopComment)
+      }
+
+      const runRef = run.ref
+
+      this.compileIterateRefLoop(runRef, generator, () => {
+        this.compileFieldOccurrenceRuns(run.fields, depth + 1, generator, options)
       })
-
-      return
-    }
-
-    if (Array.isArray(value)) {
-      value.forEach(item => {
-        this.walkTemplate(item, predicate, descendIntoMatches, results)
-      })
-
-      return
-    }
-
-    Object.values(value).forEach(item => {
-      this.walkTemplate(item, predicate, descendIntoMatches, results)
     })
   }
-}
 
-export function isTemplateFieldNode(node: TemplateNode): boolean {
-  return node.originalType === ASTNodeType.BLOCK && node.blockType === BlockType.FIELD
-}
+  private groupConsecutiveRuns(fields: readonly FieldModel[], depth: number): FieldOccurrenceRun[] {
+    return fields.reduce<FieldOccurrenceRun[]>((runs, field) => {
+      const ref = field.iteratorPath[depth]
+      const lastRun = runs.at(-1)
 
-export function isTemplateBlockNode(node: TemplateNode): boolean {
-  return node.originalType === ASTNodeType.BLOCK
+      if (lastRun !== undefined && lastRun.ref?.node === ref?.node) {
+        lastRun.fields.push(field)
+
+        return runs
+      }
+
+      runs.push({ ref, fields: [field] })
+
+      return runs
+    }, [])
+  }
+
+  /** Emits one loop level for a registered or template MAP iterate node. */
+  private compileIterateRefLoop(ref: IterateRef, generator: CodeGenerator, compileBody: () => void): void {
+    const input = isTemplateNode(ref.node)
+      ? ((ref.node.properties ?? {}) as TemplateMapIteratorProperties).input
+      : ref.node.properties.input
+
+    this.loops.compileLoop(input, generator, () => {
+      compileBody()
+    })
+  }
 }

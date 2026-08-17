@@ -3,7 +3,7 @@ import type { RedirectOutcomeASTNode, SubmitHookASTNode } from '../../../contrac
 import type { StepASTNode } from '../../../contracts/ast/structures.type'
 import { isASTNode } from '../../../contracts/ast/nodes'
 import { isRedirectOutcomeNode } from '../../../contracts/ast/outcome-nodes'
-import type { ForwardOutcomeGroup } from '../../../contracts/plans/runtimePlans.type'
+import type { ForwardOutcomeGroup } from '../contracts/reachabilityModel.type'
 import RequestTimeReferenceAnalyzer from './RequestTimeReferenceAnalyzer'
 
 export interface ForwardNavigationAnalysis {

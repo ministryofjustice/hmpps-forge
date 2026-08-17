@@ -2,17 +2,17 @@ import { ASTNode } from '../../../contracts/ast/ast.type'
 import type { CompiledReachabilityFactsFunction } from '../../../contracts/compiled/compiledFunctions.type'
 import type {
   ForwardOutcomeGroup,
-  ReachabilityCompilationEntry,
-  ReachabilityCompilationPlan,
-} from '../../../contracts/plans/runtimePlans.type'
+  ReachabilityEntryModel,
+  ReachabilityModel,
+} from '../contracts/reachabilityModel.type'
 import { arrayCode, Code, code, literal, objectCode } from '../../../compilation/codegen/Code'
 import CodeGenerator from '../../../compilation/codegen/CodeGenerator'
 import Name from '../../../compilation/codegen/Name'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
+  CompilationPhase,
   compileGeneratedFunction,
-  deriveScriptLabel,
   renderGeneratedSource,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
 
@@ -24,7 +24,7 @@ interface ReachabilityResultNames {
   readonly resumeActive: Name
 }
 
-/** Builds the generated reachability facts function from a compilation plan. */
+/** Builds the generated reachability facts function from the reachability model. */
 export default class ReachabilityCompiler {
   private readonly expr: ExpressionDispatcher
 
@@ -32,57 +32,42 @@ export default class ReachabilityCompiler {
     this.expr = new ExpressionDispatcher(dependencies)
   }
 
-  compileFacts(plan: ReachabilityCompilationPlan): CompiledReachabilityFactsFunction {
+  compileFacts(model: ReachabilityModel): CompiledReachabilityFactsFunction {
     return compileGeneratedFunction<CompiledReachabilityFactsFunction>(
       this.expr,
       ['ctx'],
-      () => this.buildFactsSource(plan),
-      { phase: 'reachability', label: this.deriveJourneyLabel(plan) },
+      () => this.buildFactsSource(model),
+      { phase: CompilationPhase.REACHABILITY, label: model.label },
     )
   }
 
-  generateFactsSource(plan: ReachabilityCompilationPlan): string {
-    return renderGeneratedSource(this.expr, () => this.buildFactsSource(plan))
+  generateFactsSource(model: ReachabilityModel): string {
+    return renderGeneratedSource(this.expr, () => this.buildFactsSource(model))
   }
 
-  private deriveJourneyLabel(plan: ReachabilityCompilationPlan): string | undefined {
-    const dynamicNodes = [
-      plan.resumeWhen,
-      ...plan.entries.flatMap(entry => [
-        entry.entryWhen,
-        ...entry.forwardOutcomeGroups.flatMap(group => group.redirectOutcomes.map(outcome => outcome.node)),
-      ]),
-    ]
-
-    return deriveScriptLabel(dynamicNodes, { maxDepth: 1 })
-  }
-
-  private buildFactsSource(plan: ReachabilityCompilationPlan): CodeGenerator {
+  private buildFactsSource(model: ReachabilityModel): CodeGenerator {
     const generator = CodeGenerator.forFunction(['ctx'])
 
     generator.directive('use strict')
     generator.comment('ReachabilityCompiler.buildFactsSource')
-    const resultNames = this.compileReachabilityResult(plan, generator)
+    const resultNames = this.compileReachabilityResult(model, generator)
 
     generator.return(this.buildReachabilityResultExpression(resultNames))
 
     return generator
   }
 
-  private compileReachabilityResult(
-    plan: ReachabilityCompilationPlan,
-    generator: CodeGenerator,
-  ): ReachabilityResultNames {
-    const stepCount = plan.entries.length
+  private compileReachabilityResult(model: ReachabilityModel, generator: CodeGenerator): ReachabilityResultNames {
+    const stepCount = model.entries.length
     const entryResults = generator.const('entryResults', code`new Array(${stepCount})`)
-    const outcomeValues = generator.const('outcomeValues', arrayCode(plan.entries.map(() => code`[]`)))
-    const declaredOutcomeValues = generator.const('declaredOutcomeValues', arrayCode(plan.entries.map(() => code`[]`)))
+    const outcomeValues = generator.const('outcomeValues', arrayCode(model.entries.map(() => code`[]`)))
+    const declaredOutcomeValues = generator.const('declaredOutcomeValues', arrayCode(model.entries.map(() => code`[]`)))
     const tieBreakerPriorities = generator.const('tieBreakerPriorities', code`new Array(${stepCount})`)
 
-    this.compileEntryPredicates(plan.entries, entryResults, generator)
-    this.compileForwardOutcomes(plan.entries, outcomeValues, declaredOutcomeValues, generator)
-    this.compileTieBreakers(plan.entries, tieBreakerPriorities, generator)
-    const resumeActive = this.compileResumeCondition(plan, generator)
+    this.compileEntryPredicates(model.entries, entryResults, generator)
+    this.compileForwardOutcomes(model.entries, outcomeValues, declaredOutcomeValues, generator)
+    this.compileTieBreakers(model.entries, tieBreakerPriorities, generator)
+    const resumeActive = this.compileResumeCondition(model, generator)
 
     return { entryResults, outcomeValues, declaredOutcomeValues, tieBreakerPriorities, resumeActive }
   }
@@ -98,7 +83,7 @@ export default class ReachabilityCompiler {
   }
 
   private compileEntryPredicates(
-    entries: ReachabilityCompilationEntry[],
+    entries: readonly ReachabilityEntryModel[],
     entryResults: Name,
     generator: CodeGenerator,
   ): void {
@@ -120,7 +105,7 @@ export default class ReachabilityCompiler {
   }
 
   private compileForwardOutcomes(
-    entries: ReachabilityCompilationEntry[],
+    entries: readonly ReachabilityEntryModel[],
     outcomeValues: Name,
     declaredOutcomeValues: Name,
     generator: CodeGenerator,
@@ -251,7 +236,7 @@ export default class ReachabilityCompiler {
   }
 
   private compileTieBreakers(
-    entries: ReachabilityCompilationEntry[],
+    entries: readonly ReachabilityEntryModel[],
     tieBreakerPriorities: Name,
     generator: CodeGenerator,
   ): void {
@@ -288,17 +273,17 @@ export default class ReachabilityCompiler {
     })
   }
 
-  private compileResumeCondition(plan: ReachabilityCompilationPlan, generator: CodeGenerator): Name {
+  private compileResumeCondition(model: ReachabilityModel, generator: CodeGenerator): Name {
     generator.comment('ReachabilityCompiler.compileResumeCondition')
 
-    if (plan.resumeAlways) {
+    if (model.resumeAlways) {
       return generator.const('resumeActive', literal(true))
     }
 
-    if (plan.resumeWhen === undefined) {
+    if (model.resumeWhen === undefined) {
       return generator.const('resumeActive', literal(false))
     }
 
-    return generator.const('resumeActive', code`Boolean(${this.expr.compileExpressionCode(plan.resumeWhen)})`)
+    return generator.const('resumeActive', code`Boolean(${this.expr.compileExpressionCode(model.resumeWhen)})`)
   }
 }

@@ -4,19 +4,19 @@
 
 This document covers `packages/forge-core/src/engine/compilation/lowering`.
 
-This code turns a `CompilationPlan` into compiled functions for journeys, steps, hooks, validation, answer preparation, resolve, and navigation.
+This code turns a `CompilationModel` into compiled functions for journeys, steps, hooks, validation, answer preparation, resolve, and navigation.
 It owns compile order, the shared emitter and expression layers, and the `new Function` boundary.
 
 The phase compilers themselves live with their concern, under `concerns/<name>/lowering`.
 This folder is what they are built out of and what drives them.
 
-This document does not cover AST creation, semantic validation, dependency analysis, route index construction, or runtime execution.
+This document does not cover AST creation, semantic validation, analysis, route index construction, or runtime execution.
 
 ## Background
 
 Lowering is the engine's code generation phase.
 
-The earlier compiler phases have already built a registered AST and a `CompilationPlan`.
+The earlier compiler phases have already built a registered AST and a `CompilationModel`.
 Those structures are good for compiler code, but they are not what we want to interpret on every request.
 Journeys can have many steps, nested blocks, iterator templates, predicates, hooks, and function calls.
 Walking all of that structure for every request would repeat the same decisions again and again.
@@ -43,7 +43,7 @@ under heavy-load - so Forge remains performant!
 - Compile every `StepCompilationInputs` entry into a `CompiledStep`.
 - Compile every `JourneyCompilationInputs` entry into a `CompiledJourney`.
 - Compile every `ReachabilityCompilationInputs` entry into a `CompiledReachabilityFactsFunction`.
-- Compile the `RouteMetadataCompilationInputs` entries into one package-level `compiledRouteMetadata` function.
+- Compile the `RouteMetadataModel` entries into one package-level `compiledRouteMetadata` function.
 - Emit inspectable JavaScript source for phase compilers.
 - Construct sync or async functions based on discovered `await` usage.
 - Build generated functions that return `WorkTask`s instead of running child work directly.
@@ -58,7 +58,7 @@ under heavy-load - so Forge remains performant!
 - `componentRegistry`, carried with the lowering dependencies for compilers that need component metadata.
 - `tracer`, an optional `CompilationTracer` that records codegen spans; it defaults to a disabled tracer.
 
-`CompilationPlan` is the input from dependency analysis.
+`CompilationModel` is the input from analysis.
 `CodegenOrchestrator.compileAll()` consumes it and returns:
 - `steps`, a `Map<NodeId, CompiledStep>`.
 - `journeys`, a `Map<NodeId, CompiledJourney>`.
@@ -89,8 +89,9 @@ The main source-building helpers are:
 - `Code` and `Name`, which keep executable fragments distinct from literal values.
 - `SourceRenderer`, which renders source and authored-position segments directly from the IR.
 - `ExpressionDispatcher`, which compiles expressions and tracks iterator scope, `@self`, and `usesAwait`.
-- `RuntimeValueCompiler`, which turns authored values into the runtime values used at request time.
-- `ScopedTemplateCompiler`, which emits iterator/template loops and compiled template instance IDs.
+- `RuntimeValueCompiler`, which materialises classified `AuthoredValue` trees into runtime values.
+- `ScopedTemplateCompiler`, which reconstructs iterator loop nests and compiled template instance IDs.
+- `IteratorLoopEmitter`, the single home of the emitted iterator loop both structures delegate to.
 - `DiagnosticEmitter`, which wraps expressions and function calls with node and source metadata.
 
 ### Example
@@ -101,7 +102,7 @@ An authored field can trim a submitted value:
 field({ code: 'name', formatters: [Transformer.String.Trim()] })
 ```
 
-After AST creation and dependency analysis, `StepAnswerPreparationCompiler` receives a `FieldBlockASTNode` whose
+After AST creation and analysis, `StepAnswerPreparationCompiler` receives a `FieldBlockASTNode` whose
 formatter is a `FunctionType.Transformer` node. It emits source shaped like this:
 
 ```js
@@ -149,7 +150,7 @@ The generated function builds the work description; it does not execute the answ
 
 ## Flow
 
-Lowering starts when `CodegenOrchestrator.compileAll()` receives a `CompilationPlan`.
+Lowering starts when `CodegenOrchestrator.compileAll()` receives a `CompilationModel`.
 The orchestrator is constructed with `CompilationDependencies` (the registries and optional tracer).
 It compiles package functions first, then loops over journeys.
 For each journey, it compiles journey functions and the journey validation index from plan inputs, then loops over that journey's steps and compiles step functions.
@@ -157,7 +158,7 @@ The final step artifacts receive their step-owned functions plus the journey-sco
 
 ```mermaid
 flowchart TD
-  compilationPlan["CompilationPlan"] --> orchestrator["CodegenOrchestrator.compileAll()"]
+  compilationPlan["CompilationModel"] --> orchestrator["CodegenOrchestrator.compileAll()"]
   dependencies["CompilationDependencies"] --> orchestrator
   orchestrator --> packageFunctions["compilePackageFunctions()"]
   packageFunctions --> journeyLoop["for each JourneyCompilationInputs"]
@@ -197,14 +198,16 @@ flowchart TD
 - `CodegenOrchestrator` owns phase compile order.
   It should not contain source-emission details.
 - Phase compilers own the generated source for one runtime phase.
-  They should not query the AST for missing inputs that dependency analysis should have provided.
+  They should not query the AST for missing inputs that analysis should have provided.
   They live in their concern's `lowering/` folder, not here.
 - `ExpressionDispatcher` owns expression-shaped source.
   Phase compilers should use it for nested expressions instead of hand-writing expression dispatch.
-- `RuntimeValueCompiler` owns turning arbitrary authored values into runtime values.
-  Phase compilers should pass it a policy (a small config object of optional hooks, `RuntimeValueCompilerPolicy`) to handle special-shaped values, instead of duplicating object and array traversal.
-- `ScopedTemplateCompiler` owns iterator/template loop semantics.
-  Phase compilers should not each implement their own `Item()` and `Loop` stack.
+- `RuntimeValueCompiler` owns materialising classified `AuthoredValue` trees into runtime values.
+  It is a pure switch over the value kind; the only policy hook is `compileBlockValue`, which the resolve
+  concern supplies for nested block values (every other concern treats a block value as an impossible state).
+- `ScopedTemplateCompiler` owns iterator loop-nest reconstruction from model `iteratorPath`s.
+  Phase compilers should not each implement their own `Item()` and `Loop` stack; the loop body emission
+  itself lives in `IteratorLoopEmitter`.
 - `ScopedTemplateCompiler` owns compiled template block IDs.
   Template block IDs are built from the template node ID and active iterator index path.
   Field code is answer identity and metadata, not render block identity.
@@ -242,7 +245,7 @@ flowchart TD
 
 ## Constraints
 
-- Keep lowering after dependency analysis.
+- Keep lowering after analysis.
   Phase compilers expect explicit inputs, not raw AST discovery.
 - Keep lowering before runtime execution.
   The runtime consumes compiled functions and work tasks; it should not generate source.
@@ -264,7 +267,7 @@ flowchart TD
 
 ## Editing Notes
 
-- To add a new compiled output, start with the output type in `contracts/`, then add the input shape in `CompilationPlan`,
+- To add a new compiled output, start with the output type in `contracts/`, then add the input shape in `CompilationModel`,
   then add a phase compiler and wire it through `CodegenOrchestrator`.
 - To change expression syntax, start in `ExpressionDispatcher`.
   Add a sibling compiler when the expression has a distinct shape, then route it from `dispatchExpression()`.
@@ -285,7 +288,7 @@ flowchart TD
 
 ## Entry Points
 
-- [CodegenOrchestrator.ts](CodegenOrchestrator.ts) compiles the full `CompilationPlan`.
+- [CodegenOrchestrator.ts](CodegenOrchestrator.ts) compiles the full `CompilationModel`.
 - [compilationDependencies.type.ts](compilationDependencies.type.ts) defines the registries available during lowering.
 - [function-construction/GeneratedFunctionCompiler.ts](function-construction/GeneratedFunctionCompiler.ts) wraps source, injects helpers, and compiles generated functions.
 - [function-construction/compiledFunctionFactory.ts](function-construction/compiledFunctionFactory.ts) is the only `Function` and `AsyncFunction` construction site.

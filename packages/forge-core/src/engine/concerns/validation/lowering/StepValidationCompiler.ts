@@ -1,8 +1,5 @@
-import { ExpressionType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import { IterateASTNode } from '../../../contracts/ast/expressions.type'
-import { FieldBlockASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
-import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
+import { isTemplateNode } from '../../../contracts/ast/nodes'
+import { toRawOperand } from '../../../contracts/models/authoredValue.type'
 import {
   arrayCode,
   callCode,
@@ -19,14 +16,20 @@ import type { CompilationDependencies } from '../../../compilation/lowering/comp
 import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
+  CompilationPhase,
   compileGeneratedFunction,
-  deriveScriptLabel,
   renderGeneratedSource,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
 import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
-import ScopedTemplateCompiler, {
-  isTemplateFieldNode,
-} from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
+import ScopedTemplateCompiler from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
+import {
+  FieldCodeKind,
+  ValidationRulesKind,
+  type FieldModel,
+  type ValidationRulesModel,
+} from '../../../contracts/models/fieldModel.type'
+import ForgeInternalError from '../../../errors/ForgeInternalError'
+import type { ValidationModel } from '../contracts/validationModel.type'
 import type { CompiledValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
 
 const CONTEXT = new Name('ctx')
@@ -53,36 +56,20 @@ export default class StepValidationCompiler {
     this.templates = new ScopedTemplateCompiler(this.expr)
   }
 
-  compileStepValidation(
-    stepNode: StepASTNode,
-    fieldBlocks: FieldBlockASTNode[],
-    domainValidWhen: unknown,
-    iterateNodes: IterateASTNode[] = [],
-  ): CompiledValidationFunction {
+  compileStepValidation(model: ValidationModel): CompiledValidationFunction {
     return compileGeneratedFunction<CompiledValidationFunction>(
       this.expr,
       ['ctx', 'filter'],
-      () => this.buildStepValidationSource(fieldBlocks, domainValidWhen, iterateNodes),
-      { phase: 'validation', label: deriveScriptLabel([stepNode]) },
+      () => this.buildStepValidationSource(model),
+      { phase: CompilationPhase.VALIDATION, label: model.label },
     )
   }
 
-  generateStepValidationSource(
-    stepNode: StepASTNode,
-    fieldBlocks: FieldBlockASTNode[],
-    domainValidWhen: unknown,
-    iterateNodes: IterateASTNode[] = [],
-  ): string {
-    return renderGeneratedSource(this.expr, () =>
-      this.buildStepValidationSource(fieldBlocks, domainValidWhen, iterateNodes),
-    )
+  generateStepValidationSource(model: ValidationModel): string {
+    return renderGeneratedSource(this.expr, () => this.buildStepValidationSource(model))
   }
 
-  private buildStepValidationSource(
-    fieldBlocks: FieldBlockASTNode[],
-    domainValidWhen: unknown,
-    iterateNodes: IterateASTNode[],
-  ): CodeGenerator {
+  private buildStepValidationSource(model: ValidationModel): CodeGenerator {
     const generator = CodeGenerator.forFunction(['ctx', 'filter'])
 
     generator.directive('use strict')
@@ -91,117 +78,101 @@ export default class StepValidationCompiler {
     const fieldValidations = generator.const('fieldValidations', code`[]`)
     const domainValidations = generator.const('domainValidations', code`[]`)
 
-    fieldBlocks.forEach(block => {
-      this.compileFieldBlock(block, fieldValidations, ruleIsActive, generator)
-    })
-    iterateNodes.forEach(iterateNode => {
-      this.compileIterateBlock(iterateNode, fieldValidations, ruleIsActive, generator)
+    this.templates.compileFieldOccurrences(model.fields, generator, {
+      loopComment: 'Repeated field validations',
+      compileLeaf: field => {
+        this.compileFieldOccurrence(field, fieldValidations, ruleIsActive, generator)
+      },
     })
 
-    this.compileDomainValidationSlot(domainValidWhen, domainValidations, ruleIsActive, generator)
+    this.compileDomainValidationSlot(model.domainRules, domainValidations, ruleIsActive, generator)
     generator.blank()
     generator.return(code`${CONTEXT}.workTasks.stepValidation(${fieldValidations}, ${domainValidations})`)
 
     return generator
   }
 
-  private compileIterateBlock(
-    iterateNode: IterateASTNode,
+  private compileFieldOccurrence(
+    field: FieldModel,
     fieldValidations: Name,
     ruleIsActive: Name,
     generator: CodeGenerator,
   ): void {
-    const template = iterateNode.properties.iterator.yieldTemplate
+    if (field.iteratorPath.length === 0) {
+      this.compileRegisteredField(field, fieldValidations, ruleIsActive, generator)
 
-    if (template === undefined || !this.containsTemplateFieldWithValidation(template)) {
       return
     }
 
-    generator.comment('Repeated field validations')
-    this.templates.compileMapIterator(iterateNode, generator, yieldTemplate => {
-      this.compileTemplateValidations(yieldTemplate, fieldValidations, ruleIsActive, generator)
-    })
+    this.compileTemplateField(field, fieldValidations, ruleIsActive, generator)
   }
 
-  private compileTemplateValidations(
-    template: TemplateValue,
+  private compileRegisteredField(
+    field: FieldModel,
     fieldValidations: Name,
     ruleIsActive: Name,
     generator: CodeGenerator,
   ): void {
-    if (template === null || template === undefined || typeof template !== 'object') {
-      return
-    }
+    const rules = this.resolveFieldRules(field)
 
-    if (this.expr.isTemplateNode(template)) {
-      if (template.originalType === ASTNodeType.EXPRESSION && template.expressionType === ExpressionType.ITERATE) {
-        this.compileTemplateMapIterator(template, fieldValidations, ruleIsActive, generator)
+    generator.comment(`Field validation — ${field.label}`)
+    generator.scope(() => {
+      const selfCodeExpression = this.fieldCodes.compileModelExpression(field.code, generator)
+      const blockCode = selfCodeExpression ?? literal(undefined)
+      const dependentWhen = field.dependentWhen === undefined ? undefined : toRawOperand(field.dependentWhen)
+      const functionPrefix = this.compileValidationFunctionPrefix(field)
 
-        return
-      }
+      this.expr.withSelfCodeExpression(selfCodeExpression, () => {
+        if (dependentWhen !== undefined && this.expr.isCompilableNode(dependentWhen)) {
+          generator.if(this.expr.compileExpressionCode(dependentWhen), () => {
+            this.compileFieldValidationSlot(
+              rules,
+              literal(field.source.id),
+              blockCode,
+              fieldValidations,
+              ruleIsActive,
+              functionPrefix,
+              generator,
+            )
+          })
 
-      if (isTemplateFieldNode(template)) {
-        const codeExpression = this.templates.compileTemplateCodeExpression(template, generator)
+          return
+        }
 
-        this.compileTemplateFieldValidations(template, codeExpression, fieldValidations, ruleIsActive, generator)
-      }
-
-      Object.values(template.properties ?? {}).forEach(child => {
-        this.compileTemplateValidations(child as TemplateValue, fieldValidations, ruleIsActive, generator)
+        this.compileFieldValidationSlot(
+          rules,
+          literal(field.source.id),
+          blockCode,
+          fieldValidations,
+          ruleIsActive,
+          functionPrefix,
+          generator,
+        )
       })
-
-      return
-    }
-
-    if (Array.isArray(template)) {
-      template.forEach(item => {
-        this.compileTemplateValidations(item, fieldValidations, ruleIsActive, generator)
-      })
-
-      return
-    }
-
-    Object.values(template as Record<string, TemplateValue>).forEach(item => {
-      this.compileTemplateValidations(item, fieldValidations, ruleIsActive, generator)
     })
   }
 
-  private compileTemplateMapIterator(
-    templateNode: TemplateNode,
+  private compileTemplateField(
+    field: FieldModel,
     fieldValidations: Name,
     ruleIsActive: Name,
     generator: CodeGenerator,
   ): void {
-    this.templates.compileTemplateMapIterator(templateNode, generator, yieldTemplate => {
-      this.compileTemplateValidations(yieldTemplate, fieldValidations, ruleIsActive, generator)
-    })
-  }
-
-  private compileTemplateFieldValidations(
-    field: TemplateNode,
-    codeExpression: SafeCode | undefined,
-    fieldValidations: Name,
-    ruleIsActive: Name,
-    generator: CodeGenerator,
-  ): void {
-    const validWhen = field.properties?.validWhen
-
-    if (!hasConfiguredValue(validWhen)) {
-      return
-    }
+    const rules = this.resolveFieldRules(field)
 
     generator.comment('Template field validation')
+    const codeExpression = this.fieldCodes.compileModelExpression(field.code, generator)
     const blockCode = codeExpression ?? literal(undefined)
-    const blockId = this.templates.compileTemplateInstanceIdExpression(field)
-    const functionPrefix = this.compileValidationFunctionPrefix(field.properties?.code)
+    const blockId = this.compileTemplateBlockId(field)
+    const functionPrefix = this.compileValidationFunctionPrefix(field)
 
     this.expr.withSelfCodeExpression(codeExpression, () => {
-      const dependentWhen = field.properties?.dependentWhen
+      const dependentWhen = field.dependentWhen === undefined ? undefined : toRawOperand(field.dependentWhen)
 
       if (dependentWhen !== undefined) {
         generator.if(this.expr.compileOperandCode(dependentWhen), () => {
           this.compileFieldValidationSlot(
-            validWhen,
+            rules,
             blockId,
             blockCode,
             fieldValidations,
@@ -215,7 +186,7 @@ export default class StepValidationCompiler {
       }
 
       this.compileFieldValidationSlot(
-        validWhen,
+        rules,
         blockId,
         blockCode,
         fieldValidations,
@@ -226,57 +197,8 @@ export default class StepValidationCompiler {
     })
   }
 
-  private compileFieldBlock(
-    block: FieldBlockASTNode,
-    fieldValidations: Name,
-    ruleIsActive: Name,
-    generator: CodeGenerator,
-  ): void {
-    const validWhen = block.properties.validWhen
-
-    if (!hasConfiguredValue(validWhen)) {
-      return
-    }
-
-    generator.comment(`Field validation — ${block.variant} ${describeBlockCode(block)}`)
-    generator.scope(() => {
-      const selfCodeExpression = this.fieldCodes.compileRegisteredExpression(block.properties.code, generator)
-      const blockCode = selfCodeExpression ?? literal(undefined)
-      const dependentWhen = block.properties.dependentWhen
-      const functionPrefix = this.compileValidationFunctionPrefix(block.properties.code)
-
-      this.expr.withSelfCodeExpression(selfCodeExpression, () => {
-        if (dependentWhen !== undefined && this.expr.isCompilableNode(dependentWhen)) {
-          generator.if(this.expr.compileExpressionCode(dependentWhen), () => {
-            this.compileFieldValidationSlot(
-              validWhen,
-              literal(block.id),
-              blockCode,
-              fieldValidations,
-              ruleIsActive,
-              functionPrefix,
-              generator,
-            )
-          })
-
-          return
-        }
-
-        this.compileFieldValidationSlot(
-          validWhen,
-          literal(block.id),
-          blockCode,
-          fieldValidations,
-          ruleIsActive,
-          functionPrefix,
-          generator,
-        )
-      })
-    })
-  }
-
   private compileFieldValidationSlot(
-    value: unknown,
+    rules: ValidationRulesModel,
     blockId: Code,
     blockCode: SafeCode,
     fieldValidations: Name,
@@ -287,7 +209,7 @@ export default class StepValidationCompiler {
     generator.comment('Register field validation')
     generator.scope(() => {
       const runValidation = this.compileFieldValidationRunFunction(
-        value,
+        rules,
         blockId,
         blockCode,
         ruleIsActive,
@@ -310,18 +232,18 @@ export default class StepValidationCompiler {
   }
 
   private compileDomainValidationSlot(
-    value: unknown,
+    rules: ValidationRulesModel | undefined,
     domainValidations: Name,
     ruleIsActive: Name,
     generator: CodeGenerator,
   ): void {
-    if (!hasConfiguredValue(value)) {
+    if (rules === undefined) {
       return
     }
 
     generator.comment('Register step validation')
     generator.scope(() => {
-      const runValidation = this.compileDomainValidationRunFunction(value, ruleIsActive, generator)
+      const runValidation = this.compileDomainValidationRunFunction(rules, ruleIsActive, generator)
       const props = generator.const('domainValidationProps', objectCode([{ key: 'run', value: runValidation }]))
 
       generator.statement(code`${domainValidations}.push(${CONTEXT}.workTasks.domainValidation("domain:0", ${props}))`)
@@ -329,7 +251,7 @@ export default class StepValidationCompiler {
   }
 
   private compileFieldValidationRunFunction(
-    value: unknown,
+    rules: ValidationRulesModel,
     blockId: Code,
     blockCode: SafeCode,
     ruleIsActive: Name,
@@ -342,7 +264,7 @@ export default class StepValidationCompiler {
       body => {
         const errors = body.const('errors', code`[]`)
         const validationResults = this.compileValidationRules(
-          value,
+          rules,
           this.compileValidationEvaluationPrefix(functionPrefix),
           body,
         )
@@ -370,13 +292,17 @@ export default class StepValidationCompiler {
     )
   }
 
-  private compileDomainValidationRunFunction(value: unknown, ruleIsActive: Name, generator: CodeGenerator): Name {
+  private compileDomainValidationRunFunction(
+    rules: ValidationRulesModel,
+    ruleIsActive: Name,
+    generator: CodeGenerator,
+  ): Name {
     return generator.function(
       'validateStep',
       [],
       body => {
         const domainErrors = body.const('domainErrors', code`[]`)
-        const validationResults = this.compileValidationRules(value, 'step', body)
+        const validationResults = this.compileValidationRules(rules, 'step', body)
         const failures = this.compileValidationFailures(
           validationResults,
           ruleIsActive,
@@ -453,16 +379,19 @@ export default class StepValidationCompiler {
     generator: CodeGenerator,
   ): Name {
     generator.comment('Evaluate validation results')
+    // Async discovery is monotonic within a build, so this read is safe only
+    // because this slot's rules were compiled by compileValidationRules just
+    // above; a rule that discovered an async call flips the helper here.
     const helperName = this.expr.usesAwait ? 'collectValidationFailuresAsync' : 'collectValidationFailures'
     const helperCall = code`_forgeHelpers${propertyCode(helperName)}(${validationResults}, ${ruleIsActive})`
 
     return generator.const(resultPrefix, this.expr.usesAwait ? code`await ${helperCall}` : helperCall)
   }
 
-  private compileValidationRules(value: unknown, functionPrefix: string, generator: CodeGenerator): Name {
-    if (Array.isArray(value) && value.every(rule => this.isDirectValidationRule(rule))) {
+  private compileValidationRules(rules: ValidationRulesModel, functionPrefix: string, generator: CodeGenerator): Name {
+    if (rules.kind === ValidationRulesKind.DIRECT) {
       const validationRules = this.expr.withValidationFunctionPrefix(functionPrefix, () =>
-        value.map(rule => this.expr.compileOperandCode(rule)),
+        rules.rules.map(rule => this.expr.compileOperandCode(rule.node)),
       )
 
       generator.comment('Build validation rules')
@@ -473,30 +402,35 @@ export default class StepValidationCompiler {
     const validationResults = generator.let('validationResults')
 
     this.expr.withValidationFunctionPrefix(functionPrefix, () => {
-      this.values.compileValue(value, generator, validationResults)
+      this.values.compileValue(rules.value, generator, validationResults)
     })
 
     return validationResults
   }
 
-  private isDirectValidationRule(value: unknown): boolean {
-    if (this.expr.isTemplateNode(value)) {
-      return value.originalType === ASTNodeType.EXPRESSION && value.expressionType === ExpressionType.VALIDATION
+  /** Analysis only models validating fields, so absent rules are an impossible state. */
+  private resolveFieldRules(field: FieldModel): ValidationRulesModel {
+    if (field.validation === undefined) {
+      throw new ForgeInternalError(`Validation model field "${field.label}" carries no validation rules`)
     }
 
-    if (!this.expr.isCompilableNode(value) || value.type !== ASTNodeType.EXPRESSION) {
-      return false
-    }
-
-    return 'expressionType' in value && value.expressionType === ExpressionType.VALIDATION
+    return field.validation.rules
   }
 
-  private compileValidationFunctionPrefix(fieldCode: unknown): string {
-    if (typeof fieldCode !== 'string') {
+  private compileTemplateBlockId(field: FieldModel): Code {
+    if (!isTemplateNode(field.source)) {
+      return literal(field.source.id)
+    }
+
+    return this.templates.compileTemplateInstanceIdExpression(field.source)
+  }
+
+  private compileValidationFunctionPrefix(field: FieldModel): string {
+    if (field.code?.kind !== FieldCodeKind.STATIC) {
       return 'validateField'
     }
 
-    const namePart = fieldCode.replace(/[^A-Za-z0-9_$]+/g, '_').replace(/^([^A-Za-z_$])/, '_$1')
+    const namePart = field.code.value.replace(/[^A-Za-z0-9_$]+/g, '_').replace(/^([^A-Za-z_$])/, '_$1')
 
     return `validate_${namePart || 'field'}`
   }
@@ -508,25 +442,4 @@ export default class StepValidationCompiler {
 
     return functionPrefix.replace(/^validate_/, '')
   }
-
-  private containsTemplateFieldWithValidation(template: TemplateValue): boolean {
-    return this.templates.containsTemplateNode(
-      template,
-      node => isTemplateFieldNode(node) && hasConfiguredValue(node.properties?.validWhen),
-    )
-  }
-}
-
-function hasConfiguredValue(value: unknown): boolean {
-  if (value === undefined) {
-    return false
-  }
-
-  return Array.isArray(value) ? value.length > 0 : true
-}
-
-function describeBlockCode(block: FieldBlockASTNode): string {
-  const fieldCode = block.properties.code
-
-  return typeof fieldCode === 'string' ? `"${fieldCode}"` : '(dynamic code)'
 }

@@ -1,8 +1,11 @@
 import { BlockType } from '../../../authoring/types/enums'
 import { ASTTestFactory } from '../ast/testing-helpers/ASTTestFactory'
-import type { CompilationPlan, StepCompilationInputs } from '../../contracts/plans/compilationPlan.type'
-import type { ReachabilityStateTable, ReachabilityCompilationPlan } from '../../contracts/plans/runtimePlans.type'
-import type { FieldBlockASTNode, StepASTNode } from '../../contracts/ast/structures.type'
+import type { CompilationModel, JourneyModel, StepModel } from '../../contracts/models/compilationModel.type'
+import type { ReachabilityModel } from '../../concerns/reachability/contracts/reachabilityModel.type'
+import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../../contracts/ast/structures.type'
+import { buildStepFieldModels } from '../analysis/testing-helpers/analysisContexts'
+import ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
+import CompilationModelBuilder from '../analysis/CompilationModelBuilder'
 import ComponentRegistry from '../../registries/ComponentRegistry'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import CompilationTracer from '../tracing/CompilationTracer'
@@ -23,93 +26,27 @@ describe('CodegenOrchestrator', () => {
         .withCode('name')
         .withProperty('validWhen', [{ message: 'Enter your name' }])
         .build() as FieldBlockASTNode
-      const stateTable: ReachabilityStateTable = {
-        entries: [
-          {
-            stepId: stepNode.id,
-            isEntryPoint: false,
-          },
-          {
-            stepId: validatingStepNode.id,
-            isEntryPoint: false,
-          },
-        ],
-        unreachableRedirect: 'entry',
-        reachabilityDisabled: false,
-      }
-      const reachabilityPlan: ReachabilityCompilationPlan = {
-        stateTable,
-        entries: [
-          {
-            stepId: stepNode.id,
-            isEntryPoint: false,
-            forwardOutcomeGroups: [],
-            cleardownFieldCodes: [],
-            reachabilityTieBreakers: [],
-          },
-          {
-            stepId: validatingStepNode.id,
-            isEntryPoint: false,
-            forwardOutcomeGroups: [],
-            cleardownFieldCodes: [],
-            reachabilityTieBreakers: [],
-          },
-        ],
-        resumeAlways: false,
-      }
-      const plan: CompilationPlan = {
-        stepInputs: new Map([
-          [
-            stepNode.id,
-            createStepInputs({
-              stepNode,
-              staticData: { shared: 'step' },
-            }),
-          ],
-          [
-            validatingStepNode.id,
-            createStepInputs({
+      const model = createCompilationModel([
+        createJourneyModel({
+          journeyNode,
+          steps: [
+            createStepModel({ stepNode, staticData: { shared: 'step' } }),
+            createStepModel({
               stepNode: validatingStepNode,
               staticData: { shared: 'validating-step' },
               validatingFieldBlocks: [validatingFieldBlock],
             }),
           ],
-        ]),
-        journeyInputs: new Map([
-          [
-            journeyNode.id,
-            {
-              runtimePlan: {
-                journeyId: journeyNode.id,
-                path: 'journey',
-              },
-              staticData: { shared: 'journey' },
-              stepFieldBlocks: [],
-              stepMapIterateNodes: [],
-              accessHooks: [],
-              answerCleardown: { fieldInventorySources: [] },
-            },
-          ],
-        ]),
-        reachabilityInputs: new Map([
-          [
-            journeyNode.id,
-            {
-              reachabilityId: journeyNode.id,
-              stateTable,
-              reachabilityPlan,
-            },
-          ],
-        ]),
-        routeMetadataInputs: new Map(),
-      }
+          staticData: { shared: 'journey' },
+        }),
+      ])
       const orchestrator = new CodegenOrchestrator({
         functionRegistry: new FunctionRegistry(),
         componentRegistry: new ComponentRegistry(),
       })
 
       // Act
-      const result = orchestrator.compileAll(plan)
+      const result = orchestrator.compileAll(model)
 
       // Assert
       const compiledStep = result.steps.get(stepNode.id)
@@ -155,93 +92,28 @@ describe('CodegenOrchestrator', () => {
         .withCode('name')
         .withProperty('validWhen', [{ message: 'Enter your name' }])
         .build() as FieldBlockASTNode
-      const stateTable: ReachabilityStateTable = {
-        entries: [
-          {
-            stepId: stepNode.id,
-            isEntryPoint: false,
-          },
-          {
-            stepId: validatingStepNode.id,
-            isEntryPoint: false,
-          },
-        ],
-        unreachableRedirect: 'entry',
-        reachabilityDisabled: true,
-      }
-      const reachabilityPlan: ReachabilityCompilationPlan = {
-        stateTable,
-        entries: [
-          {
-            stepId: stepNode.id,
-            isEntryPoint: false,
-            forwardOutcomeGroups: [],
-            cleardownFieldCodes: [],
-            reachabilityTieBreakers: [],
-          },
-          {
-            stepId: validatingStepNode.id,
-            isEntryPoint: false,
-            forwardOutcomeGroups: [],
-            cleardownFieldCodes: [],
-            reachabilityTieBreakers: [],
-          },
-        ],
-        resumeAlways: false,
-      }
-      const plan: CompilationPlan = {
-        stepInputs: new Map([
-          [
-            stepNode.id,
-            createStepInputs({
-              stepNode,
-              staticData: { shared: 'step' },
-            }),
-          ],
-          [
-            validatingStepNode.id,
-            createStepInputs({
+      const model = createCompilationModel([
+        createJourneyModel({
+          journeyNode,
+          steps: [
+            createStepModel({ stepNode, staticData: { shared: 'step' } }),
+            createStepModel({
               stepNode: validatingStepNode,
               staticData: { shared: 'validating-step' },
               validatingFieldBlocks: [validatingFieldBlock],
             }),
           ],
-        ]),
-        journeyInputs: new Map([
-          [
-            journeyNode.id,
-            {
-              runtimePlan: {
-                journeyId: journeyNode.id,
-                path: 'journey',
-              },
-              staticData: { shared: 'journey' },
-              stepFieldBlocks: [],
-              stepMapIterateNodes: [],
-              accessHooks: [],
-              answerCleardown: { fieldInventorySources: [] },
-            },
-          ],
-        ]),
-        reachabilityInputs: new Map([
-          [
-            journeyNode.id,
-            {
-              reachabilityId: journeyNode.id,
-              stateTable,
-              reachabilityPlan,
-            },
-          ],
-        ]),
-        routeMetadataInputs: new Map(),
-      }
+          staticData: { shared: 'journey' },
+          reachabilityDisabled: true,
+        }),
+      ])
       const orchestrator = new CodegenOrchestrator({
         functionRegistry: new FunctionRegistry(),
         componentRegistry: new ComponentRegistry(),
       })
 
       // Act
-      const result = orchestrator.compileAll(plan)
+      const result = orchestrator.compileAll(model)
 
       // Assert
       const compiledStep = result.steps.get(stepNode.id)
@@ -258,44 +130,13 @@ describe('CodegenOrchestrator', () => {
       // Arrange
       const journeyNode = ASTTestFactory.journey().withProperty('path', '/journey').build()
       const stepNode = ASTTestFactory.step().withPath('/first').build()
-      const stateTable: ReachabilityStateTable = {
-        entries: [{ stepId: stepNode.id, isEntryPoint: false }],
-        unreachableRedirect: 'entry',
-        reachabilityDisabled: false,
-      }
-      const reachabilityPlan: ReachabilityCompilationPlan = {
-        stateTable,
-        entries: [
-          {
-            stepId: stepNode.id,
-            isEntryPoint: false,
-            forwardOutcomeGroups: [],
-            cleardownFieldCodes: [],
-            reachabilityTieBreakers: [],
-          },
-        ],
-        resumeAlways: false,
-      }
-      const plan: CompilationPlan = {
-        stepInputs: new Map([[stepNode.id, createStepInputs({ stepNode, staticData: { shared: 'step' } })]]),
-        journeyInputs: new Map([
-          [
-            journeyNode.id,
-            {
-              runtimePlan: { journeyId: journeyNode.id, path: 'journey' },
-              staticData: { shared: 'journey' },
-              stepFieldBlocks: [],
-              stepMapIterateNodes: [],
-              accessHooks: [],
-              answerCleardown: { fieldInventorySources: [] },
-            },
-          ],
-        ]),
-        reachabilityInputs: new Map([
-          [journeyNode.id, { reachabilityId: journeyNode.id, stateTable, reachabilityPlan }],
-        ]),
-        routeMetadataInputs: new Map(),
-      }
+      const model = createCompilationModel([
+        createJourneyModel({
+          journeyNode,
+          steps: [createStepModel({ stepNode, staticData: { shared: 'step' } })],
+          staticData: { shared: 'journey' },
+        }),
+      ])
       const tracer = new CompilationTracer({ enabled: true })
       const orchestrator = new CodegenOrchestrator({
         functionRegistry: new FunctionRegistry(),
@@ -304,7 +145,7 @@ describe('CodegenOrchestrator', () => {
       })
 
       // Act
-      orchestrator.compileAll(plan)
+      orchestrator.compileAll(model)
 
       // Assert
       const root = tracer.root
@@ -320,10 +161,35 @@ describe('CodegenOrchestrator', () => {
       expect(stepSpan?.beginFields).toEqual({ nodeId: stepNode.id })
       expect(stepFunctionSpans.length).toBeGreaterThan(0)
     })
+
+    it('should compile a model built by the real builder without missing inputs', () => {
+      // Arrange
+      const nodeRegistry = new ASTNodeIndex()
+      const journeyNode = ASTTestFactory.journey().withProperty('path', '/journey').build()
+      const stepNode = ASTTestFactory.step().withPath('/first').withCode('first').build()
+
+      Object.defineProperty(stepNode, 'parent', { value: journeyNode, enumerable: false })
+      nodeRegistry.register(journeyNode.id, journeyNode)
+      nodeRegistry.register(stepNode.id, stepNode)
+
+      const registries = {
+        componentRegistry: new ComponentRegistry(),
+        functionRegistry: new FunctionRegistry(),
+      }
+      const model = new CompilationModelBuilder(nodeRegistry, registries).build(new Map([[stepNode.id, stepNode]]))
+      const orchestrator = new CodegenOrchestrator(registries)
+
+      // Act
+      const result = orchestrator.compileAll(model)
+
+      // Assert
+      expect(result.steps.get(stepNode.id)?.compiledResolve).toEqual(expect.any(Function))
+      expect(result.journeys.get(journeyNode.id)?.compiledReachabilityFacts).toEqual(expect.any(Function))
+    })
   })
 })
 
-function createStepInputs({
+function createStepModel({
   stepNode,
   staticData,
   validatingFieldBlocks = [],
@@ -331,34 +197,90 @@ function createStepInputs({
   readonly stepNode: StepASTNode
   readonly staticData: Record<string, unknown>
   readonly validatingFieldBlocks?: FieldBlockASTNode[]
-}): StepCompilationInputs {
+}): StepModel {
   return {
-    core: {
-      stepNode,
-      runtimePlan: {
-        stepId: stepNode.id,
-        path: stepNode.properties.path,
-      },
-      staticData,
+    stepId: stepNode.id,
+    label: undefined,
+    runtimePlan: {
+      stepId: stepNode.id,
+      path: stepNode.properties.path,
     },
+    staticData,
+    fields: [],
     answerPreparation: {
-      fieldBlocks: [],
-      mapIterateNodes: [],
+      label: undefined,
+      fields: [],
     },
     hooks: {
-      accessHooks: [],
-      submitHooks: [],
+      access: { label: undefined, hooks: [] },
+      submit: { label: undefined, hooks: [] },
     },
     validation: {
-      stepNode,
+      label: undefined,
       hasValidation: validatingFieldBlocks.length > 0,
-      validatingFieldBlocks,
-      mapIterateNodes: [],
+      fields: buildStepFieldModels({ fieldBlocks: validatingFieldBlocks }).filter(
+        field => field.validation !== undefined,
+      ),
+      domainRules: undefined,
+      entryValidation: [],
     },
     resolve: {
-      stepNode,
-      ancestorJourneys: [],
-      allIterateNodes: [],
+      label: undefined,
+      step: [],
+      ancestors: [],
+      blocks: [],
+      standaloneIterateBlocks: [],
     },
+  }
+}
+
+function createJourneyModel({
+  journeyNode,
+  steps,
+  staticData,
+  reachabilityDisabled = false,
+}: {
+  readonly journeyNode: JourneyASTNode
+  readonly steps: readonly StepModel[]
+  readonly staticData: Record<string, unknown>
+  readonly reachabilityDisabled?: boolean
+}): JourneyModel {
+  const reachability: ReachabilityModel = {
+    label: undefined,
+    stateTable: {
+      entries: steps.map(step => ({ stepId: step.stepId, isEntryPoint: false })),
+      unreachableRedirect: 'entry',
+      reachabilityDisabled,
+    },
+    entries: steps.map(step => ({
+      stepId: step.stepId,
+      isEntryPoint: false,
+      forwardOutcomeGroups: [],
+      cleardownFieldCodes: [],
+      reachabilityTieBreakers: [],
+    })),
+    resumeAlways: false,
+  }
+
+  return {
+    journeyId: journeyNode.id,
+    label: undefined,
+    runtimePlan: {
+      journeyId: journeyNode.id,
+      path: 'journey',
+    },
+    staticData,
+    hooks: { access: { label: undefined, hooks: [] } },
+    reachability,
+    cleardown: { label: undefined, steps: [] },
+    answerPreparation: { label: undefined, fields: [] },
+    steps: new Map(steps.map(step => [step.stepId, step])),
+  }
+}
+
+function createCompilationModel(journeys: readonly JourneyModel[]): CompilationModel {
+  return {
+    routeMetadata: new Map(),
+    journeys: new Map(journeys.map(journey => [journey.journeyId, journey])),
   }
 }

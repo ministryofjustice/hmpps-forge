@@ -12,7 +12,7 @@ This document does not cover validation, rendering, or answer preparation work-h
 ## Inputs
 
 `StepAnswerPreparationCompiler.compile()` receives:
-- field blocks selected by dependency analysis.
+- field blocks selected by analysis.
 - map iterate nodes whose yield templates may contain field blocks.
 
 `CodegenOrchestrator` uses the same compiler for step answer preparation and journey answer preparation.

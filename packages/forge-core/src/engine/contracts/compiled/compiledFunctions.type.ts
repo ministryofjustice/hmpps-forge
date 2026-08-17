@@ -97,7 +97,7 @@ export type CompiledAnswerPreparationFunction = (
 
 /**
  * The result of calling the compiled reachability function. Arrays are indexed
- * by step position in the ReachabilityCompilationPlan.entries array, maintaining a
+ * by step position in the ReachabilityModel.entries array, maintaining a
  * 1:1 correspondence with the plan's step ordering.
  */
 export interface CompiledReachabilityResult {

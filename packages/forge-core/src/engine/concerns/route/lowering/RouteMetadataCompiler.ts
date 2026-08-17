@@ -3,13 +3,14 @@ import CodeGenerator from '../../../compilation/codegen/CodeGenerator'
 import Name from '../../../compilation/codegen/Name'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
+  CompilationPhase,
   compileGeneratedFunction,
   renderGeneratedSource,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
 import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import type { CompiledRouteMetadataFunction } from '../../../contracts/compiled/compiledFunctions.type'
-import type { RouteMetadataCompilationInputs } from '../../../contracts/plans/compilationPlan.type'
+import type { RouteMetadataModel } from '../contracts/routeMetadataModel.type'
 
 /**
  * Compiles the package-level route-metadata function for the route-tree phase.
@@ -44,23 +45,23 @@ export default class RouteMetadataCompiler {
    * is sync or async depends on whether any metadata expression calls a registered
    * async function.
    */
-  compile(inputs: Iterable<RouteMetadataCompilationInputs>): CompiledRouteMetadataFunction {
+  compile(inputs: Iterable<RouteMetadataModel>): CompiledRouteMetadataFunction {
     return compileGeneratedFunction<CompiledRouteMetadataFunction>(this.expr, ['ctx'], () => this.buildSource(inputs), {
-      phase: 'route-tree',
+      phase: CompilationPhase.ROUTE_TREE,
     })
   }
 
   /**
    * Builds inspectable generated source without constructing a Function.
    */
-  generateSource(inputs: Iterable<RouteMetadataCompilationInputs>): string {
+  generateSource(inputs: Iterable<RouteMetadataModel>): string {
     return renderGeneratedSource(this.expr, () => this.buildSource(inputs))
   }
 
   /**
    * Emits `result[nodeId] = { title, description?, metadata? }` for every node.
    */
-  private buildSource(inputs: Iterable<RouteMetadataCompilationInputs>): CodeGenerator {
+  private buildSource(inputs: Iterable<RouteMetadataModel>): CodeGenerator {
     const generator = CodeGenerator.forFunction(['ctx'])
     const entries = [...inputs]
 
@@ -77,7 +78,7 @@ export default class RouteMetadataCompiler {
   /**
    * Emits the resolved metadata object for one node.
    */
-  private compileEntry(input: RouteMetadataCompilationInputs, result: Name, generator: CodeGenerator): void {
+  private compileEntry(input: RouteMetadataModel, result: Name, generator: CodeGenerator): void {
     generator.comment('RouteMetadataCompiler.compileEntry')
     generator.scope(() => {
       const entry = generator.const('routeMetadataEntry', code`{}`)

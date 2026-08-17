@@ -11,11 +11,11 @@ This document does not cover the static route topology (built once at mount) or 
 
 ## Inputs
 
-`RouteMetadataCompiler.compile()` receives the collected `RouteMetadataCompilationInputs` for every step and journey:
+`RouteMetadataCompiler.compile()` receives the collected `RouteMetadataModel` for every step and journey:
 - the node ID.
 - the authored `title` (required), `description`, and `metadata`.
 
-Dependency analysis (`RouteMetadataInputAnalyzer`) provides those inputs.
+Analysis (`RouteAnalyzer`) provides those inputs.
 
 ## Output
 

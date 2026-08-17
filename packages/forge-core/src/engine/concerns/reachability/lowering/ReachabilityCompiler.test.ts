@@ -3,12 +3,12 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import { ExpressionType, FunctionType, OutcomeType, PredicateType } from '../../../../authoring/types/enums'
 import { FunctionASTNode, ReferenceASTNode, RedirectOutcomeASTNode } from '../../../contracts/ast/expressions.type'
 import { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
+import type { ReachabilityStateTable } from '../../../contracts/plans/runtimePlans.type'
 import type {
   ForwardOutcomeGroup,
-  ReachabilityStateTable,
-  ReachabilityCompilationEntry,
-  ReachabilityCompilationPlan,
-} from '../../../contracts/plans/runtimePlans.type'
+  ReachabilityEntryModel,
+  ReachabilityModel,
+} from '../contracts/reachabilityModel.type'
 import type { ASTNode, NodeId } from '../../../contracts/ast/ast.type'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
@@ -68,7 +68,7 @@ function createRedirectOutcome(goto: string | FunctionASTNode, when?: TestPredic
   } as RedirectOutcomeASTNode
 }
 
-function createEntry(overrides: Partial<ReachabilityCompilationEntry> = {}): ReachabilityCompilationEntry {
+function createEntry(overrides: Partial<ReachabilityEntryModel> = {}): ReachabilityEntryModel {
   return {
     stepId: ASTTestFactory.getId() as NodeId,
     isEntryPoint: false,
@@ -93,7 +93,7 @@ function createGroup(
   }
 }
 
-function createPlan(overrides: Partial<ReachabilityCompilationPlan> = {}): ReachabilityCompilationPlan {
+function createPlan(overrides: Partial<ReachabilityModel> = {}): ReachabilityModel {
   const entries = overrides.entries ?? []
   const stateTable = overrides.stateTable ?? createStateTable(entries)
 
@@ -105,7 +105,7 @@ function createPlan(overrides: Partial<ReachabilityCompilationPlan> = {}): Reach
   }
 }
 
-function createStateTable(entries: ReachabilityCompilationEntry[]): ReachabilityStateTable {
+function createStateTable(entries: readonly ReachabilityEntryModel[]): ReachabilityStateTable {
   return {
     entries: entries.map(entry => ({
       stepId: entry.stepId,

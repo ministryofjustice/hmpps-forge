@@ -3,10 +3,10 @@ export default [
     // Engine layer boundaries. The compile-time/runtime separation is physical:
     //   contracts/           — runtime-free sink; depends on nothing in the engine layers
     //   ast/                 — builds the AST; may depend on contracts/ and compile-time support.
-    //   concerns/semantic-analysis/ — semantic rules on the AST (compile-time-only concern); may depend on ast/ + contracts/ but NOT dependency-analysis/, lowering/, or runtime/.
-    //   dependency-analysis/ — derives compile facts; may depend on ast/ + contracts/ but NOT semantic-analysis/, lowering/, or runtime/.
+    //   concerns/semantic-analysis/ — semantic rules on the AST (compile-time-only concern); may depend on ast/ + contracts/ but NOT analysis/, lowering/, or runtime/.
+    //   analysis/            — builds the semantic compilation model; may depend on ast/ + contracts/ but NOT semantic-analysis/, lowering/, or runtime/.
     //   codegen/             — generated-source IR: builder, renderer, source-map encoding; leaf module, imports nothing from the stages above.
-    //   lowering/            — drives codegen/ per concern; may depend on ast/ + contracts/ + codegen/ but NOT dependency-analysis/, semantic-analysis/, or runtime/.
+    //   lowering/            — drives codegen/ per concern; may depend on ast/ + contracts/ + codegen/ but NOT analysis/, semantic-analysis/, or runtime/.
     //   runtime/             — execution; may depend only on contracts/
     // Tests and testing-helpers are exempt: they wire mocks across layers.
     files: ['forge-core/src/engine/**/*.ts'],
@@ -21,7 +21,7 @@ export default [
               from: [
                 './forge-core/src/engine/compilation/ast',
                 './forge-core/src/engine/concerns/semantic-analysis',
-                './forge-core/src/engine/compilation/dependency-analysis',
+                './forge-core/src/engine/compilation/analysis',
                 './forge-core/src/engine/compilation/codegen',
                 './forge-core/src/engine/compilation/lowering',
                 './forge-core/src/engine/runtime',
@@ -32,27 +32,27 @@ export default [
               target: './forge-core/src/engine/compilation/ast',
               from: [
                 './forge-core/src/engine/concerns/semantic-analysis',
-                './forge-core/src/engine/compilation/dependency-analysis',
+                './forge-core/src/engine/compilation/analysis',
                 './forge-core/src/engine/compilation/codegen',
                 './forge-core/src/engine/compilation/lowering',
                 './forge-core/src/engine/runtime',
               ],
               message:
-                'ast/ builds the AST and must not import from semantic-analysis/, dependency-analysis/, codegen/, lowering/, or runtime/.',
+                'ast/ builds the AST and must not import from semantic-analysis/, analysis/, codegen/, lowering/, or runtime/.',
             },
             {
               target: './forge-core/src/engine/concerns/semantic-analysis',
               from: [
-                './forge-core/src/engine/compilation/dependency-analysis',
+                './forge-core/src/engine/compilation/analysis',
                 './forge-core/src/engine/compilation/codegen',
                 './forge-core/src/engine/compilation/lowering',
                 './forge-core/src/engine/runtime',
               ],
               message:
-                'concerns/semantic-analysis is a compile-time-only concern: it checks the AST and must not import from dependency-analysis/, codegen/, lowering/, or runtime/.',
+                'concerns/semantic-analysis is a compile-time-only concern: it checks the AST and must not import from analysis/, codegen/, lowering/, or runtime/.',
             },
             {
-              target: './forge-core/src/engine/compilation/dependency-analysis',
+              target: './forge-core/src/engine/compilation/analysis',
               from: [
                 './forge-core/src/engine/concerns/semantic-analysis',
                 './forge-core/src/engine/compilation/codegen',
@@ -60,14 +60,14 @@ export default [
                 './forge-core/src/engine/runtime',
               ],
               message:
-                'dependency-analysis/ derives compile facts and must not import from semantic-analysis/, codegen/, lowering/, or runtime/.',
+                'analysis/ builds the semantic compilation model and must not import from semantic-analysis/, codegen/, lowering/, or runtime/.',
             },
             {
               target: './forge-core/src/engine/runtime',
               from: [
                 './forge-core/src/engine/compilation/ast',
                 './forge-core/src/engine/concerns/semantic-analysis',
-                './forge-core/src/engine/compilation/dependency-analysis',
+                './forge-core/src/engine/compilation/analysis',
                 './forge-core/src/engine/compilation/codegen',
                 './forge-core/src/engine/compilation/lowering',
               ],
@@ -77,18 +77,18 @@ export default [
               target: './forge-core/src/engine/compilation/lowering',
               from: [
                 './forge-core/src/engine/concerns/semantic-analysis',
-                './forge-core/src/engine/compilation/dependency-analysis',
+                './forge-core/src/engine/compilation/analysis',
                 './forge-core/src/engine/runtime',
               ],
               message:
-                'lowering/ may depend on ast/ + contracts/ + codegen/ but not semantic-analysis/, dependency-analysis/, or runtime/.',
+                'lowering/ may depend on ast/ + contracts/ + codegen/ but not semantic-analysis/, analysis/, or runtime/.',
             },
             {
               target: './forge-core/src/engine/compilation/codegen',
               from: [
                 './forge-core/src/engine/compilation/ast',
                 './forge-core/src/engine/concerns/semantic-analysis',
-                './forge-core/src/engine/compilation/dependency-analysis',
+                './forge-core/src/engine/compilation/analysis',
                 './forge-core/src/engine/compilation/lowering',
                 './forge-core/src/engine/runtime',
               ],

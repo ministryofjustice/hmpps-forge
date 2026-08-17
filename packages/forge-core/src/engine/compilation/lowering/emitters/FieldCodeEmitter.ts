@@ -1,4 +1,6 @@
+import { isTemplateNode } from '../../../contracts/ast/nodes'
 import { TemplateNode } from '../../../contracts/ast/template.type'
+import { FieldCodeKind, type DynamicFieldCode, type StaticFieldCode } from '../../../contracts/models/fieldModel.type'
 import { Code, code, literal, SafeCode } from '../../codegen/Code'
 import CodeGenerator from '../../codegen/CodeGenerator'
 import Name from '../../codegen/Name'
@@ -14,6 +16,28 @@ import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
  */
 export default class FieldCodeEmitter {
   constructor(private readonly expr: ExpressionDispatcher) {}
+
+  /**
+   * Emits a classified field-code model as either a string literal or a scoped
+   * const. Dynamic template codes compile under the current iterator scope, so
+   * callers must already be inside the occurrence's loop nest.
+   */
+  compileModelExpression(
+    fieldCode: StaticFieldCode | DynamicFieldCode | undefined,
+    generator: CodeGenerator,
+  ): Code | Name | undefined {
+    if (fieldCode === undefined) {
+      return undefined
+    }
+
+    if (fieldCode.kind === FieldCodeKind.STATIC) {
+      return literal(fieldCode.value)
+    }
+
+    const variableName = isTemplateNode(fieldCode.node.node) ? 'templateCode' : 'fieldCode'
+
+    return generator.const(variableName, code`String(${this.expr.compileOperandCode(fieldCode.node.node)})`)
+  }
 
   /**
    * Emits a registered field code as either a string literal or a scoped const.

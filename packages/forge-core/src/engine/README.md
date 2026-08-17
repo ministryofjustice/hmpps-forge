@@ -86,8 +86,8 @@ AST nodes, AST indexes, and compilation plans should not leave compilation.
 flowchart TD
   validated["Validated JourneyDefinition"] -->|"build and register nodes"| ast["AST"]
   ast -->|"semantic checks"| semantics["Semantic Analysis"]
-  semantics -->|"collect phase inputs"| dependencies["Dependency Analysis"]
-  dependencies -->|"build CompilationPlan"| plan["CompilationPlan"]
+  semantics -->|"collect phase inputs"| dependencies["Analysis"]
+  dependencies -->|"build CompilationModel"| plan["CompilationModel"]
   plan -->|"emit compiled functions"| lowering["Lowering"]
   lowering -->|"compiled maps + route indexes"| result["CompiledPackage"]
 ```

@@ -1,4 +1,5 @@
 /* eslint-disable no-new-func */
+import AuthoredValueClassifier from '../../../compilation/analysis/shared/AuthoredValueClassifier'
 import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
 import { FunctionType } from '../../../../authoring/types/enums'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
@@ -6,7 +7,7 @@ import ComponentRegistry from '../../../registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import type { CompiledRouteMetadataContext } from '../../../contracts/compiled/compiledContexts.type'
-import type { RouteMetadataCompilationInputs } from '../../../contracts/plans/compilationPlan.type'
+import type { RouteMetadataModel } from '../contracts/routeMetadataModel.type'
 import RouteMetadataCompiler from './RouteMetadataCompiler'
 
 function createCtx(overrides: Partial<CompiledRouteMetadataContext> = {}): CompiledRouteMetadataContext {
@@ -22,6 +23,8 @@ function createCtx(overrides: Partial<CompiledRouteMetadataContext> = {}): Compi
     ...overrides,
   }
 }
+
+const classify = (value: unknown) => new AuthoredValueClassifier().classify(value)
 
 describe('RouteMetadataCompiler', () => {
   let compiler: RouteMetadataCompiler
@@ -40,9 +43,14 @@ describe('RouteMetadataCompiler', () => {
       // Arrange
       const stepId = ASTTestFactory.getId()
       const journeyId = ASTTestFactory.getId()
-      const inputs: RouteMetadataCompilationInputs[] = [
-        { nodeId: stepId, title: 'Step title', description: 'Step description', metadata: { navGroup: 'account' } },
-        { nodeId: journeyId, title: 'Journey title' },
+      const inputs: RouteMetadataModel[] = [
+        {
+          nodeId: stepId,
+          title: classify('Step title'),
+          description: classify('Step description'),
+          metadata: classify({ navGroup: 'account' }),
+        },
+        { nodeId: journeyId, title: classify('Journey title') },
       ]
       const compiled = compiler.compile(inputs)
 
@@ -61,7 +69,7 @@ describe('RouteMetadataCompiler', () => {
     it('should omit description and metadata when the node provides none', async () => {
       // Arrange
       const nodeId = ASTTestFactory.getId()
-      const compiled = compiler.compile([{ nodeId, title: 'Only title' }])
+      const compiled = compiler.compile([{ nodeId, title: classify('Only title') }])
 
       // Act
       const result = await compiled(createCtx())
@@ -74,7 +82,7 @@ describe('RouteMetadataCompiler', () => {
       // Arrange
       const titleExpression = ASTTestFactory.reference(['data', 'pageTitle'])
       const stepNode = ASTTestFactory.step().withPath('/step').withProperty('title', titleExpression).build()
-      const compiled = compiler.compile([{ nodeId: stepNode.id, title: stepNode.properties.title }])
+      const compiled = compiler.compile([{ nodeId: stepNode.id, title: classify(stepNode.properties.title) }])
 
       // Act
       const result = await compiled(createCtx({ data: { pageTitle: 'Resolved at request time' } }))
@@ -103,7 +111,7 @@ describe('RouteMetadataCompiler', () => {
         functionRegistry,
         componentRegistry: new ComponentRegistry(),
       })
-      const compiled = throwingCompiler.compile([{ nodeId: stepNode.id, title: stepNode.properties.title }])
+      const compiled = throwingCompiler.compile([{ nodeId: stepNode.id, title: classify(stepNode.properties.title) }])
 
       // Act
       let thrown: unknown
@@ -130,7 +138,7 @@ describe('RouteMetadataCompiler', () => {
       const nodeId = ASTTestFactory.getId()
 
       // Act
-      const source = compiler.generateSource([{ nodeId, title: 'Step title' }])
+      const source = compiler.generateSource([{ nodeId, title: classify('Step title') }])
 
       // Assert
       expect(source).toContain('result')

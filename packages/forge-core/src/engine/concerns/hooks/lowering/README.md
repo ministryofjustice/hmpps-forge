@@ -11,11 +11,11 @@ This document does not cover hook input selection or runtime hook handler execut
 
 ## Inputs
 
-`HookLifecycleCompiler.compileAccessLifecycle()` receives inherited access hooks.
+`HookLifecycleCompiler.compileAccessLifecycle()` receives the access lifecycle model (inherited hooks, pre-classified).
 
-`HookLifecycleCompiler.compileSubmitHooks()` receives submit hooks for one step.
+`HookLifecycleCompiler.compileSubmitHooks()` receives the submit hooks model for one step.
 
-Dependency analysis decides which hooks apply.
+Analysis decides which hooks apply.
 Lowering decides how those hooks become executable work.
 
 ## Work Returned
@@ -35,7 +35,7 @@ The runtime executor runs the lifecycle and selects children.
 
 - Hook lifecycles force async.
   Effects are always awaited - probably should come back and fix this at some point!
-- Access hooks run in the order dependency analysis provides them.
+- Access hooks run in the order analysis provides them.
   That order is outer journey to current step.
 - Submit hook `validationGroups` default to `['default']` when no groups are configured.
 - Submit validation is only added when `hook.properties.validate` is true.

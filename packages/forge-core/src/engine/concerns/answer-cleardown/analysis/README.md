@@ -1,37 +1,35 @@
-# Answer Cleardown Inputs
+# Answer Cleardown Analysis
 
 ## Scope
 
 This document covers `packages/forge-core/src/engine/concerns/answer-cleardown/analysis`.
 
-This code builds the dependency-analysis inputs for the field inventory lowering phase.
-It selects, for every step in a journey's reachability plan, the field blocks and map iterates that can produce answers, and carries the step's authored cleardown patterns alongside them.
+This code builds the answer-cleardown concern's semantic model for the field-inventory lowering phase.
+It carries, for every step a journey owns, the classified field occurrences that can produce answers and the step's authored cleardown patterns.
 
 This document does not cover the cleardown algorithm or how the compiled inventory is evaluated at request time.
 
-## Inputs Built
+## Model Built
 
-`AnswerCleardownInputAnalyzer.buildInputs()` returns `AnswerCleardownInputs` for one journey:
-- `fieldInventorySources`, one entry per step in the reachability plan, each carrying the step ID, its field blocks, its `IteratorType.MAP` iterate nodes, and its `cleardownFieldCodes`.
-
-Field and iterate lookup is delegated to `FieldInventoryAnalyzer`.
+`AnswerCleardownAnalyzer.analyzeJourney()` returns `CleardownModel` for one journey:
+- `steps`, one entry per owned step in document order, each carrying the step ID, its field models, and its `cleardownFieldCodes`.
+- `label`, the journey-level script-URL identity segment.
 
 ## Rules
 
-- Build one source per reachability plan entry, in plan order.
-  The compiled inventory reports every step in the journey, reachable or not.
-- Include only map iterates.
-  Only MAP yields can add field codes the inventory does not already know statically.
-- Carry `cleardownFieldCodes` through verbatim.
+- Build one entry per owned step, in document order.
+  The compiled inventory reports every step in the journey, reachable or not; document order matches the reachability state table's order.
+- Read `cleardownFieldCodes` straight off the step node and carry them verbatim.
   They are authored patterns, matched against answer codes at request time, not codes to resolve here.
+- No reachability dependency.
+  The ordered step list and the cleardown patterns both come from the analysis context, so cleardown analysis needs nothing from the reachability model.
 
 ## Editing Notes
 
-- To change which fields the inventory sees, start in `FieldInventoryAnalyzer.findFieldBlocksForStep()`.
-- To change which iterates the inventory sees, start in `FieldInventoryAnalyzer.findMapIterateNodesForStep()`.
-- To add more cleardown inputs, update `AnswerCleardownInputs` in `contracts/plans/compilationPlan.type.ts`, then update `AnswerCleardownInputAnalyzer`.
+- To change how field occurrences are classified, start in `FieldModelBuilder`.
+- To add cleardown model fields, update `CleardownModel` in `../contracts/cleardownModel.type.ts`, then update `AnswerCleardownAnalyzer`.
 
 ## Entry Points
 
-- [AnswerCleardownInputAnalyzer.ts](AnswerCleardownInputAnalyzer.ts) builds the journey's field inventory sources.
-- [FieldInventoryAnalyzer.ts](../../../compilation/dependency-analysis/shared/FieldInventoryAnalyzer.ts) owns the shared field and map-iterate lookup.
+- [AnswerCleardownAnalyzer.ts](AnswerCleardownAnalyzer.ts) builds the journey's cleardown model.
+- [FieldModelBuilder.ts](../../../compilation/analysis/shared/FieldModelBuilder.ts) owns field-occurrence classification.

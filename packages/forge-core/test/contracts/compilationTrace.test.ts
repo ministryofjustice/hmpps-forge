@@ -93,14 +93,7 @@ describe('Forge compilation tracing', () => {
       expect(event.journeyCode).toBe('compilation-trace')
       expect(event.trace.outcome).toBe('compiled')
       expect(event.trace.phases.map(phase => phase.phase)).toEqual(
-        expect.arrayContaining([
-          'dsl-validation',
-          'ast',
-          'semantic-analysis',
-          'dependency-analysis',
-          'lowering',
-          'routes',
-        ]),
+        expect.arrayContaining(['dsl-validation', 'ast', 'semantic-analysis', 'analysis', 'lowering', 'routes']),
       )
       expect(event.trace.phases).toHaveLength(6)
     })

@@ -102,7 +102,7 @@ request handling:
 flowchart TD
     A["DSL<br/>authors describe the journey"]
     B["Schema validation<br/>JSON + Zod checks"]
-    C["Compilation<br/>AST, semantic analysis, dependency analysis, lowering"]
+    C["Compilation<br/>AST, semantic analysis, analysis, lowering"]
     D["Runtime<br/>mounted nodes evaluate request snapshots"]
     A --> B --> C --> D
 ```
@@ -193,15 +193,15 @@ today because their renderers use Nunjucks component helpers from
 |       (depends on contracts/)                               |
 |   compilation/semantic-analysis/ — runs semantic rules on   |
 |       the finalised AST (depends on contracts/ + ast/)      |
-|   compilation/dependency-analysis/ — derives the            |
-|       CompilationPlan from the AST                          |
+|   compilation/analysis/ — derives the            |
+|       CompilationModel from the AST                          |
 |       (depends on contracts/ + ast/)                        |
 |   compilation/lowering/ — codegen from the plan             |
 |       (depends on contracts/ + ast/, NOT                    |
-|        dependency-analysis/, NOT runtime/)                  |
+|        analysis/, NOT runtime/)                  |
 |   runtime/              — execution (depends on contracts/) |
 |   + registries, validation, errors, diagnostics             |
-|   ast/semantic-analysis/dependency-analysis/lowering        |
+|   ast/semantic-analysis/analysis/lowering        |
 |       grouped under compilation/                            |
 |   Layer boundaries enforced by eslint                       |
 +-------------------------------------------------------------+

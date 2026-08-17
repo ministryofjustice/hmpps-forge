@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import AuthoredValueClassifier from '../../../compilation/analysis/shared/AuthoredValueClassifier'
 import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
@@ -27,6 +28,9 @@ import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+import { buildStepFieldModels } from '../../../compilation/analysis/testing-helpers/analysisContexts'
+import { classifyValidationRules, hasConfiguredValue } from '../../../contracts/models/validationRules'
+import type { ValidationModel } from '../contracts/validationModel.type'
 import StepValidationCompiler from './StepValidationCompiler'
 import type { CompiledValidationContext } from '../../../contracts/compiled/compiledContexts.type'
 import type {
@@ -201,6 +205,23 @@ function isStepValidationWorkTask(value: unknown): value is WorkTask<'validation
   return isWorkTask(value)
 }
 
+function valModel(
+  stepNode: unknown,
+  fieldBlocks: FieldBlockASTNode[],
+  validWhen?: unknown,
+  iterateNodes: IterateASTNode[] = [],
+): ValidationModel {
+  return {
+    label: undefined,
+    hasValidation: true,
+    fields: buildStepFieldModels({ fieldBlocks, iterateNodes }).filter(field => field.validation !== undefined),
+    domainRules: hasConfiguredValue(validWhen)
+      ? classifyValidationRules(validWhen, value => new AuthoredValueClassifier().classify(value))
+      : undefined,
+    entryValidation: [],
+  }
+}
+
 describe('StepValidationCompiler', () => {
   let compiler: StepValidationCompiler
   const dependencies: CompilationDependencies = {
@@ -229,7 +250,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx()
 
       // Act
-      const fn = compiler.compileStepValidation(step, [], undefined)
+      const fn = compiler.compileStepValidation(valModel(step, [], undefined))
       const result = await executeValidationTask(
         await fn(ctx, { groups: ['default'], includeSubmissionOnly: false }),
         ctx,
@@ -260,8 +281,8 @@ describe('StepValidationCompiler', () => {
       const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = localCompiler.generateStepValidationSource(step, [block], [], [])
-      const fn = localCompiler.compileStepValidation(step, [block], [], [])
+      const source = localCompiler.generateStepValidationSource(valModel(step, [block], [], []))
+      const fn = localCompiler.compileStepValidation(valModel(step, [block], [], []))
       const ctx = createCtx({
         answers: { firstName: { current: 'Ada' } },
         conditions: functionRegistry,
@@ -303,8 +324,8 @@ describe('StepValidationCompiler', () => {
       const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = localCompiler.generateStepValidationSource(step, [block], [], [])
-      const fn = localCompiler.compileStepValidation(step, [block], [], [])
+      const source = localCompiler.generateStepValidationSource(valModel(step, [block], [], []))
+      const fn = localCompiler.compileStepValidation(valModel(step, [block], [], []))
       const result = await executeValidation(
         fn!,
         createCtx({
@@ -332,7 +353,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { firstName: { current: '' } } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
 
       // Assert
       expect(fn).toBeDefined()
@@ -371,8 +392,8 @@ describe('StepValidationCompiler', () => {
       const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
 
       // Act
-      const source = localCompiler.generateStepValidationSource(step, [block], [], [])
-      const fn = localCompiler.compileStepValidation(step, [block], [], [])
+      const source = localCompiler.generateStepValidationSource(valModel(step, [block], [], []))
+      const fn = localCompiler.compileStepValidation(valModel(step, [block], [], []))
       const result = await executeValidation(
         fn!,
         createCtx({
@@ -405,7 +426,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { firstName: { current: 'John' } } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -429,7 +450,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { email: { current: '' } } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -457,7 +478,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -485,7 +506,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -508,7 +529,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { name: { current: '' } } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -530,7 +551,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { name: { current: '' } } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, true)
 
       // Assert
@@ -550,7 +571,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { name: { current: '' } } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -574,7 +595,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { postcode: { current: '' } } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false, ['contact'])
 
       // Assert
@@ -607,7 +628,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, true, ['save'])
 
       // Assert
@@ -631,7 +652,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { postcode: { current: '' } } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false, ['address'])
 
       // Assert
@@ -655,7 +676,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { postcode: { current: '' } } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false, ['lookup'])
 
       // Assert
@@ -679,7 +700,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { name: { current: '' } } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false, ['contact'])
 
       // Assert
@@ -708,7 +729,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -737,7 +758,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
 
       // Assert
       try {
@@ -793,7 +814,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
 
       // Assert
       try {
@@ -839,7 +860,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { field: { current: 'hello' } } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -876,7 +897,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -904,7 +925,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { field: { current: 'ok' } } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -935,7 +956,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { a: { current: 'yes' }, b: { current: '' } } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -954,7 +975,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { field: { current: 'banned' } } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -979,7 +1000,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -999,7 +1020,7 @@ describe('StepValidationCompiler', () => {
       block.properties.validWhen = [validation]
 
       // Act
-      const source = compiler.generateStepValidationSource(step, [block], [])
+      const source = compiler.generateStepValidationSource(valModel(step, [block], []))
 
       // Assert
       expect(source).toContain('ctx.data?.["maxAge"]')
@@ -1018,7 +1039,7 @@ describe('StepValidationCompiler', () => {
       block.properties.validWhen = [validation]
 
       // Act
-      const source = compiler.generateStepValidationSource(step, [block], [])
+      const source = compiler.generateStepValidationSource(valModel(step, [block], []))
 
       // Assert
       expect(source).toContain('ctx.session')
@@ -1036,7 +1057,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { password: { current: '' } } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [], [domainValidation])
+      const fn = compiler.compileStepValidation(valModel(step, [], [domainValidation]))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1056,7 +1077,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { password: { current: '' } } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [], [domainValidation])
+      const fn = compiler.compileStepValidation(valModel(step, [], [domainValidation]))
       const inactiveResult = await executeValidation(fn!, ctx, false, ['default'])
       const activeResult = await executeValidation(fn!, ctx, false, ['security'])
 
@@ -1081,7 +1102,7 @@ describe('StepValidationCompiler', () => {
       block.properties.validWhen = [validation]
 
       // Act
-      const source = compiler.generateStepValidationSource(step, [block], [])
+      const source = compiler.generateStepValidationSource(valModel(step, [block], []))
 
       // Assert
       expect(source).toContain('"use strict"')
@@ -1209,7 +1230,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ answers: { field: { current: '' } } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1279,7 +1300,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(valModel(step, [], [], [iterateNode]))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1340,7 +1361,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(valModel(step, [], [], [iterateNode]))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1396,7 +1417,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(valModel(step, [], [], [iterateNode]))
       const inactiveResult = await executeValidation(fn!, ctx, false, ['default'])
       const activeResult = await executeValidation(fn!, ctx, false, ['items'])
 
@@ -1464,7 +1485,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(valModel(step, [], [], [iterateNode]))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1556,7 +1577,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(valModel(step, [], [], [iterateNode]))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1620,7 +1641,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(valModel(step, [], [], [iterateNode]))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1684,7 +1705,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(valModel(step, [], [], [iterateNode]))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1739,7 +1760,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(valModel(step, [], [], [iterateNode]))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1770,7 +1791,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], [], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1803,7 +1824,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], [], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1832,7 +1853,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [block], [], [])
+      const fn = compiler.compileStepValidation(valModel(step, [block], [], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1859,7 +1880,7 @@ describe('StepValidationCompiler', () => {
       })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [], [iterateNode], [])
+      const fn = compiler.compileStepValidation(valModel(step, [], [iterateNode], []))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert
@@ -1910,7 +1931,7 @@ describe('StepValidationCompiler', () => {
       )
 
       // Act
-      const source = compiler.generateStepValidationSource(step, [], [], [iterateNode])
+      const source = compiler.generateStepValidationSource(valModel(step, [], [], [iterateNode]))
 
       // Assert
       expect(source).toContain('while (iteratorIndex < iteratorInput.length)')
@@ -1965,7 +1986,7 @@ describe('StepValidationCompiler', () => {
       const ctx = createCtx({ data: { items: [] } })
 
       // Act
-      const fn = compiler.compileStepValidation(step, [], [], [iterateNode])
+      const fn = compiler.compileStepValidation(valModel(step, [], [], [iterateNode]))
       const result = await executeValidation(fn!, ctx, false)
 
       // Assert

@@ -1,9 +1,3 @@
-import { ExpressionType, FunctionType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import { IterateASTNode } from '../../../contracts/ast/expressions.type'
-import { isASTNode } from '../../../contracts/ast/nodes'
-import { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
-import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
 import {
   callCode,
   Code,
@@ -19,28 +13,17 @@ import type { CompilationDependencies } from '../../../compilation/lowering/comp
 import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
+  CompilationPhase,
   compileGeneratedFunction,
-  deriveScriptLabel,
   GENERATED_FUNCTION_HELPERS_PARAM,
   renderGeneratedSource,
-  ScriptLabelSource,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
 import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
-import ScopedTemplateCompiler, {
-  isTemplateFieldNode,
-} from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
-import ForgeInternalError from '../../../errors/ForgeInternalError'
-import type ComponentRegistry from '../../../registries/ComponentRegistry'
+import ScopedTemplateCompiler from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
+import { toRawOperand, type AuthoredValue } from '../../../contracts/models/authoredValue.type'
+import type { FieldModel, TransformerPipeline } from '../../../contracts/models/fieldModel.type'
+import type { AnswerPreparationModel } from '../contracts/answerPreparationModel.type'
 import type { CompiledAnswerPreparationFunction } from '../../../contracts/compiled/compiledFunctions.type'
-
-interface TransformerFunctionCall {
-  readonly name: string
-  readonly arguments: unknown[]
-}
-
-interface AnswerPreparationFeatures {
-  usesInputValidation: boolean
-}
 
 const CONTEXT = new Name('ctx')
 const HELPERS = new Name(GENERATED_FUNCTION_HELPERS_PARAM)
@@ -55,10 +38,7 @@ export default class StepAnswerPreparationCompiler {
 
   private readonly templates: ScopedTemplateCompiler
 
-  private readonly componentRegistry: ComponentRegistry
-
   constructor(dependencies: CompilationDependencies) {
-    this.componentRegistry = dependencies.componentRegistry
     this.expr = new ExpressionDispatcher(dependencies)
     this.fieldCodes = new FieldCodeEmitter(this.expr)
     this.values = new RuntimeValueCompiler(this.expr, {
@@ -69,29 +49,25 @@ export default class StepAnswerPreparationCompiler {
     this.templates = new ScopedTemplateCompiler(this.expr)
   }
 
-  compile(
-    stepNode: ScriptLabelSource | undefined,
-    fieldBlocks: FieldBlockASTNode[],
-    iterateNodes: IterateASTNode[] = [],
-  ): CompiledAnswerPreparationFunction {
+  compile(model: AnswerPreparationModel): CompiledAnswerPreparationFunction {
     return compileGeneratedFunction<CompiledAnswerPreparationFunction>(
       this.expr,
       ['ctx'],
-      () => this.buildSource(fieldBlocks, iterateNodes),
-      { phase: 'answer-preparation', label: deriveScriptLabel([stepNode, ...fieldBlocks, ...iterateNodes]) },
+      () => this.buildSource(model),
+      { phase: CompilationPhase.ANSWER_PREPARATION, label: model.label },
     )
   }
 
-  generateSource(fieldBlocks: FieldBlockASTNode[], iterateNodes: IterateASTNode[] = []): string {
-    return renderGeneratedSource(this.expr, () => this.buildSource(fieldBlocks, iterateNodes))
+  generateSource(model: AnswerPreparationModel): string {
+    return renderGeneratedSource(this.expr, () => this.buildSource(model))
   }
 
-  private buildSource(fieldBlocks: FieldBlockASTNode[], iterateNodes: IterateASTNode[]): CodeGenerator {
+  private buildSource(model: AnswerPreparationModel): CodeGenerator {
     const generator = CodeGenerator.forFunction(['ctx'])
 
     generator.directive('use strict')
 
-    if (fieldBlocks.length === 0 && iterateNodes.length === 0) {
+    if (model.fields.length === 0) {
       generator.note('This step declares no form fields, so there is nothing to prepare.')
       const fieldPreparations = generator.const('fieldPreparations', code`[]`)
 
@@ -102,12 +78,15 @@ export default class StepAnswerPreparationCompiler {
 
     const mode = generator.const('answerPreparationMode', code`${CONTEXT}.request.method === "POST" ? "POST" : "GET"`)
     const fieldDefinitions = generator.const('fieldDefinitions', code`[]`)
-    const features: AnswerPreparationFeatures = { usesInputValidation: false }
+    const usesInputValidation = model.fields.some(field => field.component.validatesInput)
 
-    this.compileFieldDefinitions(fieldBlocks, iterateNodes, fieldDefinitions, features, generator)
+    this.compileFieldDefinitions(model.fields, fieldDefinitions, generator)
 
+    // Async discovery is monotonic within a build, so this read is safe only
+    // because every field expression above has already been compiled; the
+    // preparation bodies below add no authored expressions of their own.
     const usesAwait = this.expr.usesAwait
-    const preparePostedFieldAnswer = this.compilePostedFieldPreparation(features, usesAwait, generator)
+    const preparePostedFieldAnswer = this.compilePostedFieldPreparation(usesInputValidation, usesAwait, generator)
     const prepareStoredFieldAnswer = this.compileStoredFieldPreparation(usesAwait, generator)
     const prepareFieldAnswer = this.compileFieldPreparationSelector(
       preparePostedFieldAnswer,
@@ -123,77 +102,66 @@ export default class StepAnswerPreparationCompiler {
   }
 
   private compileFieldDefinitions(
-    fieldBlocks: FieldBlockASTNode[],
-    iterateNodes: IterateASTNode[],
+    fields: readonly FieldModel[],
     fieldDefinitions: Name,
-    features: AnswerPreparationFeatures,
     generator: CodeGenerator,
   ): void {
     generator.comment('Field definitions')
 
-    fieldBlocks.forEach(block => {
-      this.compileRegisteredFieldDefinition(block, fieldDefinitions, features, generator)
-    })
-    iterateNodes.forEach(iterateNode => {
-      this.compileIterateBlock(iterateNode, fieldDefinitions, features, generator)
+    this.templates.compileFieldOccurrences(fields, generator, {
+      loopComment: 'Fields produced by an iterator',
+      compileLeaf: field => {
+        this.compileFieldDefinitionEntry(field, fieldDefinitions, generator)
+      },
     })
   }
 
-  private compileRegisteredFieldDefinition(
-    block: FieldBlockASTNode,
-    fieldDefinitions: Name,
-    features: AnswerPreparationFeatures,
-    generator: CodeGenerator,
-  ): void {
-    generator.comment(`Field — ${block.variant} ${describeFieldCode(block)}`)
-    const codeExpression = this.fieldCodes.compileRegisteredExpression(block.properties.code, generator)
+  private compileFieldDefinitionEntry(field: FieldModel, fieldDefinitions: Name, generator: CodeGenerator): void {
+    const isRegistered = field.iteratorPath.length === 0
 
-    if (codeExpression === undefined) {
+    generator.comment(isRegistered ? `Field — ${field.label}` : `Template field — ${field.label}`)
+    const codeExpression = this.fieldCodes.compileModelExpression(field.code, generator)
+
+    // A registered field without a resolvable code cannot store an answer;
+    // template fields keep their entry so iterator counts stay aligned.
+    if (isRegistered && codeExpression === undefined) {
       return
     }
 
     generator.statement(
       callCode(code`${fieldDefinitions}.push`, [
-        this.compileFieldDefinition(block.properties, codeExpression, block.variant, features, generator),
+        this.compileFieldDefinition(field, codeExpression ?? literal(undefined), generator),
       ]),
     )
   }
 
-  private compileFieldDefinition(
-    properties: Record<string, unknown>,
-    codeExpression: SafeCode,
-    variant: string,
-    features: AnswerPreparationFeatures,
-    generator: CodeGenerator,
-  ): Code {
-    const component = this.componentRegistry.get(variant)
+  private compileFieldDefinition(field: FieldModel, codeExpression: SafeCode, generator: CodeGenerator): Code {
     const definitionProperties: ObjectCodeProperty[] = [
       { key: 'code', value: codeExpression },
-      { key: 'component', value: literal(variant) },
-      { key: 'acceptsMultipleValues', value: literal(component?.multiple === true) },
-      { key: 'validatesInput', value: literal(component?.inputSchema !== undefined) },
+      { key: 'component', value: literal(field.component.variant) },
+      { key: 'acceptsMultipleValues', value: literal(field.component.acceptsMultipleValues) },
+      { key: 'validatesInput', value: literal(field.component.validatesInput) },
     ]
 
-    features.usesInputValidation ||= component?.inputSchema !== undefined
     this.addOptionalDefinitionProperty(
       definitionProperties,
       'formatSubmittedValue',
-      this.compileTransformerCallback('formatSubmittedValue', properties.formatters, generator),
+      this.compileTransformerCallback('formatSubmittedValue', field.formatters, generator),
     )
     this.addOptionalDefinitionProperty(
       definitionProperties,
       'evaluateDependentWhen',
-      this.compileDependentWhenCallback(properties.dependentWhen, generator),
+      this.compileDependentWhenCallback(field.dependentWhen, generator),
     )
     this.addOptionalDefinitionProperty(
       definitionProperties,
       'resolveDefaultValue',
-      this.compileDefaultValueCallback(properties.defaultValue, generator),
+      this.compileDefaultValueCallback(field.defaultValue, generator),
     )
     this.addOptionalDefinitionProperty(
       definitionProperties,
       'parseStoredValue',
-      this.compileTransformerCallback('parseStoredValue', properties.parsers, generator),
+      this.compileTransformerCallback('parseStoredValue', field.parsers, generator),
     )
 
     return objectCode(definitionProperties)
@@ -209,10 +177,10 @@ export default class StepAnswerPreparationCompiler {
 
   private compileTransformerCallback(
     functionName: string,
-    transformers: unknown,
+    transformers: TransformerPipeline | undefined,
     generator: CodeGenerator,
   ): Code | undefined {
-    if (!Array.isArray(transformers) || !this.hasCompilableTransformer(transformers)) {
+    if (transformers === undefined) {
       return undefined
     }
 
@@ -229,8 +197,11 @@ export default class StepAnswerPreparationCompiler {
     )
   }
 
-  private compileDependentWhenCallback(dependentWhen: unknown, generator: CodeGenerator): Code | undefined {
-    if (!dependentWhen || (!isASTNode(dependentWhen) && !this.expr.isTemplateNode(dependentWhen))) {
+  private compileDependentWhenCallback(
+    dependentWhen: AuthoredValue | undefined,
+    generator: CodeGenerator,
+  ): Code | undefined {
+    if (dependentWhen === undefined) {
       return undefined
     }
 
@@ -249,7 +220,10 @@ export default class StepAnswerPreparationCompiler {
     )
   }
 
-  private compileDefaultValueCallback(defaultValue: unknown, generator: CodeGenerator): Code | undefined {
+  private compileDefaultValueCallback(
+    defaultValue: AuthoredValue | undefined,
+    generator: CodeGenerator,
+  ): Code | undefined {
     if (defaultValue === undefined) {
       return undefined
     }
@@ -268,7 +242,7 @@ export default class StepAnswerPreparationCompiler {
   }
 
   private compilePostedFieldPreparation(
-    features: AnswerPreparationFeatures,
+    usesInputValidation: boolean,
     usesAwait: boolean,
     generator: CodeGenerator,
   ): Name {
@@ -290,7 +264,7 @@ export default class StepAnswerPreparationCompiler {
           code`${HELPERS}.normalizePostValue(${CONTEXT}.post[${fieldCode}], ${acceptsMultipleValues})`,
         )
 
-        if (features.usesInputValidation) {
+        if (usesInputValidation) {
           body.if(code`${field}.validatesInput`, () => {
             body.assign(
               rawValue,
@@ -424,20 +398,12 @@ export default class StepAnswerPreparationCompiler {
     return generator.const('fieldPreparations', callCode(code`${fieldDefinitions}.map`, [createFieldPreparation]))
   }
 
-  private compileTransformerPipeline(transformers: unknown[], value: Name, generator: CodeGenerator): void {
-    const compilableTransformers = transformers.filter(
-      transformer => isASTNode(transformer) || this.expr.isTemplateNode(transformer),
-    )
-
-    if (compilableTransformers.length === 0) {
-      return
-    }
-
+  private compileTransformerPipeline(transformers: TransformerPipeline, value: Name, generator: CodeGenerator): void {
     generator.comment('Apply the configured transformers in order')
     const originalValue = generator.const('originalTransformerValue', value)
     const transformerFailed = generator.let('transformerFailed', literal(false))
 
-    compilableTransformers.forEach(transformer => {
+    transformers.forEach(transformer => {
       generator.if(code`!${transformerFailed}`, () => {
         const transformerResult = generator.let('transformerResult')
 
@@ -462,93 +428,13 @@ export default class StepAnswerPreparationCompiler {
     })
   }
 
-  private compileIterateBlock(
-    iterateNode: IterateASTNode,
-    fieldDefinitions: Name,
-    features: AnswerPreparationFeatures,
-    generator: CodeGenerator,
-  ): void {
-    const template = iterateNode.properties.iterator.yieldTemplate
+  private compileTransformerCall(transformer: TransformerPipeline[number], value: Name): Code {
+    const argumentsCode = transformer.arguments.map(argument => this.expr.compileOperandCode(toRawOperand(argument)))
 
-    if (template === undefined || !this.containsTemplateField(template)) {
-      return
-    }
-
-    generator.comment('Fields produced by an iterator')
-    this.templates.compileMapIterator(iterateNode, generator, yieldTemplate => {
-      this.compileTemplateAnswerPreparation(yieldTemplate, fieldDefinitions, features, generator)
-    })
-  }
-
-  private compileTemplateAnswerPreparation(
-    template: TemplateValue,
-    fieldDefinitions: Name,
-    features: AnswerPreparationFeatures,
-    generator: CodeGenerator,
-  ): void {
-    if (template === null || template === undefined || typeof template !== 'object') {
-      return
-    }
-
-    if (this.expr.isTemplateNode(template)) {
-      if (template.originalType === ASTNodeType.EXPRESSION && template.expressionType === ExpressionType.ITERATE) {
-        this.compileTemplateMapIterator(template, fieldDefinitions, features, generator)
-
-        return
-      }
-
-      if (isTemplateFieldNode(template)) {
-        const codeExpression = this.templates.compileTemplateCodeExpression(template, generator)
-
-        this.compileTemplateField(template, codeExpression, fieldDefinitions, features, generator)
-      }
-
-      Object.values(template.properties ?? {}).forEach(child => {
-        this.compileTemplateAnswerPreparation(child as TemplateValue, fieldDefinitions, features, generator)
-      })
-
-      return
-    }
-
-    if (Array.isArray(template)) {
-      template.forEach(item => {
-        this.compileTemplateAnswerPreparation(item, fieldDefinitions, features, generator)
-      })
-
-      return
-    }
-
-    Object.values(template as Record<string, TemplateValue>).forEach(item => {
-      this.compileTemplateAnswerPreparation(item, fieldDefinitions, features, generator)
-    })
-  }
-
-  private compileTemplateMapIterator(
-    templateNode: TemplateNode,
-    fieldDefinitions: Name,
-    features: AnswerPreparationFeatures,
-    generator: CodeGenerator,
-  ): void {
-    this.templates.compileTemplateMapIterator(templateNode, generator, yieldTemplate => {
-      this.compileTemplateAnswerPreparation(yieldTemplate, fieldDefinitions, features, generator)
-    })
-  }
-
-  private compileTemplateField(
-    field: TemplateNode,
-    codeExpression: SafeCode | undefined,
-    fieldDefinitions: Name,
-    features: AnswerPreparationFeatures,
-    generator: CodeGenerator,
-  ): void {
-    const properties = field.properties ?? {}
-    const variant = typeof field.variant === 'string' ? field.variant : ''
-
-    generator.comment(`Template field — ${variant || 'unknown component'}`)
-    generator.statement(
-      callCode(code`${fieldDefinitions}.push`, [
-        this.compileFieldDefinition(properties, codeExpression ?? literal(undefined), variant, features, generator),
-      ]),
+    return this.expr.compileFunctionCallCode(
+      transformer.name,
+      [code`${value}`, ...argumentsCode],
+      transformer.node.node,
     )
   }
 
@@ -570,62 +456,7 @@ export default class StepAnswerPreparationCompiler {
     return usesAwait ? code`await ${expression}` : expression
   }
 
-  private hasCompilableTransformer(transformers: unknown[]): boolean {
-    return transformers.some(transformer => isASTNode(transformer) || this.expr.isTemplateNode(transformer))
-  }
-
-  private compileTransformerCall(transformerNode: unknown, value: Name): Code {
-    const transformerCall = readTransformerCall(transformerNode)
-
-    if (transformerCall === undefined) {
-      throw new ForgeInternalError('Formatter entry is not a transformer function call')
-    }
-
-    const argumentsCode = transformerCall.arguments.map(argument => this.expr.compileOperandCode(argument))
-
-    return this.expr.compileFunctionCallCode(transformerCall.name, [code`${value}`, ...argumentsCode], transformerNode)
-  }
-
   private emitPushMutationCall(answerHistory: Name, value: SafeCode, source: string, generator: CodeGenerator): void {
     generator.statement(code`${HELPERS}.pushAnswerMutation(${answerHistory}, ${value}, ${source})`)
   }
-
-  private containsTemplateField(template: TemplateValue): boolean {
-    return this.templates.containsTemplateNode(template, isTemplateFieldNode)
-  }
-}
-
-function readTransformerCall(value: unknown): TransformerFunctionCall | undefined {
-  if (readExpressionType(value) !== FunctionType.TRANSFORMER) {
-    return undefined
-  }
-
-  const properties = readProperties(value) ?? (isRecord(value) ? value : undefined)
-
-  if (properties === undefined || typeof properties.name !== 'string') {
-    return undefined
-  }
-
-  return {
-    name: properties.name,
-    arguments: Array.isArray(properties.arguments) ? properties.arguments : [],
-  }
-}
-
-function readExpressionType(value: unknown): unknown {
-  return isRecord(value) ? (value.expressionType ?? value.type) : undefined
-}
-
-function readProperties(value: unknown): Record<string, unknown> | undefined {
-  return isRecord(value) && isRecord(value.properties) ? value.properties : undefined
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value)
-}
-
-function describeFieldCode(block: FieldBlockASTNode): string {
-  const fieldCode = block.properties.code
-
-  return typeof fieldCode === 'string' ? `"${fieldCode}"` : '(dynamic code)'
 }

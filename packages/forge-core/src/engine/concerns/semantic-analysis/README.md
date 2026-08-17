@@ -4,13 +4,13 @@
 
 This document covers `packages/forge-core/src/engine/concerns/semantic-analysis`.
 
-This code validates a registered AST before dependency analysis and code generation run.
+This code validates a registered AST before analysis and code generation run.
 It checks that AST nodes are used in places where they're allowed and that referenced functions and components exist.
 
 This document does not cover AST creation, AST registration, dependency planning, runtime evaluation, or generated output.
 
 Like [dsl-validation](../dsl-validation/README.md), this concern has no stage folders: the whole pass runs once
-during compilation, between AST building and dependency analysis, so there is nothing to lower or execute per
+during compilation, between AST building and analysis, so there is nothing to lower or execute per
 request. It sits under `concerns/` rather than the compilation chassis because it is self-contained gate logic,
 not orchestration or shared machinery — `CompilationPipeline.validateSemantics()` calls in from the chassis.
 
@@ -116,7 +116,7 @@ If no ancestor has `ASTNodeType.HOOK`, it returns a `ForgeReferenceScopeError` w
 
 Semantic analysis is a rule pass driven by `CompilationPipeline.validateSemantics()`.
 It runs after `CompilationPipeline.buildAstTree()` has created and registered the AST.
-It runs before dependency analysis and lowering.
+It runs before analysis and lowering.
 
 ```mermaid
 flowchart TD
@@ -129,7 +129,7 @@ flowchart TD
   templateRules -->|collect errors| errors
   errors --> hasErrors{"Any errors?"}
   hasErrors -->|yes| aggregateError["throw AggregateError"]
-  hasErrors -->|no| dependencyAnalysis["CompilationPlanBuilder"]
+  hasErrors -->|no| analysisStage["CompilationModelBuilder"]
 ```
 
 - [ASTSemanticValidator.ts](ASTSemanticValidator.ts) owns rule orchestration.
@@ -180,7 +180,7 @@ flowchart TD
 
 - Run semantic analysis after AST registration.
   Rules depend on `ASTNodeIndex.findByType()` and the `parent` links wired during registration.
-- Run semantic analysis before dependency analysis and lowering.
+- Run semantic analysis before analysis and lowering.
   Later phases assume the AST has already been checked for legal placement and registered dependencies.
 - Keep validation rules side-effect free.
   A rule that mutates nodes or registries can change what later rules see.

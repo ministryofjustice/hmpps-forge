@@ -29,7 +29,7 @@ It needs validation failures attached to rendered fields by block ID.
 
 Runtime does not rebuild compiler state.
 It consumes mounted compiled artifacts and request snapshots.
-No AST nodes, `CompilationPlan`, lowering, or registration should appear in this layer.
+No AST nodes, `CompilationModel`, lowering, or registration should appear in this layer.
 
 ## Responsibilities
 
@@ -198,7 +198,7 @@ Runtime executes that work against one request.
 
 - Do not run compilation during runtime execution.
   Request handling must consume mounted compiled functions, route data, registries, and plans.
-- Do not expose AST nodes, `ASTNodeIndex`, `CompilationPlan`, or lowering details to runtime.
+- Do not expose AST nodes, `ASTNodeIndex`, `CompilationModel`, or lowering details to runtime.
   Runtime state should only carry compiled artifacts and request-time values.
 - Keep `RequestPipelineBootstrap` as the source of request phase order.
   Splitting order decisions across handlers makes `GET`, `POST`, and journey behavior hard to reason about.

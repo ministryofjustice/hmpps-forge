@@ -17,9 +17,25 @@ import ForgeCompilationError from '../../../errors/ForgeCompilationError'
 import ForgeRuntimeEvaluationError from '../../../errors/ForgeRuntimeEvaluationError'
 import type { DiagnosticMetadata } from '../emitters/DiagnosticEmitter'
 
+/**
+ * The eight generated-function phases. Typing `PHASE_PURPOSES` by this enum
+ * makes a missing purpose entry a type error, so the header comments can never
+ * drift from the phases the compilers actually emit.
+ */
+export enum CompilationPhase {
+  ANSWER_PREPARATION = 'answer-preparation',
+  VALIDATION = 'validation',
+  ENTRY_VALIDATION = 'entry-validation',
+  HOOKS = 'hooks',
+  REACHABILITY = 'reachability',
+  FIELD_INVENTORY = 'field-inventory',
+  RESOLVE = 'resolve',
+  ROUTE_TREE = 'route-tree',
+}
+
 interface CompileOptions {
   forceAsync?: boolean
-  phase?: string
+  phase?: CompilationPhase
   /** Journey/step identity segment for the script URL, e.g. `guide.defining-steps` */
   label?: string
 }
@@ -36,12 +52,6 @@ interface RuntimeEvaluationDiagnostics {
   current: RuntimeDiagnosticState | undefined
   resolve(reference: number): RuntimeDiagnosticState | undefined
   wrap(error: unknown, reference?: number): unknown
-}
-
-export interface ScriptLabelSource {
-  readonly diagnostics?: {
-    readonly source: { readonly formattedPath: string }
-  }
 }
 
 const RUNTIME_DIAGNOSTICS_PARAM = '_forgeRuntimeDiagnostics'
@@ -182,43 +192,6 @@ const nextSourceName = (
   return `forge:compiled/${phase}/${readableName}.${fingerprint}.${next}.js`
 }
 
-/**
- * Derives the script-URL identity segment from the first node carrying a
- * formatted path: the leading journey/step segments of
- * `"dump > form > blocks[1] (govukInsetText) > hidden"` become `dump.form`.
- * Structural segments (indexed wiring like `onAccess[0]`, parenthesised kinds)
- * end the walk — they describe a position inside the step, not its identity —
- * so nested journeys keep every ancestor segment without needing a depth cap.
- * `maxDepth` truncates deliberately journey-level labels (e.g. reachability).
- */
-export const deriveScriptLabel = (
-  nodes: readonly (ScriptLabelSource | undefined)[],
-  options: { maxDepth?: number } = {},
-): string | undefined => {
-  const formattedPath = nodes.find(node => node?.diagnostics !== undefined)?.diagnostics?.source.formattedPath
-
-  if (formattedPath === undefined) {
-    return undefined
-  }
-
-  const identitySegments: string[] = []
-
-  formattedPath
-    .split(' > ')
-    .slice(0, options.maxDepth ?? Number.POSITIVE_INFINITY)
-    .some(segment => {
-      if (segment.includes('[') || segment.includes('(')) {
-        return true
-      }
-
-      identitySegments.push(segment.replace(/[^\w.-]+/g, '-'))
-
-      return false
-    })
-
-  return identitySegments.length > 0 ? identitySegments.join('.') : undefined
-}
-
 const createRuntimeDiagnostics = (
   phase: string,
   diagnosticCatalogue: readonly DiagnosticMetadata[],
@@ -254,39 +227,43 @@ const createRuntimeDiagnostics = (
  * what it does, when it runs, and what it returns. Rendered as the header
  * comment block ahead of the generated body.
  */
-const PHASE_PURPOSES: Record<string, readonly string[]> = {
-  'answer-preparation': [
+const PHASE_PURPOSES: Record<CompilationPhase, readonly string[]> = {
+  [CompilationPhase.ANSWER_PREPARATION]: [
     "Prepares this step's field answers before validation: POST requests normalise",
     'the submitted values, GET requests surface stored answers and defaults.',
     'Returns one preparation task per field for the work executor to run.',
   ],
-  validation: [
+  [CompilationPhase.VALIDATION]: [
     "Builds this step's validation plan: one entry per field rule plus any",
     'domain-level checks. The work executor runs it and stores the outcome',
     'that decides error display.',
   ],
-  'entry-validation': [
+  [CompilationPhase.ENTRY_VALIDATION]: [
     "Evaluates this step's entry conditions; a failing condition redirects",
     'away before the step renders.',
   ],
-  hooks: [
+  [CompilationPhase.HOOKS]: [
     'Runs the authored hook lifecycle: each hook evaluates its condition, then',
     'its effects, in authored order. Effects are awaited before any outcome',
     'is inspected.',
   ],
-  reachability: [
+  [CompilationPhase.REACHABILITY]: [
     'Computes reachability facts for the journey: which steps can currently be',
     'entered and where forward redirects should land.',
   ],
-  'field-inventory': [
+  [CompilationPhase.FIELD_INVENTORY]: [
     'Lists every field each step owns, so answers belonging to steps that',
     'become unreachable can be cleared down.',
   ],
-  resolve: [
+  [CompilationPhase.RESOLVE]: [
     "Resolves this step's blocks into render-ready props, evaluating conditions",
     'and dynamic values against the current request context.',
   ],
-  'route-tree': ['Resolves the metadata carried on each route-tree node for the current request.'],
+  [CompilationPhase.ROUTE_TREE]: ['Resolves the metadata carried on each route-tree node for the current request.'],
+}
+
+const resolvePhasePurpose = (phase: string): readonly string[] => {
+  return (PHASE_PURPOSES as Record<string, readonly string[] | undefined>)[phase] ?? []
 }
 
 /**
@@ -313,7 +290,7 @@ const wrapGeneratedBody = (generator: CodeGenerator, phase: string): GeneratedCo
   return [
     ...(strictDirective === undefined ? [] : [strictDirective]),
     new CommentCodeNode('Compiled by Forge from the journey definition.', false),
-    ...(PHASE_PURPOSES[phase] ?? []).map(purposeLine => new CommentCodeNode(purposeLine, false)),
+    ...resolvePhasePurpose(phase).map(purposeLine => new CommentCodeNode(purposeLine, false)),
     new TryCatchCodeNode(bodyNodes, errorName, [
       new ThrowCodeNode(code`${new Name(RUNTIME_DIAGNOSTICS_PARAM)}.wrap(${errorName})`),
     ]),

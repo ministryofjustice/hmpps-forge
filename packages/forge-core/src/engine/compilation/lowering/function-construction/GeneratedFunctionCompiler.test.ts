@@ -9,7 +9,7 @@ import CompilationTracer from '../../tracing/CompilationTracer'
 import { Code, code, positionedCode } from '../../codegen/Code'
 import CodeGenerator from '../../codegen/CodeGenerator'
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
-import { compileGeneratedFunction, deriveScriptLabel } from './GeneratedFunctionCompiler'
+import { CompilationPhase, compileGeneratedFunction } from './GeneratedFunctionCompiler'
 import type { GeneratedFunction } from './compiledFunctionFactory'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { FunctionASTNode } from '../../../contracts/ast/expressions.type'
@@ -68,7 +68,9 @@ describe('GeneratedFunctionCompiler', () => {
       generator.return(code`this`)
 
       // Act
-      const fn = compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => generator, { phase: 'render' })
+      const fn = compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => generator, {
+        phase: 'render' as CompilationPhase,
+      })
       const result = Reflect.apply(fn, undefined, [{}])
 
       // Assert
@@ -82,7 +84,7 @@ describe('GeneratedFunctionCompiler', () => {
       // Act
       const compile = () =>
         compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => trustedGeneratedSource('return ('), {
-          phase: 'render',
+          phase: 'render' as CompilationPhase,
         })
 
       // Assert
@@ -96,7 +98,7 @@ describe('GeneratedFunctionCompiler', () => {
         expr,
         ['ctx'],
         () => trustedGeneratedSource('throw new Error("boom");'),
-        { phase: 'render' },
+        { phase: 'render' as CompilationPhase },
       )
 
       // Act
@@ -156,7 +158,7 @@ describe('GeneratedFunctionCompiler', () => {
 
           return generator
         },
-        { phase: 'render' },
+        { phase: 'render' as CompilationPhase },
       )
 
       // Act
@@ -173,7 +175,7 @@ describe('GeneratedFunctionCompiler', () => {
 
         expect(error.message).toContain('boom')
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
-          phase: 'render',
+          phase: 'render' as CompilationPhase,
           nodeId: 'compile_ast:1',
           formattedPath: 'myJourney > value',
           functionName: 'throwingFunction',
@@ -191,7 +193,7 @@ describe('GeneratedFunctionCompiler', () => {
         expr,
         ['ctx'],
         () => trustedGeneratedSource('throw "boom";'),
-        { phase: 'render' },
+        { phase: 'render' as CompilationPhase },
       )
 
       // Act
@@ -208,7 +210,7 @@ describe('GeneratedFunctionCompiler', () => {
         expr,
         ['ctx'],
         () => trustedGeneratedSource('return _forgeHelpers.normalizePostValue(["", "red"], false);'),
-        { phase: 'answer-preparation' },
+        { phase: CompilationPhase.ANSWER_PREPARATION },
       )
 
       // Act
@@ -225,7 +227,7 @@ describe('GeneratedFunctionCompiler', () => {
 
       // Act
       compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => trustedGeneratedSource('return true;'), {
-        phase: 'render',
+        phase: 'render' as CompilationPhase,
       })
 
       // Assert
@@ -244,7 +246,7 @@ describe('GeneratedFunctionCompiler', () => {
 
       // Act
       compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => trustedGeneratedSource('return true;'), {
-        phase: 'render',
+        phase: 'render' as CompilationPhase,
         forceAsync: true,
       })
 
@@ -262,7 +264,7 @@ describe('GeneratedFunctionCompiler', () => {
       // Act
       const compile = () =>
         compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => trustedGeneratedSource('return ('), {
-          phase: 'render',
+          phase: 'render' as CompilationPhase,
         })
 
       // Assert
@@ -283,7 +285,7 @@ describe('GeneratedFunctionCompiler', () => {
         expr,
         ['ctx'],
         () => trustedGeneratedSource('"use strict";return true;'),
-        { phase: 'render' },
+        { phase: 'render' as CompilationPhase },
       )
 
       // Assert
@@ -303,7 +305,7 @@ describe('GeneratedFunctionCompiler', () => {
 
       // Act
       compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => trustedGeneratedSource('return true;'), {
-        phase: 'render',
+        phase: 'render' as CompilationPhase,
       })
 
       // Assert
@@ -321,7 +323,7 @@ describe('GeneratedFunctionCompiler', () => {
       // Act
       const compile = () =>
         compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => trustedGeneratedSource('return ('), {
-          phase: 'render',
+          phase: 'render' as CompilationPhase,
         })
 
       // Assert
@@ -344,7 +346,7 @@ describe('GeneratedFunctionCompiler', () => {
         ['ctx'],
         () => trustedGeneratedSource('return true;'),
         {
-          phase: 'render',
+          phase: 'render' as CompilationPhase,
         },
       )
 
@@ -360,7 +362,7 @@ describe('GeneratedFunctionCompiler', () => {
         expr,
         ['ctx'],
         () => trustedGeneratedSource('throw new Error("boom");'),
-        { phase: 'render', label: 'guide.defining-steps' },
+        { phase: 'render' as CompilationPhase, label: 'guide.defining-steps' },
       )
 
       // Act
@@ -383,7 +385,7 @@ describe('GeneratedFunctionCompiler', () => {
       const secondExpr = new ExpressionDispatcher(dependencies)
       const compile = (expr: ExpressionDispatcher) =>
         compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => throwingGeneratedSource(10), {
-          phase: 'render',
+          phase: 'render' as CompilationPhase,
           label: 'guide.identical',
         })
 
@@ -407,7 +409,7 @@ describe('GeneratedFunctionCompiler', () => {
           firstExpr,
           ['ctx'],
           () => trustedGeneratedSource('throw new Error("first");'),
-          { phase: 'render', label: 'guide.changed-source' },
+          { phase: 'render' as CompilationPhase, label: 'guide.changed-source' },
         ),
       )
       const secondUrl = generatedScriptUrl(
@@ -415,7 +417,7 @@ describe('GeneratedFunctionCompiler', () => {
           secondExpr,
           ['ctx'],
           () => trustedGeneratedSource('throw new Error("second");'),
-          { phase: 'render', label: 'guide.changed-source' },
+          { phase: 'render' as CompilationPhase, label: 'guide.changed-source' },
         ),
       )
       const firstFingerprint = firstUrl.match(/\.([a-f0-9]{8})\.1\.js$/)?.[1]
@@ -436,13 +438,13 @@ describe('GeneratedFunctionCompiler', () => {
       // Act
       const firstUrl = generatedScriptUrl(
         compileGeneratedFunction<GeneratedFunction>(firstExpr, ['ctx'], () => throwingGeneratedSource(10), {
-          phase: 'render',
+          phase: 'render' as CompilationPhase,
           label: 'guide.changed-map',
         }),
       )
       const secondUrl = generatedScriptUrl(
         compileGeneratedFunction<GeneratedFunction>(secondExpr, ['ctx'], () => throwingGeneratedSource(11), {
-          phase: 'render',
+          phase: 'render' as CompilationPhase,
           label: 'guide.changed-map',
         }),
       )
@@ -463,7 +465,7 @@ describe('GeneratedFunctionCompiler', () => {
       // Act
       const sourceUrl = generatedScriptUrl(
         compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => throwingGeneratedSource(10), {
-          phase: 'unlabelled-test',
+          phase: 'unlabelled-test' as CompilationPhase,
         }),
       )
 
@@ -472,69 +474,4 @@ describe('GeneratedFunctionCompiler', () => {
     })
   })
 
-  describe('deriveScriptLabel()', () => {
-    it('should join the journey and step segments when both are identity segments', () => {
-      // Arrange
-      const node = { diagnostics: { source: { formattedPath: 'dump > form > blocks[1] (govukInsetText)' } } }
-
-      // Act
-      const label = deriveScriptLabel([node])
-
-      // Assert
-      expect(label).toBe('dump.form')
-    })
-
-    it('should keep every ancestor segment when journeys nest', () => {
-      // Arrange
-      const node = { diagnostics: { source: { formattedPath: 'guide > building-journeys > defining-steps' } } }
-
-      // Act
-      const label = deriveScriptLabel([node])
-
-      // Assert
-      expect(label).toBe('guide.building-journeys.defining-steps')
-    })
-
-    it('should stop at the first structural segment when the node sits on the journey', () => {
-      // Arrange
-      const node = { diagnostics: { source: { formattedPath: 'dump > onAccess[0] > effects[0]' } } }
-
-      // Act
-      const label = deriveScriptLabel([node])
-
-      // Assert
-      expect(label).toBe('dump')
-    })
-
-    it('should take only the journey segment when maxDepth is 1', () => {
-      // Arrange
-      const node = { diagnostics: { source: { formattedPath: 'dump > form > blocks[0]' } } }
-
-      // Act
-      const label = deriveScriptLabel([node], { maxDepth: 1 })
-
-      // Assert
-      expect(label).toBe('dump')
-    })
-
-    it('should use the first node carrying diagnostics when earlier nodes have none', () => {
-      // Arrange
-      const bare = {}
-      const node = { diagnostics: { source: { formattedPath: 'dump > form' } } }
-
-      // Act
-      const label = deriveScriptLabel([undefined, bare, node])
-
-      // Assert
-      expect(label).toBe('dump.form')
-    })
-
-    it('should return undefined when no node carries diagnostics', () => {
-      // Act
-      const label = deriveScriptLabel([{}, undefined])
-
-      // Assert
-      expect(label).toBeUndefined()
-    })
-  })
 })

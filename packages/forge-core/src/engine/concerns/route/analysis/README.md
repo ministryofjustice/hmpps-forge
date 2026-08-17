@@ -12,13 +12,13 @@ The lowering side lives in [../lowering](../lowering/README.md).
 
 ## Inputs Built
 
-`RouteMetadataInputAnalyzer.buildInputs()` returns `RouteMetadataCompilationInputs` for one step or journey:
+`RouteAnalyzer.analyzeStep()/analyzeJourney()` returns `RouteMetadataModel` for one step or journey:
 - `nodeId`, the node the metadata belongs to.
 - `title`, the authored title (required).
 - `description` and `metadata`, only when authored.
 
 Steps and journeys carry the same metadata shape, so one analyzer serves both.
-`CompilationPlanBuilder.buildPlan()` calls it for every step and every journey and collects the results into the `routeMetadataInputs` map on the plan.
+`CompilationModelBuilder.build()` calls it for every step and every journey and collects the results into the `routeMetadata` map on the model.
 
 `RouteIndexBuilder` builds the `stepRouteIndex` and `journeyRouteIndex` maps for the compiled package.
 Each entry carries the node's authored `path` and its `ancestorJourneyIds`, derived by walking AST `parent` links from the outermost journey down.
@@ -35,12 +35,12 @@ Each entry carries the node's authored `path` and its `ancestorJourneyIds`, deri
 
 ## Editing Notes
 
-- To add a route metadata field, update `RouteMetadataCompilationInputs` in `contracts/plans/compilationPlan.type.ts`, then update `RouteMetadataInputAnalyzer` and `RouteMetadataCompiler.compileEntry()` together.
-- To change which nodes get entries, start in the route-metadata loops at the end of `CompilationPlanBuilder.buildPlan()`.
+- To add a route metadata field, update `RouteMetadataModel` in `contracts/models/compilationModel.type.ts`, then update `RouteAnalyzer` and `RouteMetadataCompiler.compileEntry()` together.
+- To change which nodes get entries, start in the route-metadata collection inside `CompilationModelBuilder.build()`.
 
 ## Entry Points
 
-- [RouteMetadataInputAnalyzer.ts](RouteMetadataInputAnalyzer.ts) builds route metadata inputs for one step or journey.
+- [RouteAnalyzer.ts](RouteAnalyzer.ts) builds route metadata inputs for one step or journey.
 - [RouteIndexBuilder.ts](RouteIndexBuilder.ts) builds the step and journey route indexes.
-- [CompilationPlanBuilder.ts](../../../compilation/dependency-analysis/CompilationPlanBuilder.ts) calls `buildInputs()` for every step and journey.
+- [CompilationModelBuilder.ts](../../../compilation/analysis/CompilationModelBuilder.ts) calls `buildInputs()` for every step and journey.
 - [../lowering/RouteMetadataCompiler.ts](../lowering/RouteMetadataCompiler.ts) consumes the collected inputs.

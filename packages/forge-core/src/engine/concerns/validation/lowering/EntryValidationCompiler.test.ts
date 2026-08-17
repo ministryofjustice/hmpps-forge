@@ -7,6 +7,7 @@ import { ReferenceASTNode } from '../../../contracts/ast/expressions.type'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+import type { ValidationModel } from '../contracts/validationModel.type'
 import EntryValidationCompiler from './EntryValidationCompiler'
 import type { CompiledValidationContext } from '../../../contracts/compiled/compiledContexts.type'
 import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
@@ -35,6 +36,16 @@ function createCtx(overrides: Partial<CompiledValidationContext> = {}): Compiled
   }
 }
 
+function entryModel(entries: StepEntryValidationAST[] | undefined): ValidationModel {
+  return {
+    label: undefined,
+    hasValidation: false,
+    fields: [],
+    domainRules: undefined,
+    entryValidation: entries ?? [],
+  }
+}
+
 describe('EntryValidationCompiler', () => {
   let compiler: EntryValidationCompiler
   const dependencies: CompilationDependencies = {
@@ -54,7 +65,7 @@ describe('EntryValidationCompiler', () => {
   describe('compileOnEntryValidation()', () => {
     it('should return an empty group selector when no entries are configured', async () => {
       // Act
-      const fn = compiler.compileOnEntryValidation(undefined, undefined)
+      const fn = compiler.compileOnEntryValidation(entryModel(undefined))
       const groups = await fn(createCtx())
 
       // Assert
@@ -89,7 +100,7 @@ describe('EntryValidationCompiler', () => {
         functionRegistry,
         componentRegistry: new ComponentRegistry(),
       })
-      const fn = localCompiler.compileOnEntryValidation(undefined, entries)
+      const fn = localCompiler.compileOnEntryValidation(entryModel(entries))
 
       // Act
       const result = await fn!(createCtx({ conditions: functionRegistry, data: { addressLoaded: true } }))
@@ -125,7 +136,7 @@ describe('EntryValidationCompiler', () => {
         functionRegistry,
         componentRegistry: new ComponentRegistry(),
       })
-      const fn = localCompiler.compileOnEntryValidation(undefined, entries)
+      const fn = localCompiler.compileOnEntryValidation(entryModel(entries))
 
       // Act
       const result = await fn!(createCtx({ conditions: functionRegistry, data: { addressLoaded: true } }))
@@ -141,7 +152,7 @@ describe('EntryValidationCompiler', () => {
         { groups: ['contact', 'address'], when: true },
       ]
 
-      const fn = compiler.compileOnEntryValidation(undefined, entries)
+      const fn = compiler.compileOnEntryValidation(entryModel(entries))
 
       // Act
       const result = await fn!(createCtx())
@@ -156,7 +167,7 @@ describe('EntryValidationCompiler', () => {
         { groups: ['address'], when: createReference(['data', 'entryActive']) },
       ]
 
-      const fn = compiler.compileOnEntryValidation(undefined, entries)
+      const fn = compiler.compileOnEntryValidation(entryModel(entries))
 
       // Act
       const result = await fn!(createCtx({ data: { entryActive: true } }))
@@ -171,7 +182,7 @@ describe('EntryValidationCompiler', () => {
         { groups: ['address'], when: createReference(['data', 'entryActive']) },
       ]
 
-      const fn = compiler.compileOnEntryValidation(undefined, entries)
+      const fn = compiler.compileOnEntryValidation(entryModel(entries))
 
       // Act
       const result = await fn!(createCtx({ data: { entryActive: false } }))
