@@ -185,6 +185,46 @@ describe('StepResolveCompiler', () => {
       expect(Array.isArray(result.props.ancestors)).toBe(true)
     })
 
+    it('should produce readable source code', () => {
+      // Arrange
+      const ancestor = ASTTestFactory.journey().withProperty('path', '/guide').withTitle('Guide').build()
+      const field = ASTTestFactory.block('text-input', BlockType.FIELD)
+        .withProperty('code', 'name')
+        .withProperty('label', { text: 'Your name' })
+        .withProperty('hint', createReference(['data', 'nameHint']))
+        .build()
+      const step = createStepWithBlocks([field])
+
+      // Act
+      const source = compiler.generateSource(resolveModel(step, [ancestor]))
+
+      // Assert
+      expect(source).toBe(
+        [
+          '"use strict";',
+          'const blocks = [];',
+          'const step = { path: "/step", title: "Step" };',
+          'const ancestors = [];',
+          '',
+          '// --- Ancestor journeys ---',
+          'ancestors.push({ path: "/guide", title: "Guide" });',
+          '',
+          '// --- Block — text-input (root) ---',
+          'const textInputProps = {',
+          '  code: "name",',
+          '  label: { text: "Your name" },',
+          '  hint: ctx.data?.nameHint',
+          '};',
+          '',
+          '_forgeHelpers.resolveFieldValue(ctx, textInputProps);',
+          `_forgeHelpers.resolveFieldFailures(ctx, "${field.id}", textInputProps);`,
+          `blocks.push(ctx.workTasks.resolveBlock("${field.id}", "text-input", "BlockType.field", textInputProps));`,
+          '',
+          'return ctx.workTasks.resolveBlocks(blocks, step, ancestors);',
+        ].join('\n'),
+      )
+    })
+
     it('should keep compiled render synchronous when registry functions are sync', () => {
       // Arrange
       const title = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'renderTitle', ['Ada'])
@@ -535,7 +575,7 @@ describe('StepResolveCompiler', () => {
       )
 
       // Assert
-      expect(source).toContain('blockProps["code"] = String(')
+      expect(source).toContain('code: String(')
       expect(result.props.blocks[0].props.properties.code).toBe('123')
       expect(result.props.blocks[0].props.properties.value).toBe('Ada')
     })
@@ -563,7 +603,7 @@ describe('StepResolveCompiler', () => {
       const result = await compiled(createCtx({ fieldFailures: { [block.id]: [failure] } }))
 
       // Assert
-      expect(source).toContain('resolveFieldFailures(ctx, resolveBlockId, blockProps)')
+      expect(source).toContain(`resolveFieldFailures(ctx, "${block.id}", textInputProps)`)
       expect(result.props.blocks[0].props.properties.errors).toEqual([failure])
     })
 

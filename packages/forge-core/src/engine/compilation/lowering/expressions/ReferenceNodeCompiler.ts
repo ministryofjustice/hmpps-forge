@@ -1,5 +1,5 @@
 import { TemplateValue } from '../../../contracts/ast/template.type'
-import { CodeFragment, code, literal } from '../codegen/fragments/CodeFragment'
+import { CodeFragment, code, literal, optionalPropertyCode, propertyCode } from '../codegen/fragments/CodeFragment'
 import IdentifierName from '../codegen/fragments/IdentifierName'
 import { NodeCompilationContext } from './types'
 
@@ -58,7 +58,10 @@ export default class ReferenceNodeCompiler {
       return ctxNamespace
     }
 
-    return remaining.reduce<CodeFragment>((acc, segment) => code`${acc}?.[${String(segment)}]`, ctxNamespace)
+    return remaining.reduce<CodeFragment>(
+      (acc, segment) => code`${acc}${optionalPropertyCode(String(segment))}`,
+      ctxNamespace,
+    )
   }
 
   /**
@@ -67,7 +70,10 @@ export default class ReferenceNodeCompiler {
   private compileBaseReference(base: unknown, path: (string | number | TemplateValue)[]): CodeFragment {
     const baseExpr = this.ctx.compileOperandCode(base)
 
-    return path.reduce<CodeFragment>((acc, segment) => code`${acc}?.[${String(segment)}]`, code`(${baseExpr})`)
+    return path.reduce<CodeFragment>(
+      (acc, segment) => code`${acc}${optionalPropertyCode(String(segment))}`,
+      code`(${baseExpr})`,
+    )
   }
 
   /**
@@ -84,12 +90,14 @@ export default class ReferenceNodeCompiler {
       return this.compileSelfAnswerReference(path)
     }
 
-    const fieldCodeExpr =
-      typeof fieldCode === 'string' ? literal(fieldCode) : code`String(${this.ctx.compileOperandCode(fieldCode)})`
-    let expr = code`ctx.answers[${fieldCodeExpr}]?.current`
+    const fieldAccess =
+      typeof fieldCode === 'string'
+        ? propertyCode(fieldCode)
+        : code`[String(${this.ctx.compileOperandCode(fieldCode)})]`
+    let expr = code`ctx.answers${fieldAccess}?.current`
 
     for (let i = 2; i < path.length; i++) {
-      expr = code`${expr}?.[${String(path[i])}]`
+      expr = code`${expr}${optionalPropertyCode(String(path[i]))}`
     }
 
     return expr
@@ -105,7 +113,7 @@ export default class ReferenceNodeCompiler {
       let expr = code`ctx.answers[${selfCodeExpr}]?.current`
 
       for (let i = 2; i < path.length; i++) {
-        expr = code`${expr}?.[${String(path[i])}]`
+        expr = code`${expr}${optionalPropertyCode(String(path[i]))}`
       }
 
       return expr
@@ -149,10 +157,10 @@ export default class ReferenceNodeCompiler {
       return code`${itemVar}["@value"]`
     }
 
-    let expr = code`${itemVar}[${property}]`
+    let expr = code`${itemVar}${propertyCode(property)}`
 
     for (let i = 3; i < path.length; i++) {
-      expr = code`${expr}?.[${String(path[i])}]`
+      expr = code`${expr}${optionalPropertyCode(String(path[i]))}`
     }
 
     return expr

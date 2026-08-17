@@ -1024,7 +1024,7 @@ describe('StepValidationCompiler', () => {
       const source = compiler.generateStepValidationSource(valModel(step, [block], []))
 
       // Assert
-      expect(source).toContain('ctx.data?.["maxAge"]')
+      expect(source).toContain('ctx.data?.maxAge')
     })
 
     it('should compile Session references', () => {
@@ -1141,12 +1141,12 @@ describe('StepValidationCompiler', () => {
       expect(source).not.toContain('String(activeGroup)')
       expect(source).not.toContain('const errors = []')
       expect(source).toContain('async function validate_name()')
-      expect(source).toContain('"run": validate_name')
-      expect(source).not.toContain('"run": async function validate_name')
+      expect(source).toContain('run: validate_name')
+      expect(source).not.toContain('run: async function validate_name')
       expect(source).not.toContain('function validate_name_results(results)')
       expect(source).not.toContain('function create_name_validation()')
       expect(source).not.toContain('function evaluate_name_validation()')
-      expect(source).toContain('"condition": async function evaluate_name_condition()')
+      expect(source).toContain('condition: async function evaluate_name_condition()')
       expect(source).not.toContain('function evaluate_name_hasMaxLength()')
       expect(source).not.toContain('function evaluate_name_message()')
       expect(source).not.toContain('function evaluate_name_details()')
@@ -1162,7 +1162,7 @@ describe('StepValidationCompiler', () => {
           '      return await _forgeHelpers.collectFieldValidationFailuresAsync(',
           '        validationRules,',
           '        ruleIsActive,',
-          '        { "blockId": "compile_ast:2", "blockCode": "name" }',
+          '        { blockId: "compile_ast:2", blockCode: "name" }',
           '      );',
         ].join('\n'),
       )
@@ -1172,8 +1172,8 @@ describe('StepValidationCompiler', () => {
         [
           '      const validationRules = [',
           '        {',
-          '          "condition": async function evaluate_name_condition() {',
-          '            const subject = ctx.answers["name"]?.current;',
+          '          condition: async function evaluate_name_condition() {',
+          '            const subject = ctx.answers.name?.current;',
           '            const functionArgument1 = 10;',
           '',
           '            return (await _forgeHelpers.evaluateFunctionAsync(',
@@ -1184,15 +1184,15 @@ describe('StepValidationCompiler', () => {
           '              [subject, functionArgument1]',
           '            ));',
           '          },',
-          '          "message": "Enter your name",',
-          '          "submissionOnly": false,',
-          '          "groups": undefined,',
-          '          "details": undefined',
+          '          message: "Enter your name",',
+          '          submissionOnly: false,',
+          '          groups: undefined,',
+          '          details: undefined',
           '        }',
           '      ];',
         ].join('\n'),
       )
-      expect(source).toContain('ctx.answers["name"]?.current')
+      expect(source).toContain('ctx.answers.name?.current')
       expect(source).toContain('_forgeHelpers.evaluateFunction')
       expect(source).toContain('"hasMaxLength"')
       expect(source).toMatch(/_forgeRuntimeDiagnostics,\s+\d+,/)
@@ -1943,7 +1943,7 @@ describe('StepValidationCompiler', () => {
       expect(source).toContain('Array.isArray')
       expect(source).toContain('_forgeHelpers.evaluateFunction')
       expect(source).toContain('"isRequired"')
-      expect(source).toContain('"blockId": "compiled:template:1:" + [currentIteratorIndex].join(":")')
+      expect(source).toContain('blockId: "compiled:template:1:" + [currentIteratorIndex].join(":")')
     })
 
     it('should handle empty input arrays', async () => {

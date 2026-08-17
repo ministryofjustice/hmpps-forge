@@ -139,9 +139,8 @@ describe('RuntimeValueCompiler', () => {
         properties: {},
       })
       const run = compileValueFunction(block, {
-        compileBlockValue: (blockValue, generator, target) => {
-          generator.assign(target, code`${literal(blockValue.variant)}`)
-        },
+        compileBlockValue: (blockValue, generator, nameHint) =>
+          generator.const(nameHint, code`${literal(blockValue.variant)}`),
       })
 
       // Act

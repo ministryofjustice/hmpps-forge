@@ -108,11 +108,45 @@ export class CodeFragment {
     return new CodeFragment([
       new ObjectExpressionToken(
         properties.map(property => ({
-          key: CodeFragment.literal(property.key),
+          key: CodeFragment.objectKey(property.key),
           value: CodeFragment.fromSafeCode(property.value),
         })),
       ),
     ])
+  }
+
+  /**
+   * Emits a deeply static value as a structured literal: plain objects and
+   * arrays become expression tokens (so the renderer can format them across
+   * lines), everything else is serialised by `literal`. Matches
+   * `JSON.stringify` semantics for unserialisable values: object entries are
+   * dropped, array items become `null`.
+   */
+  static structuredLiteral(value: unknown): CodeFragment {
+    if (Array.isArray(value)) {
+      return CodeFragment.array(
+        value.map(item => (isSerialisable(item) ? CodeFragment.structuredLiteral(item) : CodeFragment.literal(null))),
+      )
+    }
+
+    if (isPlainObject(value)) {
+      return new CodeFragment([
+        new ObjectExpressionToken(
+          Object.entries(value)
+            .filter(([, entryValue]) => isSerialisable(entryValue))
+            .map(([key, entryValue]) => ({
+              key: CodeFragment.objectKey(key),
+              value: CodeFragment.structuredLiteral(entryValue),
+            })),
+        ),
+      ])
+    }
+
+    return CodeFragment.literal(value)
+  }
+
+  private static objectKey(key: string): CodeFragment {
+    return isIdentifier(key) ? CodeFragment.trusted(key) : CodeFragment.literal(key)
   }
 
   get items(): readonly CodeItem[] {
@@ -223,6 +257,14 @@ export const propertyCode = (property: string): CodeFragment => {
   return code`[${property}]`
 }
 
+export const optionalPropertyCode = (property: string): CodeFragment => {
+  if (isIdentifier(property)) {
+    return CodeFragment.trusted(`?.${property}`)
+  }
+
+  return code`?.[${property}]`
+}
+
 export const positionedCode = (value: CodeFragment, positions: readonly SourcePosition[]): CodeFragment =>
   CodeFragment.positioned(value, positions)
 
@@ -230,4 +272,19 @@ export const arrayCode = (values: readonly SafeCode[]): CodeFragment => CodeFrag
 
 export const objectCode = (properties: readonly ObjectCodeProperty[]): CodeFragment => CodeFragment.object(properties)
 
+export const structuredLiteralCode = (value: unknown): CodeFragment => CodeFragment.structuredLiteral(value)
+
 const isIdentifier = (value: string): boolean => /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(value)
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+  if (value === null || typeof value !== 'object') {
+    return false
+  }
+
+  const prototype = Object.getPrototypeOf(value) as unknown
+
+  return prototype === Object.prototype || prototype === null
+}
+
+const isSerialisable = (value: unknown): boolean =>
+  value !== undefined && typeof value !== 'function' && typeof value !== 'symbol'

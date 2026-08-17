@@ -1,7 +1,7 @@
 import { isTemplateNode } from '../../../contracts/ast/nodes'
 import { TemplateNode } from '../../../contracts/ast/template.type'
 import { FieldCodeKind, type DynamicFieldCode, type StaticFieldCode } from '../../../contracts/models/fieldModel.type'
-import { CodeFragment, code, literal, SafeCode } from '../codegen/fragments/CodeFragment'
+import { CodeFragment, code, literal, propertyCode, SafeCode } from '../codegen/fragments/CodeFragment'
 import CodeGenerator from '../codegen/CodeGenerator'
 import IdentifierName from '../codegen/fragments/IdentifierName'
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
@@ -112,6 +112,6 @@ export default class FieldCodeEmitter {
       return
     }
 
-    generator.assign(code`${targetObject}[${key}]`, codeExpression)
+    generator.assign(code`${targetObject}${propertyCode(key)}`, codeExpression)
   }
 }

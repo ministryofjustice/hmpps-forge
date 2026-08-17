@@ -198,15 +198,15 @@ describe('SourceRenderer', () => {
         [
           'const validationRules = [',
           '  {',
-          '    "condition": function evaluate_name_condition() {',
+          '    condition: function evaluate_name_condition() {',
           '      const conditionResult = checkName();',
           '',
           '      return conditionResult;',
           '    },',
-          '    "message": "Enter a name",',
-          '    "submissionOnly": true,',
-          '    "groups": ["default"],',
-          '    "details": undefined',
+          '    message: "Enter a name",',
+          '    submissionOnly: true,',
+          '    groups: ["default"],',
+          '    details: undefined',
           '  }',
           '];',
         ].join('\n'),
@@ -262,7 +262,7 @@ describe('SourceRenderer', () => {
 
       // Assert
       expect(rendered.source).toBe(
-        ['errors.push({', '  "message": "Required",', '  "passed": false,', '  "details": undefined', '});'].join('\n'),
+        ['errors.push({', '  message: "Required",', '  passed: false,', '  details: undefined', '});'].join('\n'),
       )
     })
   })

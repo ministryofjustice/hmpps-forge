@@ -38,7 +38,7 @@ describe('CodeFragment', () => {
       ])
 
       // Assert
-      expect(result.toString()).toBe('{ "field-code": "contactPhone", "values": [answer, undefined] }')
+      expect(result.toString()).toBe('{ "field-code": "contactPhone", values: [answer, undefined] }')
     })
 
     it('should compose typed function calls', () => {

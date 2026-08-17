@@ -567,8 +567,8 @@ describe('StepAnswerPreparationCompiler', () => {
       const source = localCompiler.generateSource(prepModel([block]))
 
       // Assert
-      expect(source).toContain('"component": "text-input"')
-      expect(source).toContain('"validatesInput": true')
+      expect(source).toContain('component: "text-input"')
+      expect(source).toContain('validatesInput: true')
       expect(source).toContain('checkComponentInputValue(ctx, component, rawValue, acceptsMultipleValues)')
     })
 
