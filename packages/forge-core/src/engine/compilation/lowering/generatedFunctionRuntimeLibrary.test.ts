@@ -534,4 +534,105 @@ describe('generatedFunctionRuntimeLibrary', () => {
       expect(result).toBe('chosen')
     })
   })
+
+  describe('applyTransformerPipeline()', () => {
+    it('should thread each transformer result into the next transformer', () => {
+      // Arrange
+      const transformers = [(value: unknown) => `${value}!`, (value: unknown) => `${value}?`]
+
+      // Act
+      const result = generatedFunctionRuntimeLibrary.applyTransformerPipeline('a', transformers)
+
+      // Assert
+      expect(result).toBe('a!?')
+    })
+
+    it('should keep the previous value when a transformer returns undefined', () => {
+      // Arrange
+      const transformers = [(value: unknown) => `${value}!`, () => undefined]
+
+      // Act
+      const result = generatedFunctionRuntimeLibrary.applyTransformerPipeline('a', transformers)
+
+      // Assert
+      expect(result).toBe('a!')
+    })
+
+    it('should revert to the original value when a transformer throws TypeError', () => {
+      // Arrange
+      const laterTransformer = vi.fn((value: unknown) => value)
+      const transformers = [
+        (value: unknown) => `${value}!`,
+        () => {
+          throw new TypeError('wrong shape')
+        },
+        laterTransformer,
+      ]
+
+      // Act
+      const result = generatedFunctionRuntimeLibrary.applyTransformerPipeline('a', transformers)
+
+      // Assert
+      expect(result).toBe('a')
+      expect(laterTransformer).not.toHaveBeenCalled()
+    })
+
+    it('should revert to the original value when a transformer error has a TypeError cause', () => {
+      // Arrange
+      const transformers = [
+        () => {
+          throw new Error('wrapped', { cause: new TypeError('wrong shape') })
+        },
+      ]
+
+      // Act
+      const result = generatedFunctionRuntimeLibrary.applyTransformerPipeline('a', transformers)
+
+      // Assert
+      expect(result).toBe('a')
+    })
+
+    it('should rethrow when a transformer throws a non-TypeError', () => {
+      // Arrange
+      const transformers = [
+        () => {
+          throw new Error('boom')
+        },
+      ]
+
+      // Act
+      const act = () => generatedFunctionRuntimeLibrary.applyTransformerPipeline('a', transformers)
+
+      // Assert
+      expect(act).toThrow('boom')
+    })
+  })
+
+  describe('applyTransformerPipelineAsync()', () => {
+    it('should await each transformer before running the next one', async () => {
+      // Arrange
+      const transformers = [async (value: unknown) => `${value}!`, (value: unknown) => `${value}?`]
+
+      // Act
+      const result = await generatedFunctionRuntimeLibrary.applyTransformerPipelineAsync('a', transformers)
+
+      // Assert
+      expect(result).toBe('a!?')
+    })
+
+    it('should revert to the original value when an async transformer rejects with TypeError', async () => {
+      // Arrange
+      const transformers = [
+        async () => {
+          throw new TypeError('wrong shape')
+        },
+      ]
+
+      // Act
+      const result = await generatedFunctionRuntimeLibrary.applyTransformerPipelineAsync('a', transformers)
+
+      // Assert
+      expect(result).toBe('a')
+    })
+  })
 })

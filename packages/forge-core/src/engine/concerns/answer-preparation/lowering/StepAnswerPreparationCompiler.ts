@@ -1,4 +1,5 @@
 import {
+  arrayCode,
   callCode,
   CodeFragment,
   code,
@@ -78,22 +79,9 @@ export default class StepAnswerPreparationCompiler {
 
     const mode = generator.const('answerPreparationMode', code`${CONTEXT}.request.method === "POST" ? "POST" : "GET"`)
     const fieldDefinitions = generator.const('fieldDefinitions', code`[]`)
-    const usesInputValidation = model.fields.some(field => field.component.validatesInput)
 
     this.compileFieldDefinitions(model.fields, fieldDefinitions, generator)
-
-    // Async discovery is monotonic within a build, so this read is safe only
-    // because every field expression above has already been compiled; the
-    // preparation bodies below add no authored expressions of their own.
-    const usesAwait = this.expr.usesAwait
-    const preparePostedFieldAnswer = this.compilePostedFieldPreparation(usesInputValidation, usesAwait, generator)
-    const prepareStoredFieldAnswer = this.compileStoredFieldPreparation(usesAwait, generator)
-    const prepareFieldAnswer = this.compileFieldPreparationSelector(
-      preparePostedFieldAnswer,
-      prepareStoredFieldAnswer,
-      mode,
-      generator,
-    )
+    const prepareFieldAnswer = this.compileFieldPreparationSelector(mode, generator)
     const fieldPreparations = this.compileFieldPreparationTasks(fieldDefinitions, mode, prepareFieldAnswer, generator)
 
     generator.return(code`${CONTEXT}.workTasks.answerPreparation(${fieldPreparations})`)
@@ -192,17 +180,46 @@ export default class StepAnswerPreparationCompiler {
       return undefined
     }
 
-    return generator.functionExpression(
-      functionName,
-      ['value'],
-      (body, [value]) => {
-        const transformedValue = body.let('transformedValue', value)
+    return generator.functionExpression(functionName, ['value'], (body, [value]) => {
+      let pipelineAwaits = false
+      const transformerThunks = transformers.map(transformer => {
+        const compiledThunk = this.compileTransformerThunk(transformer, body)
 
-        this.compileTransformerPipeline(transformers, transformedValue, body)
-        body.return(transformedValue)
+        pipelineAwaits = pipelineAwaits || compiledThunk.usesAwait
+
+        return compiledThunk.thunk
+      })
+      const pipeline = pipelineAwaits
+        ? code`${HELPERS}.applyTransformerPipelineAsync`
+        : code`${HELPERS}.applyTransformerPipeline`
+
+      body.return(callCode(pipeline, [value, arrayCode(transformerThunks)]))
+    })
+  }
+
+  private compileTransformerThunk(
+    transformer: TransformerPipeline[number],
+    generator: CodeGenerator,
+  ): { thunk: CodeFragment; usesAwait: boolean } {
+    let thunkUsesAwait = false
+    const thunk = generator.functionExpression(
+      this.transformerThunkName(transformer.name),
+      ['transformedValue'],
+      (body, [transformedValue]) => {
+        thunkUsesAwait = this.expr.trackNestedFunctionAwait(() => {
+          body.return(this.compileTransformerCall(transformer, transformedValue))
+        })
       },
-      { async: () => this.expr.usesAwait },
+      { async: () => thunkUsesAwait },
     )
+
+    return { thunk, usesAwait: thunkUsesAwait }
+  }
+
+  private transformerThunkName(transformerName: string): string {
+    const nameParts = transformerName.split(/[^A-Za-z0-9]+/).filter(part => part.length > 0)
+
+    return `apply${nameParts.map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('')}`
   }
 
   private compileDependentWhenCallback(
@@ -213,19 +230,14 @@ export default class StepAnswerPreparationCompiler {
       return undefined
     }
 
-    return generator.functionExpression(
-      'evaluateDependentWhen',
-      [],
-      body => {
-        const dependentWhenResult = body.let('dependentWhenResult')
+    return this.compileFunctionExpression('evaluateDependentWhen', generator, body => {
+      const dependentWhenResult = body.let('dependentWhenResult')
 
-        this.values.compileValue(dependentWhen, body, dependentWhenResult, {
-          expressionErrorFallback: literal(true),
-        })
-        body.return(dependentWhenResult)
-      },
-      { async: () => this.expr.usesAwait },
-    )
+      this.values.compileValue(dependentWhen, body, dependentWhenResult, {
+        expressionErrorFallback: literal(true),
+      })
+      body.return(dependentWhenResult)
+    })
   }
 
   private compileDefaultValueCallback(
@@ -236,135 +248,37 @@ export default class StepAnswerPreparationCompiler {
       return undefined
     }
 
+    return this.compileFunctionExpression('resolveDefaultValue', generator, body => {
+      const resolvedDefaultValue = body.let('defaultValue')
+
+      this.values.compileValue(defaultValue, body, resolvedDefaultValue)
+      body.return(resolvedDefaultValue)
+    })
+  }
+
+  private compileFunctionExpression(
+    prefix: string,
+    generator: CodeGenerator,
+    buildBody: (generator: CodeGenerator) => void,
+  ): CodeFragment {
+    let bodyUsesAwait = false
+
     return generator.functionExpression(
-      'resolveDefaultValue',
+      prefix,
       [],
       body => {
-        const resolvedDefaultValue = body.let('defaultValue')
-
-        this.values.compileValue(defaultValue, body, resolvedDefaultValue)
-        body.return(resolvedDefaultValue)
+        bodyUsesAwait = this.expr.trackNestedFunctionAwait(() => buildBody(body))
       },
-      { async: () => this.expr.usesAwait },
+      { async: () => bodyUsesAwait },
     )
   }
 
-  private compilePostedFieldPreparation(
-    usesInputValidation: boolean,
-    usesAwait: boolean,
-    generator: CodeGenerator,
-  ): IdentifierName {
-    generator.comment('Prepare a submitted field')
-
-    return generator.function(
-      'preparePostedFieldAnswer',
-      ['field'],
-      (body, [field]) => {
-        const fieldCode = body.const('fieldCode', code`${field}.code`)
-        const component = body.const('component', code`${field}.component`)
-        const acceptsMultipleValues = body.const('acceptsMultipleValues', code`${field}.acceptsMultipleValues`)
-        const answerHistory = body.const(
-          'answerHistory',
-          code`${HELPERS}.ensureAnswerHistory(${CONTEXT}, ${fieldCode})`,
-        )
-        const rawValue = body.let(
-          'rawValue',
-          code`${HELPERS}.normalizePostValue(${CONTEXT}.post[${fieldCode}], ${acceptsMultipleValues})`,
-        )
-
-        if (usesInputValidation) {
-          body.if(code`${field}.validatesInput`, () => {
-            body.assign(
-              rawValue,
-              code`${HELPERS}.checkComponentInputValue(${CONTEXT}, ${component}, ${rawValue}, ${acceptsMultipleValues})`,
-            )
-          })
-        }
-
-        this.emitPushMutationCall(answerHistory, rawValue, 'post', body)
-
-        body.if(code`${field}.formatSubmittedValue !== undefined`, () => {
-          const formattedValue = body.const(
-            'formattedValue',
-            this.maybeAwait(code`${field}.formatSubmittedValue(${rawValue})`, usesAwait),
-          )
-
-          body.if(code`${formattedValue} !== ${rawValue}`, () => {
-            this.emitPushMutationCall(answerHistory, formattedValue, 'processed', body)
-          })
-        })
-
-        body.if(code`${field}.evaluateDependentWhen !== undefined`, () => {
-          const dependentWhenResult = body.const(
-            'dependentWhenResult',
-            this.maybeAwait(code`${field}.evaluateDependentWhen()`, usesAwait),
-          )
-
-          body.if(code`!${dependentWhenResult}`, () => {
-            this.emitPushMutationCall(answerHistory, literal(undefined), 'dependentWhen', body)
-          })
-        })
-
-        this.compileFieldResult(fieldCode, literal('POST'), body)
-      },
-      { async: true },
-    )
-  }
-
-  private compileStoredFieldPreparation(usesAwait: boolean, generator: CodeGenerator): IdentifierName {
-    generator.comment('Prepare a stored field')
-
-    return generator.function(
-      'prepareStoredFieldAnswer',
-      ['field'],
-      (body, [field]) => {
-        const fieldCode = body.const('fieldCode', code`${field}.code`)
-        const answerHistory = body.let('answerHistory', code`${CONTEXT}.answers[${fieldCode}]`)
-
-        body.if(code`!(${answerHistory} && ${answerHistory}.current !== undefined)`, () => {
-          body.assign(answerHistory, code`${HELPERS}.ensureAnswerHistory(${CONTEXT}, ${fieldCode})`)
-          const defaultValue = body.const(
-            'defaultValue',
-            code`${field}.resolveDefaultValue === undefined ? undefined : ${this.maybeAwait(
-              code`${field}.resolveDefaultValue()`,
-              usesAwait,
-            )}`,
-          )
-
-          this.emitPushMutationCall(answerHistory, defaultValue, 'default', body)
-        })
-
-        body.if(
-          code`${answerHistory} && ${answerHistory}.current !== undefined && ${field}.parseStoredValue !== undefined`,
-          () => {
-            const parsedValue = body.const(
-              'parsedValue',
-              this.maybeAwait(code`${field}.parseStoredValue(${answerHistory}.current)`, usesAwait),
-            )
-
-            body.if(code`${parsedValue} !== undefined`, () => {
-              body.assign(code`${answerHistory}.parsed`, parsedValue)
-            })
-          },
-        )
-
-        this.compileFieldResult(fieldCode, literal('GET'), body)
-      },
-      { async: true },
-    )
-  }
-
-  private compileFieldPreparationSelector(
-    preparePostedFieldAnswer: IdentifierName,
-    prepareStoredFieldAnswer: IdentifierName,
-    mode: IdentifierName,
-    generator: CodeGenerator,
-  ): IdentifierName {
+  private compileFieldPreparationSelector(mode: IdentifierName, generator: CodeGenerator): IdentifierName {
     generator.comment('Select preparation using the request method')
 
     return generator.const(
       'prepareFieldAnswer',
-      code`${mode} === "POST" ? ${preparePostedFieldAnswer} : ${prepareStoredFieldAnswer}`,
+      code`${mode} === "POST" ? ${HELPERS}.preparePostedFieldAnswer : ${HELPERS}.prepareStoredFieldAnswer`,
     )
   }
 
@@ -380,14 +294,9 @@ export default class StepAnswerPreparationCompiler {
       ['field'],
       (body, [field]) => {
         const fieldCode = body.const('fieldCode', code`${field}.code`)
-        const run = body.functionExpression(
-          'runFieldPreparation',
-          [],
-          runBody => {
-            runBody.return(callCode(prepareFieldAnswer, [field]))
-          },
-          { async: true },
-        )
+        const run = body.functionExpression('runFieldPreparation', [], runBody => {
+          runBody.return(callCode(prepareFieldAnswer, [CONTEXT, field]))
+        })
         const props = body.const(
           'fieldAnswerPreparationProps',
           objectCode([
@@ -406,40 +315,6 @@ export default class StepAnswerPreparationCompiler {
     return generator.const('fieldPreparations', callCode(code`${fieldDefinitions}.map`, [createFieldPreparation]))
   }
 
-  private compileTransformerPipeline(
-    transformers: TransformerPipeline,
-    value: IdentifierName,
-    generator: CodeGenerator,
-  ): void {
-    generator.comment('Apply the configured transformers in order')
-    const originalValue = generator.const('originalTransformerValue', value)
-    const transformerFailed = generator.let('transformerFailed', literal(false))
-
-    transformers.forEach(transformer => {
-      generator.if(code`!${transformerFailed}`, () => {
-        const transformerResult = generator.let('transformerResult')
-
-        generator.tryCatch(
-          () => generator.assign(transformerResult, this.compileTransformerCall(transformer, value)),
-          'transformerError',
-          transformerError => {
-            generator.if(
-              code`${transformerError} instanceof TypeError || (${transformerError} && ${transformerError}.cause instanceof TypeError)`,
-              () => {
-                generator.assign(value, originalValue)
-                generator.assign(transformerFailed, literal(true))
-              },
-              () => generator.throw(transformerError),
-            )
-          },
-        )
-        generator.if(code`!${transformerFailed} && ${transformerResult} !== undefined`, () => {
-          generator.assign(value, transformerResult)
-        })
-      })
-    })
-  }
-
   private compileTransformerCall(transformer: TransformerPipeline[number], value: IdentifierName): CodeFragment {
     const argumentsCode = transformer.arguments.map(argument => this.expr.compileOperandCode(toRawOperand(argument)))
 
@@ -450,30 +325,4 @@ export default class StepAnswerPreparationCompiler {
     )
   }
 
-  private compileFieldResult(fieldCode: SafeCode, mode: SafeCode, generator: CodeGenerator): void {
-    const answerHistory = generator.const('preparedAnswerHistory', code`${CONTEXT}.answers[${fieldCode}]`)
-
-    generator.return(
-      objectCode([
-        { key: 'code', value: fieldCode },
-        { key: 'mode', value: mode },
-        { key: 'current', value: code`${answerHistory} ? ${answerHistory}.current : undefined` },
-        { key: 'parsed', value: code`${answerHistory} ? ${answerHistory}.parsed : undefined` },
-        { key: 'mutations', value: code`${answerHistory} ? ${answerHistory}.mutations.slice() : []` },
-      ]),
-    )
-  }
-
-  private maybeAwait(expression: CodeFragment, usesAwait: boolean): CodeFragment {
-    return usesAwait ? code`await ${expression}` : expression
-  }
-
-  private emitPushMutationCall(
-    answerHistory: IdentifierName,
-    value: SafeCode,
-    source: string,
-    generator: CodeGenerator,
-  ): void {
-    generator.statement(code`${HELPERS}.pushAnswerMutation(${answerHistory}, ${value}, ${source})`)
-  }
 }

@@ -4,6 +4,7 @@ import { FunctionType } from '../../../authoring/types/enums'
 
 interface AnswerHistory {
   current: unknown
+  parsed?: unknown
   mutations: { value: unknown; source: string }[]
 }
 
@@ -49,6 +50,32 @@ interface ComponentInputContext {
     get(variant: string): ComponentRegistryLookupEntry | undefined
   }
 }
+
+interface FieldPreparationContext extends AnswerHistoryContext, ComponentInputContext {
+  post: Record<string, unknown>
+}
+
+/** One entry of a generated step's `fieldDefinitions` array; the callbacks carry the compiled authored expressions. */
+interface PreparedFieldDefinition {
+  code: string
+  component: string
+  acceptsMultipleValues: boolean
+  validatesInput: boolean
+  formatSubmittedValue?: (value: unknown) => unknown
+  evaluateDependentWhen?: () => unknown
+  resolveDefaultValue?: () => unknown
+  parseStoredValue?: (value: unknown) => unknown
+}
+
+interface PreparedFieldAnswer {
+  code: string
+  mode: 'POST' | 'GET'
+  current: unknown
+  parsed: unknown
+  mutations: { value: unknown; source: string }[]
+}
+
+type TransformerThunk = (value: unknown) => unknown
 
 interface RuntimeDiagnosticState {
   readonly nodeId?: string
@@ -107,6 +134,10 @@ export interface GeneratedFunctionRuntimeLibrary {
   pushAnswerMutation(answerHistory: AnswerHistory, value: unknown, source: string): void
   normalizePostValue(rawValue: unknown, multiple: boolean): unknown
   checkComponentInputValue(ctx: ComponentInputContext, variant: string, value: unknown, multiple: boolean): unknown
+  preparePostedFieldAnswer(ctx: FieldPreparationContext, field: PreparedFieldDefinition): Promise<PreparedFieldAnswer>
+  prepareStoredFieldAnswer(ctx: AnswerHistoryContext, field: PreparedFieldDefinition): Promise<PreparedFieldAnswer>
+  applyTransformerPipeline(value: unknown, transformers: readonly TransformerThunk[]): unknown
+  applyTransformerPipelineAsync(value: unknown, transformers: readonly TransformerThunk[]): Promise<unknown>
   resolveFieldValue(ctx: RenderFieldValueContext, blockProps: Record<string, unknown>): void
   resolveFieldFailures(ctx: RenderFieldFailureContext, blockId: unknown, blockProps: Record<string, unknown>): void
   evaluateFunction(
@@ -156,67 +187,17 @@ export interface GeneratedFunctionRuntimeLibrary {
 export const generatedFunctionRuntimeLibrary: GeneratedFunctionRuntimeLibrary = {
   renderBlockBrand: RENDER_BLOCK_BRAND,
 
-  ensureAnswerHistory(ctx, code) {
-    let answerHistory = ctx.answers[code]
-
-    if (!answerHistory) {
-      answerHistory = { current: undefined, mutations: [] }
-      ctx.answers[code] = answerHistory
-    }
-
-    return answerHistory
-  },
-
-  pushAnswerMutation(answerHistory, value, source) {
-    answerHistory.mutations.push({ value, source })
-    answerHistory.current = value
-  },
-
-  normalizePostValue(rawValue, multiple) {
-    if (multiple) {
-      if (Array.isArray(rawValue)) {
-        return rawValue
-      }
-
-      return rawValue !== undefined && rawValue !== null ? [rawValue] : []
-    }
-
-    if (!Array.isArray(rawValue)) {
-      return rawValue
-    }
-
-    return rawValue.find(
-      value => value !== undefined && value !== null && (typeof value !== 'string' || value.trim() !== ''),
-    )
-  },
-
-  /**
-   * Checks a submitted value against the component variant's `inputSchema` after
-   * normalisation. A value that fails the schema can't have come from the
-   * rendered form, so it's replaced with an empty value (`[]` for multi-value
-   * fields, `undefined` for single-value fields) rather than throwing. A passing
-   * value is returned unchanged (no Zod coercion in v1). An unanswered value,
-   * an unknown variant, or a variant without a schema is left untouched.
-   */
-  checkComponentInputValue(ctx, variant, value, multiple) {
-    if (value === undefined) {
-      return value
-    }
-
-    const entry = ctx.components.get(variant)
-
-    if (entry === undefined || entry.inputSchema === undefined) {
-      return value
-    }
-
-    const parsed = entry.inputSchema.safeParse(value)
-
-    if (parsed.success) {
-      return value
-    }
-
-    return multiple ? [] : undefined
-  },
+  // Answer-preparation functions are detached from this object by generated
+  // code (`mode === "POST" ? _forgeHelpers.preparePostedFieldAnswer : ...`),
+  // so they and everything they call live as module functions free of `this`.
+  ensureAnswerHistory,
+  pushAnswerMutation,
+  normalizePostValue,
+  checkComponentInputValue,
+  preparePostedFieldAnswer,
+  prepareStoredFieldAnswer,
+  applyTransformerPipeline,
+  applyTransformerPipelineAsync,
 
   resolveFieldValue(ctx, blockProps) {
     const fieldCode = blockProps.code
@@ -314,6 +295,207 @@ export const generatedFunctionRuntimeLibrary: GeneratedFunctionRuntimeLibrary = 
 
     return failures.map(toDomainValidationFailure)
   },
+}
+
+function ensureAnswerHistory(ctx: AnswerHistoryContext, code: string): AnswerHistory {
+  let answerHistory = ctx.answers[code]
+
+  if (!answerHistory) {
+    answerHistory = { current: undefined, mutations: [] }
+    ctx.answers[code] = answerHistory
+  }
+
+  return answerHistory
+}
+
+function pushAnswerMutation(answerHistory: AnswerHistory, value: unknown, source: string): void {
+  answerHistory.mutations.push({ value, source })
+  answerHistory.current = value
+}
+
+function normalizePostValue(rawValue: unknown, multiple: boolean): unknown {
+  if (multiple) {
+    if (Array.isArray(rawValue)) {
+      return rawValue
+    }
+
+    return rawValue !== undefined && rawValue !== null ? [rawValue] : []
+  }
+
+  if (!Array.isArray(rawValue)) {
+    return rawValue
+  }
+
+  return rawValue.find(
+    value => value !== undefined && value !== null && (typeof value !== 'string' || value.trim() !== ''),
+  )
+}
+
+/**
+ * Checks a submitted value against the component variant's `inputSchema` after
+ * normalisation. A value that fails the schema can't have come from the
+ * rendered form, so it's replaced with an empty value (`[]` for multi-value
+ * fields, `undefined` for single-value fields) rather than throwing. A passing
+ * value is returned unchanged (no Zod coercion in v1). An unanswered value,
+ * an unknown variant, or a variant without a schema is left untouched.
+ */
+function checkComponentInputValue(
+  ctx: ComponentInputContext,
+  variant: string,
+  value: unknown,
+  multiple: boolean,
+): unknown {
+  if (value === undefined) {
+    return value
+  }
+
+  const entry = ctx.components.get(variant)
+
+  if (entry === undefined || entry.inputSchema === undefined) {
+    return value
+  }
+
+  const parsed = entry.inputSchema.safeParse(value)
+
+  if (parsed.success) {
+    return value
+  }
+
+  return multiple ? [] : undefined
+}
+
+async function preparePostedFieldAnswer(
+  ctx: FieldPreparationContext,
+  field: PreparedFieldDefinition,
+): Promise<PreparedFieldAnswer> {
+  const answerHistory = ensureAnswerHistory(ctx, field.code)
+  let rawValue = normalizePostValue(ctx.post[field.code], field.acceptsMultipleValues)
+
+  if (field.validatesInput) {
+    rawValue = checkComponentInputValue(ctx, field.component, rawValue, field.acceptsMultipleValues)
+  }
+
+  pushAnswerMutation(answerHistory, rawValue, 'post')
+
+  if (field.formatSubmittedValue !== undefined) {
+    const formattedValue = await field.formatSubmittedValue(rawValue)
+
+    if (formattedValue !== rawValue) {
+      pushAnswerMutation(answerHistory, formattedValue, 'processed')
+    }
+  }
+
+  if (field.evaluateDependentWhen !== undefined) {
+    const dependentWhenResult = await field.evaluateDependentWhen()
+
+    if (!dependentWhenResult) {
+      pushAnswerMutation(answerHistory, undefined, 'dependentWhen')
+    }
+  }
+
+  return buildPreparedFieldAnswer(ctx, field.code, 'POST')
+}
+
+async function prepareStoredFieldAnswer(
+  ctx: AnswerHistoryContext,
+  field: PreparedFieldDefinition,
+): Promise<PreparedFieldAnswer> {
+  let answerHistory: AnswerHistory | undefined = ctx.answers[field.code]
+
+  if (answerHistory?.current === undefined) {
+    answerHistory = ensureAnswerHistory(ctx, field.code)
+    const defaultValue = field.resolveDefaultValue === undefined ? undefined : await field.resolveDefaultValue()
+
+    pushAnswerMutation(answerHistory, defaultValue, 'default')
+  }
+
+  if (answerHistory.current !== undefined && field.parseStoredValue !== undefined) {
+    const parsedValue = await field.parseStoredValue(answerHistory.current)
+
+    if (parsedValue !== undefined) {
+      answerHistory.parsed = parsedValue
+    }
+  }
+
+  return buildPreparedFieldAnswer(ctx, field.code, 'GET')
+}
+
+function buildPreparedFieldAnswer(
+  ctx: AnswerHistoryContext,
+  fieldCode: string,
+  mode: 'POST' | 'GET',
+): PreparedFieldAnswer {
+  const preparedAnswerHistory: AnswerHistory | undefined = ctx.answers[fieldCode]
+
+  return {
+    code: fieldCode,
+    mode,
+    current: preparedAnswerHistory?.current,
+    parsed: preparedAnswerHistory?.parsed,
+    mutations: preparedAnswerHistory?.mutations.slice() ?? [],
+  }
+}
+
+/**
+ * Runs a field's transformer thunks in order. A thunk returning `undefined`
+ * keeps the previous value; a thunk throwing a TypeError (an authored
+ * transformer rejecting the value's shape) reverts to the original value and
+ * abandons the rest of the pipeline. Any other error propagates.
+ */
+function applyTransformerPipeline(value: unknown, transformers: readonly TransformerThunk[]): unknown {
+  let transformedValue = value
+
+  try {
+    transformers.forEach(transformer => {
+      const transformerResult = transformer(transformedValue)
+
+      if (transformerResult !== undefined) {
+        transformedValue = transformerResult
+      }
+    })
+  } catch (error) {
+    if (isTransformerTypeError(error)) {
+      return value
+    }
+
+    throw error
+  }
+
+  return transformedValue
+}
+
+async function applyTransformerPipelineAsync(
+  value: unknown,
+  transformers: readonly TransformerThunk[],
+): Promise<unknown> {
+  let transformedValue = value
+
+  try {
+    // Sequential on purpose: each transformer receives the previous one's output.
+    for (const transformer of transformers) {
+      const transformerResult = await transformer(transformedValue)
+
+      if (transformerResult !== undefined) {
+        transformedValue = transformerResult
+      }
+    }
+  } catch (error) {
+    if (isTransformerTypeError(error)) {
+      return value
+    }
+
+    throw error
+  }
+
+  return transformedValue
+}
+
+function isTransformerTypeError(error: unknown): boolean {
+  if (error instanceof TypeError) {
+    return true
+  }
+
+  return isRecord(error) && error.cause instanceof TypeError
 }
 
 function collectValidationFailures(

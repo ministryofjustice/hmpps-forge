@@ -476,7 +476,7 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(ctx.answers.lastName.current).toBe('Doe')
     })
 
-    it('should prepare every field through one shared generated program', () => {
+    it('should prepare every field through the shared runtime library', () => {
       // Arrange
       const firstName = createFieldBlock('firstName')
       const lastName = createFieldBlock('lastName')
@@ -485,16 +485,14 @@ describe('StepAnswerPreparationCompiler', () => {
       const source = compiler.generateSource(prepModel([firstName, lastName]))
 
       // Assert
-      expect(source.match(/function preparePostedFieldAnswer/g)).toHaveLength(1)
-      expect(source.match(/function prepareStoredFieldAnswer/g)).toHaveLength(1)
-      expect(source.match(/normalizePostValue/g)).toHaveLength(1)
       expect(source).toContain('const fieldDefinitions = [];')
       expect(source).toContain(
-        'const prepareFieldAnswer = answerPreparationMode === "POST" ? preparePostedFieldAnswer : prepareStoredFieldAnswer;',
+        'const prepareFieldAnswer = answerPreparationMode === "POST" ? _forgeHelpers.preparePostedFieldAnswer : _forgeHelpers.prepareStoredFieldAnswer;',
       )
       expect(source).toContain('const fieldPreparations = fieldDefinitions.map(')
-      expect(source).toContain('return prepareFieldAnswer(field);')
-      expect(source).not.toContain('function prepareFieldAnswer')
+      expect(source).toContain('return prepareFieldAnswer(ctx, field);')
+      expect(source).not.toContain('function preparePostedFieldAnswer')
+      expect(source).not.toContain('function prepareStoredFieldAnswer')
       expect(source).not.toContain('compileRegisteredField')
     })
 
@@ -557,7 +555,7 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(ctx.answers.tags.current).toEqual(['single'])
     })
 
-    it('should emit a checkComponentInputValue call for a variant that declares an input schema', () => {
+    it('should mark the field definition as validating input for a variant that declares an input schema', () => {
       // Arrange
       const componentRegistry = createComponentRegistry({ variant: 'text-input', inputSchema: z.string() })
       const localCompiler = createComponentCompiler(componentRegistry)
@@ -569,10 +567,9 @@ describe('StepAnswerPreparationCompiler', () => {
       // Assert
       expect(source).toContain('component: "text-input"')
       expect(source).toContain('validatesInput: true')
-      expect(source).toContain('checkComponentInputValue(ctx, component, rawValue, acceptsMultipleValues)')
     })
 
-    it('should not emit a checkComponentInputValue call for a variant without an input schema', () => {
+    it('should mark the field definition as not validating input for a variant without an input schema', () => {
       // Arrange
       const componentRegistry = createComponentRegistry({ variant: 'text-input' })
       const localCompiler = createComponentCompiler(componentRegistry)
@@ -582,7 +579,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const source = localCompiler.generateSource(prepModel([block]))
 
       // Assert
-      expect(source).not.toContain('checkComponentInputValue')
+      expect(source).toContain('validatesInput: false')
     })
 
     it('should drop a value that fails the input schema to undefined before the post mutation', async () => {
