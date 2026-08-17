@@ -1,27 +1,33 @@
+import { code, literal } from '../../codegen/Code'
+import CodeGenerator from '../../codegen/CodeGenerator'
+import SourceRenderer from '../../codegen/SourceRenderer'
 import { compileIifeExpression } from './IifeExpressionCompiler'
 
 describe('compileIifeExpression()', () => {
   it('should compile a synchronous IIFE expression with parameters and arguments', () => {
     // Arrange
     const valueParam = 'value'
+    const generator = new CodeGenerator()
 
     // Act
     const source = compileIifeExpression({
+      generator,
       params: [valueParam],
-      args: ['inputValue'],
-      compileBody: emitter => {
-        emitter.if(`${valueParam} === undefined`, () => {
-          emitter.return('undefined')
+      args: [code`inputValue`],
+      compileBody: (functionGenerator, [value]) => {
+        functionGenerator.if(code`${value} === undefined`, () => {
+          functionGenerator.return(literal(undefined))
         })
 
-        emitter.return(`format(${valueParam})`)
+        functionGenerator.return(code`format(${value})`)
       },
     })
+    const rendered = new SourceRenderer().renderCode(source).source
 
     // Assert
-    expect(source).toBe(
+    expect(rendered).toBe(
       [
-        '(function(value) {',
+        '(function evaluate_expression(value) {',
         '  if (value === undefined) {',
         '    return undefined;',
         '  }',
@@ -34,21 +40,26 @@ describe('compileIifeExpression()', () => {
   it('should compile an awaited async IIFE expression when requested', () => {
     // Arrange
     const valueParam = 'value'
+    const generator = new CodeGenerator()
 
     // Act
     const source = compileIifeExpression({
+      generator,
       isAsync: true,
       awaitResult: true,
       params: [valueParam],
-      args: ['inputValue'],
-      compileBody: emitter => {
-        emitter.return(`await format(${valueParam})`)
+      args: [code`inputValue`],
+      compileBody: (functionGenerator, [value]) => {
+        functionGenerator.return(code`await format(${value})`)
       },
     })
+    const rendered = new SourceRenderer().renderCode(source).source
 
     // Assert
-    expect(source).toBe(
-      ['(await (async function(value) {', '  return await format(value);', '})(inputValue))'].join('\n'),
+    expect(rendered).toBe(
+      ['(await (async function evaluate_expression(value) {', '  return await format(value);', '})(inputValue))'].join(
+        '\n',
+      ),
     )
   })
 })

@@ -384,6 +384,8 @@ describe('StepValidationCompiler', () => {
 
       // Assert
       expect(source).toContain('String(')
+      expect(source).toContain('async function validateField()')
+      expect(source).not.toContain('validate_123')
       expect(result.isValid).toBe(false)
       expect(result.fieldFailures[0].blockCode).toBe('123')
       expect(result.fieldFailures[0].message).toBe('Enter a value')
@@ -1076,6 +1078,8 @@ describe('StepValidationCompiler', () => {
       // Assert
       expect(source).toContain('"use strict"')
       expect(source).toContain('const errors = []')
+      expect(source).toContain('async function validate_name()')
+      expect(source).toContain('function validate_name_results(results)')
       expect(source).toContain('ctx.answers["name"]?.current')
       expect(source).toContain('_forgeHelpers.evaluateFunction')
       expect(source).toContain('"isRequired"')
@@ -1808,7 +1812,7 @@ describe('StepValidationCompiler', () => {
       expect(source).toContain('Array.isArray')
       expect(source).toContain('_forgeHelpers.evaluateFunction')
       expect(source).toContain('"isRequired"')
-      expect(source).toContain('blockId: "compiled:template:1:" + [currentIteratorIndex].join(":")')
+      expect(source).toContain('"blockId": "compiled:template:1:" + [currentIteratorIndex].join(":")')
     })
 
     it('should handle empty input arrays', async () => {

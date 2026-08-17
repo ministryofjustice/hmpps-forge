@@ -1,7 +1,9 @@
+import { Code, code, literal } from '../../codegen/Code'
+import Name from '../../codegen/Name'
 import { compileIifeExpression } from './IifeExpressionCompiler'
 import { NodeCompilationContext } from './types'
 
-const PIPELINE_VALUE_PARAM = '_forgePipelineValue'
+const PIPELINE_VALUE_PARAM = new Name('_forgePipelineValue')
 
 /**
  * Compiles authored function calls and pipelines.
@@ -15,21 +17,24 @@ export default class PipelineNodeCompiler {
   /**
    * Threads the previous step result into each pipeline function call.
    */
-  compilePipeline(properties: Record<string, unknown>): string {
+  compilePipeline(properties: Record<string, unknown>): Code {
     const steps = (properties.steps ?? []) as Record<string, unknown>[]
 
-    return steps.reduce((expr, step) => this.compilePipelineStep(expr, step), this.ctx.compileOperand(properties.input))
+    return steps.reduce<Code>(
+      (expr, step) => this.compilePipelineStep(expr, step),
+      this.ctx.compileOperandCode(properties.input),
+    )
   }
 
   /**
    * Emits one transformer step, treating undefined as an absent piped value.
    */
-  private compilePipelineStep(inputExpr: string, step: Record<string, unknown>): string {
+  private compilePipelineStep(inputExpr: Code, step: Record<string, unknown>): Code {
     const stepProps = (step.properties ?? step) as Record<string, unknown>
     const funcName = stepProps.name as string
     const funcArgs = (stepProps.arguments ?? []) as unknown[]
-    const argExprs = funcArgs.map(arg => this.ctx.compileOperand(arg))
-    const callExpr = this.ctx.compileFunctionCall(funcName, [PIPELINE_VALUE_PARAM, ...argExprs], step)
+    const argExprs = funcArgs.map(arg => this.ctx.compileOperandCode(arg))
+    const callExpr = this.ctx.compileFunctionCallCode(funcName, [code`${PIPELINE_VALUE_PARAM}`, ...argExprs], step)
 
     return this.compileOptionalPipelineCall(inputExpr, callExpr)
   }
@@ -37,21 +42,23 @@ export default class PipelineNodeCompiler {
   /**
    * Skips transformer evaluation when a pipeline receives no value to transform.
    */
-  private compileOptionalPipelineCall(inputExpr: string, callExpr: string): string {
+  private compileOptionalPipelineCall(inputExpr: Code, callExpr: Code): Code {
     return compileIifeExpression({
       args: [inputExpr],
-      awaitResult: this.ctx.usesAwait,
-      isAsync: this.ctx.usesAwait,
-      params: [PIPELINE_VALUE_PARAM],
-      compileBody: emitter => {
-        emitter.if(`${PIPELINE_VALUE_PARAM} === undefined`, () => {
-          emitter.return('undefined')
+      awaitResult: () => this.ctx.usesAwait,
+      generator: this.ctx.generator,
+      isAsync: () => this.ctx.usesAwait,
+      name: 'transform_pipeline_value',
+      params: [PIPELINE_VALUE_PARAM.value],
+      compileBody: (generator, [pipelineValue]) => {
+        generator.if(code`${pipelineValue} === undefined`, () => {
+          generator.return(literal(undefined))
         })
 
         if (this.ctx.usesAwait) {
-          emitter.return(`await (${callExpr})`)
+          generator.return(code`await (${callExpr})`)
         } else {
-          emitter.return(`(${callExpr})`)
+          generator.return(code`(${callExpr})`)
         }
       },
     })
@@ -60,11 +67,11 @@ export default class PipelineNodeCompiler {
   /**
    * Emits a single authored function call with diagnostic source metadata.
    */
-  compileFunction(properties: Record<string, unknown>, source?: unknown): string {
+  compileFunction(properties: Record<string, unknown>, source?: unknown): Code {
     const funcName = properties.name as string
     const funcArgs = (properties.arguments ?? []) as unknown[]
-    const argExprs = funcArgs.map(arg => this.ctx.compileOperand(arg))
+    const argExprs = funcArgs.map(arg => this.ctx.compileOperandCode(arg))
 
-    return this.ctx.compileFunctionCall(funcName, argExprs, source ?? properties)
+    return this.ctx.compileFunctionCallCode(funcName, argExprs, source ?? properties)
   }
 }

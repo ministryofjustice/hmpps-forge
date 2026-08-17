@@ -3,7 +3,9 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import { ExpressionType, FunctionType, IteratorType } from '../../../../authoring/types/enums'
 import { TemplateNode } from '../../../contracts/ast/template.type'
 import ForgeUnregisteredFunctionError from '../../../errors/ForgeUnregisteredFunctionError'
-import CodeEmitter from '../../codegen/CodeEmitter'
+import { Code, arrayCode, code, literal, objectCode, propertyCode, SafeCode } from '../../codegen/Code'
+import CodeGenerator from '../../codegen/CodeGenerator'
+import Name from '../../codegen/Name'
 import DiagnosticEmitter from '../emitters/DiagnosticEmitter'
 import { IteratorScopeFrame, NodeCompilationContext } from './types'
 import ReferenceNodeCompiler from './ReferenceNodeCompiler'
@@ -18,7 +20,7 @@ import { compileIifeExpression } from './IifeExpressionCompiler'
 
 export type { IteratorScopeFrame } from './types'
 
-const GENERATED_FUNCTION_HELPERS_PARAM = '_forgeHelpers'
+const GENERATED_FUNCTION_HELPERS_PARAM = new Name('_forgeHelpers')
 
 /**
  * Coordinates expression-node compilers and owns transient code-generation state.
@@ -28,13 +30,9 @@ const GENERATED_FUNCTION_HELPERS_PARAM = '_forgeHelpers'
  * function-call discovery stay consistent across generated functions.
  */
 export default class ExpressionDispatcher implements NodeCompilationContext {
-  private usedAwait = false
-
   private readonly iteratorFrames: IteratorScopeFrame[] = []
 
-  private readonly selfCodeExprs: string[] = []
-
-  private localVarCounter = 0
+  private readonly selfCodeExprs: Code[] = []
 
   private readonly references = new ReferenceNodeCompiler(this)
 
@@ -48,6 +46,10 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
 
   private readonly diagnostics = new DiagnosticEmitter()
 
+  private usedAwait = false
+
+  private fragmentGenerator = new CodeGenerator()
+
   constructor(private readonly dependencies: CompilationDependencies) {}
 
   get iteratorStack(): readonly IteratorScopeFrame[] {
@@ -58,12 +60,16 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     return this.iteratorFrames.length
   }
 
-  get selfCodeExpr(): string | undefined {
+  get selfCodeExpr(): Code | undefined {
     return this.selfCodeExprs[this.selfCodeExprs.length - 1]
   }
 
   get usesAwait(): boolean {
     return this.usedAwait
+  }
+
+  get generator(): CodeGenerator {
+    return this.fragmentGenerator
   }
 
   get tracer(): CompilationTracer {
@@ -77,7 +83,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     this.iteratorFrames.length = 0
     this.selfCodeExprs.length = 0
     this.usedAwait = false
-    this.localVarCounter = 0
+    this.fragmentGenerator = new CodeGenerator()
   }
 
   /**
@@ -96,7 +102,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   /**
    * Adds the current field-code expression for @self answer references.
    */
-  pushSelfCodeExpression(codeExpr: string): void {
+  pushSelfCodeExpression(codeExpr: Code): void {
     this.selfCodeExprs.push(codeExpr)
   }
 
@@ -110,12 +116,14 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   /**
    * Compiles a nested expression with @self bound when a field code is known.
    */
-  withSelfCodeExpression<T>(codeExpr: string | undefined, compile: () => T): T {
+  withSelfCodeExpression<T>(codeExpr: SafeCode | undefined, compile: () => T): T {
     if (codeExpr === undefined) {
       return compile()
     }
 
-    this.pushSelfCodeExpression(codeExpr)
+    const typedCodeExpression = codeExpr instanceof Name ? code`${codeExpr}` : codeExpr
+
+    this.pushSelfCodeExpression(typedCodeExpression)
 
     try {
       return compile()
@@ -129,14 +137,14 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
    * compilers. Keeping the dispatch split here lets render, validation, answer
    * prep, reachability, and hooks all use one scope and async model.
    */
-  compileExpression(node: ASTNode): string {
+  compileExpressionCode(node: ASTNode): Code {
     if (!this.isCompilableNode(node)) {
-      return JSON.stringify(node)
+      return literal(node)
     }
 
     const properties = (node as unknown as { properties: Record<string, unknown> }).properties ?? {}
     let expressionType: string | undefined
-    let expression = 'undefined'
+    let expression = literal(undefined)
 
     if (node.type === ASTNodeType.PREDICATE) {
       const predicateType = (node as unknown as { predicateType: string }).predicateType
@@ -152,16 +160,16 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       return expression
     }
 
-    return this.diagnostics.wrapExpression(expression, node, this.usedAwait)
+    return this.diagnostics.wrapExpression(expression, node, this.usedAwait, this.generator)
   }
 
   /**
    * Compiles template-embedded expression nodes using the same scope model as registered AST nodes.
    */
-  compileTemplateExpression(node: TemplateNode): string {
+  compileTemplateExpressionCode(node: TemplateNode): Code {
     const properties = (node.properties ?? {}) as Record<string, unknown>
     let expressionType: string | undefined
-    let expression = 'undefined'
+    let expression = literal(undefined)
 
     if (node.originalType === ASTNodeType.PREDICATE) {
       expression = this.predicates.compile(node.predicateType as string, properties)
@@ -174,7 +182,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       return expression
     }
 
-    return this.diagnostics.wrapExpression(expression, node, this.usedAwait)
+    return this.diagnostics.wrapExpression(expression, node, this.usedAwait, this.generator)
   }
 
   private isDirectFunctionExpression(expressionType: string | undefined): boolean {
@@ -185,7 +193,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       expressionType === FunctionType.GENERATOR
   }
 
-  private dispatchExpression(expressionType: string, properties: Record<string, unknown>, source?: unknown): string {
+  private dispatchExpression(expressionType: string, properties: Record<string, unknown>, source?: unknown): Code {
     switch (expressionType) {
       case ExpressionType.REFERENCE:
         return this.references.compile(properties)
@@ -204,7 +212,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       case ExpressionType.MATCH:
         return this.matches.compile(properties)
       default:
-        return 'undefined'
+        return literal(undefined)
     }
   }
 
@@ -213,37 +221,39 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
    * containers containing any of those. Compiling them recursively here keeps
    * function arguments and block properties on the same rules.
    */
-  compileOperand(value: unknown): string {
+  compileOperandCode(value: unknown): Code {
     if (this.isTemplateNode(value)) {
-      return this.compileTemplateExpression(value)
+      return this.compileTemplateExpressionCode(value)
     }
 
     if (this.isCompilableNode(value)) {
-      return this.compileExpression(value as ASTNode)
+      return this.compileExpressionCode(value as ASTNode)
     }
 
     if (Array.isArray(value)) {
-      return `[${value.map(entry => this.compileOperand(entry)).join(', ')}]`
+      return arrayCode(value.map(entry => this.compileOperandCode(entry)))
     }
 
     if (value !== null && value !== undefined && typeof value === 'object') {
-      const properties = Object.entries(value as Record<string, unknown>)
-        .map(([key, entry]) => `${JSON.stringify(key)}: ${this.compileOperand(entry)}`)
+      const properties = Object.entries(value as Record<string, unknown>).map(([key, entry]) => ({
+        key,
+        value: this.compileOperandCode(entry),
+      }))
 
-      return `({ ${properties.join(', ')} })`
+      return code`(${objectCode(properties)})`
     }
 
     if (value === undefined) {
-      return 'undefined'
+      return literal(undefined)
     }
 
-    return JSON.stringify(value)
+    return literal(value)
   }
 
   /**
    * Dispatches authored iterators to expression-level MAP, FILTER, and FIND emitters.
    */
-  private compileIterate(properties: Record<string, unknown>): string {
+  private compileIterate(properties: Record<string, unknown>): Code {
     const iterator = properties.iterator as
       | {
           type?: unknown
@@ -264,80 +274,75 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       return this.compileFindIterator(properties.input, iterator.predicateTemplate)
     }
 
-    return 'undefined'
+    return literal(undefined)
   }
 
   /**
    * Builds the validation result object used by field and domain validation slots.
    */
-  private compileValidation(properties: Record<string, unknown>): string {
+  private compileValidation(properties: Record<string, unknown>): Code {
     const condition = properties.condition
 
     if (condition === undefined) {
-      return 'undefined'
+      return literal(undefined)
     }
 
-    const conditionExpr = this.compileOperand(condition)
-    const messageExpr = properties.message !== undefined ? this.compileOperand(properties.message) : JSON.stringify('')
-    const submissionOnlyExpr = properties.submissionOnly === true ? 'true' : 'false'
-    const groupsExpr = properties.groups !== undefined ? this.compileOperand(properties.groups) : 'undefined'
-    const detailsExpr = properties.details !== undefined ? this.compileOperand(properties.details) : 'undefined'
+    const conditionExpr = this.compileOperandCode(condition)
+    const messageExpr = properties.message !== undefined ? this.compileOperandCode(properties.message) : literal('')
+    const submissionOnlyExpr = literal(properties.submissionOnly === true)
+    const groupsExpr = properties.groups !== undefined ? this.compileOperandCode(properties.groups) : literal(undefined)
+    const detailsExpr =
+      properties.details !== undefined ? this.compileOperandCode(properties.details) : literal(undefined)
     const conditionHelperName = this.usedAwait ? 'evaluateValidationConditionAsync' : 'evaluateValidationCondition'
-    const conditionHelperExpr = `${GENERATED_FUNCTION_HELPERS_PARAM}.${conditionHelperName}(\n${this.indentSource(this.compileReturnFunction(conditionExpr))}\n)`
+    const conditionCallback = this.compileReturnFunctionCode(conditionExpr, 'evaluate_validation_condition')
+    const conditionHelperExpr = code`${GENERATED_FUNCTION_HELPERS_PARAM}${propertyCode(conditionHelperName)}(${conditionCallback})`
 
-    return [
-      '({',
-      this.indentSource(
-        [
-          `evaluate: ${this.compileReturnFunction(conditionHelperExpr)},`,
-          `message: ${this.compileReturnFunction(messageExpr)},`,
-          `submissionOnly: ${submissionOnlyExpr},`,
-          `groups: ${groupsExpr},`,
-          `details: ${this.compileReturnFunction(detailsExpr)}`,
-        ].join('\n'),
-      ),
-      '})',
-    ].join('\n')
+    return code`(${objectCode([
+      { key: 'evaluate', value: this.compileReturnFunctionCode(conditionHelperExpr, 'evaluate_validation') },
+      { key: 'message', value: this.compileReturnFunctionCode(messageExpr, 'evaluate_validation_message') },
+      { key: 'submissionOnly', value: submissionOnlyExpr },
+      { key: 'groups', value: groupsExpr },
+      { key: 'details', value: this.compileReturnFunctionCode(detailsExpr, 'evaluate_validation_details') },
+    ])})`
   }
 
   /**
    * Emits expression-level map iteration when a template value needs a returned array.
    */
-  private compileMapIterator(input: unknown, yieldTemplate: unknown): string {
-    const inputExpr = this.compileOperand(input)
-    const inputVar = this.nextLocalVar('_input')
-    const resultVar = this.nextLocalVar('_result')
-    const indexVar = this.nextLocalVar('_idx')
-    const itemVar = this.nextLocalVar('_item')
-    const yieldVar = this.nextLocalVar('_yield')
-    const rawItemExpr = `${inputVar}[${indexVar}]`
-    const frame: IteratorScopeFrame = {
-      itemVar,
-      indexVar,
-      inputLengthExpr: `${inputVar}.length`,
-      rawItemExpr,
-    }
-
-    const yieldExpr = this.withIteratorFrame(frame, () =>
-      yieldTemplate !== undefined ? this.compileOperand(yieldTemplate) : 'undefined',
-    )
-    const scopedYieldExpr = this.compileScopedIteratorExpression(yieldExpr, itemVar, indexVar)
+  private compileMapIterator(input: unknown, yieldTemplate: unknown): Code {
+    const inputExpr = this.compileOperandCode(input)
 
     return compileIifeExpression({
-      awaitResult: this.usedAwait,
-      isAsync: this.usedAwait,
-      compileBody: emitter => {
-        emitter.declareLet(inputVar, inputExpr)
-        this.compileNormalizeIteratorInput(inputVar, emitter)
-        emitter.declareConst(resultVar, '[]')
-        this.compileIteratorArrayLoop(inputVar, indexVar, rawItemExpr, emitter, () => {
-          this.compileIteratorItemScope(rawItemExpr, itemVar, emitter)
-          emitter.declareConst(yieldVar, scopedYieldExpr)
-          emitter.if(`${yieldVar} !== undefined`, () => {
-            emitter.code(`${resultVar}.push(${yieldVar});`)
+      awaitResult: () => this.usedAwait,
+      generator: this.generator,
+      isAsync: () => this.usedAwait,
+      name: 'map_iterator',
+      compileBody: generator => {
+        const inputVar = generator.let('_input', inputExpr)
+
+        this.compileNormalizeIteratorInput(inputVar, generator)
+
+        const resultVar = generator.const('_result', arrayCode([]))
+
+        this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
+          const itemVar = this.compileIteratorItemScope(rawItemExpr, generator)
+          const frame: IteratorScopeFrame = {
+            itemVar,
+            indexVar,
+            inputLengthExpr: code`${inputVar}.length`,
+            rawItemExpr,
+          }
+          const yieldExpr = this.withIteratorFrame(frame, () =>
+            yieldTemplate !== undefined ? this.compileOperandCode(yieldTemplate) : literal(undefined),
+          )
+          const scopedYieldExpr = this.compileScopedIteratorExpression(yieldExpr, itemVar, indexVar, generator)
+          const yieldVar = generator.const('_yield', scopedYieldExpr)
+
+          generator.if(code`${yieldVar} !== undefined`, () => {
+            generator.statement(code`${resultVar}.push(${yieldVar})`)
           })
         })
-        emitter.return(resultVar)
+        generator.return(resultVar)
       },
     })
   }
@@ -345,43 +350,39 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   /**
    * Emits expression-level filter iteration while preserving iterator scope references.
    */
-  private compileFilterIterator(input: unknown, predicateTemplate: unknown): string {
-    const inputExpr = this.compileOperand(input)
-    const inputVar = this.nextLocalVar('_input')
-    const resultVar = this.nextLocalVar('_result')
-    const indexVar = this.nextLocalVar('_idx')
-    const itemVar = this.nextLocalVar('_item')
-    const rawItemExpr = `${inputVar}[${indexVar}]`
-    const frame: IteratorScopeFrame = {
-      itemVar,
-      indexVar,
-      inputLengthExpr: `${inputVar}.length`,
-      rawItemExpr,
-    }
-
-    const predicateExpr = this.withIteratorFrame(frame, () =>
-      predicateTemplate !== undefined ? this.compileOperand(predicateTemplate) : 'false',
-    )
+  private compileFilterIterator(input: unknown, predicateTemplate: unknown): Code {
+    const inputExpr = this.compileOperandCode(input)
 
     return compileIifeExpression({
-      awaitResult: this.usedAwait,
-      isAsync: this.usedAwait,
-      compileBody: emitter => {
-        emitter.declareLet(inputVar, inputExpr)
+      awaitResult: () => this.usedAwait,
+      generator: this.generator,
+      isAsync: () => this.usedAwait,
+      name: 'filter_iterator',
+      compileBody: generator => {
+        const inputVar = generator.let('_input', inputExpr)
 
-        this.compileNormalizeIteratorInput(inputVar, emitter)
+        this.compileNormalizeIteratorInput(inputVar, generator)
 
-        emitter.declareConst(resultVar, '[]')
+        const resultVar = generator.const('_result', arrayCode([]))
 
-        this.compileIteratorArrayLoop(inputVar, indexVar, rawItemExpr, emitter, () => {
-          this.compileIteratorItemScope(rawItemExpr, itemVar, emitter)
+        this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
+          const itemVar = this.compileIteratorItemScope(rawItemExpr, generator)
+          const frame: IteratorScopeFrame = {
+            itemVar,
+            indexVar,
+            inputLengthExpr: code`${inputVar}.length`,
+            rawItemExpr,
+          }
+          const predicateExpr = this.withIteratorFrame(frame, () =>
+            predicateTemplate !== undefined ? this.compileOperandCode(predicateTemplate) : literal(false),
+          )
 
-          emitter.if(predicateExpr, () => {
-            emitter.code(`${resultVar}.push(${rawItemExpr});`)
+          generator.if(predicateExpr, () => {
+            generator.statement(code`${resultVar}.push(${rawItemExpr})`)
           })
         })
 
-        emitter.return(resultVar)
+        generator.return(resultVar)
       },
     })
   }
@@ -389,44 +390,40 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   /**
    * Emits expression-level find iteration with the first matching item as the result.
    */
-  private compileFindIterator(input: unknown, predicateTemplate: unknown): string {
-    const inputExpr = this.compileOperand(input)
-    const inputVar = this.nextLocalVar('_input')
-    const resultVar = this.nextLocalVar('_result')
-    const indexVar = this.nextLocalVar('_idx')
-    const itemVar = this.nextLocalVar('_item')
-    const rawItemExpr = `${inputVar}[${indexVar}]`
-    const frame: IteratorScopeFrame = {
-      itemVar,
-      indexVar,
-      inputLengthExpr: `${inputVar}.length`,
-      rawItemExpr,
-    }
-
-    const predicateExpr = this.withIteratorFrame(frame, () =>
-      predicateTemplate !== undefined ? this.compileOperand(predicateTemplate) : 'false',
-    )
+  private compileFindIterator(input: unknown, predicateTemplate: unknown): Code {
+    const inputExpr = this.compileOperandCode(input)
 
     return compileIifeExpression({
-      awaitResult: this.usedAwait,
-      isAsync: this.usedAwait,
-      compileBody: emitter => {
-        emitter.declareLet(inputVar, inputExpr)
+      awaitResult: () => this.usedAwait,
+      generator: this.generator,
+      isAsync: () => this.usedAwait,
+      name: 'find_iterator',
+      compileBody: generator => {
+        const inputVar = generator.let('_input', inputExpr)
 
-        this.compileNormalizeIteratorInput(inputVar, emitter)
+        this.compileNormalizeIteratorInput(inputVar, generator)
 
-        emitter.declareLet(resultVar, 'undefined')
+        const resultVar = generator.let('_result', literal(undefined))
 
-        this.compileIteratorArrayLoop(inputVar, indexVar, rawItemExpr, emitter, () => {
-          this.compileIteratorItemScope(rawItemExpr, itemVar, emitter)
+        this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
+          const itemVar = this.compileIteratorItemScope(rawItemExpr, generator)
+          const frame: IteratorScopeFrame = {
+            itemVar,
+            indexVar,
+            inputLengthExpr: code`${inputVar}.length`,
+            rawItemExpr,
+          }
+          const predicateExpr = this.withIteratorFrame(frame, () =>
+            predicateTemplate !== undefined ? this.compileOperandCode(predicateTemplate) : literal(false),
+          )
 
-          emitter.if(predicateExpr, () => {
-            emitter.assign(resultVar, rawItemExpr)
-            emitter.break()
+          generator.if(predicateExpr, () => {
+            generator.assign(resultVar, rawItemExpr)
+            generator.break()
           })
         })
 
-        emitter.return(resultVar)
+        generator.return(resultVar)
       },
     })
   }
@@ -434,89 +431,86 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   /**
    * Normalizes object inputs to keyed items so iterator templates can use @key and @value.
    */
-  private compileNormalizeIteratorInput(inputVar: string, emitter: CodeEmitter): void {
-    emitter.if(`${inputVar} != null && !Array.isArray(${inputVar}) && typeof ${inputVar} === "object"`, () => {
-      emitter.assign(
-        inputVar,
-        `Object.entries(${inputVar}).map(function(entry) { return typeof entry[1] === "object" && entry[1] !== null ? Object.assign({"@key": entry[0]}, entry[1]) : {"@key": entry[0], "@value": entry[1]}; })`,
+  private compileNormalizeIteratorInput(inputVar: Name, generator: CodeGenerator): void {
+    generator.if(code`${inputVar} != null && !Array.isArray(${inputVar}) && typeof ${inputVar} === "object"`, () => {
+      const mapEntry = generator.functionExpression(
+        'normalise_iterator_entry',
+        ['entry'],
+        (callbackGenerator, [entry]) => {
+          const keyedObject = objectCode([{ key: '@key', value: code`${entry}[0]` }])
+          const scalarObject = objectCode([
+            { key: '@key', value: code`${entry}[0]` },
+            { key: '@value', value: code`${entry}[1]` },
+          ])
+
+          callbackGenerator.return(
+            code`typeof ${entry}[1] === "object" && ${entry}[1] !== null ? Object.assign(${keyedObject}, ${entry}[1]) : ${scalarObject}`,
+          )
+        },
       )
+
+      generator.assign(inputVar, code`Object.entries(${inputVar}).map(${mapEntry})`)
     })
 
-    emitter.if(`Array.isArray(${inputVar})`, () => {
-      emitter.assign(inputVar, `${inputVar}.filter(function(item) { return item != null; })`)
+    generator.if(code`Array.isArray(${inputVar})`, () => {
+      const keepItem = generator.functionExpression('keep_iterator_item', ['item'], (callbackGenerator, [item]) => {
+        callbackGenerator.return(code`${item} != null`)
+      })
+
+      generator.assign(inputVar, code`${inputVar}.filter(${keepItem})`)
     })
   }
 
   /**
    * Creates the per-item object exposed to @scope references inside iterator templates.
    */
-  private compileIteratorItemScope(rawItemExpr: string, itemVar: string, emitter: CodeEmitter): void {
-    emitter.declareConst(
-      itemVar,
-      `typeof ${rawItemExpr} === "object" && ${rawItemExpr} !== null ? Object.assign({}, ${rawItemExpr}) : { "@value": ${rawItemExpr} }`,
+  private compileIteratorItemScope(rawItemExpr: Code, generator: CodeGenerator): Name {
+    return generator.const(
+      '_item',
+      code`typeof ${rawItemExpr} === "object" && ${rawItemExpr} !== null ? Object.assign({}, ${rawItemExpr}) : ${objectCode([{ key: '@value', value: rawItemExpr }])}`,
     )
   }
 
   /**
    * Isolates iterator expressions so local item and index variables cannot leak outward.
    */
-  private compileScopedIteratorExpression(expr: string, itemVar: string, indexVar: string): string {
+  private compileScopedIteratorExpression(expr: Code, itemVar: Name, indexVar: Name, generator: CodeGenerator): Code {
     return compileIifeExpression({
-      args: [itemVar, indexVar],
-      awaitResult: this.usedAwait,
-      isAsync: this.usedAwait,
-      params: [itemVar, indexVar],
-      compileBody: emitter => {
+      args: [code`${itemVar}`, code`${indexVar}`],
+      awaitResult: () => this.usedAwait,
+      generator,
+      isAsync: () => this.usedAwait,
+      name: 'evaluate_iterator_item',
+      params: [itemVar.value, indexVar.value],
+      compileBody: callbackGenerator => {
         if (this.usedAwait) {
-          emitter.return(`await (${expr})`)
+          callbackGenerator.return(code`await (${expr})`)
         } else {
-          emitter.return(`(${expr})`)
+          callbackGenerator.return(code`(${expr})`)
         }
       },
     })
   }
 
   private compileIteratorArrayLoop(
-    inputVar: string,
-    indexVar: string,
-    rawItemExpr: string,
-    emitter: CodeEmitter,
-    compileItem: () => void,
+    inputVar: Name,
+    generator: CodeGenerator,
+    compileItem: (indexVar: Name, rawItemExpr: Code) => void,
   ): void {
-    emitter.if(`Array.isArray(${inputVar})`, () => {
-      emitter.code(`for (let ${indexVar} = 0; ${indexVar} < ${inputVar}.length; ${indexVar}++) {`)
-      emitter.indent()
+    generator.if(code`Array.isArray(${inputVar})`, () => {
+      generator.forRange('_index', literal(0), code`${inputVar}.length`, indexVar => {
+        const rawItemExpr = code`${inputVar}[${indexVar}]`
 
-      try {
-        emitter.if(`${rawItemExpr} == null`, () => {
-          emitter.continue()
+        generator.if(code`${rawItemExpr} == null`, () => {
+          generator.continue()
         })
 
-        compileItem()
-      } finally {
-        emitter.dedent()
-      }
-
-      emitter.code('}')
+        compileItem(indexVar, rawItemExpr)
+      })
     })
   }
 
-  /**
-   * Allocates collision-resistant local names for expression-level IIFEs.
-   */
-  private nextLocalVar(prefix: string): string {
-    const suffix = this.localVarCounter
-
-    this.localVarCounter += 1
-
-    return `${prefix}${suffix}`
-  }
-
-  /**
-   * Emits a registered function call through the shared evaluation helper, so
-   * schema validation and diagnostics tracking always run.
-   */
-  compileFunctionCall(funcName: string, argExprs: string[], source?: unknown): string {
+  compileFunctionCallCode(funcName: string, argExprs: readonly Code[], source?: unknown): Code {
     const registeredFunction = this.dependencies.functionRegistry.get(funcName)
 
     if (!registeredFunction) {
@@ -536,45 +530,42 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     const helperCall = this.diagnostics.wrapFunctionCall(helperName, funcName, argExprs, source)
 
     if (callIsAsync) {
-      return `(await ${helperCall})`
+      return code`(await ${helperCall})`
     }
 
     return helperCall
   }
 
-  private indentSource(source: string): string {
-    return source
-      .split('\n')
-      .map(line => (line.length === 0 ? line : `  ${line}`))
-      .join('\n')
-  }
-
-  private compileReturnFunction(expression: string): string {
-    const functionPrefix = this.usedAwait ? 'async ' : ''
-    const awaitKeyword = this.usedAwait ? 'await ' : ''
-
-    return `${functionPrefix}function() {\n${this.indentSource(`return ${awaitKeyword}${expression};`)}\n}`
+  private compileReturnFunctionCode(expression: Code, name: string): Code {
+    return this.generator.functionExpression(
+      name,
+      [],
+      functionGenerator => {
+        functionGenerator.return(this.usedAwait ? code`await ${expression}` : expression)
+      },
+      { async: () => this.usedAwait },
+    )
   }
 
   /**
    * Maps top-level DSL reference namespaces to their runtime context objects.
    */
-  namespaceToCtx(namespace: string): string {
+  namespaceToCtxCode(namespace: string): Code {
     switch (namespace) {
       case 'data':
-        return 'ctx.data'
+        return code`ctx.data`
       case 'session':
-        return 'ctx.session'
+        return code`ctx.session`
       case 'params':
-        return 'ctx.params'
+        return code`ctx.params`
       case 'query':
-        return 'ctx.query'
+        return code`ctx.query`
       case 'request':
-        return 'ctx.request'
+        return code`ctx.request`
       case 'post':
-        return 'ctx.post'
+        return code`ctx.post`
       default:
-        return `ctx[${JSON.stringify(namespace)}]`
+        return code`ctx[${namespace}]`
     }
   }
 

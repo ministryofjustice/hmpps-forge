@@ -6,6 +6,8 @@ import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../compilationDependencies.type'
 import CompilationTracer from '../../tracing/CompilationTracer'
+import { Code, code } from '../../codegen/Code'
+import CodeGenerator from '../../codegen/CodeGenerator'
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
 import { compileGeneratedFunction, deriveScriptLabel } from './GeneratedFunctionCompiler'
 import type { GeneratedFunction } from './compiledFunctionFactory'
@@ -15,15 +17,41 @@ const dependencies: CompilationDependencies = {
   componentRegistry: new ComponentRegistry(),
 }
 
+const trustedGeneratedSource = (source: string): CodeGenerator => {
+  const generator = CodeGenerator.forFunction(['ctx'])
+
+  generator.statement(Code.trusted(source))
+
+  return generator
+}
+
 describe('GeneratedFunctionCompiler', () => {
   describe('compileGeneratedFunction()', () => {
+    it('should keep typed functions in strict mode', () => {
+      // Arrange
+      const expr = new ExpressionDispatcher(dependencies)
+      const generator = CodeGenerator.forFunction(['ctx'])
+
+      generator.directive('use strict')
+      generator.return(code`this`)
+
+      // Act
+      const fn = compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => generator, { phase: 'render' })
+      const result = Reflect.apply(fn, undefined, [{}])
+
+      // Assert
+      expect(result).toBeUndefined()
+    })
+
     it('should throw ForgeCompilationError when generated source cannot be constructed', () => {
       // Arrange
       const expr = new ExpressionDispatcher(dependencies)
 
       // Act
       const compile = () =>
-        compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'return (', { phase: 'render' })
+        compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => trustedGeneratedSource('return ('), {
+          phase: 'render',
+        })
 
       // Assert
       expect(compile).toThrow(ForgeCompilationError)
@@ -32,9 +60,12 @@ describe('GeneratedFunctionCompiler', () => {
     it('should wrap Error failures in ForgeRuntimeEvaluationError with the author error on cause', () => {
       // Arrange
       const expr = new ExpressionDispatcher(dependencies)
-      const fn = compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'throw new Error("boom");', {
-        phase: 'render',
-      })
+      const fn = compileGeneratedFunction<GeneratedFunction>(
+        expr,
+        ['ctx'],
+        () => trustedGeneratedSource('throw new Error("boom");'),
+        { phase: 'render' },
+      )
 
       // Act
       const evaluate = () => Reflect.apply(fn, undefined, [{}])
@@ -65,13 +96,15 @@ describe('GeneratedFunctionCompiler', () => {
         expr,
         ['ctx'],
         () =>
-          [
-            'return _forgeHelpers.evaluateTracked(',
-            '  _forgeRuntimeDiagnostics,',
-            '  { definedAt: "myJourney (/app/journeys/goals.journey.ts:12:5)" },',
-            '  function() { throw new Error("boom"); }',
-            ');',
-          ].join('\n'),
+          trustedGeneratedSource(
+            [
+              'return _forgeHelpers.evaluateTracked(',
+              '  _forgeRuntimeDiagnostics,',
+              '  { definedAt: "myJourney (/app/journeys/goals.journey.ts:12:5)" },',
+              '  function() { throw new Error("boom"); }',
+              ');',
+            ].join('\n'),
+          ),
         { phase: 'render' },
       )
 
@@ -99,9 +132,12 @@ describe('GeneratedFunctionCompiler', () => {
     it('should wrap non-Error runtime failures in ForgeRuntimeEvaluationError', () => {
       // Arrange
       const expr = new ExpressionDispatcher(dependencies)
-      const fn = compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'throw "boom";', {
-        phase: 'render',
-      })
+      const fn = compileGeneratedFunction<GeneratedFunction>(
+        expr,
+        ['ctx'],
+        () => trustedGeneratedSource('throw "boom";'),
+        { phase: 'render' },
+      )
 
       // Act
       const evaluate = () => Reflect.apply(fn, undefined, [{}])
@@ -116,7 +152,7 @@ describe('GeneratedFunctionCompiler', () => {
       const fn = compileGeneratedFunction<GeneratedFunction>(
         expr,
         ['ctx'],
-        () => 'return _forgeHelpers.normalizePostValue(["", "red"], false);',
+        () => trustedGeneratedSource('return _forgeHelpers.normalizePostValue(["", "red"], false);'),
         { phase: 'answer-preparation' },
       )
 
@@ -133,7 +169,9 @@ describe('GeneratedFunctionCompiler', () => {
       const expr = new ExpressionDispatcher({ ...dependencies, tracer })
 
       // Act
-      compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'return true;', { phase: 'render' })
+      compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => trustedGeneratedSource('return true;'), {
+        phase: 'render',
+      })
 
       // Assert
       const span = tracer.root?.children.find(child => child.kind === 'codegen.function')
@@ -150,7 +188,7 @@ describe('GeneratedFunctionCompiler', () => {
       const expr = new ExpressionDispatcher({ ...dependencies, tracer })
 
       // Act
-      compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'return true;', {
+      compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => trustedGeneratedSource('return true;'), {
         phase: 'render',
         forceAsync: true,
       })
@@ -168,7 +206,9 @@ describe('GeneratedFunctionCompiler', () => {
 
       // Act
       const compile = () =>
-        compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'return (', { phase: 'render' })
+        compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => trustedGeneratedSource('return ('), {
+          phase: 'render',
+        })
 
       // Assert
       expect(compile).toThrow(ForgeCompilationError)
@@ -184,7 +224,12 @@ describe('GeneratedFunctionCompiler', () => {
       const expr = new ExpressionDispatcher({ ...dependencies, tracer })
 
       // Act
-      compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => '"use strict";return true;', { phase: 'render' })
+      compileGeneratedFunction<GeneratedFunction>(
+        expr,
+        ['ctx'],
+        () => trustedGeneratedSource('"use strict";return true;'),
+        { phase: 'render' },
+      )
 
       // Assert
       const span = tracer.root?.children.find(child => child.kind === 'codegen.function')
@@ -202,7 +247,9 @@ describe('GeneratedFunctionCompiler', () => {
       const expr = new ExpressionDispatcher({ ...dependencies, tracer })
 
       // Act
-      compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'return true;', { phase: 'render' })
+      compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => trustedGeneratedSource('return true;'), {
+        phase: 'render',
+      })
 
       // Assert
       const span = tracer.root?.children.find(child => child.kind === 'codegen.function')
@@ -218,7 +265,9 @@ describe('GeneratedFunctionCompiler', () => {
 
       // Act
       const compile = () =>
-        compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'return (', { phase: 'render' })
+        compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => trustedGeneratedSource('return ('), {
+          phase: 'render',
+        })
 
       // Assert
       expect(compile).toThrow(ForgeCompilationError)
@@ -235,7 +284,14 @@ describe('GeneratedFunctionCompiler', () => {
       const expr = new ExpressionDispatcher({ ...dependencies, tracer })
 
       // Act
-      const fn = compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'return true;', { phase: 'render' })
+      const fn = compileGeneratedFunction<GeneratedFunction>(
+        expr,
+        ['ctx'],
+        () => trustedGeneratedSource('return true;'),
+        {
+          phase: 'render',
+        },
+      )
 
       // Assert
       expect(tracer.root).toBeUndefined()
@@ -245,10 +301,12 @@ describe('GeneratedFunctionCompiler', () => {
     it('should stamp the label into the script URL on error stacks', () => {
       // Arrange
       const expr = new ExpressionDispatcher(dependencies)
-      const fn = compileGeneratedFunction<GeneratedFunction>(expr, ['ctx'], () => 'throw new Error("boom");', {
-        phase: 'render',
-        label: 'guide.defining-steps',
-      })
+      const fn = compileGeneratedFunction<GeneratedFunction>(
+        expr,
+        ['ctx'],
+        () => trustedGeneratedSource('throw new Error("boom");'),
+        { phase: 'render', label: 'guide.defining-steps' },
+      )
 
       // Act
       const evaluate = () => Reflect.apply(fn, undefined, [{}])

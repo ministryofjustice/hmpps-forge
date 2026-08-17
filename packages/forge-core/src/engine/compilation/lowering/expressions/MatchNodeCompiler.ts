@@ -1,3 +1,4 @@
+import { Code, code, literal } from '../../codegen/Code'
 import { NodeCompilationContext } from './types'
 
 /**
@@ -11,17 +12,17 @@ export default class MatchNodeCompiler {
   /**
    * Emits right-associated ternaries so earlier branches retain priority.
    */
-  compile(properties: Record<string, unknown>): string {
+  compile(properties: Record<string, unknown>): Code {
     const branches = (properties.branches ?? []) as Array<Record<string, unknown>>
     const otherwise = properties.otherwise
 
-    const fallbackExpr = otherwise !== undefined ? this.ctx.compileOperand(otherwise) : 'undefined'
+    const fallbackExpr = otherwise !== undefined ? this.ctx.compileOperandCode(otherwise) : literal(undefined)
 
-    return branches.reduceRight((nextExpr, branch) => {
-      const predicateExpr = this.ctx.compileOperand(branch.predicate)
-      const valueExpr = this.ctx.compileOperand(branch.value)
+    return branches.reduceRight<Code>((nextExpr, branch) => {
+      const predicateExpr = this.ctx.compileOperandCode(branch.predicate)
+      const valueExpr = this.ctx.compileOperandCode(branch.value)
 
-      return `(${predicateExpr} ? ${valueExpr} : ${nextExpr})`
+      return code`(${predicateExpr} ? ${valueExpr} : ${nextExpr})`
     }, fallbackExpr)
   }
 }

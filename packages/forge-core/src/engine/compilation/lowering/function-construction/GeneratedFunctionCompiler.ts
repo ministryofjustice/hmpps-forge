@@ -1,7 +1,14 @@
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
-import CodeEmitter from '../../codegen/CodeEmitter'
-import { CodeNode, CodeNodeKind } from '../../codegen/codeNode.type'
-import SourceRenderer, { MarkerSegment } from '../../codegen/SourceRenderer'
+import BlankLineCodeNode from '../../codegen/BlankLineCodeNode'
+import { code } from '../../codegen/Code'
+import CodeGenerator from '../../codegen/CodeGenerator'
+import CommentCodeNode from '../../codegen/CommentCodeNode'
+import DirectiveCodeNode from '../../codegen/DirectiveCodeNode'
+import GeneratedCodeNode from '../../codegen/GeneratedCodeNode'
+import Name from '../../codegen/Name'
+import ThrowCodeNode from '../../codegen/ThrowCodeNode'
+import TryCatchCodeNode from '../../codegen/TryCatchCodeNode'
+import SourceRenderer, { SourceMapSegment } from '../../codegen/SourceRenderer'
 import { encodeInlineSourceMap } from '../../codegen/sourceMapEncoder'
 import { createCompiledFunction, GeneratedFunction, measureWrapperOffset } from './compiledFunctionFactory'
 import { generatedFunctionHelpers } from './GeneratedFunctionHelpers'
@@ -41,11 +48,6 @@ export interface ScriptLabelSource {
   }
 }
 
-interface GeneratedBody {
-  readonly strictDirective: string | undefined
-  readonly bodyNodes: CodeNode[]
-}
-
 const RUNTIME_DIAGNOSTICS_PARAM = '_forgeRuntimeDiagnostics'
 export const GENERATED_FUNCTION_HELPERS_PARAM = '_forgeHelpers'
 
@@ -63,6 +65,13 @@ export function buildGeneratedSource<TSource>(expr: ExpressionDispatcher, buildS
   return buildSource()
 }
 
+/** Renders inspectable source without constructing the generated function. */
+export function renderGeneratedSource(expr: ExpressionDispatcher, buildSource: () => CodeGenerator): string {
+  const built = buildGeneratedSource(expr, buildSource)
+
+  return new SourceRenderer().render(built.toNodes()).source
+}
+
 /**
  * Compiles a generated-source node tree into either Function or AsyncFunction.
  *
@@ -73,7 +82,7 @@ export function buildGeneratedSource<TSource>(expr: ExpressionDispatcher, buildS
 export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
   expr: ExpressionDispatcher,
   parameterNames: string[],
-  buildSource: () => string | CodeEmitter,
+  buildSource: () => CodeGenerator,
   options: CompileOptions = {},
 ): TFunction {
   const phase = options.phase ?? 'unknown'
@@ -272,67 +281,34 @@ const PHASE_PURPOSES: Record<string, readonly string[]> = {
  * into a try/catch that routes escaping errors through the runtime
  * diagnostics so author-facing stacks carry node identity.
  */
-const wrapGeneratedBody = (built: string | CodeEmitter, phase: string): CodeNode[] => {
-  const { strictDirective, bodyNodes } = splitStrictDirective(built)
+const wrapGeneratedBody = (generator: CodeGenerator, phase: string): GeneratedCodeNode[] => {
+  const bodyNodes = [...generator.toNodes()]
+  const firstNode = bodyNodes[0]
+  const strictDirective =
+    firstNode instanceof DirectiveCodeNode && firstNode.value === 'use strict' ? firstNode : undefined
 
-  while (bodyNodes[0]?.kind === CodeNodeKind.BLANK_LINE) {
+  if (strictDirective !== undefined) {
     bodyNodes.shift()
   }
 
+  while (bodyNodes[0] instanceof BlankLineCodeNode) {
+    bodyNodes.shift()
+  }
+
+  const errorName = new Name('error')
+
   return [
-    ...(strictDirective === undefined ? [] : [lineNode(strictDirective)]),
-    commentNode('// Compiled by Forge from the journey definition.'),
-    ...(PHASE_PURPOSES[phase] ?? []).map(purposeLine => commentNode(`// ${purposeLine}`)),
-    {
-      kind: CodeNodeKind.TRY_CATCH,
-      tryBody: bodyNodes,
-      errorName: 'error',
-      catchBody: [lineNode(`throw ${RUNTIME_DIAGNOSTICS_PARAM}.wrap(error);`)],
-    },
+    ...(strictDirective === undefined ? [] : [strictDirective]),
+    new CommentCodeNode('Compiled by Forge from the journey definition.', false),
+    ...(PHASE_PURPOSES[phase] ?? []).map(purposeLine => new CommentCodeNode(purposeLine, false)),
+    new TryCatchCodeNode(bodyNodes, errorName, [
+      new ThrowCodeNode(code`${new Name(RUNTIME_DIAGNOSTICS_PARAM)}.wrap(${errorName})`),
+    ]),
   ]
 }
 
-const splitStrictDirective = (built: string | CodeEmitter): GeneratedBody => {
-  if (typeof built === 'string') {
-    const strictDirective = getStrictDirective(built)
-    const body = strictDirective === undefined ? built : built.slice(strictDirective.length).trimStart()
-
-    return { strictDirective, bodyNodes: toBodyNodes(body) }
-  }
-
-  const nodes = [...built.toNodes()]
-  const [first] = nodes
-
-  if (first !== undefined && first.kind === CodeNodeKind.LINE && getStrictDirective(first.text) === first.text) {
-    return { strictDirective: first.text, bodyNodes: nodes.slice(1) }
-  }
-
-  return { strictDirective: undefined, bodyNodes: nodes }
-}
-
-const toBodyNodes = (body: string): CodeNode[] =>
-  body
-    .split('\n')
-    .map((line): CodeNode => (line.length === 0 ? { kind: CodeNodeKind.BLANK_LINE } : lineNode(line)))
-
-const lineNode = (text: string): CodeNode => ({ kind: CodeNodeKind.LINE, text })
-
-const commentNode = (text: string): CodeNode => ({ kind: CodeNodeKind.COMMENT, text })
-
-const getStrictDirective = (source: string): string | undefined => {
-  if (source.startsWith('"use strict";')) {
-    return '"use strict";'
-  }
-
-  if (source.startsWith("'use strict';")) {
-    return "'use strict';"
-  }
-
-  return undefined
-}
-
 const resolveSourceMapUrl = (
-  segmentsByLine: readonly (readonly MarkerSegment[])[],
+  segmentsByLine: readonly (readonly SourceMapSegment[])[],
   usesAwait: boolean,
 ): string | undefined => {
   const wrapperOffset = measureWrapperOffset(usesAwait)

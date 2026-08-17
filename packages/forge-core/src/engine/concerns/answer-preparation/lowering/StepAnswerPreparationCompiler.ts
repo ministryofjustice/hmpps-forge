@@ -1,28 +1,29 @@
 import { ExpressionType, FunctionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
-import { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
 import { IterateASTNode } from '../../../contracts/ast/expressions.type'
-import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
 import { isASTNode } from '../../../contracts/ast/nodes'
-import CodeEmitter from '../../../compilation/codegen/CodeEmitter'
+import { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
+import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
+import { Code, code, literal, objectCode, SafeCode } from '../../../compilation/codegen/Code'
+import CodeGenerator from '../../../compilation/codegen/CodeGenerator'
+import Name from '../../../compilation/codegen/Name'
+import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
+import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
+import {
+  compileGeneratedFunction,
+  deriveScriptLabel,
+  GENERATED_FUNCTION_HELPERS_PARAM,
+  renderGeneratedSource,
+  ScriptLabelSource,
+} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
+import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
 import ScopedTemplateCompiler, {
   isTemplateFieldNode,
 } from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
-import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
-import {
-  buildGeneratedSource,
-  compileGeneratedFunction,
-  deriveScriptLabel,
-  ScriptLabelSource,
-  GENERATED_FUNCTION_HELPERS_PARAM,
-} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
-import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
-import type ComponentRegistry from '../../../registries/ComponentRegistry'
-import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
-
-import type { CompiledAnswerPreparationFunction } from '../../../contracts/compiled/compiledFunctions.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
+import type ComponentRegistry from '../../../registries/ComponentRegistry'
+import type { CompiledAnswerPreparationFunction } from '../../../contracts/compiled/compiledFunctions.type'
 
 interface TransformerFunctionCall {
   readonly name: string
@@ -31,23 +32,10 @@ interface TransformerFunctionCall {
 
 type AnswerPreparationMode = 'POST' | 'GET'
 
-/**
- * Compiles GET/POST answer preparation for a step or journey-root plan.
- *
- * The generated function is imperative because answer preparation is inherently
- * sequential: raw POST value, multiple handling, formatter pipeline,
- * dependentWhen, and defaultValue must update AnswerHistory in order. Formatter
- * calls receive the current value as an explicit first argument, matching the
- * author-facing formatter contract with no extra request-time wrapper state.
- *
- * Registered fields compile from FieldBlockASTNodes. MAP iterator fields compile
- * from their templates and run inline over the iterator input. Registry metadata keeps
- * sync-only functions as normal Functions and switches only async-dependent source
- * to AsyncFunction.
- *
- * Generated-function construction failures throw ForgeCompilationError. Runtime
- * callers still fail fast if defensive checks find a missing generated function.
- */
+const CONTEXT = new Name('ctx')
+const HELPERS = new Name(GENERATED_FUNCTION_HELPERS_PARAM)
+
+/** Compiles GET/POST answer preparation for one generated step function. */
 export default class StepAnswerPreparationCompiler {
   private readonly expr: ExpressionDispatcher
 
@@ -64,19 +52,13 @@ export default class StepAnswerPreparationCompiler {
     this.expr = new ExpressionDispatcher(dependencies)
     this.fieldCodes = new FieldCodeEmitter(this.expr)
     this.values = new RuntimeValueCompiler(this.expr, {
-      expressionErrorFallback: 'undefined',
+      expressionErrorFallback: literal(undefined),
       expressionErrorMode: 'throw',
       omitUndefinedArrayItems: false,
     })
     this.templates = new ScopedTemplateCompiler(this.expr)
   }
 
-  /**
-   * Builds the generated answer-preparation function for a step. The step node
-   * names the compiled script; fieldless steps would otherwise fall back to an
-   * opaque counter. Journey-level aggregation passes undefined and labels from
-   * the field nodes instead.
-   */
   compile(
     stepNode: ScriptLabelSource | undefined,
     fieldBlocks: FieldBlockASTNode[],
@@ -90,190 +72,164 @@ export default class StepAnswerPreparationCompiler {
     )
   }
 
-  /**
-   * Produces inspectable generated source for tests and local debugging.
-   */
   generateSource(fieldBlocks: FieldBlockASTNode[], iterateNodes: IterateASTNode[] = []): string {
-    return buildGeneratedSource(this.expr, () => this.buildSource(fieldBlocks, iterateNodes)).toString()
+    return renderGeneratedSource(this.expr, () => this.buildSource(fieldBlocks, iterateNodes))
   }
 
-  /**
-   * Emits the request-method split and delegates field preparation to the selected mode.
-   */
-  private buildSource(fieldBlocks: FieldBlockASTNode[], iterateNodes: IterateASTNode[]): CodeEmitter {
-    const emitter = new CodeEmitter()
+  private buildSource(fieldBlocks: FieldBlockASTNode[], iterateNodes: IterateASTNode[]): CodeGenerator {
+    const generator = CodeGenerator.forFunction(['ctx'])
 
-    emitter.code('"use strict";')
-
-    emitter.comment('StepAnswerPreparationCompiler.buildSource')
-    const fieldPreparationsVar = emitter.const('fieldPreparations', '[]')
+    generator.directive('use strict')
+    generator.comment('StepAnswerPreparationCompiler.buildSource')
+    const fieldPreparations = generator.const('fieldPreparations', code`[]`)
 
     if (fieldBlocks.length > 0 || iterateNodes.length > 0) {
-      emitter.declareConst('isPost', 'ctx.request.method === "POST"')
-      emitter.if(
-        'isPost',
-        () => this.compileMode('POST', fieldBlocks, iterateNodes, fieldPreparationsVar, emitter),
-        () => this.compileMode('GET', fieldBlocks, iterateNodes, fieldPreparationsVar, emitter),
+      const isPost = generator.const('isPost', code`${CONTEXT}.request.method === "POST"`)
+
+      generator.if(
+        isPost,
+        () => this.compileMode('POST', fieldBlocks, iterateNodes, fieldPreparations, generator),
+        () => this.compileMode('GET', fieldBlocks, iterateNodes, fieldPreparations, generator),
       )
     } else {
-      emitter.note('This step declares no form fields, so there is nothing to prepare.')
+      generator.note('This step declares no form fields, so there is nothing to prepare.')
     }
 
-    emitter.emitBlank()
-    emitter.return(`ctx.workTasks.answerPreparation(${fieldPreparationsVar})`)
+    generator.blank()
+    generator.return(code`${CONTEXT}.workTasks.answerPreparation(${fieldPreparations})`)
 
-    return emitter
+    return generator
   }
 
-  /**
-   * Emits either the POST or GET side of answer preparation for all fields.
-   */
   private compileMode(
     mode: AnswerPreparationMode,
     fieldBlocks: FieldBlockASTNode[],
     iterateNodes: IterateASTNode[],
-    fieldPreparationsVar: string,
-    emitter: CodeEmitter,
+    fieldPreparations: Name,
+    generator: CodeGenerator,
   ): void {
-    emitter.comment(`StepAnswerPreparationCompiler.compile${mode === 'POST' ? 'Post' : 'Get'}Mode`)
+    generator.comment(`StepAnswerPreparationCompiler.compile${mode === 'POST' ? 'Post' : 'Get'}Mode`)
 
-    for (const block of fieldBlocks) {
-      this.compileRegisteredField(block, emitter, mode, fieldPreparationsVar)
-      emitter.emitBlank()
-    }
-
-    for (const iterateNode of iterateNodes) {
-      this.compileIterateBlock(iterateNode, emitter, mode, fieldPreparationsVar)
-      emitter.emitBlank()
-    }
-  }
-
-  /**
-   * Emits one registered field block in the already-selected request mode.
-   */
-  private compileRegisteredField(
-    block: FieldBlockASTNode,
-    emitter: CodeEmitter,
-    mode: AnswerPreparationMode,
-    fieldPreparationsVar: string,
-  ): void {
-    emitter.comment(
-      `StepAnswerPreparationCompiler.compileRegisteredField — ${block.variant} ${describeFieldCode(block)}`,
-    )
-    emitter.scope(() => {
-      const codeExpr = this.fieldCodes.compileRegisteredExpression(block.properties.code, emitter)
-
-      if (codeExpr === undefined) {
-        return
-      }
-
-      this.compileFieldPreparationSlot(block.properties, emitter, codeExpr, mode, fieldPreparationsVar, block.variant)
+    fieldBlocks.forEach(block => {
+      this.compileRegisteredField(block, mode, fieldPreparations, generator)
+      generator.blank()
+    })
+    iterateNodes.forEach(iterateNode => {
+      this.compileIterateBlock(iterateNode, mode, fieldPreparations, generator)
+      generator.blank()
     })
   }
 
-  /**
-   * Emits the selected GET/POST path for a field's properties.
-   */
+  private compileRegisteredField(
+    block: FieldBlockASTNode,
+    mode: AnswerPreparationMode,
+    fieldPreparations: Name,
+    generator: CodeGenerator,
+  ): void {
+    generator.comment(
+      `StepAnswerPreparationCompiler.compileRegisteredField — ${block.variant} ${describeFieldCode(block)}`,
+    )
+    generator.scope(() => {
+      const codeExpression = this.fieldCodes.compileRegisteredExpression(block.properties.code, generator)
+
+      if (codeExpression === undefined) {
+        return
+      }
+
+      this.compileFieldPreparationSlot(
+        block.properties,
+        codeExpression,
+        mode,
+        fieldPreparations,
+        block.variant,
+        generator,
+      )
+    })
+  }
+
   private compileFieldPath(
     properties: Record<string, unknown>,
-    emitter: CodeEmitter,
-    codeExpr: string,
+    fieldCode: Name,
     mode: AnswerPreparationMode,
     variant: string,
+    generator: CodeGenerator,
   ): void {
     if (mode === 'POST') {
-      this.compilePostPath(properties, emitter, codeExpr, variant)
+      this.compilePostPath(properties, fieldCode, variant, generator)
 
       return
     }
 
-    this.compileGetPath(properties, emitter, codeExpr)
+    this.compileGetPath(properties, fieldCode, generator)
   }
 
-  /**
-   * Emits POST answer preparation: read submitted value, normalize it, check it against the
-   * component's input schema, run formatters, then dependentWhen.
-   */
   private compilePostPath(
     properties: Record<string, unknown>,
-    emitter: CodeEmitter,
-    codeExpr: string,
+    fieldCode: Name,
     variant: string,
+    generator: CodeGenerator,
   ): void {
-    emitter.comment('StepAnswerPreparationCompiler.compilePostPath')
-    const historyVar = emitter.const(
+    generator.comment('StepAnswerPreparationCompiler.compilePostPath')
+    const answerHistory = generator.const(
       'answerHistory',
-      `${GENERATED_FUNCTION_HELPERS_PARAM}.ensureAnswerHistory(ctx, ${codeExpr})`,
+      code`${HELPERS}.ensureAnswerHistory(${CONTEXT}, ${fieldCode})`,
     )
     const entry = this.componentRegistry.get(variant)
-    const multipleLiteral = String(entry?.multiple === true)
-    const rawVar = emitter.let(
+    const multiple = entry?.multiple === true
+    const rawValue = generator.let(
       'rawValue',
-      `${GENERATED_FUNCTION_HELPERS_PARAM}.normalizePostValue(ctx.post[${codeExpr}], ${multipleLiteral})`,
+      code`${HELPERS}.normalizePostValue(${CONTEXT}.post[${fieldCode}], ${multiple})`,
     )
 
     if (entry?.inputSchema !== undefined) {
-      emitter.assign(
-        rawVar,
-        `${GENERATED_FUNCTION_HELPERS_PARAM}.checkComponentInputValue(ctx, ${JSON.stringify(variant)}, ${rawVar}, ${multipleLiteral})`,
+      generator.assign(
+        rawValue,
+        code`${HELPERS}.checkComponentInputValue(${CONTEXT}, ${variant}, ${rawValue}, ${multiple})`,
       )
     }
 
-    this.emitPushMutationCall(emitter, historyVar, rawVar, 'post')
+    this.emitPushMutationCall(answerHistory, rawValue, 'post', generator)
 
     const formatters = properties.formatters
 
     if (Array.isArray(formatters) && formatters.length > 0) {
-      const formattedVar = emitter.let('formattedValue', rawVar)
+      const formattedValue = generator.let('formattedValue', rawValue)
 
-      this.compileFormatterPipeline(formatters, emitter, formattedVar)
+      this.compileTransformerPipeline(formatters, formattedValue, generator)
 
-      emitter.if(`${formattedVar} !== ${rawVar}`, () => {
-        this.emitPushMutationCall(emitter, historyVar, formattedVar, 'processed')
+      generator.if(code`${formattedValue} !== ${rawValue}`, () => {
+        this.emitPushMutationCall(answerHistory, formattedValue, 'processed', generator)
       })
     }
 
-    this.compileDependentWhen(properties.dependentWhen, emitter, codeExpr, historyVar)
+    this.compileDependentWhen(properties.dependentWhen, answerHistory, generator)
   }
 
-  /**
-   * Emits GET answer preparation: seed defaultValue only when no current answer exists, then parse the stored value for display.
-   */
-  private compileGetPath(properties: Record<string, unknown>, emitter: CodeEmitter, codeExpr: string): void {
-    emitter.comment('StepAnswerPreparationCompiler.compileGetPath')
-    const historyVar = emitter.let('answerHistory', `ctx.answers[${codeExpr}]`)
+  private compileGetPath(properties: Record<string, unknown>, fieldCode: Name, generator: CodeGenerator): void {
+    generator.comment('StepAnswerPreparationCompiler.compileGetPath')
+    const answerHistory = generator.let('answerHistory', code`${CONTEXT}.answers[${fieldCode}]`)
 
-    emitter.if(`!(${historyVar} && ${historyVar}.current !== undefined)`, () => {
-      emitter.assign(historyVar, `${GENERATED_FUNCTION_HELPERS_PARAM}.ensureAnswerHistory(ctx, ${codeExpr})`)
-      this.compileDefaultValue(properties.defaultValue, emitter, historyVar)
+    generator.if(code`!(${answerHistory} && ${answerHistory}.current !== undefined)`, () => {
+      generator.assign(answerHistory, code`${HELPERS}.ensureAnswerHistory(${CONTEXT}, ${fieldCode})`)
+      this.compileDefaultValue(properties.defaultValue, answerHistory, generator)
     })
 
     const parsers = properties.parsers
 
     if (Array.isArray(parsers) && parsers.length > 0) {
-      emitter.if(`${historyVar} && ${historyVar}.current !== undefined`, () => {
-        const parsedVar = emitter.let('parsedValue', `${historyVar}.current`)
+      generator.if(code`${answerHistory} && ${answerHistory}.current !== undefined`, () => {
+        const parsedValue = generator.let('parsedValue', code`${answerHistory}.current`)
 
-        this.compileTransformerPipeline(parsers, emitter, parsedVar)
+        this.compileTransformerPipeline(parsers, parsedValue, generator)
 
-        emitter.if(`${parsedVar} !== undefined`, () => {
-          emitter.assign(`${historyVar}.parsed`, parsedVar)
+        generator.if(code`${parsedValue} !== undefined`, () => {
+          generator.assign(code`${answerHistory}.parsed`, parsedValue)
         })
       })
     }
   }
 
-  /**
-   * Emits sequential transformer execution, stopping after recoverable type coercion failures.
-   */
-  private compileFormatterPipeline(formatters: unknown[], emitter: CodeEmitter, valueVar: string): void {
-    this.compileTransformerPipeline(formatters, emitter, valueVar)
-  }
-
-  /**
-   * Emits sequential transformer execution, stopping after recoverable type coercion failures.
-   */
-  private compileTransformerPipeline(transformers: unknown[], emitter: CodeEmitter, valueVar: string): void {
+  private compileTransformerPipeline(transformers: unknown[], value: Name, generator: CodeGenerator): void {
     const compilableTransformers = transformers.filter(
       transformer => isASTNode(transformer) || this.expr.isTemplateNode(transformer),
     )
@@ -282,91 +238,71 @@ export default class StepAnswerPreparationCompiler {
       return
     }
 
-    emitter.comment('StepAnswerPreparationCompiler.compileTransformerPipeline')
-    const originalValueVar = emitter.const('originalTransformerValue', valueVar)
-    const failedVar = emitter.let('transformerFailed', 'false')
+    generator.comment('StepAnswerPreparationCompiler.compileTransformerPipeline')
+    const originalValue = generator.const('originalTransformerValue', value)
+    const transformerFailed = generator.let('transformerFailed', literal(false))
 
-    for (const transformer of compilableTransformers) {
-      const callExpr = this.compileTransformerCall(transformer, valueVar)
+    compilableTransformers.forEach(transformer => {
+      generator.if(code`!${transformerFailed}`, () => {
+        const transformerResult = generator.let('transformerResult')
 
-      emitter.if(`!${failedVar}`, () => {
-        const resultVar = emitter.let('transformerResult')
-
-        emitter.tryCatch(
-          () => emitter.assign(resultVar, callExpr),
+        generator.tryCatch(
+          () => generator.assign(transformerResult, this.compileTransformerCall(transformer, value)),
           'transformerError',
-          errorVar => {
-            emitter.if(
-              `${errorVar} instanceof TypeError || (${errorVar} && ${errorVar}.cause instanceof TypeError)`,
+          transformerError => {
+            generator.if(
+              code`${transformerError} instanceof TypeError || (${transformerError} && ${transformerError}.cause instanceof TypeError)`,
               () => {
-                emitter.assign(valueVar, originalValueVar)
-                emitter.assign(failedVar, 'true')
+                generator.assign(value, originalValue)
+                generator.assign(transformerFailed, literal(true))
               },
-              () => emitter.code(`throw ${errorVar};`),
+              () => generator.throw(transformerError),
             )
           },
         )
-        emitter.if(`!${failedVar} && ${resultVar} !== undefined`, () => emitter.assign(valueVar, resultVar))
+        generator.if(code`!${transformerFailed} && ${transformerResult} !== undefined`, () => {
+          generator.assign(value, transformerResult)
+        })
       })
-    }
-  }
-
-  /**
-   * Emits dependentWhen clearing after POST/default processing has produced a value.
-   */
-  private compileDependentWhen(
-    dependentWhen: unknown,
-    emitter: CodeEmitter,
-    codeExpr: string,
-    historyVar: string,
-  ): void {
-    if (!dependentWhen) {
-      return
-    }
-
-    if (!isASTNode(dependentWhen) && !this.expr.isTemplateNode(dependentWhen)) {
-      return
-    }
-
-    emitter.comment('StepAnswerPreparationCompiler.compileDependentWhen')
-    const dependentWhenVar = emitter.let('dependentWhenResult')
-
-    this.values.compileValue(dependentWhen, emitter, dependentWhenVar, {
-      expressionErrorFallback: 'true',
-    })
-    emitter.if(`!${dependentWhenVar}`, () => {
-      this.emitPushMutationCall(emitter, historyVar, 'undefined', 'dependentWhen')
     })
   }
 
-  /**
-   * Emits defaultValue resolution for GET requests with no existing answer.
-   */
-  private compileDefaultValue(defaultValue: unknown, emitter: CodeEmitter, historyVar: string): void {
-    emitter.comment('StepAnswerPreparationCompiler.compileDefaultValue')
+  private compileDependentWhen(dependentWhen: unknown, answerHistory: Name, generator: CodeGenerator): void {
+    if (!dependentWhen || (!isASTNode(dependentWhen) && !this.expr.isTemplateNode(dependentWhen))) {
+      return
+    }
+
+    generator.comment('StepAnswerPreparationCompiler.compileDependentWhen')
+    const dependentWhenResult = generator.let('dependentWhenResult')
+
+    this.values.compileValue(dependentWhen, generator, dependentWhenResult, {
+      expressionErrorFallback: literal(true),
+    })
+    generator.if(code`!${dependentWhenResult}`, () => {
+      this.emitPushMutationCall(answerHistory, literal(undefined), 'dependentWhen', generator)
+    })
+  }
+
+  private compileDefaultValue(defaultValue: unknown, answerHistory: Name, generator: CodeGenerator): void {
+    generator.comment('StepAnswerPreparationCompiler.compileDefaultValue')
 
     if (defaultValue !== undefined) {
-      const defaultValueVar = emitter.let('defaultValue')
+      const resolvedDefaultValue = generator.let('defaultValue')
 
-      this.values.compileValue(defaultValue, emitter, defaultValueVar)
-      this.emitPushMutationCall(emitter, historyVar, defaultValueVar, 'default')
+      this.values.compileValue(defaultValue, generator, resolvedDefaultValue)
+      this.emitPushMutationCall(answerHistory, resolvedDefaultValue, 'default', generator)
 
       return
     }
 
-    this.emitPushMutationCall(emitter, historyVar, 'undefined', 'default')
+    this.emitPushMutationCall(answerHistory, literal(undefined), 'default', generator)
   }
 
-  /**
-   * MAP-yielded fields are prepared inside the same loop that render and
-   * validation use, so dynamic field codes and scoped item references resolve
-   * without request-time node registration.
-   */
   private compileIterateBlock(
     iterateNode: IterateASTNode,
-    emitter: CodeEmitter,
     mode: AnswerPreparationMode,
-    fieldPreparationsVar: string,
+    fieldPreparations: Name,
+    generator: CodeGenerator,
   ): void {
     const template = iterateNode.properties.iterator.yieldTemplate
 
@@ -374,20 +310,17 @@ export default class StepAnswerPreparationCompiler {
       return
     }
 
-    emitter.comment('StepAnswerPreparationCompiler.compileIterateBlock')
-    this.templates.compileMapIterator(iterateNode, emitter, yieldTemplate => {
-      this.compileTemplateAnswerPreparation(yieldTemplate, emitter, mode, fieldPreparationsVar)
+    generator.comment('StepAnswerPreparationCompiler.compileIterateBlock')
+    this.templates.compileMapIterator(iterateNode, generator, yieldTemplate => {
+      this.compileTemplateAnswerPreparation(yieldTemplate, mode, fieldPreparations, generator)
     })
   }
 
-  /**
-   * Walks template values and emits answer preparation at the iterator scope where each field appears.
-   */
   private compileTemplateAnswerPreparation(
     template: TemplateValue,
-    emitter: CodeEmitter,
     mode: AnswerPreparationMode,
-    fieldPreparationsVar: string,
+    fieldPreparations: Name,
+    generator: CodeGenerator,
   ): void {
     if (template === null || template === undefined || typeof template !== 'object') {
       return
@@ -395,19 +328,19 @@ export default class StepAnswerPreparationCompiler {
 
     if (this.expr.isTemplateNode(template)) {
       if (template.originalType === ASTNodeType.EXPRESSION && template.expressionType === ExpressionType.ITERATE) {
-        this.compileTemplateMapIterator(template, emitter, mode, fieldPreparationsVar)
+        this.compileTemplateMapIterator(template, mode, fieldPreparations, generator)
 
         return
       }
 
       if (isTemplateFieldNode(template)) {
-        const codeExpr = this.templates.compileTemplateCodeExpression(template, emitter)
+        const codeExpression = this.templates.compileTemplateCodeExpression(template, generator)
 
-        this.compileTemplateField(template, codeExpr, emitter, mode, fieldPreparationsVar)
+        this.compileTemplateField(template, codeExpression, mode, fieldPreparations, generator)
       }
 
       Object.values(template.properties ?? {}).forEach(child => {
-        this.compileTemplateAnswerPreparation(child as TemplateValue, emitter, mode, fieldPreparationsVar)
+        this.compileTemplateAnswerPreparation(child as TemplateValue, mode, fieldPreparations, generator)
       })
 
       return
@@ -415,156 +348,122 @@ export default class StepAnswerPreparationCompiler {
 
     if (Array.isArray(template)) {
       template.forEach(item => {
-        this.compileTemplateAnswerPreparation(item, emitter, mode, fieldPreparationsVar)
+        this.compileTemplateAnswerPreparation(item, mode, fieldPreparations, generator)
       })
 
       return
     }
 
     Object.values(template as Record<string, TemplateValue>).forEach(item => {
-      this.compileTemplateAnswerPreparation(item, emitter, mode, fieldPreparationsVar)
+      this.compileTemplateAnswerPreparation(item, mode, fieldPreparations, generator)
     })
   }
 
-  /**
-   * Emits answer preparation for a nested MAP iterator template.
-   */
   private compileTemplateMapIterator(
     templateNode: TemplateNode,
-    emitter: CodeEmitter,
     mode: AnswerPreparationMode,
-    fieldPreparationsVar: string,
+    fieldPreparations: Name,
+    generator: CodeGenerator,
   ): void {
-    this.templates.compileTemplateMapIterator(templateNode, emitter, yieldTemplate => {
-      this.compileTemplateAnswerPreparation(yieldTemplate, emitter, mode, fieldPreparationsVar)
+    this.templates.compileTemplateMapIterator(templateNode, generator, yieldTemplate => {
+      this.compileTemplateAnswerPreparation(yieldTemplate, mode, fieldPreparations, generator)
     })
   }
 
-  /**
-   * Emits one field block produced inside an iterator template in the selected request mode.
-   */
   private compileTemplateField(
     field: TemplateNode,
-    codeExpr: string | undefined,
-    emitter: CodeEmitter,
+    codeExpression: SafeCode | undefined,
     mode: AnswerPreparationMode,
-    fieldPreparationsVar: string,
+    fieldPreparations: Name,
+    generator: CodeGenerator,
   ): void {
-    const resolvedCodeExpr = codeExpr ?? 'undefined'
     const properties = field.properties ?? {}
     const variant = typeof field.variant === 'string' ? field.variant : ''
 
-    emitter.comment('StepAnswerPreparationCompiler.compileTemplateField')
-    emitter.scope(() => {
-      this.compileFieldPreparationSlot(properties, emitter, resolvedCodeExpr, mode, fieldPreparationsVar, variant)
+    generator.comment('StepAnswerPreparationCompiler.compileTemplateField')
+    generator.scope(() => {
+      this.compileFieldPreparationSlot(
+        properties,
+        codeExpression ?? literal(undefined),
+        mode,
+        fieldPreparations,
+        variant,
+        generator,
+      )
     })
   }
 
   private compileFieldPreparationSlot(
     properties: Record<string, unknown>,
-    emitter: CodeEmitter,
-    codeExpr: string,
+    codeExpression: SafeCode,
     mode: AnswerPreparationMode,
-    fieldPreparationsVar: string,
+    fieldPreparations: Name,
     variant: string,
+    generator: CodeGenerator,
   ): void {
-    const codeVar = emitter.const('answerPreparationCode', codeExpr)
-    const propsVar = emitter.const(
+    const fieldCode = generator.const('answerPreparationCode', codeExpression)
+    const props = generator.const(
       'fieldAnswerPreparationProps',
-      [
-        '{',
-        `  code: ${codeVar},`,
-        `  mode: ${JSON.stringify(mode)},`,
-        indentEmbeddedSource(`run: ${this.compileFieldPreparationRunFunction(properties, codeVar, mode, variant)}`),
-        '}',
-      ].join('\n'),
+      objectCode([
+        { key: 'code', value: fieldCode },
+        { key: 'mode', value: literal(mode) },
+        { key: 'run', value: this.compileFieldPreparationRunFunction(properties, fieldCode, mode, variant, generator) },
+      ]),
     )
 
-    emitter.code(
-      `${fieldPreparationsVar}.push(ctx.workTasks.fieldAnswerPreparation("field:" + String(${codeVar}), ${propsVar}));`,
+    generator.statement(
+      code`${fieldPreparations}.push(${CONTEXT}.workTasks.fieldAnswerPreparation("field:" + String(${fieldCode}), ${props}))`,
     )
   }
 
   private compileFieldPreparationRunFunction(
     properties: Record<string, unknown>,
-    codeVar: string,
+    fieldCode: Name,
     mode: AnswerPreparationMode,
     variant: string,
-  ): string {
-    return this.compileAsyncFunctionExpression(emitter => {
-      this.compileFieldPath(properties, emitter, codeVar, mode, variant)
-      this.compileFieldResult(emitter, codeVar, mode)
-    })
+    generator: CodeGenerator,
+  ): Code {
+    return generator.functionExpression(
+      'prepareFieldAnswer',
+      [],
+      body => {
+        this.compileFieldPath(properties, fieldCode, mode, variant, body)
+        this.compileFieldResult(fieldCode, mode, body)
+      },
+      { async: true },
+    )
   }
 
-  private compileFieldResult(emitter: CodeEmitter, codeVar: string, mode: AnswerPreparationMode): void {
-    const historyVar = emitter.const('preparedAnswerHistory', `ctx.answers[${codeVar}]`)
+  private compileFieldResult(fieldCode: Name, mode: AnswerPreparationMode, generator: CodeGenerator): void {
+    const answerHistory = generator.const('preparedAnswerHistory', code`${CONTEXT}.answers[${fieldCode}]`)
 
-    emitter.return(`{
-      code: ${codeVar},
-      mode: ${JSON.stringify(mode)},
-      current: ${historyVar} ? ${historyVar}.current : undefined,
-      parsed: ${historyVar} ? ${historyVar}.parsed : undefined,
-      mutations: ${historyVar} ? ${historyVar}.mutations.slice() : []
-    }`)
+    generator.return(
+      objectCode([
+        { key: 'code', value: fieldCode },
+        { key: 'mode', value: literal(mode) },
+        { key: 'current', value: code`${answerHistory} ? ${answerHistory}.current : undefined` },
+        { key: 'parsed', value: code`${answerHistory} ? ${answerHistory}.parsed : undefined` },
+        { key: 'mutations', value: code`${answerHistory} ? ${answerHistory}.mutations.slice() : []` },
+      ]),
+    )
   }
 
-  /**
-   * Compiles one transformer from a field's formatter or parser array.
-   *
-   * The transformer array is already the chain: each transformer receives the
-   * current answer value as its first argument, then the compiler threads the
-   * result into the next transformer.
-   */
-  private compileTransformerCall(transformerNode: unknown, valueVar: string): string {
+  private compileTransformerCall(transformerNode: unknown, value: Name): Code {
     const transformerCall = readTransformerCall(transformerNode)
 
     if (transformerCall === undefined) {
       throw new ForgeInternalError('Formatter entry is not a transformer function call')
     }
 
-    return this.compileTransformerFunctionCall(transformerCall, valueVar, transformerNode)
+    const argumentsCode = transformerCall.arguments.map(argument => this.expr.compileOperandCode(argument))
+
+    return this.expr.compileFunctionCallCode(transformerCall.name, [code`${value}`, ...argumentsCode], transformerNode)
   }
 
-  /**
-   * Emits the authored transformer call with the current value as its first argument.
-   */
-  private compileTransformerFunctionCall(
-    transformerCall: TransformerFunctionCall,
-    valueVar: string,
-    source: unknown,
-  ): string {
-    const argExprs = transformerCall.arguments.map(arg => this.expr.compileOperand(arg))
-
-    return this.expr.compileFunctionCall(transformerCall.name, [valueVar, ...argExprs], source)
+  private emitPushMutationCall(answerHistory: Name, value: SafeCode, source: string, generator: CodeGenerator): void {
+    generator.statement(code`${HELPERS}.pushAnswerMutation(${answerHistory}, ${value}, ${source})`)
   }
 
-  /**
-   * Emits the mutation/current update pair that keeps AnswerHistory in sync.
-   */
-  private emitPushMutationCall(emitter: CodeEmitter, historyVar: string, valueExpr: string, source: string): void {
-    emitter.code(
-      `${GENERATED_FUNCTION_HELPERS_PARAM}.pushAnswerMutation(${historyVar}, ${valueExpr}, ${JSON.stringify(source)});`,
-    )
-  }
-
-  private compileAsyncFunctionExpression(buildBody: (emitter: CodeEmitter) => void): string {
-    const emitter = new CodeEmitter()
-
-    buildBody(emitter)
-
-    const body = emitter
-      .toString()
-      .split('\n')
-      .map(line => (line.length === 0 ? line : `  ${line}`))
-      .join('\n')
-
-    return `async () => {\n${body}\n}`
-  }
-
-  /**
-   * Fast pre-check used to avoid emitting iterator loops for templates with no fields.
-   */
   private containsTemplateField(template: TemplateValue): boolean {
     return this.templates.containsTemplateNode(template, isTemplateFieldNode)
   }
@@ -581,28 +480,18 @@ function readTransformerCall(value: unknown): TransformerFunctionCall | undefine
     return undefined
   }
 
-  const args = Array.isArray(properties.arguments) ? properties.arguments : []
-
   return {
     name: properties.name,
-    arguments: args,
+    arguments: Array.isArray(properties.arguments) ? properties.arguments : [],
   }
 }
 
 function readExpressionType(value: unknown): unknown {
-  if (!isRecord(value)) {
-    return undefined
-  }
-
-  return value.expressionType ?? value.type
+  return isRecord(value) ? (value.expressionType ?? value.type) : undefined
 }
 
 function readProperties(value: unknown): Record<string, unknown> | undefined {
-  if (!isRecord(value) || !isRecord(value.properties)) {
-    return undefined
-  }
-
-  return value.properties
+  return isRecord(value) && isRecord(value.properties) ? value.properties : undefined
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -610,17 +499,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function describeFieldCode(block: FieldBlockASTNode): string {
-  const code = block.properties.code
+  const fieldCode = block.properties.code
 
-  return typeof code === 'string' ? `"${code}"` : '(dynamic code)'
-}
-
-// Multi-line values embedded in an object-literal template need every line
-// shifted to the property's indent, or CodeEmitter's common-indent
-// normalisation leaves the lines ragged in the generated source.
-function indentEmbeddedSource(source: string): string {
-  return source
-    .split('\n')
-    .map(line => (line.length === 0 ? line : `  ${line}`))
-    .join('\n')
+  return typeof fieldCode === 'string' ? `"${fieldCode}"` : '(dynamic code)'
 }

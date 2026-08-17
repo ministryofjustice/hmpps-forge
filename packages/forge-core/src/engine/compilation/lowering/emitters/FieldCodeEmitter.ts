@@ -1,6 +1,8 @@
 import { TemplateNode } from '../../../contracts/ast/template.type'
+import { Code, code, literal, SafeCode } from '../../codegen/Code'
+import CodeGenerator from '../../codegen/CodeGenerator'
+import Name from '../../codegen/Name'
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
-import CodeEmitter from '../../codegen/CodeEmitter'
 
 /**
  * Emits field code expressions consistently across generated-function compilers.
@@ -16,30 +18,34 @@ export default class FieldCodeEmitter {
   /**
    * Emits a registered field code as either a string literal or a scoped const.
    */
-  compileRegisteredExpression(code: unknown, emitter: CodeEmitter, variableName = 'fieldCode'): string | undefined {
-    const codeExpr = this.compileRegisteredInlineExpression(code)
+  compileRegisteredExpression(
+    fieldCode: unknown,
+    generator: CodeGenerator,
+    variableName = 'fieldCode',
+  ): Code | Name | undefined {
+    const codeExpression = this.compileRegisteredInlineExpression(fieldCode)
 
-    if (codeExpr === undefined) {
+    if (codeExpression === undefined) {
       return undefined
     }
 
-    if (typeof code === 'string') {
-      return codeExpr
+    if (typeof fieldCode === 'string') {
+      return codeExpression
     }
 
-    return emitter.const(variableName, codeExpr)
+    return generator.const(variableName, codeExpression)
   }
 
   /**
    * Emits a registered field code as an inline expression, used when assigning block properties.
    */
-  compileRegisteredInlineExpression(code: unknown): string | undefined {
-    if (typeof code === 'string') {
-      return JSON.stringify(code)
+  compileRegisteredInlineExpression(fieldCode: unknown): Code | undefined {
+    if (typeof fieldCode === 'string') {
+      return literal(fieldCode)
     }
 
-    if (this.expr.isCompilableNode(code) || this.expr.isTemplateNode(code)) {
-      return `String(${this.expr.compileOperand(code)})`
+    if (this.expr.isCompilableNode(fieldCode) || this.expr.isTemplateNode(fieldCode)) {
+      return code`String(${this.expr.compileOperandCode(fieldCode)})`
     }
 
     return undefined
@@ -50,38 +56,38 @@ export default class FieldCodeEmitter {
    */
   compileTemplateExpression(
     node: TemplateNode,
-    emitter: CodeEmitter,
+    generator: CodeGenerator,
     variableName = 'templateCode',
-  ): string | undefined {
-    const code = node.properties?.code
+  ): Code | Name | undefined {
+    const fieldCode = node.properties?.code
 
-    if (typeof code === 'string') {
-      return JSON.stringify(code)
+    if (typeof fieldCode === 'string') {
+      return literal(fieldCode)
     }
 
-    if (!this.expr.isTemplateNode(code)) {
+    if (!this.expr.isTemplateNode(fieldCode)) {
       return undefined
     }
 
-    return emitter.const(variableName, `String(${this.expr.compileTemplateExpression(code)})`)
+    return generator.const(variableName, code`String(${this.expr.compileTemplateExpressionCode(fieldCode)})`)
   }
 
   /**
    * Assigns a FIELD block's code property only when it resolves to a string expression.
    */
   assignProperty(
-    code: unknown,
-    emitter: CodeEmitter,
-    targetObj: string,
+    fieldCode: unknown,
+    generator: CodeGenerator,
+    targetObject: SafeCode,
     key: string,
-    preferredCodeExpr?: string,
+    preferredCodeExpression?: SafeCode,
   ): void {
-    const codeExpr = preferredCodeExpr ?? this.compileRegisteredInlineExpression(code)
+    const codeExpression = preferredCodeExpression ?? this.compileRegisteredInlineExpression(fieldCode)
 
-    if (codeExpr === undefined) {
+    if (codeExpression === undefined) {
       return
     }
 
-    emitter.assign(`${targetObj}[${JSON.stringify(key)}]`, codeExpr)
+    generator.assign(code`${targetObject}[${key}]`, codeExpression)
   }
 }

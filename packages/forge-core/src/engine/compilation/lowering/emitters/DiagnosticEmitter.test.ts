@@ -1,8 +1,11 @@
+import { Code, code } from '../../codegen/Code'
+import CodeGenerator from '../../codegen/CodeGenerator'
+import SourceRenderer, { RenderedSource } from '../../codegen/SourceRenderer'
 import DiagnosticEmitter from './DiagnosticEmitter'
 
 const AUTHOR_STACK = 'Error\n    at journeySteps (/repo/journeys/tax/steps.ts:42:13)'
 const INTERNAL_STACK = 'Error\n    at handle (/repo/packages/forge-core/src/registry/handles.ts:7:9)'
-const EXPECTED_MARKER = '/*@forge-pos:{"f":"/repo/journeys/tax/steps.ts","l":42,"c":13}*/'
+const AUTHOR_POSITION = { file: '/repo/journeys/tax/steps.ts', line: 42, column: 13 }
 
 const sourceWithStack = (stack: string) => ({
   id: 'node-1',
@@ -12,55 +15,62 @@ const sourceWithStack = (stack: string) => ({
   },
 })
 
+const render = (value: Code): RenderedSource => new SourceRenderer().renderCode(value)
+
+const wrapExpression = (emitter: DiagnosticEmitter, source: unknown, usesAwait: boolean): RenderedSource =>
+  render(emitter.wrapExpression(code`1 + 1`, source, usesAwait, new CodeGenerator()))
+
 describe('DiagnosticEmitter', () => {
   describe('wrapExpression()', () => {
-    it('should prefix the helper call with a position marker when the callsite resolves', () => {
+    it('should map the helper call to the authored callsite', () => {
       // Arrange
       const emitter = new DiagnosticEmitter()
 
       // Act
-      const wrapped = emitter.wrapExpression('1 + 1', sourceWithStack(AUTHOR_STACK), false)
+      const wrapped = wrapExpression(emitter, sourceWithStack(AUTHOR_STACK), false)
 
       // Assert
-      expect(wrapped.startsWith(`${EXPECTED_MARKER}_forgeHelpers.evaluateTracked(`)).toBe(true)
+      expect(wrapped.source.startsWith('_forgeHelpers.evaluateTracked(')).toBe(true)
+      expect(wrapped.segmentsByLine[0]).toEqual([{ generatedColumn: 0, position: AUTHOR_POSITION }])
     })
 
-    it('should place the marker before the await wrapper when the expression is async', () => {
+    it('should map the await wrapper to the authored callsite', () => {
       // Arrange
       const emitter = new DiagnosticEmitter()
 
       // Act
-      const wrapped = emitter.wrapExpression('1 + 1', sourceWithStack(AUTHOR_STACK), true)
+      const wrapped = wrapExpression(emitter, sourceWithStack(AUTHOR_STACK), true)
 
       // Assert
-      expect(wrapped.startsWith(`${EXPECTED_MARKER}(await _forgeHelpers.evaluateTrackedAsync(`)).toBe(true)
+      expect(wrapped.source.startsWith('(await _forgeHelpers.evaluateTrackedAsync(')).toBe(true)
+      expect(wrapped.segmentsByLine[0]).toEqual([{ generatedColumn: 0, position: AUTHOR_POSITION }])
     })
 
-    it('should emit no marker when the callsite is absent', () => {
+    it('should emit no source-map segment when the callsite is absent', () => {
       // Arrange
       const emitter = new DiagnosticEmitter()
       const source = { id: 'node-1', diagnostics: { source: { formattedPath: 'journey.steps[0]' } } }
 
       // Act
-      const wrapped = emitter.wrapExpression('1 + 1', source, false)
+      const wrapped = wrapExpression(emitter, source, false)
 
       // Assert
-      expect(wrapped.startsWith('_forgeHelpers.evaluateTracked(')).toBe(true)
-      expect(wrapped).not.toContain('@forge-pos')
+      expect(wrapped.source.startsWith('_forgeHelpers.evaluateTracked(')).toBe(true)
+      expect(wrapped.segmentsByLine.flat()).toEqual([])
     })
 
-    it('should emit no marker when every callsite frame is forge-internal', () => {
+    it('should emit no source-map segment when every callsite frame is internal', () => {
       // Arrange
       const emitter = new DiagnosticEmitter()
 
       // Act
-      const wrapped = emitter.wrapExpression('1 + 1', sourceWithStack(INTERNAL_STACK), false)
+      const wrapped = wrapExpression(emitter, sourceWithStack(INTERNAL_STACK), false)
 
       // Assert
-      expect(wrapped).not.toContain('@forge-pos')
+      expect(wrapped.segmentsByLine.flat()).toEqual([])
     })
 
-    it('should emit one marker per author chain frame when a helper built the node', () => {
+    it('should map every author chain frame in helper-to-author order', () => {
       // Arrange
       const emitter = new DiagnosticEmitter()
       const chainStack = [
@@ -70,24 +80,31 @@ describe('DiagnosticEmitter', () => {
       ].join('\n')
 
       // Act
-      const wrapped = emitter.wrapExpression('1 + 1', sourceWithStack(chainStack), false)
+      const wrapped = wrapExpression(emitter, sourceWithStack(chainStack), false)
 
       // Assert
-      const helperMarker = '/*@forge-pos:{"f":"/app/server/journeys/guide/effects.ts","l":56,"c":14}*/'
-      const wiringMarker =
-        '/*@forge-pos:{"f":"/app/server/journeys/guide/sections/defining-steps/step.ts","l":10,"c":14}*/'
-      expect(wrapped.startsWith(`${helperMarker}${wiringMarker}_forgeHelpers.evaluateTracked(`)).toBe(true)
+      expect(wrapped.segmentsByLine[0]).toEqual([
+        {
+          generatedColumn: 0,
+          position: { file: '/app/server/journeys/guide/effects.ts', line: 56, column: 14 },
+        },
+        {
+          generatedColumn: 1,
+          position: { file: '/app/server/journeys/guide/sections/defining-steps/step.ts', line: 10, column: 14 },
+        },
+      ])
     })
 
-    it('should return the raw expression when the source carries no metadata at all', () => {
+    it('should return the raw expression when the source carries no metadata', () => {
       // Arrange
       const emitter = new DiagnosticEmitter()
 
       // Act
-      const wrapped = emitter.wrapExpression('1 + 1', undefined, false)
+      const wrapped = wrapExpression(emitter, undefined, false)
 
       // Assert
-      expect(wrapped).toBe('1 + 1')
+      expect(wrapped.source).toBe('1 + 1')
+      expect(wrapped.segmentsByLine.flat()).toEqual([])
     })
 
     it('should omit undefined metadata fields from the emitted literal', () => {
@@ -96,30 +113,15 @@ describe('DiagnosticEmitter', () => {
       const source = { id: 'node-1', diagnostics: { source: { formattedPath: 'journey.steps[0]' } } }
 
       // Act
-      const wrapped = emitter.wrapExpression('1 + 1', source, false)
+      const wrapped = wrapExpression(emitter, source, false).source
 
       // Assert
-      expect(wrapped).toContain('nodeId: "node-1"')
-      expect(wrapped).toContain('formattedPath: "journey.steps[0]"')
+      expect(wrapped).toContain('"nodeId": "node-1"')
+      expect(wrapped).toContain('"formattedPath": "journey.steps[0]"')
       expect(wrapped).not.toContain('undefined')
     })
 
-    it('should name the tracked callback after the formatted path tail', () => {
-      // Arrange
-      const emitter = new DiagnosticEmitter()
-      const source = {
-        id: 'node-1',
-        diagnostics: { source: { formattedPath: 'dump > form > blocks[1] (govukInsetText) > hidden' } },
-      }
-
-      // Act
-      const wrapped = emitter.wrapExpression('1 + 1', source, false)
-
-      // Assert
-      expect(wrapped).toContain('function evaluate_hidden() {')
-    })
-
-    it('should sanitise a structural path tail into a valid callback identifier', () => {
+    it('should name and sanitise tracked callbacks from the formatted path tail', () => {
       // Arrange
       const emitter = new DiagnosticEmitter()
       const source = {
@@ -128,7 +130,7 @@ describe('DiagnosticEmitter', () => {
       }
 
       // Act
-      const wrapped = emitter.wrapExpression('1 + 1', source, false)
+      const wrapped = wrapExpression(emitter, source, false).source
 
       // Assert
       expect(wrapped).toContain('function evaluate_effects_0_effect_Ping() {')
@@ -136,32 +138,30 @@ describe('DiagnosticEmitter', () => {
   })
 
   describe('wrapFunctionCall()', () => {
-    it('should prefix the helper call with a position marker when the callsite resolves', () => {
+    it('should map a tracked function helper call to the authored callsite', () => {
       // Arrange
       const emitter = new DiagnosticEmitter()
 
       // Act
-      const wrapped = emitter.wrapFunctionCall(
-        'callFunction',
-        'loadPreferences',
-        ['ctx'],
-        sourceWithStack(AUTHOR_STACK),
+      const wrapped = render(
+        emitter.wrapFunctionCall('callFunction', 'loadPreferences', [code`ctx`], sourceWithStack(AUTHOR_STACK)),
       )
 
       // Assert
-      expect(wrapped.startsWith(`${EXPECTED_MARKER}_forgeHelpers.callFunction(`)).toBe(true)
+      expect(wrapped.source.startsWith('_forgeHelpers.callFunction(')).toBe(true)
+      expect(wrapped.segmentsByLine[0]).toEqual([{ generatedColumn: 0, position: AUTHOR_POSITION }])
     })
 
-    it('should emit no marker when the callsite is absent', () => {
+    it('should emit no segment for a function call without a callsite', () => {
       // Arrange
       const emitter = new DiagnosticEmitter()
 
       // Act
-      const wrapped = emitter.wrapFunctionCall('callFunction', 'loadPreferences', ['ctx'], {})
+      const wrapped = render(emitter.wrapFunctionCall('callFunction', 'loadPreferences', [code`ctx`], {}))
 
       // Assert
-      expect(wrapped.startsWith('_forgeHelpers.callFunction(')).toBe(true)
-      expect(wrapped).not.toContain('@forge-pos')
+      expect(wrapped.source.startsWith('_forgeHelpers.callFunction(')).toBe(true)
+      expect(wrapped.segmentsByLine.flat()).toEqual([])
     })
   })
 })

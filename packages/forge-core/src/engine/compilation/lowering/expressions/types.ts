@@ -1,16 +1,21 @@
+import { Code } from '../../codegen/Code'
+import CodeGenerator from '../../codegen/CodeGenerator'
+import Name from '../../codegen/Name'
+
 export interface IteratorScopeFrame {
-  itemVar: string
-  indexVar: string
-  inputLengthExpr: string
-  rawItemExpr: string
+  readonly itemVar: Name
+  readonly indexVar: Name
+  readonly inputLengthExpr: Code | Name
+  readonly rawItemExpr: Code | Name
 }
 
 export interface NodeCompilationContext {
-  compileOperand(value: unknown): string
-  compileFunctionCall(funcName: string, argExprs: string[], source?: unknown): string
-  namespaceToCtx(namespace: string): string
+  compileOperandCode(value: unknown): Code
+  compileFunctionCallCode(funcName: string, argExprs: readonly Code[], source?: unknown): Code
+  namespaceToCtxCode(namespace: string): Code
+  readonly generator: CodeGenerator
   readonly iteratorStack: readonly IteratorScopeFrame[]
-  readonly selfCodeExpr: string | undefined
+  readonly selfCodeExpr: Code | undefined
 
   /**
    * Indicates that the generated expression body has async dependencies.

@@ -1,13 +1,13 @@
-import { MarkerSegment } from './SourceRenderer'
+import { SourceMapSegment } from './SourceRenderer'
 
 /**
- * Encodes renderer marker segments as an inline `data:` source-map URL so
+ * Encodes renderer source-map segments as an inline `data:` source-map URL so
  * debuggers can bind definition-file breakpoints onto compiled functions.
  * `lineOffset` prepends empty mapping lines for the wrapper V8 builds around
  * `new Function` bodies, aligning generated line indexes with the final script.
  */
 export const encodeInlineSourceMap = (
-  segmentsByLine: readonly (readonly MarkerSegment[])[],
+  segmentsByLine: readonly (readonly SourceMapSegment[])[],
   lineOffset: number,
 ): string => {
   const sources: string[] = []

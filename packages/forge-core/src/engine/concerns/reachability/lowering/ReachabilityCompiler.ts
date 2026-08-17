@@ -1,28 +1,30 @@
-/**
- * Emits the compiled reachability facts function for a reachability compilation
- * plan.
- *
- * Dynamic result arrays are indexed by step position in `plan.entries`.
- */
 import { ASTNode } from '../../../contracts/ast/ast.type'
+import type { CompiledReachabilityFactsFunction } from '../../../contracts/compiled/compiledFunctions.type'
 import type {
   ForwardOutcomeGroup,
   ReachabilityCompilationEntry,
   ReachabilityCompilationPlan,
 } from '../../../contracts/plans/runtimePlans.type'
+import { arrayCode, Code, code, literal, objectCode } from '../../../compilation/codegen/Code'
+import CodeGenerator from '../../../compilation/codegen/CodeGenerator'
+import Name from '../../../compilation/codegen/Name'
+import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
-import CodeEmitter from '../../../compilation/codegen/CodeEmitter'
-import type { CompiledReachabilityFactsFunction } from '../../../contracts/compiled/compiledFunctions.type'
 import {
-  buildGeneratedSource,
   compileGeneratedFunction,
   deriveScriptLabel,
+  renderGeneratedSource,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
-import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 
-/**
- * Builds the generated reachability facts function from a reachability compilation plan.
- */
+interface ReachabilityResultNames {
+  readonly entryResults: Name
+  readonly outcomeValues: Name
+  readonly declaredOutcomeValues: Name
+  readonly tieBreakerPriorities: Name
+  readonly resumeActive: Name
+}
+
+/** Builds the generated reachability facts function from a compilation plan. */
 export default class ReachabilityCompiler {
   private readonly expr: ExpressionDispatcher
 
@@ -30,13 +32,6 @@ export default class ReachabilityCompiler {
     this.expr = new ExpressionDispatcher(dependencies)
   }
 
-  /**
-   * Compiles the plan into a reachability facts evaluator.
-   *
-   * The generated function evaluates dynamic reachability expressions and returns
-   * the facts as a plain result object; the static graph walk over those facts
-   * runs in the compiled reachability state function.
-   */
   compileFacts(plan: ReachabilityCompilationPlan): CompiledReachabilityFactsFunction {
     return compileGeneratedFunction<CompiledReachabilityFactsFunction>(
       this.expr,
@@ -46,19 +41,10 @@ export default class ReachabilityCompiler {
     )
   }
 
-  /**
-   * Builds inspectable generated facts source.
-   *
-   * Function metadata determines whether emitted calls need `await`.
-   */
   generateFactsSource(plan: ReachabilityCompilationPlan): string {
-    return buildGeneratedSource(this.expr, () => this.buildFactsSource(plan)).toString()
+    return renderGeneratedSource(this.expr, () => this.buildFactsSource(plan))
   }
 
-  /**
-   * Reachability facts cover the whole journey, so the label is the journey
-   * segment alone; the first dynamic node's path supplies it.
-   */
   private deriveJourneyLabel(plan: ReachabilityCompilationPlan): string | undefined {
     const dynamicNodes = [
       plan.resumeWhen,
@@ -71,50 +57,52 @@ export default class ReachabilityCompiler {
     return deriveScriptLabel(dynamicNodes, { maxDepth: 1 })
   }
 
-  /**
-   * Emits the generated facts function body with the reachability arrays.
-   */
-  private buildFactsSource(plan: ReachabilityCompilationPlan): CodeEmitter {
-    const emitter = new CodeEmitter()
+  private buildFactsSource(plan: ReachabilityCompilationPlan): CodeGenerator {
+    const generator = CodeGenerator.forFunction(['ctx'])
+
+    generator.directive('use strict')
+    generator.comment('ReachabilityCompiler.buildFactsSource')
+    const resultNames = this.compileReachabilityResult(plan, generator)
+
+    generator.return(this.buildReachabilityResultExpression(resultNames))
+
+    return generator
+  }
+
+  private compileReachabilityResult(
+    plan: ReachabilityCompilationPlan,
+    generator: CodeGenerator,
+  ): ReachabilityResultNames {
     const stepCount = plan.entries.length
+    const entryResults = generator.const('entryResults', code`new Array(${stepCount})`)
+    const outcomeValues = generator.const('outcomeValues', arrayCode(plan.entries.map(() => code`[]`)))
+    const declaredOutcomeValues = generator.const('declaredOutcomeValues', arrayCode(plan.entries.map(() => code`[]`)))
+    const tieBreakerPriorities = generator.const('tieBreakerPriorities', code`new Array(${stepCount})`)
 
-    emitter.code('"use strict";')
+    this.compileEntryPredicates(plan.entries, entryResults, generator)
+    this.compileForwardOutcomes(plan.entries, outcomeValues, declaredOutcomeValues, generator)
+    this.compileTieBreakers(plan.entries, tieBreakerPriorities, generator)
+    const resumeActive = this.compileResumeCondition(plan, generator)
 
-    emitter.comment('ReachabilityCompiler.buildFactsSource')
-    this.compileReachabilityResult(plan, emitter, stepCount)
-
-    emitter.return(this.buildReachabilityResultExpression())
-
-    return emitter
+    return { entryResults, outcomeValues, declaredOutcomeValues, tieBreakerPriorities, resumeActive }
   }
 
-  /**
-   * Emits reachability arrays aligned to `plan.entries`.
-   */
-  private compileReachabilityResult(plan: ReachabilityCompilationPlan, emitter: CodeEmitter, stepCount: number): void {
-    emitter.declareConst('entryResults', `new Array(${stepCount})`)
-    emitter.declareConst('outcomeValues', `[${plan.entries.map(() => '[]').join(', ')}]`)
-    emitter.declareConst('declaredOutcomeValues', `[${plan.entries.map(() => '[]').join(', ')}]`)
-    emitter.declareConst('tieBreakerPriorities', `new Array(${stepCount})`)
-
-    this.compileEntryPredicates(plan.entries, emitter)
-    this.compileForwardOutcomes(plan.entries, emitter)
-    this.compileTieBreakers(plan.entries, emitter)
-    this.compileResumeCondition(plan, emitter)
+  private buildReachabilityResultExpression(names: ReachabilityResultNames): Code {
+    return objectCode([
+      { key: 'entryResults', value: names.entryResults },
+      { key: 'outcomeValues', value: names.outcomeValues },
+      { key: 'declaredOutcomeValues', value: names.declaredOutcomeValues },
+      { key: 'tieBreakerPriorities', value: names.tieBreakerPriorities },
+      { key: 'resumeActive', value: names.resumeActive },
+    ])
   }
 
-  /**
-   * Builds the reachability result object literal.
-   */
-  private buildReachabilityResultExpression(): string {
-    return '{ entryResults: entryResults, outcomeValues: outcomeValues, declaredOutcomeValues: declaredOutcomeValues, tieBreakerPriorities: tieBreakerPriorities, resumeActive: resumeActive }'
-  }
-
-  /**
-   * Emits the optional per-step entryWhen predicates used to seed extra entry points.
-   */
-  private compileEntryPredicates(entries: ReachabilityCompilationEntry[], emitter: CodeEmitter): void {
-    emitter.comment('ReachabilityCompiler.compileEntryPredicates')
+  private compileEntryPredicates(
+    entries: ReachabilityCompilationEntry[],
+    entryResults: Name,
+    generator: CodeGenerator,
+  ): void {
+    generator.comment('ReachabilityCompiler.compileEntryPredicates')
 
     entries.forEach((entry, index) => {
       const node = entry.entryWhen
@@ -123,57 +111,52 @@ export default class ReachabilityCompiler {
         return
       }
 
-      emitter.scope(() => {
-        const predicateExpr = this.expr.compileExpression(node)
-        const predicateVar = emitter.const('entryPredicate', `Boolean(${predicateExpr})`)
+      generator.scope(() => {
+        const predicate = generator.const('entryPredicate', code`Boolean(${this.expr.compileExpressionCode(node)})`)
 
-        emitter.assign(`entryResults[${index}]`, predicateVar)
+        generator.assign(code`${entryResults}[${index}]`, predicate)
       })
     })
   }
 
-  /**
-   * Compiles forward outcome evaluation for each step.
-   *
-   * Forward outcomes are RedirectOutcomeASTNodes grouped by their owning submit
-   * hook. Each group cascades independently — a fresh `outcomeMatched` flag per
-   * group, optionally guarded by `if (hookWhen)` when the hook's `when:` is
-   * reachability-compilable. Hooks with non-compilable `when:` (e.g. `Post(...)`
-   * references) contribute unguarded as an intentional over-approximation.
-   *
-   * `declaredOutcomeValues` is hoisted out of the cascade so every authored
-   * static goto is recorded for the devtools graph regardless of guard state.
-   *
-   * Only REDIRECT outcomes contribute path candidates.
-   */
-  private compileForwardOutcomes(entries: ReachabilityCompilationEntry[], emitter: CodeEmitter): void {
-    emitter.comment('ReachabilityCompiler.compileForwardOutcomes')
+  private compileForwardOutcomes(
+    entries: ReachabilityCompilationEntry[],
+    outcomeValues: Name,
+    declaredOutcomeValues: Name,
+    generator: CodeGenerator,
+  ): void {
+    generator.comment('ReachabilityCompiler.compileForwardOutcomes')
 
     entries.forEach((entry, stepIndex) => {
       entry.forwardOutcomeGroups.forEach(group => {
-        this.compileForwardOutcomeGroup(group, stepIndex, emitter)
+        this.compileForwardOutcomeGroup(group, stepIndex, outcomeValues, declaredOutcomeValues, generator)
       })
     })
   }
 
-  private compileForwardOutcomeGroup(group: ForwardOutcomeGroup, stepIndex: number, emitter: CodeEmitter): void {
-    const { redirectOutcomes } = group
-
-    redirectOutcomes.forEach(outcome => {
-      this.compileDeclaredGotoResolution(outcome.node.properties.goto, stepIndex, emitter)
+  private compileForwardOutcomeGroup(
+    group: ForwardOutcomeGroup,
+    stepIndex: number,
+    outcomeValues: Name,
+    declaredOutcomeValues: Name,
+    generator: CodeGenerator,
+  ): void {
+    group.redirectOutcomes.forEach(outcome => {
+      this.compileDeclaredGotoResolution(outcome.node.properties.goto, stepIndex, declaredOutcomeValues, generator)
     })
 
     const emitCascade = () => {
-      emitter.scope(() => {
-        const outcomeMatchedVar = emitter.let('outcomeMatched', 'false')
+      generator.scope(() => {
+        const outcomeMatched = generator.let('outcomeMatched', literal(false))
 
-        redirectOutcomes.forEach(outcome => {
+        group.redirectOutcomes.forEach(outcome => {
           this.compileForwardOutcomeCascade(
             outcome.node.properties,
             stepIndex,
-            outcomeMatchedVar,
+            outcomeMatched,
             outcome.overApproximatesWhen,
-            emitter,
+            outcomeValues,
+            generator,
           )
         })
       })
@@ -182,11 +165,10 @@ export default class ReachabilityCompiler {
     const hookWhenNode = group.hookWhen
 
     if (hookWhenNode !== undefined) {
-      emitter.scope(() => {
-        const whenExpr = this.expr.compileExpression(hookWhenNode)
-        const whenVar = emitter.const('hookWhen', `Boolean(${whenExpr})`)
+      generator.scope(() => {
+        const hookWhen = generator.const('hookWhen', code`Boolean(${this.expr.compileExpressionCode(hookWhenNode)})`)
 
-        emitter.if(whenVar, emitCascade)
+        generator.if(hookWhen, emitCascade)
       })
 
       return
@@ -195,148 +177,128 @@ export default class ReachabilityCompiler {
     emitCascade()
   }
 
-  /**
-   * Emits the cascade step for one redirect outcome within a hook group.
-   *
-   * The declared-paths push is hoisted to the group level, so this only runs
-   * the cascade guard (`outcomeMatched === false`) and the optional outcome-level
-   * `when:` evaluation.
-   */
   private compileForwardOutcomeCascade(
     properties: { readonly when?: ASTNode; readonly goto: ASTNode | string },
     stepIndex: number,
-    outcomeMatchedVar: string,
+    outcomeMatched: Name,
     overApproximateWhen: boolean,
-    emitter: CodeEmitter,
+    outcomeValues: Name,
+    generator: CodeGenerator,
   ): void {
-    emitter.scope(() => {
-      const { when, goto } = properties
+    generator.scope(() => {
+      generator.if(code`${outcomeMatched} === false`, () => {
+        const { when, goto } = properties
 
-      emitter.if(`${outcomeMatchedVar} === false`, () => {
         if (!overApproximateWhen && when !== undefined && this.expr.isCompilableNode(when)) {
-          const whenExpr = this.expr.compileExpression(when)
-          const whenVar = emitter.const('outcomeWhen', `Boolean(${whenExpr})`)
+          const outcomeWhen = generator.const('outcomeWhen', code`Boolean(${this.expr.compileExpressionCode(when)})`)
 
-          emitter.if(whenVar, () => {
-            this.compileGotoResolution(goto, stepIndex, outcomeMatchedVar, true, emitter)
+          generator.if(outcomeWhen, () => {
+            this.compileGotoResolution(goto, stepIndex, outcomeMatched, true, outcomeValues, generator)
           })
 
           return
         }
 
-        this.compileGotoResolution(goto, stepIndex, outcomeMatchedVar, !overApproximateWhen, emitter)
+        this.compileGotoResolution(goto, stepIndex, outcomeMatched, !overApproximateWhen, outcomeValues, generator)
       })
     })
   }
 
-  private compileDeclaredGotoResolution(goto: ASTNode | string, stepIndex: number, emitter: CodeEmitter): void {
+  private compileDeclaredGotoResolution(
+    goto: ASTNode | string,
+    stepIndex: number,
+    declaredOutcomeValues: Name,
+    generator: CodeGenerator,
+  ): void {
     if (typeof goto !== 'string') {
       return
     }
 
-    emitter.code(`declaredOutcomeValues[${stepIndex}].push(${JSON.stringify(goto)});`)
+    generator.statement(code`${declaredOutcomeValues}[${stepIndex}].push(${goto})`)
   }
 
-  /**
-   * Emits the goto target evaluation and pushes the result to outcomeValues.
-   * String literals are emitted as JSON constants. AST expressions are compiled
-   * through the shared dispatcher. Expression failures surface as Forge runtime
-   * errors with diagnostic context.
-   */
   private compileGotoResolution(
     goto: ASTNode | string,
     stepIndex: number,
-    outcomeMatchedVar: string,
+    outcomeMatched: Name,
     marksOutcomeMatched: boolean,
-    emitter: CodeEmitter,
+    outcomeValues: Name,
+    generator: CodeGenerator,
   ): void {
-    let gotoExpr: string
+    const gotoExpression = this.compileGotoExpression(goto)
 
-    if (typeof goto === 'string') {
-      gotoExpr = JSON.stringify(goto)
-    } else if (this.expr.isCompilableNode(goto)) {
-      gotoExpr = this.expr.compileExpression(goto)
-    } else {
+    if (gotoExpression === undefined) {
       return
     }
 
-    const gotoVar = emitter.const('gotoValue', gotoExpr)
+    const gotoValue = generator.const('gotoValue', gotoExpression)
 
-    emitter.if(`${gotoVar} !== undefined`, () => {
-      emitter.code(`outcomeValues[${stepIndex}].push(String(${gotoVar}));`)
+    generator.if(code`${gotoValue} !== undefined`, () => {
+      generator.statement(code`${outcomeValues}[${stepIndex}].push(String(${gotoValue}))`)
 
       if (marksOutcomeMatched) {
-        emitter.assign(outcomeMatchedVar, 'true')
+        generator.assign(outcomeMatched, literal(true))
       }
     })
   }
 
-  /**
-   * Compiles tie-breaker priority resolution for each step.
-   *
-   * Tie-breakers are a priority cascade: the first rule whose `when` predicate
-   * matches (or has no predicate, making it a catch-all) determines the step's
-   * priority. The generated code guards each rule with `priority === undefined`
-   * so later predicates are not evaluated after a winner has been chosen.
-   */
-  private compileTieBreakers(entries: ReachabilityCompilationEntry[], emitter: CodeEmitter): void {
-    emitter.comment('ReachabilityCompiler.compileTieBreakers')
+  private compileGotoExpression(goto: ASTNode | string): Code | undefined {
+    if (typeof goto === 'string') {
+      return literal(goto)
+    }
+
+    return this.expr.isCompilableNode(goto) ? this.expr.compileExpressionCode(goto) : undefined
+  }
+
+  private compileTieBreakers(
+    entries: ReachabilityCompilationEntry[],
+    tieBreakerPriorities: Name,
+    generator: CodeGenerator,
+  ): void {
+    generator.comment('ReachabilityCompiler.compileTieBreakers')
 
     entries.forEach((entry, index) => {
       if (entry.reachabilityTieBreakers.length === 0) {
         return
       }
 
-      emitter.scope(() => {
-        const priorityVar = emitter.let('tieBreakerPriority')
+      generator.scope(() => {
+        const priority = generator.let('tieBreakerPriority')
 
         entry.reachabilityTieBreakers.forEach(tieBreaker => {
-          const node = tieBreaker.when
+          generator.if(code`${priority} === undefined`, () => {
+            if (tieBreaker.when === undefined) {
+              generator.assign(priority, literal(tieBreaker.priority))
 
-          if (node === undefined) {
-            emitter.if(`${priorityVar} === undefined`, () => {
-              emitter.assign(priorityVar, JSON.stringify(tieBreaker.priority))
-            })
+              return
+            }
 
-            return
-          }
+            const when = generator.const(
+              'tieBreakerWhen',
+              code`Boolean(${this.expr.compileExpressionCode(tieBreaker.when)})`,
+            )
 
-          emitter.if(`${priorityVar} === undefined`, () => {
-            const whenExpr = this.expr.compileExpression(node)
-            const whenVar = emitter.const('tieBreakerWhen', `Boolean(${whenExpr})`)
-
-            emitter.if(whenVar, () => {
-              emitter.assign(priorityVar, JSON.stringify(tieBreaker.priority))
+            generator.if(when, () => {
+              generator.assign(priority, literal(tieBreaker.priority))
             })
           })
         })
-        emitter.assign(`tieBreakerPriorities[${index}]`, priorityVar)
+        generator.assign(code`${tieBreakerPriorities}[${index}]`, priority)
       })
     })
   }
 
-  /**
-   * Emits the journey resume condition, defaulting to inactive when no predicate is configured.
-   */
-  private compileResumeCondition(plan: ReachabilityCompilationPlan, emitter: CodeEmitter): void {
-    emitter.comment('ReachabilityCompiler.compileResumeCondition')
+  private compileResumeCondition(plan: ReachabilityCompilationPlan, generator: CodeGenerator): Name {
+    generator.comment('ReachabilityCompiler.compileResumeCondition')
 
     if (plan.resumeAlways) {
-      emitter.declareConst('resumeActive', 'true')
-
-      return
+      return generator.const('resumeActive', literal(true))
     }
 
-    const node = plan.resumeWhen
-
-    if (node === undefined) {
-      emitter.declareConst('resumeActive', 'false')
-
-      return
+    if (plan.resumeWhen === undefined) {
+      return generator.const('resumeActive', literal(false))
     }
 
-    const conditionExpr = this.expr.compileExpression(node)
-
-    emitter.declareConst('resumeActive', `Boolean(${conditionExpr})`)
+    return generator.const('resumeActive', code`Boolean(${this.expr.compileExpressionCode(plan.resumeWhen)})`)
   }
 }

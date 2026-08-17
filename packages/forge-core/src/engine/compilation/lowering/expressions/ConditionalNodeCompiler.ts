@@ -1,3 +1,4 @@
+import { Code, code } from '../../codegen/Code'
 import { NodeCompilationContext } from './types'
 
 /**
@@ -11,11 +12,11 @@ export default class ConditionalNodeCompiler {
   /**
    * Emits a lazy ternary so only the selected branch is evaluated at runtime.
    */
-  compile(properties: Record<string, unknown>): string {
-    const predExpr = this.ctx.compileOperand(properties.predicate)
-    const thenExpr = this.ctx.compileOperand(properties.thenValue)
-    const elseExpr = this.ctx.compileOperand(properties.elseValue)
+  compile(properties: Record<string, unknown>): Code {
+    const predExpr = this.ctx.compileOperandCode(properties.predicate)
+    const thenExpr = this.ctx.compileOperandCode(properties.thenValue)
+    const elseExpr = this.ctx.compileOperandCode(properties.elseValue)
 
-    return `(${predExpr} ? ${thenExpr} : ${elseExpr})`
+    return code`(${predExpr} ? ${thenExpr} : ${elseExpr})`
   }
 }

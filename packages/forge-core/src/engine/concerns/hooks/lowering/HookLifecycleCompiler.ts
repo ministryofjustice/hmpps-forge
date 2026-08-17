@@ -8,17 +8,21 @@ import {
   SubmitHookASTNode,
   ThrowErrorOutcomeASTNode,
 } from '../../../contracts/ast/expressions.type'
+import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '../../../contracts/ast/outcome-nodes'
+import { Code, code, literal, objectCode } from '../../../compilation/codegen/Code'
+import CodeGenerator from '../../../compilation/codegen/CodeGenerator'
+import Name from '../../../compilation/codegen/Name'
+import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
-import CodeEmitter from '../../../compilation/codegen/CodeEmitter'
 import {
-  buildGeneratedSource,
   compileGeneratedFunction,
   deriveScriptLabel,
+  renderGeneratedSource,
   ScriptLabelSource,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
-import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
-import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '../../../contracts/ast/outcome-nodes'
 import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from '../contracts/hookLifecycle.type'
+
+const CONTEXT = new Name('ctx')
 
 export default class HookLifecycleCompiler {
   private readonly expr: ExpressionDispatcher
@@ -49,94 +53,87 @@ export default class HookLifecycleCompiler {
   }
 
   generateAccessSource(hooks: AccessHookASTNode[]): string {
-    return buildGeneratedSource(this.expr, () => this.buildAccessSource(hooks)).toString()
+    return renderGeneratedSource(this.expr, () => this.buildAccessSource(hooks))
   }
 
   generateSubmitSource(hooks: SubmitHookASTNode[]): string {
-    return buildGeneratedSource(this.expr, () => this.buildSubmitSource(hooks)).toString()
+    return renderGeneratedSource(this.expr, () => this.buildSubmitSource(hooks))
   }
 
-  private buildAccessSource(hooks: AccessHookASTNode[]): CodeEmitter {
-    const emitter = this.createEmitter()
+  private buildAccessSource(hooks: AccessHookASTNode[]): CodeGenerator {
+    const generator = this.createGenerator()
 
-    emitter.comment('HookLifecycleCompiler.buildAccessSource')
-    const hooksVar = emitter.const('accessHooks', '[]')
+    generator.comment('HookLifecycleCompiler.buildAccessSource')
+    const accessHooks = generator.const('accessHooks', code`[]`)
 
     hooks.forEach((hook, hookIndex) => {
-      this.compileAccessHookTask(hook, hookIndex, hooksVar, emitter)
+      this.compileAccessHookTask(hook, hookIndex, accessHooks, generator)
     })
 
-    emitter.return(`ctx.workTasks.accessLifecycle(${hooksVar})`)
+    generator.return(code`${CONTEXT}.workTasks.accessLifecycle(${accessHooks})`)
 
-    return emitter
+    return generator
   }
 
-  private buildSubmitSource(hooks: SubmitHookASTNode[]): CodeEmitter {
-    const emitter = this.createEmitter()
+  private buildSubmitSource(hooks: SubmitHookASTNode[]): CodeGenerator {
+    const generator = this.createGenerator()
 
-    emitter.comment('HookLifecycleCompiler.buildSubmitSource')
-    const hooksVar = emitter.const('submitHooks', '[]')
+    generator.comment('HookLifecycleCompiler.buildSubmitSource')
+    const submitHooks = generator.const('submitHooks', code`[]`)
 
     hooks.forEach((hook, hookIndex) => {
-      this.compileSubmitHookTask(hook, hookIndex, hooksVar, emitter)
+      this.compileSubmitHookTask(hook, hookIndex, submitHooks, generator)
     })
 
-    emitter.return(`ctx.workTasks.submitLifecycle(${hooksVar})`)
+    generator.return(code`${CONTEXT}.workTasks.submitLifecycle(${submitHooks})`)
 
-    return emitter
+    return generator
   }
 
-  private createEmitter(): CodeEmitter {
-    const emitter = new CodeEmitter()
+  private createGenerator(): CodeGenerator {
+    const generator = CodeGenerator.forFunction(['ctx'])
 
-    emitter.code('"use strict";')
+    generator.directive('use strict')
 
-    return emitter
+    return generator
   }
 
   private compileAccessHookTask(
     hook: AccessHookASTNode,
     hookIndex: number,
-    hooksVar: string,
-    emitter: CodeEmitter,
+    accessHooks: Name,
+    generator: CodeGenerator,
   ): void {
     const hookKey = `access-hook-${hookIndex}`
 
-    emitter.comment(`HookLifecycleCompiler.compileAccessHookTask — ${this.describeHookNode(hook, hookKey)}`)
-    emitter.scope(() => {
-      const effectsVar = emitter.const('accessHookEffects', '[]')
+    generator.comment(`HookLifecycleCompiler.compileAccessHookTask — ${this.describeHookNode(hook, hookKey)}`)
+    generator.scope(() => {
+      const effects = generator.const('accessHookEffects', code`[]`)
 
       hook.properties.effects?.filter(this.isEffectNode).forEach((effect, effectIndex) => {
-        this.compileEffectTask(effect, `${hookKey}-effect-${effectIndex}`, effectsVar, emitter)
+        this.compileEffectTask(effect, `${hookKey}-effect-${effectIndex}`, effects, generator)
       })
 
-      const propsVar = emitter.const('accessHookProps', '{}')
+      const props = generator.const('accessHookProps', code`{}`)
 
-      emitter.assign(`${propsVar}["when"]`, this.compileAccessWhenTask(hook, `${hookKey}-when`))
-      emitter.assign(`${propsVar}["effects"]`, effectsVar)
-      emitter.assign(`${propsVar}["next"]`, this.compileAccessNextFunction(hook))
-      emitter.code(`${hooksVar}.push(ctx.workTasks.accessHook(${JSON.stringify(hookKey)}, ${propsVar}));`)
+      generator.assign(code`${props}.when`, this.compileAccessWhenTask(hook, `${hookKey}-when`, generator))
+      generator.assign(code`${props}.effects`, effects)
+      generator.assign(code`${props}.next`, this.compileAccessNextFunction(hook, generator))
+      generator.statement(code`${accessHooks}.push(${CONTEXT}.workTasks.accessHook(${hookKey}, ${props}))`)
     })
   }
 
-  private compileEffectTask(
-    effect: FunctionASTNode,
-    effectKey: string,
-    effectsVar: string,
-    emitter: CodeEmitter,
-  ): void {
-    emitter.scope(() => {
-      const propsVar = emitter.const(
+  private compileEffectTask(effect: FunctionASTNode, effectKey: string, effects: Name, generator: CodeGenerator): void {
+    generator.scope(() => {
+      const props = generator.const(
         'hookEffectProps',
-        [
-          '{',
-          `  name: ${JSON.stringify(effect.properties.name)},`,
-          indentEmbeddedSource(`run: ${this.compileEffectRunFunction(effect)}`),
-          '}',
-        ].join('\n'),
+        objectCode([
+          { key: 'name', value: literal(effect.properties.name) },
+          { key: 'run', value: this.compileEffectRunFunction(effect, generator) },
+        ]),
       )
 
-      emitter.code(`${effectsVar}.push(ctx.workTasks.hookEffect(${JSON.stringify(effectKey)}, ${propsVar}));`)
+      generator.statement(code`${effects}.push(${CONTEXT}.workTasks.hookEffect(${effectKey}, ${props}))`)
     })
   }
 
@@ -144,92 +141,90 @@ export default class HookLifecycleCompiler {
     return hook.diagnostics?.source.formattedPath ?? hookKey
   }
 
-  private compileAccessWhenTask(hook: AccessHookASTNode, key: string): string {
-    return `ctx.workTasks.accessHookWhen(${JSON.stringify(key)}, { evaluate: ${this.compileAccessWhenFunction(hook)} })`
+  private compileAccessWhenTask(hook: AccessHookASTNode, key: string, generator: CodeGenerator): Code {
+    return code`${CONTEXT}.workTasks.accessHookWhen(${key}, ${objectCode([
+      { key: 'evaluate', value: this.compileAccessWhenFunction(hook, generator) },
+    ])})`
   }
 
-  private compileAccessWhenFunction(hook: AccessHookASTNode): string {
+  private compileAccessWhenFunction(hook: AccessHookASTNode, generator: CodeGenerator): Code {
     const when = hook.properties.when
 
-    if (when === undefined) {
-      return 'async () => true'
-    }
+    return this.compileAsyncFunctionExpression('evaluateAccessHookWhen', generator, functionGenerator => {
+      if (when === undefined) {
+        functionGenerator.return(literal(true))
 
-    return this.compileAsyncFunctionExpression(emitter => {
-      const predicateExpr = this.expr.compileExpression(when)
+        return
+      }
 
-      emitter.return(`Boolean(${predicateExpr})`)
+      functionGenerator.return(code`Boolean(${this.expr.compileExpressionCode(when)})`)
     })
   }
 
-  private compileAccessNextFunction(hook: AccessHookASTNode): string {
-    return this.compileAsyncFunctionExpression(emitter => {
-      const outcomeVar = emitter.let('outcome')
+  private compileAccessNextFunction(hook: AccessHookASTNode, generator: CodeGenerator): Code {
+    return this.compileAsyncFunctionExpression('resolveAccessHookNext', generator, functionGenerator => {
+      const outcome = functionGenerator.let('outcome')
 
-      this.compileOutcomeAssignment(hook.properties.next, outcomeVar, emitter)
-      emitter.return(outcomeVar)
+      this.compileOutcomeAssignment(hook.properties.next, outcome, functionGenerator)
+      functionGenerator.return(outcome)
     })
   }
 
-  private compileEffectRunFunction(effect: FunctionASTNode): string {
-    return this.compileAsyncFunctionExpression(emitter => {
-      emitter.code(`${this.compileAwaitedEffectCall(effect, 'ctx.effectFunctionContext')};`)
+  private compileEffectRunFunction(effect: FunctionASTNode, generator: CodeGenerator): Code {
+    return this.compileAsyncFunctionExpression('runHookEffect', generator, functionGenerator => {
+      functionGenerator.statement(code`await ${this.compileEffectCall(effect)}`)
     })
   }
 
   private compileSubmitHookTask(
     hook: SubmitHookASTNode,
     hookIndex: number,
-    hooksVar: string,
-    emitter: CodeEmitter,
+    submitHooks: Name,
+    generator: CodeGenerator,
   ): void {
     const hookKey = `submit-hook-${hookIndex}`
 
-    emitter.comment(`HookLifecycleCompiler.compileSubmitHookTask — ${this.describeHookNode(hook, hookKey)}`)
-    emitter.scope(() => {
-      const propsVar = emitter.const('submitHookProps', '{}')
-
-      // The hook's validation groups select which rules its validation stage
-      // executes; the stage's stored current-page result is what the
-      // onValid/onInvalid branches gate on. Resolved once at compile time.
+    generator.comment(`HookLifecycleCompiler.compileSubmitHookTask — ${this.describeHookNode(hook, hookKey)}`)
+    generator.scope(() => {
+      const props = generator.const('submitHookProps', code`{}`)
       const validationGroups =
         hook.properties.validationGroups.length > 0 ? hook.properties.validationGroups : ['default']
 
-      emitter.assign(
-        `${propsVar}["when"]`,
-        this.compileSubmitPredicateTask(hook.properties.when, true, `${hookKey}-when`, 'when'),
+      generator.assign(
+        code`${props}.when`,
+        this.compileSubmitPredicateTask(hook.properties.when, true, `${hookKey}-when`, 'when', generator),
       )
-      emitter.assign(
-        `${propsVar}["guards"]`,
-        this.compileSubmitPredicateTask(hook.properties.guards, true, `${hookKey}-guards`, 'guards'),
+      generator.assign(
+        code`${props}.guards`,
+        this.compileSubmitPredicateTask(hook.properties.guards, true, `${hookKey}-guards`, 'guards', generator),
       )
-      emitter.assign(
-        `${propsVar}["onAlways"]`,
-        this.compileSubmitBranchTask(hook.properties.onAlways, `${hookKey}-onAlways`, 'onAlways', emitter),
+      generator.assign(
+        code`${props}.onAlways`,
+        this.compileSubmitBranchTask(hook.properties.onAlways, `${hookKey}-onAlways`, 'onAlways', generator),
       )
 
       if (hook.properties.validate) {
-        emitter.assign(
-          `${propsVar}["validation"]`,
+        generator.assign(
+          code`${props}.validation`,
           this.compileCurrentStepValidationTask(`${hookKey}-validation`, validationGroups),
         )
       }
 
       if (hook.properties.onValid !== undefined) {
-        emitter.assign(
-          `${propsVar}["onValid"]`,
-          this.compileSubmitBranchTask(hook.properties.onValid, `${hookKey}-onValid`, 'onValid', emitter),
+        generator.assign(
+          code`${props}.onValid`,
+          this.compileSubmitBranchTask(hook.properties.onValid, `${hookKey}-onValid`, 'onValid', generator),
         )
       }
 
       if (hook.properties.onInvalid !== undefined) {
-        emitter.assign(
-          `${propsVar}["onInvalid"]`,
-          this.compileSubmitBranchTask(hook.properties.onInvalid, `${hookKey}-onInvalid`, 'onInvalid', emitter),
+        generator.assign(
+          code`${props}.onInvalid`,
+          this.compileSubmitBranchTask(hook.properties.onInvalid, `${hookKey}-onInvalid`, 'onInvalid', generator),
         )
       }
 
-      emitter.code(`${hooksVar}.push(ctx.workTasks.submitHook(${JSON.stringify(hookKey)}, ${propsVar}));`)
+      generator.statement(code`${submitHooks}.push(${CONTEXT}.workTasks.submitHook(${hookKey}, ${props}))`)
     })
   }
 
@@ -238,24 +233,28 @@ export default class HookLifecycleCompiler {
     defaultValue: boolean,
     key: string,
     name: string,
-  ): string {
-    return [
-      `ctx.workTasks.submitPredicate(${JSON.stringify(key)}, {`,
-      `  name: ${JSON.stringify(name)},`,
-      indentEmbeddedSource(`evaluate: ${this.compileSubmitPredicateFunction(predicate, defaultValue)}`),
-      '})',
-    ].join('\n')
+    generator: CodeGenerator,
+  ): Code {
+    return code`${CONTEXT}.workTasks.submitPredicate(${key}, ${objectCode([
+      { key: 'name', value: literal(name) },
+      { key: 'evaluate', value: this.compileSubmitPredicateFunction(predicate, defaultValue, name, generator) },
+    ])})`
   }
 
-  private compileSubmitPredicateFunction(predicate: ASTNode | undefined, defaultValue: boolean): string {
-    if (predicate === undefined) {
-      return `async () => ${JSON.stringify(defaultValue)}`
-    }
+  private compileSubmitPredicateFunction(
+    predicate: ASTNode | undefined,
+    defaultValue: boolean,
+    name: string,
+    generator: CodeGenerator,
+  ): Code {
+    return this.compileAsyncFunctionExpression(`evaluateSubmit${this.toFunctionNamePart(name)}`, generator, body => {
+      if (predicate === undefined) {
+        body.return(literal(defaultValue))
 
-    return this.compileAsyncFunctionExpression(emitter => {
-      const predicateExpr = this.expr.compileExpression(predicate)
+        return
+      }
 
-      emitter.return(`Boolean(${predicateExpr})`)
+      body.return(code`Boolean(${this.expr.compileExpressionCode(predicate)})`)
     })
   }
 
@@ -263,138 +262,143 @@ export default class HookLifecycleCompiler {
     branch: { effects?: ASTNode[]; next?: ASTNode[] } | undefined,
     key: string,
     name: 'onAlways' | 'onValid' | 'onInvalid',
-    emitter: CodeEmitter,
-  ): string {
-    const effectsVar = emitter.const(`${name}Effects`, '[]')
+    generator: CodeGenerator,
+  ): Code {
+    const effects = generator.const(`${name}Effects`, code`[]`)
 
     branch?.effects?.filter(this.isEffectNode).forEach((effect, effectIndex) => {
-      this.compileEffectTask(effect, `${key}-effect-${effectIndex}`, effectsVar, emitter)
+      this.compileEffectTask(effect, `${key}-effect-${effectIndex}`, effects, generator)
     })
 
-    const propsVar = emitter.const(
+    const props = generator.const(
       `${name}Props`,
-      `{
-        name: ${JSON.stringify(name)},
-        effects: ${effectsVar},
-        next: ${this.compileOutcomeFunction(branch?.next)}
-      }`,
+      objectCode([
+        { key: 'name', value: literal(name) },
+        { key: 'effects', value: effects },
+        { key: 'next', value: this.compileOutcomeFunction(branch?.next, name, generator) },
+      ]),
     )
 
-    return `ctx.workTasks.submitBranch(${JSON.stringify(key)}, ${propsVar})`
+    return code`${CONTEXT}.workTasks.submitBranch(${key}, ${props})`
   }
 
-  private compileCurrentStepValidationTask(key: string, groups: readonly string[]): string {
-    return `ctx.workTasks.currentStepValidation(${JSON.stringify(key)}, { groups: ${JSON.stringify(groups)}, includeSubmissionOnly: true })`
+  private compileCurrentStepValidationTask(key: string, groups: readonly string[]): Code {
+    return code`${CONTEXT}.workTasks.currentStepValidation(${key}, ${objectCode([
+      { key: 'groups', value: literal(groups) },
+      { key: 'includeSubmissionOnly', value: literal(true) },
+    ])})`
   }
 
-  private compileOutcomeFunction(next: ASTNode[] | undefined): string {
-    return this.compileAsyncFunctionExpression(emitter => {
-      const outcomeVar = emitter.let('outcome')
+  private compileOutcomeFunction(next: ASTNode[] | undefined, name: string, generator: CodeGenerator): Code {
+    return this.compileAsyncFunctionExpression(`resolveSubmit${this.toFunctionNamePart(name)}Next`, generator, body => {
+      const outcome = body.let('outcome')
 
-      this.compileOutcomeAssignment(next, outcomeVar, emitter)
-      emitter.return(outcomeVar)
+      this.compileOutcomeAssignment(next, outcome, body)
+      body.return(outcome)
     })
   }
 
   private compilePredicate(
     predicate: ASTNode | undefined,
     defaultValue: boolean,
-    emitter: CodeEmitter,
+    generator: CodeGenerator,
     prefix: string,
-  ): string {
+  ): Name {
     if (predicate === undefined) {
-      return emitter.const(prefix, JSON.stringify(defaultValue))
+      return generator.const(prefix, literal(defaultValue))
     }
 
-    const predicateExpr = this.expr.compileExpression(predicate)
-
-    return emitter.const(prefix, `Boolean(${predicateExpr})`)
+    return generator.const(prefix, code`Boolean(${this.expr.compileExpressionCode(predicate)})`)
   }
 
-  private compileAwaitedEffectCall(effect: FunctionASTNode, effectCtxVar: string): string {
-    const callExpr = this.compileEffectCall(effect, effectCtxVar)
-
-    if (callExpr.startsWith('(await ') && callExpr.endsWith(')')) {
-      return `await ${callExpr.slice('(await '.length, -1)}`
-    }
-
-    return `await ${callExpr}`
-  }
-
-  private compileEffectCall(effect: FunctionASTNode, effectCtxVar: string): string {
+  private compileEffectCall(effect: FunctionASTNode): Code {
     const funcName = effect.properties.name
-    const argExprs = effect.properties.arguments.map(arg => this.expr.compileOperand(arg))
+    const argExprs = effect.properties.arguments.map(arg => this.expr.compileOperandCode(arg))
 
-    return this.expr.compileFunctionCall(funcName, [effectCtxVar, ...argExprs], effect)
+    return this.expr.compileFunctionCallCode(funcName, [code`${CONTEXT}.effectFunctionContext`, ...argExprs], effect)
   }
 
-  private compileOutcomeAssignment(next: ASTNode[] | undefined, outcomeVar: string, emitter: CodeEmitter): void {
+  private compileOutcomeAssignment(next: ASTNode[] | undefined, outcome: Name, generator: CodeGenerator): void {
     if (next === undefined || next.length === 0) {
       return
     }
 
-    next.filter(this.isOutcomeNode).forEach(outcome => {
-      emitter.if(`${outcomeVar} === undefined`, () => {
-        if (isRedirectOutcomeNode(outcome)) {
-          this.compileRedirectOutcome(outcome, outcomeVar, emitter)
+    next.filter(this.isOutcomeNode).forEach(outcomeNode => {
+      generator.if(code`${outcome} === undefined`, () => {
+        if (isRedirectOutcomeNode(outcomeNode)) {
+          this.compileRedirectOutcome(outcomeNode, outcome, generator)
 
           return
         }
 
-        if (isThrowErrorOutcomeNode(outcome)) {
-          this.compileThrowErrorOutcome(outcome, outcomeVar, emitter)
+        if (isThrowErrorOutcomeNode(outcomeNode)) {
+          this.compileThrowErrorOutcome(outcomeNode, outcome, generator)
         }
       })
     })
   }
 
-  private compileRedirectOutcome(outcome: RedirectOutcomeASTNode, outcomeVar: string, emitter: CodeEmitter): void {
-    const whenVar = this.compilePredicate(outcome.properties.when, true, emitter, 'outcomeWhen')
+  private compileRedirectOutcome(redirect: RedirectOutcomeASTNode, outcome: Name, generator: CodeGenerator): void {
+    const when = this.compilePredicate(redirect.properties.when, true, generator, 'outcomeWhen')
 
-    emitter.if(whenVar, () => {
-      const gotoExpr = this.compileOutcomeValue(outcome.properties.goto)
-      const gotoVar = emitter.const('gotoValue', gotoExpr)
+    generator.if(when, () => {
+      const gotoValue = generator.const('gotoValue', this.compileOutcomeValue(redirect.properties.goto))
 
-      emitter.if(`${gotoVar} !== undefined`, () => {
-        emitter.assign(outcomeVar, `{ type: "redirect", value: String(${gotoVar}) }`)
+      generator.if(code`${gotoValue} !== undefined`, () => {
+        generator.assign(
+          outcome,
+          objectCode([
+            { key: 'type', value: literal('redirect') },
+            { key: 'value', value: code`String(${gotoValue})` },
+          ]),
+        )
       })
     })
   }
 
-  private compileThrowErrorOutcome(outcome: ThrowErrorOutcomeASTNode, outcomeVar: string, emitter: CodeEmitter): void {
-    const whenVar = this.compilePredicate(outcome.properties.when, true, emitter, 'outcomeWhen')
+  private compileThrowErrorOutcome(
+    errorOutcome: ThrowErrorOutcomeASTNode,
+    outcome: Name,
+    generator: CodeGenerator,
+  ): void {
+    const when = this.compilePredicate(errorOutcome.properties.when, true, generator, 'outcomeWhen')
 
-    emitter.if(whenVar, () => {
-      const messageExpr = this.compileOutcomeValue(outcome.properties.message)
-      const messageVar = emitter.const('messageValue', messageExpr)
+    generator.if(when, () => {
+      const messageValue = generator.const('messageValue', this.compileOutcomeValue(errorOutcome.properties.message))
 
-      emitter.assign(
-        outcomeVar,
-        `{ type: "error", value: { status: ${JSON.stringify(outcome.properties.status)}, message: ${messageVar} !== undefined ? String(${messageVar}) : "" } }`,
+      generator.assign(
+        outcome,
+        objectCode([
+          { key: 'type', value: literal('error') },
+          {
+            key: 'value',
+            value: objectCode([
+              { key: 'status', value: literal(errorOutcome.properties.status) },
+              {
+                key: 'message',
+                value: code`${messageValue} !== undefined ? String(${messageValue}) : ""`,
+              },
+            ]),
+          },
+        ]),
       )
     })
   }
 
-  private compileOutcomeValue(value: ASTNode | string): string {
-    if (typeof value === 'string') {
-      return JSON.stringify(value)
-    }
-
-    return this.expr.compileExpression(value)
+  private compileOutcomeValue(value: ASTNode | string): Code {
+    return typeof value === 'string' ? literal(value) : this.expr.compileExpressionCode(value)
   }
 
-  private compileAsyncFunctionExpression(buildBody: (emitter: CodeEmitter) => void): string {
-    const emitter = new CodeEmitter()
+  private compileAsyncFunctionExpression(
+    prefix: string,
+    generator: CodeGenerator,
+    buildBody: (generator: CodeGenerator) => void,
+  ): Code {
+    return generator.functionExpression(prefix, [], buildBody, { async: true })
+  }
 
-    buildBody(emitter)
-
-    const body = emitter
-      .toString()
-      .split('\n')
-      .map(line => (line.length === 0 ? line : `  ${line}`))
-      .join('\n')
-
-    return `async () => {\n${body}\n}`
+  private toFunctionNamePart(value: string): string {
+    return `${value.charAt(0).toUpperCase()}${value.slice(1)}`
   }
 
   private isEffectNode(node: ASTNode): node is FunctionASTNode {
@@ -405,14 +409,4 @@ export default class HookLifecycleCompiler {
   private isOutcomeNode(node: ASTNode): node is RedirectOutcomeASTNode | ThrowErrorOutcomeASTNode {
     return isRedirectOutcomeNode(node) || isThrowErrorOutcomeNode(node)
   }
-}
-
-// Multi-line values embedded in an object-literal template need every line
-// shifted to the property's indent, or CodeEmitter's common-indent
-// normalisation leaves the lines ragged in the generated source.
-function indentEmbeddedSource(source: string): string {
-  return source
-    .split('\n')
-    .map(line => (line.length === 0 ? line : `  ${line}`))
-    .join('\n')
 }

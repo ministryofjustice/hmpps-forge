@@ -1,8 +1,10 @@
-import CodeEmitter from '../../../compilation/codegen/CodeEmitter'
+import { code, literal } from '../../../compilation/codegen/Code'
+import CodeGenerator from '../../../compilation/codegen/CodeGenerator'
+import Name from '../../../compilation/codegen/Name'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
-  buildGeneratedSource,
   compileGeneratedFunction,
+  renderGeneratedSource,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
 import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
@@ -29,7 +31,7 @@ export default class RouteMetadataCompiler {
   constructor(dependencies: CompilationDependencies) {
     this.expr = new ExpressionDispatcher(dependencies)
     this.values = new RuntimeValueCompiler(this.expr, {
-      expressionErrorFallback: 'undefined',
+      expressionErrorFallback: literal(undefined),
       expressionErrorMode: 'throw',
       omitUndefinedArrayItems: false,
     })
@@ -52,44 +54,45 @@ export default class RouteMetadataCompiler {
    * Builds inspectable generated source without constructing a Function.
    */
   generateSource(inputs: Iterable<RouteMetadataCompilationInputs>): string {
-    return buildGeneratedSource(this.expr, () => this.buildSource(inputs)).toString()
+    return renderGeneratedSource(this.expr, () => this.buildSource(inputs))
   }
 
   /**
    * Emits `result[nodeId] = { title, description?, metadata? }` for every node.
    */
-  private buildSource(inputs: Iterable<RouteMetadataCompilationInputs>): CodeEmitter {
-    const emitter = new CodeEmitter()
+  private buildSource(inputs: Iterable<RouteMetadataCompilationInputs>): CodeGenerator {
+    const generator = CodeGenerator.forFunction(['ctx'])
     const entries = [...inputs]
 
-    emitter.code('"use strict";')
-    emitter.comment('RouteMetadataCompiler.buildSource')
-    emitter.declareConst('result', '{}')
-    entries.forEach(input => this.compileEntry(input, emitter))
-    emitter.return('result')
+    generator.directive('use strict')
+    generator.comment('RouteMetadataCompiler.buildSource')
+    const result = generator.const('result', code`{}`)
 
-    return emitter
+    entries.forEach(input => this.compileEntry(input, result, generator))
+    generator.return(result)
+
+    return generator
   }
 
   /**
    * Emits the resolved metadata object for one node.
    */
-  private compileEntry(input: RouteMetadataCompilationInputs, emitter: CodeEmitter): void {
-    emitter.comment('RouteMetadataCompiler.compileEntry')
-    emitter.scope(() => {
-      const entryVar = emitter.const('routeMetadataEntry', '{}')
+  private compileEntry(input: RouteMetadataCompilationInputs, result: Name, generator: CodeGenerator): void {
+    generator.comment('RouteMetadataCompiler.compileEntry')
+    generator.scope(() => {
+      const entry = generator.const('routeMetadataEntry', code`{}`)
 
-      this.values.compileAssignment(input.title, emitter, entryVar, 'title')
+      this.values.compileAssignment(input.title, generator, entry, 'title')
 
       if (input.description !== undefined) {
-        this.values.compileAssignment(input.description, emitter, entryVar, 'description')
+        this.values.compileAssignment(input.description, generator, entry, 'description')
       }
 
       if (input.metadata !== undefined) {
-        this.values.compileAssignment(input.metadata, emitter, entryVar, 'metadata')
+        this.values.compileAssignment(input.metadata, generator, entry, 'metadata')
       }
 
-      emitter.assign(`result[${JSON.stringify(input.nodeId)}]`, entryVar)
+      generator.assign(code`${result}[${input.nodeId}]`, entry)
     })
   }
 }

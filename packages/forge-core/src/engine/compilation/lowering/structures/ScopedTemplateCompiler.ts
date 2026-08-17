@@ -2,16 +2,18 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import { BlockType, IteratorType } from '../../../../authoring/types/enums'
 import { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
-import CodeEmitter from '../../codegen/CodeEmitter'
+import { arrayCode, Code, code, literal, objectCode } from '../../codegen/Code'
+import CodeGenerator from '../../codegen/CodeGenerator'
+import Name from '../../codegen/Name'
 import FieldCodeEmitter from '../emitters/FieldCodeEmitter'
 import ExpressionDispatcher, { IteratorScopeFrame } from '../expressions/ExpressionDispatcher'
 
 export interface IteratorCompileScope {
-  readonly inputVar: string
-  readonly indexVar: string
-  readonly itemVar: string
-  readonly rawItemExpr: string
-  readonly inputLengthExpr: string
+  readonly input: Name
+  readonly index: Name
+  readonly item: Name
+  readonly rawItem: Name
+  readonly inputLength: Code
 }
 
 type TemplateNodePredicate = (node: TemplateNode) => boolean
@@ -45,35 +47,39 @@ export default class ScopedTemplateCompiler {
   /**
    * Emits the shared MAP iterator loop with item, index, raw item, and input length in scope.
    */
-  compileIteratorLoop(input: unknown, emitter: CodeEmitter, compileItem: (scope: IteratorCompileScope) => void): void {
-    const inputVar = emitter.let('iteratorInput', this.expr.compileOperand(input))
+  compileIteratorLoop(
+    input: unknown,
+    generator: CodeGenerator,
+    compileItem: (scope: IteratorCompileScope) => void,
+  ): void {
+    const inputName = generator.let('iteratorInput', this.expr.compileOperandCode(input))
 
-    this.compileNormalizeIteratorInput(inputVar, emitter)
+    this.compileNormalizeIteratorInput(inputName, generator)
 
-    emitter.if(`Array.isArray(${inputVar})`, () => {
-      const indexVar = emitter.let('iteratorIndex', '0')
+    generator.if(code`Array.isArray(${inputName})`, () => {
+      const indexName = generator.let('iteratorIndex', literal(0))
 
-      emitter.while(`${indexVar} < ${inputVar}.length`, () => {
-        const currentIndexVar = emitter.const('currentIteratorIndex', indexVar)
-        const rawItemVar = emitter.const('rawIteratorItem', `${inputVar}[${currentIndexVar}]`)
+      generator.while(code`${indexName} < ${inputName}.length`, () => {
+        const currentIndex = generator.const('currentIteratorIndex', indexName)
+        const rawItem = generator.const('rawIteratorItem', code`${inputName}[${currentIndex}]`)
 
-        emitter.assign(indexVar, `${indexVar} + 1`)
-        emitter.if(`${rawItemVar} == null`, () => emitter.continue())
+        generator.assign(indexName, code`${indexName} + 1`)
+        generator.if(code`${rawItem} == null`, () => generator.continue())
 
-        const itemVar = emitter.const('iteratorItem', this.compileIteratorItemScope(rawItemVar))
-        const inputLengthExpr = `${inputVar}.length`
+        const item = generator.const('iteratorItem', this.compileIteratorItemScope(rawItem))
+        const inputLength = code`${inputName}.length`
         const scope: IteratorCompileScope = {
-          inputVar,
-          indexVar: currentIndexVar,
-          itemVar,
-          rawItemExpr: rawItemVar,
-          inputLengthExpr,
+          input: inputName,
+          index: currentIndex,
+          item,
+          rawItem,
+          inputLength,
         }
         const frame: IteratorScopeFrame = {
-          itemVar,
-          indexVar: currentIndexVar,
-          inputLengthExpr,
-          rawItemExpr: rawItemVar,
+          itemVar: item,
+          indexVar: currentIndex,
+          inputLengthExpr: inputLength,
+          rawItemExpr: rawItem,
         }
 
         this.expr.withIteratorFrame(frame, () => {
@@ -88,7 +94,7 @@ export default class ScopedTemplateCompiler {
    */
   compileMapIterator(
     node: IterateASTNode,
-    emitter: CodeEmitter,
+    generator: CodeGenerator,
     compileYield: (template: TemplateValue, scope: IteratorCompileScope) => void,
   ): void {
     const yieldTemplate = node.properties.iterator.yieldTemplate
@@ -97,7 +103,7 @@ export default class ScopedTemplateCompiler {
       return
     }
 
-    this.compileIteratorLoop(node.properties.input, emitter, scope => {
+    this.compileIteratorLoop(node.properties.input, generator, scope => {
       compileYield(yieldTemplate, scope)
     })
   }
@@ -107,7 +113,7 @@ export default class ScopedTemplateCompiler {
    */
   compileTemplateMapIterator(
     node: TemplateNode,
-    emitter: CodeEmitter,
+    generator: CodeGenerator,
     compileYield: (template: TemplateValue, scope: IteratorCompileScope) => void,
   ): void {
     const properties = (node.properties ?? {}) as TemplateMapIteratorProperties
@@ -119,7 +125,7 @@ export default class ScopedTemplateCompiler {
 
     const yieldTemplate = iterator.yieldTemplate
 
-    this.compileIteratorLoop(properties.input, emitter, scope => {
+    this.compileIteratorLoop(properties.input, generator, scope => {
       compileYield(yieldTemplate, scope)
     })
   }
@@ -127,22 +133,22 @@ export default class ScopedTemplateCompiler {
   /**
    * Resolves a template field code to generated source, including dynamic code expressions.
    */
-  compileTemplateCodeExpression(node: TemplateNode, emitter: CodeEmitter): string | undefined {
-    return this.fieldCodes.compileTemplateExpression(node, emitter)
+  compileTemplateCodeExpression(node: TemplateNode, generator: CodeGenerator): Code | Name | undefined {
+    return this.fieldCodes.compileTemplateExpression(node, generator)
   }
 
   /**
    * Emits the runtime block ID for one template node under the current iterator scope.
    */
-  compileTemplateInstanceIdExpression(node: TemplateNode): string {
+  compileTemplateInstanceIdExpression(node: TemplateNode): Code {
     const prefix = `compiled:${String(node.id)}`
     const iteratorIndexes = this.expr.iteratorStack.map(frame => frame.indexVar)
 
     if (iteratorIndexes.length === 0) {
-      return JSON.stringify(prefix)
+      return literal(prefix)
     }
 
-    return `${JSON.stringify(`${prefix}:`)} + [${iteratorIndexes.join(', ')}].join(":")`
+    return code`${`${prefix}:`} + ${arrayCode(iteratorIndexes.map(index => code`${index}`))}.join(":")`
   }
 
   /**
@@ -170,23 +176,37 @@ export default class ScopedTemplateCompiler {
   /**
    * Normalizes object and array iterator inputs before emitted template loops run.
    */
-  private compileNormalizeIteratorInput(inputVar: string, emitter: CodeEmitter): void {
-    emitter.if(`${inputVar} != null && !Array.isArray(${inputVar}) && typeof ${inputVar} === "object"`, () => {
-      emitter.assign(
-        inputVar,
-        `Object.entries(${inputVar}).map(function(entry) { return typeof entry[1] === "object" && entry[1] !== null ? Object.assign({"@key": entry[0]}, entry[1]) : {"@key": entry[0], "@value": entry[1]}; })`,
-      )
+  private compileNormalizeIteratorInput(input: Name, generator: CodeGenerator): void {
+    generator.if(code`${input} != null && !Array.isArray(${input}) && typeof ${input} === "object"`, () => {
+      const mapEntry = generator.functionExpression('normalizeIteratorEntry', ['entry'], (body, [entry]) => {
+        body.return(
+          code`typeof ${entry}[1] === "object" && ${entry}[1] !== null ? Object.assign(${objectCode([
+            { key: '@key', value: code`${entry}[0]` },
+          ])}, ${entry}[1]) : ${objectCode([
+            { key: '@key', value: code`${entry}[0]` },
+            { key: '@value', value: code`${entry}[1]` },
+          ])}`,
+        )
+      })
+
+      generator.assign(input, code`Object.entries(${input}).map(${mapEntry})`)
     })
-    emitter.if(`Array.isArray(${inputVar})`, () => {
-      emitter.assign(inputVar, `${inputVar}.filter(function(item) { return item != null; })`)
+    generator.if(code`Array.isArray(${input})`, () => {
+      const removeEmptyItems = generator.functionExpression('removeEmptyIteratorItems', ['item'], (body, [item]) => {
+        body.return(code`${item} != null`)
+      })
+
+      generator.assign(input, code`${input}.filter(${removeEmptyItems})`)
     })
   }
 
   /**
    * Produces the scoped iterator item object exposed to @item references.
    */
-  private compileIteratorItemScope(rawItemExpr: string): string {
-    return `typeof ${rawItemExpr} === "object" && ${rawItemExpr} !== null ? Object.assign({}, ${rawItemExpr}) : { "@value": ${rawItemExpr} }`
+  private compileIteratorItemScope(rawItem: Name): Code {
+    return code`typeof ${rawItem} === "object" && ${rawItem} !== null ? Object.assign({}, ${rawItem}) : ${objectCode([
+      { key: '@value', value: rawItem },
+    ])}`
   }
 
   /**

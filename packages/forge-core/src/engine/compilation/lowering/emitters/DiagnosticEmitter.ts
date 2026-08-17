@@ -1,6 +1,8 @@
 import { FunctionType } from '../../../../authoring/types/enums'
 import { formatCallsiteChain, resolveCallsitePositionChain } from '../../../../shared/diagnostics/formatCallsite'
-import { compilePositionMarker } from '../../codegen/SourceRenderer'
+import { Code, arrayCode, code, literal, objectCode, positionedCode, propertyCode } from '../../codegen/Code'
+import CodeGenerator from '../../codegen/CodeGenerator'
+import Name from '../../codegen/Name'
 
 interface DiagnosticMetadata {
   readonly nodeId?: string
@@ -10,28 +12,31 @@ interface DiagnosticMetadata {
   readonly definedAt?: string
 }
 
-const GENERATED_FUNCTION_HELPERS_PARAM = '_forgeHelpers'
-const RUNTIME_DIAGNOSTICS_PARAM = '_forgeRuntimeDiagnostics'
+const GENERATED_FUNCTION_HELPERS_PARAM = new Name('_forgeHelpers')
+const RUNTIME_DIAGNOSTICS_PARAM = new Name('_forgeRuntimeDiagnostics')
+const CONTEXT_PARAM = new Name('ctx')
 
 export default class DiagnosticEmitter {
-  wrapExpression(expression: string, source: unknown, usesAwait: boolean): string {
+  wrapExpression(expression: Code, source: unknown, usesAwait: boolean, generator: CodeGenerator): Code {
     const metadata = this.getMetadata(source)
 
     if (metadata === undefined) {
       return expression
     }
 
-    const returnStatement = usesAwait ? `return await (${expression});` : `return (${expression});`
     const helperName = usesAwait ? 'evaluateTrackedAsync' : 'evaluateTracked'
-    const callbackPrefix = usesAwait ? 'async ' : ''
-    const helperCall = this.compileTrackedHelperCall(helperName, metadata, callbackPrefix, returnStatement)
-    const positionMarker = this.compilePositionMarkerFor(source)
+    const callback = generator.functionExpression(
+      this.compileCallbackName(metadata),
+      [],
+      callbackGenerator => {
+        callbackGenerator.return(usesAwait ? code`await (${expression})` : code`(${expression})`)
+      },
+      { async: usesAwait },
+    )
+    const helperCall = this.compileTrackedHelperCall(helperName, metadata, callback)
+    const wrappedCall = usesAwait ? code`(await ${helperCall})` : helperCall
 
-    if (usesAwait) {
-      return `${positionMarker}(await ${helperCall})`
-    }
-
-    return `${positionMarker}${helperCall}`
+    return positionedCode(wrappedCall, this.resolvePositions(source))
   }
 
   /**
@@ -39,14 +44,17 @@ export default class DiagnosticEmitter {
    * required parameter, not derived from `source`), so metadata is always
    * worth tracking and this always routes through the helper call.
    */
-  wrapFunctionCall(helperName: string, funcName: string, argExprs: string[], source: unknown): string {
+  wrapFunctionCall(helperName: string, funcName: string, argExprs: readonly Code[], source: unknown): Code {
     const metadata: DiagnosticMetadata = {
       ...this.getSourceDiagnostics(source),
       functionName: funcName,
       functionType: this.getFunctionType(source),
     }
 
-    return `${this.compilePositionMarkerFor(source)}${this.compileFunctionHelperCall(helperName, metadata, funcName, argExprs)}`
+    return positionedCode(
+      this.compileFunctionHelperCall(helperName, metadata, funcName, argExprs),
+      this.resolvePositions(source),
+    )
   }
 
   private getMetadata(source: unknown, functionName?: string): DiagnosticMetadata | undefined {
@@ -101,13 +109,9 @@ export default class DiagnosticEmitter {
     return chain.length > 0 ? chain.join('\n') : undefined
   }
 
-  /**
-   * One marker per author chain frame, innermost first, so a breakpoint binds
-   * at the node's own line and at each wiring line that called into a shared
-   * helper to build it.
-   */
-  private compilePositionMarkerFor(source: unknown): string {
-    return resolveCallsitePositionChain(this.getCallsite(source)).map(compilePositionMarker).join('')
+  /** Resolves the authored position chain innermost-first for source-map emission. */
+  private resolvePositions(source: unknown) {
+    return resolveCallsitePositionChain(this.getCallsite(source))
   }
 
   private getCallsite(source: unknown): { stack?: string } | undefined {
@@ -185,16 +189,8 @@ export default class DiagnosticEmitter {
     }
   }
 
-  private compileTrackedHelperCall(
-    helperName: string,
-    metadata: DiagnosticMetadata,
-    callbackPrefix: string,
-    returnStatement: string,
-  ): string {
-    const callback = `${callbackPrefix}function ${this.compileCallbackName(metadata)}() {\n${indentSource(returnStatement)}\n}`
-    const args = [RUNTIME_DIAGNOSTICS_PARAM, this.compileMetadataLiteral(metadata), callback]
-
-    return `${GENERATED_FUNCTION_HELPERS_PARAM}.${helperName}(\n${indentSource(args.join(',\n'))}\n)`
+  private compileTrackedHelperCall(helperName: string, metadata: DiagnosticMetadata, callback: Code): Code {
+    return code`${GENERATED_FUNCTION_HELPERS_PARAM}${propertyCode(helperName)}(${RUNTIME_DIAGNOSTICS_PARAM}, ${this.compileMetadataLiteral(metadata)}, ${callback})`
   }
 
   /**
@@ -219,20 +215,20 @@ export default class DiagnosticEmitter {
     helperName: string,
     metadata: DiagnosticMetadata,
     funcName: string,
-    argExprs: string[],
-  ): string {
+    argExprs: readonly Code[],
+  ): Code {
     const args = [
-      'ctx',
+      CONTEXT_PARAM,
       RUNTIME_DIAGNOSTICS_PARAM,
       this.compileMetadataLiteral(metadata),
-      JSON.stringify(funcName),
-      `[${argExprs.join(', ')}]`,
+      literal(funcName),
+      arrayCode(argExprs),
     ]
 
-    return `${GENERATED_FUNCTION_HELPERS_PARAM}.${helperName}(\n${indentSource(args.join(',\n'))}\n)`
+    return code`${GENERATED_FUNCTION_HELPERS_PARAM}${propertyCode(helperName)}(${args[0]}, ${args[1]}, ${args[2]}, ${args[3]}, ${args[4]})`
   }
 
-  private compileMetadataLiteral(metadata: DiagnosticMetadata): string {
+  private compileMetadataLiteral(metadata: DiagnosticMetadata): Code {
     const fields = [
       ['nodeId', metadata.nodeId],
       ['formattedPath', metadata.formattedPath],
@@ -241,23 +237,10 @@ export default class DiagnosticEmitter {
       ['definedAt', metadata.definedAt],
     ].filter((field): field is [string, string] => field[1] !== undefined)
 
-    if (fields.length === 0) {
-      return '{}'
-    }
-
-    const fieldLines = fields.map(([name, value]) => `${name}: ${JSON.stringify(value)}`).join(',\n')
-
-    return ['{', indentSource(fieldLines), '}'].join('\n')
+    return objectCode(fields.map(([key, value]) => ({ key, value: literal(value) })))
   }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value)
-}
-
-function indentSource(source: string): string {
-  return source
-    .split('\n')
-    .map(line => (line.length === 0 ? line : `  ${line}`))
-    .join('\n')
 }

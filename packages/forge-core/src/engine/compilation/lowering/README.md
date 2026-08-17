@@ -29,9 +29,9 @@ A navigation plan becomes a generated function that evaluates reachability and f
 Generated functions do not usually run their child work directly.
 They return `WorkTask` objects through `ctx.workTasks`, and the runtime work executor decides how to run those tasks.
 
-"Is this just runtime logic built out of strings?" Sort of, but deliberately so.
-The generated strings are treated as a compiler output.
-They are wrapped with diagnostics, built through `CodeEmitter`, and tested both as source and as executable functions.
+"Is this just runtime logic built out of strings?" The final output is JavaScript source, but compilers do not assemble it as strings.
+They build typed `Code`, `Name`, and statement nodes through `CodeGenerator`, following the same safe-fragment approach as Ajv's code generator.
+`SourceRenderer` turns that IR into source and source-map segments in one pass, and the result is tested both as source and as executable functions.
 The runtime executes the compiled functions later; lowering does not run request lifecycles itself.
 
 We also prefer to build as functions because it simplifies some of the sync/async handling that can come with
@@ -85,7 +85,9 @@ When `ForgeInstrumentationOptions.captureGeneratedSource` is set, the wrapped ge
 The source is captured before the `Function` construction, so a failed compile still carries the source that produced it.
 
 The main source-building helpers are:
-- `CodeEmitter`, which owns indentation and variable names.
+- `CodeGenerator`, which owns structured statements, functions, scopes, and variable names.
+- `Code` and `Name`, which keep executable fragments distinct from literal values.
+- `SourceRenderer`, which renders source and authored-position segments directly from the IR.
 - `ExpressionDispatcher`, which compiles expressions and tracks iterator scope, `@self`, and `usesAwait`.
 - `RuntimeValueCompiler`, which turns authored values into the runtime values used at request time.
 - `ScopedTemplateCompiler`, which emits iterator/template loops and compiled template instance IDs.
@@ -235,7 +237,7 @@ flowchart TD
   Non-validating steps are intentionally absent from the index, even though each final step artifact has a no-op-capable `compiledValidation` function.
 - Direct function expressions are not wrapped twice for diagnostics.
   `ExpressionDispatcher` lets `_forgeHelpers.evaluateFunction()` carry function metadata instead of adding an outer `evaluateTracked()` wrapper.
-- `CodeEmitter` tracks lexical and function-scoped names differently.
+- `CodeGenerator` tracks lexical and function-scoped names differently.
   `var` names cannot be reused across sibling scopes, but `const` and `let` names can when their scopes do not overlap.
 
 ## Constraints
@@ -268,8 +270,8 @@ flowchart TD
   Add a sibling compiler when the expression has a distinct shape, then route it from `dispatchExpression()`.
 - To change function call emission, start in `PipelineNodeCompiler.compileFunction()` and `DiagnosticEmitter`.
   Keep function metadata attached for runtime diagnostics.
-- To change generated variable naming or indentation, start in `CodeEmitter`.
-  Do not hand-format multi-line generated source in phase compilers unless `CodeEmitter` cannot express it.
+- To change generated variable naming, start in `CodeGenerator`; for indentation and layout, start in `SourceRenderer`.
+  Keep phase compilers on typed `Code` and structured nodes rather than hand-formatting source.
 - To change iterator template behavior, start in `ScopedTemplateCompiler`.
   Then check answer preparation, validation, resolve, and field inventory.
 - To change template block identity, keep resolve and validation on `ScopedTemplateCompiler.compileTemplateInstanceIdExpression()`.
@@ -288,7 +290,8 @@ flowchart TD
 - [function-construction/GeneratedFunctionCompiler.ts](function-construction/GeneratedFunctionCompiler.ts) wraps source, injects helpers, and compiles generated functions.
 - [function-construction/compiledFunctionFactory.ts](function-construction/compiledFunctionFactory.ts) is the only `Function` and `AsyncFunction` construction site.
 - [function-construction/GeneratedFunctionHelpers.ts](function-construction/GeneratedFunctionHelpers.ts) defines `_forgeHelpers` used by generated source.
-- [emitters/CodeEmitter.ts](emitters/CodeEmitter.ts) builds readable JavaScript source with scoped variable names.
+- [../codegen/CodeGenerator.ts](../codegen/CodeGenerator.ts) builds structured generated-code IR with scoped names.
+- [../codegen/SourceRenderer.ts](../codegen/SourceRenderer.ts) renders readable JavaScript and source-map segments.
 - [emitters/DiagnosticEmitter.ts](emitters/DiagnosticEmitter.ts) emits runtime diagnostic wrappers.
 - [emitters/FieldCodeEmitter.ts](emitters/FieldCodeEmitter.ts) emits field-code expressions for answers, metadata, and `Self()`.
 - [expressions/ExpressionDispatcher.ts](expressions/ExpressionDispatcher.ts) compiles AST and template expressions.
