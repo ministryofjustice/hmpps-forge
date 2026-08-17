@@ -60,14 +60,24 @@ interface RuntimeDiagnosticState {
 
 interface RuntimeEvaluationDiagnostics {
   current: RuntimeDiagnosticState | undefined
-  wrap(
-    error: unknown,
-    nodeId?: string,
-    formattedPath?: string,
-    functionName?: string,
-    functionType?: string,
-    definedAt?: string,
-  ): unknown
+  resolve(reference: number): RuntimeDiagnosticState | undefined
+  wrap(error: unknown, reference?: number): unknown
+}
+
+interface RuntimeValidationRule {
+  readonly condition?: () => unknown
+  readonly details?: unknown | (() => unknown)
+  readonly evaluate?: () => unknown
+  readonly groups?: unknown
+  readonly message?: unknown | (() => unknown)
+  readonly passed?: unknown
+  readonly submissionOnly?: boolean
+}
+
+interface RuntimeValidationFailure {
+  readonly rule: RuntimeValidationRule
+  readonly message: unknown
+  readonly details: unknown
 }
 
 const VALIDATION_CONDITION_FUNCTION_TYPE = 'FunctionType.Condition'
@@ -83,29 +93,35 @@ export interface GeneratedFunctionHelpers {
   evaluateFunction(
     ctx: FunctionEvaluationContext,
     diagnostics: RuntimeEvaluationDiagnostics | undefined,
-    metadata: RuntimeDiagnosticState,
+    diagnosticReference: number,
     functionName: string,
     args: unknown[],
   ): unknown
   evaluateFunctionAsync(
     ctx: FunctionEvaluationContext,
     diagnostics: RuntimeEvaluationDiagnostics | undefined,
-    metadata: RuntimeDiagnosticState,
+    diagnosticReference: number,
     functionName: string,
     args: unknown[],
   ): Promise<unknown>
   evaluateTracked(
     diagnostics: RuntimeEvaluationDiagnostics | undefined,
-    metadata: RuntimeDiagnosticState,
+    diagnosticReference: number,
     evaluate: () => unknown,
   ): unknown
   evaluateTrackedAsync(
     diagnostics: RuntimeEvaluationDiagnostics | undefined,
-    metadata: RuntimeDiagnosticState,
+    diagnosticReference: number,
     evaluate: () => Promise<unknown>,
   ): Promise<unknown>
-  evaluateValidationCondition(evaluate: () => unknown): boolean
-  evaluateValidationConditionAsync(evaluate: () => Promise<unknown>): Promise<boolean>
+  collectValidationFailures(
+    results: unknown,
+    ruleIsActive: (rule: RuntimeValidationRule) => boolean,
+  ): RuntimeValidationFailure[]
+  collectValidationFailuresAsync(
+    results: unknown,
+    ruleIsActive: (rule: RuntimeValidationRule) => boolean,
+  ): Promise<RuntimeValidationFailure[]>
 }
 
 export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
@@ -202,7 +218,7 @@ export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
     blockProps.errors = ctx.fieldFailures[String(blockId)] ?? []
   },
 
-  evaluateFunction(ctx, diagnostics, metadata, functionName, args) {
+  evaluateFunction(ctx, diagnostics, diagnosticReference, functionName, args) {
     const evaluate = () => {
       const entry = ctx.conditions.get(functionName)
 
@@ -219,10 +235,10 @@ export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
       return result
     }
 
-    return evaluateWithDiagnostics(diagnostics, metadata, evaluate)
+    return evaluateWithDiagnostics(diagnostics, diagnosticReference, evaluate)
   },
 
-  evaluateFunctionAsync(ctx, diagnostics, metadata, functionName, args) {
+  evaluateFunctionAsync(ctx, diagnostics, diagnosticReference, functionName, args) {
     const evaluate = async () => {
       const entry = ctx.conditions.get(functionName)
 
@@ -239,39 +255,57 @@ export const generatedFunctionHelpers: GeneratedFunctionHelpers = {
       return result
     }
 
-    return evaluateWithDiagnosticsAsync(diagnostics, metadata, evaluate)
+    return evaluateWithDiagnosticsAsync(diagnostics, diagnosticReference, evaluate)
   },
 
-  evaluateTracked(diagnostics, metadata, evaluate) {
-    return evaluateWithDiagnostics(diagnostics, metadata, evaluate)
+  evaluateTracked(diagnostics, diagnosticReference, evaluate) {
+    return evaluateWithDiagnostics(diagnostics, diagnosticReference, evaluate)
   },
 
-  evaluateTrackedAsync(diagnostics, metadata, evaluate) {
-    return evaluateWithDiagnosticsAsync(diagnostics, metadata, evaluate)
+  evaluateTrackedAsync(diagnostics, diagnosticReference, evaluate) {
+    return evaluateWithDiagnosticsAsync(diagnostics, diagnosticReference, evaluate)
   },
 
-  evaluateValidationCondition(evaluate) {
-    try {
-      return !!evaluate()
-    } catch (error) {
-      if (isValidationConditionTypeError(error)) {
-        return false
+  collectValidationFailures(results, ruleIsActive) {
+    const failures: RuntimeValidationFailure[] = []
+    const validationStack = [results]
+    let validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
+
+    while (validationRule !== undefined) {
+      const validationPassed = evaluateValidationRule(validationRule)
+
+      if (!validationPassed) {
+        const validationMessage = resolveValidationRuleValue(validationRule, validationRule.message, '')
+        const validationDetails = resolveValidationRuleValue(validationRule, validationRule.details, undefined)
+
+        failures.push({ rule: validationRule, message: validationMessage, details: validationDetails })
       }
 
-      throw error
+      validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
     }
+
+    return failures
   },
 
-  async evaluateValidationConditionAsync(evaluate) {
-    try {
-      return !!(await evaluate())
-    } catch (error) {
-      if (isValidationConditionTypeError(error)) {
-        return false
+  async collectValidationFailuresAsync(results, ruleIsActive) {
+    const failures: RuntimeValidationFailure[] = []
+    const validationStack = [results]
+    let validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
+
+    while (validationRule !== undefined) {
+      const validationPassed = await evaluateValidationRuleAsync(validationRule)
+
+      if (!validationPassed) {
+        const validationMessage = await resolveValidationRuleValue(validationRule, validationRule.message, '')
+        const validationDetails = await resolveValidationRuleValue(validationRule, validationRule.details, undefined)
+
+        failures.push({ rule: validationRule, message: validationMessage, details: validationDetails })
       }
 
-      throw error
+      validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
     }
+
+    return failures
   },
 }
 
@@ -360,15 +394,15 @@ export function precheckShortCircuit(
 
 function evaluateWithDiagnostics(
   diagnostics: RuntimeEvaluationDiagnostics | undefined,
-  metadata: RuntimeDiagnosticState,
+  diagnosticReference: number,
   evaluate: () => unknown,
 ): unknown {
-  const previous = enterDiagnostics(diagnostics, metadata)
+  const previous = enterDiagnostics(diagnostics, diagnosticReference)
 
   try {
     return evaluate()
   } catch (error) {
-    throw wrapDiagnosticError(diagnostics, metadata, error)
+    throw wrapDiagnosticError(diagnostics, diagnosticReference, error)
   } finally {
     exitDiagnostics(diagnostics, previous)
   }
@@ -376,15 +410,15 @@ function evaluateWithDiagnostics(
 
 async function evaluateWithDiagnosticsAsync(
   diagnostics: RuntimeEvaluationDiagnostics | undefined,
-  metadata: RuntimeDiagnosticState,
+  diagnosticReference: number,
   evaluate: () => Promise<unknown>,
 ): Promise<unknown> {
-  const previous = enterDiagnostics(diagnostics, metadata)
+  const previous = enterDiagnostics(diagnostics, diagnosticReference)
 
   try {
     return await evaluate()
   } catch (error) {
-    throw wrapDiagnosticError(diagnostics, metadata, error)
+    throw wrapDiagnosticError(diagnostics, diagnosticReference, error)
   } finally {
     exitDiagnostics(diagnostics, previous)
   }
@@ -392,15 +426,18 @@ async function evaluateWithDiagnosticsAsync(
 
 function enterDiagnostics(
   diagnostics: RuntimeEvaluationDiagnostics | undefined,
-  metadata: RuntimeDiagnosticState,
+  diagnosticReference: number,
 ): RuntimeDiagnosticState | undefined {
   if (diagnostics === undefined) {
     return undefined
   }
 
   const previous = diagnostics.current
+  const metadata = diagnostics.resolve(diagnosticReference)
 
-  diagnostics.current = metadata
+  if (metadata !== undefined) {
+    diagnostics.current = metadata
+  }
 
   return previous
 }
@@ -416,21 +453,100 @@ function exitDiagnostics(
 
 function wrapDiagnosticError(
   diagnostics: RuntimeEvaluationDiagnostics | undefined,
-  metadata: RuntimeDiagnosticState,
+  diagnosticReference: number,
   error: unknown,
 ): unknown {
   if (diagnostics === undefined) {
     return error
   }
 
-  return diagnostics.wrap(
-    error,
-    metadata.nodeId,
-    metadata.formattedPath,
-    metadata.functionName,
-    metadata.functionType,
-    metadata.definedAt,
-  )
+  return diagnostics.wrap(error, diagnosticReference)
+}
+
+function takeNextActiveValidationRule(
+  validationStack: unknown[],
+  ruleIsActive: (rule: RuntimeValidationRule) => boolean,
+): RuntimeValidationRule | undefined {
+  while (validationStack.length > 0) {
+    const candidate = validationStack.pop()
+
+    if (candidate === null || candidate === undefined) {
+      continue
+    }
+
+    if (Array.isArray(candidate)) {
+      candidate.toReversed().forEach(item => validationStack.push(item))
+
+      continue
+    }
+
+    const validationRule = candidate as RuntimeValidationRule
+
+    if (ruleIsActive(validationRule)) {
+      return validationRule
+    }
+  }
+
+  return undefined
+}
+
+function resolveValidationRuleValue(
+  rule: RuntimeValidationRule,
+  evaluate: unknown | (() => unknown),
+  fallback: unknown,
+): unknown {
+  if (typeof evaluate === 'function') {
+    return evaluate.call(rule)
+  }
+
+  return evaluate === undefined ? fallback : evaluate
+}
+
+function evaluateValidationRule(rule: RuntimeValidationRule): unknown {
+  if (typeof rule.condition === 'function') {
+    return evaluateValidationCondition(rule, rule.condition)
+  }
+
+  if (typeof rule.evaluate === 'function') {
+    return rule.evaluate.call(rule)
+  }
+
+  return rule.passed
+}
+
+async function evaluateValidationRuleAsync(rule: RuntimeValidationRule): Promise<unknown> {
+  if (typeof rule.condition === 'function') {
+    return evaluateValidationConditionAsync(rule, rule.condition)
+  }
+
+  return evaluateValidationRule(rule)
+}
+
+function evaluateValidationCondition(rule: RuntimeValidationRule, condition: () => unknown): boolean {
+  try {
+    return !!condition.call(rule)
+  } catch (error) {
+    if (isValidationConditionTypeError(error)) {
+      return false
+    }
+
+    throw error
+  }
+}
+
+async function evaluateValidationConditionAsync(
+  rule: RuntimeValidationRule,
+  condition: () => unknown,
+): Promise<boolean> {
+  try {
+    return !!(await condition.call(rule))
+  } catch (error) {
+    if (isValidationConditionTypeError(error)) {
+      return false
+    }
+
+    throw error
+  }
 }
 
 function isValidationConditionTypeError(error: unknown): boolean {

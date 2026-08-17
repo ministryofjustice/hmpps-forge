@@ -66,7 +66,10 @@ export default class CodegenOrchestrator {
               'codegen.step',
               () => {
                 const stepInputs = this.resolveStepInputs(plan, stepId)
-                const stepFunctions = this.compileStepFunctions(stepInputs)
+                const stepFunctions = this.compileStepFunctions(
+                  stepInputs,
+                  journeyFunctions.compiledStepValidations.get(stepId),
+                )
 
                 steps.set(stepId, {
                   runtimePlan: stepInputs.core.runtimePlan,
@@ -99,7 +102,10 @@ export default class CodegenOrchestrator {
     }
   }
 
-  private compileStepFunctions(inputs: StepCompilationInputs): CompiledStepFunctions {
+  private compileStepFunctions(
+    inputs: StepCompilationInputs,
+    journeyValidation: CompiledValidationFunction | undefined,
+  ): CompiledStepFunctions {
     const hookCompiler = new HookLifecycleCompiler(this.dependencies)
     const answerPrepCompiler = new StepAnswerPreparationCompiler(this.dependencies)
     const validationCompiler = new StepValidationCompiler(this.dependencies)
@@ -115,12 +121,14 @@ export default class CodegenOrchestrator {
         inputs.answerPreparation.fieldBlocks,
         inputs.answerPreparation.mapIterateNodes,
       ),
-      compiledValidation: validationCompiler.compileStepValidation(
-        inputs.validation.stepNode,
-        inputs.validation.validatingFieldBlocks,
-        inputs.validation.stepNode.properties.validWhen,
-        inputs.validation.mapIterateNodes,
-      ),
+      compiledValidation:
+        journeyValidation ??
+        validationCompiler.compileStepValidation(
+          inputs.validation.stepNode,
+          inputs.validation.validatingFieldBlocks,
+          inputs.validation.stepNode.properties.validWhen,
+          inputs.validation.mapIterateNodes,
+        ),
       compiledEntryValidation: entryValidationCompiler.compileOnEntryValidation(
         inputs.core.stepNode,
         inputs.validation.stepNode.properties.validateOnEntry,

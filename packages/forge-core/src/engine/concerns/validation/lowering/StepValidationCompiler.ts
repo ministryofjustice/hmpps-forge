@@ -3,7 +3,16 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { FieldBlockASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
 import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
-import { arrayCode, Code, code, literal, objectCode, SafeCode } from '../../../compilation/codegen/Code'
+import {
+  arrayCode,
+  callCode,
+  Code,
+  code,
+  literal,
+  objectCode,
+  propertyCode,
+  SafeCode,
+} from '../../../compilation/codegen/Code'
 import CodeGenerator from '../../../compilation/codegen/CodeGenerator'
 import Name from '../../../compilation/codegen/Name'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
@@ -77,7 +86,7 @@ export default class StepValidationCompiler {
     const generator = CodeGenerator.forFunction(['ctx', 'filter'])
 
     generator.directive('use strict')
-    generator.comment('StepValidationCompiler.buildStepValidationSource')
+    generator.comment('Validation groups')
     const ruleIsActive = this.compileRuleFilterSetup(generator)
     const fieldValidations = generator.const('fieldValidations', code`[]`)
     const domainValidations = generator.const('domainValidations', code`[]`)
@@ -108,7 +117,7 @@ export default class StepValidationCompiler {
       return
     }
 
-    generator.comment('StepValidationCompiler.compileIterateBlock')
+    generator.comment('Repeated field validations')
     this.templates.compileMapIterator(iterateNode, generator, yieldTemplate => {
       this.compileTemplateValidations(yieldTemplate, fieldValidations, ruleIsActive, generator)
     })
@@ -181,7 +190,7 @@ export default class StepValidationCompiler {
       return
     }
 
-    generator.comment('StepValidationCompiler.compileTemplateFieldValidations')
+    generator.comment('Template field validation')
     const blockCode = codeExpression ?? literal(undefined)
     const blockId = this.templates.compileTemplateInstanceIdExpression(field)
     const functionPrefix = this.compileValidationFunctionPrefix(field.properties?.code)
@@ -229,7 +238,7 @@ export default class StepValidationCompiler {
       return
     }
 
-    generator.comment(`StepValidationCompiler.compileFieldBlock — ${block.variant} ${describeBlockCode(block)}`)
+    generator.comment(`Field validation — ${block.variant} ${describeBlockCode(block)}`)
     generator.scope(() => {
       const selfCodeExpression = this.fieldCodes.compileRegisteredExpression(block.properties.code, generator)
       const blockCode = selfCodeExpression ?? literal(undefined)
@@ -275,24 +284,22 @@ export default class StepValidationCompiler {
     functionPrefix: string,
     generator: CodeGenerator,
   ): void {
-    generator.comment('StepValidationCompiler.compileFieldValidationSlot')
+    generator.comment('Register field validation')
     generator.scope(() => {
+      const runValidation = this.compileFieldValidationRunFunction(
+        value,
+        blockId,
+        blockCode,
+        ruleIsActive,
+        functionPrefix,
+        generator,
+      )
       const props = generator.const(
         'fieldValidationProps',
         objectCode([
           { key: 'blockId', value: blockId },
           { key: 'blockCode', value: blockCode },
-          {
-            key: 'run',
-            value: this.compileFieldValidationRunFunction(
-              value,
-              blockId,
-              blockCode,
-              ruleIsActive,
-              functionPrefix,
-              generator,
-            ),
-          },
+          { key: 'run', value: runValidation },
         ]),
       )
 
@@ -312,17 +319,10 @@ export default class StepValidationCompiler {
       return
     }
 
-    generator.comment('StepValidationCompiler.compileDomainValidationSlot')
+    generator.comment('Register step validation')
     generator.scope(() => {
-      const props = generator.const(
-        'domainValidationProps',
-        objectCode([
-          {
-            key: 'run',
-            value: this.compileDomainValidationRunFunction(value, ruleIsActive, generator),
-          },
-        ]),
-      )
+      const runValidation = this.compileDomainValidationRunFunction(value, ruleIsActive, generator)
+      const props = generator.const('domainValidationProps', objectCode([{ key: 'run', value: runValidation }]))
 
       generator.statement(code`${domainValidations}.push(${CONTEXT}.workTasks.domainValidation("domain:0", ${props}))`)
     })
@@ -335,25 +335,23 @@ export default class StepValidationCompiler {
     ruleIsActive: Name,
     functionPrefix: string,
     generator: CodeGenerator,
-  ): Code {
-    return generator.functionExpression(
+  ): Name {
+    return generator.function(
       functionPrefix,
       [],
       body => {
         const errors = body.const('errors', code`[]`)
-        const validationResults = body.let('validationResults')
-
-        this.values.compileValue(value, body, validationResults)
-        const evaluateValidationResults = this.compileValidationResultEvaluator(ruleIsActive, functionPrefix, body)
-        const evaluateResults = code`${evaluateValidationResults}(${validationResults})`
-        const failures = body.const(
-          'validationFailures',
-          this.expr.usesAwait ? code`await ${evaluateResults}` : evaluateResults,
+        const validationResults = this.compileValidationRules(
+          value,
+          this.compileValidationEvaluationPrefix(functionPrefix),
+          body,
         )
+        const failures = this.compileValidationFailures(validationResults, ruleIsActive, 'validationFailures', body)
 
         body.forRange('failureIndex', literal(0), code`${failures}.length`, failureIndex => {
           const failure = body.const('validationFailure', code`${failures}[${failureIndex}]`)
 
+          body.note('Return this failed rule as a field validation error.')
           body.statement(
             code`${errors}.push(${objectCode([
               { key: 'blockId', value: blockId },
@@ -372,29 +370,24 @@ export default class StepValidationCompiler {
     )
   }
 
-  private compileDomainValidationRunFunction(value: unknown, ruleIsActive: Name, generator: CodeGenerator): Code {
-    return generator.functionExpression(
+  private compileDomainValidationRunFunction(value: unknown, ruleIsActive: Name, generator: CodeGenerator): Name {
+    return generator.function(
       'validateStep',
       [],
       body => {
         const domainErrors = body.const('domainErrors', code`[]`)
-        const validationResults = body.let('domainValidationResults')
-
-        this.values.compileValue(value, body, validationResults)
-        const evaluateValidationResults = this.compileValidationResultEvaluator(
+        const validationResults = this.compileValidationRules(value, 'step', body)
+        const failures = this.compileValidationFailures(
+          validationResults,
           ruleIsActive,
-          'evaluateStepResults',
-          body,
-        )
-        const evaluateResults = code`${evaluateValidationResults}(${validationResults})`
-        const failures = body.const(
           'domainValidationFailures',
-          this.expr.usesAwait ? code`await ${evaluateResults}` : evaluateResults,
+          body,
         )
 
         body.forRange('failureIndex', literal(0), code`${failures}.length`, failureIndex => {
           const failure = body.const('domainValidationFailure', code`${failures}[${failureIndex}]`)
 
+          body.note('Return this failed rule as a step validation error.')
           body.statement(
             code`${domainErrors}.push(${objectCode([
               { key: 'passed', value: literal(false) },
@@ -412,36 +405,40 @@ export default class StepValidationCompiler {
   }
 
   private compileRuleFilterSetup(generator: CodeGenerator): Name {
-    generator.comment('StepValidationCompiler.compileRuleFilterSetup')
-    const activeGroupSet = generator.const('activeGroupSet', code`Object.create(null)`)
-    const registerActiveGroup = generator.functionExpression(
-      'registerActiveValidationGroup',
-      ['activeGroup'],
-      (body, [activeGroup]) => {
-        body.assign(code`${activeGroupSet}[String(${activeGroup})]`, literal(true))
-      },
+    generator.comment('Active validation groups')
+    generator.note('Use the default group when the request does not select one.')
+    const requestedGroups = generator.const(
+      'requestedGroups',
+      code`${FILTER}.groups.length > 0 ? ${FILTER}.groups : ${arrayCode([literal('default')])}`,
     )
+    const activeGroups = generator.const('activeGroups', code`new Set(${requestedGroups})`)
 
-    generator.statement(
-      code`(${FILTER}.groups.length > 0 ? ${FILTER}.groups : ${arrayCode([literal('default')])}).forEach(${registerActiveGroup})`,
-    )
     const ruleIsActive = generator.function('ruleIsActive', ['rule'], (body, [rule]) => {
+      body.note('Use the default group when the rule does not declare one.')
       const ruleGroups = body.const(
         'ruleGroups',
-        code`${rule}.groups !== undefined && ${rule}.groups.length > 0 ? ${rule}.groups : ${arrayCode([
-          literal('default'),
-        ])}`,
-      )
-      const hasActiveGroup = body.functionExpression(
-        'hasActiveValidationGroup',
-        ['group'],
-        (predicateBody, [group]) => {
-          predicateBody.return(code`${activeGroupSet}[String(${group})] === true`)
-        },
+        code`Array.isArray(${rule}.groups) && ${rule}.groups.length > 0 ? ${rule}.groups : ${arrayCode([literal('default')])}`,
       )
 
-      body.if(code`!${ruleGroups}.some(${hasActiveGroup})`, () => body.return(literal(false)))
-      body.return(code`${rule}.submissionOnly !== true || ${FILTER}.includeSubmissionOnly === true`)
+      body.note('A rule runs when any of its groups is active.')
+      const isActiveValidationGroup = body.functionExpression(
+        'isActiveValidationGroup',
+        ['group'],
+        (predicateBody, [group]) => {
+          predicateBody.return(code`${activeGroups}.has(${group})`)
+        },
+      )
+      const hasActiveGroup = body.const('hasActiveGroup', callCode(code`${ruleGroups}.some`, [isActiveValidationGroup]))
+
+      body.if(code`!${hasActiveGroup}`, () => body.return(literal(false)))
+
+      body.note('Submission-only rules are skipped unless this validation run includes them.')
+      const submissionOnlyIsIncluded = body.const(
+        'submissionOnlyIsIncluded',
+        code`${FILTER}.includeSubmissionOnly === true`,
+      )
+
+      body.return(code`${rule}.submissionOnly !== true || ${submissionOnlyIsIncluded}`)
     })
 
     generator.blank()
@@ -449,72 +446,49 @@ export default class StepValidationCompiler {
     return ruleIsActive
   }
 
-  private compileValidationResultEvaluator(ruleIsActive: Name, functionPrefix: string, generator: CodeGenerator): Name {
-    generator.comment('StepValidationCompiler.compileValidationResultEvaluator')
-    const usesAwait = this.expr.usesAwait
+  private compileValidationFailures(
+    validationResults: Name,
+    ruleIsActive: Name,
+    resultPrefix: string,
+    generator: CodeGenerator,
+  ): Name {
+    generator.comment('Evaluate validation results')
+    const helperName = this.expr.usesAwait ? 'collectValidationFailuresAsync' : 'collectValidationFailures'
+    const helperCall = code`_forgeHelpers${propertyCode(helperName)}(${validationResults}, ${ruleIsActive})`
 
-    return generator.function(
-      `${functionPrefix}_results`,
-      ['results'],
-      (body, [results]) => {
-        const failures = body.const('failures', code`[]`)
-        const stack = body.const('validationStack', arrayCode([results]))
+    return generator.const(resultPrefix, this.expr.usesAwait ? code`await ${helperCall}` : helperCall)
+  }
 
-        body.while(code`${stack}.length > 0`, () => {
-          const rule = body.const('validationRule', code`${stack}.pop()`)
+  private compileValidationRules(value: unknown, functionPrefix: string, generator: CodeGenerator): Name {
+    if (Array.isArray(value) && value.every(rule => this.isDirectValidationRule(rule))) {
+      const validationRules = this.expr.withValidationFunctionPrefix(functionPrefix, () =>
+        value.map(rule => this.expr.compileOperandCode(rule)),
+      )
 
-          body.if(code`${rule} == null`, () => body.continue())
-          body.if(code`Array.isArray(${rule})`, () => {
-            const index = body.let('validationIndex', code`${rule}.length - 1`)
+      generator.comment('Build validation rules')
 
-            body.while(code`${index} >= 0`, () => {
-              const currentIndex = body.const('validationCurrentIndex', index)
+      return generator.const('validationRules', arrayCode(validationRules))
+    }
 
-              body.assign(index, code`${index} - 1`)
-              body.statement(code`${stack}.push(${rule}[${currentIndex}])`)
-            })
-            body.continue()
-          })
-          body.if(code`!${ruleIsActive}(${rule})`, () => body.continue())
+    const validationResults = generator.let('validationResults')
 
-          const passed = body.let(
-            'validationPassed',
-            code`typeof ${rule}.evaluate === "function" ? ${rule}.evaluate() : ${rule}.passed`,
-          )
+    this.expr.withValidationFunctionPrefix(functionPrefix, () => {
+      this.values.compileValue(value, generator, validationResults)
+    })
 
-          if (usesAwait) {
-            body.assign(passed, code`await ${passed}`)
-          }
+    return validationResults
+  }
 
-          body.if(passed, () => body.continue())
+  private isDirectValidationRule(value: unknown): boolean {
+    if (this.expr.isTemplateNode(value)) {
+      return value.originalType === ASTNodeType.EXPRESSION && value.expressionType === ExpressionType.VALIDATION
+    }
 
-          const message = body.let(
-            'validationMessage',
-            code`typeof ${rule}.message === "function" ? ${rule}.message() : ${rule}.message`,
-          )
-          const details = body.let(
-            'validationDetails',
-            code`typeof ${rule}.details === "function" ? ${rule}.details() : ${rule}.details`,
-          )
+    if (!this.expr.isCompilableNode(value) || value.type !== ASTNodeType.EXPRESSION) {
+      return false
+    }
 
-          if (usesAwait) {
-            body.assign(message, code`await ${message}`)
-            body.assign(details, code`await ${details}`)
-          }
-
-          body.if(code`${message} === undefined`, () => body.assign(message, literal('')))
-          body.statement(
-            code`${failures}.push(${objectCode([
-              { key: 'rule', value: rule },
-              { key: 'message', value: message },
-              { key: 'details', value: details },
-            ])})`,
-          )
-        })
-        body.return(failures)
-      },
-      { async: usesAwait },
-    )
+    return 'expressionType' in value && value.expressionType === ExpressionType.VALIDATION
   }
 
   private compileValidationFunctionPrefix(fieldCode: unknown): string {
@@ -525,6 +499,14 @@ export default class StepValidationCompiler {
     const namePart = fieldCode.replace(/[^A-Za-z0-9_$]+/g, '_').replace(/^([^A-Za-z_$])/, '_$1')
 
     return `validate_${namePart || 'field'}`
+  }
+
+  private compileValidationEvaluationPrefix(functionPrefix: string): string {
+    if (functionPrefix === 'validateField') {
+      return 'field'
+    }
+
+    return functionPrefix.replace(/^validate_/, '')
   }
 
   private containsTemplateFieldWithValidation(template: TemplateValue): boolean {

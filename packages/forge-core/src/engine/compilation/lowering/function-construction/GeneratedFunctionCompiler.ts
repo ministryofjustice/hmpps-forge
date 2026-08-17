@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
 import BlankLineCodeNode from '../../codegen/BlankLineCodeNode'
 import { code } from '../../codegen/Code'
@@ -14,6 +15,7 @@ import { createCompiledFunction, GeneratedFunction, measureWrapperOffset } from 
 import { generatedFunctionHelpers } from './GeneratedFunctionHelpers'
 import ForgeCompilationError from '../../../errors/ForgeCompilationError'
 import ForgeRuntimeEvaluationError from '../../../errors/ForgeRuntimeEvaluationError'
+import type { DiagnosticMetadata } from '../emitters/DiagnosticEmitter'
 
 interface CompileOptions {
   forceAsync?: boolean
@@ -32,14 +34,8 @@ interface RuntimeDiagnosticState {
 
 interface RuntimeEvaluationDiagnostics {
   current: RuntimeDiagnosticState | undefined
-  wrap: (
-    error: unknown,
-    nodeId?: string,
-    formattedPath?: string,
-    functionName?: string,
-    functionType?: string,
-    definedAt?: string,
-  ) => unknown
+  resolve(reference: number): RuntimeDiagnosticState | undefined
+  wrap(error: unknown, reference?: number): unknown
 }
 
 export interface ScriptLabelSource {
@@ -92,9 +88,12 @@ export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
     `codegen:${phase}`,
     'codegen.function',
     span => {
-      const wrapperNodes = wrapGeneratedBody(buildGeneratedSource(expr, buildSource), phase)
+      const generatedSource = buildGeneratedSource(expr, buildSource)
+      const diagnosticCatalogue = expr.diagnosticCatalogue
+      const wrapperNodes = wrapGeneratedBody(generatedSource, phase)
       const usesAwait = options.forceAsync === true || expr.usesAwait
       const { source, segmentsByLine } = new SourceRenderer().render(wrapperNodes)
+      const sourceMapUrl = resolveSourceMapUrl(segmentsByLine, usesAwait)
       let compiled: GeneratedFunction
 
       // Record before compiling so a source string that fails to compile is
@@ -110,8 +109,8 @@ export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
           source,
           {
             usesAwait,
-            sourceName: nextSourceName(phase, options.label),
-            sourceMapUrl: resolveSourceMapUrl(segmentsByLine, usesAwait),
+            sourceName: nextSourceName(phase, options.label, source, sourceMapUrl),
+            sourceMapUrl,
           },
         )
       } catch (cause) {
@@ -119,7 +118,7 @@ export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
       }
 
       const wrapped: GeneratedFunction = (...args: never[]) => {
-        const runtimeDiagnostics = createRuntimeDiagnostics(phase)
+        const runtimeDiagnostics = createRuntimeDiagnostics(phase, diagnosticCatalogue)
         const runtimeArgs = parameterNames.map((_, index) => args[index])
 
         try {
@@ -155,23 +154,32 @@ export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
  * scripts panels even though V8 itself keeps them distinct. The prefix stays
  * `forge:compiled/` so frame filtering still treats these as internal.
  *
- * A label makes the scripts panel navigable (`forge:compiled/resolve/dump.form`
- * instead of `forge:compiled/resolve/3`); the counter guarantees uniqueness
- * when the same label compiles again or no label is available.
+ * A label makes the scripts panel navigable, while a content fingerprint stops
+ * an IDE reusing stale generated source after reconnecting to a restarted
+ * process. Every script remains a sibling `.js` file so debuggers do not have
+ * to represent one generated URL as both a file and a directory.
  */
 const sourceNameCounters = new Map<string, number>()
 
-const nextSourceName = (phase: string, label: string | undefined): string => {
-  const counterKey = label === undefined ? phase : `${phase}/${label}`
+const nextSourceName = (
+  phase: string,
+  label: string | undefined,
+  source: string,
+  sourceMapUrl: string | undefined,
+): string => {
+  const fingerprint = createHash('sha256')
+    .update(source)
+    .update('\0')
+    .update(sourceMapUrl ?? '')
+    .digest('hex')
+    .slice(0, 8)
+  const readableName = label ?? 'unlabelled'
+  const counterKey = `${phase}/${readableName}`
   const next = (sourceNameCounters.get(counterKey) ?? 0) + 1
 
   sourceNameCounters.set(counterKey, next)
 
-  if (label === undefined) {
-    return `forge:compiled/${phase}/${next}`
-  }
-
-  return next === 1 ? `forge:compiled/${phase}/${label}` : `forge:compiled/${phase}/${label}/${next}`
+  return `forge:compiled/${phase}/${readableName}.${fingerprint}.${next}.js`
 }
 
 /**
@@ -211,23 +219,28 @@ export const deriveScriptLabel = (
   return identitySegments.length > 0 ? identitySegments.join('.') : undefined
 }
 
-const createRuntimeDiagnostics = (phase: string): RuntimeEvaluationDiagnostics => {
+const createRuntimeDiagnostics = (
+  phase: string,
+  diagnosticCatalogue: readonly DiagnosticMetadata[],
+): RuntimeEvaluationDiagnostics => {
   const diagnostics: RuntimeEvaluationDiagnostics = {
     current: undefined,
-    wrap: (error, nodeId, formattedPath, functionName, functionType, definedAt) => {
+    resolve: reference => diagnosticCatalogue[reference],
+    wrap: (error, reference) => {
       if (error instanceof ForgeRuntimeEvaluationError) {
         return error
       }
 
-      const current = diagnostics.current
+      const current =
+        reference === undefined ? diagnostics.current : (diagnostics.resolve(reference) ?? diagnostics.current)
 
       return new ForgeRuntimeEvaluationError({
         phase,
-        nodeId: nodeId ?? current?.nodeId,
-        formattedPath: formattedPath ?? current?.formattedPath,
-        functionName: functionName ?? current?.functionName,
-        functionType: functionType ?? current?.functionType,
-        definedAt: definedAt ?? current?.definedAt,
+        nodeId: current?.nodeId,
+        formattedPath: current?.formattedPath,
+        functionName: current?.functionName,
+        functionType: current?.functionType,
+        definedAt: current?.definedAt,
         cause: error,
       })
     },

@@ -3,11 +3,11 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import { ExpressionType, FunctionType, IteratorType } from '../../../../authoring/types/enums'
 import { TemplateNode } from '../../../contracts/ast/template.type'
 import ForgeUnregisteredFunctionError from '../../../errors/ForgeUnregisteredFunctionError'
-import { Code, arrayCode, code, literal, objectCode, propertyCode, SafeCode } from '../../codegen/Code'
+import { Code, arrayCode, code, literal, objectCode, SafeCode } from '../../codegen/Code'
 import CodeGenerator from '../../codegen/CodeGenerator'
 import Name from '../../codegen/Name'
-import DiagnosticEmitter from '../emitters/DiagnosticEmitter'
-import { IteratorScopeFrame, NodeCompilationContext } from './types'
+import DiagnosticEmitter, { type DiagnosticMetadata } from '../emitters/DiagnosticEmitter'
+import { FunctionCallCompileOptions, IteratorScopeFrame, NodeCompilationContext } from './types'
 import ReferenceNodeCompiler from './ReferenceNodeCompiler'
 import PredicateNodeCompiler from './PredicateNodeCompiler'
 import PipelineNodeCompiler from './PipelineNodeCompiler'
@@ -20,8 +20,6 @@ import { compileIifeExpression } from './IifeExpressionCompiler'
 
 export type { IteratorScopeFrame } from './types'
 
-const GENERATED_FUNCTION_HELPERS_PARAM = new Name('_forgeHelpers')
-
 /**
  * Coordinates expression-node compilers and owns transient code-generation state.
  *
@@ -33,6 +31,8 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   private readonly iteratorFrames: IteratorScopeFrame[] = []
 
   private readonly selfCodeExprs: Code[] = []
+
+  private readonly validationFunctionPrefixes: string[] = []
 
   private readonly references = new ReferenceNodeCompiler(this)
 
@@ -76,12 +76,18 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     return this.dependencies.tracer ?? CompilationTracer.disabled
   }
 
+  get diagnosticCatalogue(): readonly DiagnosticMetadata[] {
+    return this.diagnostics.snapshot()
+  }
+
   /**
    * Clears per-function generation state before a phase compiler builds source.
    */
   reset(): void {
     this.iteratorFrames.length = 0
     this.selfCodeExprs.length = 0
+    this.validationFunctionPrefixes.length = 0
+    this.diagnostics.reset()
     this.usedAwait = false
     this.fragmentGenerator = new CodeGenerator()
   }
@@ -133,6 +139,20 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
+   * Gives validation callbacks a stable developer-facing identity while their
+   * authored value is lowered through the shared runtime-value compiler.
+   */
+  withValidationFunctionPrefix<T>(prefix: string, compile: () => T): T {
+    this.validationFunctionPrefixes.push(prefix)
+
+    try {
+      return compile()
+    } finally {
+      this.validationFunctionPrefixes.pop()
+    }
+  }
+
+  /**
    * Registered AST nodes and iterator template nodes share the same expression
    * compilers. Keeping the dispatch split here lets render, validation, answer
    * prep, reachability, and hooks all use one scope and async model.
@@ -156,7 +176,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       expression = this.dispatchExpression(expressionType, properties, node)
     }
 
-    if (this.isDirectFunctionExpression(expressionType)) {
+    if (this.hasOwnDiagnosticBoundary(expressionType) || this.isValidationPredicate(node.type)) {
       return expression
     }
 
@@ -178,19 +198,28 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       expression = this.dispatchExpression(expressionType, properties, node)
     }
 
-    if (this.isDirectFunctionExpression(expressionType)) {
+    if (this.hasOwnDiagnosticBoundary(expressionType) || this.isValidationPredicate(node.originalType)) {
       return expression
     }
 
     return this.diagnostics.wrapExpression(expression, node, this.usedAwait, this.generator)
   }
 
-  private isDirectFunctionExpression(expressionType: string | undefined): boolean {
-    // Function calls carry their own diagnostic metadata through evaluateFunction,
-    // so wrapping the same node again only makes generated source noisier.
+  private hasOwnDiagnosticBoundary(expressionType: string | undefined): boolean {
+    // Function calls carry their own diagnostic metadata through evaluateFunction.
+    // Validation rules contain tracked operands and function calls, so wrapping
+    // the rule object itself only adds an unrelated callback around construction.
     return expressionType === FunctionType.CONDITION ||
       expressionType === FunctionType.TRANSFORMER ||
-      expressionType === FunctionType.GENERATOR
+      expressionType === FunctionType.GENERATOR ||
+      expressionType === ExpressionType.VALIDATION
+  }
+
+  private isValidationPredicate(nodeType: unknown): boolean {
+    // Predicate leaves already carry diagnostics through their references and
+    // registered function calls. Keep their boolean composition visible inside
+    // the named validation condition instead of wrapping the whole predicate.
+    return this.validationFunctionPrefixes.length > 0 && nodeType === ASTNodeType.PREDICATE
   }
 
   private dispatchExpression(expressionType: string, properties: Record<string, unknown>, source?: unknown): Code {
@@ -288,22 +317,43 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     }
 
     const conditionExpr = this.compileOperandCode(condition)
-    const messageExpr = properties.message !== undefined ? this.compileOperandCode(properties.message) : literal('')
+    const messageValue = properties.message
+    const messageExpr = messageValue !== undefined ? this.compileOperandCode(messageValue) : literal('')
     const submissionOnlyExpr = literal(properties.submissionOnly === true)
     const groupsExpr = properties.groups !== undefined ? this.compileOperandCode(properties.groups) : literal(undefined)
-    const detailsExpr =
-      properties.details !== undefined ? this.compileOperandCode(properties.details) : literal(undefined)
-    const conditionHelperName = this.usedAwait ? 'evaluateValidationConditionAsync' : 'evaluateValidationCondition'
-    const conditionCallback = this.compileReturnFunctionCode(conditionExpr, 'evaluate_validation_condition')
-    const conditionHelperExpr = code`${GENERATED_FUNCTION_HELPERS_PARAM}${propertyCode(conditionHelperName)}(${conditionCallback})`
+    const detailsValue = properties.details
+    const detailsExpr = detailsValue !== undefined ? this.compileOperandCode(detailsValue) : literal(undefined)
+    const functionPrefix = this.validationFunctionPrefixes[this.validationFunctionPrefixes.length - 1] ?? 'validation'
+    const validationCondition = this.compileReturnFunctionExpression(
+      conditionExpr,
+      `evaluate_${functionPrefix}_condition`,
+      'conditionResult',
+      'Evaluate the authored condition for this validation rule.',
+    )
+    const message = this.isStaticOperand(messageValue)
+      ? messageExpr
+      : this.compileReturnFunctionExpression(
+          messageExpr,
+          `evaluate_${functionPrefix}_message`,
+          'validationMessage',
+          'Resolve the message returned when this validation rule fails.',
+        )
+    const details = this.isStaticOperand(detailsValue)
+      ? detailsExpr
+      : this.compileReturnFunctionExpression(
+          detailsExpr,
+          `evaluate_${functionPrefix}_details`,
+          'validationDetails',
+          'Resolve the structured details returned with this validation failure.',
+        )
 
-    return code`(${objectCode([
-      { key: 'evaluate', value: this.compileReturnFunctionCode(conditionHelperExpr, 'evaluate_validation') },
-      { key: 'message', value: this.compileReturnFunctionCode(messageExpr, 'evaluate_validation_message') },
+    return objectCode([
+      { key: 'condition', value: validationCondition },
+      { key: 'message', value: message },
       { key: 'submissionOnly', value: submissionOnlyExpr },
       { key: 'groups', value: groupsExpr },
-      { key: 'details', value: this.compileReturnFunctionCode(detailsExpr, 'evaluate_validation_details') },
-    ])})`
+      { key: 'details', value: details },
+    ])
   }
 
   /**
@@ -510,7 +560,12 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     })
   }
 
-  compileFunctionCallCode(funcName: string, argExprs: readonly Code[], source?: unknown): Code {
+  compileFunctionCallCode(
+    funcName: string,
+    argExprs: readonly Code[],
+    source?: unknown,
+    options: FunctionCallCompileOptions = {},
+  ): Code {
     const registeredFunction = this.dependencies.functionRegistry.get(funcName)
 
     if (!registeredFunction) {
@@ -527,6 +582,20 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     }
 
     const helperName = callIsAsync ? 'evaluateFunctionAsync' : 'evaluateFunction'
+    const validationPrefix = this.validationFunctionPrefixes[this.validationFunctionPrefixes.length - 1]
+
+    if (validationPrefix !== undefined) {
+      return this.compileDebuggableValidationFunctionCall(
+        helperName,
+        funcName,
+        argExprs,
+        source,
+        validationPrefix,
+        options,
+        callIsAsync,
+      )
+    }
+
     const helperCall = this.diagnostics.wrapFunctionCall(helperName, funcName, argExprs, source)
 
     if (callIsAsync) {
@@ -536,12 +605,87 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     return helperCall
   }
 
-  private compileReturnFunctionCode(expression: Code, name: string): Code {
+  private compileDebuggableValidationFunctionCall(
+    helperName: string,
+    funcName: string,
+    argExprs: readonly Code[],
+    source: unknown,
+    validationPrefix: string,
+    options: FunctionCallCompileOptions,
+    callIsAsync: boolean,
+  ): Code {
+    const functionName = `evaluate_${validationPrefix}_${this.compileFunctionNamePart(funcName)}`
+
+    return compileIifeExpression({
+      awaitResult: () => this.usedAwait,
+      generator: this.generator,
+      isAsync: () => this.usedAwait,
+      name: functionName,
+      compileBody: generator => {
+        if (argExprs.length > 0) {
+          generator.note(`Resolve the arguments passed to ${funcName}.`)
+        }
+
+        const argumentValues = argExprs.map((argument, index) => {
+          const prefix = options.argumentPrefixes?.[index] ?? `functionArgument${index + 1}`
+
+          return generator.const(prefix, argument)
+        })
+
+        generator.note(`Call the registered ${funcName} function.`)
+        const helperCall = this.diagnostics.wrapFunctionCall(
+          helperName,
+          funcName,
+          argumentValues.map(argument => code`${argument}`),
+          source,
+        )
+        const functionResult = generator.const('functionResult', callIsAsync ? code`await ${helperCall}` : helperCall)
+
+        generator.return(functionResult)
+      },
+    })
+  }
+
+  private compileFunctionNamePart(funcName: string): string {
+    const identifier = funcName.replace(/[^A-Za-z0-9_$]+/g, '_').replace(/^([^A-Za-z_$])/, '_$1')
+
+    if (identifier.length === 0) {
+      return 'function'
+    }
+
+    return `${identifier[0].toLowerCase()}${identifier.slice(1)}`
+  }
+
+  private isStaticOperand(value: unknown): boolean {
+    if (value === null || value === undefined || typeof value !== 'object') {
+      return true
+    }
+
+    if (this.isCompilableNode(value) || this.isTemplateNode(value)) {
+      return false
+    }
+
+    if (Array.isArray(value)) {
+      return value.every(entry => this.isStaticOperand(entry))
+    }
+
+    return Object.values(value).every(entry => this.isStaticOperand(entry))
+  }
+
+  private compileReturnFunctionExpression(
+    expression: Code,
+    name: string,
+    resultPrefix: string,
+    explanation: string,
+  ): Code {
     return this.generator.functionExpression(
       name,
       [],
       functionGenerator => {
-        functionGenerator.return(this.usedAwait ? code`await ${expression}` : expression)
+        functionGenerator.note(explanation)
+        const result = functionGenerator.const(resultPrefix, this.usedAwait ? code`await ${expression}` : expression)
+
+        functionGenerator.return(result)
       },
       { async: () => this.usedAwait },
     )

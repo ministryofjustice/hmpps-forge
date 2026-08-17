@@ -1,4 +1,4 @@
-import { arrayCode, code, joinCode, literal, objectCode, positionedCode, propertyCode } from './Code'
+import { arrayCode, callCode, code, joinCode, literal, objectCode, positionedCode, propertyCode } from './Code'
 import Name from './Name'
 import PositionedCodeToken from './PositionedCodeToken'
 
@@ -39,6 +39,18 @@ describe('Code', () => {
 
       // Assert
       expect(result.toString()).toBe('{ "field-code": "contactPhone", "values": [answer, undefined] }')
+    })
+
+    it('should compose typed function calls', () => {
+      // Arrange
+      const target = code`helpers.evaluate`
+      const args = [new Name('ctx'), literal('IsRequired'), arrayCode([new Name('subject')])]
+
+      // Act
+      const result = callCode(target, args)
+
+      // Assert
+      expect(result.toString()).toBe('helpers.evaluate(ctx, "IsRequired", [subject])')
     })
   })
 

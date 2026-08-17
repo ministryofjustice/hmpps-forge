@@ -70,6 +70,7 @@ describe('CodeGenerator', () => {
         [
           'async function validate_contactPhone(fieldCode) {',
           '  const result = ctx.answers[fieldCode];',
+          '',
           '  return result;',
           '}',
           'return validate_contactPhone;',
@@ -143,6 +144,7 @@ describe('CodeGenerator', () => {
           '  risky();',
           '} catch (error) {',
           '  const error_1 = fallback;',
+          '',
           '  throw wrap(error, error_1);',
           '}',
         ].join('\n'),

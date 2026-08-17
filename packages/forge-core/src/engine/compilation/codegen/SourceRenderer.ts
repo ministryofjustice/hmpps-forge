@@ -1,7 +1,9 @@
 import AssignmentCodeNode from './AssignmentCodeNode'
+import ArrayExpressionToken from './ArrayExpressionToken'
 import BlankLineCodeNode from './BlankLineCodeNode'
 import BreakCodeNode from './BreakCodeNode'
-import { Code, code, fallbackPositionedCode, joinCode, nil } from './Code'
+import CallExpressionToken from './CallExpressionToken'
+import { Code, code, joinCode, nil } from './Code'
 import { SourcePosition } from './SourcePosition.type'
 import CommentCodeNode from './CommentCodeNode'
 import ContinueCodeNode from './ContinueCodeNode'
@@ -13,6 +15,7 @@ import FunctionCodeNode from './FunctionCodeNode'
 import FunctionExpressionToken from './FunctionExpressionToken'
 import GeneratedCodeNode from './GeneratedCodeNode'
 import IfCodeNode from './IfCodeNode'
+import ObjectExpressionToken from './ObjectExpressionToken'
 import PositionedCodeNode from './PositionedCodeNode'
 import PositionedCodeToken from './PositionedCodeToken'
 import ReturnCodeNode from './ReturnCodeNode'
@@ -20,6 +23,8 @@ import ScopeCodeNode from './ScopeCodeNode'
 import ThrowCodeNode from './ThrowCodeNode'
 import TryCatchCodeNode from './TryCatchCodeNode'
 import WhileCodeNode from './WhileCodeNode'
+
+const MAX_READABLE_LINE_LENGTH = 120
 
 /**
  * Renders generated-code IR into JavaScript and source-map segments in one pass.
@@ -72,7 +77,13 @@ export default class SourceRenderer {
     depth: number,
     inheritedPositions: readonly SourcePosition[],
   ): void {
-    nodes.forEach(node => this.renderGeneratedNode(node, depth, inheritedPositions))
+    nodes.forEach((node, index) => {
+      this.renderGeneratedNode(node, depth, inheritedPositions)
+
+      if (this.shouldSeparateNodes(node, nodes[index + 1])) {
+        this.writeBlankLine()
+      }
+    })
   }
 
   private renderGeneratedNode(node: GeneratedCodeNode, depth: number, positions: readonly SourcePosition[] = []): void {
@@ -82,7 +93,7 @@ export default class SourceRenderer {
       return
     }
 
-    const writeHeader = (value: Code): void => this.writeCodeLine(fallbackPositionedCode(value, positions), depth)
+    const writeHeader = (value: Code): void => this.writeCodeLine(value, depth, positions)
 
     if (node instanceof DirectiveCodeNode) {
       writeHeader(code`${node.value};`)
@@ -191,7 +202,7 @@ export default class SourceRenderer {
     if (node instanceof TryCatchCodeNode) {
       writeHeader(code`try {`)
       this.renderBody(node.tryBody, depth + 1, positions)
-      this.writeCodeLine(fallbackPositionedCode(code`} catch (${node.errorName}) {`, positions), depth)
+      this.writeCodeLine(code`} catch (${node.errorName}) {`, depth, positions)
       this.renderBody(node.catchBody, depth + 1, positions)
       this.writeCodeLine(code`}`, depth)
 
@@ -206,7 +217,7 @@ export default class SourceRenderer {
       const keyword = index === 0 ? Code.trusted('if') : Code.trusted('else if')
       const header = code`${keyword} (${branch.condition}) {`
 
-      this.writeCodeLine(fallbackPositionedCode(header, positions), depth)
+      this.writeCodeLine(header, depth, positions)
       this.renderBody(branch.body, depth + 1, positions)
       this.writeCodeLine(code`}`, depth)
     })
@@ -215,7 +226,7 @@ export default class SourceRenderer {
       return
     }
 
-    this.writeCodeLine(fallbackPositionedCode(code`else {`, positions), depth)
+    this.writeCodeLine(code`else {`, depth, positions)
     this.renderBody(node.elseBody, depth + 1, positions)
     this.writeCodeLine(code`}`, depth)
   }
@@ -244,16 +255,20 @@ export default class SourceRenderer {
     this.segmentsByLine.push([])
   }
 
-  private writeCodeLine(value: Code, depth: number): void {
-    const indent = this.style === GeneratedCodeStyle.COMPACT ? '' : '  '.repeat(depth)
-    let line = indent
+  private writeCodeLine(value: Code, depth: number, fallbackPositions: readonly SourcePosition[] = []): void {
+    const indentation = (lineDepth: number): string =>
+      this.style === GeneratedCodeStyle.COMPACT ? '' : '  '.repeat(lineDepth)
+    let currentDepth = depth
+    let line = indentation(currentDepth)
     let segments: SourceMapSegment[] = []
 
-    const flushLine = (): void => {
+    const flushLine = (nextDepth: number = currentDepth): void => {
       this.lines.push(line)
       this.segmentsByLine.push(segments)
-      line = indent
+      currentDepth = nextDepth
+      line = indentation(currentDepth)
       segments = []
+      fallbackPositions.forEach(writePosition)
     }
 
     const writePosition = (position: SourcePosition): void => {
@@ -262,8 +277,16 @@ export default class SourceRenderer {
       segments.push({ generatedColumn: Math.max(line.length, previousColumn + 1), position })
     }
 
-    const renderItems = (items: Code['items'], inheritedPositions: readonly SourcePosition[]): void => {
-      let inheritedPositionsWritten = false
+    // A source map keeps the last preceding segment active. Writing structural
+    // fallbacks first lets a nested exact position own the executable range.
+    fallbackPositions.forEach(writePosition)
+
+    const renderItems = (
+      items: Code['items'],
+      inheritedPositions: readonly SourcePosition[],
+      positionsAlreadyWritten = false,
+    ): void => {
+      let inheritedPositionsWritten = positionsAlreadyWritten
 
       const writeInheritedPositions = (): void => {
         if (inheritedPositionsWritten) {
@@ -288,9 +311,62 @@ export default class SourceRenderer {
 
           writeInheritedPositions()
           line += `${asyncKeyword}function${functionName}(${parameters}) {`
-          flushLine()
-          this.renderBody(item.body, depth + 1, inheritedPositions)
+          flushLine(currentDepth)
+          this.renderBody(
+            item.body,
+            currentDepth + 1,
+            inheritedPositions.length > 0 ? inheritedPositions : fallbackPositions,
+          )
           line += '}'
+
+          return
+        }
+
+        if (item instanceof CallExpressionToken) {
+          writeInheritedPositions()
+          this.renderCallExpression(
+            item,
+            inheritedPositions,
+            currentDepth,
+            line.length,
+            part => {
+              line += part
+            },
+            flushLine,
+            renderItems,
+          )
+
+          return
+        }
+
+        if (item instanceof ArrayExpressionToken) {
+          writeInheritedPositions()
+          this.renderArrayExpression(
+            item,
+            inheritedPositions,
+            currentDepth,
+            part => {
+              line += part
+            },
+            flushLine,
+            renderItems,
+          )
+
+          return
+        }
+
+        if (item instanceof ObjectExpressionToken) {
+          writeInheritedPositions()
+          this.renderObjectExpression(
+            item,
+            inheritedPositions,
+            currentDepth,
+            part => {
+              line += part
+            },
+            flushLine,
+            renderItems,
+          )
 
           return
         }
@@ -315,6 +391,218 @@ export default class SourceRenderer {
     renderItems(value.items, [])
 
     flushLine()
+  }
+
+  private renderCallExpression(
+    token: CallExpressionToken,
+    inheritedPositions: readonly SourcePosition[],
+    depth: number,
+    currentLineLength: number,
+    write: (value: string) => void,
+    flushLine: (nextDepth?: number) => void,
+    renderItems: (
+      items: Code['items'],
+      positions: readonly SourcePosition[],
+      positionsAlreadyWritten?: boolean,
+    ) => void,
+  ): void {
+    renderItems(token.target.items, inheritedPositions, true)
+    write('(')
+
+    if (!this.shouldRenderCallAcrossLines(token, currentLineLength)) {
+      token.args.forEach((arg, index) => {
+        if (index > 0) {
+          write(', ')
+        }
+
+        renderItems(arg.items, inheritedPositions, true)
+      })
+      write(')')
+
+      return
+    }
+
+    flushLine(depth + 1)
+    token.args.forEach((arg, index) => {
+      renderItems(arg.items, inheritedPositions)
+
+      if (index < token.args.length - 1) {
+        write(',')
+      }
+
+      flushLine(index < token.args.length - 1 ? depth + 1 : depth)
+    })
+    write(')')
+  }
+
+  private renderArrayExpression(
+    token: ArrayExpressionToken,
+    inheritedPositions: readonly SourcePosition[],
+    depth: number,
+    write: (value: string) => void,
+    flushLine: (nextDepth?: number) => void,
+    renderItems: (
+      items: Code['items'],
+      positions: readonly SourcePosition[],
+      positionsAlreadyWritten?: boolean,
+    ) => void,
+  ): void {
+    write('[')
+
+    if (!this.shouldRenderAcrossLines(token)) {
+      token.values.forEach((value, index) => {
+        if (index > 0) {
+          write(', ')
+        }
+
+        renderItems(value.items, inheritedPositions, true)
+      })
+      write(']')
+
+      return
+    }
+
+    flushLine(depth + 1)
+    token.values.forEach((value, index) => {
+      renderItems(value.items, inheritedPositions)
+
+      if (index < token.values.length - 1) {
+        write(',')
+      }
+
+      flushLine(index < token.values.length - 1 ? depth + 1 : depth)
+    })
+    write(']')
+  }
+
+  private renderObjectExpression(
+    token: ObjectExpressionToken,
+    inheritedPositions: readonly SourcePosition[],
+    depth: number,
+    write: (value: string) => void,
+    flushLine: (nextDepth?: number) => void,
+    renderItems: (
+      items: Code['items'],
+      positions: readonly SourcePosition[],
+      positionsAlreadyWritten?: boolean,
+    ) => void,
+  ): void {
+    if (!this.shouldRenderAcrossLines(token)) {
+      const spacing = token.properties.length === 0 ? '' : ' '
+
+      write(`{${spacing}`)
+      token.properties.forEach((property, index) => {
+        if (index > 0) {
+          write(', ')
+        }
+
+        renderItems(property.key.items, inheritedPositions, true)
+        write(': ')
+        renderItems(property.value.items, inheritedPositions, true)
+      })
+      write(`${spacing}}`)
+
+      return
+    }
+
+    write('{')
+    flushLine(depth + 1)
+    token.properties.forEach((property, index) => {
+      renderItems(property.key.items, inheritedPositions)
+      write(': ')
+      renderItems(property.value.items, inheritedPositions, true)
+
+      if (index < token.properties.length - 1) {
+        write(',')
+      }
+
+      flushLine(index < token.properties.length - 1 ? depth + 1 : depth)
+    })
+    write('}')
+  }
+
+  private shouldRenderAcrossLines(token: ArrayExpressionToken | ObjectExpressionToken): boolean {
+    if (this.style === GeneratedCodeStyle.COMPACT) {
+      return false
+    }
+
+    if (token instanceof ArrayExpressionToken) {
+      return token.values.some(value => this.containsLineStructure(value))
+    }
+
+    return token.properties.length > 2 || token.properties.some(property => this.containsLineStructure(property.value))
+  }
+
+  private shouldRenderCallAcrossLines(token: CallExpressionToken, currentLineLength: number): boolean {
+    if (this.style === GeneratedCodeStyle.COMPACT) {
+      return false
+    }
+
+    if (token.args.some(arg => this.containsLineStructure(arg))) {
+      return true
+    }
+
+    if (this.containsLineStructure(token.target)) {
+      return false
+    }
+
+    const argumentsLength = token.args.reduce((length, arg) => length + arg.toString().length, 0)
+    const separatorsLength = Math.max(token.args.length - 1, 0) * 2
+    const callLength = token.target.toString().length + argumentsLength + separatorsLength + 2
+
+    return currentLineLength + callLength > MAX_READABLE_LINE_LENGTH
+  }
+
+  private containsLineStructure(value: Code): boolean {
+    return value.items.some(item => {
+      if (typeof item === 'string') {
+        return item.includes('\n')
+      }
+
+      if (item instanceof FunctionExpressionToken) {
+        return true
+      }
+
+      if (item instanceof CallExpressionToken) {
+        return this.shouldRenderCallAcrossLines(item, 0)
+      }
+
+      if (item instanceof PositionedCodeToken) {
+        return this.containsLineStructure(item.value)
+      }
+
+      if (item instanceof ArrayExpressionToken) {
+        return item.values.some(arrayValue => this.containsLineStructure(arrayValue))
+      }
+
+      return item.properties.some(property => this.containsLineStructure(property.value))
+    })
+  }
+
+  private shouldSeparateNodes(node: GeneratedCodeNode, nextNode: GeneratedCodeNode | undefined): boolean {
+    if (this.style === GeneratedCodeStyle.COMPACT || nextNode === undefined) {
+      return false
+    }
+
+    const current = this.unwrapPositionedNode(node)
+    const next = this.unwrapPositionedNode(nextNode)
+
+    if (next instanceof BlankLineCodeNode) {
+      return false
+    }
+
+    if (current instanceof DeclarationCodeNode) {
+      return !(next instanceof DeclarationCodeNode)
+    }
+
+    return current instanceof ForRangeCodeNode ||
+      current instanceof IfCodeNode ||
+      current instanceof TryCatchCodeNode ||
+      current instanceof WhileCodeNode
+  }
+
+  private unwrapPositionedNode(node: GeneratedCodeNode): GeneratedCodeNode {
+    return node instanceof PositionedCodeNode ? this.unwrapPositionedNode(node.node) : node
   }
 }
 

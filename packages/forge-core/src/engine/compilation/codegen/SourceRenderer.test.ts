@@ -1,4 +1,4 @@
-import { code, fallbackPositionedCode, positionedCode } from './Code'
+import { arrayCode, callCode, code, literal, objectCode, positionedCode } from './Code'
 import CodeGenerator from './CodeGenerator'
 import SourceRenderer, { GeneratedCodeStyle } from './SourceRenderer'
 
@@ -122,20 +122,148 @@ describe('SourceRenderer', () => {
       expect(rendered.segmentsByLine[secondReturnLine]).toEqual([{ generatedColumn: 2, position: outerPosition }])
     })
 
-    it('should compose an explicit position before its inherited fallback without duplication', () => {
+    it('should keep an inherited fallback before an explicit position', () => {
       // Arrange
       const innerPosition = { file: '/app/journeys/helper.ts', line: 7, column: 2 }
       const outerPosition = { file: '/app/journeys/definition.ts', line: 19, column: 4 }
-      const value = fallbackPositionedCode(positionedCode(code`evaluate()`, [innerPosition]), [outerPosition])
+      const generator = new CodeGenerator()
+
+      generator.withSourcePositions([outerPosition], () => {
+        generator.statement(positionedCode(code`evaluate()`, [innerPosition]))
+      })
 
       // Act
-      const rendered = new SourceRenderer().renderCode(value)
+      const rendered = new SourceRenderer().render(generator.toNodes())
 
       // Assert
       expect(rendered.segmentsByLine[0]).toEqual([
-        { generatedColumn: 0, position: innerPosition },
-        { generatedColumn: 1, position: outerPosition },
+        { generatedColumn: 0, position: outerPosition },
+        { generatedColumn: 1, position: innerPosition },
       ])
+    })
+
+    it('should keep an exact callback position active across its generated body', () => {
+      // Arrange
+      const validationPosition = { file: '/app/journeys/blocks.ts', line: 61, column: 14 }
+      const conditionPosition = { file: '/app/journeys/blocks.ts', line: 63, column: 25 }
+      const generator = new CodeGenerator()
+
+      generator.withSourcePositions([validationPosition], () => {
+        generator.statement(
+          code`evaluate(${positionedCode(
+            generator.functionExpression('evaluate_condition', [], callback => callback.return(code`true`)),
+            [conditionPosition],
+          )})`,
+        )
+      })
+
+      // Act
+      const rendered = new SourceRenderer().render(generator.toNodes())
+      const callbackBodyLine = rendered.source.split('\n').findIndex(line => line.includes('return true;'))
+
+      // Assert
+      expect(rendered.segmentsByLine[0]).toEqual([
+        { generatedColumn: 0, position: validationPosition },
+        { generatedColumn: 'evaluate('.length, position: conditionPosition },
+      ])
+      expect(rendered.segmentsByLine[callbackBodyLine]).toEqual([{ generatedColumn: 2, position: conditionPosition }])
+    })
+
+    it('should render arrays and objects across lines when they contain a function', () => {
+      // Arrange
+      const generator = new CodeGenerator()
+      const condition = generator.functionExpression('evaluate_name_condition', [], body => {
+        body.const('conditionResult', code`checkName()`)
+        body.return(code`conditionResult`)
+      })
+
+      generator.const(
+        'validationRules',
+        arrayCode([
+          objectCode([
+            { key: 'condition', value: condition },
+            { key: 'message', value: literal('Enter a name') },
+            { key: 'submissionOnly', value: literal(true) },
+            { key: 'groups', value: arrayCode([literal('default')]) },
+            { key: 'details', value: literal(undefined) },
+          ]),
+        ]),
+      )
+
+      // Act
+      const rendered = new SourceRenderer().render(generator.toNodes())
+
+      // Assert
+      expect(rendered.source).toBe(
+        [
+          'const validationRules = [',
+          '  {',
+          '    "condition": function evaluate_name_condition() {',
+          '      const conditionResult = checkName();',
+          '',
+          '      return conditionResult;',
+          '    },',
+          '    "message": "Enter a name",',
+          '    "submissionOnly": true,',
+          '    "groups": ["default"],',
+          '    "details": undefined',
+          '  }',
+          '];',
+        ].join('\n'),
+      )
+    })
+
+    it('should wrap structured call arguments and separate declaration blocks', () => {
+      // Arrange
+      const generator = new CodeGenerator()
+      const callback = generator.functionExpression('evaluate_subject', [], body => {
+        body.return(code`ctx.answers.name`)
+      })
+      const subject = generator.const(
+        'subject',
+        callCode(code`_forgeHelpers.evaluateTracked`, [code`_forgeRuntimeDiagnostics`, literal(0), callback]),
+      )
+
+      generator.return(subject)
+
+      // Act
+      const rendered = new SourceRenderer().render(generator.toNodes())
+
+      // Assert
+      expect(rendered.source).toBe(
+        [
+          'const subject = _forgeHelpers.evaluateTracked(',
+          '  _forgeRuntimeDiagnostics,',
+          '  0,',
+          '  function evaluate_subject() {',
+          '    return ctx.answers.name;',
+          '  }',
+          ');',
+          '',
+          'return subject;',
+        ].join('\n'),
+      )
+    })
+
+    it('should render objects with more than two properties across lines', () => {
+      // Arrange
+      const generator = new CodeGenerator()
+
+      generator.statement(
+        code`errors.push(${objectCode([
+          { key: 'message', value: literal('Required') },
+          { key: 'passed', value: literal(false) },
+          { key: 'details', value: literal(undefined) },
+        ])})`,
+      )
+
+      // Act
+      const rendered = new SourceRenderer().render(generator.toNodes())
+
+      // Assert
+      expect(rendered.source).toBe(
+        ['errors.push({', '  "message": "Required",', '  "passed": false,', '  "details": undefined', '});'].join('\n'),
+      )
     })
   })
 })

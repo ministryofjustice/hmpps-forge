@@ -28,6 +28,119 @@ const componentContextFor = (entry: StubComponentEntry | undefined) => ({
 })
 
 describe('generatedFunctionHelpers', () => {
+  describe('collectValidationFailures()', () => {
+    it('should flatten rules while preserving active-rule evaluation order and laziness', () => {
+      // Arrange
+      const passingMessage = vi.fn(() => 'unused')
+      const passingRule = { evaluate: vi.fn(() => true), message: passingMessage }
+      const inactiveRule = { evaluate: vi.fn(() => false), message: 'inactive', groups: ['other'] }
+      const failingRule = { evaluate: vi.fn(() => false), message: undefined, details: { reason: 'required' } }
+      const ruleIsActive = vi.fn(
+        (rule: { groups?: unknown }) => !(Array.isArray(rule.groups) && rule.groups.includes('other')),
+      )
+
+      // Act
+      const failures = generatedFunctionHelpers.collectValidationFailures(
+        [passingRule, [undefined, inactiveRule, failingRule]],
+        ruleIsActive,
+      )
+
+      // Assert
+      expect(failures).toEqual([{ rule: failingRule, message: '', details: { reason: 'required' } }])
+      expect(passingRule.evaluate).toHaveBeenCalledOnce()
+      expect(passingMessage).not.toHaveBeenCalled()
+      expect(inactiveRule.evaluate).not.toHaveBeenCalled()
+      expect(failingRule.evaluate).toHaveBeenCalledOnce()
+      expect(ruleIsActive.mock.calls.map(([rule]) => rule)).toEqual([passingRule, inactiveRule, failingRule])
+    })
+
+    it('should treat a generated condition TypeError as a validation failure', () => {
+      // Arrange
+      const conditionRule = {
+        condition: vi.fn(() => {
+          throw new TypeError('Wrong input shape')
+        }),
+        message: 'Invalid value',
+      }
+
+      // Act
+      const failures = generatedFunctionHelpers.collectValidationFailures([conditionRule], () => true)
+
+      // Assert
+      expect(failures).toEqual([{ rule: conditionRule, message: 'Invalid value', details: undefined }])
+      expect(conditionRule.condition).toHaveBeenCalledOnce()
+    })
+
+    it('should preserve errors from legacy evaluate callbacks', () => {
+      // Arrange
+      const evaluateRule = {
+        evaluate: vi.fn(() => {
+          throw new TypeError('Broken custom validation')
+        }),
+      }
+
+      // Act
+      const collect = () => generatedFunctionHelpers.collectValidationFailures([evaluateRule], () => true)
+
+      // Assert
+      expect(collect).toThrow('Broken custom validation')
+    })
+  })
+
+  describe('collectValidationFailuresAsync()', () => {
+    it('should await each failed rule before advancing to the next rule', async () => {
+      // Arrange
+      const evaluationOrder: string[] = []
+      const firstRule = {
+        evaluate: vi.fn(async () => {
+          evaluationOrder.push('first condition')
+
+          return false
+        }),
+        message: vi.fn(async () => {
+          evaluationOrder.push('first message')
+
+          return 'First failure'
+        }),
+      }
+      const secondRule = {
+        evaluate: vi.fn(async () => {
+          evaluationOrder.push('second condition')
+
+          return false
+        }),
+        message: 'Second failure',
+      }
+
+      // Act
+      const failures = await generatedFunctionHelpers.collectValidationFailuresAsync(
+        [firstRule, secondRule],
+        () => true,
+      )
+
+      // Assert
+      expect(failures.map(failure => failure.message)).toEqual(['First failure', 'Second failure'])
+      expect(evaluationOrder).toEqual(['first condition', 'first message', 'second condition'])
+    })
+
+    it('should treat an asynchronous generated condition TypeError as a validation failure', async () => {
+      // Arrange
+      const conditionRule = {
+        condition: vi.fn(async () => {
+          throw new TypeError('Wrong input shape')
+        }),
+        message: 'Invalid value',
+      }
+
+      // Act
+      const failures = await generatedFunctionHelpers.collectValidationFailuresAsync([conditionRule], () => true)
+
+      // Assert
+      expect(failures).toEqual([{ rule: conditionRule, message: 'Invalid value', details: undefined }])
+      expect(conditionRule.condition).toHaveBeenCalledOnce()
+    })
+  })
+
   describe('evaluateFunction()', () => {
     it('should return false without invoking the implementation when a condition value is absent', () => {
       // Arrange
@@ -35,8 +148,8 @@ describe('generatedFunctionHelpers', () => {
       const ctx = contextFor({ evaluate, functionType: FunctionType.CONDITION, inputSchema: z.string() })
 
       // Act
-      const nullResult = generatedFunctionHelpers.evaluateFunction(ctx, undefined, {}, 'isNotEmpty', [null])
-      const undefinedResult = generatedFunctionHelpers.evaluateFunction(ctx, undefined, {}, 'isNotEmpty', [undefined])
+      const nullResult = generatedFunctionHelpers.evaluateFunction(ctx, undefined, 0, 'isNotEmpty', [null])
+      const undefinedResult = generatedFunctionHelpers.evaluateFunction(ctx, undefined, 0, 'isNotEmpty', [undefined])
 
       // Assert
       expect(nullResult).toBe(false)
@@ -50,7 +163,7 @@ describe('generatedFunctionHelpers', () => {
       const ctx = contextFor({ evaluate, functionType: FunctionType.CONDITION, inputSchema: z.string() })
 
       // Act
-      const result = generatedFunctionHelpers.evaluateFunction(ctx, undefined, {}, 'isNotEmpty', [123])
+      const result = generatedFunctionHelpers.evaluateFunction(ctx, undefined, 0, 'isNotEmpty', [123])
 
       // Assert
       expect(result).toBe(false)
@@ -63,7 +176,7 @@ describe('generatedFunctionHelpers', () => {
       const ctx = contextFor({ evaluate, functionType: FunctionType.CONDITION, inputSchema: z.string() })
 
       // Act
-      const result = generatedFunctionHelpers.evaluateFunction(ctx, undefined, {}, 'isNotEmpty', ['hello'])
+      const result = generatedFunctionHelpers.evaluateFunction(ctx, undefined, 0, 'isNotEmpty', ['hello'])
 
       // Assert
       expect(result).toBe(true)
@@ -76,7 +189,7 @@ describe('generatedFunctionHelpers', () => {
       const ctx = contextFor({ evaluate, functionType: FunctionType.CONDITION, argumentsSchema: z.tuple([z.string()]) })
 
       // Act
-      const call = () => generatedFunctionHelpers.evaluateFunction(ctx, undefined, {}, 'equals', ['field', 42])
+      const call = () => generatedFunctionHelpers.evaluateFunction(ctx, undefined, 0, 'equals', ['field', 42])
 
       // Assert
       expect(call).toThrow(TypeError)
@@ -89,7 +202,7 @@ describe('generatedFunctionHelpers', () => {
       const ctx = contextFor({ evaluate, functionType: FunctionType.TRANSFORMER, inputSchema: z.string() })
 
       // Act
-      const call = () => generatedFunctionHelpers.evaluateFunction(ctx, undefined, {}, 'toUpperCase', [123])
+      const call = () => generatedFunctionHelpers.evaluateFunction(ctx, undefined, 0, 'toUpperCase', [123])
 
       // Assert
       expect(call).toThrow(TypeError)
@@ -102,7 +215,7 @@ describe('generatedFunctionHelpers', () => {
       const ctx = contextFor({ evaluate, functionType: FunctionType.TRANSFORMER })
 
       // Act
-      const result = generatedFunctionHelpers.evaluateFunction(ctx, undefined, {}, 'toUpperCase', [undefined])
+      const result = generatedFunctionHelpers.evaluateFunction(ctx, undefined, 0, 'toUpperCase', [undefined])
 
       // Assert
       expect(result).toBeUndefined()
@@ -115,7 +228,7 @@ describe('generatedFunctionHelpers', () => {
       const ctx = contextFor({ evaluate, functionType: FunctionType.CONDITION })
 
       // Act
-      const result = generatedFunctionHelpers.evaluateFunction(ctx, undefined, {}, 'isNotEmpty', [undefined])
+      const result = generatedFunctionHelpers.evaluateFunction(ctx, undefined, 0, 'isNotEmpty', [undefined])
 
       // Assert
       expect(result).toBe(false)
@@ -132,7 +245,7 @@ describe('generatedFunctionHelpers', () => {
       })
 
       // Act
-      const call = () => generatedFunctionHelpers.evaluateFunction(ctx, undefined, {}, 'padStart', [undefined, 42])
+      const call = () => generatedFunctionHelpers.evaluateFunction(ctx, undefined, 0, 'padStart', [undefined, 42])
 
       // Assert
       expect(call).toThrow(TypeError)
@@ -145,7 +258,7 @@ describe('generatedFunctionHelpers', () => {
       const ctx = contextFor({ evaluate, functionType: FunctionType.GENERATOR })
 
       // Act
-      const result = generatedFunctionHelpers.evaluateFunction(ctx, undefined, {}, 'uuid', [undefined])
+      const result = generatedFunctionHelpers.evaluateFunction(ctx, undefined, 0, 'uuid', [undefined])
 
       // Assert
       expect(result).toBe('generated')
@@ -158,7 +271,7 @@ describe('generatedFunctionHelpers', () => {
       const ctx = contextFor({ evaluate, functionType: FunctionType.TRANSFORMER, outputSchema: z.string() })
 
       // Act
-      const result = generatedFunctionHelpers.evaluateFunction(ctx, undefined, {}, 'toUpperCase', [undefined])
+      const result = generatedFunctionHelpers.evaluateFunction(ctx, undefined, 0, 'toUpperCase', [undefined])
 
       // Assert
       expect(result).toBeUndefined()
@@ -173,9 +286,7 @@ describe('generatedFunctionHelpers', () => {
       const ctx = contextFor({ evaluate, functionType: FunctionType.TRANSFORMER })
 
       // Act
-      const result = await generatedFunctionHelpers.evaluateFunctionAsync(ctx, undefined, {}, 'toUpperCase', [
-        undefined,
-      ])
+      const result = await generatedFunctionHelpers.evaluateFunctionAsync(ctx, undefined, 0, 'toUpperCase', [undefined])
 
       // Assert
       expect(result).toBeUndefined()
@@ -188,7 +299,7 @@ describe('generatedFunctionHelpers', () => {
       const ctx = contextFor({ evaluate, functionType: FunctionType.CONDITION })
 
       // Act
-      const result = await generatedFunctionHelpers.evaluateFunctionAsync(ctx, undefined, {}, 'isNotEmpty', [undefined])
+      const result = await generatedFunctionHelpers.evaluateFunctionAsync(ctx, undefined, 0, 'isNotEmpty', [undefined])
 
       // Assert
       expect(result).toBe(false)

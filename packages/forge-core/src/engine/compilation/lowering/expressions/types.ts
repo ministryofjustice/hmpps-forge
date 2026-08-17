@@ -9,9 +9,18 @@ export interface IteratorScopeFrame {
   readonly rawItemExpr: Code | Name
 }
 
+export interface FunctionCallCompileOptions {
+  readonly argumentPrefixes?: readonly string[]
+}
+
 export interface NodeCompilationContext {
   compileOperandCode(value: unknown): Code
-  compileFunctionCallCode(funcName: string, argExprs: readonly Code[], source?: unknown): Code
+  compileFunctionCallCode(
+    funcName: string,
+    argExprs: readonly Code[],
+    source?: unknown,
+    options?: FunctionCallCompileOptions,
+  ): Code
   namespaceToCtxCode(namespace: string): Code
   readonly generator: CodeGenerator
   readonly iteratorStack: readonly IteratorScopeFrame[]

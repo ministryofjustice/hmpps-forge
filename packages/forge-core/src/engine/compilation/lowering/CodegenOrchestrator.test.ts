@@ -141,6 +141,9 @@ describe('CodegenOrchestrator', () => {
         validatingStepNode.id,
       ])
       expect([...Array.from(compiledJourney?.compiledStepValidations.keys() ?? [])]).toEqual([validatingStepNode.id])
+      expect(compiledValidatingStep?.compiledValidation).toBe(
+        compiledJourney?.compiledStepValidations.get(validatingStepNode.id),
+      )
     })
 
     it('should skip journey-scoped validation maps when reachability checks are disabled', () => {

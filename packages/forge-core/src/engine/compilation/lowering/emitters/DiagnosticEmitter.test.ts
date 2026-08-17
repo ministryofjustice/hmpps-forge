@@ -28,10 +28,12 @@ describe('DiagnosticEmitter', () => {
 
       // Act
       const wrapped = wrapExpression(emitter, sourceWithStack(AUTHOR_STACK), false)
+      const callbackBodyLine = wrapped.source.split('\n').findIndex(line => line.includes('return (1 + 1);'))
 
       // Assert
       expect(wrapped.source.startsWith('_forgeHelpers.evaluateTracked(')).toBe(true)
       expect(wrapped.segmentsByLine[0]).toEqual([{ generatedColumn: 0, position: AUTHOR_POSITION }])
+      expect(wrapped.segmentsByLine[callbackBodyLine]).toEqual([{ generatedColumn: 4, position: AUTHOR_POSITION }])
     })
 
     it('should map the await wrapper to the authored callsite', () => {
@@ -107,18 +109,50 @@ describe('DiagnosticEmitter', () => {
       expect(wrapped.segmentsByLine.flat()).toEqual([])
     })
 
-    it('should omit undefined metadata fields from the emitted literal', () => {
+    it('should store only defined metadata outside the generated source', () => {
       // Arrange
       const emitter = new DiagnosticEmitter()
       const source = { id: 'node-1', diagnostics: { source: { formattedPath: 'journey.steps[0]' } } }
 
       // Act
       const wrapped = wrapExpression(emitter, source, false).source
+      const catalogue = emitter.snapshot()
 
       // Assert
-      expect(wrapped).toContain('"nodeId": "node-1"')
-      expect(wrapped).toContain('"formattedPath": "journey.steps[0]"')
-      expect(wrapped).not.toContain('undefined')
+      expect(wrapped).toContain('_forgeRuntimeDiagnostics,\n  0,')
+      expect(wrapped).not.toContain('node-1')
+      expect(wrapped).not.toContain('journey.steps[0]')
+      expect(catalogue).toEqual([{ nodeId: 'node-1', formattedPath: 'journey.steps[0]' }])
+    })
+
+    it('should reuse a reference when diagnostic metadata is identical', () => {
+      // Arrange
+      const emitter = new DiagnosticEmitter()
+      const source = sourceWithStack(AUTHOR_STACK)
+
+      // Act
+      const first = wrapExpression(emitter, source, false).source
+      const second = wrapExpression(emitter, source, false).source
+
+      // Assert
+      expect(first).toContain('_forgeRuntimeDiagnostics,\n  0,')
+      expect(second).toContain('_forgeRuntimeDiagnostics,\n  0,')
+      expect(emitter.snapshot()).toHaveLength(1)
+    })
+
+    it('should clear diagnostic references between generated functions', () => {
+      // Arrange
+      const emitter = new DiagnosticEmitter()
+
+      wrapExpression(emitter, sourceWithStack(AUTHOR_STACK), false)
+
+      // Act
+      emitter.reset()
+      const wrapped = wrapExpression(emitter, { id: 'node-2' }, false).source
+
+      // Assert
+      expect(wrapped).toContain('_forgeRuntimeDiagnostics,\n  0,')
+      expect(emitter.snapshot()).toEqual([{ nodeId: 'node-2' }])
     })
 
     it('should name and sanitise tracked callbacks from the formatted path tail', () => {

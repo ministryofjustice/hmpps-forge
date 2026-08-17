@@ -1,10 +1,19 @@
 import ForgeInternalError from '../../errors/ForgeInternalError'
+import ArrayExpressionToken from './ArrayExpressionToken'
+import CallExpressionToken from './CallExpressionToken'
 import FunctionExpressionToken from './FunctionExpressionToken'
 import Name from './Name'
+import ObjectExpressionToken from './ObjectExpressionToken'
 import PositionedCodeToken from './PositionedCodeToken'
 import { SourcePosition } from './SourcePosition.type'
 
-export type CodeItem = string | FunctionExpressionToken | PositionedCodeToken
+export type CodeItem =
+  | string
+  | ArrayExpressionToken
+  | CallExpressionToken
+  | FunctionExpressionToken
+  | ObjectExpressionToken
+  | PositionedCodeToken
 
 export type SafeCode = Code | Name
 
@@ -82,8 +91,28 @@ export class Code {
     return new Code([token])
   }
 
-  static withFallbackPositions(value: Code, positions: readonly SourcePosition[]): Code {
-    return positions.length === 0 ? value : new Code([new PositionedCodeToken(value, positions)])
+  static call(target: SafeCode, args: readonly SafeCode[]): Code {
+    return new Code([
+      new CallExpressionToken(
+        Code.fromSafeCode(target),
+        args.map(arg => Code.fromSafeCode(arg)),
+      ),
+    ])
+  }
+
+  static array(values: readonly SafeCode[]): Code {
+    return new Code([new ArrayExpressionToken(values.map(value => Code.fromSafeCode(value)))])
+  }
+
+  static object(properties: readonly ObjectCodeProperty[]): Code {
+    return new Code([
+      new ObjectExpressionToken(
+        properties.map(property => ({
+          key: Code.literal(property.key),
+          value: Code.fromSafeCode(property.value),
+        })),
+      ),
+    ])
   }
 
   get items(): readonly CodeItem[] {
@@ -104,6 +133,22 @@ export class Code {
 
           if (item instanceof PositionedCodeToken) {
             return item.value.toString()
+          }
+
+          if (item instanceof ArrayExpressionToken) {
+            return `[${item.values.map(value => value.toString()).join(', ')}]`
+          }
+
+          if (item instanceof CallExpressionToken) {
+            return `${item.target.toString()}(${item.args.map(arg => arg.toString()).join(', ')})`
+          }
+
+          if (item instanceof ObjectExpressionToken) {
+            const properties = item.properties.map(
+              property => `${property.key.toString()}: ${property.value.toString()}`,
+            )
+
+            return properties.length === 0 ? '{}' : `{ ${properties.join(', ')} }`
           }
 
           throw new ForgeInternalError('Code: structured function expressions must be rendered by SourceRenderer')
@@ -136,6 +181,8 @@ export const code = (strings: TemplateStringsArray, ...values: CodeInterpolation
 
 export const literal = (value: unknown): Code => Code.literal(value)
 
+export const callCode = (target: SafeCode, args: readonly SafeCode[]): Code => Code.call(target, args)
+
 export const joinCode = (values: readonly SafeCode[], separator: Code = code`, `): Code => Code.join(values, separator)
 
 export const propertyCode = (property: string): Code => {
@@ -149,15 +196,8 @@ export const propertyCode = (property: string): Code => {
 export const positionedCode = (value: Code, positions: readonly SourcePosition[]): Code =>
   Code.positioned(value, positions)
 
-export const fallbackPositionedCode = (value: Code, positions: readonly SourcePosition[]): Code =>
-  Code.withFallbackPositions(value, positions)
+export const arrayCode = (values: readonly SafeCode[]): Code => Code.array(values)
 
-export const arrayCode = (values: readonly SafeCode[]): Code => code`[${joinCode(values)}]`
-
-export const objectCode = (properties: readonly ObjectCodeProperty[]): Code => {
-  const compiledProperties = properties.map(property => code`${property.key}: ${property.value}`)
-
-  return code`{ ${joinCode(compiledProperties)} }`
-}
+export const objectCode = (properties: readonly ObjectCodeProperty[]): Code => Code.object(properties)
 
 const isIdentifier = (value: string): boolean => /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(value)

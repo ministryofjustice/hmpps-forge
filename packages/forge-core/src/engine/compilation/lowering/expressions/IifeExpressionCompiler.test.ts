@@ -31,6 +31,7 @@ describe('compileIifeExpression()', () => {
         '  if (value === undefined) {',
         '    return undefined;',
         '  }',
+        '',
         '  return format(value);',
         '})(inputValue)',
       ].join('\n'),

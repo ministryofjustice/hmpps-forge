@@ -385,6 +385,7 @@ describe('StepValidationCompiler', () => {
       // Assert
       expect(source).toContain('String(')
       expect(source).toContain('async function validateField()')
+      expect(source).toContain('function evaluate_field_condition()')
       expect(source).not.toContain('validate_123')
       expect(result.isValid).toBe(false)
       expect(result.fieldFailures[0].blockCode).toBe('123')
@@ -849,6 +850,7 @@ describe('StepValidationCompiler', () => {
       // Arrange
       const step = createStep()
       const block = createFieldBlock('field')
+      const evaluateEquals = vi.fn((value: unknown, expected: unknown) => value === expected)
       const ref1 = createReference(['answers', 'field'])
       const ref2 = createReference(['answers', 'field'])
       const orPred: OrPredicateASTNode = {
@@ -866,7 +868,12 @@ describe('StepValidationCompiler', () => {
       const validation = createValidation(orPred, 'Must be a or b')
       block.properties.validWhen = [validation]
 
-      const ctx = createCtx({ answers: { field: { current: 'a' } } })
+      const ctx = createCtx({
+        answers: { field: { current: 'a' } },
+        conditions: {
+          get: vi.fn(() => ({ evaluate: evaluateEquals })),
+        } as unknown as CompiledValidationContext['conditions'],
+      })
 
       // Act
       const fn = compiler.compileStepValidation(step, [block], [])
@@ -874,6 +881,7 @@ describe('StepValidationCompiler', () => {
 
       // Assert
       expect(result.isValid).toBe(true)
+      expect(evaluateEquals).toHaveBeenCalledOnce()
     })
 
     it('should compile NOT predicates', async () => {
@@ -1067,7 +1075,7 @@ describe('StepValidationCompiler', () => {
       const block = createFieldBlock('name')
       const ref = createReference(['answers', 'name'])
       const validation = createValidation(
-        createTestPredicate(ref, createConditionFunction('isRequired')),
+        createTestPredicate(ref, createConditionFunction('hasMaxLength', [10])),
         'Enter your name',
       )
       block.properties.validWhen = [validation]
@@ -1077,12 +1085,110 @@ describe('StepValidationCompiler', () => {
 
       // Assert
       expect(source).toContain('"use strict"')
+      expect(source).toContain(
+        [
+          '// --- Active validation groups ---',
+          '// Use the default group when the request does not select one.',
+          'const requestedGroups = filter.groups.length > 0 ? filter.groups : ["default"];',
+          'const activeGroups = new Set(requestedGroups);',
+          '',
+          'function ruleIsActive(rule) {',
+          '  // Use the default group when the rule does not declare one.',
+          '  const ruleGroups = Array.isArray(rule.groups) && rule.groups.length > 0 ? rule.groups : ["default"];',
+          '',
+          '  // A rule runs when any of its groups is active.',
+          '  const hasActiveGroup = ruleGroups.some(',
+          '    function isActiveValidationGroup(group) {',
+          '      return activeGroups.has(group);',
+          '    }',
+          '  );',
+          '',
+          '  if (!hasActiveGroup) {',
+          '    return false;',
+          '  }',
+          '',
+          '  // Submission-only rules are skipped unless this validation run includes them.',
+          '  const submissionOnlyIsIncluded = filter.includeSubmissionOnly === true;',
+          '',
+          '  return rule.submissionOnly !== true || submissionOnlyIsIncluded;',
+          '}',
+        ].join('\n'),
+      )
+      expect(source).not.toContain('Object.create(null)')
+      expect(source).not.toContain('registerActiveValidationGroup')
+      expect(source).not.toContain('String(activeGroup)')
       expect(source).toContain('const errors = []')
       expect(source).toContain('async function validate_name()')
-      expect(source).toContain('function validate_name_results(results)')
+      expect(source).toContain('"run": validate_name')
+      expect(source).not.toContain('"run": async function validate_name')
+      expect(source).not.toContain('function validate_name_results(results)')
+      expect(source).not.toContain('function create_name_validation()')
+      expect(source).not.toContain('function evaluate_name_validation()')
+      expect(source).toContain('"condition": async function evaluate_name_condition()')
+      expect(source).toContain('function evaluate_name_hasMaxLength()')
+      expect(source).not.toContain('function evaluate_name_message()')
+      expect(source).not.toContain('function evaluate_name_details()')
+      expect(source).toContain('const subject =')
+      expect(source).toContain('const functionArgument1 = 10')
+      expect(source).toContain('const functionResult = await _forgeHelpers.evaluateFunctionAsync(')
+      expect(source).toContain('"hasMaxLength",\n                [subject, functionArgument1]')
+      expect(source).not.toContain('"hasMaxLength", [_forgeHelpers.evaluateTracked')
+      expect(source).toContain('const conditionResult = await')
+      expect(source).toContain('return conditionResult')
+      expect(source).not.toContain('_forgeHelpers.evaluateValidationCondition')
+      expect(source).toContain(
+        'const validationFailures = await _forgeHelpers.collectValidationFailuresAsync(validationRules, ruleIsActive)',
+      )
+      expect(source).not.toContain('const validationStack = [results]')
+      expect(source).not.toContain('RuntimeValueCompiler.compileArrayValue')
+      expect(source).toContain(
+        [
+          '      const validationRules = [',
+          '        {',
+          '          "condition": async function evaluate_name_condition() {',
+          '            // Evaluate the authored condition for this validation rule.',
+          '            const conditionResult = await (await (async function evaluate_name_hasMaxLength() {',
+          '              // Resolve the arguments passed to hasMaxLength.',
+          '              const subject = _forgeHelpers.evaluateTracked(',
+          '                _forgeRuntimeDiagnostics,',
+          '                0,',
+          '                function evaluate_root() {',
+          '                  return (ctx.answers["name"]?.current);',
+          '                }',
+          '              );',
+          '              const functionArgument1 = 10;',
+          '',
+          '              // Call the registered hasMaxLength function.',
+          '              const functionResult = await _forgeHelpers.evaluateFunctionAsync(',
+          '                ctx,',
+          '                _forgeRuntimeDiagnostics,',
+          '                1,',
+          '                "hasMaxLength",',
+          '                [subject, functionArgument1]',
+          '              );',
+          '',
+          '              return functionResult;',
+          '            })());',
+          '',
+          '            return conditionResult;',
+          '          },',
+          '          "message": "Enter your name",',
+          '          "submissionOnly": false,',
+          '          "groups": undefined,',
+          '          "details": undefined',
+          '        }',
+          '      ];',
+        ].join('\n'),
+      )
+      expect(source).toContain('// Return this failed rule as a field validation error.')
       expect(source).toContain('ctx.answers["name"]?.current')
       expect(source).toContain('_forgeHelpers.evaluateFunction')
-      expect(source).toContain('"isRequired"')
+      expect(source).toContain('"hasMaxLength"')
+      expect(source).toMatch(/_forgeRuntimeDiagnostics,\s+\d+,/)
+      expect(source).not.toContain('"nodeId"')
+      expect(source).not.toContain('"formattedPath"')
+      expect(source).not.toContain('"functionType"')
+      expect(source).not.toContain('"definedAt"')
       expect(source).toContain('"Enter your name"')
       expect(source).toContain('ctx.workTasks.fieldValidation')
       expect(source).toContain('return ctx.workTasks.stepValidation(fieldValidations, domainValidations)')

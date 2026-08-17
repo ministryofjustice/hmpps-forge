@@ -33,8 +33,12 @@ describe('ExpressionDispatcher', () => {
 
       // Assert
       expect(source).toContain('_forgeHelpers.evaluateFunction')
-      expect(source).toContain('"functionName": "buildCode"')
+      expect(source).toContain('_forgeRuntimeDiagnostics, 0, "buildCode"')
+      expect(source).not.toContain('"functionName"')
       expect(source).not.toContain('_forgeHelpers.evaluateTracked')
+      expect(compiler.diagnosticCatalogue).toMatchObject([
+        { functionName: 'buildCode', functionType: FunctionType.GENERATOR },
+      ])
     })
 
     it('should keep tracking non-function expressions around their compiled body', () => {

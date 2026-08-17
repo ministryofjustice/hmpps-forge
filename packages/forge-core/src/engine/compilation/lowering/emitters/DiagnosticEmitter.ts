@@ -1,10 +1,10 @@
 import { FunctionType } from '../../../../authoring/types/enums'
 import { formatCallsiteChain, resolveCallsitePositionChain } from '../../../../shared/diagnostics/formatCallsite'
-import { Code, arrayCode, code, literal, objectCode, positionedCode, propertyCode } from '../../codegen/Code'
+import { Code, arrayCode, callCode, code, literal, positionedCode, propertyCode } from '../../codegen/Code'
 import CodeGenerator from '../../codegen/CodeGenerator'
 import Name from '../../codegen/Name'
 
-interface DiagnosticMetadata {
+export interface DiagnosticMetadata {
   readonly nodeId?: string
   readonly formattedPath?: string
   readonly functionName?: string
@@ -17,6 +17,19 @@ const RUNTIME_DIAGNOSTICS_PARAM = new Name('_forgeRuntimeDiagnostics')
 const CONTEXT_PARAM = new Name('ctx')
 
 export default class DiagnosticEmitter {
+  private readonly metadataByKey = new Map<string, number>()
+
+  private readonly metadataEntries: DiagnosticMetadata[] = []
+
+  reset(): void {
+    this.metadataByKey.clear()
+    this.metadataEntries.length = 0
+  }
+
+  snapshot(): readonly DiagnosticMetadata[] {
+    return Object.freeze(this.metadataEntries.map(metadata => Object.freeze({ ...metadata })))
+  }
+
   wrapExpression(expression: Code, source: unknown, usesAwait: boolean, generator: CodeGenerator): Code {
     const metadata = this.getMetadata(source)
 
@@ -33,7 +46,7 @@ export default class DiagnosticEmitter {
       },
       { async: usesAwait },
     )
-    const helperCall = this.compileTrackedHelperCall(helperName, metadata, callback)
+    const helperCall = this.compileTrackedHelperCall(helperName, this.intern(metadata), callback)
     const wrappedCall = usesAwait ? code`(await ${helperCall})` : helperCall
 
     return positionedCode(wrappedCall, this.resolvePositions(source))
@@ -52,7 +65,7 @@ export default class DiagnosticEmitter {
     }
 
     return positionedCode(
-      this.compileFunctionHelperCall(helperName, metadata, funcName, argExprs),
+      this.compileFunctionHelperCall(helperName, this.intern(metadata), funcName, argExprs),
       this.resolvePositions(source),
     )
   }
@@ -189,8 +202,12 @@ export default class DiagnosticEmitter {
     }
   }
 
-  private compileTrackedHelperCall(helperName: string, metadata: DiagnosticMetadata, callback: Code): Code {
-    return code`${GENERATED_FUNCTION_HELPERS_PARAM}${propertyCode(helperName)}(${RUNTIME_DIAGNOSTICS_PARAM}, ${this.compileMetadataLiteral(metadata)}, ${callback})`
+  private compileTrackedHelperCall(helperName: string, diagnosticReference: number, callback: Code): Code {
+    return callCode(code`${GENERATED_FUNCTION_HELPERS_PARAM}${propertyCode(helperName)}`, [
+      RUNTIME_DIAGNOSTICS_PARAM,
+      literal(diagnosticReference),
+      callback,
+    ])
   }
 
   /**
@@ -213,31 +230,35 @@ export default class DiagnosticEmitter {
 
   private compileFunctionHelperCall(
     helperName: string,
-    metadata: DiagnosticMetadata,
+    diagnosticReference: number,
     funcName: string,
     argExprs: readonly Code[],
   ): Code {
     const args = [
       CONTEXT_PARAM,
       RUNTIME_DIAGNOSTICS_PARAM,
-      this.compileMetadataLiteral(metadata),
+      literal(diagnosticReference),
       literal(funcName),
       arrayCode(argExprs),
     ]
 
-    return code`${GENERATED_FUNCTION_HELPERS_PARAM}${propertyCode(helperName)}(${args[0]}, ${args[1]}, ${args[2]}, ${args[3]}, ${args[4]})`
+    return callCode(code`${GENERATED_FUNCTION_HELPERS_PARAM}${propertyCode(helperName)}`, args)
   }
 
-  private compileMetadataLiteral(metadata: DiagnosticMetadata): Code {
-    const fields = [
-      ['nodeId', metadata.nodeId],
-      ['formattedPath', metadata.formattedPath],
-      ['functionName', metadata.functionName],
-      ['functionType', metadata.functionType],
-      ['definedAt', metadata.definedAt],
-    ].filter((field): field is [string, string] => field[1] !== undefined)
+  private intern(metadata: DiagnosticMetadata): number {
+    const key = JSON.stringify(metadata)
+    const existingReference = this.metadataByKey.get(key)
 
-    return objectCode(fields.map(([key, value]) => ({ key, value: literal(value) })))
+    if (existingReference !== undefined) {
+      return existingReference
+    }
+
+    const reference = this.metadataEntries.length
+
+    this.metadataEntries.push(metadata)
+    this.metadataByKey.set(key, reference)
+
+    return reference
   }
 }
 

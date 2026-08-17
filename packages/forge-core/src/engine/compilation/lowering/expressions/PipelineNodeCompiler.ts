@@ -34,7 +34,9 @@ export default class PipelineNodeCompiler {
     const funcName = stepProps.name as string
     const funcArgs = (stepProps.arguments ?? []) as unknown[]
     const argExprs = funcArgs.map(arg => this.ctx.compileOperandCode(arg))
-    const callExpr = this.ctx.compileFunctionCallCode(funcName, [code`${PIPELINE_VALUE_PARAM}`, ...argExprs], step)
+    const callExpr = this.ctx.compileFunctionCallCode(funcName, [code`${PIPELINE_VALUE_PARAM}`, ...argExprs], step, {
+      argumentPrefixes: ['pipelineValue', ...funcArgs.map((_, index) => `functionArgument${index + 1}`)],
+    })
 
     return this.compileOptionalPipelineCall(inputExpr, callExpr)
   }
@@ -72,6 +74,8 @@ export default class PipelineNodeCompiler {
     const funcArgs = (properties.arguments ?? []) as unknown[]
     const argExprs = funcArgs.map(arg => this.ctx.compileOperandCode(arg))
 
-    return this.ctx.compileFunctionCallCode(funcName, argExprs, source ?? properties)
+    return this.ctx.compileFunctionCallCode(funcName, argExprs, source ?? properties, {
+      argumentPrefixes: funcArgs.map((_, index) => `functionArgument${index + 1}`),
+    })
   }
 }
