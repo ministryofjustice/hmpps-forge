@@ -1,25 +1,34 @@
-import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import {
+  code,
+  literal,
+  objectCode,
+  ObjectCodeProperty,
+} from '../../../compilation/lowering/codegen/fragments/CodeFragment'
+import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
-  buildGeneratedSource,
+  CompilationPhase,
   compileGeneratedFunction,
-} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
+  renderGeneratedSource,
+} from '../../../compilation/lowering/GeneratedFunctionCompiler'
 import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import type { CompiledRouteMetadataFunction } from '../../../contracts/compiled/compiledFunctions.type'
-import type { RouteMetadataCompilationInputs } from '../../../contracts/plans/compilationPlan.type'
+import type { RouteMetadataModel } from '../contracts/routeMetadataModel.type'
 
 /**
  * Compiles the package-level route-metadata function for the route-tree phase.
  *
- * Authoring lets title/description/metadata be expressions, so they cannot be
- * baked onto the route tree built once at mount. This compiler lowers every
- * step's and journey's metadata into one generated function that, given a request
- * context, returns the resolved metadata keyed by node ID. The route-tree runtime
- * phase calls it and merges the result onto the static topology.
+ * Journey authors can set title, description, and metadata as expressions, so
+ * their values can't be fixed on the route tree at mount time. This compiler
+ * turns every step's and journey's metadata into one generated function that
+ * evaluates them at request time and returns the results keyed by node ID. The
+ * route-tree runtime phase calls it and merges the result onto the static
+ * route topology.
  *
- * Unlike per-step phase compilers it is compiled once at package scope (the route
- * tree spans every node), then fanned onto every compiled step and journey.
+ * Unlike per-step compilers this is compiled once at package scope (the route
+ * tree spans every node), then shared across every compiled step and journey.
  */
 export default class RouteMetadataCompiler {
   private readonly expr: ExpressionDispatcher
@@ -29,7 +38,7 @@ export default class RouteMetadataCompiler {
   constructor(dependencies: CompilationDependencies) {
     this.expr = new ExpressionDispatcher(dependencies)
     this.values = new RuntimeValueCompiler(this.expr, {
-      expressionErrorFallback: 'undefined',
+      expressionErrorFallback: literal(undefined),
       expressionErrorMode: 'throw',
       omitUndefinedArrayItems: false,
     })
@@ -42,54 +51,59 @@ export default class RouteMetadataCompiler {
    * is sync or async depends on whether any metadata expression calls a registered
    * async function.
    */
-  compile(inputs: Iterable<RouteMetadataCompilationInputs>): CompiledRouteMetadataFunction {
+  compile(inputs: Iterable<RouteMetadataModel>): CompiledRouteMetadataFunction {
     return compileGeneratedFunction<CompiledRouteMetadataFunction>(this.expr, ['ctx'], () => this.buildSource(inputs), {
-      phase: 'route-tree',
+      phase: CompilationPhase.ROUTE_TREE,
     })
   }
 
   /**
    * Builds inspectable generated source without constructing a Function.
    */
-  generateSource(inputs: Iterable<RouteMetadataCompilationInputs>): string {
-    return buildGeneratedSource(this.expr, () => this.buildSource(inputs))
+  generateSource(inputs: Iterable<RouteMetadataModel>): string {
+    return renderGeneratedSource(this.expr, () => this.buildSource(inputs))
   }
 
   /**
-   * Emits `result[nodeId] = { title, description?, metadata? }` for every node.
+   * Emits `routeMetadata[nodeId] = { title, description?, metadata? }` for every node.
    */
-  private buildSource(inputs: Iterable<RouteMetadataCompilationInputs>): string {
-    const emitter = new CodeEmitter()
+  private buildSource(inputs: Iterable<RouteMetadataModel>): CodeGenerator {
+    const generator = CodeGenerator.forFunction(['ctx'])
     const entries = [...inputs]
 
-    emitter.code('"use strict";')
-    emitter.comment('RouteMetadataCompiler.buildSource')
-    emitter.declareConst('result', '{}')
-    entries.forEach(input => this.compileEntry(input, emitter))
-    emitter.return('result')
+    generator.directive('use strict')
+    generator.comment('Resolved route metadata, keyed by node id')
+    const routeMetadata = generator.const('routeMetadata', code`{}`)
 
-    return emitter.toString()
+    entries.forEach(input => this.compileEntry(input, routeMetadata, generator))
+    generator.return(routeMetadata)
+
+    return generator
   }
 
   /**
-   * Emits the resolved metadata object for one node.
+   * Emits the resolved metadata object for one node. Static values sit inline
+   * in the literal; expression-backed values hoist into named consts just above.
    */
-  private compileEntry(input: RouteMetadataCompilationInputs, emitter: CodeEmitter): void {
-    emitter.comment('RouteMetadataCompiler.compileEntry')
-    emitter.scope(() => {
-      const entryVar = emitter.const('routeMetadataEntry', '{}')
+  private compileEntry(input: RouteMetadataModel, routeMetadata: IdentifierName, generator: CodeGenerator): void {
+    const properties: ObjectCodeProperty[] = [
+      { key: 'title', value: this.values.compileValueExpression(input.title, generator, 'title') },
+    ]
 
-      this.values.compileAssignment(input.title, emitter, entryVar, 'title')
+    if (input.description !== undefined) {
+      properties.push({
+        key: 'description',
+        value: this.values.compileValueExpression(input.description, generator, 'description'),
+      })
+    }
 
-      if (input.description !== undefined) {
-        this.values.compileAssignment(input.description, emitter, entryVar, 'description')
-      }
+    if (input.metadata !== undefined) {
+      properties.push({
+        key: 'metadata',
+        value: this.values.compileValueExpression(input.metadata, generator, 'metadata'),
+      })
+    }
 
-      if (input.metadata !== undefined) {
-        this.values.compileAssignment(input.metadata, emitter, entryVar, 'metadata')
-      }
-
-      emitter.assign(`result[${JSON.stringify(input.nodeId)}]`, entryVar)
-    })
+    generator.assign(code`${routeMetadata}[${input.nodeId}]`, objectCode(properties))
   }
 }

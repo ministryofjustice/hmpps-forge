@@ -1,4 +1,4 @@
-import type { ReachabilityStateTableEntry, ReachabilityStateTable } from '../../../../contracts/plans/runtimePlans.type'
+import type { ReachabilityStateTableEntry, ReachabilityStateTable } from '../../contracts/reachabilityModel.type'
 import { pickTieBreakerWinner } from './ReachabilityPathAnalyzer'
 import type { JourneyRouteTemplateCatalog } from '../../../route/contracts/routeTree.type'
 import type { NodeId } from '../../../../contracts/ast/ast.type'
@@ -8,15 +8,16 @@ import { resolveRouteTemplateTargetPath } from './routeTemplateTargetResolver'
 import ForgeInternalError from '../../../../errors/ForgeInternalError'
 
 /**
- * Builds the reachability state for a journey: seeds entry points, walks
- * reachability from them, and resolves each step's forward, declared-forward, and
- * predecessor route-template paths and tie-breaker priority.
+ * Builds the reachability state for a journey: marks entry points as reachable,
+ * walks forward from them through the step graph, and resolves each step's
+ * forward, declared-forward, and predecessor route-template paths plus its
+ * tie-breaker priority.
  *
  * Entry predicates, forward outcomes, and tie-breaker priorities come from the
- * compiled reachability result; per-step reachability-mode validity is read from the
- * precomputed `stepValidities` map (a step absent from the map has no validation
- * and is treated as valid). An invalid step does not propagate reachability to its
- * successors.
+ * compiled reachability facts. Per-step validity (whether the step's validation
+ * passes in non-submission, default-group mode) is read from the `stepValidities`
+ * map; a step absent from the map has no validation and is treated as valid. An
+ * invalid step doesn't propagate reachability to its successors.
  */
 export default class ReachabilityGraphBuilder {
   private steps!: ReachabilityNode[]
@@ -147,8 +148,9 @@ export default class ReachabilityGraphBuilder {
 
   private evaluateStepReachability(step: ReachabilityNode): void {
     // Absence from the map means the step has no validation, so it is valid and
-    // cannot block forward reachability. The map carries reachability-mode validity:
-    // non-submission, default group - `submissionOnly` and off-default failures don't gate.
+    // cannot block forward reachability. The map only carries validity in
+    // reachability mode (non-submission, default group), so `submissionOnly`
+    // rules and off-default-group failures don't block forward propagation.
     step.isValid = this.stepValidities.get(step.stepId) ?? true
 
     const entryIndex = this.stepIndexByStepId.get(step.stepId)!

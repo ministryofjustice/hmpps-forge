@@ -4,11 +4,11 @@ import { ExpressionType, FunctionType, OutcomeType, PredicateType } from '../../
 import { FunctionASTNode, ReferenceASTNode, RedirectOutcomeASTNode } from '../../../contracts/ast/expressions.type'
 import { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
 import type {
-  ForwardOutcomeGroup,
   ReachabilityStateTable,
-  ReachabilityCompilationEntry,
-  ReachabilityCompilationPlan,
-} from '../../../contracts/plans/runtimePlans.type'
+  ForwardOutcomeGroup,
+  ReachabilityEntryModel,
+  ReachabilityModel,
+} from '../contracts/reachabilityModel.type'
 import type { ASTNode, NodeId } from '../../../contracts/ast/ast.type'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
@@ -68,7 +68,7 @@ function createRedirectOutcome(goto: string | FunctionASTNode, when?: TestPredic
   } as RedirectOutcomeASTNode
 }
 
-function createEntry(overrides: Partial<ReachabilityCompilationEntry> = {}): ReachabilityCompilationEntry {
+function createEntry(overrides: Partial<ReachabilityEntryModel> = {}): ReachabilityEntryModel {
   return {
     stepId: ASTTestFactory.getId() as NodeId,
     isEntryPoint: false,
@@ -93,7 +93,7 @@ function createGroup(
   }
 }
 
-function createPlan(overrides: Partial<ReachabilityCompilationPlan> = {}): ReachabilityCompilationPlan {
+function createPlan(overrides: Partial<ReachabilityModel> = {}): ReachabilityModel {
   const entries = overrides.entries ?? []
   const stateTable = overrides.stateTable ?? createStateTable(entries)
 
@@ -105,7 +105,7 @@ function createPlan(overrides: Partial<ReachabilityCompilationPlan> = {}): Reach
   }
 }
 
-function createStateTable(entries: ReachabilityCompilationEntry[]): ReachabilityStateTable {
+function createStateTable(entries: readonly ReachabilityEntryModel[]): ReachabilityStateTable {
   return {
     entries: entries.map(entry => ({
       stepId: entry.stepId,
@@ -158,6 +158,7 @@ describe('ReachabilityCompiler', () => {
   dependencies.functionRegistry.register({
     equals: { name: 'equals', isAsync: true, evaluate: () => undefined },
     throwingCondition: { name: 'throwingCondition', isAsync: true, evaluate: () => undefined },
+    nextStep: { name: 'nextStep', isAsync: false, evaluate: () => undefined },
   })
 
   beforeEach(() => {
@@ -849,6 +850,129 @@ describe('ReachabilityCompiler', () => {
       expect(source).toContain('"equals"')
       expect(source).toContain('"/step-2"')
       expect(source).toContain('return {')
+    })
+
+    it('should label sections with the step code and map indices in a step-order note', () => {
+      // Arrange
+      const outcome = createRedirectOutcome('/step-2')
+      const plan = createPlan({
+        entries: [
+          createEntry({
+            code: 'check-answers',
+            entryWhen: createTestPredicate(
+              createReference(['data', 'done']),
+              createConditionFunction('equals', [true]),
+            ),
+            forwardOutcomeGroups: [createGroup([outcome])],
+            reachabilityTieBreakers: [{ priority: 10 }],
+          }),
+        ],
+      })
+
+      // Act
+      const source = compiler.generateFactsSource(plan)
+
+      // Assert
+      expect(source).toContain('Step order: 0 "check-answers"')
+      expect(source).toContain('Entry predicate — step "check-answers"')
+      expect(source).toContain('Forward outcomes — step "check-answers"')
+      expect(source).toContain('Tie-breaker priority — step "check-answers"')
+    })
+
+    it('should collapse a single static outcome to one push without cascade scaffold', () => {
+      // Arrange
+      const plan = createPlan({
+        entries: [createEntry({ forwardOutcomeGroups: [createGroup([createRedirectOutcome('/step-2')])] })],
+      })
+
+      // Act
+      const source = compiler.generateFactsSource(plan)
+
+      // Assert
+      expect(source).toContain('outcomeValues[0].push("/step-2");')
+      expect(source).not.toContain('outcomeMatched')
+      expect(source).not.toContain('gotoValue')
+      expect(source).not.toContain('String(')
+    })
+
+    it('should emit guarded static outcomes as an if/else chain without a latch', () => {
+      // Arrange
+      const guard = () =>
+        createTestPredicate(createReference(['data', 'flag']), createConditionFunction('equals', [true]))
+      const plan = createPlan({
+        entries: [
+          createEntry({
+            forwardOutcomeGroups: [
+              createGroup([
+                createRedirectOutcome('/step-2', guard()),
+                createRedirectOutcome('/step-3', guard()),
+                createRedirectOutcome('/step-4'),
+              ]),
+            ],
+          }),
+        ],
+      })
+
+      // Act
+      const source = compiler.generateFactsSource(plan)
+
+      // Assert
+      expect(source).toContain('else {')
+      expect(source).toContain('outcomeWhen')
+      expect(source).toContain('outcomeValues[0].push("/step-4");')
+      expect(source).not.toContain('outcomeMatched')
+    })
+
+    it('should keep the runtime latch when a goto is a dynamic expression', () => {
+      // Arrange
+      const dynamicGoto = createGeneratorFunction('nextStep')
+      const plan = createPlan({
+        entries: [
+          createEntry({
+            forwardOutcomeGroups: [createGroup([createRedirectOutcome(dynamicGoto), createRedirectOutcome('/step-2')])],
+          }),
+        ],
+      })
+
+      // Act
+      const source = compiler.generateFactsSource(plan)
+
+      // Assert
+      expect(source).toContain('outcomeMatched')
+      expect(source).toContain('gotoValue')
+      expect(source).toContain('gotoValue !== undefined')
+    })
+
+    it('should fold a single unconditional tie-breaker to a direct assignment', () => {
+      // Arrange
+      const plan = createPlan({
+        entries: [createEntry({ reachabilityTieBreakers: [{ priority: 100 }] })],
+      })
+
+      // Act
+      const source = compiler.generateFactsSource(plan)
+
+      // Assert
+      expect(source).toContain('tieBreakerPriorities[0] = 100;')
+      expect(source).not.toContain('let tieBreakerPriority')
+      expect(source).not.toContain('tieBreakerWhen')
+    })
+
+    it('should emit conditional tie-breakers as an if/else chain ending in the catch-all', () => {
+      // Arrange
+      const when = createTestPredicate(createReference(['data', 'flag']), createConditionFunction('equals', [true]))
+      const plan = createPlan({
+        entries: [createEntry({ reachabilityTieBreakers: [{ priority: 10, when }, { priority: 100 }] })],
+      })
+
+      // Act
+      const source = compiler.generateFactsSource(plan)
+
+      // Assert
+      expect(source).toContain('tieBreakerWhen')
+      expect(source).toContain('tieBreakerPriorities[0] = 10;')
+      expect(source).toContain('tieBreakerPriorities[0] = 100;')
+      expect(source).not.toContain('=== undefined')
     })
   })
 

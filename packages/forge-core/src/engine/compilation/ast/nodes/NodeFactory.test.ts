@@ -8,6 +8,9 @@ import {
   PredicateType,
   StructureType,
 } from '../../../../authoring/types/enums'
+import { ExpressionBuilder } from '../../../../authoring/builders/ExpressionBuilder'
+import { finaliseBuilders } from '../../../../authoring/builders/utils/finaliseBuilders'
+import type { ConditionFunctionExpr, ReferenceExpr } from '../../../../authoring/types/expressions.type'
 import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
 import ForgeInvalidNodeError from '../../../errors/ForgeInvalidNodeError'
 import ForgeUnknownNodeTypeError from '../../../errors/ForgeUnknownNodeTypeError'
@@ -132,6 +135,26 @@ describe('NodeFactory', () => {
 
       // Act & Assert
       expect(() => nodeFactory.createNode(json)).toThrow(ForgeUnknownNodeTypeError)
+    })
+
+    it('should preserve the exact match invocation line through finalisation and node creation', () => {
+      // Arrange
+      const reference = { type: ExpressionType.REFERENCE, path: ['answers', 'email'] } satisfies ReferenceExpr
+      const condition = {
+        type: FunctionType.CONDITION,
+        name: 'IsRequired',
+        arguments: [],
+      } satisfies ConditionFunctionExpr
+      const precedingStack = new Error().stack
+      const predicate = ExpressionBuilder.from(reference).match(condition)
+      const precedingLine = Number(precedingStack?.match(/NodeFactory\.test\.ts:(\d+):/)?.[1])
+
+      // Act
+      const result = nodeFactory.createNode(finaliseBuilders(predicate))
+
+      // Assert
+      expect(precedingLine).not.toBeNaN()
+      expect(result.diagnostics?.callsite?.stack).toContain(`NodeFactory.test.ts:${precedingLine + 1}:`)
     })
 
     it('should exclude the inline-only types from the valid-types list', () => {

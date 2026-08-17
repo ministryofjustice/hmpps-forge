@@ -17,7 +17,9 @@ export const captureCallsite = (skip: (...args: any[]) => unknown): Callsite => 
   const site: Callsite = {}
   const previousLimit = Error.stackTraceLimit
 
-  Error.stackTraceLimit = 5
+  // Deep enough that wrapper DSL layers (curried builders, native Array.map
+  // frames) cannot eat the whole budget before the author's own frame lands.
+  Error.stackTraceLimit = 15
   try {
     Error.captureStackTrace(site, skip)
   } finally {

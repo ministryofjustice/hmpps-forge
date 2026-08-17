@@ -1,63 +1,64 @@
-/**
- * Compiles render context evaluation for one step.
- *
- * The generated function builds evaluated step metadata, journey ancestor
- * metadata, and blocks from the shared AST. Static values are emitted as JSON;
- * expression values are emitted through ExpressionDispatcher. Registry
- * metadata decides whether the generated source is sync or async.
- *
- * MAP iterators that yield blocks are emitted as loops that push blocks directly
- * into the render result. FILTER/FIND/MAP iterators used as property values are
- * compiled inline as expressions. No runtime node expansion is required.
- */
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import { BlockType, IteratorType } from '../../../../authoring/types/enums'
-import { BlockASTNode, JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
-import { IterateASTNode } from '../../../contracts/ast/expressions.type'
-import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
-import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import { BlockType } from '../../../../authoring/types/enums'
+import { isTemplateNode } from '../../../contracts/ast/nodes'
+import type { TemplateNode } from '../../../contracts/ast/template.type'
+import {
+  AuthoredValueKind,
+  toRawOperand,
+  type AuthoredValue,
+  type BlockValue,
+  type RecordEntryValue,
+} from '../../../contracts/models/authoredValue.type'
+import {
+  CodeFragment,
+  code,
+  literal,
+  objectCode,
+  structuredLiteralCode,
+  SafeCode,
+  ObjectCodeProperty,
+} from '../../../compilation/lowering/codegen/fragments/CodeFragment'
+import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
+import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
-  buildGeneratedSource,
+  CompilationPhase,
   compileGeneratedFunction,
-  GENERATED_FUNCTION_HELPERS_PARAM,
-} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
-import ScopedTemplateCompiler, {
-  isTemplateBlockNode,
-} from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
+  GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM,
+  renderGeneratedSource,
+} from '../../../compilation/lowering/GeneratedFunctionCompiler'
 import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
-import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
-
+import ScopedTemplateCompiler from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
 import type { CompiledResolveFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type {
+  ResolveAncestorModel,
+  ResolveBlockModel,
+  ResolveModel,
+  ResolvePropertyModel,
+} from '../contracts/resolveModel.type'
 
-interface ResolveBlockValue {
-  readonly id?: unknown
-  readonly type: ASTNodeType.BLOCK
-  readonly variant: string
-  readonly blockType: string
-  readonly properties?: Record<string, unknown>
+interface ResolveResultNames {
+  readonly blocks: IdentifierName
+  readonly step: IdentifierName
+  readonly ancestors: IdentifierName
 }
 
-/**
- * Phase compiler for the generated step render function.
- *
- * It emits route metadata and renderable block structure while shared runtime
- * helpers handle generic behaviours such as field value resolution.
- */
+/** Everything one block-props construction needs, shared by top-level, template, and nested blocks. */
+interface BlockPropsCompilation {
+  readonly properties: readonly ResolvePropertyModel[]
+  readonly blockType: string
+  readonly resolvesFieldValue: boolean
+  readonly blockId: SafeCode
+  readonly codeExpression: SafeCode | undefined
+  readonly namePrefix: string
+}
+
+const CONTEXT = new IdentifierName('ctx')
+const HELPERS = new IdentifierName(GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM)
+
+/** Compiler for the resolve phase: builds the generated function that prepares a step's blocks, metadata, and ancestors for rendering. */
 export default class StepResolveCompiler {
-  // These properties affect answer prep or validation, not rendered block props.
-  private static readonly BLOCK_SKIP_PROPS = new Set(['formatters', 'parsers', 'validWhen', 'dependentWhen'])
-
-  // Hooks, blocks, and reachability are executable structure, not render metadata.
-  private static readonly STEP_SKIP_PROPS = new Set(['onAccess', 'onSubmission', 'blocks', 'reachability'])
-
-  // Child structure and access hooks are route/lifecycle concerns, not metadata.
-  private static readonly JOURNEY_SKIP_PROPS = new Set(['onAccess', 'children', 'steps', 'reachability'])
-
-  // The resolve-blocks root task key, emitted into generated source and surfaced in the resolve trace.
-  private static readonly ROOT_KEY = 'resolve-blocks'
-
   private readonly expr: ExpressionDispatcher
 
   private readonly fieldCodes: FieldCodeEmitter
@@ -66,477 +67,516 @@ export default class StepResolveCompiler {
 
   private readonly values: RuntimeValueCompiler
 
-  // Iterates used as property values are compiled at that property site. Track
-  // them so block-yielding MAP iterators are not emitted a second time as
-  // top-level blocks.
-  private readonly inlineIterateIds = new Set<string>()
-
   constructor(dependencies: CompilationDependencies) {
     this.expr = new ExpressionDispatcher(dependencies)
     this.fieldCodes = new FieldCodeEmitter(this.expr)
     this.templates = new ScopedTemplateCompiler(this.expr)
     this.values = new RuntimeValueCompiler(this.expr, {
-      expressionErrorFallback: 'undefined',
+      expressionErrorFallback: literal(undefined),
       expressionErrorMode: 'throw',
       omitUndefinedArrayItems: true,
-      isStructuralValue: value => this.isResolveBlockValue(value),
-      compileStructuralValue: (value, emitter, targetVar) =>
-        this.tryCompileResolveBlockValue(value, emitter, targetVar),
-      noteInlineIterator: nodeId => {
-        this.inlineIterateIds.add(nodeId)
-      },
+      compileBlockValue: (block, generator, nameHint) => this.compileNestedBlockValue(block, generator, nameHint),
     })
   }
 
-  /**
-   * Builds the executable render function for one step.
-   *
-   * The generated function may be sync or async depending on whether render
-   * expressions call registered async functions.
-   */
-  compile(
-    stepNode: StepASTNode,
-    ancestorNodes: JourneyASTNode[],
-    iterateNodes: IterateASTNode[] = [],
-  ): CompiledResolveFunction {
-    return compileGeneratedFunction<CompiledResolveFunction>(
-      this.expr,
-      ['ctx'],
-      () => this.buildSource(stepNode, ancestorNodes, iterateNodes),
-      { phase: 'resolve' },
+  compile(model: ResolveModel): CompiledResolveFunction {
+    return compileGeneratedFunction<CompiledResolveFunction>(this.expr, ['ctx'], () => this.buildSource(model), {
+      phase: CompilationPhase.RESOLVE,
+      label: model.label,
+    })
+  }
+
+  generateSource(model: ResolveModel): string {
+    return renderGeneratedSource(this.expr, () => this.buildSource(model))
+  }
+
+  private buildSource(model: ResolveModel): CodeGenerator {
+    const generator = CodeGenerator.forFunction(['ctx'])
+
+    generator.directive('use strict')
+    const names: ResolveResultNames = {
+      blocks: generator.const('blocks', code`[]`),
+      step: generator.const('step', this.staticPropertiesLiteral(model.step)),
+      ancestors: generator.const('ancestors', code`[]`),
+    }
+
+    this.compileDynamicProperties(model.step, names.step, generator)
+    this.compileAncestorMetadata(model.ancestors, names.ancestors, generator)
+    this.compileBlocks(model.blocks, names.blocks, generator)
+    this.compileIterateBlocks(model, names.blocks, generator)
+    generator.return(this.compileResolveBlocksWorkTaskExpression(names))
+
+    return generator
+  }
+
+  private staticPropertiesLiteral(properties: readonly ResolvePropertyModel[]): CodeFragment {
+    return objectCode(this.staticPropertyEntries(properties))
+  }
+
+  private staticPropertyEntries(properties: readonly ResolvePropertyModel[]): ObjectCodeProperty[] {
+    return properties.flatMap(property =>
+      property.value.kind === AuthoredValueKind.STATIC
+        ? [{ key: property.key, value: structuredLiteralCode(property.value.value) }]
+        : [],
     )
   }
 
-  /**
-   * Builds the raw render source for tests and debugging without constructing a Function.
-   */
-  generateSource(stepNode: StepASTNode, ancestorNodes: JourneyASTNode[], iterateNodes: IterateASTNode[] = []): string {
-    return buildGeneratedSource(this.expr, () => this.buildSource(stepNode, ancestorNodes, iterateNodes))
-  }
-
-  /**
-   * Emits the complete render function body in the same order the runtime result is assembled.
-   */
-  private buildSource(stepNode: StepASTNode, ancestorNodes: JourneyASTNode[], iterateNodes: IterateASTNode[]): string {
-    this.inlineIterateIds.clear()
-    const emitter = new CodeEmitter()
-
-    emitter.code('"use strict";')
-
-    emitter.comment('StepResolveCompiler.buildSource')
-    emitter.declareConst('blocks', '[]')
-    emitter.declareConst('step', '{}')
-    emitter.declareConst('ancestors', '[]')
-
-    this.compileStepMetadata(stepNode, emitter)
-
-    this.compileAncestorMetadata(ancestorNodes, emitter)
-
-    this.compileBlocks(stepNode.properties.blocks ?? [], emitter)
-
-    this.compileIterateBlocks(iterateNodes, emitter)
-
-    emitter.return(this.compileResolveBlocksWorkTaskExpression())
-
-    return emitter.toString()
-  }
-
-  /**
-   * Emits evaluated step metadata while excluding executable structure owned by other compilers.
-   */
-  private compileStepMetadata(stepNode: StepASTNode, emitter: CodeEmitter): void {
-    emitter.comment('StepResolveCompiler.compileStepMetadata')
-
-    for (const [key, value] of Object.entries(stepNode.properties)) {
-      if (StepResolveCompiler.STEP_SKIP_PROPS.has(key)) {
-        continue
-      }
-
-      this.compilePropertyAssignment(value, emitter, 'step', key)
-    }
-  }
-
-  /**
-   * Emits journey ancestor metadata and composes each ancestor path relative to its parents.
-   */
-  private compileAncestorMetadata(ancestorNodes: JourneyASTNode[], emitter: CodeEmitter): void {
-    if (ancestorNodes.length === 0) {
-      return
-    }
-
-    emitter.comment('StepResolveCompiler.compileAncestorMetadata')
-    emitter.declareLet('composedPath', '""')
-
-    for (let i = 0; i < ancestorNodes.length; i++) {
-      const ancestor = ancestorNodes[i]
-
-      emitter.scope(() => {
-        const ancestorVar = emitter.const('ancestor', '{}')
-
-        for (const [key, value] of Object.entries(ancestor.properties)) {
-          if (StepResolveCompiler.JOURNEY_SKIP_PROPS.has(key)) {
-            continue
-          }
-
-          this.compilePropertyAssignment(value, emitter, ancestorVar, key)
-        }
-
-        emitter.assign(
-          'composedPath',
-          `"/" + (composedPath + "/" + ${ancestorVar}["path"]).split("/").filter(Boolean).join("/")`,
-        )
-        emitter.assign(`${ancestorVar}["path"]`, 'composedPath')
-        emitter.code(`ancestors.push(${ancestorVar});`)
-      })
-      emitter.emitBlank()
-    }
-  }
-
-  /**
-   * Emits the step's registered blocks in authoring order.
-   */
-  private compileBlocks(blocks: BlockASTNode[], emitter: CodeEmitter): void {
-    if (blocks.length === 0) {
-      return
-    }
-
-    emitter.comment('StepResolveCompiler.compileBlocks')
-
-    for (const block of blocks) {
-      this.compileBlock(block, emitter, 'blocks')
-      emitter.emitBlank()
-    }
-  }
-
-  /**
-   * Emits one registered block, including evaluated properties and field value fallback.
-   */
-  private compileBlock(block: BlockASTNode, emitter: CodeEmitter, targetArrayVar: string): void {
-    emitter.comment('StepResolveCompiler.compileBlock')
-    emitter.scope(() => {
-      const idVar = emitter.const('resolveBlockId', JSON.stringify(block.id))
-      const propsVar = emitter.const('blockProps', '{}')
-
-      this.compileBlockProperties(block.properties, block.blockType, emitter, propsVar, idVar)
-
-      this.pushResolveBlockWorkTask(emitter, targetArrayVar, idVar, block.variant, block.blockType, propsVar)
-    })
-  }
-
-  /**
-   * Emits top-level blocks yielded by MAP iterators that were not already compiled inline.
-   */
-  private compileIterateBlocks(iterateNodes: IterateASTNode[], emitter: CodeEmitter): void {
-    for (const iterateNode of iterateNodes) {
-      if (this.inlineIterateIds.has(iterateNode.id)) {
-        continue
-      }
-
-      if (iterateNode.properties.iterator.type !== IteratorType.MAP) {
-        continue
-      }
-
-      const template = iterateNode.properties.iterator.yieldTemplate
-
-      if (template === undefined) {
-        continue
-      }
-
-      const templateBlocks = this.findTemplateBlocks(template)
-
-      if (templateBlocks.length === 0) {
-        continue
-      }
-
-      this.compileMapIteratorBlocks(iterateNode, templateBlocks, emitter)
-      emitter.emitBlank()
-    }
-  }
-
-  /**
-   * Emits the iterator loop used when a MAP expression yields resolve blocks.
-   */
-  private compileMapIteratorBlocks(
-    iterateNode: IterateASTNode,
-    templateBlocks: TemplateNode[],
-    emitter: CodeEmitter,
+  private compileDynamicProperties(
+    properties: readonly ResolvePropertyModel[],
+    target: IdentifierName,
+    generator: CodeGenerator,
   ): void {
-    emitter.comment('StepResolveCompiler.compileMapIteratorBlocks')
-    this.templates.compileMapIterator(iterateNode, emitter, () => {
-      templateBlocks.forEach(templateBlock => {
-        const codeExpr = this.templates.compileTemplateCodeExpression(templateBlock, emitter)
+    properties
+      .filter(property => property.value.kind !== AuthoredValueKind.STATIC)
+      .forEach(property => this.compilePropertyAssignment(property.value, target, property.key, generator))
+  }
 
-        this.compileTemplateBlock(templateBlock, codeExpr, emitter)
+  private compileAncestorMetadata(
+    ancestors: readonly ResolveAncestorModel[],
+    ancestorsName: IdentifierName,
+    generator: CodeGenerator,
+  ): void {
+    if (ancestors.length === 0) {
+      return
+    }
+
+    generator.comment('Ancestor journeys')
+
+    // When every ancestor path is a plain string the full path was built at
+    // compile time (during analysis); otherwise the generated code rebuilds
+    // the whole chain per request.
+    if (ancestors.every(ancestor => ancestor.composedPath !== undefined)) {
+      ancestors.forEach(ancestorModel => {
+        this.compileComposedAncestor(ancestorModel, ancestorsName, generator)
       })
+
+      return
+    }
+
+    const composedPath = generator.let('composedPath', literal(''))
+
+    ancestors.forEach(ancestorModel => {
+      const ancestor = generator.const('ancestor', this.staticPropertiesLiteral(ancestorModel.properties))
+
+      this.compileDynamicProperties(ancestorModel.properties, ancestor, generator)
+      generator.assign(
+        composedPath,
+        code`"/" + (${composedPath} + "/" + ${ancestor}.path).split("/").filter(Boolean).join("/")`,
+      )
+      generator.assign(code`${ancestor}.path`, composedPath)
+      generator.statement(code`${ancestorsName}.push(${ancestor})`)
+      generator.blank()
     })
   }
 
   /**
-   * Emits a template block inside an iterator loop.
+   * Pushes one ancestor whose full path was composed at analysis: the
+   * authored relative path never appears — the composed path takes its place
+   * in the literal.
    */
-  private compileTemplateBlock(block: TemplateNode, codeExpr: string | undefined, emitter: CodeEmitter): void {
-    emitter.comment('StepResolveCompiler.compileTemplateBlock')
-    const blockType = block.blockType
+  private compileComposedAncestor(
+    ancestorModel: ResolveAncestorModel,
+    ancestorsName: IdentifierName,
+    generator: CodeGenerator,
+  ): void {
+    const staticEntries = this.staticPropertyEntries(ancestorModel.properties).map(entry =>
+      entry.key === 'path' ? { key: 'path', value: literal(ancestorModel.composedPath) } : entry,
+    )
+    const entries = staticEntries.some(entry => entry.key === 'path')
+      ? staticEntries
+      : [...staticEntries, { key: 'path', value: literal(ancestorModel.composedPath) }]
+    const dynamicProperties = ancestorModel.properties.filter(
+      property => property.value.kind !== AuthoredValueKind.STATIC,
+    )
 
-    emitter.scope(() => {
-      const idVar = emitter.const('resolveBlockId', this.templates.compileTemplateInstanceIdExpression(block))
-      const propsVar = emitter.const('templateBlockProps', '{}')
-      const properties = block.properties ?? {}
+    if (dynamicProperties.length === 0) {
+      generator.statement(code`${ancestorsName}.push(${objectCode(entries)})`)
 
-      this.compileBlockProperties(properties, String(blockType), emitter, propsVar, idVar, codeExpr)
+      return
+    }
 
-      this.pushResolveBlockWorkTask(emitter, 'blocks', idVar, String(block.variant), String(blockType), propsVar)
+    const ancestor = generator.const('ancestor', objectCode(entries))
+
+    dynamicProperties.forEach(property =>
+      this.compilePropertyAssignment(property.value, ancestor, property.key, generator),
+    )
+    generator.statement(code`${ancestorsName}.push(${ancestor})`)
+  }
+
+  private compileBlocks(
+    blocks: readonly ResolveBlockModel[],
+    targetBlocks: IdentifierName,
+    generator: CodeGenerator,
+  ): void {
+    blocks.forEach(block => {
+      this.compileBlock(block, targetBlocks, generator)
+      generator.blank()
     })
   }
 
-  /**
-   * Emits a call to the shared field value resolver for one block's properties.
-   */
-  private compileFieldValueResolution(emitter: CodeEmitter, propsVar: string): void {
-    emitter.comment('StepResolveCompiler.compileFieldValueResolution')
-    emitter.code(`${GENERATED_FUNCTION_HELPERS_PARAM}.resolveFieldValue(ctx, ${propsVar});`)
+  private compileBlock(block: ResolveBlockModel, targetBlocks: IdentifierName, generator: CodeGenerator): void {
+    const blockId = literal(block.id)
+    const props = this.compileBlockProperties(
+      this.toBlockPropsCompilation(block, blockId, undefined, this.toBlockPropsName(block.variant)),
+      generator,
+      `Block — ${block.variant} (${block.label})`,
+    )
+
+    this.pushResolveBlockWorkTask(targetBlocks, blockId, block.variant, block.blockType, props, generator)
   }
 
-  /**
-   * Emits a call to the shared field failure resolver for one block's properties.
-   */
-  private compileFieldFailureResolution(emitter: CodeEmitter, blockIdExpr: string, propsVar: string): void {
-    emitter.comment('StepResolveCompiler.compileFieldFailureResolution')
-    emitter.code(`${GENERATED_FUNCTION_HELPERS_PARAM}.resolveFieldFailures(ctx, ${blockIdExpr}, ${propsVar});`)
+  private compileIterateBlocks(model: ResolveModel, blocks: IdentifierName, generator: CodeGenerator): void {
+    model.standaloneIterateBlocks.forEach(iterateModel => {
+      generator.comment('Iterator blocks')
+      this.templates.compileMapIterator(iterateModel.node, generator, () => {
+        iterateModel.templateBlocks.forEach(templateBlock => {
+          const codeExpression = this.templates.compileTemplateCodeExpression(
+            templateBlock.source as TemplateNode,
+            generator,
+          )
+
+          this.compileTemplateBlock(templateBlock, codeExpression, blocks, generator)
+        })
+      })
+      generator.blank()
+    })
   }
 
-  /**
-   * Emits one evaluated property assignment through the shared runtime value compiler.
-   */
+  private compileTemplateBlock(
+    block: ResolveBlockModel,
+    codeExpression: SafeCode | undefined,
+    blocks: IdentifierName,
+    generator: CodeGenerator,
+  ): void {
+    const blockId = generator.const(
+      'resolveBlockId',
+      this.templates.compileTemplateInstanceIdExpression(block.source as TemplateNode),
+    )
+    const props = this.compileBlockProperties(
+      this.toBlockPropsCompilation(block, blockId, codeExpression, this.toBlockPropsName(block.variant)),
+      generator,
+      `Template block — ${block.variant} (${block.label})`,
+    )
+
+    this.pushResolveBlockWorkTask(blocks, blockId, block.variant, block.blockType, props, generator)
+  }
+
+  private toBlockPropsCompilation(
+    block: ResolveBlockModel,
+    blockId: SafeCode,
+    codeExpression: SafeCode | undefined,
+    namePrefix: string,
+  ): BlockPropsCompilation {
+    return {
+      properties: block.properties,
+      blockType: block.blockType,
+      resolvesFieldValue: block.resolvesFieldValue,
+      blockId,
+      codeExpression,
+      namePrefix,
+    }
+  }
+
   private compileBlockProperties(
-    properties: Record<string, unknown>,
-    blockType: string,
-    emitter: CodeEmitter,
-    propsVar: string,
-    blockIdExpr: string,
-    codeExpr?: string,
-  ): void {
-    const hasVisibleWhen = 'visibleWhen' in properties
-    const hoistedKeys = new Set<string>()
+    plan: BlockPropsCompilation,
+    generator: CodeGenerator,
+    comment: string,
+  ): IdentifierName {
+    const visibleWhen = plan.properties.find(property => property.key === 'visibleWhen')
 
-    if (hasVisibleWhen) {
-      this.compilePropertyAssignment(properties.visibleWhen, emitter, propsVar, 'visibleWhen')
-      hoistedKeys.add('visibleWhen')
+    if (visibleWhen === undefined) {
+      return this.compileUngatedBlockProps(plan, generator, comment)
     }
 
-    if (hasVisibleWhen && blockType === BlockType.FIELD && 'code' in properties) {
-      this.fieldCodes.assignProperty(properties.code, emitter, propsVar, 'code', codeExpr)
+    generator.comment(comment)
+
+    return this.compileVisibilityGatedBlockProps(plan, visibleWhen, generator)
+  }
+
+  /**
+   * The common shape: one props literal per block with every expressible
+   * property inline. Values that need statements — nested blocks especially —
+   * hoist into their own named units above the literal, so the block's
+   * comment sits directly on its props const, after any hoisted children.
+   */
+  private compileUngatedBlockProps(
+    plan: BlockPropsCompilation,
+    generator: CodeGenerator,
+    comment: string,
+  ): IdentifierName {
+    const entries = this.compileBlockPropEntries(plan, generator)
+
+    generator.comment(comment)
+    const props = generator.const(plan.namePrefix, objectCode(entries))
+
+    this.compileFieldResolution(plan, props, generator)
+
+    return props
+  }
+
+  private compileBlockPropEntries(plan: BlockPropsCompilation, generator: CodeGenerator): ObjectCodeProperty[] {
+    return plan.properties.flatMap(property => {
+      if (plan.blockType === BlockType.FIELD && property.key === 'code') {
+        const codeExpression =
+          plan.codeExpression ?? this.fieldCodes.compileRegisteredInlineExpression(toRawOperand(property.value))
+
+        return codeExpression === undefined ? [] : [{ key: 'code', value: codeExpression }]
+      }
+
+      return [{ key: property.key, value: this.values.compileValueExpression(property.value, generator, property.key) }]
+    })
+  }
+
+  /**
+   * A `visibleWhen` block evaluates its predicate first and only materialises
+   * the remaining properties when the block is visible, so those assignments
+   * stay statement-per-property inside the gate.
+   */
+  private compileVisibilityGatedBlockProps(
+    plan: BlockPropsCompilation,
+    visibleWhen: ResolvePropertyModel,
+    generator: CodeGenerator,
+  ): IdentifierName {
+    const props = generator.const(plan.namePrefix, code`{}`)
+    const hoistedKeys = new Set<string>(['visibleWhen'])
+    const codeProperty = plan.properties.find(property => property.key === 'code')
+
+    this.compilePropertyAssignment(visibleWhen.value, props, 'visibleWhen', generator)
+
+    if (plan.blockType === BlockType.FIELD && codeProperty !== undefined) {
+      this.fieldCodes.assignProperty(toRawOperand(codeProperty.value), generator, props, 'code', plan.codeExpression)
       hoistedKeys.add('code')
     }
 
-    const compileRemainingProperties = () => {
-      for (const [key, value] of Object.entries(properties)) {
-        if (StepResolveCompiler.BLOCK_SKIP_PROPS.has(key) || hoistedKeys.has(key)) {
-          continue
-        }
-
-        if (blockType === BlockType.FIELD && key === 'code') {
-          this.fieldCodes.assignProperty(value, emitter, propsVar, key, codeExpr)
-
-          continue
-        }
-
-        this.compilePropertyAssignment(value, emitter, propsVar, key)
-      }
-
-      if (blockType === BlockType.FIELD) {
-        if (properties.value === undefined) {
-          this.compileFieldValueResolution(emitter, propsVar)
-        }
-
-        this.compileFieldFailureResolution(emitter, blockIdExpr, propsVar)
-      }
-    }
-
-    if (hasVisibleWhen) {
-      emitter.if(`${propsVar}["visibleWhen"] !== false`, compileRemainingProperties)
-    } else {
-      compileRemainingProperties()
-    }
-  }
-
-  private compilePropertyAssignment(value: unknown, emitter: CodeEmitter, targetObj: string, key: string): void {
-    this.values.compileAssignment(value, emitter, targetObj, key)
-  }
-
-  /**
-   * Gives render-specific nested blocks first chance at value compilation.
-   *
-   * Returns true when the value was a render block and code has been emitted
-   * into resultVar. Returns false when the generic value compiler should handle
-   * the value normally.
-   */
-  private tryCompileResolveBlockValue(value: unknown, emitter: CodeEmitter, resultVar: string): boolean {
-    if (this.expr.isTemplateNode(value)) {
-      if (value.originalType !== ASTNodeType.BLOCK) {
-        return false
-      }
-
-      this.compileTemplateNestedBlock(value, emitter, resultVar)
-
-      return true
-    }
-
-    if (!this.isResolveBlockObject(value)) {
-      return false
-    }
-
-    this.compileNestedBlock(value, emitter, resultVar)
-
-    return true
-  }
-
-  /**
-   * Emits a nested block object used as a property value, such as a conditional reveal.
-   */
-  private compileNestedBlock(block: ResolveBlockValue, emitter: CodeEmitter, resultVar: string): void {
-    emitter.comment('StepResolveCompiler.compileNestedBlock')
-    const properties = block.properties ?? {}
-    const blockType = block.blockType
-
-    emitter.scope(() => {
-      const idVar = emitter.const('resolveBlockId', JSON.stringify(block.id))
-      const propsVar = emitter.const('nestedBlockProps', '{}')
-
-      Object.entries(properties).forEach(([key, value]) => {
-        if (StepResolveCompiler.BLOCK_SKIP_PROPS.has(key)) {
-          return
-        }
-
-        if (blockType === BlockType.FIELD && key === 'code') {
-          this.fieldCodes.assignProperty(value, emitter, propsVar, key)
-
-          return
-        }
-
-        this.compilePropertyAssignment(value, emitter, propsVar, key)
-      })
-
-      if (blockType === BlockType.FIELD) {
-        if (properties.value === undefined) {
-          this.compileFieldValueResolution(emitter, propsVar)
-        }
-
-        this.compileFieldFailureResolution(emitter, idVar, propsVar)
-      }
-
-      this.assignResolveBlockWorkTask(emitter, resultVar, idVar, block.variant, blockType, propsVar)
+    generator.if(code`${props}.visibleWhen !== false`, () => {
+      plan.properties
+        .filter(property => !hoistedKeys.has(property.key))
+        .forEach(property => this.compileBlockPropAssignment(property, plan, props, generator))
+      this.compileFieldResolution(plan, props, generator)
     })
+
+    return props
+  }
+
+  private compileBlockPropAssignment(
+    property: ResolvePropertyModel,
+    plan: BlockPropsCompilation,
+    props: IdentifierName,
+    generator: CodeGenerator,
+  ): void {
+    if (plan.blockType === BlockType.FIELD && property.key === 'code') {
+      this.fieldCodes.assignProperty(toRawOperand(property.value), generator, props, property.key, plan.codeExpression)
+
+      return
+    }
+
+    this.compilePropertyAssignment(property.value, props, property.key, generator)
+  }
+
+  private compileFieldResolution(plan: BlockPropsCompilation, props: IdentifierName, generator: CodeGenerator): void {
+    if (plan.blockType !== BlockType.FIELD) {
+      return
+    }
+
+    if (plan.resolvesFieldValue) {
+      generator.statement(code`${HELPERS}.resolveFieldValue(${CONTEXT}, ${props})`)
+    }
+
+    generator.statement(code`${HELPERS}.resolveFieldFailures(${CONTEXT}, ${plan.blockId}, ${props})`)
+  }
+
+  private compilePropertyAssignment(
+    value: AuthoredValue,
+    targetObject: IdentifierName,
+    key: string,
+    generator: CodeGenerator,
+  ): void {
+    this.values.compileAssignment(value, generator, targetObject, key)
   }
 
   /**
-   * Emits a nested template block produced inside an iterator yield.
+   * Emits a nested block as its own named unit — comment, props const,
+   * resolve const — and returns the const so the parent literal references
+   * it by name. Children therefore always appear above their parent.
    */
-  private compileTemplateNestedBlock(block: TemplateNode, emitter: CodeEmitter, resultVar: string): void {
-    emitter.comment('StepResolveCompiler.compileTemplateNestedBlock')
-    const blockType = block.blockType
+  private compileNestedBlockValue(block: BlockValue, generator: CodeGenerator, nameHint: string): SafeCode {
+    if (isTemplateNode(block.source)) {
+      return this.compileTemplateNestedBlock(block, block.source, nameHint, generator)
+    }
 
-    const properties = block.properties ?? {}
+    return this.compileNestedBlock(block, nameHint, generator)
+  }
 
-    emitter.scope(() => {
-      const idVar = emitter.const('resolveBlockId', this.templates.compileTemplateInstanceIdExpression(block))
-      const propsVar = emitter.const('templateNestedBlockProps', '{}')
+  private compileNestedBlock(block: BlockValue, nameHint: string, generator: CodeGenerator): IdentifierName {
+    const blockName = this.toNestedBlockName(block, nameHint)
+    const blockId = literal(block.id)
+    const props = this.compileUngatedBlockProps(
+      this.toNestedBlockPropsCompilation(block, blockId, `${blockName}Props`),
+      generator,
+      this.toNestedBlockComment(block, nameHint),
+    )
+    const result = generator.const(
+      blockName,
+      this.compileResolveBlockWorkTaskExpression(blockId, block.variant, block.blockType, props),
+    )
 
-      Object.entries(properties).forEach(([key, value]) => {
-        if (StepResolveCompiler.BLOCK_SKIP_PROPS.has(key)) {
-          return
-        }
+    generator.blank()
 
-        if (blockType === BlockType.FIELD && key === 'code') {
-          this.fieldCodes.assignProperty(value, emitter, propsVar, key)
+    return result
+  }
 
-          return
-        }
+  private compileTemplateNestedBlock(
+    block: BlockValue,
+    source: TemplateNode,
+    nameHint: string,
+    generator: CodeGenerator,
+  ): IdentifierName {
+    const blockName = this.toNestedBlockName(block, nameHint)
+    const blockId = generator.const('resolveBlockId', this.templates.compileTemplateInstanceIdExpression(source))
+    const props = this.compileUngatedBlockProps(
+      this.toNestedBlockPropsCompilation(block, blockId, `${blockName}Props`),
+      generator,
+      this.toNestedBlockComment(block, nameHint),
+    )
+    const result = generator.const(
+      blockName,
+      this.compileResolveBlockWorkTaskExpression(blockId, block.variant, block.blockType, props),
+    )
 
-        this.compilePropertyAssignment(value, emitter, propsVar, key)
-      })
+    generator.blank()
 
-      if (blockType === BlockType.FIELD) {
-        if (properties.value === undefined) {
-          this.compileFieldValueResolution(emitter, propsVar)
-        }
+    return result
+  }
 
-        this.compileFieldFailureResolution(emitter, idVar, propsVar)
-      }
+  private toNestedBlockPropsCompilation(
+    block: BlockValue,
+    blockId: SafeCode,
+    namePrefix: string,
+  ): BlockPropsCompilation {
+    return {
+      properties: block.entries,
+      blockType: block.blockType,
+      resolvesFieldValue: this.nestedBlockResolvesFieldValue(block.entries),
+      blockId,
+      codeExpression: undefined,
+      namePrefix,
+    }
+  }
 
-      this.assignResolveBlockWorkTask(emitter, resultVar, idVar, String(block.variant), String(blockType), propsVar)
-    })
+  /** Returns true when the block has no explicit `value` property, matching the authored block's own `properties.value === undefined` check. */
+  private nestedBlockResolvesFieldValue(entries: readonly RecordEntryValue[]): boolean {
+    const valueEntry = entries.find(entry => entry.key === 'value')
+
+    return valueEntry === undefined ||
+      (valueEntry.value.kind === AuthoredValueKind.STATIC && valueEntry.value.value === undefined)
   }
 
   private pushResolveBlockWorkTask(
-    emitter: CodeEmitter,
-    targetArrayVar: string,
-    idVar: string,
+    targetBlocks: IdentifierName,
+    blockId: SafeCode,
     variant: string,
     blockType: string,
-    propsVar: string,
+    props: IdentifierName,
+    generator: CodeGenerator,
   ): void {
-    emitter.code(
-      `${targetArrayVar}.push(${this.compileResolveBlockWorkTaskExpression(idVar, variant, blockType, propsVar)});`,
+    generator.statement(
+      code`${targetBlocks}.push(${this.compileResolveBlockWorkTaskExpression(blockId, variant, blockType, props)})`,
     )
   }
 
-  private assignResolveBlockWorkTask(
-    emitter: CodeEmitter,
-    resultVar: string,
-    idVar: string,
-    variant: string,
-    blockType: string,
-    propsVar: string,
-  ): void {
-    emitter.assign(resultVar, this.compileResolveBlockWorkTaskExpression(idVar, variant, blockType, propsVar))
-  }
-
   private compileResolveBlockWorkTaskExpression(
-    idVar: string,
+    blockId: SafeCode,
     variant: string,
     blockType: string,
-    propsVar: string,
-  ): string {
-    return `ctx.workTasks.resolveBlock(${idVar}, ${JSON.stringify(variant)}, ${JSON.stringify(blockType)}, ${propsVar})`
+    props: IdentifierName,
+  ): CodeFragment {
+    return code`${CONTEXT}.workTasks.resolveBlock(${blockId}, ${variant}, ${blockType}, ${props})`
+  }
+
+  private compileResolveBlocksWorkTaskExpression(names: ResolveResultNames): CodeFragment {
+    return code`${CONTEXT}.workTasks.resolveBlocks(${names.blocks}, ${names.step}, ${names.ancestors})`
+  }
+
+  private toBlockPropsName(variant: string): string {
+    return `${this.toVariantName(variant)}Props`
+  }
+
+  private toVariantName(variant: string): string {
+    return this.camelise(variant.replace(/^(govuk|moj)-?/i, ''))
   }
 
   /**
-   * Wraps the step's blocks, metadata, and ancestors in the resolve-blocks root
-   * task so the terminal runs the same executor driver as every other phase.
+   * Names a nested block unit: the authored field code when it is a static
+   * string, otherwise the slot or property the block lives under plus the
+   * last word of the variant (`basic-example` + `templateWrapper` becomes
+   * `basicExampleWrapper`).
    */
-  private compileResolveBlocksWorkTaskExpression(): string {
-    return 'ctx.workTasks.resolveBlocks(blocks, step, ancestors)'
-  }
+  private toNestedBlockName(block: BlockValue, nameHint: string): string {
+    const staticCode = this.staticFieldCode(block)
 
-  /**
-   * Identifies values the render compiler must own because they have block semantics.
-   */
-  private isResolveBlockValue(value: unknown): boolean {
-    if (this.expr.isTemplateNode(value)) {
-      return value.originalType === ASTNodeType.BLOCK
+    if (staticCode !== undefined) {
+      const name = this.camelise(staticCode)
+
+      if (name.length > 0) {
+        return name
+      }
     }
 
-    return this.isResolveBlockObject(value)
-  }
+    const base = this.camelise(nameHint)
 
-  /**
-   * Type guard for block-shaped objects embedded directly in authored properties.
-   */
-  private isResolveBlockObject(value: unknown): value is ResolveBlockValue {
-    if (value === null || value === undefined || typeof value !== 'object') {
-      return false
+    if (base.length === 0) {
+      return this.toVariantName(block.variant)
     }
 
-    const obj = value as Record<string, unknown>
+    const tail = this.variantTail(block.variant)
 
-    return obj.type === ASTNodeType.BLOCK && typeof obj.variant === 'string' && typeof obj.blockType === 'string'
+    return base.toLowerCase().endsWith(tail.toLowerCase()) ? base : `${base}${tail}`
   }
 
-  /**
-   * Finds block templates before loop emission because yielded blocks can sit below arrays or objects.
-   */
-  private findTemplateBlocks(template: TemplateValue): TemplateNode[] {
-    return this.templates.findTemplateNodes(template, isTemplateBlockNode, { descendIntoMatches: false })
+  private toNestedBlockComment(block: BlockValue, nameHint: string): string {
+    const staticCode = this.staticFieldCode(block)
+
+    if (staticCode !== undefined) {
+      return `Block — ${block.variant} "${staticCode}"`
+    }
+
+    return nameHint.length > 0 ? `Block — ${block.variant} (${nameHint})` : `Block — ${block.variant}`
+  }
+
+  private staticFieldCode(block: BlockValue): string | undefined {
+    const codeEntry = block.entries.find(entry => entry.key === 'code')
+
+    if (
+      codeEntry !== undefined &&
+      codeEntry.value.kind === AuthoredValueKind.STATIC &&
+      typeof codeEntry.value.value === 'string'
+    ) {
+      return codeEntry.value.value
+    }
+
+    return undefined
+  }
+
+  private variantTail(variant: string): string {
+    const words = variant.match(/[A-Z]?[a-z0-9]+|[A-Z]+/g) ?? [variant]
+    const lastWord = words[words.length - 1]
+
+    return `${lastWord.charAt(0).toUpperCase()}${lastWord.slice(1)}`
+  }
+
+  private camelise(value: string): string {
+    const words = value.match(/[A-Za-z0-9]+/g) ?? []
+
+    if (words.length === 0) {
+      return ''
+    }
+
+    const firstWord = words[0] ?? ''
+    const restWords = words.slice(1)
+    const name = `${firstWord.charAt(0).toLowerCase()}${firstWord.slice(1)}${restWords
+      .map(word => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+      .join('')}`
+
+    return /^[A-Za-z_$]/.test(name) ? name : `block${name.charAt(0).toUpperCase()}${name.slice(1)}`
   }
 }

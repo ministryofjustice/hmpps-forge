@@ -116,6 +116,30 @@ function stubValidation(result: StepValidityResult) {
 
 describe('SubmitHookWorkHandler', () => {
   describe('execute()', () => {
+    it('should default to executed continue when when, guards, and onAlways are omitted', async () => {
+      // Arrange
+      const hook = createWorkTask('hook', SUBMIT_HOOK_WORK_HANDLER, {})
+
+      // Act
+      const result = await new WorkExecutor().execute(hook, createContext())
+
+      // Assert
+      expect(result.output).toEqual({ executed: true, validated: false, outcome: 'continue' })
+    })
+
+    it('should continue when the onAlways branch has no next or effects', async () => {
+      // Arrange
+      const hook = createWorkTask('hook', SUBMIT_HOOK_WORK_HANDLER, {
+        onAlways: createWorkTask('hook-onAlways', SUBMIT_BRANCH_WORK_HANDLER, { name: 'onAlways' }),
+      })
+
+      // Act
+      const result = await new WorkExecutor().execute(hook, createContext())
+
+      // Assert
+      expect(result.output).toEqual({ executed: true, validated: false, outcome: 'continue' })
+    })
+
     it('should short-circuit to continue when guards are false', async () => {
       // Arrange
       const onAlwaysNext = vi.fn(() => undefined)

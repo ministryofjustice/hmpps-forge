@@ -131,15 +131,15 @@ export default class MountRegistry {
   ): void {
     stepContexts.forEach(ctx => {
       const compiledStep = packageInstance.getCompiledStep(ctx.stepId)
-      const { runtimePlan } = compiledStep
+      const { mountInfo } = compiledStep
       const mountKey = MountRegistry.scopedRouteKey(journeyCode, ctx.stepId)
 
       this.nodesByMountKey.set(mountKey, {
         kind: 'step',
         mountKey,
-        nodeId: runtimePlan.stepId,
+        nodeId: mountInfo.stepId,
         journeyCode,
-        path: runtimePlan.path,
+        path: mountInfo.path,
         templatePath: ctx.routeTemplatePath,
         basePath: ctx.journeyBasePath,
         functionRegistry,
@@ -179,15 +179,15 @@ export default class MountRegistry {
         return
       }
 
-      const { runtimePlan } = compiledJourney
+      const { mountInfo } = compiledJourney
       const mountKey = MountRegistry.scopedRouteKey(journeyCode, journeyId)
 
       this.nodesByMountKey.set(mountKey, {
         kind: 'journey',
         mountKey,
-        nodeId: runtimePlan.journeyId,
+        nodeId: mountInfo.journeyId,
         journeyCode,
-        path: runtimePlan.path,
+        path: mountInfo.path,
         templatePath,
         basePath: templatePath,
         functionRegistry,

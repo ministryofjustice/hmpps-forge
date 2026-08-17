@@ -96,6 +96,12 @@
   },
   "files": [
     "dist/**/*",
+    "forge-core/src/**/*",
+    "forge-devtools/src/**/*",
+    "forge-express-nunjucks/src/**/*",
+    "forge-govuk-components/src/**/*",
+    "forge-jsx-components/src/**/*",
+    "forge-moj-components/src/**/*",
     "*.md"
   ],
   "engines": {

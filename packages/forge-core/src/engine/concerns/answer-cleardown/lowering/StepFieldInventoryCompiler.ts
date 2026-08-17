@@ -1,29 +1,26 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import { BlockType, ExpressionType } from '../../../../authoring/types/enums'
-import { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
-import { IterateASTNode } from '../../../contracts/ast/expressions.type'
-import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
-import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import { code, literal, objectCode } from '../../../compilation/lowering/codegen/fragments/CodeFragment'
+import { FieldCodeKind, type StaticFieldCode } from '../../../contracts/models/fieldModel.type'
+import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
 import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
-  buildGeneratedSource,
+  CompilationPhase,
   compileGeneratedFunction,
-} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
-import ScopedTemplateCompiler, {
-  isTemplateFieldNode,
-} from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
+  renderGeneratedSource,
+} from '../../../compilation/lowering/GeneratedFunctionCompiler'
+import ScopedTemplateCompiler from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+import type { CleardownModel, CleardownStepModel } from '../contracts/cleardownModel.type'
 import type { CompiledFieldInventoryFunction } from '../contracts/compiledFieldInventory.type'
-import type { FieldInventoryStepSource } from '../../../contracts/plans/compilationPlan.type'
 
 /**
- * Compiles the possible field codes for each step in a navigation plan.
+ * Compiles the possible field codes for each step in a journey's navigation plan.
  *
- * Registered field codes are read from field blocks, including dynamic code
- * expressions. MAP iterator field codes are evaluated inline from templates
- * using the same iterator scope model as answer preparation, validation, and
- * render.
+ * Static field codes come straight from field blocks, including dynamic code
+ * expressions. Fields inside MAP iterators (repeating template sections) are
+ * expanded inline using the same scoped-iteration model that answer preparation,
+ * validation, and render use.
  */
 export default class StepFieldInventoryCompiler {
   private readonly expr: ExpressionDispatcher
@@ -32,160 +29,99 @@ export default class StepFieldInventoryCompiler {
 
   private readonly templates: ScopedTemplateCompiler
 
-  constructor(dependencies: CompilationDependencies, sharedExpr?: ExpressionDispatcher) {
-    this.expr = sharedExpr ?? new ExpressionDispatcher(dependencies)
+  constructor(dependencies: CompilationDependencies) {
+    this.expr = new ExpressionDispatcher(dependencies)
     this.fieldCodes = new FieldCodeEmitter(this.expr)
     this.templates = new ScopedTemplateCompiler(this.expr)
   }
 
   /**
-   * Builds the generated inventory function the cleardown phase and the
-   * reachability projection read.
+   * Builds the generated inventory function that the answer-cleardown phase
+   * (which removes stale answers) and the reachability state projector both call
+   * at runtime.
    */
-  compile(steps: FieldInventoryStepSource[]): CompiledFieldInventoryFunction | undefined {
-    return compileGeneratedFunction<CompiledFieldInventoryFunction>(this.expr, ['ctx'], () => this.buildSource(steps), {
-      phase: 'field-inventory',
+  compile(model: CleardownModel): CompiledFieldInventoryFunction {
+    return compileGeneratedFunction<CompiledFieldInventoryFunction>(this.expr, ['ctx'], () => this.buildSource(model), {
+      phase: CompilationPhase.FIELD_INVENTORY,
+      label: model.label,
     })
   }
 
-  /**
-   * Produces inspectable generated source for tests and local debugging.
-   */
-  generateSource(steps: FieldInventoryStepSource[]): string {
-    return buildGeneratedSource(this.expr, () => this.buildSource(steps))
+  /** Produces inspectable generated source for tests and local debugging. */
+  generateSource(model: CleardownModel): string {
+    return renderGeneratedSource(this.expr, () => this.buildSource(model))
   }
 
-  /**
-   * Emits the full field inventory source, accumulating one inventory entry per step.
-   */
-  private buildSource(steps: FieldInventoryStepSource[]): string {
-    const emitter = new CodeEmitter()
+  /** Emits the full field inventory source, accumulating one inventory entry per step. */
+  private buildSource(model: CleardownModel): CodeGenerator {
+    const generator = CodeGenerator.forFunction(['ctx'])
 
-    emitter.code('"use strict";')
+    generator.directive('use strict')
 
-    emitter.comment('StepFieldInventoryCompiler.buildSource')
-    emitter.declareConst('fieldInventory', '[]')
+    generator.comment('Field inventory, one entry per step')
+    const fieldInventory = generator.const('fieldInventory', code`[]`)
 
-    steps.forEach(step => this.compileStep(step, emitter, 'fieldInventory'))
-    emitter.return('fieldInventory')
+    model.steps.forEach(step => this.compileStep(step, fieldInventory, generator))
+    generator.return(fieldInventory)
 
-    return emitter.toString()
+    return generator
   }
 
-  /**
-   * Emits one step's static and iterator-derived field codes into a de-duplicated result.
-   */
-  private compileStep(step: FieldInventoryStepSource, emitter: CodeEmitter, fieldInventoryVar: string): void {
-    emitter.comment('StepFieldInventoryCompiler.compileStep')
-    emitter.scope(() => {
-      const fieldCodesVar = emitter.const('fieldCodes', '[]')
+  /** Emits one step's static and iterator-expanded field codes into a de-duplicated result. */
+  private compileStep(step: CleardownStepModel, fieldInventory: IdentifierName, generator: CodeGenerator): void {
+    if (this.hasOnlyStaticFieldCodes(step)) {
+      this.compileStaticStep(step, fieldInventory, generator)
 
-      step.fieldBlocks.forEach(block => this.compileRegisteredFieldCode(block, fieldCodesVar, emitter))
+      return
+    }
 
-      step.iterateNodes.forEach(iterateNode => {
-        this.compileMapIterator(iterateNode, fieldCodesVar, emitter)
+    generator.comment("Collect one step's possible field codes")
+    generator.scope(() => {
+      const fieldCodes = generator.const('fieldCodes', code`[]`)
+
+      this.templates.compileFieldOccurrences(step.fields, generator, {
+        loopComment: 'Field codes produced by an iterator',
+        compileLeaf: field => {
+          const codeExpression = this.fieldCodes.compileModelExpression(field.code, generator)
+
+          if (codeExpression === undefined) {
+            return
+          }
+
+          generator.statement(code`${fieldCodes}.push(${codeExpression})`)
+        },
       })
 
-      emitter.code(
-        `${fieldInventoryVar}.push({ stepId: ${JSON.stringify(step.stepId)}, fieldCodes: Array.from(new Set(${fieldCodesVar})), cleardownFieldCodes: ${JSON.stringify(step.cleardownFieldCodes)} });`,
+      generator.statement(
+        code`${fieldInventory}.push(${objectCode([
+          { key: 'stepId', value: literal(step.stepId) },
+          { key: 'fieldCodes', value: code`Array.from(new Set(${fieldCodes}))` },
+          { key: 'cleardownFieldCodes', value: literal(step.cleardownFieldCodes) },
+        ])})`,
       )
     })
   }
 
-  /**
-   * Emits MAP iterator traversal only when its yield template can produce fields.
-   */
-  private compileMapIterator(iterateNode: IterateASTNode, codesVar: string, emitter: CodeEmitter): void {
-    const template = iterateNode.properties.iterator.yieldTemplate
-
-    if (template === undefined || !this.containsTemplateField(template)) {
-      return
-    }
-
-    emitter.comment('StepFieldInventoryCompiler.compileMapIterator')
-    this.templates.compileMapIterator(iterateNode, emitter, yieldTemplate => {
-      this.compileTemplateInventory(yieldTemplate, codesVar, emitter)
-    })
+  private hasOnlyStaticFieldCodes(step: CleardownStepModel): boolean {
+    return step.fields.every(
+      field =>
+        field.iteratorPath.length === 0 && (field.code === undefined || field.code.kind === FieldCodeKind.STATIC),
+    )
   }
 
-  /**
-   * Walks nested template values and emits field-code collection where field nodes appear.
-   */
-  private compileTemplateInventory(template: TemplateValue, codesVar: string, emitter: CodeEmitter): void {
-    if (template === null || template === undefined || typeof template !== 'object') {
-      return
-    }
+  /** Emits a step whose field codes are all compile-time constants as one literal entry, deduplicated here. */
+  private compileStaticStep(step: CleardownStepModel, fieldInventory: IdentifierName, generator: CodeGenerator): void {
+    const staticFieldCodes = step.fields
+      .map(field => field.code)
+      .filter((fieldCode): fieldCode is StaticFieldCode => fieldCode?.kind === FieldCodeKind.STATIC)
+      .map(fieldCode => fieldCode.value)
 
-    if (this.expr.isTemplateNode(template)) {
-      if (template.originalType === ASTNodeType.EXPRESSION && template.expressionType === ExpressionType.ITERATE) {
-        this.compileTemplateMapIterator(template, codesVar, emitter)
-
-        return
-      }
-
-      if (template.originalType === ASTNodeType.BLOCK && template.blockType === BlockType.FIELD) {
-        this.compileTemplateFieldCode(template, codesVar, emitter)
-      }
-
-      Object.values(template.properties ?? {}).forEach(child => {
-        this.compileTemplateInventory(child as TemplateValue, codesVar, emitter)
-      })
-
-      return
-    }
-
-    if (Array.isArray(template)) {
-      template.forEach(item => {
-        this.compileTemplateInventory(item, codesVar, emitter)
-      })
-
-      return
-    }
-
-    Object.values(template as Record<string, TemplateValue>).forEach(item => {
-      this.compileTemplateInventory(item, codesVar, emitter)
-    })
-  }
-
-  /**
-   * Emits inventory collection for a nested MAP template using the shared iterator scope.
-   */
-  private compileTemplateMapIterator(templateNode: TemplateNode, codesVar: string, emitter: CodeEmitter): void {
-    this.templates.compileTemplateMapIterator(templateNode, emitter, yieldTemplate => {
-      this.compileTemplateInventory(yieldTemplate, codesVar, emitter)
-    })
-  }
-
-  /**
-   * Emits one template field's resolved code expression into the current code list.
-   */
-  private compileTemplateFieldCode(field: TemplateNode, codesVar: string, emitter: CodeEmitter): void {
-    const codeExpr = this.templates.compileTemplateCodeExpression(field, emitter)
-
-    if (codeExpr === undefined) {
-      return
-    }
-
-    emitter.code(`${codesVar}.push(${codeExpr});`)
-  }
-
-  /**
-   * Emits one registered field block's static or dynamic code expression.
-   */
-  private compileRegisteredFieldCode(block: FieldBlockASTNode, codesVar: string, emitter: CodeEmitter): void {
-    const codeExpr = this.fieldCodes.compileRegisteredExpression(block.properties.code, emitter)
-
-    if (codeExpr === undefined) {
-      return
-    }
-
-    emitter.code(`${codesVar}.push(${codeExpr});`)
-  }
-
-  /**
-   * Fast pre-check used to avoid emitting iterator loops for templates with no fields.
-   */
-  private containsTemplateField(template: TemplateValue): boolean {
-    return this.templates.containsTemplateNode(template, isTemplateFieldNode)
+    generator.statement(
+      code`${fieldInventory}.push(${objectCode([
+        { key: 'stepId', value: literal(step.stepId) },
+        { key: 'fieldCodes', value: literal([...new Set(staticFieldCodes)]) },
+        { key: 'cleardownFieldCodes', value: literal(step.cleardownFieldCodes) },
+      ])})`,
+    )
   }
 }

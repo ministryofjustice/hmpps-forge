@@ -13,8 +13,8 @@ It also does not cover runtime redirect handling, or the per-step field inventor
 
 ## Inputs
 
-`ReachabilityCompiler.compileFacts()` receives a `ReachabilityCompilationPlan`, whose `entries` are the journey's steps in declaration order.
-Dependency analysis provides it.
+`ReachabilityCompiler.compileFacts()` receives a `ReachabilityModel`, whose `entries` are the journey's steps in declaration order.
+Analysis provides it.
 
 ## Work Returned
 

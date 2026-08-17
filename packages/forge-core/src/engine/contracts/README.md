@@ -30,7 +30,8 @@ the pipeline speaks.
 |--------|-----------------|
 | [`ast/`](./ast/) | AST node types (`ASTNode`, `JourneyASTNode`, `StepASTNode`, `ExpressionASTNode`, etc.), the `ASTNodeType` enum, and type guard functions (`isReferenceExprNode`, `isFieldBlockStructNode`, etc.) |
 | [`compiled/`](./compiled/) | Compiled function signatures (`CompiledResolveFunction`, `CompiledValidationFunction`, `CompiledReachabilityFactsFunction`, `CompiledRouteMetadataFunction`, etc.) and the phase context types each function receives (`CompiledValidationContext`, `CompiledResolveContext`, `CompiledAnswerPreparationContext`, `CompiledRouteMetadataContext`, all extending `CompiledBaseContext`) |
-| [`plans/`](./plans/) | `CompilationPlan` (the handoff from planner to codegen), `StepRuntimePlan` / `JourneyRuntimePlan` / `ReachabilityStateTable` (minimal metadata that survives into runtime), and the compiled artefact wrappers (`CompiledStep`, `CompiledJourney`) |
+| [`models/`](./models/) | The semantic model analysis hands to lowering: `CompilationModel` / `JourneyModel` / `StepModel`, `FieldModel`, and the shared `AuthoredValue` types and guards |
+| [`plans/`](./plans/) | `StepMountInfo` / `JourneyMountInfo` (the identity and route path that survive into runtime), and the compiled artefact wrappers (`CompiledStep`, `CompiledJourney`) |
 | [`runtime/`](./runtime/) | Request-scoped plumbing: `AnswerHistory` (the mutation log), `RuntimeContext`, `RequestExecutionContext`, the request phase props, `WorkTask` and the work output registry, and trace types |
 
 Where the concern-owned types went:
@@ -62,4 +63,4 @@ The kernel types do reach into `concerns/*/contracts/` - the work output registr
 output type, and `CompiledStep` has to name every compiled function. That is allowed because concern contracts are
 runtime-free sinks too, so the dependency never picks up logic.
 
-Contracts may not import from any `compilation/` layer (`ast/`, `dependency-analysis/`, `lowering/`), from `concerns/semantic-analysis/`, or from `runtime/` - enforced by eslint, so a stray import fails the build.
+Contracts may not import from any `compilation/` layer (`ast/`, `analysis/`, `lowering/`), from `concerns/semantic-analysis/`, or from `runtime/` - enforced by eslint, so a stray import fails the build.

@@ -47,6 +47,17 @@ function createHook(
 
 describe('AccessHookWorkHandler', () => {
   describe('execute()', () => {
+    it('should default to executed continue when when, effects, and next are omitted', async () => {
+      // Arrange
+      const hook = createWorkTask('hook', ACCESS_HOOK_WORK_HANDLER, {})
+
+      // Act
+      const result = await new WorkExecutor().execute(hook, createContext())
+
+      // Assert
+      expect(result.output).toEqual({ executed: true, outcome: 'continue' })
+    })
+
     it('should skip effects and next when the when predicate is false', async () => {
       // Arrange
       const effect = vi.fn()

@@ -1,7 +1,7 @@
 import ReachabilityPathAnalyzer from './ReachabilityPathAnalyzer'
 import ReachabilityGraphBuilder from './ReachabilityGraphBuilder'
 import ReachabilityStateProjector from './ReachabilityStateProjector'
-import type { ReachabilityStateTable } from '../../../../contracts/plans/runtimePlans.type'
+import type { ReachabilityStateTable } from '../../contracts/reachabilityModel.type'
 import type { NodeId } from '../../../../contracts/ast/ast.type'
 import type {
   ReachabilityEvaluation,
@@ -14,14 +14,16 @@ import type {
 } from '../../contracts/generatedReachabilityEvaluation.type'
 
 /**
- * The compiled reachability state function's body. From precomputed facts (the
- * dynamic expression results) and per-step reachability-mode validities it seeds
- * entry points, walks reachability, resolves the default entry and canonical path,
- * derives the frontier and resume outcome, and projects the consumer-facing
- * reachability state when field inventory and params are available.
+ * The body of the compiled reachability state function. From precomputed facts
+ * (the evaluated expression results) and per-step validation results, it marks
+ * entry points as reachable, walks forward through the step graph, resolves the
+ * default entry and canonical path, finds the frontier (the furthest reachable
+ * step), derives the resume outcome, and builds the consumer-facing reachability
+ * state when field inventory and params are available.
  *
- * It owns no state across calls. Lowering binds the static `plan` into a closure
- * so the runtime can call it with only request-time inputs.
+ * It owns no state across calls. The lowering stage (which turns analysis models
+ * into generated JavaScript) binds the static `plan` into a closure so the
+ * runtime can call this with only request-time inputs.
  */
 export function evaluateReachabilityState(
   plan: ReachabilityStateTable,

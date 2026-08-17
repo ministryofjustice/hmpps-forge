@@ -10,7 +10,9 @@ import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import type { FieldInventoryContext } from '../contracts/compiledFieldInventory.type'
-import type { FieldInventoryStepSource } from '../../../contracts/plans/compilationPlan.type'
+import type { NodeId } from '../../../contracts/ast/ast.type'
+import { buildStepFieldModels } from '../../../compilation/analysis/testing-helpers/analysisContexts'
+import type { CleardownModel } from '../contracts/cleardownModel.type'
 import StepFieldInventoryCompiler from './StepFieldInventoryCompiler'
 
 function createFieldBlock(code: string | FunctionASTNode): FieldBlockASTNode {
@@ -72,6 +74,24 @@ function createContext(
   }
 }
 
+interface FieldInventoryStepSource {
+  readonly stepId: string
+  readonly fieldBlocks: FieldBlockASTNode[]
+  readonly iterateNodes: IterateASTNode[]
+  readonly cleardownFieldCodes: string[]
+}
+
+function inventoryModel(sources: FieldInventoryStepSource[]): CleardownModel {
+  return {
+    label: undefined,
+    steps: sources.map(source => ({
+      stepId: source.stepId as NodeId,
+      fields: buildStepFieldModels({ fieldBlocks: source.fieldBlocks, iterateNodes: source.iterateNodes }),
+      cleardownFieldCodes: source.cleardownFieldCodes,
+    })),
+  }
+}
+
 describe('StepFieldInventoryCompiler', () => {
   let compiler: StepFieldInventoryCompiler
   const dependencies: CompilationDependencies = {
@@ -96,7 +116,7 @@ describe('StepFieldInventoryCompiler', () => {
           cleardownFieldCodes: ['^task_\\d+$'],
         },
       ]
-      const compiled = compiler.compile(steps)
+      const compiled = compiler.compile(inventoryModel(steps))
 
       // Act
       const result = await compiled!(createContext(functionRegistry))
@@ -110,6 +130,28 @@ describe('StepFieldInventoryCompiler', () => {
           cleardownFieldCodes: ['^task_\\d+$'],
         },
       ])
+    })
+
+    it('should emit a literal inventory entry when every field code is static', () => {
+      // Arrange
+      const steps: FieldInventoryStepSource[] = [
+        {
+          stepId: 'compile_ast:step-a',
+          fieldBlocks: [createFieldBlock('firstName'), createFieldBlock('lastName'), createFieldBlock('firstName')],
+          iterateNodes: [],
+          cleardownFieldCodes: [],
+        },
+      ]
+
+      // Act
+      const source = compiler.generateSource(inventoryModel(steps))
+
+      // Assert
+      expect(source).toContain('"firstName"')
+      expect(source).toContain('"lastName"')
+      expect(source.match(/"firstName"/g)).toHaveLength(1)
+      expect(source).not.toContain('Array.from')
+      expect(source).not.toContain('const fieldCodes')
     })
 
     it('should collect dynamic registered field codes', () => {
@@ -137,7 +179,7 @@ describe('StepFieldInventoryCompiler', () => {
         functionRegistry,
         componentRegistry: new ComponentRegistry(),
       })
-      const compiled = localCompiler.compile(steps)
+      const compiled = localCompiler.compile(inventoryModel(steps))
 
       // Act
       const result = compiled!(createContext(functionRegistry))
@@ -179,7 +221,7 @@ describe('StepFieldInventoryCompiler', () => {
         functionRegistry,
         componentRegistry: new ComponentRegistry(),
       })
-      const compiled = localCompiler.compile(steps)
+      const compiled = localCompiler.compile(inventoryModel(steps))
 
       // Act
       const result = compiled!(
@@ -231,7 +273,7 @@ describe('StepFieldInventoryCompiler', () => {
         functionRegistry,
         componentRegistry: new ComponentRegistry(),
       })
-      const compiled = localCompiler.compile(steps)
+      const compiled = localCompiler.compile(inventoryModel(steps))
 
       // Act
       const result = compiled!(
@@ -284,8 +326,8 @@ describe('StepFieldInventoryCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource(steps)
-      const compiled = localCompiler.compile(steps)
+      const source = localCompiler.generateSource(inventoryModel(steps))
+      const compiled = localCompiler.compile(inventoryModel(steps))
       const result = await compiled!(
         createContext(functionRegistry, {
           data: { members: [{ name: 'Ada' }] },

@@ -9,4 +9,8 @@ export default class ForgeInternalError extends ForgeBaseError {
   constructor(message: string) {
     super(message)
   }
+
+  protected override get foldsInternalStackFrames(): boolean {
+    return false
+  }
 }

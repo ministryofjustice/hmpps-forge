@@ -207,6 +207,20 @@ describe('ReferenceBuilder', () => {
         condition,
       })
     })
+
+    it('should stamp the predicate with the match callsite', () => {
+      // Arrange
+      const builder = ReferenceBuilder.create(['answers', 'email'])
+      const condition = mockCondition('isRequired')
+
+      // Act
+      const result = builder.match(condition)
+
+      // Assert
+      const callsite = Object.getOwnPropertyDescriptor(result, '__callsite')?.value as { stack?: string } | undefined
+
+      expect(callsite?.stack).toContain('ReferenceBuilder.test.ts')
+    })
   })
 
   describe('not', () => {

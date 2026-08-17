@@ -37,9 +37,9 @@ export const SUBMIT_HOOK_WORK_HANDLER: WorkHandler<'submit.hook', SubmitHookWork
 
   begin(ctx: WorkContextContract<RequestExecutionContext, SubmitHookWorkProps>) {
     const stages: WorkTask[] = [
-      ctx.props.when,
-      ctx.props.guards,
-      ctx.props.onAlways,
+      ...(ctx.props.when ? [ctx.props.when] : []),
+      ...(ctx.props.guards ? [ctx.props.guards] : []),
+      ...(ctx.props.onAlways ? [ctx.props.onAlways] : []),
       ...(ctx.props.validation ? [ctx.props.validation] : []),
       ...(ctx.props.onValid ? [ctx.props.onValid] : []),
       ...(ctx.props.onInvalid ? [ctx.props.onInvalid] : []),

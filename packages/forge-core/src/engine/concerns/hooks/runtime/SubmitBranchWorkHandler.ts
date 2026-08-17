@@ -44,7 +44,7 @@ export const SUBMIT_BRANCH_WORK_HANDLER: WorkHandler<'submit.branch', SubmitBran
       return { groups: [] }
     }
 
-    return { groups: [{ mode: 'sequential', children: ctx.props.effects }] }
+    return { groups: [{ mode: 'sequential', children: ctx.props.effects ?? [] }] }
   },
 
   async complete(
@@ -57,7 +57,7 @@ export const SUBMIT_BRANCH_WORK_HANDLER: WorkHandler<'submit.branch', SubmitBran
       return { status: 'continue' }
     }
 
-    const result = toSubmitResult(await ctx.props.next(), ctx.props.name)
+    const result = toSubmitResult(await ctx.props.next?.(), ctx.props.name)
 
     return result === undefined ? { status: 'continue' } : { status: 'terminal', result }
   },

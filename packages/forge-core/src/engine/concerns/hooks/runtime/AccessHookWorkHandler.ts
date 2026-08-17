@@ -34,13 +34,15 @@ export const ACCESS_HOOK_WORK_HANDLER: WorkHandler<'access.hook', AccessHookWork
   kind: ACCESS_HOOK_KIND,
 
   begin(ctx: WorkContextContract<RequestExecutionContext, AccessHookWorkProps>) {
-    const next = createWorkTask(
-      'next',
-      ACCESS_HOOK_NEXT_WORK_HANDLER,
-      { next: ctx.props.next },
-      ACCESS_HOOK_NEXT_WORK_INSTRUMENTATION,
-    )
-    const stages: WorkTask[] = [ctx.props.when, ...ctx.props.effects, next]
+    const next = ctx.props.next
+
+    const stages: WorkTask[] = [
+      ...(ctx.props.when ? [ctx.props.when] : []),
+      ...(ctx.props.effects ?? []),
+      ...(next
+        ? [createWorkTask('next', ACCESS_HOOK_NEXT_WORK_HANDLER, { next }, ACCESS_HOOK_NEXT_WORK_INSTRUMENTATION)]
+        : []),
+    ]
 
     return {
       groups: [{ mode: 'first-match', matches: stage => isTerminalStage(stage.output), children: stages }],

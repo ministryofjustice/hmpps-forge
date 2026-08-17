@@ -8,6 +8,7 @@ import {
   ResolvableValue,
 } from '../types/expressions.type'
 import { ExpressionBuilder } from './ExpressionBuilder'
+import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { ChainableGenerator, ChainableNegation } from './types'
 
 /**
@@ -105,12 +106,16 @@ export class GeneratorBuilder<A extends ResolvableValue[]> implements ChainableG
    * Generator.Date.Now().match(Condition.Date.IsFutureDate())
    */
   match(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
-    return {
+    const predicate: PredicateTestExpr = {
       type: PredicateType.TEST,
       subject: this.expression,
       negate: this.negated,
       condition,
     }
+
+    stampCallsite(predicate, captureCallsite(this.match))
+
+    return predicate
   }
 
   /**

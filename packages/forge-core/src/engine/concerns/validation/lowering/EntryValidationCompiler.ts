@@ -1,33 +1,38 @@
 /**
- * Compiles the validateOnEntry group selector for one step.
+ * Compiles the `validateOnEntry` group selector for one step.
  *
- * This phase computes no validation of its own. `request.validities` has already
- * run every validating step in non-submission mode, so the generated function
- * only decides which validation groups the first render should show.
+ * This phase doesn't run validation itself. The `request.validities` phase has
+ * already validated every step in non-submission mode, so the generated function
+ * only decides which validation groups to display on the first GET render.
  *
- * Function calls stay indirect through FunctionRegistry because journey authors
- * provide those implementations. Registry metadata decides whether generated
- * source remains sync or becomes async; the runtime awaits both shapes.
+ * Function calls go through the `FunctionRegistry` (the registry of author-
+ * provided functions) because authors supply those implementations. The registry
+ * knows whether a function is async, so it controls whether the generated source
+ * is sync or async; the runtime awaits both.
  *
- * Generated-function construction failures throw ForgeCompilationError. There is
+ * Generated-function construction failures throw `ForgeCompilationError`. There is
  * no secondary entry-validation execution path.
  */
 import { StepEntryValidationAST } from '../../../contracts/ast/structures.type'
-import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import { CodeFragment, code, literal } from '../../../compilation/lowering/codegen/fragments/CodeFragment'
+import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
-  buildGeneratedSource,
+  CompilationPhase,
   compileGeneratedFunction,
-} from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
+  renderGeneratedSource,
+} from '../../../compilation/lowering/GeneratedFunctionCompiler'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+import type { ValidationModel } from '../contracts/validationModel.type'
 
 import type { CompiledEntryValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
 
 /**
- * Phase compiler for the step-level entry-validation generated function.
+ * Compiler for the step-level entry-validation generated function.
  *
- * It owns the group-accumulator source layout while delegating each rule's `when`
- * predicate to the shared expression compiler.
+ * It builds the source layout that accumulates matching validation groups, and
+ * delegates each rule's `when` predicate to the shared expression dispatcher.
  */
 export default class EntryValidationCompiler {
   private readonly expr: ExpressionDispatcher
@@ -39,52 +44,63 @@ export default class EntryValidationCompiler {
   /**
    * Builds the generated group-selector used before rendering a GET request.
    */
-  compileOnEntryValidation(entries: StepEntryValidationAST[] | undefined): CompiledEntryValidationFunction {
+  compileOnEntryValidation(model: ValidationModel): CompiledEntryValidationFunction {
     return compileGeneratedFunction<CompiledEntryValidationFunction>(
       this.expr,
       ['ctx'],
-      () => this.buildEntryValidationSource(entries ?? []),
-      { phase: 'entry-validation' },
+      () => this.buildEntryValidationSource(model.entryValidation),
+      { phase: CompilationPhase.ENTRY_VALIDATION, label: model.label },
     )
   }
 
   /**
    * Produces inspectable entry-validation source for tests and local debugging.
    */
-  generateOnEntryValidationSource(entries: StepEntryValidationAST[]): string {
-    return buildGeneratedSource(this.expr, () => this.buildEntryValidationSource(entries))
+  generateOnEntryValidationSource(model: ValidationModel): string {
+    return renderGeneratedSource(this.expr, () => this.buildEntryValidationSource(model.entryValidation))
   }
 
   /**
    * Emits the entry-validation group selector used by GET rendering.
    */
-  private buildEntryValidationSource(entries: StepEntryValidationAST[]): string {
-    const emitter = new CodeEmitter()
+  private buildEntryValidationSource(entries: readonly StepEntryValidationAST[]): CodeGenerator {
+    const generator = CodeGenerator.forFunction(['ctx'])
 
-    emitter.code('"use strict";')
+    generator.directive('use strict')
 
-    emitter.comment('EntryValidationCompiler.buildEntryValidationSource')
-    emitter.declareConst('groups', '[]')
-    emitter.declareConst('seen', 'Object.create(null)')
-    this.compileEntryValidationGroupAccumulator(emitter)
+    if (entries.length === 0) {
+      generator.note('This step declares no validateOnEntry rules, so no groups are selected.')
+      generator.return(code`[]`)
 
-    entries.forEach(entry => this.compileEntryValidationRule(entry, emitter))
-    emitter.return('groups')
+      return generator
+    }
 
-    return emitter.toString()
+    const groups = generator.const('groups', code`[]`)
+    const seen = generator.const('seen', code`Object.create(null)`)
+    const addGroup = this.compileEntryValidationGroupAccumulator(groups, seen, generator)
+
+    entries.forEach(entry => this.compileEntryValidationRule(entry, addGroup, generator))
+    generator.return(groups)
+
+    return generator
   }
 
   /**
    * Emits a tiny local helper so repeated entry groups keep their first declaration position.
    */
-  private compileEntryValidationGroupAccumulator(emitter: CodeEmitter): void {
-    emitter.comment('EntryValidationCompiler.compileEntryValidationGroupAccumulator')
-    emitter.emitBlock('function addGroup(group)', () => {
-      const groupKeyVar = emitter.const('groupKey', 'String(group)')
+  private compileEntryValidationGroupAccumulator(
+    groups: IdentifierName,
+    seen: IdentifierName,
+    generator: CodeGenerator,
+  ): IdentifierName {
+    generator.comment('Record each matching group once, in first-declared order')
 
-      emitter.if(`!seen[${groupKeyVar}]`, () => {
-        emitter.assign(`seen[${groupKeyVar}]`, 'true')
-        emitter.code(`groups.push(${groupKeyVar});`)
+    return generator.function('addGroup', ['group'], (functionGenerator, [group]) => {
+      const groupKey = functionGenerator.const('groupKey', code`String(${group})`)
+
+      functionGenerator.if(code`!${seen}[${groupKey}]`, () => {
+        functionGenerator.assign(code`${seen}[${groupKey}]`, literal(true))
+        functionGenerator.statement(code`${groups}.push(${groupKey})`)
       })
     })
   }
@@ -92,40 +108,51 @@ export default class EntryValidationCompiler {
   /**
    * Emits one validateOnEntry rule, preserving unconditional entries as direct group additions.
    */
-  private compileEntryValidationRule(entry: StepEntryValidationAST, emitter: CodeEmitter): void {
-    emitter.comment('EntryValidationCompiler.compileEntryValidationRule')
-    emitter.scope(() => {
+  private compileEntryValidationRule(
+    entry: StepEntryValidationAST,
+    addGroup: IdentifierName,
+    generator: CodeGenerator,
+  ): void {
+    generator.comment(`Entry rule — groups ${entry.groups.map(group => `"${group}"`).join(', ')}`)
+    generator.scope(() => {
       if (entry.when === true) {
-        this.compileEntryValidationGroups(entry.groups, emitter)
+        this.compileEntryValidationGroups(entry.groups, addGroup, generator)
 
         return
       }
 
-      const whenVar = this.compileEntryValidationWhen(entry.when, emitter)
+      const when = this.compileEntryValidationWhen(entry.when, generator)
 
-      emitter.if(whenVar, () => this.compileEntryValidationGroups(entry.groups, emitter))
+      generator.if(code`${when}`, () => this.compileEntryValidationGroups(entry.groups, addGroup, generator))
     })
   }
 
   /**
    * Emits a validateOnEntry predicate as a named boolean so generated source reads as a rule guard.
    */
-  private compileEntryValidationWhen(when: StepEntryValidationAST['when'], emitter: CodeEmitter): string {
+  private compileEntryValidationWhen(
+    when: StepEntryValidationAST['when'],
+    generator: CodeGenerator,
+  ): CodeFragment | IdentifierName {
     if (when === true) {
-      return 'true'
+      return literal(true)
     }
 
-    const predicateExpr = this.expr.compileExpression(when)
+    const predicate = this.expr.compileExpressionCode(when)
 
-    return emitter.const('entryWhen', `Boolean(${predicateExpr})`)
+    return generator.const('entryWhen', code`Boolean(${predicate})`)
   }
 
   /**
    * Emits the declared validateOnEntry groups through addGroup to preserve uniqueness and ordering.
    */
-  private compileEntryValidationGroups(groups: readonly string[], emitter: CodeEmitter): void {
+  private compileEntryValidationGroups(
+    groups: readonly string[],
+    addGroup: IdentifierName,
+    generator: CodeGenerator,
+  ): void {
     groups.forEach(group => {
-      emitter.code(`addGroup(${JSON.stringify(group)});`)
+      generator.statement(code`${addGroup}(${group})`)
     })
   }
 }

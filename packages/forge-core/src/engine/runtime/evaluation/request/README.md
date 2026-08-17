@@ -204,7 +204,7 @@ flowchart TD
 - `RequestPipelineTraceProjector` owns request trace projection.
   It should not change work execution or request state.
 - Runtime request evaluation must not own compilation.
-  It must not build `CompilationPlan`, lower source, register AST nodes, or inspect authored DSL.
+  It must not build `CompilationModel`, lower source, register AST nodes, or inspect authored DSL.
 
 ## Quirks
 

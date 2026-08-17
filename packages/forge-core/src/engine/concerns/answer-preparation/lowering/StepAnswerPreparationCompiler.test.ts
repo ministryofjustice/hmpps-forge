@@ -17,8 +17,10 @@ import { NodeIDGenerator } from '../../../compilation/ast/ast-state/NodeIDGenera
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
-import { generatedFunctionHelpers } from '../../../compilation/lowering/function-construction/GeneratedFunctionHelpers'
+import { generatedFunctionRuntimeLibrary } from '../../../compilation/lowering/generatedFunctionRuntimeLibrary'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+import { buildStepFieldModels } from '../../../compilation/analysis/testing-helpers/analysisContexts'
+import type { AnswerPreparationModel } from '../contracts/answerPreparationModel.type'
 import StepAnswerPreparationCompiler from './StepAnswerPreparationCompiler'
 import type { CompiledAnswerPreparationFunction } from '../../../contracts/compiled/compiledFunctions.type'
 import type { CompiledAnswerPreparationContext } from '../../../contracts/compiled/compiledContexts.type'
@@ -61,11 +63,22 @@ function createComponentRegistry(...entries: TestComponentEntry[]): ComponentReg
   return registry
 }
 
+let modelComponentRegistry: ComponentRegistry | undefined
+
 function createComponentCompiler(componentRegistry: ComponentRegistry): StepAnswerPreparationCompiler {
+  modelComponentRegistry = componentRegistry
+
   return new StepAnswerPreparationCompiler({
     functionRegistry: new FunctionRegistry(),
     componentRegistry,
   })
+}
+
+function prepModel(fieldBlocks: FieldBlockASTNode[], iterateNodes: IterateASTNode[] = []): AnswerPreparationModel {
+  return {
+    label: undefined,
+    fields: buildStepFieldModels({ fieldBlocks, iterateNodes, componentRegistry: modelComponentRegistry }),
+  }
 }
 
 function createFieldBlock(
@@ -199,7 +212,7 @@ async function runGeneratedSource(
   diagnostics: unknown = undefined,
 ): Promise<void> {
   const fn = new Function('ctx', '_forgeHelpers', '_forgeRuntimeDiagnostics', source)
-  const task = fn(ctx, generatedFunctionHelpers, diagnostics) as unknown
+  const task = fn(ctx, generatedFunctionRuntimeLibrary, diagnostics) as unknown
 
   await executeAnswerPreparationTask(task, ctx)
 }
@@ -236,6 +249,7 @@ describe('StepAnswerPreparationCompiler', () => {
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
+    modelComponentRegistry = undefined
     compiler = new StepAnswerPreparationCompiler(dependencies)
   })
 
@@ -245,7 +259,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx()
 
       // Act
-      const fn = compiler.compile([])
+      const fn = compiler.compile(prepModel([]))
 
       await executeAnswerPreparation(fn, ctx)
 
@@ -279,8 +293,8 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block], [])
-      const fn = localCompiler.compile([block], [])
+      const source = localCompiler.generateSource(prepModel([block], []))
+      const fn = localCompiler.compile(prepModel([block], []))
       const result = fn!(ctx)
 
       await executeAnswerPreparationTask(result, ctx)
@@ -315,8 +329,8 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block], [])
-      const fn = localCompiler.compile([block], [])
+      const source = localCompiler.generateSource(prepModel([block], []))
+      const fn = localCompiler.compile(prepModel([block], []))
 
       await executeAnswerPreparation(fn!, ctx)
 
@@ -354,8 +368,8 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block], [])
-      const fn = localCompiler.compile([block], [])
+      const source = localCompiler.generateSource(prepModel([block], []))
+      const fn = localCompiler.compile(prepModel([block], []))
 
       await executeAnswerPreparation(fn!, ctx)
 
@@ -389,8 +403,8 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block], [])
-      const fn = localCompiler.compile([block], [])
+      const source = localCompiler.generateSource(prepModel([block], []))
+      const fn = localCompiler.compile(prepModel([block], []))
 
       await executeAnswerPreparation(fn!, ctx)
 
@@ -408,7 +422,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { firstName: 'John' } })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = compiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -437,7 +451,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -454,12 +468,32 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { firstName: 'John', lastName: 'Doe' } })
 
       // Act
-      const source = compiler.generateSource([block1, block2])
+      const source = compiler.generateSource(prepModel([block1, block2]))
       await runGeneratedSource(source, ctx)
 
       // Assert
       expect(ctx.answers.firstName.current).toBe('John')
       expect(ctx.answers.lastName.current).toBe('Doe')
+    })
+
+    it('should prepare every field through the shared runtime library', () => {
+      // Arrange
+      const firstName = createFieldBlock('firstName')
+      const lastName = createFieldBlock('lastName')
+
+      // Act
+      const source = compiler.generateSource(prepModel([firstName, lastName]))
+
+      // Assert
+      expect(source).toContain('const fieldDefinitions = [];')
+      expect(source).toContain(
+        'const prepareFieldAnswer = answerPreparationMode === "POST" ? _forgeHelpers.preparePostedFieldAnswer : _forgeHelpers.prepareStoredFieldAnswer;',
+      )
+      expect(source).toContain('const fieldPreparations = fieldDefinitions.map(')
+      expect(source).toContain('return prepareFieldAnswer(ctx, field);')
+      expect(source).not.toContain('function preparePostedFieldAnswer')
+      expect(source).not.toContain('function prepareStoredFieldAnswer')
+      expect(source).not.toContain('compileRegisteredField')
     })
 
     it('should extract first non-empty for non-multiple fields when POST is array', async () => {
@@ -468,7 +502,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { colour: ['', ' ', 'red', 'blue'] as unknown as string } })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = compiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -481,7 +515,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: {} })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = compiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -499,7 +533,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { tags: ['a', 'b', 'c'] as unknown as string }, components: componentRegistry })
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -514,37 +548,38 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { tags: 'single' }, components: componentRegistry })
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
       expect(ctx.answers.tags.current).toEqual(['single'])
     })
 
-    it('should emit a checkComponentInputValue call for a variant that declares an input schema', () => {
+    it('should mark the field definition as validating input for a variant that declares an input schema', () => {
       // Arrange
       const componentRegistry = createComponentRegistry({ variant: 'text-input', inputSchema: z.string() })
       const localCompiler = createComponentCompiler(componentRegistry)
       const block = createFieldBlock('name', {}, 'text-input')
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
 
       // Assert
-      expect(source).toContain('checkComponentInputValue(ctx, "text-input"')
+      expect(source).toContain('component: "text-input"')
+      expect(source).toContain('validatesInput: true')
     })
 
-    it('should not emit a checkComponentInputValue call for a variant without an input schema', () => {
+    it('should mark the field definition as not validating input for a variant without an input schema', () => {
       // Arrange
       const componentRegistry = createComponentRegistry({ variant: 'text-input' })
       const localCompiler = createComponentCompiler(componentRegistry)
       const block = createFieldBlock('name', {}, 'text-input')
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
 
       // Assert
-      expect(source).not.toContain('checkComponentInputValue')
+      expect(source).toContain('validatesInput: false')
     })
 
     it('should drop a value that fails the input schema to undefined before the post mutation', async () => {
@@ -558,7 +593,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -581,7 +616,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -597,7 +632,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { name: 'Ada' }, components: componentRegistry })
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -614,7 +649,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { name: '  John  ' } })
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -633,7 +668,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { name: '  hello  ' } })
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -648,7 +683,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { name: 'NoSpaces' } })
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -664,7 +699,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { name: 'original' } })
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -700,7 +735,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const fn = localCompiler.compile([block])
+      const fn = localCompiler.compile(prepModel([block]))
 
       await executeAnswerPreparation(fn!, ctx)
 
@@ -727,7 +762,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const fn = localCompiler.compile([block])
+      const fn = localCompiler.compile(prepModel([block]))
 
       // Assert
       await expect(executeAnswerPreparation(fn!, ctx)).rejects.toThrow('Formatter failed')
@@ -755,7 +790,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ post: { name: 'hello world' } })
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -777,7 +812,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -797,7 +832,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -827,7 +862,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const fn = localCompiler.compile([block])
+      const fn = localCompiler.compile(prepModel([block]))
 
       // Assert
       await expect(executeAnswerPreparation(fn!, ctx)).rejects.toThrow('boom')
@@ -858,7 +893,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = compiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -872,7 +907,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ request: { method: 'GET' } })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = compiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -890,7 +925,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = compiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -931,7 +966,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -945,7 +980,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ request: { method: 'GET' } })
 
       // Act
-      const source = compiler.generateSource([block])
+      const source = compiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -976,7 +1011,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = compiler.generateSource([], [iterateNode])
+      const source = compiler.generateSource(prepModel([], [iterateNode]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -1008,7 +1043,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([], [iterateNode])
+      const source = localCompiler.generateSource(prepModel([], [iterateNode]))
       await runGeneratedSource(source, ctx)
 
       // Assert
@@ -1048,7 +1083,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([], [iterateNode])
+      const source = localCompiler.generateSource(prepModel([], [iterateNode]))
 
       await runGeneratedSource(source, ctx)
 
@@ -1068,7 +1103,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const ctx = createCtx({ request: { method: 'GET' } })
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert — defaultValue is set as-is, no trimming
@@ -1115,7 +1150,7 @@ describe('StepAnswerPreparationCompiler', () => {
       })
 
       // Act
-      const source = localCompiler.generateSource([block])
+      const source = localCompiler.generateSource(prepModel([block]))
       await runGeneratedSource(source, ctx)
 
       // Assert

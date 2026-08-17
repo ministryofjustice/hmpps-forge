@@ -16,7 +16,7 @@ This document does not cover component rendering or runtime resolve handler exec
 - ancestor journey nodes.
 - iterate nodes under the step.
 
-Dependency analysis provides those inputs.
+Analysis provides those inputs.
 The compiler emits evaluated step metadata, ancestor metadata, registered blocks, and iterator-yielded blocks.
 
 ## Work Returned

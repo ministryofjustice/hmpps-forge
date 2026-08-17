@@ -1,52 +1,62 @@
-import CodeEmitter from '../emitters/CodeEmitter'
+import { CodeFragment, code, joinCode } from '../codegen/fragments/CodeFragment'
+import CodeGenerator from '../codegen/CodeGenerator'
+import IdentifierName from '../codegen/fragments/IdentifierName'
 
 /**
  * Describes how to wrap generated statements in an immediately invoked
- * function expression.
+ * function expression (IIFE).
  *
- * Expression compilers use this when they need local statements, guards, or
- * temporary variables but the surrounding compiler still needs a single
- * JavaScript expression string.
+ * Expression compilers use this when they need local variables, guards, or
+ * multi-line logic but the surrounding code requires a single JavaScript
+ * expression rather than a block of statements.
  */
 interface IifeExpressionOptions {
   /** JavaScript expressions passed to the IIFE invocation. */
-  readonly args?: readonly string[]
+  readonly args?: readonly CodeFragment[]
 
-  /** Wrap the invocation in await for generated async expression contexts. */
-  readonly awaitResult?: boolean
+  /** Wrap the IIFE call in `await` when the generated body is async. */
+  readonly awaitResult?: boolean | (() => boolean)
 
-  /** Emits the function body with the normal generated-source statement emitter. */
-  readonly compileBody: (emitter: CodeEmitter) => void
+  /** Callback that emits the function body using the provided `CodeGenerator`. */
+  readonly compileBody: (generator: CodeGenerator, parameters: readonly IdentifierName[]) => void
+
+  /** The `CodeGenerator` that manages variable names for the IIFE. */
+  readonly generator: CodeGenerator
 
   /** Generate an async function expression so the body can await nested expressions. */
-  readonly isAsync?: boolean
+  readonly isAsync?: boolean | (() => boolean)
+
+  /** Stable debugger-facing function name. */
+  readonly name?: string
 
   /** Parameter names made available to the emitted function body. */
   readonly params?: readonly string[]
 }
 
 /**
- * Compiles a statement-shaped body into an expression-shaped IIFE.
+ * Wraps a block of statements in an IIFE so it can be used where a single
+ * JavaScript expression is needed.
  *
- * @param options - IIFE shape and body emitter callback.
+ * @param options - IIFE shape and body callback.
  * @returns JavaScript source that can be embedded anywhere an expression is valid.
  */
-export function compileIifeExpression(options: IifeExpressionOptions): string {
-  const emitter = new CodeEmitter()
-
-  emitter.indent()
-  options.compileBody(emitter)
-
-  const functionPrefix = options.isAsync === true ? 'async ' : ''
+export function compileIifeExpression(options: IifeExpressionOptions): CodeFragment {
   const params = options.params ?? []
   const args = options.args ?? []
-  const invocationExpr = `(${functionPrefix}function(${params.join(', ')}) {
-${emitter.toString()}
-})(${args.join(', ')})`
+  const functionExpression = options.generator.functionExpression(
+    options.name ?? 'evaluate_expression',
+    params,
+    (functionGenerator, parameters) => options.compileBody(functionGenerator, parameters),
+    { async: () => resolveOption(options.isAsync) },
+  )
+  const invocationExpr = code`(${functionExpression})(${joinCode(args)})`
 
-  if (options.awaitResult === true) {
-    return `(await ${invocationExpr})`
+  if (resolveOption(options.awaitResult)) {
+    return code`(await ${invocationExpr})`
   }
 
   return invocationExpr
 }
+
+const resolveOption = (option: boolean | (() => boolean) | undefined): boolean =>
+  typeof option === 'function' ? option() : option === true

@@ -10,10 +10,7 @@ import type {
 } from '../authoring/types/expressions.type'
 import type { FunctionRegistryEntry } from '../authoring/types/functions.type'
 import type { EffectFunctionContext } from '../engine/runtime/evaluation/context/EffectFunctionContext'
-import {
-  precheckShortCircuit,
-  validateOutput,
-} from '../engine/compilation/lowering/function-construction/GeneratedFunctionHelpers'
+import { precheckShortCircuit, validateOutput } from '../engine/compilation/lowering/generatedFunctionRuntimeLibrary'
 
 /**
  * Unit-tests functions registered in a `ConditionRegistry`, `TransformerRegistry`,

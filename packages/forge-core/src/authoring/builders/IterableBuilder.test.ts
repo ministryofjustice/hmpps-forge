@@ -214,6 +214,21 @@ describe('IterableBuilder', () => {
       expect(result.condition).toEqual(condition)
       expect((result.subject as IterateExpr).type).toBe(ExpressionType.ITERATE)
     })
+
+    it('should stamp the predicate with the match callsite', () => {
+      // Arrange
+      const input = mockRef()
+      const iterator = Iterator.Map({})
+      const condition = mockCondition('isNotEmpty')
+
+      // Act
+      const result = IterableBuilder.create(input, iterator).match(condition)
+
+      // Assert
+      const callsite = Object.getOwnPropertyDescriptor(result, '__callsite')?.value as { stack?: string } | undefined
+
+      expect(callsite?.stack).toContain('IterableBuilder.test.ts')
+    })
   })
 
   describe('not', () => {
