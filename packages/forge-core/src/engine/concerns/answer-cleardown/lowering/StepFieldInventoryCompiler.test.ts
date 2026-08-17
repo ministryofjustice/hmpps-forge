@@ -132,6 +132,28 @@ describe('StepFieldInventoryCompiler', () => {
       ])
     })
 
+    it('should emit a literal inventory entry when every field code is static', () => {
+      // Arrange
+      const steps: FieldInventoryStepSource[] = [
+        {
+          stepId: 'compile_ast:step-a',
+          fieldBlocks: [createFieldBlock('firstName'), createFieldBlock('lastName'), createFieldBlock('firstName')],
+          iterateNodes: [],
+          cleardownFieldCodes: [],
+        },
+      ]
+
+      // Act
+      const source = compiler.generateSource(inventoryModel(steps))
+
+      // Assert
+      expect(source).toContain('"firstName"')
+      expect(source).toContain('"lastName"')
+      expect(source.match(/"firstName"/g)).toHaveLength(1)
+      expect(source).not.toContain('Array.from')
+      expect(source).not.toContain('const fieldCodes')
+    })
+
     it('should collect dynamic registered field codes', () => {
       // Arrange
       const functionRegistry = new FunctionRegistry()

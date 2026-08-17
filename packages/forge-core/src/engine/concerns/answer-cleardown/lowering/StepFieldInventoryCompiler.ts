@@ -1,4 +1,5 @@
 import { code, literal, objectCode } from '../../../compilation/lowering/codegen/fragments/CodeFragment'
+import { FieldCodeKind, type StaticFieldCode } from '../../../contracts/models/fieldModel.type'
 import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
 import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
 import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
@@ -68,6 +69,12 @@ export default class StepFieldInventoryCompiler {
 
   /** Emits one step's static and iterator-expanded field codes into a de-duplicated result. */
   private compileStep(step: CleardownStepModel, fieldInventory: IdentifierName, generator: CodeGenerator): void {
+    if (this.hasOnlyStaticFieldCodes(step)) {
+      this.compileStaticStep(step, fieldInventory, generator)
+
+      return
+    }
+
     generator.comment("Collect one step's possible field codes")
     generator.scope(() => {
       const fieldCodes = generator.const('fieldCodes', code`[]`)
@@ -93,5 +100,28 @@ export default class StepFieldInventoryCompiler {
         ])})`,
       )
     })
+  }
+
+  private hasOnlyStaticFieldCodes(step: CleardownStepModel): boolean {
+    return step.fields.every(
+      field =>
+        field.iteratorPath.length === 0 && (field.code === undefined || field.code.kind === FieldCodeKind.STATIC),
+    )
+  }
+
+  /** Emits a step whose field codes are all compile-time constants as one literal entry, deduplicated here. */
+  private compileStaticStep(step: CleardownStepModel, fieldInventory: IdentifierName, generator: CodeGenerator): void {
+    const staticFieldCodes = step.fields
+      .map(field => field.code)
+      .filter((fieldCode): fieldCode is StaticFieldCode => fieldCode?.kind === FieldCodeKind.STATIC)
+      .map(fieldCode => fieldCode.value)
+
+    generator.statement(
+      code`${fieldInventory}.push(${objectCode([
+        { key: 'stepId', value: literal(step.stepId) },
+        { key: 'fieldCodes', value: literal([...new Set(staticFieldCodes)]) },
+        { key: 'cleardownFieldCodes', value: literal(step.cleardownFieldCodes) },
+      ])})`,
+    )
   }
 }

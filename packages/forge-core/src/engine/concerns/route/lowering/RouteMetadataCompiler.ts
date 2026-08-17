@@ -1,4 +1,9 @@
-import { code, literal } from '../../../compilation/lowering/codegen/fragments/CodeFragment'
+import {
+  code,
+  literal,
+  objectCode,
+  ObjectCodeProperty,
+} from '../../../compilation/lowering/codegen/fragments/CodeFragment'
 import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
 import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
@@ -60,41 +65,45 @@ export default class RouteMetadataCompiler {
   }
 
   /**
-   * Emits `result[nodeId] = { title, description?, metadata? }` for every node.
+   * Emits `routeMetadata[nodeId] = { title, description?, metadata? }` for every node.
    */
   private buildSource(inputs: Iterable<RouteMetadataModel>): CodeGenerator {
     const generator = CodeGenerator.forFunction(['ctx'])
     const entries = [...inputs]
 
     generator.directive('use strict')
-    generator.comment('RouteMetadataCompiler.buildSource')
-    const result = generator.const('result', code`{}`)
+    generator.comment('Resolved route metadata, keyed by node id')
+    const routeMetadata = generator.const('routeMetadata', code`{}`)
 
-    entries.forEach(input => this.compileEntry(input, result, generator))
-    generator.return(result)
+    entries.forEach(input => this.compileEntry(input, routeMetadata, generator))
+    generator.return(routeMetadata)
 
     return generator
   }
 
   /**
-   * Emits the resolved metadata object for one node.
+   * Emits the resolved metadata object for one node. Static values sit inline
+   * in the literal; expression-backed values hoist into named consts just above.
    */
-  private compileEntry(input: RouteMetadataModel, result: IdentifierName, generator: CodeGenerator): void {
-    generator.comment('RouteMetadataCompiler.compileEntry')
-    generator.scope(() => {
-      const entry = generator.const('routeMetadataEntry', code`{}`)
+  private compileEntry(input: RouteMetadataModel, routeMetadata: IdentifierName, generator: CodeGenerator): void {
+    const properties: ObjectCodeProperty[] = [
+      { key: 'title', value: this.values.compileValueExpression(input.title, generator, 'title') },
+    ]
 
-      this.values.compileAssignment(input.title, generator, entry, 'title')
+    if (input.description !== undefined) {
+      properties.push({
+        key: 'description',
+        value: this.values.compileValueExpression(input.description, generator, 'description'),
+      })
+    }
 
-      if (input.description !== undefined) {
-        this.values.compileAssignment(input.description, generator, entry, 'description')
-      }
+    if (input.metadata !== undefined) {
+      properties.push({
+        key: 'metadata',
+        value: this.values.compileValueExpression(input.metadata, generator, 'metadata'),
+      })
+    }
 
-      if (input.metadata !== undefined) {
-        this.values.compileAssignment(input.metadata, generator, entry, 'metadata')
-      }
-
-      generator.assign(code`${result}[${input.nodeId}]`, entry)
-    })
+    generator.assign(code`${routeMetadata}[${input.nodeId}]`, objectCode(properties))
   }
 }

@@ -141,7 +141,8 @@ describe('RouteMetadataCompiler', () => {
       const source = compiler.generateSource([{ nodeId, title: classify('Step title') }])
 
       // Assert
-      expect(source).toContain('result')
+      expect(source).toContain('routeMetadata')
+      expect(source).not.toContain('routeMetadataEntry')
       expect(() => new Function('ctx', source)).not.toThrow()
     })
   })
