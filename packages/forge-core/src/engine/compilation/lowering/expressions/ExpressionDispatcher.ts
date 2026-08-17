@@ -576,12 +576,14 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Normalizes object inputs to keyed items so iterator templates can use @key and @value.
+   * Normalizes object inputs to keyed items so iterator templates can use @key
+   * and @value. Shared with `IteratorLoopEmitter` so both iterator code paths
+   * emit the same normalisation under the same generated names.
    */
-  private compileNormalizeIteratorInput(inputVar: IdentifierName, generator: CodeGenerator): void {
+  compileNormalizeIteratorInput(inputVar: IdentifierName, generator: CodeGenerator): void {
     generator.if(code`${inputVar} != null && !Array.isArray(${inputVar}) && typeof ${inputVar} === "object"`, () => {
       const mapEntry = generator.functionExpression(
-        'normalise_iterator_entry',
+        'normaliseIteratorEntry',
         ['entry'],
         (callbackGenerator, [entry]) => {
           const keyedObject = objectCode([{ key: '@key', value: code`${entry}[0]` }])
@@ -600,7 +602,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     })
 
     generator.if(code`Array.isArray(${inputVar})`, () => {
-      const keepItem = generator.functionExpression('keep_iterator_item', ['item'], (callbackGenerator, [item]) => {
+      const keepItem = generator.functionExpression('keepIteratorItem', ['item'], (callbackGenerator, [item]) => {
         callbackGenerator.return(code`${item} != null`)
       })
 
@@ -609,13 +611,15 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Creates the per-item object exposed to @scope references inside iterator templates.
+   * Produces the per-item object exposed to @scope and `Item()` references.
+   * Shared with `IteratorLoopEmitter` for the same reason as normalisation.
    */
+  compileIteratorItemScopeExpression(rawItemExpr: CodeFragment | IdentifierName): CodeFragment {
+    return code`typeof ${rawItemExpr} === "object" && ${rawItemExpr} !== null ? Object.assign({}, ${rawItemExpr}) : ${objectCode([{ key: '@value', value: rawItemExpr }])}`
+  }
+
   private compileIteratorItemScope(rawItemExpr: CodeFragment, generator: CodeGenerator): IdentifierName {
-    return generator.const(
-      '_item',
-      code`typeof ${rawItemExpr} === "object" && ${rawItemExpr} !== null ? Object.assign({}, ${rawItemExpr}) : ${objectCode([{ key: '@value', value: rawItemExpr }])}`,
-    )
+    return generator.const('_item', this.compileIteratorItemScopeExpression(rawItemExpr))
   }
 
   /**
