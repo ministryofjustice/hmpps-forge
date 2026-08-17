@@ -462,6 +462,28 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(ctx.answers.lastName.current).toBe('Doe')
     })
 
+    it('should prepare every field through one shared generated program', () => {
+      // Arrange
+      const firstName = createFieldBlock('firstName')
+      const lastName = createFieldBlock('lastName')
+
+      // Act
+      const source = compiler.generateSource([firstName, lastName])
+
+      // Assert
+      expect(source.match(/function preparePostedFieldAnswer/g)).toHaveLength(1)
+      expect(source.match(/function prepareStoredFieldAnswer/g)).toHaveLength(1)
+      expect(source.match(/normalizePostValue/g)).toHaveLength(1)
+      expect(source).toContain('const fieldDefinitions = [];')
+      expect(source).toContain(
+        'const prepareFieldAnswer = answerPreparationMode === "POST" ? preparePostedFieldAnswer : prepareStoredFieldAnswer;',
+      )
+      expect(source).toContain('const fieldPreparations = fieldDefinitions.map(')
+      expect(source).toContain('return prepareFieldAnswer(field);')
+      expect(source).not.toContain('function prepareFieldAnswer')
+      expect(source).not.toContain('compileRegisteredField')
+    })
+
     it('should extract first non-empty for non-multiple fields when POST is array', async () => {
       // Arrange
       const block = createFieldBlock('colour')
@@ -531,7 +553,9 @@ describe('StepAnswerPreparationCompiler', () => {
       const source = localCompiler.generateSource([block])
 
       // Assert
-      expect(source).toContain('checkComponentInputValue(ctx, "text-input"')
+      expect(source).toContain('"component": "text-input"')
+      expect(source).toContain('"validatesInput": true')
+      expect(source).toContain('checkComponentInputValue(ctx, component, rawValue, acceptsMultipleValues)')
     })
 
     it('should not emit a checkComponentInputValue call for a variant without an input schema', () => {
