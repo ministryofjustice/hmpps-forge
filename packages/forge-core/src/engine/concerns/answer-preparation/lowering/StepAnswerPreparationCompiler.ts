@@ -4,7 +4,7 @@ import { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
 import { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
 import { isASTNode } from '../../../contracts/ast/nodes'
-import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import CodeEmitter from '../../../compilation/codegen/CodeEmitter'
 import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
 import ScopedTemplateCompiler, {
   isTemplateFieldNode,
@@ -13,6 +13,7 @@ import RuntimeValueCompiler from '../../../compilation/lowering/structures/Runti
 import {
   buildGeneratedSource,
   compileGeneratedFunction,
+  deriveScriptLabel,
   GENERATED_FUNCTION_HELPERS_PARAM,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
@@ -77,7 +78,7 @@ export default class StepAnswerPreparationCompiler {
       this.expr,
       ['ctx'],
       () => this.buildSource(fieldBlocks, iterateNodes),
-      { phase: 'answer-preparation' },
+      { phase: 'answer-preparation', label: deriveScriptLabel([...fieldBlocks, ...iterateNodes]) },
     )
   }
 
@@ -85,13 +86,13 @@ export default class StepAnswerPreparationCompiler {
    * Produces inspectable generated source for tests and local debugging.
    */
   generateSource(fieldBlocks: FieldBlockASTNode[], iterateNodes: IterateASTNode[] = []): string {
-    return buildGeneratedSource(this.expr, () => this.buildSource(fieldBlocks, iterateNodes))
+    return buildGeneratedSource(this.expr, () => this.buildSource(fieldBlocks, iterateNodes)).toString()
   }
 
   /**
    * Emits the request-method split and delegates field preparation to the selected mode.
    */
-  private buildSource(fieldBlocks: FieldBlockASTNode[], iterateNodes: IterateASTNode[]): string {
+  private buildSource(fieldBlocks: FieldBlockASTNode[], iterateNodes: IterateASTNode[]): CodeEmitter {
     const emitter = new CodeEmitter()
 
     emitter.code('"use strict";')
@@ -112,7 +113,7 @@ export default class StepAnswerPreparationCompiler {
     emitter.emitBlank()
     emitter.return(`ctx.workTasks.answerPreparation(${fieldPreparationsVar})`)
 
-    return emitter.toString()
+    return emitter
   }
 
   /**
@@ -147,7 +148,9 @@ export default class StepAnswerPreparationCompiler {
     mode: AnswerPreparationMode,
     fieldPreparationsVar: string,
   ): void {
-    emitter.comment('StepAnswerPreparationCompiler.compileRegisteredField')
+    emitter.comment(
+      `StepAnswerPreparationCompiler.compileRegisteredField — ${block.variant} ${describeFieldCode(block)}`,
+    )
     emitter.scope(() => {
       const codeExpr = this.fieldCodes.compileRegisteredExpression(block.properties.code, emitter)
 
@@ -459,11 +462,13 @@ export default class StepAnswerPreparationCompiler {
     const codeVar = emitter.const('answerPreparationCode', codeExpr)
     const propsVar = emitter.const(
       'fieldAnswerPreparationProps',
-      `{
-        code: ${codeVar},
-        mode: ${JSON.stringify(mode)},
-        run: ${this.compileFieldPreparationRunFunction(properties, codeVar, mode, variant)}
-      }`,
+      [
+        '{',
+        `  code: ${codeVar},`,
+        `  mode: ${JSON.stringify(mode)},`,
+        indentEmbeddedSource(`run: ${this.compileFieldPreparationRunFunction(properties, codeVar, mode, variant)}`),
+        '}',
+      ].join('\n'),
     )
 
     emitter.code(
@@ -593,4 +598,20 @@ function readProperties(value: unknown): Record<string, unknown> | undefined {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value)
+}
+
+function describeFieldCode(block: FieldBlockASTNode): string {
+  const code = block.properties.code
+
+  return typeof code === 'string' ? `"${code}"` : '(dynamic code)'
+}
+
+// Multi-line values embedded in an object-literal template need every line
+// shifted to the property's indent, or CodeEmitter's common-indent
+// normalisation leaves the lines ragged in the generated source.
+function indentEmbeddedSource(source: string): string {
+  return source
+    .split('\n')
+    .map(line => (line.length === 0 ? line : `  ${line}`))
+    .join('\n')
 }

@@ -3,12 +3,13 @@ import { BlockType, ExpressionType } from '../../../../authoring/types/enums'
 import { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
 import { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
-import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import CodeEmitter from '../../../compilation/codegen/CodeEmitter'
 import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
   buildGeneratedSource,
   compileGeneratedFunction,
+  deriveScriptLabel,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
 import ScopedTemplateCompiler, {
   isTemplateFieldNode,
@@ -43,8 +44,11 @@ export default class StepFieldInventoryCompiler {
    * reachability projection read.
    */
   compile(steps: FieldInventoryStepSource[]): CompiledFieldInventoryFunction | undefined {
+    const inventoryNodes = steps.flatMap(step => [...step.fieldBlocks, ...step.iterateNodes])
+
     return compileGeneratedFunction<CompiledFieldInventoryFunction>(this.expr, ['ctx'], () => this.buildSource(steps), {
       phase: 'field-inventory',
+      label: deriveScriptLabel(inventoryNodes, { maxDepth: 1 }),
     })
   }
 
@@ -52,13 +56,13 @@ export default class StepFieldInventoryCompiler {
    * Produces inspectable generated source for tests and local debugging.
    */
   generateSource(steps: FieldInventoryStepSource[]): string {
-    return buildGeneratedSource(this.expr, () => this.buildSource(steps))
+    return buildGeneratedSource(this.expr, () => this.buildSource(steps)).toString()
   }
 
   /**
    * Emits the full field inventory source, accumulating one inventory entry per step.
    */
-  private buildSource(steps: FieldInventoryStepSource[]): string {
+  private buildSource(steps: FieldInventoryStepSource[]): CodeEmitter {
     const emitter = new CodeEmitter()
 
     emitter.code('"use strict";')
@@ -69,7 +73,7 @@ export default class StepFieldInventoryCompiler {
     steps.forEach(step => this.compileStep(step, emitter, 'fieldInventory'))
     emitter.return('fieldInventory')
 
-    return emitter.toString()
+    return emitter
   }
 
   /**

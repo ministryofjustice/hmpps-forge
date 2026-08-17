@@ -9,10 +9,11 @@ import {
   ThrowErrorOutcomeASTNode,
 } from '../../../contracts/ast/expressions.type'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
-import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import CodeEmitter from '../../../compilation/codegen/CodeEmitter'
 import {
   buildGeneratedSource,
   compileGeneratedFunction,
+  deriveScriptLabel,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '../../../contracts/ast/outcome-nodes'
@@ -30,7 +31,7 @@ export default class HookLifecycleCompiler {
       this.expr,
       ['ctx'],
       () => this.buildAccessSource(hooks),
-      { forceAsync: true, phase: 'hooks' },
+      { forceAsync: true, phase: 'hooks', label: deriveScriptLabel(hooks) },
     )
   }
 
@@ -39,19 +40,19 @@ export default class HookLifecycleCompiler {
       this.expr,
       ['ctx'],
       () => this.buildSubmitSource(hooks),
-      { forceAsync: true, phase: 'hooks' },
+      { forceAsync: true, phase: 'hooks', label: deriveScriptLabel(hooks) },
     )
   }
 
   generateAccessSource(hooks: AccessHookASTNode[]): string {
-    return buildGeneratedSource(this.expr, () => this.buildAccessSource(hooks))
+    return buildGeneratedSource(this.expr, () => this.buildAccessSource(hooks)).toString()
   }
 
   generateSubmitSource(hooks: SubmitHookASTNode[]): string {
-    return buildGeneratedSource(this.expr, () => this.buildSubmitSource(hooks))
+    return buildGeneratedSource(this.expr, () => this.buildSubmitSource(hooks)).toString()
   }
 
-  private buildAccessSource(hooks: AccessHookASTNode[]): string {
+  private buildAccessSource(hooks: AccessHookASTNode[]): CodeEmitter {
     const emitter = this.createEmitter()
 
     emitter.comment('HookLifecycleCompiler.buildAccessSource')
@@ -63,10 +64,10 @@ export default class HookLifecycleCompiler {
 
     emitter.return(`ctx.workTasks.accessLifecycle(${hooksVar})`)
 
-    return emitter.toString()
+    return emitter
   }
 
-  private buildSubmitSource(hooks: SubmitHookASTNode[]): string {
+  private buildSubmitSource(hooks: SubmitHookASTNode[]): CodeEmitter {
     const emitter = this.createEmitter()
 
     emitter.comment('HookLifecycleCompiler.buildSubmitSource')
@@ -78,7 +79,7 @@ export default class HookLifecycleCompiler {
 
     emitter.return(`ctx.workTasks.submitLifecycle(${hooksVar})`)
 
-    return emitter.toString()
+    return emitter
   }
 
   private createEmitter(): CodeEmitter {
@@ -97,7 +98,7 @@ export default class HookLifecycleCompiler {
   ): void {
     const hookKey = `access-hook-${hookIndex}`
 
-    emitter.comment('HookLifecycleCompiler.compileAccessHookTask')
+    emitter.comment(`HookLifecycleCompiler.compileAccessHookTask — ${this.describeHookNode(hook, hookKey)}`)
     emitter.scope(() => {
       const effectsVar = emitter.const('accessHookEffects', '[]')
 
@@ -123,14 +124,20 @@ export default class HookLifecycleCompiler {
     emitter.scope(() => {
       const propsVar = emitter.const(
         'hookEffectProps',
-        `{
-          name: ${JSON.stringify(effect.properties.name)},
-          run: ${this.compileEffectRunFunction(effect)}
-        }`,
+        [
+          '{',
+          `  name: ${JSON.stringify(effect.properties.name)},`,
+          indentEmbeddedSource(`run: ${this.compileEffectRunFunction(effect)}`),
+          '}',
+        ].join('\n'),
       )
 
       emitter.code(`${effectsVar}.push(ctx.workTasks.hookEffect(${JSON.stringify(effectKey)}, ${propsVar}));`)
     })
+  }
+
+  private describeHookNode(hook: AccessHookASTNode | SubmitHookASTNode, hookKey: string): string {
+    return hook.diagnostics?.source.formattedPath ?? hookKey
   }
 
   private compileAccessWhenTask(hook: AccessHookASTNode, key: string): string {
@@ -174,7 +181,7 @@ export default class HookLifecycleCompiler {
   ): void {
     const hookKey = `submit-hook-${hookIndex}`
 
-    emitter.comment('HookLifecycleCompiler.compileSubmitHookTask')
+    emitter.comment(`HookLifecycleCompiler.compileSubmitHookTask — ${this.describeHookNode(hook, hookKey)}`)
     emitter.scope(() => {
       const propsVar = emitter.const('submitHookProps', '{}')
 
@@ -228,10 +235,12 @@ export default class HookLifecycleCompiler {
     key: string,
     name: string,
   ): string {
-    return `ctx.workTasks.submitPredicate(${JSON.stringify(key)}, {
-        name: ${JSON.stringify(name)},
-        evaluate: ${this.compileSubmitPredicateFunction(predicate, defaultValue)}
-      })`
+    return [
+      `ctx.workTasks.submitPredicate(${JSON.stringify(key)}, {`,
+      `  name: ${JSON.stringify(name)},`,
+      indentEmbeddedSource(`evaluate: ${this.compileSubmitPredicateFunction(predicate, defaultValue)}`),
+      '})',
+    ].join('\n')
   }
 
   private compileSubmitPredicateFunction(predicate: ASTNode | undefined, defaultValue: boolean): string {
@@ -392,4 +401,14 @@ export default class HookLifecycleCompiler {
   private isOutcomeNode(node: ASTNode): node is RedirectOutcomeASTNode | ThrowErrorOutcomeASTNode {
     return isRedirectOutcomeNode(node) || isThrowErrorOutcomeNode(node)
   }
+}
+
+// Multi-line values embedded in an object-literal template need every line
+// shifted to the property's indent, or CodeEmitter's common-indent
+// normalisation leaves the lines ragged in the generated source.
+function indentEmbeddedSource(source: string): string {
+  return source
+    .split('\n')
+    .map(line => (line.length === 0 ? line : `  ${line}`))
+    .join('\n')
 }

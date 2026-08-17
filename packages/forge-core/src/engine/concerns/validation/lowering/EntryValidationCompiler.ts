@@ -13,11 +13,12 @@
  * no secondary entry-validation execution path.
  */
 import { StepEntryValidationAST } from '../../../contracts/ast/structures.type'
-import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import CodeEmitter from '../../../compilation/codegen/CodeEmitter'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
   buildGeneratedSource,
   compileGeneratedFunction,
+  deriveScriptLabel,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 
@@ -40,11 +41,13 @@ export default class EntryValidationCompiler {
    * Builds the generated group-selector used before rendering a GET request.
    */
   compileOnEntryValidation(entries: StepEntryValidationAST[] | undefined): CompiledEntryValidationFunction {
+    const whenNodes = (entries ?? []).map(entry => entry.when).filter(when => typeof when === 'object')
+
     return compileGeneratedFunction<CompiledEntryValidationFunction>(
       this.expr,
       ['ctx'],
       () => this.buildEntryValidationSource(entries ?? []),
-      { phase: 'entry-validation' },
+      { phase: 'entry-validation', label: deriveScriptLabel(whenNodes) },
     )
   }
 
@@ -52,13 +55,13 @@ export default class EntryValidationCompiler {
    * Produces inspectable entry-validation source for tests and local debugging.
    */
   generateOnEntryValidationSource(entries: StepEntryValidationAST[]): string {
-    return buildGeneratedSource(this.expr, () => this.buildEntryValidationSource(entries))
+    return buildGeneratedSource(this.expr, () => this.buildEntryValidationSource(entries)).toString()
   }
 
   /**
    * Emits the entry-validation group selector used by GET rendering.
    */
-  private buildEntryValidationSource(entries: StepEntryValidationAST[]): string {
+  private buildEntryValidationSource(entries: StepEntryValidationAST[]): CodeEmitter {
     const emitter = new CodeEmitter()
 
     emitter.code('"use strict";')
@@ -71,7 +74,7 @@ export default class EntryValidationCompiler {
     entries.forEach(entry => this.compileEntryValidationRule(entry, emitter))
     emitter.return('groups')
 
-    return emitter.toString()
+    return emitter
   }
 
   /**

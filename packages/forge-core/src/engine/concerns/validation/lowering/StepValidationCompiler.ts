@@ -26,12 +26,13 @@ import { FieldBlockASTNode, StepASTNode } from '../../../contracts/ast/structure
 import { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
 import { ExpressionType } from '../../../../authoring/types/enums'
-import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import CodeEmitter from '../../../compilation/codegen/CodeEmitter'
 import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
   buildGeneratedSource,
   compileGeneratedFunction,
+  deriveScriptLabel,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
 import ScopedTemplateCompiler, {
   isTemplateFieldNode,
@@ -80,7 +81,7 @@ export default class StepValidationCompiler {
       this.expr,
       ['ctx', 'filter'],
       () => this.buildStepValidationSource(fieldBlocks, domainValidWhen, iterateNodes),
-      { phase: 'validation' },
+      { phase: 'validation', label: deriveScriptLabel([stepNode]) },
     )
   }
 
@@ -95,7 +96,7 @@ export default class StepValidationCompiler {
   ): string {
     return buildGeneratedSource(this.expr, () =>
       this.buildStepValidationSource(fieldBlocks, domainValidWhen, iterateNodes),
-    )
+    ).toString()
   }
 
   /**
@@ -105,7 +106,7 @@ export default class StepValidationCompiler {
     fieldBlocks: FieldBlockASTNode[],
     domainValidWhen: unknown,
     iterateNodes: IterateASTNode[],
-  ): string {
+  ): CodeEmitter {
     const emitter = new CodeEmitter()
 
     emitter.code('"use strict";')
@@ -129,7 +130,7 @@ export default class StepValidationCompiler {
 
     emitter.return(`ctx.workTasks.stepValidation(${fieldValidationsVar}, ${domainValidationsVar})`)
 
-    return emitter.toString()
+    return emitter
   }
 
   /**
@@ -249,7 +250,7 @@ export default class StepValidationCompiler {
       return
     }
 
-    emitter.comment('StepValidationCompiler.compileFieldBlock')
+    emitter.comment(`StepValidationCompiler.compileFieldBlock — ${block.variant} ${describeBlockCode(block)}`)
     emitter.scope(() => {
       const selfCodeExpr = this.fieldCodes.compileRegisteredExpression(block.properties.code, emitter)
       const blockCodeExpr = selfCodeExpr ?? 'undefined'
@@ -483,4 +484,10 @@ function hasConfiguredValue(value: unknown): boolean {
   }
 
   return true
+}
+
+function describeBlockCode(block: FieldBlockASTNode): string {
+  const code = block.properties.code
+
+  return typeof code === 'string' ? `"${code}"` : '(dynamic code)'
 }

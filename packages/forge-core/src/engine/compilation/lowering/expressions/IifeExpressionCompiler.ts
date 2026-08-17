@@ -1,4 +1,4 @@
-import CodeEmitter from '../emitters/CodeEmitter'
+import CodeEmitter from '../../codegen/CodeEmitter'
 
 /**
  * Describes how to wrap generated statements in an immediately invoked

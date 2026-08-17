@@ -1,15 +1,24 @@
 /**
- * Helper for building JavaScript source strings for generated Functions.
+ * Builder for the generated-source node tree.
  *
  * Generated code is intentionally inspectable because these compilers replace a
- * lot of request-time interpretation. Stable indentation and unique variable
- * names make failures much easier to map back to the source compiler.
+ * lot of request-time interpretation. The emitter owns statement structure and
+ * collision-resistant naming; SourceRenderer owns indentation, comment policy,
+ * and source-map positions at render time.
  */
 
-import ForgeInternalError from '../../../errors/ForgeInternalError'
+import ForgeInternalError from '../../errors/ForgeInternalError'
+import { BlockNode, CodeNode, CodeNodeKind } from './codeNode.type'
+import SourceRenderer from './SourceRenderer'
 
 interface ScopeFrame {
   readonly names: Set<string>
+}
+
+/** An open node body receiving emitted statements; indent-only frames come from `indent()`. */
+interface NodeFrame {
+  readonly body: CodeNode[]
+  readonly indentOnly: boolean
 }
 
 export interface CodeEmitterIfBranch {
@@ -18,13 +27,17 @@ export interface CodeEmitterIfBranch {
 }
 
 export default class CodeEmitter {
-  private readonly lines: string[] = []
+  private readonly rootNodes: CodeNode[] = []
+
+  private readonly nodeFrames: NodeFrame[] = [{ body: this.rootNodes, indentOnly: false }]
 
   private readonly functionNames: Set<string>
 
   private readonly scopeStack: ScopeFrame[]
 
-  private depth = 0
+  private hasEmittedLine = false
+
+  private lastLineWasBlank = false
 
   private varCounter = 0
 
@@ -139,34 +152,20 @@ export default class CodeEmitter {
     const catchScope = createScopeFrame()
 
     this.scopeStack.push(catchScope)
+
     const errorVar = this.allocateLexicalName(catchPrefix)
 
-    this.emit(`catch(${errorVar}) {`)
-    this.indent()
-
     try {
-      catchBody(errorVar)
+      this.emitBraceBlock(`catch(${errorVar}) {`, () => catchBody(errorVar))
     } finally {
-      this.dedent()
       this.scopeStack.pop()
     }
-
-    this.emit('}')
 
     return errorVar
   }
 
   scope(body: () => void): void {
-    this.emit('{')
-    this.indent()
-
-    try {
-      this.withLexicalScope(body)
-    } finally {
-      this.dedent()
-    }
-
-    this.emit('}')
+    this.emitBraceBlock('{', () => this.withLexicalScope(body))
   }
 
   while(condition: string, body: () => void): void {
@@ -180,17 +179,11 @@ export default class CodeEmitter {
 
     const indexVar = this.allocateLexicalName(prefix)
 
-    this.emit(`for (let ${indexVar} = ${from}; ${indexVar} < ${to}; ${indexVar}++) {`)
-    this.indent()
-
     try {
-      body(indexVar)
+      this.emitBraceBlock(`for (let ${indexVar} = ${from}; ${indexVar} < ${to}; ${indexVar}++) {`, () => body(indexVar))
     } finally {
-      this.dedent()
       this.scopeStack.pop()
     }
-
-    this.emit('}')
 
     return indexVar
   }
@@ -215,54 +208,91 @@ export default class CodeEmitter {
    * Adds a generated-source breadcrumb that links emitted code back to a compiler method.
    */
   comment(text: string): void {
-    if (this.lines.length > 0 && this.lines[this.lines.length - 1] !== '') {
-      this.emitBlank()
+    if (this.hasEmittedLine && !this.lastLineWasBlank) {
+      this.pushBlankLine()
     }
 
     text.split('\n').forEach(line => {
-      this.emit(`// --- ${line} ---`)
+      this.pushRenderedNode({ kind: CodeNodeKind.COMMENT, text: `// --- ${line} ---` })
     })
   }
 
   emit(source: string): void {
-    const indent = '  '.repeat(this.depth)
-
     this.normalizeSourceLines(source).forEach(line => {
-      this.lines.push(line.length === 0 ? '' : indent + line)
+      if (line.length === 0) {
+        this.pushBlankLine()
+
+        return
+      }
+
+      this.pushRenderedNode({ kind: CodeNodeKind.LINE, text: line })
     })
   }
 
   emitBlank(): void {
-    this.lines.push('')
+    this.pushBlankLine()
   }
 
+  /** Opens an indentation region without braces; paired with `dedent()`. */
   indent(): void {
-    this.depth++
+    const region: BlockNode = { kind: CodeNodeKind.BLOCK, body: [] }
+
+    this.currentBody.push(region)
+    this.nodeFrames.push({ body: region.body, indentOnly: true })
   }
 
   dedent(): void {
-    this.depth = Math.max(0, this.depth - 1)
+    if (this.nodeFrames.length > 1 && this.nodeFrames[this.nodeFrames.length - 1].indentOnly) {
+      this.nodeFrames.pop()
+    }
   }
 
   /**
-   * Centralises brace indentation so source generators can focus on evaluation
-   * order instead of hand-building nested whitespace.
+   * Centralises brace blocks so source generators can focus on evaluation
+   * order instead of hand-building nested structure.
    */
   emitBlock(header: string, body: () => void): void {
-    this.emit(`${header} {`)
-    this.indent()
-
-    try {
-      this.withLexicalScope(body)
-    } finally {
-      this.dedent()
-    }
-
-    this.emit('}')
+    this.emitBraceBlock(`${header} {`, () => this.withLexicalScope(body))
   }
 
+  /**
+   * Renders with markers preserved: toString() output embeds into other
+   * emitters or returns to the function compiler, and position markers must
+   * survive until the final render resolves them into source-map segments.
+   */
   toString(): string {
-    return this.lines.join('\n')
+    return new SourceRenderer({ preserveMarkers: true }).render(this.rootNodes).source
+  }
+
+  toNodes(): readonly CodeNode[] {
+    return this.rootNodes
+  }
+
+  private emitBraceBlock(open: string, body: () => void): void {
+    const block: BlockNode = { kind: CodeNodeKind.BLOCK, open, close: '}', body: [] }
+
+    this.pushRenderedNode(block)
+    this.nodeFrames.push({ body: block.body, indentOnly: false })
+
+    try {
+      body()
+    } finally {
+      this.nodeFrames.pop()
+      this.hasEmittedLine = true
+      this.lastLineWasBlank = false
+    }
+  }
+
+  private pushRenderedNode(node: CodeNode): void {
+    this.currentBody.push(node)
+    this.hasEmittedLine = true
+    this.lastLineWasBlank = false
+  }
+
+  private pushBlankLine(): void {
+    this.currentBody.push({ kind: CodeNodeKind.BLANK_LINE })
+    this.hasEmittedLine = true
+    this.lastLineWasBlank = true
   }
 
   private emitDeclaration(kind: 'const' | 'let' | 'var', name: string, rhs?: string): void {
@@ -382,6 +412,10 @@ export default class CodeEmitter {
     }
 
     return getCommonIndent(lines.slice(1))
+  }
+
+  private get currentBody(): CodeNode[] {
+    return this.nodeFrames[this.nodeFrames.length - 1].body
   }
 
   private get rootScope(): ScopeFrame {

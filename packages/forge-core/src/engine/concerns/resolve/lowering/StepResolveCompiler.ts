@@ -15,12 +15,13 @@ import { BlockType, IteratorType } from '../../../../authoring/types/enums'
 import { BlockASTNode, JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
 import { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
-import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import CodeEmitter from '../../../compilation/codegen/CodeEmitter'
 import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
   buildGeneratedSource,
   compileGeneratedFunction,
+  deriveScriptLabel,
   GENERATED_FUNCTION_HELPERS_PARAM,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
 import ScopedTemplateCompiler, {
@@ -103,7 +104,7 @@ export default class StepResolveCompiler {
       this.expr,
       ['ctx'],
       () => this.buildSource(stepNode, ancestorNodes, iterateNodes),
-      { phase: 'resolve' },
+      { phase: 'resolve', label: deriveScriptLabel([stepNode]) },
     )
   }
 
@@ -111,13 +112,17 @@ export default class StepResolveCompiler {
    * Builds the raw render source for tests and debugging without constructing a Function.
    */
   generateSource(stepNode: StepASTNode, ancestorNodes: JourneyASTNode[], iterateNodes: IterateASTNode[] = []): string {
-    return buildGeneratedSource(this.expr, () => this.buildSource(stepNode, ancestorNodes, iterateNodes))
+    return buildGeneratedSource(this.expr, () => this.buildSource(stepNode, ancestorNodes, iterateNodes)).toString()
   }
 
   /**
    * Emits the complete render function body in the same order the runtime result is assembled.
    */
-  private buildSource(stepNode: StepASTNode, ancestorNodes: JourneyASTNode[], iterateNodes: IterateASTNode[]): string {
+  private buildSource(
+    stepNode: StepASTNode,
+    ancestorNodes: JourneyASTNode[],
+    iterateNodes: IterateASTNode[],
+  ): CodeEmitter {
     this.inlineIterateIds.clear()
     const emitter = new CodeEmitter()
 
@@ -138,7 +143,7 @@ export default class StepResolveCompiler {
 
     emitter.return(this.compileResolveBlocksWorkTaskExpression())
 
-    return emitter.toString()
+    return emitter
   }
 
   /**
@@ -212,7 +217,7 @@ export default class StepResolveCompiler {
    * Emits one registered block, including evaluated properties and field value fallback.
    */
   private compileBlock(block: BlockASTNode, emitter: CodeEmitter, targetArrayVar: string): void {
-    emitter.comment('StepResolveCompiler.compileBlock')
+    emitter.comment(`StepResolveCompiler.compileBlock — ${block.variant} (${describeBlockPosition(block)})`)
     emitter.scope(() => {
       const idVar = emitter.const('resolveBlockId', JSON.stringify(block.id))
       const propsVar = emitter.const('blockProps', '{}')
@@ -539,4 +544,12 @@ export default class StepResolveCompiler {
   private findTemplateBlocks(template: TemplateValue): TemplateNode[] {
     return this.templates.findTemplateNodes(template, isTemplateBlockNode, { descendIntoMatches: false })
   }
+}
+
+// The variant is printed alongside, so the parenthesised kind in the path
+// segment would only restate it.
+function describeBlockPosition(block: BlockASTNode): string {
+  const pathTail = block.diagnostics?.source.formattedPath.split(' > ').at(-1)
+
+  return pathTail?.replace(/ \(.*\)$/, '') ?? String(block.id)
 }

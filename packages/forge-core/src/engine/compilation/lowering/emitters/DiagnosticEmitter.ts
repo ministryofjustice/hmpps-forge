@@ -1,5 +1,6 @@
 import { FunctionType } from '../../../../authoring/types/enums'
-import { formatCallsiteChain } from '../../../../shared/diagnostics/formatCallsite'
+import { formatCallsiteChain, resolveCallsitePositionChain } from '../../../../shared/diagnostics/formatCallsite'
+import { compilePositionMarker } from '../../codegen/SourceRenderer'
 
 interface DiagnosticMetadata {
   readonly nodeId?: string
@@ -24,12 +25,13 @@ export default class DiagnosticEmitter {
     const helperName = usesAwait ? 'evaluateTrackedAsync' : 'evaluateTracked'
     const callbackPrefix = usesAwait ? 'async ' : ''
     const helperCall = this.compileTrackedHelperCall(helperName, metadata, callbackPrefix, returnStatement)
+    const positionMarker = this.compilePositionMarkerFor(source)
 
     if (usesAwait) {
-      return `(await ${helperCall})`
+      return `${positionMarker}(await ${helperCall})`
     }
 
-    return helperCall
+    return `${positionMarker}${helperCall}`
   }
 
   /**
@@ -44,7 +46,7 @@ export default class DiagnosticEmitter {
       functionType: this.getFunctionType(source),
     }
 
-    return this.compileFunctionHelperCall(helperName, metadata, funcName, argExprs)
+    return `${this.compilePositionMarkerFor(source)}${this.compileFunctionHelperCall(helperName, metadata, funcName, argExprs)}`
   }
 
   private getMetadata(source: unknown, functionName?: string): DiagnosticMetadata | undefined {
@@ -88,6 +90,27 @@ export default class DiagnosticEmitter {
   }
 
   private getDefinedAt(source: unknown): string | undefined {
+    const callsite = this.getCallsite(source)
+
+    if (callsite === undefined) {
+      return undefined
+    }
+
+    const chain = formatCallsiteChain(callsite)
+
+    return chain.length > 0 ? chain.join('\n') : undefined
+  }
+
+  /**
+   * One marker per author chain frame, innermost first, so a breakpoint binds
+   * at the node's own line and at each wiring line that called into a shared
+   * helper to build it.
+   */
+  private compilePositionMarkerFor(source: unknown): string {
+    return resolveCallsitePositionChain(this.getCallsite(source)).map(compilePositionMarker).join('')
+  }
+
+  private getCallsite(source: unknown): { stack?: string } | undefined {
     if (!isRecord(source)) {
       return undefined
     }
@@ -110,9 +133,7 @@ export default class DiagnosticEmitter {
       return undefined
     }
 
-    const chain = formatCallsiteChain({ stack })
-
-    return chain.length > 0 ? chain.join('\n') : undefined
+    return { stack }
   }
 
   private getFormattedPath(source: unknown): string | undefined {
@@ -170,10 +191,28 @@ export default class DiagnosticEmitter {
     callbackPrefix: string,
     returnStatement: string,
   ): string {
-    const callback = `${callbackPrefix}function() {\n${indentSource(returnStatement)}\n}`
-    const args = [compileRuntimeDiagnosticsArg(), this.compileMetadataLiteral(metadata), callback]
+    const callback = `${callbackPrefix}function ${this.compileCallbackName(metadata)}() {\n${indentSource(returnStatement)}\n}`
+    const args = [RUNTIME_DIAGNOSTICS_PARAM, this.compileMetadataLiteral(metadata), callback]
 
     return `${GENERATED_FUNCTION_HELPERS_PARAM}.${helperName}(\n${indentSource(args.join(',\n'))}\n)`
+  }
+
+  /**
+   * Names the tracked callback after the node it evaluates so debugger stacks
+   * read `evaluate_hidden` instead of `<anonymous>`. The `evaluate_` prefix
+   * keeps the (function-scope-only) name binding clear of every identifier the
+   * compilers emit, so the inner expression can never be shadowed by it.
+   */
+  private compileCallbackName(metadata: DiagnosticMetadata): string {
+    const pathTail = metadata.formattedPath?.split(' > ').at(-1) ?? metadata.functionName
+
+    if (pathTail === undefined) {
+      return 'evaluate_expression'
+    }
+
+    const identifier = pathTail.replace(/[^\w$]+/g, '_').replace(/^_+|_+$/g, '')
+
+    return identifier.length > 0 ? `evaluate_${identifier}` : 'evaluate_expression'
   }
 
   private compileFunctionHelperCall(
@@ -184,7 +223,7 @@ export default class DiagnosticEmitter {
   ): string {
     const args = [
       'ctx',
-      compileRuntimeDiagnosticsArg(),
+      RUNTIME_DIAGNOSTICS_PARAM,
       this.compileMetadataLiteral(metadata),
       JSON.stringify(funcName),
       `[${argExprs.join(', ')}]`,
@@ -194,19 +233,21 @@ export default class DiagnosticEmitter {
   }
 
   private compileMetadataLiteral(metadata: DiagnosticMetadata): string {
-    return [
-      '{',
-      indentSource(
-        [
-          `nodeId: ${toSourceLiteral(metadata.nodeId)},`,
-          `formattedPath: ${toSourceLiteral(metadata.formattedPath)},`,
-          `functionName: ${toSourceLiteral(metadata.functionName)},`,
-          `functionType: ${toSourceLiteral(metadata.functionType)},`,
-          `definedAt: ${toSourceLiteral(metadata.definedAt)}`,
-        ].join('\n'),
-      ),
-      '}',
-    ].join('\n')
+    const fields = [
+      ['nodeId', metadata.nodeId],
+      ['formattedPath', metadata.formattedPath],
+      ['functionName', metadata.functionName],
+      ['functionType', metadata.functionType],
+      ['definedAt', metadata.definedAt],
+    ].filter((field): field is [string, string] => field[1] !== undefined)
+
+    if (fields.length === 0) {
+      return '{}'
+    }
+
+    const fieldLines = fields.map(([name, value]) => `${name}: ${JSON.stringify(value)}`).join(',\n')
+
+    return ['{', indentSource(fieldLines), '}'].join('\n')
   }
 }
 
@@ -219,16 +260,4 @@ function indentSource(source: string): string {
     .split('\n')
     .map(line => (line.length === 0 ? line : `  ${line}`))
     .join('\n')
-}
-
-function compileRuntimeDiagnosticsArg(): string {
-  return `typeof ${RUNTIME_DIAGNOSTICS_PARAM} === "undefined" ? undefined : ${RUNTIME_DIAGNOSTICS_PARAM}`
-}
-
-function toSourceLiteral(value: unknown): string {
-  if (value === undefined) {
-    return 'undefined'
-  }
-
-  return JSON.stringify(value) ?? 'undefined'
 }

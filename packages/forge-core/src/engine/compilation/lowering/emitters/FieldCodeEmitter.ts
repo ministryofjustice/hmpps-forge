@@ -1,6 +1,6 @@
 import { TemplateNode } from '../../../contracts/ast/template.type'
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
-import CodeEmitter from './CodeEmitter'
+import CodeEmitter from '../../codegen/CodeEmitter'
 
 /**
  * Emits field code expressions consistently across generated-function compilers.

@@ -31,26 +31,44 @@ export const formatCallsiteChain = (callsite: { readonly stack?: string } | unde
     return []
   }
 
-  const frames = stack
-    .split('\n')
-    .filter(line => FRAME_PATTERN.test(line))
-    .map(line => line.replace(FRAME_PATTERN, ''))
+  const frames = extractFrames(stack)
 
   if (frames.length === 0) {
     return []
   }
 
+  const chainFrames = selectAuthorChainFrames(frames)
+
+  if (chainFrames.length === 0) {
+    return [frames[0]]
+  }
+
+  return chainFrames.map(collapseModuleNamedFrame)
+}
+
+const extractFrames = (stack: string): string[] =>
+  stack
+    .split('\n')
+    .filter(line => FRAME_PATTERN.test(line))
+    .map(line => line.replace(FRAME_PATTERN, ''))
+
+/**
+ * The author-facing chain frames, innermost first: walks past frames in the
+ * capture site's file, stops after the first frame from a different file,
+ * caps at `MAX_CHAIN_LENGTH`.
+ */
+const selectAuthorChainFrames = (frames: string[]): string[] => {
   const authorFrames = frames.filter(frame => !isInternalFrame(frame) && !BUNDLER_HELPER_PATTERN.test(frame))
 
   if (authorFrames.length === 0) {
-    return [frames[0]]
+    return []
   }
 
   const captureSiteFile = frameFile(authorFrames[0])
   const chain: string[] = []
 
   authorFrames.some(frame => {
-    chain.push(collapseModuleNamedFrame(frame))
+    chain.push(frame)
 
     return chain.length >= MAX_CHAIN_LENGTH || frameFile(frame) !== captureSiteFile
   })
@@ -81,6 +99,44 @@ export const formatCallsite = (callsite: { readonly stack?: string } | undefined
   const chain = formatCallsiteChain(callsite)
 
   return chain.length > 0 ? chain[0] : undefined
+}
+
+export interface CallsitePosition {
+  readonly file: string
+  readonly line: number
+  readonly column: number
+}
+
+/**
+ * Resolves a captured callsite to the structured positions (1-based line and
+ * column) of the author chain frames `formatCallsiteChain` renders, innermost
+ * first. Every chain frame is a legitimate breakpoint home: a node built
+ * inside a shared wiring helper is "defined at" both the helper's line and
+ * the line that called the helper. Unlike the display formatters there is no
+ * fallback to an internal frame when every frame is filtered — a source-map
+ * entry pointing into forge internals is worse than none. Reading `.stack`
+ * triggers V8's lazy trace formatting, so call this at codegen time only.
+ */
+export const resolveCallsitePositionChain = (callsite: { readonly stack?: string } | undefined): CallsitePosition[] => {
+  const stack = callsite?.stack
+  if (!stack) {
+    return []
+  }
+
+  return selectAuthorChainFrames(extractFrames(stack))
+    .map(parseFramePosition)
+    .filter(position => position !== undefined)
+}
+
+const parseFramePosition = (frame: string): CallsitePosition | undefined => {
+  const location = /\((.+)\)$/.exec(frame)?.[1] ?? frame
+  const match = /^(.+):(\d+):(\d+)$/.exec(location)
+
+  if (match === null) {
+    return undefined
+  }
+
+  return { file: match[1], line: Number(match[2]), column: Number(match[3]) }
 }
 
 const frameFile = (frame: string): string => {

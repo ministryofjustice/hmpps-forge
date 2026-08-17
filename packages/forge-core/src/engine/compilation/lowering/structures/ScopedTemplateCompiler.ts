@@ -2,7 +2,7 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import { BlockType, IteratorType } from '../../../../authoring/types/enums'
 import { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
-import CodeEmitter from '../emitters/CodeEmitter'
+import CodeEmitter from '../../codegen/CodeEmitter'
 import FieldCodeEmitter from '../emitters/FieldCodeEmitter'
 import ExpressionDispatcher, { IteratorScopeFrame } from '../expressions/ExpressionDispatcher'
 

@@ -1,5 +1,9 @@
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
-import { createCompiledFunction, GeneratedFunction } from './compiledFunctionFactory'
+import CodeEmitter from '../../codegen/CodeEmitter'
+import { CodeNode, CodeNodeKind } from '../../codegen/codeNode.type'
+import SourceRenderer, { MarkerSegment } from '../../codegen/SourceRenderer'
+import { encodeInlineSourceMap } from '../../codegen/sourceMapEncoder'
+import { createCompiledFunction, GeneratedFunction, measureWrapperOffset } from './compiledFunctionFactory'
 import { generatedFunctionHelpers } from './GeneratedFunctionHelpers'
 import ForgeCompilationError from '../../../errors/ForgeCompilationError'
 import ForgeRuntimeEvaluationError from '../../../errors/ForgeRuntimeEvaluationError'
@@ -7,6 +11,8 @@ import ForgeRuntimeEvaluationError from '../../../errors/ForgeRuntimeEvaluationE
 interface CompileOptions {
   forceAsync?: boolean
   phase?: string
+  /** Journey/step identity segment for the script URL, e.g. `guide.defining-steps` */
+  label?: string
 }
 
 interface RuntimeDiagnosticState {
@@ -29,6 +35,17 @@ interface RuntimeEvaluationDiagnostics {
   ) => unknown
 }
 
+interface ScriptLabelSource {
+  readonly diagnostics?: {
+    readonly source: { readonly formattedPath: string }
+  }
+}
+
+interface GeneratedBody {
+  readonly strictDirective: string | undefined
+  readonly bodyNodes: CodeNode[]
+}
+
 const RUNTIME_DIAGNOSTICS_PARAM = '_forgeRuntimeDiagnostics'
 export const GENERATED_FUNCTION_HELPERS_PARAM = '_forgeHelpers'
 
@@ -40,14 +57,14 @@ export const GENERATED_FUNCTION_HELPERS_PARAM = '_forgeHelpers'
  * same hybrid sync/async rules while still letting each compiler own its source
  * layout.
  */
-export function buildGeneratedSource(expr: ExpressionDispatcher, buildSource: () => string): string {
+export function buildGeneratedSource<TSource>(expr: ExpressionDispatcher, buildSource: () => TSource): TSource {
   expr.reset()
 
   return buildSource()
 }
 
 /**
- * Compiles generated source into either Function or AsyncFunction.
+ * Compiles a generated-source node tree into either Function or AsyncFunction.
  *
  * Most compilers decide async from expression calls discovered by the
  * dispatcher. Hook lifecycles force async because effects are always awaited
@@ -56,7 +73,7 @@ export function buildGeneratedSource(expr: ExpressionDispatcher, buildSource: ()
 export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
   expr: ExpressionDispatcher,
   parameterNames: string[],
-  buildSource: () => string,
+  buildSource: () => string | CodeEmitter,
   options: CompileOptions = {},
 ): TFunction {
   const phase = options.phase ?? 'unknown'
@@ -66,8 +83,9 @@ export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
     `codegen:${phase}`,
     'codegen.function',
     span => {
-      const source = wrapGeneratedSource(buildGeneratedSource(expr, buildSource))
+      const wrapperNodes = wrapGeneratedBody(buildGeneratedSource(expr, buildSource))
       const usesAwait = options.forceAsync === true || expr.usesAwait
+      const { source, segmentsByLine } = new SourceRenderer().render(wrapperNodes)
       let compiled: GeneratedFunction
 
       // Record before compiling so a source string that fails to compile is
@@ -81,7 +99,11 @@ export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
         compiled = createCompiledFunction<GeneratedFunction>(
           [...parameterNames, GENERATED_FUNCTION_HELPERS_PARAM, RUNTIME_DIAGNOSTICS_PARAM],
           source,
-          { usesAwait, sourceName: `forge:compiled/${phase}` },
+          {
+            usesAwait,
+            sourceName: nextSourceName(phase, options.label),
+            sourceMapUrl: resolveSourceMapUrl(segmentsByLine, usesAwait),
+          },
         )
       } catch (cause) {
         throw new ForgeCompilationError({ phase, cause })
@@ -118,6 +140,66 @@ export function compileGeneratedFunction<TFunction extends GeneratedFunction>(
   )
 }
 
+/**
+ * Every compiled function gets its own script URL. Debuggers key scripts by
+ * URL, so N steps sharing `forge:compiled/hooks` would shadow each other in
+ * scripts panels even though V8 itself keeps them distinct. The prefix stays
+ * `forge:compiled/` so frame filtering still treats these as internal.
+ *
+ * A label makes the scripts panel navigable (`forge:compiled/resolve/dump.form`
+ * instead of `forge:compiled/resolve/3`); the counter guarantees uniqueness
+ * when the same label compiles again or no label is available.
+ */
+const sourceNameCounters = new Map<string, number>()
+
+const nextSourceName = (phase: string, label: string | undefined): string => {
+  const counterKey = label === undefined ? phase : `${phase}/${label}`
+  const next = (sourceNameCounters.get(counterKey) ?? 0) + 1
+
+  sourceNameCounters.set(counterKey, next)
+
+  if (label === undefined) {
+    return `forge:compiled/${phase}/${next}`
+  }
+
+  return next === 1 ? `forge:compiled/${phase}/${label}` : `forge:compiled/${phase}/${label}/${next}`
+}
+
+/**
+ * Derives the script-URL identity segment from the first node carrying a
+ * formatted path: the leading journey/step segments of
+ * `"dump > form > blocks[1] (govukInsetText) > hidden"` become `dump.form`.
+ * Structural segments (indexed wiring like `onAccess[0]`, parenthesised kinds)
+ * end the walk — they describe a position inside the step, not its identity.
+ */
+export const deriveScriptLabel = (
+  nodes: readonly (ScriptLabelSource | undefined)[],
+  options: { maxDepth?: number } = {},
+): string | undefined => {
+  const formattedPath = nodes.find(node => node?.diagnostics !== undefined)?.diagnostics?.source.formattedPath
+
+  if (formattedPath === undefined) {
+    return undefined
+  }
+
+  const identitySegments: string[] = []
+
+  formattedPath
+    .split(' > ')
+    .slice(0, options.maxDepth ?? 2)
+    .some(segment => {
+      if (segment.includes('[') || segment.includes('(')) {
+        return true
+      }
+
+      identitySegments.push(segment.replace(/[^\w.-]+/g, '-'))
+
+      return false
+    })
+
+  return identitySegments.length > 0 ? identitySegments.join('.') : undefined
+}
+
 const createRuntimeDiagnostics = (phase: string): RuntimeEvaluationDiagnostics => {
   const diagnostics: RuntimeEvaluationDiagnostics = {
     current: undefined,
@@ -143,30 +225,50 @@ const createRuntimeDiagnostics = (phase: string): RuntimeEvaluationDiagnostics =
   return diagnostics
 }
 
-const wrapGeneratedSource = (source: string): string => {
-  const strictDirective = getStrictDirective(source)
-  const body = strictDirective === undefined ? source : source.slice(strictDirective.length).trimStart()
-  const prefix = strictDirective === undefined ? '' : `${strictDirective}\n`
+/**
+ * Hoists any `"use strict"` directive above the wrapper, then folds the body
+ * into a try/catch that routes escaping errors through the runtime
+ * diagnostics so author-facing stacks carry node identity.
+ */
+const wrapGeneratedBody = (built: string | CodeEmitter): CodeNode[] => {
+  const { strictDirective, bodyNodes } = splitStrictDirective(built)
 
-  return `${prefix}var _forgeNodeId;\n
-  var _forgeDslPath;\n
-  var _forgeFormattedPath;\n
-  var _forgeFunctionName;\n
-  var _forgeFunctionType;\n
-  try {
-    \n
-    ${body}
-    \n
-  } catch(e) {\n
-  throw ${RUNTIME_DIAGNOSTICS_PARAM}.wrap(
-    e,
-    _forgeNodeId,
-    _forgeDslPath,
-    _forgeFormattedPath,
-    _forgeFunctionName,
-    _forgeFunctionType);\n
-  }`
+  return [
+    ...(strictDirective === undefined ? [] : [lineNode(strictDirective)]),
+    { kind: CodeNodeKind.COMMENT, text: '// Compiled by Forge from the journey definition.' },
+    {
+      kind: CodeNodeKind.TRY_CATCH,
+      tryBody: bodyNodes,
+      errorName: 'error',
+      catchBody: [lineNode(`throw ${RUNTIME_DIAGNOSTICS_PARAM}.wrap(error);`)],
+    },
+  ]
 }
+
+const splitStrictDirective = (built: string | CodeEmitter): GeneratedBody => {
+  if (typeof built === 'string') {
+    const strictDirective = getStrictDirective(built)
+    const body = strictDirective === undefined ? built : built.slice(strictDirective.length).trimStart()
+
+    return { strictDirective, bodyNodes: toBodyNodes(body) }
+  }
+
+  const nodes = [...built.toNodes()]
+  const [first] = nodes
+
+  if (first !== undefined && first.kind === CodeNodeKind.LINE && getStrictDirective(first.text) === first.text) {
+    return { strictDirective: first.text, bodyNodes: nodes.slice(1) }
+  }
+
+  return { strictDirective: undefined, bodyNodes: nodes }
+}
+
+const toBodyNodes = (body: string): CodeNode[] =>
+  body
+    .split('\n')
+    .map((line): CodeNode => (line.length === 0 ? { kind: CodeNodeKind.BLANK_LINE } : lineNode(line)))
+
+const lineNode = (text: string): CodeNode => ({ kind: CodeNodeKind.LINE, text })
 
 const getStrictDirective = (source: string): string | undefined => {
   if (source.startsWith('"use strict";')) {
@@ -178,6 +280,19 @@ const getStrictDirective = (source: string): string | undefined => {
   }
 
   return undefined
+}
+
+const resolveSourceMapUrl = (
+  segmentsByLine: readonly (readonly MarkerSegment[])[],
+  usesAwait: boolean,
+): string | undefined => {
+  const wrapperOffset = measureWrapperOffset(usesAwait)
+
+  if (wrapperOffset === undefined || segmentsByLine.every(segments => segments.length === 0)) {
+    return undefined
+  }
+
+  return encodeInlineSourceMap(segmentsByLine, wrapperOffset)
 }
 
 const isPromiseLike = (value: unknown): value is PromiseLike<unknown> => {

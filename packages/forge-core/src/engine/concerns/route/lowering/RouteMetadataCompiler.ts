@@ -1,4 +1,4 @@
-import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import CodeEmitter from '../../../compilation/codegen/CodeEmitter'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
 import {
   buildGeneratedSource,
@@ -52,13 +52,13 @@ export default class RouteMetadataCompiler {
    * Builds inspectable generated source without constructing a Function.
    */
   generateSource(inputs: Iterable<RouteMetadataCompilationInputs>): string {
-    return buildGeneratedSource(this.expr, () => this.buildSource(inputs))
+    return buildGeneratedSource(this.expr, () => this.buildSource(inputs)).toString()
   }
 
   /**
    * Emits `result[nodeId] = { title, description?, metadata? }` for every node.
    */
-  private buildSource(inputs: Iterable<RouteMetadataCompilationInputs>): string {
+  private buildSource(inputs: Iterable<RouteMetadataCompilationInputs>): CodeEmitter {
     const emitter = new CodeEmitter()
     const entries = [...inputs]
 
@@ -68,7 +68,7 @@ export default class RouteMetadataCompiler {
     entries.forEach(input => this.compileEntry(input, emitter))
     emitter.return('result')
 
-    return emitter.toString()
+    return emitter
   }
 
   /**

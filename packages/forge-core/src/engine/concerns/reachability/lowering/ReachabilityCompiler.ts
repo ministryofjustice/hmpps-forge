@@ -11,11 +11,12 @@ import type {
   ReachabilityCompilationPlan,
 } from '../../../contracts/plans/runtimePlans.type'
 import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
-import CodeEmitter from '../../../compilation/lowering/emitters/CodeEmitter'
+import CodeEmitter from '../../../compilation/codegen/CodeEmitter'
 import type { CompiledReachabilityFactsFunction } from '../../../contracts/compiled/compiledFunctions.type'
 import {
   buildGeneratedSource,
   compileGeneratedFunction,
+  deriveScriptLabel,
 } from '../../../compilation/lowering/function-construction/GeneratedFunctionCompiler'
 import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
 
@@ -41,7 +42,7 @@ export default class ReachabilityCompiler {
       this.expr,
       ['ctx'],
       () => this.buildFactsSource(plan),
-      { phase: 'reachability' },
+      { phase: 'reachability', label: this.deriveJourneyLabel(plan) },
     )
   }
 
@@ -51,13 +52,29 @@ export default class ReachabilityCompiler {
    * Function metadata determines whether emitted calls need `await`.
    */
   generateFactsSource(plan: ReachabilityCompilationPlan): string {
-    return buildGeneratedSource(this.expr, () => this.buildFactsSource(plan))
+    return buildGeneratedSource(this.expr, () => this.buildFactsSource(plan)).toString()
+  }
+
+  /**
+   * Reachability facts cover the whole journey, so the label is the journey
+   * segment alone; the first dynamic node's path supplies it.
+   */
+  private deriveJourneyLabel(plan: ReachabilityCompilationPlan): string | undefined {
+    const dynamicNodes = [
+      plan.resumeWhen,
+      ...plan.entries.flatMap(entry => [
+        entry.entryWhen,
+        ...entry.forwardOutcomeGroups.flatMap(group => group.redirectOutcomes.map(outcome => outcome.node)),
+      ]),
+    ]
+
+    return deriveScriptLabel(dynamicNodes, { maxDepth: 1 })
   }
 
   /**
    * Emits the generated facts function body with the reachability arrays.
    */
-  private buildFactsSource(plan: ReachabilityCompilationPlan): string {
+  private buildFactsSource(plan: ReachabilityCompilationPlan): CodeEmitter {
     const emitter = new CodeEmitter()
     const stepCount = plan.entries.length
 
@@ -68,7 +85,7 @@ export default class ReachabilityCompiler {
 
     emitter.return(this.buildReachabilityResultExpression())
 
-    return emitter.toString()
+    return emitter
   }
 
   /**

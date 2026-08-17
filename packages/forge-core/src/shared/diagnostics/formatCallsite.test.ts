@@ -1,5 +1,5 @@
 import { captureCallsite, type Callsite } from '../../authoring/builders/utils/captureCallsite'
-import { formatCallsite, formatCallsiteChain } from './formatCallsite'
+import { formatCallsite, formatCallsiteChain, resolveCallsitePositionChain } from './formatCallsite'
 
 describe('formatCallsite', () => {
   it('should return a parenthesised frame without the leading at', () => {
@@ -267,5 +267,164 @@ describe('formatCallsite', () => {
 
     // Assert
     expect(frame).toContain('formatCallsite.test.ts')
+  })
+})
+
+describe('resolveCallsitePositionChain', () => {
+  it('should parse a single author frame into file, line, and column', () => {
+    // Arrange
+    const callsite = { stack: 'Error\n    at journeySteps (/repo/journeys/tax/steps.ts:42:13)' }
+
+    // Act
+    const chain = resolveCallsitePositionChain(callsite)
+
+    // Assert
+    expect(chain).toEqual([{ file: '/repo/journeys/tax/steps.ts', line: 42, column: 13 }])
+  })
+
+  it('should parse anonymous frames without parentheses', () => {
+    // Arrange
+    const callsite = { stack: 'Error\n    at /repo/journeys/tax/steps.ts:42:13' }
+
+    // Act
+    const chain = resolveCallsitePositionChain(callsite)
+
+    // Assert
+    expect(chain).toEqual([{ file: '/repo/journeys/tax/steps.ts', line: 42, column: 13 }])
+  })
+
+  it('should return the wiring line after the helper line when a shared helper built the node', () => {
+    // Arrange
+    const callsite = {
+      stack: [
+        'Error',
+        '    at loadContent (/app/server/journeys/guide/effects.ts:56:14)',
+        '    at definingSteps (/app/server/journeys/guide/sections/defining-steps/step.ts:10:14)',
+      ].join('\n'),
+    }
+
+    // Act
+    const chain = resolveCallsitePositionChain(callsite)
+
+    // Assert
+    expect(chain).toEqual([
+      { file: '/app/server/journeys/guide/effects.ts', line: 56, column: 14 },
+      { file: '/app/server/journeys/guide/sections/defining-steps/step.ts', line: 10, column: 14 },
+    ])
+  })
+
+  it('should stop after the first frame from a different file', () => {
+    // Arrange
+    const callsite = {
+      stack: [
+        'Error',
+        '    at helper (/repo/forms/content.ts:12:9)',
+        '    at buildQuestions (/repo/forms/journey.ts:8:5)',
+        '    at register (/repo/forms/app.ts:3:1)',
+      ].join('\n'),
+    }
+
+    // Act
+    const chain = resolveCallsitePositionChain(callsite)
+
+    // Assert
+    expect(chain.map(position => position.file)).toEqual(['/repo/forms/content.ts', '/repo/forms/journey.ts'])
+  })
+
+  it('should cap the chain at three positions within the capture file', () => {
+    // Arrange
+    const callsite = {
+      stack: [
+        'Error',
+        '    at one (/repo/forms/content.ts:1:1)',
+        '    at two (/repo/forms/content.ts:2:1)',
+        '    at three (/repo/forms/content.ts:3:1)',
+        '    at four (/repo/forms/content.ts:4:1)',
+      ].join('\n'),
+    }
+
+    // Act
+    const chain = resolveCallsitePositionChain(callsite)
+
+    // Assert
+    expect(chain.map(position => position.line)).toEqual([1, 2, 3])
+  })
+
+  it('should skip internal and bundler frames without ending the chain', () => {
+    // Arrange
+    const callsite = {
+      stack: [
+        'Error',
+        '    at wrap (node:internal/modules/cjs/loader.js:10:5)',
+        '    at handle (/repo/packages/forge-core/src/registry/handles.ts:7:9)',
+        '    at __init (/app/dist/server.js:8:56)',
+        '    at journeySteps (/app/server/forms/index.ts:40:12)',
+      ].join('\n'),
+    }
+
+    // Act
+    const chain = resolveCallsitePositionChain(callsite)
+
+    // Assert
+    expect(chain).toEqual([{ file: '/app/server/forms/index.ts', line: 40, column: 12 }])
+  })
+
+  it('should keep colons in Windows-style file paths', () => {
+    // Arrange
+    const callsite = { stack: 'Error\n    at steps (C:\\repo\\journeys\\steps.ts:5:3)' }
+
+    // Act
+    const chain = resolveCallsitePositionChain(callsite)
+
+    // Assert
+    expect(chain).toEqual([{ file: 'C:\\repo\\journeys\\steps.ts', line: 5, column: 3 }])
+  })
+
+  it('should drop unparseable frames while keeping the rest of the chain', () => {
+    // Arrange
+    const callsite = {
+      stack: ['Error', '    at somewhere strange', '    at helper (/repo/forms/content.ts:12:9)'].join('\n'),
+    }
+
+    // Act
+    const chain = resolveCallsitePositionChain(callsite)
+
+    // Assert
+    expect(chain).toEqual([{ file: '/repo/forms/content.ts', line: 12, column: 9 }])
+  })
+
+  it('should return an empty chain when every frame is internal', () => {
+    // Arrange
+    const callsite = {
+      stack: [
+        'Error',
+        '    at handle (/repo/packages/forge-core/src/registry/handles.ts:7:9)',
+        '    at run (/repo/node_modules/somelib/index.js:3:1)',
+      ].join('\n'),
+    }
+
+    // Act & Assert
+    expect(resolveCallsitePositionChain(callsite)).toEqual([])
+  })
+
+  it('should return an empty chain for missing, empty, or header-only stacks', () => {
+    // Act & Assert
+    expect(resolveCallsitePositionChain(undefined)).toEqual([])
+    expect(resolveCallsitePositionChain({})).toEqual([])
+    expect(resolveCallsitePositionChain({ stack: '' })).toEqual([])
+    expect(resolveCallsitePositionChain({ stack: 'Error' })).toEqual([])
+  })
+
+  it('should return an empty chain for a real capture inside forge-core rather than falling back like the formatters', () => {
+    // Arrange
+    const entry = (): Callsite => captureCallsite(entry)
+    const site = entry()
+
+    // Act
+    const chain = resolveCallsitePositionChain(site)
+
+    // Assert
+    expect(formatCallsite(site)).toContain('formatCallsite.test.ts')
+    expect(chain).toEqual([])
   })
 })
