@@ -1,16 +1,16 @@
-import { code, literal, objectCode } from '../../../compilation/lowering/codegen/fragments/CodeFragment'
-import { FieldCodeKind, type StaticFieldCode } from '../../../contracts/models/fieldModel.type'
-import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
-import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
-import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
-import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
+import { code, literal, objectCode } from '../../../chassis/compilation/lowering/codegen/fragments/CodeFragment'
+import { FieldCodeKind, type StaticFieldCode } from '../../../chassis/contracts/models/fieldModel.type'
+import CodeGenerator from '../../../chassis/compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../chassis/compilation/lowering/codegen/fragments/IdentifierName'
+import FieldCodeEmitter from '../../../chassis/compilation/lowering/emitters/FieldCodeEmitter'
+import ExpressionDispatcher from '../../../chassis/compilation/lowering/expressions/ExpressionDispatcher'
 import {
   CompilationPhase,
   compileGeneratedFunction,
   renderGeneratedSource,
-} from '../../../compilation/lowering/GeneratedFunctionCompiler'
-import ScopedTemplateCompiler from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
-import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+} from '../../../chassis/compilation/lowering/GeneratedFunctionCompiler'
+import ScopedTemplateCompiler from '../../../chassis/compilation/lowering/structures/ScopedTemplateCompiler'
+import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
 import type { CleardownModel, CleardownStepModel } from '../contracts/cleardownModel.type'
 import type { CompiledFieldInventoryFunction } from '../contracts/compiledFieldInventory.type'
 

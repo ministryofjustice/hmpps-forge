@@ -4,7 +4,7 @@ import { Condition } from '../built-ins/functions/conditions'
 import { ForgeTestHarness } from '../testing/ForgeTestHarness'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import type { FieldBlockDefinition } from '../components/types/structures.type'
-import type { AnswerHistory } from './contracts/runtime/answerHistory.type'
+import type { AnswerHistory } from './chassis/contracts/runtime/answerHistory.type'
 
 /**
  * End-to-end coverage for same-code field variants: one logical field rendered

@@ -1,11 +1,11 @@
-import type { JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
-import type AuthoredValueClassifier from '../../../compilation/analysis/shared/AuthoredValueClassifier'
+import type { JourneyASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
+import type AuthoredValueClassifier from '../../../chassis/compilation/analysis/shared/AuthoredValueClassifier'
 import type {
   JourneyAnalysisContext,
   JourneyModelAnalyzer,
   StepAnalysisContext,
   StepModelAnalyzer,
-} from '../../../compilation/analysis/concernAnalyzers.type'
+} from '../../../chassis/compilation/analysis/concernAnalyzers.type'
 import type { RouteMetadataModel } from '../contracts/routeMetadataModel.type'
 
 /**

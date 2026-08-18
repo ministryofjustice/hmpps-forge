@@ -1,5 +1,5 @@
-import { AstNodeId } from '../../../contracts/ast/engine.type'
-import type { ResolvedRouteMetadata } from '../../../contracts/compiled/compiledFunctions.type'
+import { AstNodeId } from '../../../chassis/contracts/ast/engine.type'
+import type { ResolvedRouteMetadata } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 import { StoredRouteTreeNode } from '../contracts/routeTree.type'
 import { hydrateRouteTree } from './hydrateRouteTree'
 

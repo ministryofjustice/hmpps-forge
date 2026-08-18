@@ -1,5 +1,5 @@
-import { isTemplateNode } from '../../../contracts/ast/nodes'
-import { toRawOperand } from '../../../contracts/models/authoredValue.type'
+import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
+import { toRawOperand } from '../../../chassis/contracts/models/authoredValue.type'
 import {
   arrayCode,
   callCode,
@@ -9,28 +9,28 @@ import {
   objectCode,
   propertyCode,
   SafeCode,
-} from '../../../compilation/lowering/codegen/fragments/CodeFragment'
-import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
-import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
-import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
-import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
-import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
+} from '../../../chassis/compilation/lowering/codegen/fragments/CodeFragment'
+import CodeGenerator from '../../../chassis/compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../chassis/compilation/lowering/codegen/fragments/IdentifierName'
+import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
+import FieldCodeEmitter from '../../../chassis/compilation/lowering/emitters/FieldCodeEmitter'
+import ExpressionDispatcher from '../../../chassis/compilation/lowering/expressions/ExpressionDispatcher'
 import {
   CompilationPhase,
   compileGeneratedFunction,
   renderGeneratedSource,
-} from '../../../compilation/lowering/GeneratedFunctionCompiler'
-import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
-import ScopedTemplateCompiler from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
+} from '../../../chassis/compilation/lowering/GeneratedFunctionCompiler'
+import RuntimeValueCompiler from '../../../chassis/compilation/lowering/structures/RuntimeValueCompiler'
+import ScopedTemplateCompiler from '../../../chassis/compilation/lowering/structures/ScopedTemplateCompiler'
 import {
   FieldCodeKind,
   ValidationRulesKind,
   type FieldModel,
   type ValidationRulesModel,
-} from '../../../contracts/models/fieldModel.type'
+} from '../../../chassis/contracts/models/fieldModel.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 import type { ValidationModel } from '../contracts/validationModel.type'
-import type { CompiledValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type { CompiledValidationFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 
 const CONTEXT = new IdentifierName('ctx')
 const FILTER = new IdentifierName('filter')

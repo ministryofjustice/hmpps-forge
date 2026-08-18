@@ -3,14 +3,14 @@ import type {
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/work/work.type'
-import { createWorkTask, singleChildOutput } from '../../../work/workTask'
-import { phaseInstrumentation } from '../../../runtime/pipeline/contextSnapshot'
+} from '../../../chassis/contracts/work/work.type'
+import { createWorkTask, singleChildOutput } from '../../../chassis/work/workTask'
+import { phaseInstrumentation } from '../../../chassis/runtime/pipeline/contextSnapshot'
 import { RENDER_ASSEMBLE_PAGE_KIND, createAssemblePageTask } from './RenderAssemblePageWorkHandler'
 import { createRenderBlocksTask } from './RenderBlocksWorkHandler'
-import type { RequestRenderWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type RequestState from '../../../runtime/pipeline/RequestState'
-import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
+import type { RequestRenderWorkProps } from '../../../chassis/contracts/runtime/RequestPipelineWork.type'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../chassis/contracts/runtime/requestPipelineOutput.type'
 
 const REQUEST_RENDER_KIND = 'request.render'
 

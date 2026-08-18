@@ -1,7 +1,7 @@
 export { default as Forge } from './engine/Forge'
-export { default as FunctionRegistry } from './engine/registries/FunctionRegistry'
-export { default as ComponentRegistry } from './engine/registries/ComponentRegistry'
-export { default as EffectFunctionContext } from './engine/runtime/context/EffectFunctionContext'
+export { default as FunctionRegistry } from './engine/chassis/registries/FunctionRegistry'
+export { default as ComponentRegistry } from './engine/chassis/registries/ComponentRegistry'
+export { default as EffectFunctionContext } from './engine/chassis/runtime/context/EffectFunctionContext'
 export { isRenderBlock } from './engine/concerns/resolve/runtime/typeguards'
 export { RENDER_BLOCK_BRAND } from './engine/concerns/render/contracts/renderBlock.brand'
 export { default as ForgeBaseError } from './engine/errors/ForgeBaseError'
@@ -26,15 +26,15 @@ export type {
   ForgeInstrumentation,
   ForgeInstrumentationOptions,
   ForgeInstrumentationSink,
-} from './engine/tracing/ForgeTraceSinkDispatcher'
+} from './engine/chassis/tracing/ForgeTraceSinkDispatcher'
 export type { ValidationResult } from './engine/concerns/validation/contracts/validationResult.type'
-export type { HookType } from './engine/contracts/runtime/answerHistory.type'
-export type { RuntimeContext } from './engine/contracts/runtime/evaluationState.type'
+export type { HookType } from './engine/chassis/contracts/runtime/answerHistory.type'
+export type { RuntimeContext } from './engine/chassis/contracts/runtime/evaluationState.type'
 export type {
   ForgePackageRegistration,
   ForgePackageFunctions,
   ForgeFunctionImplementations,
-} from './engine/contracts/ast/engine.type'
+} from './engine/chassis/contracts/ast/engine.type'
 export type {
   RequestTrace,
   RequestTraceError,
@@ -45,11 +45,11 @@ export type {
   RequestTraceRedirect,
   RequestTraceRouteContext,
   RequestTraceUnit,
-} from './engine/contracts/runtime/trace.type'
+} from './engine/chassis/contracts/runtime/trace.type'
 export type {
   CompilationTrace,
   CompilationTraceError,
   CompilationTraceEvent,
   CompilationTracePhase,
-} from './engine/contracts/compilation/trace.type'
-export type { SerializedTraceSpan } from './engine/tracing/traceSpan.type'
+} from './engine/chassis/contracts/compilation/trace.type'
+export type { SerializedTraceSpan } from './engine/chassis/tracing/traceSpan.type'

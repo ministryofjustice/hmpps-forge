@@ -10,6 +10,6 @@ export type { ForgeRenderer, JourneyAncestor, RenderBlock, RenderContext } from 
 export type { RouteTree, RouteTreeNode, RouteTreeRoute, RouteTreeRouteKind } from './types/routeTree.type'
 export { isRenderBlock } from '../engine/concerns/resolve/runtime/typeguards'
 export { RENDER_BLOCK_BRAND } from '../engine/concerns/render/contracts/renderBlock.brand'
-export type { AstNodeId, NodeId } from '../engine/contracts/ast/ast.type'
+export type { AstNodeId, NodeId } from '../engine/chassis/contracts/ast/ast.type'
 export type { HttpMethod } from './types/request.type'
 export type { ValidationResult } from '../engine/concerns/validation/contracts/validationResult.type'

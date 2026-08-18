@@ -1,49 +1,49 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import AuthoredValueClassifier from '../../../compilation/analysis/shared/AuthoredValueClassifier'
-import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
-import { ASTNodeType } from '../../../contracts/ast/enums'
+import AuthoredValueClassifier from '../../../chassis/compilation/analysis/shared/AuthoredValueClassifier'
+import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
+import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   formatGeneratorsRegistry,
 } from '../../../../built-ins/functions/generators/formatGenerators'
-import { FieldBlockASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
+import { FieldBlockASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
 import {
   FunctionASTNode,
   IterateASTNode,
   ReferenceASTNode,
   ValidationASTNode,
-} from '../../../contracts/ast/expressions.type'
-import { TemplateValue } from '../../../contracts/ast/template.type'
-import { compileTemplate } from '../../../compilation/ast/nodes/template'
-import { NodeIDGenerator } from '../../../compilation/ast/ast-state/NodeIDGenerator'
+} from '../../../chassis/contracts/ast/expressions.type'
+import { TemplateValue } from '../../../chassis/contracts/ast/template.type'
+import { compileTemplate } from '../../../chassis/compilation/ast/nodes/template'
+import { NodeIDGenerator } from '../../../chassis/compilation/ast/ast-state/NodeIDGenerator'
 import {
   TestPredicateASTNode,
   AndPredicateASTNode,
   OrPredicateASTNode,
   NotPredicateASTNode,
   XorPredicateASTNode,
-} from '../../../contracts/ast/predicates.type'
-import FunctionRegistry from '../../../registries/FunctionRegistry'
-import ComponentRegistry from '../../../registries/ComponentRegistry'
+} from '../../../chassis/contracts/ast/predicates.type'
+import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
+import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
-import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
-import { buildStepFieldModels } from '../../../compilation/analysis/testing-helpers/analysisContexts'
-import { classifyValidationRules, hasConfiguredValue } from '../../../contracts/models/validationRules'
+import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
+import { buildStepFieldModels } from '../../../chassis/compilation/analysis/testing-helpers/analysisContexts'
+import { classifyValidationRules, hasConfiguredValue } from '../../../chassis/contracts/models/validationRules'
 import type { ValidationModel } from '../contracts/validationModel.type'
 import StepValidationCompiler from './StepValidationCompiler'
-import type { CompiledValidationContext } from '../../../contracts/compiled/compiledContexts.type'
+import type { CompiledValidationContext } from '../../../chassis/contracts/compiled/compiledContexts.type'
 import type {
   CompiledValidationFunction,
   CompiledValidationWorkTask,
-} from '../../../contracts/compiled/compiledFunctions.type'
+} from '../../../chassis/contracts/compiled/compiledFunctions.type'
 import type { StepValidityResult } from '../contracts/stepValidityResult.type'
 import type { ValidationView } from '../contracts/validationView.type'
-import WorkContext from '../../../work/WorkContext'
-import WorkExecutor from '../../../work/WorkExecutor'
-import { isWorkTask } from '../../../work/workTask'
-import type { WorkTask } from '../../../contracts/work/work.type'
-import { workTaskBuilders } from '../../../runtime/context/compiledEvaluationContext'
+import WorkContext from '../../../chassis/work/WorkContext'
+import WorkExecutor from '../../../chassis/work/WorkExecutor'
+import { isWorkTask } from '../../../chassis/work/workTask'
+import type { WorkTask } from '../../../chassis/contracts/work/work.type'
+import { workTaskBuilders } from '../../../chassis/runtime/context/compiledEvaluationContext'
 
 function createStep(): StepASTNode {
   return ASTTestFactory.step()

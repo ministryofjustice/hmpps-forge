@@ -1,6 +1,6 @@
 import { FunctionType, ExpressionType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import type { FunctionASTNode, IterateASTNode } from '../../../contracts/ast/expressions.type'
+import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import type { FunctionASTNode, IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ForgeUnregisteredFunctionError from '../../../errors/ForgeUnregisteredFunctionError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'

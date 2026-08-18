@@ -1,10 +1,10 @@
 import type { ReachabilityEvaluation } from '../../reachability/contracts/reachabilityEvaluation.type'
-import type { StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
+import type { StepValidationFailure } from '../../../chassis/contracts/runtime/evaluationState.type'
 import type { ValidationResult } from '../../validation/contracts/validationResult.type'
 import { resolvePathParams } from '../../../../shared/utils/routePath'
 import type { RenderContext, RenderValidationError } from '../../../../framework/types/rendering.type'
 import type { ViewConfig } from '../../../../authoring/types/structures.type'
-import { buildCompiledResolveContext } from '../../../runtime/context/compiledEvaluationContext'
+import { buildCompiledResolveContext } from '../../../chassis/runtime/context/compiledEvaluationContext'
 import { resolveBacklinkRouteTemplatePath } from '../../reachability/runtime/reachabilityRedirects'
 import { RESOLVE_BLOCKS_KIND } from './ResolveBlocksWorkHandler'
 import type {
@@ -12,12 +12,12 @@ import type {
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/work/work.type'
-import { createWorkTask, isWorkTaskOfKind, singleChildOutput, singleTaskGroup } from '../../../work/workTask'
-import { phaseInstrumentation } from '../../../runtime/pipeline/contextSnapshot'
-import type { RequestResolveWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type RequestState from '../../../runtime/pipeline/RequestState'
-import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
+} from '../../../chassis/contracts/work/work.type'
+import { createWorkTask, isWorkTaskOfKind, singleChildOutput, singleTaskGroup } from '../../../chassis/work/workTask'
+import { phaseInstrumentation } from '../../../chassis/runtime/pipeline/contextSnapshot'
+import type { RequestResolveWorkProps } from '../../../chassis/contracts/runtime/RequestPipelineWork.type'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../chassis/contracts/runtime/requestPipelineOutput.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 const REQUEST_RESOLVE_KIND = 'request.resolve'

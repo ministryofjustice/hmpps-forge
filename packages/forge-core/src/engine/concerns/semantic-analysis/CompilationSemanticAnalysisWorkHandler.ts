@@ -1,6 +1,6 @@
-import type { WorkContextContract, WorkHandler } from '../../contracts/work/work.type'
-import { createWorkTask } from '../../work/workTask'
-import type CompilationState from '../../compilation/pipeline/CompilationState'
+import type { WorkContextContract, WorkHandler } from '../../chassis/contracts/work/work.type'
+import { createWorkTask } from '../../chassis/work/workTask'
+import type CompilationState from '../../chassis/compilation/pipeline/CompilationState'
 import ASTSemanticValidator from './ASTSemanticValidator'
 
 export const COMPILATION_SEMANTIC_ANALYSIS_WORK_HANDLER: WorkHandler<'compilation.semantic-analysis', undefined> = {

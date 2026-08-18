@@ -14,11 +14,11 @@ export type {
   RequestTraceEvent,
   RequestTracePhase,
   RequestTraceUnit,
-} from '../engine/contracts/runtime/trace.type'
+} from '../engine/chassis/contracts/runtime/trace.type'
 export type {
   CompilationTrace,
   CompilationTraceError,
   CompilationTraceEvent,
   CompilationTracePhase,
-} from '../engine/contracts/compilation/trace.type'
-export type { SerializedTraceSpan } from '../engine/tracing/traceSpan.type'
+} from '../engine/chassis/contracts/compilation/trace.type'
+export type { SerializedTraceSpan } from '../engine/chassis/tracing/traceSpan.type'

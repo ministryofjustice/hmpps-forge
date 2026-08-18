@@ -34,11 +34,11 @@ export default tseslint.config(
     settings: {
       'boundaries/root-path': tsconfigRootDir,
       'boundaries/elements': [
-        { type: 'engine-contracts', pattern: 'forge-core/src/engine/contracts/**' },
-        { type: 'engine-ast', pattern: 'forge-core/src/engine/compilation/ast/**' },
-        { type: 'engine-analysis', pattern: 'forge-core/src/engine/compilation/analysis/**' },
-        { type: 'engine-lowering', pattern: 'forge-core/src/engine/compilation/lowering/**' },
-        { type: 'engine-runtime', pattern: 'forge-core/src/engine/runtime/**' },
+        { type: 'engine-contracts', pattern: 'forge-core/src/engine/chassis/contracts/**' },
+        { type: 'engine-ast', pattern: 'forge-core/src/engine/chassis/compilation/ast/**' },
+        { type: 'engine-analysis', pattern: 'forge-core/src/engine/chassis/compilation/analysis/**' },
+        { type: 'engine-lowering', pattern: 'forge-core/src/engine/chassis/compilation/lowering/**' },
+        { type: 'engine-runtime', pattern: 'forge-core/src/engine/chassis/runtime/**' },
       ],
     },
     rules: {

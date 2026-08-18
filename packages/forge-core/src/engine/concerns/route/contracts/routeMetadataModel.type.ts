@@ -1,5 +1,5 @@
-import type { NodeId } from '../../../contracts/ast/ast.type'
-import type { AuthoredValue } from '../../../contracts/models/authoredValue.type'
+import type { NodeId } from '../../../chassis/contracts/ast/ast.type'
+import type { AuthoredValue } from '../../../chassis/contracts/models/authoredValue.type'
 
 /**
  * The route concern's semantic model for one step or journey node's authored

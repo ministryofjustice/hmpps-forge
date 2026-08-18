@@ -1,4 +1,4 @@
-import type FunctionRegistry from '../../../registries/FunctionRegistry'
+import type FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
 import type { StepFieldInventory } from './stepFieldInventory.type'
 
 /**

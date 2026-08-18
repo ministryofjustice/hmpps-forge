@@ -1,4 +1,4 @@
-import type { WorkTask } from '../../../contracts/work/work.type'
+import type { WorkTask } from '../../../chassis/contracts/work/work.type'
 import type { HookEffectWorkTask } from './HookEffectWork.type'
 
 export interface AccessLifecycleWorkProps {

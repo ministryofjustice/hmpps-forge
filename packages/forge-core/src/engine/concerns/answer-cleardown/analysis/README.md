@@ -32,4 +32,4 @@ This document does not cover the cleardown algorithm or how the compiled invento
 ## Entry Points
 
 - [AnswerCleardownAnalyzer.ts](AnswerCleardownAnalyzer.ts) builds the journey's cleardown model.
-- [FieldModelBuilder.ts](../../../compilation/analysis/shared/FieldModelBuilder.ts) owns field-occurrence classification.
+- [FieldModelBuilder.ts](../../../chassis/compilation/analysis/shared/FieldModelBuilder.ts) owns field-occurrence classification.

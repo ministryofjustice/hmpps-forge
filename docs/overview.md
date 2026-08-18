@@ -123,8 +123,8 @@ flowchart TD
 
 The source-adjacent engine docs are the source of truth for internals:
 [engine/README.md](../packages/forge-core/src/engine/README.md),
-[engine/compilation/README.md](../packages/forge-core/src/engine/compilation/README.md),
-and [engine/runtime/README.md](../packages/forge-core/src/engine/runtime/README.md).
+[engine/compilation/README.md](../packages/forge-core/src/engine/chassis/compilation/README.md),
+and [engine/runtime/README.md](../packages/forge-core/src/engine/chassis/runtime/README.md).
 
 ### Package structure
 

@@ -5,21 +5,21 @@ import { ConditionsRegistry } from '../built-ins/functions/conditions'
 import { GeneratorsRegistry } from '../built-ins/functions/generators'
 import { TransformersRegistry } from '../built-ins/functions/transformers'
 import { coreComponents } from '../built-ins/components'
-import ComponentRegistry from './registries/ComponentRegistry'
-import FunctionRegistry from './registries/FunctionRegistry'
-import MountRegistry from './registries/MountRegistry'
-import type { MountedNode } from './registries/MountRegistry'
-import RequestPipeline from './runtime/pipeline/RequestPipeline'
-import type { PackageDependencies } from './contracts/ast/engine.type'
+import ComponentRegistry from './chassis/registries/ComponentRegistry'
+import FunctionRegistry from './chassis/registries/FunctionRegistry'
+import MountRegistry from './chassis/registries/MountRegistry'
+import type { MountedNode } from './chassis/registries/MountRegistry'
+import RequestPipeline from './chassis/runtime/pipeline/RequestPipeline'
+import type { PackageDependencies } from './chassis/contracts/ast/engine.type'
 import PackageInstance from './PackageInstance'
 import ForgeRegistrationError from './errors/ForgeRegistrationError'
 import Forge from './Forge'
 
 vi.mock('./PackageInstance')
-vi.mock('./registries/ComponentRegistry')
-vi.mock('./registries/FunctionRegistry')
-vi.mock('./registries/MountRegistry')
-vi.mock('./runtime/pipeline/RequestPipeline')
+vi.mock('./chassis/registries/ComponentRegistry')
+vi.mock('./chassis/registries/FunctionRegistry')
+vi.mock('./chassis/registries/MountRegistry')
+vi.mock('./chassis/runtime/pipeline/RequestPipeline')
 
 describe('Forge', () => {
   let mockLogger: Mocked<Console>

@@ -1,7 +1,11 @@
 import PackageInstance from './PackageInstance'
-import type { ForgeDependencies, ForgePackageFunctions, ForgePackageRegistration } from './contracts/ast/engine.type'
-import FunctionRegistry from './registries/FunctionRegistry'
-import ComponentRegistry from './registries/ComponentRegistry'
+import type {
+  ForgeDependencies,
+  ForgePackageFunctions,
+  ForgePackageRegistration,
+} from './chassis/contracts/ast/engine.type'
+import FunctionRegistry from './chassis/registries/FunctionRegistry'
+import ComponentRegistry from './chassis/registries/ComponentRegistry'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import type { BlockDefinition } from '../components/types/structures.type'
 import { createFunctionsRegistry } from '../authoring/utils/deprecated/createFunctionsRegistry'
@@ -18,10 +22,10 @@ import type { ForgeError, ForgeOutcome } from '../framework/types/outcome.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
 import type { ResponseBindings } from '../framework/types/responseBindings.type'
 import type { ForgeTopology } from '../framework/types/topology.type'
-import MountRegistry from './registries/MountRegistry'
-import RequestPipeline from './runtime/pipeline/RequestPipeline'
-import ForgeTraceSinkDispatcher from './tracing/ForgeTraceSinkDispatcher'
-import type { ForgeInstrumentation, ForgeInstrumentationOptions } from './tracing/ForgeTraceSinkDispatcher'
+import MountRegistry from './chassis/registries/MountRegistry'
+import RequestPipeline from './chassis/runtime/pipeline/RequestPipeline'
+import ForgeTraceSinkDispatcher from './chassis/tracing/ForgeTraceSinkDispatcher'
+import type { ForgeInstrumentation, ForgeInstrumentationOptions } from './chassis/tracing/ForgeTraceSinkDispatcher'
 import RegistrationErrorFormatter from './errors/RegistrationErrorFormatter'
 import ForgeRegistrationError from './errors/ForgeRegistrationError'
 import ForgeInternalError from './errors/ForgeInternalError'
@@ -112,7 +116,7 @@ export default class Forge {
    *
    * @example
    * ```typescript
-   * import { Forge } from './'
+   * import { Forge } from '.'
    * import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
    * import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
    *

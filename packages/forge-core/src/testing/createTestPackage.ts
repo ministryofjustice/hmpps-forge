@@ -1,5 +1,5 @@
 import type { FunctionEvaluator } from '../authoring/types/functions.type'
-import type { ForgePackageRegistration } from '../engine/contracts/ast/engine.type'
+import type { ForgePackageRegistration } from '../engine/chassis/contracts/ast/engine.type'
 import { isFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
 
 export interface TestPackageOptions {

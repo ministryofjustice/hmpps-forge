@@ -42,4 +42,4 @@ generated-comment labels are stamped here, so lowering derives nothing from the 
 ## Entry Points
 
 - [HookAnalyzer.ts](HookAnalyzer.ts) builds the hook models and resolves inherited access hooks.
-- [CompilationModelBuilder.ts](../../../compilation/analysis/CompilationModelBuilder.ts) calls `analyzeStep()` for steps and `analyzeJourney()` for journeys.
+- [CompilationModelBuilder.ts](../../../chassis/compilation/analysis/CompilationModelBuilder.ts) calls `analyzeStep()` for steps and `analyzeJourney()` for journeys.

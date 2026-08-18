@@ -13,20 +13,20 @@
  * Generated-function construction failures throw `ForgeCompilationError`. There is
  * no secondary entry-validation execution path.
  */
-import { StepEntryValidationAST } from '../../../contracts/ast/structures.type'
-import { CodeFragment, code, literal } from '../../../compilation/lowering/codegen/fragments/CodeFragment'
-import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
-import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
-import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
+import { StepEntryValidationAST } from '../../../chassis/contracts/ast/structures.type'
+import { CodeFragment, code, literal } from '../../../chassis/compilation/lowering/codegen/fragments/CodeFragment'
+import CodeGenerator from '../../../chassis/compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../chassis/compilation/lowering/codegen/fragments/IdentifierName'
+import ExpressionDispatcher from '../../../chassis/compilation/lowering/expressions/ExpressionDispatcher'
 import {
   CompilationPhase,
   compileGeneratedFunction,
   renderGeneratedSource,
-} from '../../../compilation/lowering/GeneratedFunctionCompiler'
-import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+} from '../../../chassis/compilation/lowering/GeneratedFunctionCompiler'
+import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
 import type { ValidationModel } from '../contracts/validationModel.type'
 
-import type { CompiledEntryValidationFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type { CompiledEntryValidationFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 
 /**
  * Compiler for the step-level entry-validation generated function.

@@ -1,7 +1,7 @@
-import type RequestState from '../../../runtime/pipeline/RequestState'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
 import type { CompiledSubmitHookResult } from '../contracts/hookLifecycle.type'
-import type { CompletedWork, WorkContextContract, WorkHandler } from '../../../contracts/work/work.type'
-import { childOutputs, createWorkTask } from '../../../work/workTask'
+import type { CompletedWork, WorkContextContract, WorkHandler } from '../../../chassis/contracts/work/work.type'
+import { childOutputs, createWorkTask } from '../../../chassis/work/workTask'
 import { SUBMIT_HOOK_KIND } from './SubmitHookWorkHandler'
 import type { SubmitHookWorkTask, SubmitLifecycleWorkProps } from '../contracts/SubmitLifecycleWork.type'
 

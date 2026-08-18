@@ -1,6 +1,6 @@
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 import type { JourneyRouteIndex, StepRouteIndex, StepRouteDescriptor } from '../contracts/routeDescriptors.type'
-import type { NodeId } from '../../../contracts/ast/ast.type'
+import type { NodeId } from '../../../chassis/contracts/ast/ast.type'
 import { joinPaths } from '../../../../shared/utils/routePath'
 import ForgeDuplicateRouteError from '../../../errors/ForgeDuplicateRouteError'
 import {

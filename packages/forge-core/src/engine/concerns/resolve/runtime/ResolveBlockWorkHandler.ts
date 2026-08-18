@@ -1,19 +1,19 @@
-import type { CompiledResolveBlockWorkProps } from '../../../contracts/compiled/compiledFunctions.type'
-import type RequestState from '../../../runtime/pipeline/RequestState'
-import type { NodeId } from '../../../contracts/ast/ast.type'
+import type { CompiledResolveBlockWorkProps } from '../../../chassis/contracts/compiled/compiledFunctions.type'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
+import type { NodeId } from '../../../chassis/contracts/ast/ast.type'
 import type { BlockType } from '../../../../authoring/types/enums'
 import { RENDER_BLOCK_BRAND } from '../../render/contracts/renderBlock.brand'
 import type { RenderBlock } from '../../../../framework/types/rendering.type'
-import WorkTaskPropsWalker from '../../../work/WorkTaskPropsWalker'
-import { createWorkTask } from '../../../work/workTask'
+import WorkTaskPropsWalker from '../../../chassis/work/WorkTaskPropsWalker'
+import { createWorkTask } from '../../../chassis/work/workTask'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkTask,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/work/work.type'
-import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
+} from '../../../chassis/contracts/work/work.type'
+import type { TraceSpanFields } from '../../../chassis/tracing/traceSpan.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 export type ResolveBlockWorkProps = CompiledResolveBlockWorkProps

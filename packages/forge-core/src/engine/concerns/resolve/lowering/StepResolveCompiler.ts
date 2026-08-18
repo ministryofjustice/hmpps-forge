@@ -1,13 +1,13 @@
 import { BlockType } from '../../../../authoring/types/enums'
-import { isTemplateNode } from '../../../contracts/ast/nodes'
-import type { TemplateNode } from '../../../contracts/ast/template.type'
+import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
+import type { TemplateNode } from '../../../chassis/contracts/ast/template.type'
 import {
   AuthoredValueKind,
   toRawOperand,
   type AuthoredValue,
   type BlockValue,
   type RecordEntryValue,
-} from '../../../contracts/models/authoredValue.type'
+} from '../../../chassis/contracts/models/authoredValue.type'
 import {
   CodeFragment,
   code,
@@ -16,21 +16,21 @@ import {
   structuredLiteralCode,
   SafeCode,
   ObjectCodeProperty,
-} from '../../../compilation/lowering/codegen/fragments/CodeFragment'
-import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
-import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
-import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
-import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
-import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
+} from '../../../chassis/compilation/lowering/codegen/fragments/CodeFragment'
+import CodeGenerator from '../../../chassis/compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../chassis/compilation/lowering/codegen/fragments/IdentifierName'
+import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
+import FieldCodeEmitter from '../../../chassis/compilation/lowering/emitters/FieldCodeEmitter'
+import ExpressionDispatcher from '../../../chassis/compilation/lowering/expressions/ExpressionDispatcher'
 import {
   CompilationPhase,
   compileGeneratedFunction,
   GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM,
   renderGeneratedSource,
-} from '../../../compilation/lowering/GeneratedFunctionCompiler'
-import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
-import ScopedTemplateCompiler from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
-import type { CompiledResolveFunction } from '../../../contracts/compiled/compiledFunctions.type'
+} from '../../../chassis/compilation/lowering/GeneratedFunctionCompiler'
+import RuntimeValueCompiler from '../../../chassis/compilation/lowering/structures/RuntimeValueCompiler'
+import ScopedTemplateCompiler from '../../../chassis/compilation/lowering/structures/ScopedTemplateCompiler'
+import type { CompiledResolveFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 import type {
   ResolveAncestorModel,
   ResolveBlockModel,

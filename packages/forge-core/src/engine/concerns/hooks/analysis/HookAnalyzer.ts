@@ -4,21 +4,21 @@ import type {
   JourneyModelAnalyzer,
   StepAnalysisContext,
   StepModelAnalyzer,
-} from '../../../compilation/analysis/concernAnalyzers.type'
-import type Ancestry from '../../../compilation/analysis/shared/Ancestry'
-import type AuthoredValueClassifier from '../../../compilation/analysis/shared/AuthoredValueClassifier'
-import type { ASTNode } from '../../../contracts/ast/ast.type'
-import { ASTNodeType } from '../../../contracts/ast/enums'
+} from '../../../chassis/compilation/analysis/concernAnalyzers.type'
+import type Ancestry from '../../../chassis/compilation/analysis/shared/Ancestry'
+import type AuthoredValueClassifier from '../../../chassis/compilation/analysis/shared/AuthoredValueClassifier'
+import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
+import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type {
   AccessHookASTNode,
   FunctionASTNode,
   RedirectOutcomeASTNode,
   SubmitHookASTNode,
   ThrowErrorOutcomeASTNode,
-} from '../../../contracts/ast/expressions.type'
-import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '../../../contracts/ast/outcome-nodes'
-import type { JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
-import { expressionValue, type ExpressionValue } from '../../../contracts/models/authoredValue.type'
+} from '../../../chassis/contracts/ast/expressions.type'
+import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '../../../chassis/contracts/ast/outcome-nodes'
+import type { JourneyASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
+import { expressionValue, type ExpressionValue } from '../../../chassis/contracts/models/authoredValue.type'
 import type {
   AccessHookModel,
   AccessLifecycleModel,

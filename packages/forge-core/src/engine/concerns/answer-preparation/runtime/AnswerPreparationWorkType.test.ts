@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import type RequestState from '../../../runtime/pipeline/RequestState'
-import { createWorkTask } from '../../../work/workTask'
-import WorkContext from '../../../work/WorkContext'
-import WorkExecutor from '../../../work/WorkExecutor'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
+import { createWorkTask } from '../../../chassis/work/workTask'
+import WorkContext from '../../../chassis/work/WorkContext'
+import WorkExecutor from '../../../chassis/work/WorkExecutor'
 import {
   ANSWER_PREPARATION_KIND,
   ANSWER_PREPARATION_WORK_HANDLER,

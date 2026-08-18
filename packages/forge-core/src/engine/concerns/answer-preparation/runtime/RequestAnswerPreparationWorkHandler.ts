@@ -1,17 +1,17 @@
 import ForgeInternalError from '../../../errors/ForgeInternalError'
-import { buildCompiledAnswerPreparationContext } from '../../../runtime/context/compiledEvaluationContext'
+import { buildCompiledAnswerPreparationContext } from '../../../chassis/runtime/context/compiledEvaluationContext'
 import { ANSWER_PREPARATION_KIND } from './AnswerPreparationWorkHandler'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/work/work.type'
-import { createWorkTask, isWorkTaskOfKind, singleTaskGroup } from '../../../work/workTask'
-import { phaseInstrumentation } from '../../../runtime/pipeline/contextSnapshot'
-import type { RequestAnswerPreparationWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type RequestState from '../../../runtime/pipeline/RequestState'
-import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
+} from '../../../chassis/contracts/work/work.type'
+import { createWorkTask, isWorkTaskOfKind, singleTaskGroup } from '../../../chassis/work/workTask'
+import { phaseInstrumentation } from '../../../chassis/runtime/pipeline/contextSnapshot'
+import type { RequestAnswerPreparationWorkProps } from '../../../chassis/contracts/runtime/RequestPipelineWork.type'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../chassis/contracts/runtime/requestPipelineOutput.type'
 
 const REQUEST_ANSWER_PREPARATION_KIND = 'request.answer-preparation'
 

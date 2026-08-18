@@ -1,7 +1,7 @@
-import type RequestState from '../../../runtime/pipeline/RequestState'
-import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/work/work.type'
-import type { DomainValidationFailure } from '../../../contracts/runtime/evaluationState.type'
-import { createWorkTask } from '../../../work/workTask'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
+import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../chassis/contracts/work/work.type'
+import type { DomainValidationFailure } from '../../../chassis/contracts/runtime/evaluationState.type'
+import { createWorkTask } from '../../../chassis/work/workTask'
 import type { DomainValidationWorkProps } from '../contracts/ValidationWork.type'
 
 export const DOMAIN_VALIDATION_KIND = 'validation.domain'

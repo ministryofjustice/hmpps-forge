@@ -1,20 +1,20 @@
-import { buildCompiledValidationContext } from '../../../runtime/context/compiledEvaluationContext'
+import { buildCompiledValidationContext } from '../../../chassis/runtime/context/compiledEvaluationContext'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/work/work.type'
-import { createWorkTask, singleTaskGroup } from '../../../work/workTask'
-import { phaseInstrumentation } from '../../../runtime/pipeline/contextSnapshot'
+} from '../../../chassis/contracts/work/work.type'
+import { createWorkTask, singleTaskGroup } from '../../../chassis/work/workTask'
+import { phaseInstrumentation } from '../../../chassis/runtime/pipeline/contextSnapshot'
 import {
   CURRENT_STEP_VALIDATION_WORK_HANDLER,
   CURRENT_STEP_VALIDATION_WORK_INSTRUMENTATION,
 } from './CurrentStepValidationWorkHandler'
 import type { CurrentStepValidationWorkProps } from '../contracts/ValidationWork.type'
-import type { RequestEntryValidationWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type RequestState from '../../../runtime/pipeline/RequestState'
-import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
+import type { RequestEntryValidationWorkProps } from '../../../chassis/contracts/runtime/RequestPipelineWork.type'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../chassis/contracts/runtime/requestPipelineOutput.type'
 
 const REQUEST_ENTRY_VALIDATION_KIND = 'request.entry-validation'
 

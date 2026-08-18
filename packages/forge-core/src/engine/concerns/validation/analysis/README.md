@@ -38,4 +38,4 @@ This document does not cover validation rule semantics, validation runtime execu
 ## Entry Points
 
 - [ValidationAnalyzer.ts](ValidationAnalyzer.ts) builds the validation model for one step.
-- [FieldModelBuilder.ts](../../../compilation/analysis/shared/FieldModelBuilder.ts) owns field-occurrence classification, including rule pre-classification.
+- [FieldModelBuilder.ts](../../../chassis/compilation/analysis/shared/FieldModelBuilder.ts) owns field-occurrence classification, including rule pre-classification.

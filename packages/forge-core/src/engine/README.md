@@ -15,11 +15,11 @@ request. That order is fixed and every stage assumes the previous one's output.
 The **concern** axis is the domain question being answered. Validation, reachability, resolve, and the rest each
 have a compile-time half and a runtime half, and those halves only make sense read together.
 
-The stage axis is the outer structure of the chassis - `compilation/`, `runtime/`, `contracts/`. The concern
-axis is the outer structure of everything else: each concern owns a vertical slice under `concerns/<name>/`,
-with `analysis/`, `lowering/`, `runtime/`, and `contracts/` inside it. The stages still exist; they are now
-the inner axis. DSL validation is the one concern with no stage folders - its whole job happens before the
-AST exists.
+The stage axis is the structure of [chassis/](chassis/) - `compilation/`, `runtime/`, and the substrate both
+stages run on. The concern axis is the outer structure of everything else: each concern owns a vertical slice
+under `concerns/<name>/`, with `analysis/`, `lowering/`, `runtime/`, and `contracts/` inside it. The stages
+still exist; they are now the inner axis. DSL validation is the one concern with no stage folders - its whole
+job happens before the AST exists.
 
 ## The Four Stages
 
@@ -74,7 +74,7 @@ Read [concerns/dsl-validation/README.md](concerns/dsl-validation/README.md) for 
 ### Compilation
 
 Compilation turns a validated journey into runtime artifacts.
-It lives under [compilation](compilation).
+It lives under [chassis/compilation](chassis/compilation).
 
 This stage builds the AST, validates semantic rules, gathers dependency inputs, lowers those inputs into compiled functions, and builds route indexes.
 It pays that cost when a package is registered.
@@ -94,12 +94,12 @@ flowchart TD
   lowering -->|"compiled maps + route indexes"| result["CompiledPackage"]
 ```
 
-Read [compilation/README.md](compilation/README.md) for details.
+Read [chassis/compilation/README.md](chassis/compilation/README.md) for details.
 
 ### Runtime
 
 Runtime evaluates compiled artifacts for one request.
-It lives under [runtime](runtime).
+It lives under [chassis/runtime](chassis/runtime).
 
 The framework layer selects a `MountedNode` and passes a `RequestSnapshot`.
 `RequestPipeline.evaluate()` builds a request pipeline, executes work tasks, records traces, and returns a `ForgeOutcome`.
@@ -119,7 +119,7 @@ flowchart TD
   result -->|"buildOutcome()"| outcome["ForgeOutcome"]
 ```
 
-Read [runtime/README.md](runtime/README.md) for details.
+Read [chassis/runtime/README.md](chassis/runtime/README.md) for details.
 
 ## The Eight Concerns
 
@@ -147,28 +147,29 @@ one of them is listed both in the importing concern's README and in the comment 
 
 ## The Chassis
 
-Everything that is not a concern is chassis - the machinery that runs concerns in the right order without knowing
+Everything under [chassis/](chassis/) is the machinery that runs concerns in the right order without knowing
 what any of them mean.
 
-- [concerns/dsl-validation](concerns/dsl-validation) runs the pre-AST JSON and Zod checks.
-- [work](work) owns the stage-neutral work substrate: the executor, work context, and task helpers.
+- [chassis/work](chassis/work) owns the stage-neutral work substrate: the executor, work context, and task helpers.
   Both stages run their pipelines through it - runtime asynchronously, compilation synchronously - and it imports neither.
-- [compilation](compilation) owns phase order, the AST, semantic analysis, plan assembly, the expression and emitter layers, and generated-function construction.
-- [runtime](runtime) owns the request pipeline order, the compiled-function contexts, and request trace projection.
-- [contracts](contracts) owns the kernel types every layer shares: AST, compiled functions, plans, work, and runtime plumbing.
+- [chassis/compilation](chassis/compilation) owns phase order, the AST, semantic analysis, plan assembly, the expression and emitter layers, and generated-function construction.
+- [chassis/runtime](chassis/runtime) owns the request pipeline order, the compiled-function contexts, and request trace projection.
+- [chassis/contracts](chassis/contracts) owns the kernel types every layer shares: AST, compiled functions, plans, work, and runtime plumbing.
+- [chassis/registries](chassis/registries) owns function, component, and mount registries.
+- [chassis/tracing](chassis/tracing) owns the shared trace substrate and the instrumentation fan-out.
+
+[concerns/dsl-validation](concerns/dsl-validation) also behaves like chassis: it runs the pre-AST JSON and Zod checks as the first compilation phase.
 
 ## Supporting Areas
 
 - [Forge.ts](Forge.ts) is the public engine facade.
 - [PackageInstance.ts](PackageInstance.ts) owns package-level registry scoping and compilation.
-- [registries](registries) owns function, component, and mount registries.
-- [tracing](tracing) owns the shared trace substrate and the instrumentation fan-out.
 - [errors](errors) owns engine error types and formatting.
 
 ## Where To Start
 
-- To follow the whole path, read this file, then [compilation/README.md](compilation/README.md), then [runtime/README.md](runtime/README.md).
+- To follow the whole path, read this file, then [chassis/compilation/README.md](chassis/compilation/README.md), then [chassis/runtime/README.md](chassis/runtime/README.md).
 - To change one domain question - validation, reachability, resolve - start at that concern's README and read its stage folders in order. You should not need to open another concern.
 - To debug authoring shape errors, start in [concerns/dsl-validation](concerns/dsl-validation).
 - To debug generated runtime behavior, start in the concern's `lowering/` folder and the matching `runtime/` folder next to it.
-- To debug one request, start in [runtime/pipeline/RequestPipeline.ts](runtime/pipeline/RequestPipeline.ts) and [runtime/pipeline](runtime/pipeline).
+- To debug one request, start in [chassis/runtime/pipeline/RequestPipeline.ts](chassis/runtime/pipeline/RequestPipeline.ts) and [chassis/runtime/pipeline](chassis/runtime/pipeline).

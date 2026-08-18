@@ -36,4 +36,4 @@ Field classification itself happens once in `FieldModelBuilder`; this analyzer o
 ## Entry Points
 
 - [AnswerPreparationAnalyzer.ts](AnswerPreparationAnalyzer.ts) builds the step and journey models.
-- [FieldModelBuilder.ts](../../../compilation/analysis/shared/FieldModelBuilder.ts) owns field-occurrence classification.
+- [FieldModelBuilder.ts](../../../chassis/compilation/analysis/shared/FieldModelBuilder.ts) owns field-occurrence classification.

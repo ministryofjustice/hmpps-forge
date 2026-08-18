@@ -1,4 +1,4 @@
-import { NodeId } from '../../engine/contracts/ast/ast.type'
+import { NodeId } from '../../engine/chassis/contracts/ast/ast.type'
 import { BlockType } from '../../authoring/types/enums'
 import { ValidationResult } from '../../engine/concerns/validation/contracts/validationResult.type'
 import type { ViewConfig } from '../../authoring/types/structures.type'

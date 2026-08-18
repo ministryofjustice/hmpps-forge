@@ -7,24 +7,24 @@ import {
   objectCode,
   ObjectCodeProperty,
   SafeCode,
-} from '../../../compilation/lowering/codegen/fragments/CodeFragment'
-import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
-import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
-import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
-import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
-import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
+} from '../../../chassis/compilation/lowering/codegen/fragments/CodeFragment'
+import CodeGenerator from '../../../chassis/compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../chassis/compilation/lowering/codegen/fragments/IdentifierName'
+import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
+import FieldCodeEmitter from '../../../chassis/compilation/lowering/emitters/FieldCodeEmitter'
+import ExpressionDispatcher from '../../../chassis/compilation/lowering/expressions/ExpressionDispatcher'
 import {
   CompilationPhase,
   compileGeneratedFunction,
   GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM,
   renderGeneratedSource,
-} from '../../../compilation/lowering/GeneratedFunctionCompiler'
-import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
-import ScopedTemplateCompiler from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
-import { toRawOperand, type AuthoredValue } from '../../../contracts/models/authoredValue.type'
-import type { FieldModel, TransformerPipeline } from '../../../contracts/models/fieldModel.type'
+} from '../../../chassis/compilation/lowering/GeneratedFunctionCompiler'
+import RuntimeValueCompiler from '../../../chassis/compilation/lowering/structures/RuntimeValueCompiler'
+import ScopedTemplateCompiler from '../../../chassis/compilation/lowering/structures/ScopedTemplateCompiler'
+import { toRawOperand, type AuthoredValue } from '../../../chassis/contracts/models/authoredValue.type'
+import type { FieldModel, TransformerPipeline } from '../../../chassis/contracts/models/fieldModel.type'
 import type { AnswerPreparationModel } from '../contracts/answerPreparationModel.type'
-import type { CompiledAnswerPreparationFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import type { CompiledAnswerPreparationFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 
 const CONTEXT = new IdentifierName('ctx')
 const HELPERS = new IdentifierName(GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM)

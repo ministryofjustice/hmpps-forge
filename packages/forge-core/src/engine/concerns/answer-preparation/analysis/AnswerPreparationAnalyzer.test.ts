@@ -1,11 +1,11 @@
 import { BlockType } from '../../../../authoring/types/enums'
-import type { ASTNode } from '../../../contracts/ast/engine.type'
-import ASTNodeIndex from '../../../compilation/ast/ast-state/ASTNodeIndex'
-import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
+import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
+import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
+import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import {
   createJourneyAnalysisContext,
   createStepAnalysisContext,
-} from '../../../compilation/analysis/testing-helpers/analysisContexts'
+} from '../../../chassis/compilation/analysis/testing-helpers/analysisContexts'
 import AnswerPreparationAnalyzer from './AnswerPreparationAnalyzer'
 
 function setParent(child: ASTNode, parent: ASTNode): void {

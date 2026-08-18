@@ -1,5 +1,5 @@
-import type { WorkContextContract, WorkHandler } from '../../contracts/work/work.type'
-import { createWorkTask } from '../../work/workTask'
+import type { WorkContextContract, WorkHandler } from '../../chassis/contracts/work/work.type'
+import { createWorkTask } from '../../chassis/work/workTask'
 import type { JourneyDefinition } from '../../../authoring/types/structures.type'
 import { DSLValidator } from './DSLValidator'
 

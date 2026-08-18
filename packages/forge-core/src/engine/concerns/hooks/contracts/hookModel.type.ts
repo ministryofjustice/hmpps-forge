@@ -1,4 +1,4 @@
-import type { AuthoredValue, ExpressionValue } from '../../../contracts/models/authoredValue.type'
+import type { AuthoredValue, ExpressionValue } from '../../../chassis/contracts/models/authoredValue.type'
 
 /**
  * The hooks concern's semantic model. Built by `HookAnalyzer`, consumed by

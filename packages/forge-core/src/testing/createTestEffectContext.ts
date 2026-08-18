@@ -1,9 +1,9 @@
 // eslint-disable-next-line max-classes-per-file
 import type { CookieMutation, CookieOptions } from '../framework/types/response.type'
-import type { HookType } from '../engine/contracts/runtime/answerHistory.type'
+import type { HookType } from '../engine/chassis/contracts/runtime/answerHistory.type'
 import type { ResponseBindings } from '../framework/types/responseBindings.type'
-import type { RuntimeContext } from '../engine/contracts/runtime/evaluationState.type'
-import { EffectFunctionContext } from '../engine/runtime/context/EffectFunctionContext'
+import type { RuntimeContext } from '../engine/chassis/contracts/runtime/evaluationState.type'
+import { EffectFunctionContext } from '../engine/chassis/runtime/context/EffectFunctionContext'
 import { extractPathname } from './extractPathname'
 
 /**

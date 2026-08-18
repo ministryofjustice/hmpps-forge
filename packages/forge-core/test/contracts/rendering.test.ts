@@ -4,7 +4,7 @@ import type { BlockDefinition, EvaluatedBlock } from '../../src/components'
 import type { ForgeRenderer, RenderContext } from '../../src/framework/types/rendering.type'
 import { createForgePackage } from '../../src/authoring'
 import { ForgeTestHarness, type RequestTraceEvent } from '../../src/testing'
-import type { SerializedTraceSpan } from '../../src/engine/tracing/traceSpan.type'
+import type { SerializedTraceSpan } from '../../src/engine/chassis/tracing/traceSpan.type'
 import { createRenderClient, createTracedRenderClient } from './contractHelpers'
 import {
   basicRenderJourney,

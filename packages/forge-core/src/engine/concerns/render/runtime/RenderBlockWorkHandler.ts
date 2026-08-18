@@ -4,17 +4,17 @@ import { StructureType } from '../../../../authoring/types/enums'
 import { RENDER_BLOCK_BRAND } from '../contracts/renderBlock.brand'
 import type { RenderBlock, ForgeRenderer } from '../../../../framework/types/rendering.type'
 import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
-import type RequestState from '../../../runtime/pipeline/RequestState'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
   WorkTask,
-} from '../../../contracts/work/work.type'
-import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
+} from '../../../chassis/contracts/work/work.type'
+import type { TraceSpanFields } from '../../../chassis/tracing/traceSpan.type'
 import ForgeUnregisteredComponentError from '../../../errors/ForgeUnregisteredComponentError'
-import { createWorkTask } from '../../../work/workTask'
+import { createWorkTask } from '../../../chassis/work/workTask'
 
 export interface RenderBlockWorkProps {
   readonly block: RenderBlock

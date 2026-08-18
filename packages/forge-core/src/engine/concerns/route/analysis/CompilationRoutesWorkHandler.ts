@@ -1,8 +1,8 @@
-import type { WorkContextContract, WorkHandler } from '../../../contracts/work/work.type'
-import { createWorkTask } from '../../../work/workTask'
-import type { JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import type CompilationState from '../../../compilation/pipeline/CompilationState'
+import type { WorkContextContract, WorkHandler } from '../../../chassis/contracts/work/work.type'
+import { createWorkTask } from '../../../chassis/work/workTask'
+import type { JourneyASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
+import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import type CompilationState from '../../../chassis/compilation/pipeline/CompilationState'
 import RouteIndexBuilder from './RouteIndexBuilder'
 
 export const COMPILATION_ROUTES_WORK_HANDLER: WorkHandler<'compilation.routes', undefined> = {

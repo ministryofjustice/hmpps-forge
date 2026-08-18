@@ -18,34 +18,34 @@ export default [
         {
           zones: [
             {
-              target: './forge-core/src/engine/contracts',
+              target: './forge-core/src/engine/chassis/contracts',
               from: [
-                './forge-core/src/engine/compilation/ast',
+                './forge-core/src/engine/chassis/compilation/ast',
                 './forge-core/src/engine/concerns/semantic-analysis',
-                './forge-core/src/engine/compilation/analysis',
-                './forge-core/src/engine/compilation/lowering',
-                './forge-core/src/engine/runtime',
-                './forge-core/src/engine/work',
+                './forge-core/src/engine/chassis/compilation/analysis',
+                './forge-core/src/engine/chassis/compilation/lowering',
+                './forge-core/src/engine/chassis/runtime',
+                './forge-core/src/engine/chassis/work',
               ],
               message: 'contracts/ is a runtime-free sink and must not import from compilation/, runtime/, or work/.',
             },
             {
-              target: './forge-core/src/engine/work',
+              target: './forge-core/src/engine/chassis/work',
               from: [
-                './forge-core/src/engine/compilation',
+                './forge-core/src/engine/chassis/compilation',
                 './forge-core/src/engine/concerns',
-                './forge-core/src/engine/runtime',
+                './forge-core/src/engine/chassis/runtime',
               ],
               message:
                 'work/ is the stage-neutral work substrate beneath compilation/ and runtime/: it may import only tracing/, contracts/, and errors/.',
             },
             {
-              target: './forge-core/src/engine/compilation/ast',
+              target: './forge-core/src/engine/chassis/compilation/ast',
               from: [
                 './forge-core/src/engine/concerns/semantic-analysis',
-                './forge-core/src/engine/compilation/analysis',
-                './forge-core/src/engine/compilation/lowering',
-                './forge-core/src/engine/runtime',
+                './forge-core/src/engine/chassis/compilation/analysis',
+                './forge-core/src/engine/chassis/compilation/lowering',
+                './forge-core/src/engine/chassis/runtime',
               ],
               message:
                 'ast/ builds the AST and must not import from semantic-analysis/, analysis/, lowering/, or runtime/.',
@@ -53,56 +53,56 @@ export default [
             {
               target: './forge-core/src/engine/concerns/semantic-analysis',
               from: [
-                './forge-core/src/engine/compilation/analysis',
-                './forge-core/src/engine/compilation/lowering',
-                './forge-core/src/engine/runtime',
+                './forge-core/src/engine/chassis/compilation/analysis',
+                './forge-core/src/engine/chassis/compilation/lowering',
+                './forge-core/src/engine/chassis/runtime',
               ],
               message:
                 'concerns/semantic-analysis is a compile-time-only concern: it checks the AST and must not import from analysis/, lowering/, or runtime/.',
             },
             {
-              target: './forge-core/src/engine/compilation/analysis',
+              target: './forge-core/src/engine/chassis/compilation/analysis',
               from: [
                 './forge-core/src/engine/concerns/semantic-analysis',
-                './forge-core/src/engine/compilation/lowering',
-                './forge-core/src/engine/runtime',
+                './forge-core/src/engine/chassis/compilation/lowering',
+                './forge-core/src/engine/chassis/runtime',
               ],
               message:
                 'analysis/ builds the semantic compilation model and must not import from semantic-analysis/, lowering/, or runtime/.',
             },
             {
-              target: './forge-core/src/engine/runtime',
+              target: './forge-core/src/engine/chassis/runtime',
               from: [
-                './forge-core/src/engine/compilation/ast',
+                './forge-core/src/engine/chassis/compilation/ast',
                 './forge-core/src/engine/concerns/semantic-analysis',
-                './forge-core/src/engine/compilation/analysis',
-                './forge-core/src/engine/compilation/lowering',
+                './forge-core/src/engine/chassis/compilation/analysis',
+                './forge-core/src/engine/chassis/compilation/lowering',
               ],
               message: 'runtime/ executes compiled output and must not import from compilation/.',
             },
             {
-              target: './forge-core/src/engine/compilation/lowering',
+              target: './forge-core/src/engine/chassis/compilation/lowering',
               from: [
                 './forge-core/src/engine/concerns/semantic-analysis',
-                './forge-core/src/engine/compilation/analysis',
-                './forge-core/src/engine/runtime',
+                './forge-core/src/engine/chassis/compilation/analysis',
+                './forge-core/src/engine/chassis/runtime',
               ],
               message: 'lowering/ may depend on ast/ + contracts/ but not semantic-analysis/, analysis/, or runtime/.',
             },
             {
-              target: './forge-core/src/engine/compilation/lowering/codegen',
+              target: './forge-core/src/engine/chassis/compilation/lowering/codegen',
               from: [
-                './forge-core/src/engine/compilation/ast',
+                './forge-core/src/engine/chassis/compilation/ast',
                 './forge-core/src/engine/concerns/semantic-analysis',
-                './forge-core/src/engine/compilation/analysis',
-                './forge-core/src/engine/runtime',
+                './forge-core/src/engine/chassis/compilation/analysis',
+                './forge-core/src/engine/chassis/runtime',
               ],
               message:
                 'lowering/codegen/ is the generated-source IR and renderer: a leaf module that must not import from the compilation stages or runtime/.',
             },
             {
-              target: './forge-core/src/engine/compilation/lowering/codegen',
-              from: './forge-core/src/engine/compilation/lowering',
+              target: './forge-core/src/engine/chassis/compilation/lowering/codegen',
+              from: './forge-core/src/engine/chassis/compilation/lowering',
               except: ['./codegen'],
               message: 'lowering/codegen/ is Forge-agnostic: it must not import from the rest of lowering/.',
             },
@@ -119,7 +119,7 @@ export default [
                 './forge-core/src/engine/concerns/*/analysis/**',
                 './forge-core/src/engine/concerns/*/lowering/**',
               ],
-              from: './forge-core/src/engine/runtime',
+              from: './forge-core/src/engine/chassis/runtime',
               message: 'concerns/*/analysis and concerns/*/lowering are compile-time and must not import runtime/.',
             },
             {
@@ -133,7 +133,7 @@ export default [
             },
             {
               target: './forge-core/src/engine/concerns/*/runtime/**',
-              from: './forge-core/src/engine/compilation',
+              from: './forge-core/src/engine/chassis/compilation',
               message: 'concerns/*/runtime executes compiled output and must not import from compilation/.',
             },
             {
@@ -146,7 +146,7 @@ export default [
                 'concerns/*/runtime executes compiled output and must not import concerns/*/analysis or concerns/*/lowering.',
             },
             {
-              target: './forge-core/src/engine/runtime',
+              target: './forge-core/src/engine/chassis/runtime',
               from: [
                 './forge-core/src/engine/concerns/*/analysis/**',
                 './forge-core/src/engine/concerns/*/lowering/**',
@@ -156,7 +156,7 @@ export default [
             },
             {
               target: './forge-core/src/engine/concerns/*/contracts/**',
-              from: ['./forge-core/src/engine/compilation', './forge-core/src/engine/runtime'],
+              from: ['./forge-core/src/engine/chassis/compilation', './forge-core/src/engine/chassis/runtime'],
               message: 'concerns/*/contracts is a runtime-free sink and must not import from compilation/ or runtime/.',
             },
             {
@@ -323,7 +323,7 @@ export default [
             },
             {
               target: './forge-core/src/engine/concerns/dsl-validation/**',
-              from: ['./forge-core/src/engine/compilation', './forge-core/src/engine/runtime'],
+              from: ['./forge-core/src/engine/chassis/compilation', './forge-core/src/engine/chassis/runtime'],
               message:
                 'dsl-validation checks the raw authored shape before the AST exists and must not import from compilation/ or runtime/.',
             },

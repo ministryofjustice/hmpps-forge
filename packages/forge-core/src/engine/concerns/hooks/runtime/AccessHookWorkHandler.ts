@@ -1,4 +1,4 @@
-import type RequestState from '../../../runtime/pipeline/RequestState'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
 import type { CompiledAccessHookResult } from '../contracts/hookLifecycle.type'
 import type {
   CompletedWork,
@@ -6,9 +6,9 @@ import type {
   WorkTask,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/work/work.type'
-import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
-import { createWorkTask, findTerminalStage, isTerminalStage } from '../../../work/workTask'
+} from '../../../chassis/contracts/work/work.type'
+import type { TraceSpanFields } from '../../../chassis/tracing/traceSpan.type'
+import { createWorkTask, findTerminalStage, isTerminalStage } from '../../../chassis/work/workTask'
 import { ACCESS_HOOK_NEXT_WORK_INSTRUMENTATION, ACCESS_HOOK_NEXT_WORK_HANDLER } from './AccessHookNextWorkHandler'
 import type { AccessHookWorkProps } from '../contracts/AccessLifecycleWork.type'
 

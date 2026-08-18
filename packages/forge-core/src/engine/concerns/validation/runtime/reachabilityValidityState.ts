@@ -1,6 +1,6 @@
-import type { NodeId } from '../../../contracts/ast/ast.type'
+import type { NodeId } from '../../../chassis/contracts/ast/ast.type'
 import type { StepValidityResult } from '../contracts/stepValidityResult.type'
-import type { RuntimeContext } from '../../../contracts/runtime/evaluationState.type'
+import type { RuntimeContext } from '../../../chassis/contracts/runtime/evaluationState.type'
 
 /**
  * Records a non-current step's reachability-round failure set into the per-step
