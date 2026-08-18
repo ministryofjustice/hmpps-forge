@@ -1,11 +1,8 @@
-import { ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type { AstNodeId } from '../../../chassis/contracts/ast/engine.type'
-import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
-import { walkTemplateValue } from './templateWalker'
 
 function buildStepError(diagnostics: ASTNodeDiagnostics | undefined): ForgeReferenceScopeError {
   const source = diagnostics?.source
@@ -32,7 +29,7 @@ function containsNode(entries: unknown, nodeId: AstNodeId): boolean {
 }
 
 export const validateStructureScope: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
-  const { nodeIndex } = context
+  const { nodeIndex, templateNodeIndex } = context
   const errors: Error[] = []
 
   nodeIndex.findByType(ASTNodeType.STEP).forEach(node => {
@@ -55,30 +52,12 @@ export const validateStructureScope: ASTValidationRule = (context: ASTValidation
     }
   })
 
-  const iterateNodes = nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE)
+  templateNodeIndex.findByType(ASTNodeType.STEP).forEach(({ node }) => {
+    errors.push(buildStepError(node.diagnostics))
+  })
 
-  iterateNodes.forEach(iterateNode => {
-    const { iterator } = iterateNode.properties
-
-    const templates = [iterator.yieldTemplate, iterator.predicateTemplate].filter(
-      (t): t is NonNullable<typeof t> => t !== undefined,
-    )
-
-    templates.forEach(template => {
-      walkTemplateValue(template, {
-        onTemplateNode(templateNode, templateMetadata) {
-          if (templateNode.originalType === ASTNodeType.STEP) {
-            errors.push(buildStepError(templateMetadata))
-
-            return
-          }
-
-          if (templateNode.originalType === ASTNodeType.JOURNEY) {
-            errors.push(buildJourneyError(templateMetadata))
-          }
-        },
-      })
-    })
+  templateNodeIndex.findByType(ASTNodeType.JOURNEY).forEach(({ node }) => {
+    errors.push(buildJourneyError(node.diagnostics))
   })
 
   return errors

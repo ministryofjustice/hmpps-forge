@@ -24,7 +24,7 @@ describe('OwnershipIndex', () => {
   describe('journeys()', () => {
     it('should bucket steps under their direct parent journey in document order', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const rootJourney = ASTTestFactory.journey().build()
       const nestedJourney = ASTTestFactory.journey().build()
       const firstStep = ASTTestFactory.step().withPath('/first').build()
@@ -35,14 +35,14 @@ describe('OwnershipIndex', () => {
       setParent(firstStep, rootJourney)
       setParent(secondStep, rootJourney)
       setParent(nestedStep, nestedJourney)
-      nodeRegistry.register(rootJourney.id, rootJourney)
-      nodeRegistry.register(firstStep.id, firstStep)
-      nodeRegistry.register(secondStep.id, secondStep)
-      nodeRegistry.register(nestedJourney.id, nestedJourney)
-      nodeRegistry.register(nestedStep.id, nestedStep)
+      nodeIndex.register(rootJourney.id, rootJourney)
+      nodeIndex.register(firstStep.id, firstStep)
+      nodeIndex.register(secondStep.id, secondStep)
+      nodeIndex.register(nestedJourney.id, nestedJourney)
+      nodeIndex.register(nestedStep.id, nestedStep)
 
       // Act
-      const journeys = new OwnershipIndex(nodeRegistry).journeys()
+      const journeys = new OwnershipIndex(nodeIndex).journeys()
 
       // Assert
       expect(journeys.map(journey => journey.journeyNode)).toEqual([rootJourney, nestedJourney])
@@ -52,19 +52,19 @@ describe('OwnershipIndex', () => {
 
     it('should keep a container journey with an empty step list when it owns no direct steps', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const rootJourney = ASTTestFactory.journey().build()
       const containerJourney = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step().withPath('/first').build()
 
       setParent(containerJourney, rootJourney)
       setParent(stepNode, rootJourney)
-      nodeRegistry.register(rootJourney.id, rootJourney)
-      nodeRegistry.register(containerJourney.id, containerJourney)
-      nodeRegistry.register(stepNode.id, stepNode)
+      nodeIndex.register(rootJourney.id, rootJourney)
+      nodeIndex.register(containerJourney.id, containerJourney)
+      nodeIndex.register(stepNode.id, stepNode)
 
       // Act
-      const journeys = new OwnershipIndex(nodeRegistry).journeys()
+      const journeys = new OwnershipIndex(nodeIndex).journeys()
 
       // Assert
       expect(journeys.find(journey => journey.journeyNode === containerJourney)?.stepNodes).toEqual([])
@@ -74,7 +74,7 @@ describe('OwnershipIndex', () => {
   describe('fieldBlocksOf()', () => {
     it('should bucket field and iterate nodes under their owning step when they are step descendants', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step().withPath('/first').build()
       const fieldBlock = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('owned').build()
@@ -89,16 +89,16 @@ describe('OwnershipIndex', () => {
       setParent(nestedFieldBlock, mapIterate)
       setParent(filterIterate, stepNode)
       setParent(outsideFieldBlock, journeyNode)
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
-      nodeRegistry.register(fieldBlock.id, fieldBlock)
-      nodeRegistry.register(mapIterate.id, mapIterate)
-      nodeRegistry.register(nestedFieldBlock.id, nestedFieldBlock)
-      nodeRegistry.register(filterIterate.id, filterIterate)
-      nodeRegistry.register(outsideFieldBlock.id, outsideFieldBlock)
+      nodeIndex.register(journeyNode.id, journeyNode)
+      nodeIndex.register(stepNode.id, stepNode)
+      nodeIndex.register(fieldBlock.id, fieldBlock)
+      nodeIndex.register(mapIterate.id, mapIterate)
+      nodeIndex.register(nestedFieldBlock.id, nestedFieldBlock)
+      nodeIndex.register(filterIterate.id, filterIterate)
+      nodeIndex.register(outsideFieldBlock.id, outsideFieldBlock)
 
       // Act
-      const ownershipIndex = new OwnershipIndex(nodeRegistry)
+      const ownershipIndex = new OwnershipIndex(nodeIndex)
 
       // Assert
       expect(ownershipIndex.fieldBlocksOf(stepNode.id)).toEqual([fieldBlock, nestedFieldBlock])
@@ -108,11 +108,11 @@ describe('OwnershipIndex', () => {
 
     it('should return empty buckets when the step is unknown', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const stepNode = ASTTestFactory.step().withPath('/first').build()
 
       // Act
-      const ownershipIndex = new OwnershipIndex(nodeRegistry)
+      const ownershipIndex = new OwnershipIndex(nodeIndex)
 
       // Assert
       expect(ownershipIndex.fieldBlocksOf(stepNode.id)).toEqual([])

@@ -5,6 +5,7 @@ import type CompilationState from '../pipeline/CompilationState'
 import { NodeIDGenerator } from './ast-state/NodeIDGenerator'
 import { NodeFactory } from './nodes/NodeFactory'
 import ASTNodeIndex from './ast-state/ASTNodeIndex'
+import TemplateNodeIndex from './ast-state/TemplateNodeIndex'
 import NodeRegistrationWalker from './ast-state/NodeRegistrationWalker'
 
 export const COMPILATION_AST_WORK_HANDLER: WorkHandler<'compilation.ast', undefined> = {
@@ -14,15 +15,16 @@ export const COMPILATION_AST_WORK_HANDLER: WorkHandler<'compilation.ast', undefi
     const state = ctx.state
     const nodeIdGenerator = new NodeIDGenerator()
     const nodeFactory = new NodeFactory(nodeIdGenerator)
-    const nodeRegistry = new ASTNodeIndex()
+    const nodeIndex = new ASTNodeIndex()
+    const templateNodeIndex = new TemplateNodeIndex()
 
     const rootNode = nodeFactory.createNode(state.journeyDefinition) as JourneyASTNode
 
-    const walker = new NodeRegistrationWalker(nodeIdGenerator, nodeRegistry)
+    const walker = new NodeRegistrationWalker(nodeIdGenerator, nodeIndex, templateNodeIndex)
 
     walker.register(rootNode)
 
-    state.recordAst({ rootNode, nodeRegistry })
+    state.recordAst({ rootNode, nodeIndex, templateNodeIndex })
 
     return { output: undefined }
   },

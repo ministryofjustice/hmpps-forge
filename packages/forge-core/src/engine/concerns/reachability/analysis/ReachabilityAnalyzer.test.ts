@@ -10,8 +10,8 @@ function setParent(child: ASTNode, parent: ASTNode): void {
   Object.defineProperty(child, 'parent', { value: parent, enumerable: false })
 }
 
-function registerAll(nodeRegistry: ASTNodeIndex, nodes: readonly ASTNode[]): void {
-  nodes.forEach(node => nodeRegistry.register(node.id, node))
+function registerAll(nodeIndex: ASTNodeIndex, nodes: readonly ASTNode[]): void {
+  nodes.forEach(node => nodeIndex.register(node.id, node))
 }
 
 function createPredicate(path: string[]): TestPredicateASTNode {
@@ -29,18 +29,18 @@ describe('ReachabilityAnalyzer', () => {
   describe('analyzeJourney()', () => {
     it('should default unreachable redirect to entry when omitted', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step().withCode('step').build()
 
       setParent(stepNode, journeyNode)
-      registerAll(nodeRegistry, [journeyNode, stepNode])
+      registerAll(nodeIndex, [journeyNode, stepNode])
 
       const analyzer = new ReachabilityAnalyzer()
 
       // Act
       const result = analyzer.analyzeJourney(
-        createJourneyAnalysisContext({ journeyNode, stepNodes: [stepNode], nodeRegistry }),
+        createJourneyAnalysisContext({ journeyNode, stepNodes: [stepNode], nodeIndex }),
       )
 
       // Assert
@@ -49,7 +49,7 @@ describe('ReachabilityAnalyzer', () => {
 
     it('should store configured unreachable redirect without inheriting ancestor values', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const parentJourneyNode = ASTTestFactory.journey()
         .withProperty('reachability', { unreachableRedirect: 'frontier' })
         .build()
@@ -58,13 +58,13 @@ describe('ReachabilityAnalyzer', () => {
 
       setParent(childJourneyNode, parentJourneyNode)
       setParent(stepNode, childJourneyNode)
-      registerAll(nodeRegistry, [parentJourneyNode, childJourneyNode, stepNode])
+      registerAll(nodeIndex, [parentJourneyNode, childJourneyNode, stepNode])
 
       const analyzer = new ReachabilityAnalyzer()
 
       // Act
       const result = analyzer.analyzeJourney(
-        createJourneyAnalysisContext({ journeyNode: childJourneyNode, stepNodes: [stepNode], nodeRegistry }),
+        createJourneyAnalysisContext({ journeyNode: childJourneyNode, stepNodes: [stepNode], nodeIndex }),
       )
 
       // Assert
@@ -73,7 +73,7 @@ describe('ReachabilityAnalyzer', () => {
 
     it('should inherit disabled reachability from the parent journey when the journey has no own setting', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const parentJourneyNode = ASTTestFactory.journey()
         .withProperty('reachability', { disableReachabilityChecks: true })
         .build()
@@ -82,13 +82,13 @@ describe('ReachabilityAnalyzer', () => {
 
       setParent(childJourneyNode, parentJourneyNode)
       setParent(stepNode, childJourneyNode)
-      registerAll(nodeRegistry, [parentJourneyNode, childJourneyNode, stepNode])
+      registerAll(nodeIndex, [parentJourneyNode, childJourneyNode, stepNode])
 
       const analyzer = new ReachabilityAnalyzer()
 
       // Act
       const result = analyzer.analyzeJourney(
-        createJourneyAnalysisContext({ journeyNode: childJourneyNode, stepNodes: [stepNode], nodeRegistry }),
+        createJourneyAnalysisContext({ journeyNode: childJourneyNode, stepNodes: [stepNode], nodeIndex }),
       )
 
       // Assert
@@ -97,7 +97,7 @@ describe('ReachabilityAnalyzer', () => {
 
     it('should inherit disabled reachability from a distant ancestor when nearer journeys have no own setting', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const grandparentJourneyNode = ASTTestFactory.journey()
         .withProperty('reachability', { disableReachabilityChecks: true })
         .build()
@@ -108,13 +108,13 @@ describe('ReachabilityAnalyzer', () => {
       setParent(parentJourneyNode, grandparentJourneyNode)
       setParent(childJourneyNode, parentJourneyNode)
       setParent(stepNode, childJourneyNode)
-      registerAll(nodeRegistry, [grandparentJourneyNode, parentJourneyNode, childJourneyNode, stepNode])
+      registerAll(nodeIndex, [grandparentJourneyNode, parentJourneyNode, childJourneyNode, stepNode])
 
       const analyzer = new ReachabilityAnalyzer()
 
       // Act
       const result = analyzer.analyzeJourney(
-        createJourneyAnalysisContext({ journeyNode: childJourneyNode, stepNodes: [stepNode], nodeRegistry }),
+        createJourneyAnalysisContext({ journeyNode: childJourneyNode, stepNodes: [stepNode], nodeIndex }),
       )
 
       // Assert
@@ -123,7 +123,7 @@ describe('ReachabilityAnalyzer', () => {
 
     it("should use the journey's own reachability setting when an ancestor sets a different value", () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const parentJourneyNode = ASTTestFactory.journey()
         .withProperty('reachability', { disableReachabilityChecks: false })
         .build()
@@ -134,13 +134,13 @@ describe('ReachabilityAnalyzer', () => {
 
       setParent(childJourneyNode, parentJourneyNode)
       setParent(stepNode, childJourneyNode)
-      registerAll(nodeRegistry, [parentJourneyNode, childJourneyNode, stepNode])
+      registerAll(nodeIndex, [parentJourneyNode, childJourneyNode, stepNode])
 
       const analyzer = new ReachabilityAnalyzer()
 
       // Act
       const result = analyzer.analyzeJourney(
-        createJourneyAnalysisContext({ journeyNode: childJourneyNode, stepNodes: [stepNode], nodeRegistry }),
+        createJourneyAnalysisContext({ journeyNode: childJourneyNode, stepNodes: [stepNode], nodeIndex }),
       )
 
       // Assert
@@ -149,7 +149,7 @@ describe('ReachabilityAnalyzer', () => {
 
     it("should keep the journey's own disabled reachability off when an ancestor enables it", () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const parentJourneyNode = ASTTestFactory.journey()
         .withProperty('reachability', { disableReachabilityChecks: true })
         .build()
@@ -160,13 +160,13 @@ describe('ReachabilityAnalyzer', () => {
 
       setParent(childJourneyNode, parentJourneyNode)
       setParent(stepNode, childJourneyNode)
-      registerAll(nodeRegistry, [parentJourneyNode, childJourneyNode, stepNode])
+      registerAll(nodeIndex, [parentJourneyNode, childJourneyNode, stepNode])
 
       const analyzer = new ReachabilityAnalyzer()
 
       // Act
       const result = analyzer.analyzeJourney(
-        createJourneyAnalysisContext({ journeyNode: childJourneyNode, stepNodes: [stepNode], nodeRegistry }),
+        createJourneyAnalysisContext({ journeyNode: childJourneyNode, stepNodes: [stepNode], nodeIndex }),
       )
 
       // Assert
@@ -175,7 +175,7 @@ describe('ReachabilityAnalyzer', () => {
 
     it('should build resume and reachability entry metadata in step order', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const resumeWhen = createPredicate(['answers', 'resume'])
       const entryWhen = createPredicate(['answers', 'entry'])
       const tieBreakerWhen = createPredicate(['answers', 'priority'])
@@ -206,7 +206,7 @@ describe('ReachabilityAnalyzer', () => {
       setParent(firstStepNode, journeyNode)
       setParent(secondStepNode, journeyNode)
       setParent(validatingFieldBlock, firstStepNode)
-      registerAll(nodeRegistry, [journeyNode, firstStepNode, secondStepNode, validatingFieldBlock])
+      registerAll(nodeIndex, [journeyNode, firstStepNode, secondStepNode, validatingFieldBlock])
 
       const analyzer = new ReachabilityAnalyzer()
 
@@ -215,7 +215,7 @@ describe('ReachabilityAnalyzer', () => {
         createJourneyAnalysisContext({
           journeyNode,
           stepNodes: [firstStepNode, secondStepNode],
-          nodeRegistry,
+          nodeIndex,
         }),
       )
 

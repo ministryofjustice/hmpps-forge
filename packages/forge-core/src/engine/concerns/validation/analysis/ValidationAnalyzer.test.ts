@@ -18,7 +18,7 @@ describe('ValidationAnalyzer', () => {
   describe('analyzeStep()', () => {
     it('should model only validating fields when the step mixes validating and plain blocks', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step().withPath('/step').build()
       const validatingBlock = ASTTestFactory.block('TextInput', BlockType.FIELD)
@@ -30,12 +30,12 @@ describe('ValidationAnalyzer', () => {
       setParent(stepNode, journeyNode)
       setParent(validatingBlock, stepNode)
       setParent(plainBlock, stepNode)
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
-      nodeRegistry.register(validatingBlock.id, validatingBlock)
-      nodeRegistry.register(plainBlock.id, plainBlock)
+      nodeIndex.register(journeyNode.id, journeyNode)
+      nodeIndex.register(stepNode.id, stepNode)
+      nodeIndex.register(validatingBlock.id, validatingBlock)
+      nodeIndex.register(plainBlock.id, plainBlock)
 
-      const context = createStepAnalysisContext({ stepNode, nodeRegistry })
+      const context = createStepAnalysisContext({ stepNode, nodeIndex })
       const analyzer = new ValidationAnalyzer()
 
       // Act
@@ -50,18 +50,18 @@ describe('ValidationAnalyzer', () => {
 
     it('should report no validation when the step has no validating blocks or domain validWhen', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step().withPath('/step').build()
       const plainBlock = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('name').build()
 
       setParent(stepNode, journeyNode)
       setParent(plainBlock, stepNode)
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
-      nodeRegistry.register(plainBlock.id, plainBlock)
+      nodeIndex.register(journeyNode.id, journeyNode)
+      nodeIndex.register(stepNode.id, stepNode)
+      nodeIndex.register(plainBlock.id, plainBlock)
 
-      const context = createStepAnalysisContext({ stepNode, nodeRegistry })
+      const context = createStepAnalysisContext({ stepNode, nodeIndex })
       const analyzer = new ValidationAnalyzer()
 
       // Act
@@ -74,7 +74,7 @@ describe('ValidationAnalyzer', () => {
 
     it('should classify domain rules when the step carries a validWhen value', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step()
         .withPath('/step')
@@ -82,10 +82,10 @@ describe('ValidationAnalyzer', () => {
         .build()
 
       setParent(stepNode, journeyNode)
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
+      nodeIndex.register(journeyNode.id, journeyNode)
+      nodeIndex.register(stepNode.id, stepNode)
 
-      const context = createStepAnalysisContext({ stepNode, nodeRegistry })
+      const context = createStepAnalysisContext({ stepNode, nodeIndex })
       const analyzer = new ValidationAnalyzer()
 
       // Act

@@ -1,25 +1,30 @@
 import { ASTNode, NodeId } from '../../../contracts/ast/engine.type'
 import { NodeIDGenerator } from './NodeIDGenerator'
 import ASTNodeIndex from './ASTNodeIndex'
+import TemplateNodeIndex from './TemplateNodeIndex'
 import { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
 import { isASTNode, isTemplateNode } from '../../../contracts/ast/nodes'
 import { isFieldBlockStructNode } from '../../../contracts/ast/structure-nodes'
 import { isReferenceExprNode } from '../../../contracts/ast/expression-nodes'
 import { cloneASTValue } from './astValueCloning'
 import ForgeInvalidNodeError from '../../../../errors/ForgeInvalidNodeError'
+import ForgeInternalError from '../../../../errors/ForgeInternalError'
 
 /**
  * Normalises and indexes an AST subtree in one recursive descent.
  *
  * The walker assigns any missing compile IDs, resolves `Self()` references in
  * ordinary AST nodes, registers nodes by ID, and wires each node's direct
- * `parent`. Template nodes are not registered because generated functions
- * evaluate iterator templates inline instead of materialising runtime AST nodes.
+ * `parent`. Template nodes are not registered in `ASTNodeIndex` because
+ * generated functions evaluate iterator templates inline instead of
+ * materialising runtime AST nodes; their contents go into `TemplateNodeIndex`
+ * so semantic analysis can query them without re-walking every template.
  */
 export default class NodeRegistrationWalker {
   constructor(
     private readonly nodeIdGenerator: NodeIDGenerator,
-    private readonly nodeRegistry: ASTNodeIndex,
+    private readonly nodeIndex: ASTNodeIndex,
+    private readonly templateNodeIndex: TemplateNodeIndex = new TemplateNodeIndex(),
   ) {}
 
   /**
@@ -45,7 +50,15 @@ export default class NodeRegistrationWalker {
       return
     }
 
+    // Template contents stay out of the main registry but are indexed for
+    // semantic analysis, keyed to the registered node that carries them.
     if (isTemplateNode(value)) {
+      if (parentNode === undefined) {
+        throw new ForgeInternalError('Template node reached with no registered parent to own it')
+      }
+
+      this.templateNodeIndex.registerTree(value, parentNode)
+
       return
     }
 
@@ -77,7 +90,7 @@ export default class NodeRegistrationWalker {
       Object.defineProperty(node, 'parent', { value: parentNode, enumerable: false })
     }
 
-    this.nodeRegistry.register(node.id, node)
+    this.nodeIndex.register(node.id, node)
 
     // Field blocks push onto the stack only while their descendants are scanned.
     if (isField) {

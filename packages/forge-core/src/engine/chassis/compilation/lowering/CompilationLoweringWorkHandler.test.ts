@@ -182,19 +182,19 @@ describe('CompilationLoweringWorkHandler', () => {
 
     it('should compile a model built by the real builder without missing inputs', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().withProperty('path', '/journey').build()
       const stepNode = ASTTestFactory.step().withPath('/first').withCode('first').build()
 
       Object.defineProperty(stepNode, 'parent', { value: journeyNode, enumerable: false })
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
+      nodeIndex.register(journeyNode.id, journeyNode)
+      nodeIndex.register(stepNode.id, stepNode)
 
       const registries = {
         componentRegistry: new ComponentRegistry(),
         functionRegistry: new FunctionRegistry(),
       }
-      const model = new CompilationModelBuilder(nodeRegistry, registries).build(new Map([[stepNode.id, stepNode]]))
+      const model = new CompilationModelBuilder(nodeIndex, registries).build(new Map([[stepNode.id, stepNode]]))
 
       // Act
       const { state } = runLowering(model, registries)

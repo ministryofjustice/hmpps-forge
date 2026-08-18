@@ -153,8 +153,8 @@ journey with its `StepModel`s, collecting route metadata for every node in the s
 
 ```mermaid
 flowchart TD
-  nodeRegistry["ASTNodeIndex"] -->|bucket by owner| ownership["OwnershipIndex"]
-  nodeRegistry -->|find step nodes| stepIndex["Step index"]
+  nodeIndex["ASTNodeIndex"] -->|bucket by owner| ownership["OwnershipIndex"]
+  nodeIndex -->|find step nodes| stepIndex["Step index"]
   stepIndex -->|classify fields| fieldModels["FieldModelBuilder"]
   stepIndex -->|per step| stepContext["StepAnalysisContext"]
   ownership -->|per journey| journeyContext["JourneyAnalysisContext"]

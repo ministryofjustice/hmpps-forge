@@ -50,20 +50,22 @@ Semantic analysis rejects those cases before they turn into confusing failures l
 Semantic analysis has a small data model.
 
 `ASTValidationContext` contains:
-- `nodeIndex`, an `ASTNodeIndex` used to find nodes by broad type or subtype.
+- `nodeIndex`, an `ASTNodeIndex` used to find registered nodes by broad type or subtype.
+- `templateNodeIndex`, a `TemplateNodeIndex` used to find template contents by the same types.
 - `functionRegistry`, a `FunctionRegistry` used to check function names.
 - `componentRegistry`, a `ComponentRegistry` used to check block variants.
 
 Parent and ancestor relationships are inspected through the `parent` link on each registered node.
+A `TemplateNodeEntry` carries `owningNode`, the registered node that holds the template, so a rule can also inspect the ancestry of template contents.
 
 An `ASTValidationRule` is a function that accepts `ASTValidationContext` and returns `readonly Error[]`.
 Rules do not throw directly.
 `ASTSemanticValidator.validate()` runs each rule, appends the returned errors, and throws one `AggregateError` when any errors exist.
 
-Most rules inspect registered nodes through `ASTNodeIndex.findByType()`.
-Some rules also inspect iterator `yieldTemplate` and `predicateTemplate` values with `walkTemplateValue()`.
+Most rules inspect registered nodes through `ASTNodeIndex.findByType()` and template contents through `TemplateNodeIndex.findByType()`.
 Templates are AST-shaped, but they are not registered in `ASTNodeIndex`.
-That is why template-aware rules need an explicit walk.
+The registration walk indexes their contents in `TemplateNodeIndex` instead, so most template checks are bucket lookups.
+Only depth-sensitive and path-sensitive checks still walk templates by hand.
 
 ### Example
 
@@ -124,7 +126,7 @@ flowchart TD
   semanticValidator -->|build shared context| validationContext["ASTValidationContext"]
   validationContext -->|run each rule| rules["RULES"]
   rules -->|registered-node checks| registeredRules["Rules using ASTNodeIndex and parent links"]
-  rules -->|template-walk checks| templateRules["Rules walking iterator templates"]
+  rules -->|template-content checks| templateRules["Rules using TemplateNodeIndex"]
   registeredRules -->|collect errors| errors["Error[]"]
   templateRules -->|collect errors| errors
   errors --> hasErrors{"Any errors?"}
@@ -143,8 +145,6 @@ flowchart TD
 - [rules/validateFunctionArity.ts](rules/validateFunctionArity.ts) checks each function expression's authored argument count against the arity of its registered `argumentsSchema` tuple.
 - [rules/validateRegisteredComponents.ts](rules/validateRegisteredComponents.ts) checks all block variants against `ComponentRegistry`.
 - [rules/validateContainerTypes.ts](rules/validateContainerTypes.ts) checks arrays such as `onAccess`, `onSubmission`, `blocks`, `effects`, and `next` for the node types later phases expect.
-- [rules/templateWalker.ts](rules/templateWalker.ts) walks AST-shaped template payloads.
-  It lets rules inspect template nodes without registering those nodes.
 
 ## Boundaries
 
@@ -152,21 +152,24 @@ flowchart TD
   It should not contain individual semantic checks.
 - Validation rules own semantic checks.
   They should return errors and should not throw unless the error is an unexpected programming failure.
-- Semantic analysis reads `ASTNodeIndex` and node `parent` links.
-  It should not create nodes, register nodes, or mutate nodes.
+- Semantic analysis reads `ASTNodeIndex`, `TemplateNodeIndex`, and node `parent` links.
+  It should not create nodes, register nodes, index nodes, or mutate nodes.
 - Registry validation reads `FunctionRegistry` and `ComponentRegistry`.
   It should not register missing functions or components.
 - Scope rules own compile-time placement checks.
   Runtime evaluation should not need to re-check whether an effect, outcome, hook, validation, or tie-breaker was legal.
-- Template walking is local to semantic analysis rules.
-  It should not make template nodes ordinary registered AST descendants.
+- Template checks read `TemplateNodeIndex`, which the AST phase builds during registration.
+  They should not make template nodes ordinary registered AST descendants.
 
 ## Quirks
 
 - Rules collect errors instead of throwing immediately.
   This lets one bad journey report multiple semantic problems in one `AggregateError`.
 - Iterator templates are checked separately from registered nodes.
-  Template nodes are not in `ASTNodeIndex`, so a rule that only uses `findByType()` will miss errors inside `yieldTemplate` and `predicateTemplate`.
+  Template nodes are not in `ASTNodeIndex`, so a rule that only queries it will miss errors inside `yieldTemplate` and `predicateTemplate`.
+  A rule with a template case queries `templateNodeIndex.findByType()` next to its registered-node query.
+- `validateReferenceScopes()` cannot use `TemplateNodeIndex` for its template case.
+  The flat index erases iterator nesting, and `Item()` and `Loop` levels depend on that nesting, so the rule keeps a local depth-tracking walk.
 - `validateReferenceScopes()` treats iterate input differently from iterate templates.
   The input expression is outside the iterator's item scope, but the yield and predicate templates are inside that scope.
 - `validateValidationScope()` tracks the IDs that are direct entries of `validWhen`.
@@ -203,8 +206,9 @@ flowchart TD
   Use broad types such as `ASTNodeType.BLOCK` or indexed subtypes such as `FunctionType.EFFECT` when the index supports them.
 - To validate ancestor or parent placement, walk `node.parent` links.
   Do not infer ancestry from source paths.
-- To validate iterator templates, use `walkTemplateValue()`.
-  Check `templateNode.originalType` first, then inspect fields such as `expressionType`, `blockType`, `hookType`, or `properties`.
+- To validate iterator templates, query `templateNodeIndex.findByType()` with the same broad type or subtype as the registered-node case.
+  Use the entry's `owningNode` when the verdict depends on where the template sits in the registered tree.
+  Fall back to a local walk only when the check depends on template structure the flat index cannot express, as `validateReferenceScopes()` does for iterator depth.
 - To add a new function subtype, make sure `validateRegisteredFunctions()` sees it through `Object.values(FunctionType)`.
   If the subtype has special placement rules, add a separate scope rule.
 - To add a new component-like structure, decide whether it is a block variant checked by `ComponentRegistry`.
@@ -233,4 +237,3 @@ flowchart TD
 - [rules/validateBlockScope.ts](rules/validateBlockScope.ts) answers whether blocks sit in a step's `blocks` array or nested within another block.
 - [rules/validateFunctionArguments.ts](rules/validateFunctionArguments.ts) answers whether function arguments contain illegal block definitions.
 - [rules/validateContainerTypes.ts](rules/validateContainerTypes.ts) answers whether constrained arrays contain the node families later phases expect.
-- [rules/templateWalker.ts](rules/templateWalker.ts) walks template payloads that are not present in the normal AST registry.

@@ -5,6 +5,7 @@ import type { TemplateNode } from '../../../chassis/contracts/ast/template.type'
 import type { TemplateNodeId } from '../../../chassis/contracts/ast/ast.type'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
+import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
 import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
@@ -29,6 +30,7 @@ const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, 
 
   return {
     nodeIndex,
+    templateNodeIndex: new TemplateNodeIndex(),
     functionRegistry: new FunctionRegistry(),
     componentRegistry: new ComponentRegistry(),
   }

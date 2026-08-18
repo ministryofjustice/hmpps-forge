@@ -51,10 +51,10 @@ export default class CompilationModelBuilder {
   private readonly routeAnalyzer = new RouteAnalyzer()
 
   constructor(
-    nodeRegistry: ASTNodeIndex,
+    nodeIndex: ASTNodeIndex,
     private readonly registries: AnalysisRegistries,
   ) {
-    this.ownershipIndex = new OwnershipIndex(nodeRegistry, this.ancestry)
+    this.ownershipIndex = new OwnershipIndex(nodeIndex, this.ancestry)
     this.fieldModelBuilder = new FieldModelBuilder(registries.componentRegistry)
     this.mountInfoAnalyzer = new MountInfoAnalyzer(this.ancestry)
   }

@@ -10,11 +10,14 @@ import type {
 import type { JourneyRouteIndex, StepRouteIndex } from '../../../concerns/route/contracts/routeDescriptors.type'
 import type { CompilationDependencies } from '../lowering/compilationDependencies.type'
 import type ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
+import type TemplateNodeIndex from '../ast/ast-state/TemplateNodeIndex'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 export interface AstContext {
   readonly rootNode: JourneyASTNode
-  readonly nodeRegistry: ASTNodeIndex
+  readonly nodeIndex: ASTNodeIndex
+  /** Template contents indexed for semantic analysis only — analysis and lowering must not plan against them. */
+  readonly templateNodeIndex: TemplateNodeIndex
 }
 
 export interface RouteIndexes {

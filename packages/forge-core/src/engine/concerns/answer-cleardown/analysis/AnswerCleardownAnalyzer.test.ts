@@ -33,7 +33,7 @@ describe('AnswerCleardownAnalyzer', () => {
   describe('analyzeJourney()', () => {
     it('should model one inventory entry per owned step in document order', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step()
         .withPath('/step')
@@ -45,12 +45,12 @@ describe('AnswerCleardownAnalyzer', () => {
       setParent(stepNode, journeyNode)
       setParent(fieldBlock, stepNode)
       setParent(iterateNode, stepNode)
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
-      nodeRegistry.register(fieldBlock.id, fieldBlock)
-      nodeRegistry.register(iterateNode.id, iterateNode)
+      nodeIndex.register(journeyNode.id, journeyNode)
+      nodeIndex.register(stepNode.id, stepNode)
+      nodeIndex.register(fieldBlock.id, fieldBlock)
+      nodeIndex.register(iterateNode.id, iterateNode)
 
-      const context = createJourneyAnalysisContext({ journeyNode, nodeRegistry })
+      const context = createJourneyAnalysisContext({ journeyNode, nodeIndex })
       const analyzer = new AnswerCleardownAnalyzer()
 
       // Act
@@ -65,15 +65,15 @@ describe('AnswerCleardownAnalyzer', () => {
 
     it('should default cleardown field codes to empty when the step declares none', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step().withPath('/step').build()
 
       setParent(stepNode, journeyNode)
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
+      nodeIndex.register(journeyNode.id, journeyNode)
+      nodeIndex.register(stepNode.id, stepNode)
 
-      const context = createJourneyAnalysisContext({ journeyNode, nodeRegistry })
+      const context = createJourneyAnalysisContext({ journeyNode, nodeIndex })
       const analyzer = new AnswerCleardownAnalyzer()
 
       // Act

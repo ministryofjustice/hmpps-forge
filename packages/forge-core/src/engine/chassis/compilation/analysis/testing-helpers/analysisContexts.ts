@@ -18,7 +18,7 @@ import OwnershipIndex from '../shared/OwnershipIndex'
 
 interface StepContextOptions {
   stepNode: StepASTNode
-  nodeRegistry?: ASTNodeIndex
+  nodeIndex?: ASTNodeIndex
   componentRegistry?: ComponentRegistry
   functionRegistry?: FunctionRegistry
 }
@@ -26,7 +26,7 @@ interface StepContextOptions {
 interface JourneyContextOptions {
   journeyNode: JourneyASTNode
   stepNodes?: readonly StepASTNode[]
-  nodeRegistry?: ASTNodeIndex
+  nodeIndex?: ASTNodeIndex
   componentRegistry?: ComponentRegistry
   functionRegistry?: FunctionRegistry
 }
@@ -44,9 +44,9 @@ interface FieldModelOptions {
  * component resolution don't fail on missing variants.
  */
 export function createStepAnalysisContext(options: StepContextOptions): StepAnalysisContext {
-  const nodeRegistry = options.nodeRegistry ?? new ASTNodeIndex()
+  const nodeIndex = options.nodeIndex ?? new ASTNodeIndex()
   const componentRegistry = options.componentRegistry ?? new ComponentRegistry()
-  const ownership = new OwnershipIndex(nodeRegistry)
+  const ownership = new OwnershipIndex(nodeIndex)
   const stepId = options.stepNode.id
   const fieldBlocks = ownership.fieldBlocksOf(stepId)
   const iterateNodes = ownership.mapIterateNodesOf(stepId)
@@ -69,9 +69,9 @@ export function createStepAnalysisContext(options: StepContextOptions): StepAnal
 
 /** Builds a real `JourneyAnalysisContext`, deriving owned steps and their field models. */
 export function createJourneyAnalysisContext(options: JourneyContextOptions): JourneyAnalysisContext {
-  const nodeRegistry = options.nodeRegistry ?? new ASTNodeIndex()
+  const nodeIndex = options.nodeIndex ?? new ASTNodeIndex()
   const componentRegistry = options.componentRegistry ?? new ComponentRegistry()
-  const ownership = new OwnershipIndex(nodeRegistry)
+  const ownership = new OwnershipIndex(nodeIndex)
   const stepNodes =
     options.stepNodes ??
     ownership.journeys().find(journey => journey.journeyNode === options.journeyNode)?.stepNodes ??

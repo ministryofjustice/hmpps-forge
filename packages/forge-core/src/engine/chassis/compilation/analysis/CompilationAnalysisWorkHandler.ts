@@ -10,10 +10,10 @@ export const COMPILATION_ANALYSIS_WORK_HANDLER: WorkHandler<'compilation.analysi
 
   begin(ctx: WorkContextContract<CompilationState, undefined>) {
     const state = ctx.state
-    const stepNodes = state.ast.nodeRegistry.findByType<StepASTNode>(ASTNodeType.STEP)
+    const stepNodes = state.ast.nodeIndex.findByType<StepASTNode>(ASTNodeType.STEP)
     const stepIndex = new Map(stepNodes.map(stepNode => [stepNode.id, stepNode]))
 
-    const modelBuilder = new CompilationModelBuilder(state.ast.nodeRegistry, {
+    const modelBuilder = new CompilationModelBuilder(state.ast.nodeIndex, {
       componentRegistry: state.dependencies.componentRegistry,
       functionRegistry: state.dependencies.functionRegistry,
     })
