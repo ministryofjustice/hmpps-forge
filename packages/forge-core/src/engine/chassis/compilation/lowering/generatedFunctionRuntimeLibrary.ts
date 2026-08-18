@@ -366,8 +366,9 @@ function normalizePostValue(rawValue: unknown, multiple: boolean): unknown {
  * normalisation. A value that fails the schema can't have come from the
  * rendered form, so it's replaced with an empty value (`[]` for multi-value
  * fields, `undefined` for single-value fields) rather than throwing. A passing
- * value is returned unchanged (no Zod coercion in v1). An unanswered value,
- * an unknown variant, or a variant without a schema is left untouched.
+ * value uses the schema's parsed output so its sanitisation and transformations
+ * are retained. An unanswered value, an unknown variant, or a variant without
+ * a schema is left untouched.
  */
 function checkComponentInputValue(
   ctx: ComponentInputContext,
@@ -388,7 +389,7 @@ function checkComponentInputValue(
   const parsed = entry.inputSchema.safeParse(value)
 
   if (parsed.success) {
-    return value
+    return parsed.data
   }
 
   return multiple ? [] : undefined
