@@ -93,6 +93,6 @@ export default class CodegenOrchestrator {
   }
 
   private compileStaticData(staticData: Record<string, unknown>): CompiledStaticDataFunction {
-    return () => ({ ...staticData })
+    return () => structuredClone(staticData)
   }
 }
