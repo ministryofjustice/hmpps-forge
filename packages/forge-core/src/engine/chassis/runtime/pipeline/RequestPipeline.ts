@@ -12,7 +12,7 @@ import type { WorkTask } from '../../contracts/work/work.type'
 import type { ForgeInstrumentation } from '../../tracing/ForgeTraceSinkDispatcher'
 import type { ForgeRenderer } from '../../../../framework/types/rendering.type'
 import RequestPipelineTraceProjector from './RequestPipelineTraceProjector'
-import { resolvePathParams } from '../../../../shared/utils/routePath'
+import { resolvePathParams } from '../../../../shared/routePath'
 import { NO_OP_RESPONSE_BINDINGS, type ResponseBindings } from '../../../../framework/types/responseBindings.type'
 
 export interface RequestPipelineOptions {

@@ -1,9 +1,9 @@
 import type { HttpMethod, RequestLocation } from '../../framework/types/request.type'
 import type { RequestSnapshot } from '../../framework/types/snapshot.type'
-import { resolvePathParams } from '../../shared/utils/routePath'
+import { resolvePathParams } from '../../shared/routePath'
 import { extractPathname } from '../extractPathname'
 import type { ResolvedRoute } from './TestRouteResolver'
-import type { TestRequestOptions } from '../types'
+import type { TestRequestOptions } from './testResult.type'
 
 export default class TestSnapshotFactory {
   static create(

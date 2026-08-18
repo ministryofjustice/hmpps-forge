@@ -3,7 +3,10 @@ import { ASTNode } from '../../../contracts/ast/engine.type'
 import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
 import { isASTNode } from '../../../contracts/ast/nodes'
 import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
-import { isObjectValue } from '../../../../../shared/typeguards/primitives'
+
+function isObjectValue(obj: unknown): obj is Record<string, unknown> {
+  return obj != null && typeof obj === 'object' && !Array.isArray(obj) && obj.constructor === Object
+}
 
 /**
  * Compile an AST value tree into a reusable template.

@@ -1,5 +1,5 @@
 import ForgeTestOutcomeAssertionError from './ForgeTestOutcomeAssertionError'
-import type { TestErrorResult, TestRedirectResult, TestRenderResult, TestResult } from './types'
+import type { TestErrorResult, TestRedirectResult, TestRenderResult, TestResult } from '../test-client/testResult.type'
 
 export function expectRenderOutcome(result: TestResult): asserts result is TestRenderResult {
   if (result.type === 'render') {

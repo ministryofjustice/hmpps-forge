@@ -1,6 +1,6 @@
 import { PhoneConditions, phoneConditionsRegistry } from './phoneConditions'
 import { FunctionType } from '../../../authoring/types/enums'
-import { FunctionRegistryTestHarness } from '../../../testing/FunctionRegistryTestHarness'
+import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('PhoneConditions', () => {
   const harness = new FunctionRegistryTestHarness(phoneConditionsRegistry)

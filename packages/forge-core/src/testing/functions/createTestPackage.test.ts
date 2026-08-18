@@ -1,6 +1,6 @@
-import { createForgePackage } from '../authoring/builders'
+import { createForgePackage } from '../../authoring/builders'
 import { createTestPackage } from './createTestPackage'
-import type { ForgeFunctionImplementations } from '../engine/chassis/contracts/ast/engine.type'
+import type { ForgeFunctionImplementations } from '../../engine/chassis/contracts/ast/engine.type'
 
 describe('createTestPackage()', () => {
   it('should return the package unchanged when no overrides are provided', () => {

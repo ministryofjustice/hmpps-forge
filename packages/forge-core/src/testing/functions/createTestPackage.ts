@@ -1,6 +1,6 @@
-import type { FunctionEvaluator } from '../authoring/types/functions.type'
-import type { ForgePackageRegistration } from '../engine/chassis/contracts/ast/engine.type'
-import { isFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
+import type { FunctionEvaluator } from '../../authoring/types/functions.type'
+import type { ForgePackageRegistration } from '../../engine/chassis/contracts/ast/engine.type'
+import { isFunctionRegistry } from '../../authoring/registries/BaseFunctionRegistry'
 
 export interface TestPackageOptions {
   /** Function evaluators to replace in the package, keyed by function name. */

@@ -1,4 +1,4 @@
-import { normalizeBasePath } from '../../../shared/utils/routePath'
+import { normalizeBasePath } from '../../../shared/routePath'
 import type PackageInstance from '../../PackageInstance'
 import type { NodeId } from '../contracts/ast/ast.type'
 import type {

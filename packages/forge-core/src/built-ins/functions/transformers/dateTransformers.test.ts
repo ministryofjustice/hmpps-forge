@@ -1,5 +1,5 @@
 import { DateTransformers, dateTransformersRegistry } from './dateTransformers'
-import { FunctionRegistryTestHarness } from '../../../testing/FunctionRegistryTestHarness'
+import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('DateTransformers', () => {
   const harness = new FunctionRegistryTestHarness(dateTransformersRegistry)

@@ -1,4 +1,4 @@
-import { normalizeRelativePath } from '../../../../../shared/utils/routePath'
+import { normalizeRelativePath } from '../../../../../shared/routePath'
 import type { JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
 import type { JourneyMountInfo, StepMountInfo } from '../../../contracts/plans/mountInfo.type'
 import Ancestry from './Ancestry'

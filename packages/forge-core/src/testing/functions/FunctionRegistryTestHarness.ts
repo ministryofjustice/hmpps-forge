@@ -1,19 +1,19 @@
-import { BaseFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
-import { GeneratorBuilder } from '../authoring/builders/GeneratorBuilder'
-import type { ChainableGenerator } from '../authoring/builders/types'
-import { FunctionType } from '../authoring/types/enums'
+import { BaseFunctionRegistry } from '../../authoring/registries/BaseFunctionRegistry'
+import { GeneratorBuilder } from '../../authoring/builders/GeneratorBuilder'
+import type { ChainableGenerator } from '../../authoring/builders/types'
+import { FunctionType } from '../../authoring/types/enums'
 import type {
   ConditionFunctionExpr,
   EffectFunctionExpr,
   GeneratorFunctionExpr,
   TransformerFunctionExpr,
-} from '../authoring/types/expressions.type'
-import type { FunctionRegistryEntry } from '../authoring/types/functions.type'
-import type { EffectFunctionContext } from '../engine/chassis/runtime/context/EffectFunctionContext'
+} from '../../authoring/types/expressions.type'
+import type { FunctionRegistryEntry } from '../../authoring/types/functions.type'
+import type { EffectFunctionContext } from '../../engine/chassis/runtime/context/EffectFunctionContext'
 import {
   precheckShortCircuit,
   validateOutput,
-} from '../engine/chassis/compilation/lowering/generatedFunctionRuntimeLibrary'
+} from '../../engine/chassis/compilation/lowering/generatedFunctionRuntimeLibrary'
 
 /**
  * Unit-tests functions registered in a `ConditionRegistry`, `TransformerRegistry`,

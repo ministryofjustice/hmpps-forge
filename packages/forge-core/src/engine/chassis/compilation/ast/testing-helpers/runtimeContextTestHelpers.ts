@@ -1,8 +1,19 @@
 import { vi } from 'vitest'
 import type { AnswerHistory, AnswerSource } from '../../../contracts/runtime/answerHistory.type'
-import { extractPathname } from '../../../../../testing/extractPathname'
 import type { RuntimeContext } from '../../../contracts/runtime/evaluationState.type'
 import type { ResponseBindings } from '../../../../../framework/types/responseBindings.type'
+
+/** Extract a pathname from either an absolute URL or a relative request URL. */
+function extractPathname(url: string): string {
+  try {
+    return new URL(url).pathname
+  } catch {
+    const [withoutHash] = url.split('#', 1)
+    const [path] = withoutHash.split('?', 1)
+
+    return path
+  }
+}
 
 type MockAnswerInput = unknown | AnswerHistory
 

@@ -1,7 +1,7 @@
 import ForgeTestOutcomeAssertionError from './ForgeTestOutcomeAssertionError'
 import { expectErrorOutcome, expectRedirectOutcome, expectRenderOutcome } from './outcomeAssertions'
-import type { RenderContext } from '../framework/types/rendering.type'
-import type { TestErrorResult, TestRedirectResult, TestRenderResult } from './types'
+import type { RenderContext } from '../../framework/types/rendering.type'
+import type { TestErrorResult, TestRedirectResult, TestRenderResult } from '../test-client/testResult.type'
 
 function renderResult(title?: string): TestRenderResult {
   return {

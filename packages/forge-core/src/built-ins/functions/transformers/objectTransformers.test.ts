@@ -1,6 +1,6 @@
 import { ObjectTransformers, objectTransformersRegistry, type DateParts } from './objectTransformers'
 import { FunctionType } from '../../../authoring/types/enums'
-import { FunctionRegistryTestHarness } from '../../../testing/FunctionRegistryTestHarness'
+import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('Object Transformers', () => {
   const harness = new FunctionRegistryTestHarness(objectTransformersRegistry)

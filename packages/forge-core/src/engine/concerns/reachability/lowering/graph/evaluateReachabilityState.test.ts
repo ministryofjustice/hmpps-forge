@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { joinPaths } from '../../../../../shared/utils/routePath'
+import { joinPaths } from '../../../../../shared/routePath'
 import type { ReachabilityStateTable, ReachabilityStateTableEntry } from '../../contracts/reachabilityModel.type'
 import { CompiledReachabilityResult } from '../../../../chassis/contracts/compiled/compiledFunctions.type'
 import { NodeId } from '../../../../chassis/contracts/ast/engine.type'

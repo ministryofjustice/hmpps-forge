@@ -2,12 +2,53 @@ import { AnswerHistory, HookType } from '../../contracts/runtime/answerHistory.t
 import type { CookieOptions } from '../../../../framework/types/response.type'
 import type { ResponseBindings } from '../../../../framework/types/responseBindings.type'
 import type { RuntimeContext } from '../../contracts/runtime/evaluationState.type'
-import { assertSerializable } from '../../../../shared/utils/asserts'
 
 function assertStringParam(value: unknown, method: string, param: string): void {
   if (typeof value !== 'string') {
     throw new TypeError(`${method}: ${param} must be a string, got ${typeof value}`)
   }
+}
+
+/**
+ * Asserts that a value is JSON-serializable (no functions, Symbols, BigInts, Dates, or class instances).
+ * Recursively checks nested objects and arrays.
+ */
+function assertSerializable(value: unknown, method: string, path: string[] = []): void {
+  if (typeof value === 'function') {
+    throw new TypeError(`${method}: Cannot set a function as a value (at ${formatAssertPath(path)})`)
+  }
+
+  if (typeof value === 'symbol') {
+    throw new TypeError(`${method}: Cannot set a Symbol as a value (at ${formatAssertPath(path)})`)
+  }
+
+  if (typeof value === 'bigint') {
+    throw new TypeError(`${method}: Cannot set a BigInt as a value (at ${formatAssertPath(path)})`)
+  }
+
+  if (value instanceof Date) {
+    throw new TypeError(
+      `${method}: Cannot set a Date object as a value — use an ISO string instead (at ${formatAssertPath(path)})`,
+    )
+  }
+
+  if (value !== null && typeof value === 'object') {
+    if (!Array.isArray(value) && value.constructor !== Object) {
+      throw new TypeError(
+        `${method}: Cannot set a ${value.constructor.name} instance as a value — use a plain object instead (at ${formatAssertPath(path)})`,
+      )
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((item, i) => assertSerializable(item, method, [...path, String(i)]))
+    } else {
+      Object.entries(value).forEach(([key, v]) => assertSerializable(v, method, [...path, key]))
+    }
+  }
+}
+
+function formatAssertPath(path: string[]): string {
+  return path.length > 0 ? path.join('.') : 'root'
 }
 
 /**

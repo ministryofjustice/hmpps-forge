@@ -1,7 +1,7 @@
-import type { CookieMutation } from '../framework/types/response.type'
-import type { RenderBlock, RenderContext } from '../framework/types/rendering.type'
-import type { ValidationResult } from '../engine/concerns/validation/contracts/validationResult.type'
-import type { ForgeError } from '../framework/types/outcome.type'
+import type { CookieMutation } from '../../framework/types/response.type'
+import type { RenderBlock, RenderContext } from '../../framework/types/rendering.type'
+import type { ValidationResult } from '../../engine/concerns/validation/contracts/validationResult.type'
+import type { ForgeError } from '../../framework/types/outcome.type'
 
 /** Options for configuring a test request sent via {@link ForgeTestClient}. */
 export interface TestRequestOptions {
