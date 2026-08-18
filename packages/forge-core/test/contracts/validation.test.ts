@@ -27,6 +27,7 @@ import {
   visibleWhenValidationJourney,
   entryDomainValidationJourney,
   entryConditionalWhenFalseJourney,
+  sameCodeVariantsJourney,
 } from './validation.fixtures'
 
 describe('validation contracts', () => {
@@ -224,6 +225,47 @@ describe('validation contracts', () => {
 
         expect(errors).toEqual([expect.objectContaining({ message: 'Enter an email address' })])
       }
+    })
+  })
+
+  describe('same-code field variants', () => {
+    it('should fail only the active copy and anchor the error to its id', async () => {
+      // Arrange
+      const client = createClient(sameCodeVariantsJourney)
+
+      // Act
+      const result = await client.post('/same-code/employment', {
+        session: {},
+        body: { employment_status: 'not-actively-seeking' },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const errors = result.getValidationErrorsByFieldCode('has_been_employed')
+
+        expect(errors).toEqual([
+          expect.objectContaining({
+            message: 'Select whether they have been employed before',
+            anchor: 'employed-not-actively-seeking',
+          }),
+        ])
+      }
+    })
+
+    it('should pass validation and redirect when the active copy has an answer', async () => {
+      // Arrange
+      const client = createClient(sameCodeVariantsJourney)
+
+      // Act
+      const result = await client.post('/same-code/employment', {
+        session: {},
+        body: { employment_status: 'actively-seeking', has_been_employed: 'no' },
+      })
+
+      // Assert
+      expect(result.type).toBe('redirect')
     })
   })
 

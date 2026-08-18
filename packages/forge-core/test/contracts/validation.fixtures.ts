@@ -1127,3 +1127,64 @@ export const entryConditionalWhenFalseJourney = journey({
     }),
   ],
 })
+
+// One logical field rendered as several same-code copies, each owned by a
+// different parent answer via dependentWhen. The first active copy in
+// declaration order owns validation; the error anchor comes from the copy's id.
+function employedCopy(parentValue: string, id: string) {
+  return GovUKTextInput({
+    code: 'has_been_employed',
+    label: 'Have they been employed before?',
+    id,
+    dependentWhen: Answer('employment_status').match(Condition.Equals(parentValue)),
+    validWhen: [
+      validation({
+        condition: Self().match(Condition.IsRequired()),
+        message: 'Select whether they have been employed before',
+      }),
+    ],
+  })
+}
+
+export const sameCodeVariantsJourney = journey({
+  code: 'same-code',
+  path: '/same-code',
+  title: 'Same-code field variants',
+  steps: [
+    step({
+      path: '/employment',
+      title: 'Employment',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKRadioInput({
+          code: 'employment_status',
+          fieldset: { legend: { text: 'Employment status' } },
+          items: [
+            { value: 'unavailable', text: 'Unavailable' },
+            { value: 'actively-seeking', text: 'Actively seeking' },
+            { value: 'not-actively-seeking', text: 'Not actively seeking' },
+            { value: 'employed', text: 'Employed' },
+          ],
+        }),
+        employedCopy('unavailable', 'employed-unavailable'),
+        employedCopy('actively-seeking', 'employed-actively-seeking'),
+        employedCopy('not-actively-seeking', 'employed-not-actively-seeking'),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: true,
+          onValid: {
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({
+      code: 'done',
+      path: '/done',
+      title: 'Done',
+      blocks: [],
+    }),
+  ],
+})

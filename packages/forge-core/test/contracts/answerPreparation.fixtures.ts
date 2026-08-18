@@ -848,3 +848,52 @@ export const dateInputJourney = journey({
     }),
   ],
 })
+
+// One logical field rendered as several same-code copies, each owned by a
+// different parent answer via dependentWhen. The first active copy in
+// declaration order owns answer preparation; with no copy active the shared
+// answer is cleared once, not once per copy.
+function employedCopy(parentValue: string) {
+  return GovUKTextInput({
+    code: 'has_been_employed',
+    label: 'Have they been employed before?',
+    dependentWhen: Answer('employment_status').match(Condition.Equals(parentValue)),
+  })
+}
+
+export const sameCodeVariantsJourney = journey({
+  code: 'same-code',
+  path: '/same-code',
+  title: 'Same-code field variants',
+  steps: [
+    step({
+      path: '/employment',
+      title: 'Employment',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKRadioInput({
+          code: 'employment_status',
+          fieldset: { legend: { text: 'Employment status' } },
+          items: [
+            { value: 'unavailable', text: 'Unavailable' },
+            { value: 'actively-seeking', text: 'Actively seeking' },
+            { value: 'not-actively-seeking', text: 'Not actively seeking' },
+            { value: 'employed', text: 'Employed' },
+          ],
+        }),
+        employedCopy('unavailable'),
+        employedCopy('actively-seeking'),
+        employedCopy('not-actively-seeking'),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: false,
+          onAlways: {
+            effects: [Effects.SaveAnswers('same-code')],
+          },
+        }),
+      ],
+    }),
+  ],
+})

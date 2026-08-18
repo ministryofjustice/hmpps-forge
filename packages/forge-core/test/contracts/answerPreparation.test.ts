@@ -25,6 +25,7 @@ import {
   parserTypeErrorJourney,
   arrayNonMultipleJourney,
   dateInputJourney,
+  sameCodeVariantsJourney,
 } from './answerPreparation.fixtures'
 
 describe('answer preparation contracts', () => {
@@ -128,6 +129,45 @@ describe('answer preparation contracts', () => {
     // Assert
     expect(session.answers?.dependent?.contactMethod).toBe('phone')
     expect(session.answers?.dependent?.emailAddress).toBeUndefined()
+  })
+
+  it('should keep the submitted value when the active same-code copy is the first declared', async () => {
+    // Arrange
+    const client = createClient(sameCodeVariantsJourney)
+
+    // Act
+    const result = await client.post('/same-code/employment', {
+      session: {},
+      body: { employment_status: 'unavailable', has_been_employed: 'yes' },
+    })
+
+    // Assert
+    expect(result.type).toBe('render')
+
+    if (result.type === 'render') {
+      expect(answerOf(result.context.answers, 'has_been_employed').current).toBe('yes')
+    }
+  })
+
+  it('should clear a same-code field once when no copy is active', async () => {
+    // Arrange
+    const client = createClient(sameCodeVariantsJourney)
+
+    // Act
+    const result = await client.post('/same-code/employment', {
+      session: {},
+      body: { employment_status: 'employed', has_been_employed: 'yes' },
+    })
+
+    // Assert
+    expect(result.type).toBe('render')
+
+    if (result.type === 'render') {
+      const history = answerOf(result.context.answers, 'has_been_employed')
+
+      expect(history.current).toBeUndefined()
+      expect(history.mutations).toEqual([{ value: undefined, source: 'dependentWhen' }])
+    }
   })
 
   it('should store empty string when submitted', async () => {
