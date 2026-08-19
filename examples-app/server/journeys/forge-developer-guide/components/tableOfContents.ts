@@ -1,5 +1,4 @@
-import { buildComponent } from '@ministryofjustice/hmpps-forge/core/components'
-import { block as blockBuilder } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { component } from '@ministryofjustice/hmpps-forge/core/components'
 import type {
   BasicBlockProps,
   BlockDefinition,
@@ -15,9 +14,8 @@ export interface TableOfContents extends BlockDefinition, TableOfContentsProps {
   variant: 'tableOfContents'
 }
 
-export const tableOfContentsComponent = buildComponent<TableOfContents>(
-  'tableOfContents',
-  block => {
+export const TableOfContents = component<TableOfContents>('tableOfContents', {
+  render: block => {
     if (!block.headings || block.headings.length === 0) {
       return ''
     }
@@ -38,8 +36,4 @@ export const tableOfContentsComponent = buildComponent<TableOfContents>(
         </ol>
       </nav>`
   },
-)
-
-export function TableOfContents(props: TableOfContentsProps): TableOfContents {
-  return blockBuilder<TableOfContents>({ ...props, variant: 'tableOfContents' })
-}
+})

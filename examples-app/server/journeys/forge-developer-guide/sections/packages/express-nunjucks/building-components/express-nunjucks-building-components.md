@@ -2,14 +2,14 @@
 title: Building Components
 section: packages
 path: packages/express-nunjucks/building-components
-teaches: [buildNunjucksComponent, NunjucksComponentRenderer, component-rendering, validation-errors]
+teaches: [nunjucksComponent, NunjucksComponentRenderer, component-rendering, validation-errors]
 prerequisites: [express-nunjucks, block]
 ---
 
 <p class="govuk-caption-xl">Express-Nunjucks Adapter</p>
 
 # Building Components
-The `buildNunjucksComponent` utility creates a component that
+The `nunjucksComponent` utility creates a component that
 renders a block using a Nunjucks template. This is how the
 GOV.UK and MOJ component packages define their components, and
 how you can build your own.
@@ -21,15 +21,16 @@ how you can build your own.
 ## Creating a component
 
 A Nunjucks component maps a block variant to a render function
-that returns HTML:
+that returns HTML. The result is also the block builder for
+that variant - authors call it with props to build blocks:
 
 ```typescript
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import type { MyInputDefinition } from './types'
 
-export const myInput = buildNunjucksComponent<MyInputDefinition>(
-  'my-input',
-  (block, nunjucksEnv) => {
+export const MyInput = nunjucksComponent<MyInputDefinition>('my-input', {
+  field: true,
+  render: (block, nunjucksEnv) => {
     return nunjucksEnv.render('components/my-input.njk', {
       params: {
         id: block.id ?? block.code,
@@ -42,7 +43,7 @@ export const myInput = buildNunjucksComponent<MyInputDefinition>(
       },
     })
   },
-)
+})
 ```
 
 The render function receives two arguments:
@@ -61,29 +62,34 @@ The function must return an HTML string.
 
 ## Registering components
 
-Register your component with Forge so it can render blocks
-that use the matching variant. To make it available to every
-journey, pass it to `registerGlobalComponents`:
+Building blocks with the component in a journey definition
+registers it automatically - at `registerPackage()`, Forge
+collects every component the journey's blocks were built with
+and registers it for that package. There is nothing to list.
 
-```typescript
-import { myInput } from './components/myInput'
-
-forge.registerGlobalComponents([myInput])
-```
-
-Alternatively, bundle it with a journey package via the
-`components` field of `createForgePackage`:
+When a journey refers to the variant only by string - a JSON
+journey, or blocks authored as plain objects - list the
+component on the package's `components` property instead:
 
 ```typescript
 import { createForgePackage } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { myInput } from './components/myInput'
+import { MyInput } from './components/myInput'
 
 export const myPackage = createForgePackage({
   journey: myJourney,
-  components: [myInput],
+  components: [MyInput],
 })
 
 forge.registerPackage(myPackage)
+```
+
+To make it available to every journey in the application, pass
+it to `registerGlobalComponents`:
+
+```typescript
+import { MyInput } from './components/myInput'
+
+forge.registerGlobalComponents([MyInput])
 ```
 
 ---

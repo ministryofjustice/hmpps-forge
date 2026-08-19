@@ -351,28 +351,33 @@ once for a common group of fields such as an address.
 
 ## The component registry
 
-For a `variant` to work, a component must be registered for it. This happens
-once when you configure Forge, not in your form definitions:
+For a `variant` to work, a component must be registered for it. Components
+declared with `component()` register themselves: building a block with one
+in a journey is enough, and Forge collects it at `registerPackage()`.
+Component libraries like the GOV.UK and MOJ packages are registered once
+when you configure Forge, not in your form definitions:
 
 ```typescript
 const forge = new Forge({ ... })
   .registerGlobalComponents(govukComponents)
   .registerGlobalComponents(mojComponents)
-  .registerGlobalComponents([myCustomCard])
 ```
 
-A component is just a variant string paired with a render function:
+A component is just a variant string paired with a render function, and
+the result doubles as the block builder for that variant:
 
 ```typescript
-import { buildComponent } from '@ministryofjustice/hmpps-forge/core/components'
+import { component } from '@ministryofjustice/hmpps-forge/core/components'
 
-const myCustomCard = buildComponent('myCustomCard', (block) => {
-  return `
-    <div class="app-card">
-      <h2>${block.title}</h2>
-      <p>${block.description}</p>
-    </div>
-  `
+const MyCustomCard = component('myCustomCard', {
+  render: (block) => {
+    return `
+      <div class="app-card">
+        <h2>${block.title}</h2>
+        <p>${block.description}</p>
+      </div>
+    `
+  },
 })
 ```
 

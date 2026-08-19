@@ -10,8 +10,7 @@ import json from 'highlight.js/lib/languages/json'
 import bash from 'highlight.js/lib/languages/bash'
 import yaml from 'highlight.js/lib/languages/yaml'
 import django from 'highlight.js/lib/languages/django'
-import { buildComponent } from '@ministryofjustice/hmpps-forge/core/components'
-import { block as blockBuilder } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { component } from '@ministryofjustice/hmpps-forge/core/components'
 import type {
   BasicBlockProps,
   BlockDefinition,
@@ -250,21 +249,19 @@ function replaceSlotPlaceholders(html: string, slots: Record<string, RenderedBlo
   })
 }
 
-export const govukMarkdown = buildComponent<GovUKMarkdownBlock>('govukMarkdown', block => {
-  if (!block.content) {
-    return ''
-  }
+export const GovUKMarkdownBlock = component<GovUKMarkdownBlock>('govukMarkdown', {
+  render: block => {
+    if (!block.content) {
+      return ''
+    }
 
-  const markdown = block.slots ? replaceSlotMarkers(block.content) : block.content
-  let html = renderGovUKMarkdown(markdown)
+    const markdown = block.slots ? replaceSlotMarkers(block.content) : block.content
+    let html = renderGovUKMarkdown(markdown)
 
-  if (block.slots) {
-    html = replaceSlotPlaceholders(html, block.slots)
-  }
+    if (block.slots) {
+      html = replaceSlotPlaceholders(html, block.slots)
+    }
 
-  return html
+    return html
+  },
 })
-
-export function GovUKMarkdownBlock(props: GovUKMarkdownBlockProps): GovUKMarkdownBlock {
-  return blockBuilder<GovUKMarkdownBlock>({ ...props, variant: 'govukMarkdown' })
-}

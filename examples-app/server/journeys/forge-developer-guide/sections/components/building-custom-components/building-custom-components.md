@@ -2,7 +2,7 @@
 title: Custom components
 section: building-functions-and-components
 path: building-functions-and-components/custom-components
-teaches: [buildComponent, buildNunjucksComponent, ComponentRenderer, EvaluatedBlock, RenderedBlock, custom-component-variant, field-value, field-errors]
+teaches: [component, nunjucksComponent, ComponentRenderer, EvaluatedBlock, RenderedBlock, custom-component-variant, field-value, field-errors]
 prerequisites: [block, field, BlockDefinition, FieldBlockProps, createForgePackage]
 ---
 
@@ -14,8 +14,8 @@ Blocks are the declarative objects you author in a journey. Components
 are the renderers that turn those blocks into HTML. Forge ships with
 components for the GOV.UK and MOJ design systems, plus a small core set
 (`HtmlBlock`, `CollectionBlock`, `TemplateWrapper`). When your service
-needs a visual that the built-in set does not cover, you can define
-your own component and register it alongside your journey.
+needs a visual that the built-in set does not cover, declare your own
+with `component()`. Using it in a journey registers it automatically.
 
 {{slot:toc}}
 
@@ -24,9 +24,11 @@ your own component and register it alongside your journey.
 ## Blocks and components
 
 A block definition is data. A component is the function that renders
-that data. The two are linked by a `variant` string: the block sets
-`variant: 'myCard'` and the component registers itself with the same
-variant, so Forge knows which renderer to call.
+that data. The two are linked by a `variant` string: every block the
+component builds carries `variant: 'myCard'`, and the component is
+registered under the same variant, so Forge knows which renderer to
+call. With `component()` one declaration covers both sides - it
+returns the block builder, and the same value is the renderer entry.
 
 ```
 block:       { variant: 'myCard', heading: 'Title', ... }
@@ -47,8 +49,8 @@ been pre-rendered to HTML. The component only sees concrete values.
 ## The props interface
 
 Every custom component starts with a props interface. This is the
-public API that journey definitions use, and the type that shapes the
-factory function.
+public API that journey definitions use, and the type that shapes
+what the component's builder accepts.
 
 Extend `BasicBlockProps` for a display component, or `FieldBlockProps`
 for one that captures user input:
@@ -82,97 +84,90 @@ for example) can use plain TypeScript types.
 
 ---
 
-## The block definition and factory
+## Declaring the component
 
-Pair the props with a block interface that fixes the `variant`, and
-expose a factory function so authors do not have to set the variant
-themselves.
+Pair the props with a block interface that fixes the `variant`, then
+declare the component with `component()`. The result is a callable
+block builder - authors call it with props and never set the variant
+themselves - and the same value carries the renderer.
 
 For a display block:
 
 ```typescript
-import {
-  block as buildBlock,
-} from '@ministryofjustice/hmpps-forge/core/authoring'
+import { component } from '@ministryofjustice/hmpps-forge/core/components'
 import type { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 
 export interface MyCard extends BlockDefinition, MyCardProps {
   variant: 'myCard'
 }
 
-export function MyCard(props: MyCardProps): MyCard {
-  return buildBlock<MyCard>({ ...props, variant: 'myCard' })
-}
+export const MyCard = component<MyCard>('myCard', {
+  render: block => {
+    const border = block.outlined ? ' my-card--outlined' : ''
+
+    return `
+      <div class="my-card${border}">
+        <h2 class="govuk-heading-m">${block.heading}</h2>
+        ${block.content ? `<p class="govuk-body">${block.content}</p>` : ''}
+      </div>
+    `
+  },
+})
 ```
 
-For a field block, use `field` instead of `block` and extend
-`FieldBlockDefinition`. Field blocks gain a `code`, validation, and
-the runtime `value`/`errors` state described below.
+For a field block, extend `FieldBlockDefinition` and declare
+`field: true`. Field blocks gain a `code`, validation, and the
+runtime `value`/`errors` state described below.
 
 ```typescript
-import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { component } from '@ministryofjustice/hmpps-forge/core/components'
 import type { FieldBlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 
 export interface MyStarRating extends FieldBlockDefinition, MyStarRatingProps {
   variant: 'myStarRating'
 }
 
-export function MyStarRating(props: MyStarRatingProps): MyStarRating {
-  return buildField<MyStarRating>({ ...props, variant: 'myStarRating' })
-}
+export const MyStarRating = component<MyStarRating>('myStarRating', {
+  field: true,
+  render: block => { ... },
+})
 ```
 
 ---
 
 ## The renderer
 
-A component's renderer is a function that receives the evaluated
-block and returns an HTML string. Forge provides two builders,
-depending on how you want to produce HTML.
+The `render` option is a function that receives the evaluated block
+and returns an HTML string. There are two ways to produce that HTML.
 
 ### Pure function components
 
-`buildComponent` is the simpler of the two. The render function
-takes the evaluated block and returns HTML. Use this when the output
-is short, self-contained, and does not need a template engine.
-
-```typescript
-import { buildComponent } from '@ministryofjustice/hmpps-forge/core/components'
-
-export const myCard = buildComponent<MyCard>('myCard', block => {
-  const border = block.outlined ? ' my-card--outlined' : ''
-
-  return `
-    <div class="my-card${border}">
-      <h2 class="govuk-heading-m">${block.heading}</h2>
-      ${block.content ? `<p class="govuk-body">${block.content}</p>` : ''}
-    </div>
-  `
-})
-```
-
-The `variant` string passed to `buildComponent` must match the
-`variant` set on the block. That is how Forge finds the right
-renderer at runtime.
+The plain `component()` form shown above is the simpler of the two:
+the render function takes the evaluated block and returns HTML
+directly. Use this when the output is short, self-contained, and
+does not need a template engine.
 
 ### Template-based components
 
-`buildNunjucksComponent` (from `@ministryofjustice/hmpps-forge/express-nunjucks`)
+`nunjucksComponent` (from `@ministryofjustice/hmpps-forge/express-nunjucks`)
 is the right choice when you want to render through a Nunjucks
-template. The render function receives the evaluated block and a
-Nunjucks environment supplied by Forge.
+template. It is `component()` with the render signature pinned: the
+render function receives the evaluated block and a Nunjucks
+environment supplied by Forge.
 
 ```typescript
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
-export const myCard = buildNunjucksComponent<MyCard>('myCard', (block, nunjucksEnv) => {
-  const params = {
-    heading: block.heading,
-    content: block.content,
-    outlined: block.outlined,
-  }
+export const MyCard = nunjucksComponent<MyCard>('myCard', {
+  render: (block, nunjucksEnv) => {
+    const params = {
+      heading: block.heading,
+      content: block.content,
+      outlined: block.outlined,
+    }
 
-  return nunjucksEnv.render('components/my-card/template.njk', { params })
+    return nunjucksEnv.render('components/my-card/template.njk', { params })
+  },
 })
 ```
 
@@ -222,9 +217,9 @@ Field components use `block.value` and `block.errors` to drive their
 output. The GOV.UK text input is a compact example:
 
 ```typescript
-export const govukTextInput = buildNunjucksComponent<GovUKTextInput>(
-  'govukTextInput',
-  (block, nunjucksEnv) => {
+export const GovUKTextInput = nunjucksComponent<GovUKTextInput>('govukTextInput', {
+  field: true,
+  render: (block, nunjucksEnv) => {
     const params = {
       id: block.id ?? block.code,
       name: block.code,
@@ -235,7 +230,7 @@ export const govukTextInput = buildNunjucksComponent<GovUKTextInput>(
 
     return nunjucksEnv.render('govuk/components/input/template.njk', { params })
   },
-)
+})
 ```
 
 A few things to copy from this pattern:
@@ -390,10 +385,12 @@ const escapeHtml = (value: string): string =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
 
-export const myBadge = buildComponent<MyBadge>('myBadge', block => {
-  const label = escapeHtml(String(block.label ?? ''))
+export const MyBadge = component<MyBadge>('myBadge', {
+  render: block => {
+    const label = escapeHtml(String(block.label ?? ''))
 
-  return `<span class="my-badge">${label}</span>`
+    return `<span class="my-badge">${label}</span>`
+  },
 })
 ```
 
@@ -404,21 +401,37 @@ attribute from a dynamic prop, escape both the key and the value.
 
 ## Registration
 
-Components are registered through the `components` array on
-`createForgePackage`:
+Building a block with a component in a journey definition is also
+what registers it. At `registerPackage()`, Forge collects every
+component the journey's blocks were built with and registers it for
+that package - there is nothing to list:
 
 ```typescript
-import { createForgePackage } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { myCard } from './components/myCard'
-import { myBadge } from './components/myBadge'
-
 export default createForgePackage({
   journey: myJourney,
-  components: [myCard, myBadge],
 })
 ```
 
-Components registered through a package are scoped to that journey.
+Components collected this way are scoped to that package's journey.
+Two packages can each carry a component with the same variant
+without clashing.
+
+If a journey refers to a component only by variant string - a
+journey defined in JSON, or blocks authored as plain objects -
+nothing builds blocks through the component, so there is nothing to
+collect. List the component on the package's `components` property
+to register it regardless:
+
+```typescript
+import { createForgePackage } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { MyCard } from './components/myCard'
+
+export default createForgePackage({
+  journey: myJourney,
+  components: [MyCard],
+})
+```
+
 To make a component available to every journey in the application,
 use `forge.registerGlobalComponents()` instead. This is how the
 GOV.UK and MOJ component packages expose their built-ins.
@@ -427,7 +440,7 @@ GOV.UK and MOJ component packages expose their built-ins.
 
 ## Using custom components
 
-Once registered, a custom component is used like any built-in:
+A custom component is used like any built-in:
 
 ```typescript
 import { MyCard } from './components/myCard'
@@ -449,15 +462,15 @@ calling the renderer.
 
 ## Testing
 
-Renderers are plain functions. Call them with a hand-crafted
-evaluated block and assert on the returned HTML. Pure-function
-components need no framework setup:
+Renderers are plain functions, and the component carries its own
+`render`. Call it with a hand-crafted evaluated block and assert on
+the returned HTML. Pure-function components need no framework setup:
 
 ```typescript
-import { myCard } from './myCard'
+import { MyCard } from './myCard'
 import type { EvaluatedBlock } from '@ministryofjustice/hmpps-forge/core/components'
 
-describe('myCard', () => {
+describe('MyCard', () => {
   describe('render()', () => {
     it('should include the heading text', () => {
       // Arrange
@@ -469,7 +482,7 @@ describe('myCard', () => {
       } as unknown as EvaluatedBlock<MyCard>
 
       // Act
-      const html = myCard.render(block)
+      const html = MyCard.render(block)
 
       // Assert
       expect(html).toContain('Hello')
@@ -479,8 +492,8 @@ describe('myCard', () => {
 })
 ```
 
-For a `buildNunjucksComponent` renderer, pass a stub with a
-`render` method to assert on the template path and params:
+For a `nunjucksComponent` renderer, pass a stub with a `render`
+method to assert on the template path and params:
 
 ```typescript
 it('should pass heading to the template', () => {
@@ -493,7 +506,7 @@ it('should pass heading to the template', () => {
   } as unknown as EvaluatedBlock<MyCard>
 
   // Act
-  myCard.render(block, nunjucksEnv)
+  MyCard.render(block, nunjucksEnv)
 
   // Assert
   expect(nunjucksEnv.render).toHaveBeenCalledWith(
