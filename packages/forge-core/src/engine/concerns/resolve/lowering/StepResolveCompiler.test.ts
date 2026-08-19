@@ -3,9 +3,10 @@ import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers
 import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
-  formatGeneratorsRegistry,
+  FormatGenerators,
 } from '../../../../built-ins/functions/generators/formatGenerators'
-import { stringTransformersRegistry } from '../../../../built-ins/functions/transformers/stringTransformers'
+import { StringTransformers } from '../../../../built-ins/functions/transformers/stringTransformers'
+import { FunctionEntryRegistry } from '../../../../authoring/functions/FunctionEntryRegistry'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import { BlockASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
 import { IterateASTNode, ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
@@ -64,6 +65,22 @@ function createTemplate(value: unknown): TemplateValue {
   return compileTemplate(value, new NodeIDGenerator())
 }
 
+const stringTransformerRows = (() => {
+  const entryRegistry = new FunctionEntryRegistry()
+
+  Object.values(StringTransformers).forEach(entry => entryRegistry.collectListed(entry))
+
+  return entryRegistry.build()
+})()
+
+const formatGeneratorRows = (() => {
+  const entryRegistry = new FunctionEntryRegistry()
+
+  Object.values(FormatGenerators).forEach(entry => entryRegistry.collectListed(entry))
+
+  return entryRegistry.build()
+})()
+
 function createIterateNode(
   yieldTemplate: TemplateValue,
   input: ReferenceASTNode = createReference(['data', 'members']),
@@ -100,7 +117,7 @@ function createCtx(overrides: Partial<CompiledResolveContext> = {}): CompiledRes
     conditions: {
       get: vi.fn((name: string) => {
         if (name === FORMAT_STRING_GENERATOR_NAME) {
-          return formatGeneratorsRegistry.build()[FORMAT_STRING_GENERATOR_NAME]
+          return formatGeneratorRows[FORMAT_STRING_GENERATOR_NAME]
         }
 
         return { evaluate: () => undefined }
@@ -1143,7 +1160,7 @@ describe('StepResolveCompiler', () => {
       const functionRegistry = new FunctionRegistry()
 
       functionRegistry.register({
-        ...formatGeneratorsRegistry.build(),
+        ...formatGeneratorRows,
         Equals: {
           name: 'Equals',
           isAsync: false,
@@ -1224,7 +1241,7 @@ describe('StepResolveCompiler', () => {
       const functionRegistry = new FunctionRegistry()
 
       functionRegistry.register({
-        ...formatGeneratorsRegistry.build(),
+        ...formatGeneratorRows,
         Equals: {
           name: 'Equals',
           isAsync: false,
@@ -1319,8 +1336,8 @@ describe('StepResolveCompiler', () => {
       const functionRegistry = new FunctionRegistry()
 
       functionRegistry.register({
-        ...formatGeneratorsRegistry.build(),
-        formatDate: stringTransformersRegistry.build()['String.FormatDate'],
+        ...formatGeneratorRows,
+        formatDate: stringTransformerRows['String.FormatDate'],
       })
 
       const formatCompiler = new StepResolveCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
@@ -1353,7 +1370,7 @@ describe('StepResolveCompiler', () => {
       const functionRegistry = new FunctionRegistry()
 
       functionRegistry.register({
-        ...formatGeneratorsRegistry.build(),
+        ...formatGeneratorRows,
         AsyncFormatDate: {
           name: 'AsyncFormatDate',
           isAsync: true,
@@ -1389,8 +1406,8 @@ describe('StepResolveCompiler', () => {
       const functionRegistry = new FunctionRegistry()
 
       functionRegistry.register({
-        ...formatGeneratorsRegistry.build(),
-        formatDate: stringTransformersRegistry.build()['String.FormatDate'],
+        ...formatGeneratorRows,
+        formatDate: stringTransformerRows['String.FormatDate'],
       })
 
       const typeErrorCompiler = new StepResolveCompiler({
@@ -1449,7 +1466,7 @@ describe('StepResolveCompiler', () => {
       const functionRegistry = new FunctionRegistry()
 
       functionRegistry.register({
-        ...formatGeneratorsRegistry.build(),
+        ...formatGeneratorRows,
         throwingCount: {
           name: 'throwingCount',
           isAsync: false,

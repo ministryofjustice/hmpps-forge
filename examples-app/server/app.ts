@@ -1,10 +1,7 @@
 import express from 'express'
 import createError from 'http-errors'
 import { Forge, type ForgeInstrumentationSink } from '@ministryofjustice/hmpps-forge/core'
-import {
-  createExpressRouter,
-  nunjucksFunctions,
-} from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { mojComponents } from '@ministryofjustice/hmpps-forge/moj-components'
 import nunjucksSetup from './utils/nunjucksSetup'
@@ -28,7 +25,6 @@ export default function createApp(services: Services): express.Application {
   const forge = new Forge({ logger, instrumentation: { sinks: createForgeInstrumentationSinks() } })
     .registerGlobalComponents(govukComponents)
     .registerGlobalComponents(mojComponents)
-    .registerGlobalFunctions(nunjucksFunctions)
     .registerPackage(developerGuidePackage, {
       guideContentStore: services.guideContentStore,
       guideSearch: services.guideSearch,

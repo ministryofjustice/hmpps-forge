@@ -1,9 +1,9 @@
-import { DateConditions, dateConditionsRegistry } from './dateConditions'
+import { DateConditions } from './dateConditions'
 import { FunctionType } from '../../../authoring/types/enums'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('DateConditions', () => {
-  const harness = new FunctionRegistryTestHarness(dateConditionsRegistry)
+  const harness = new FunctionRegistryTestHarness(Object.values(DateConditions))
 
   describe('IsValid', () => {
     test('should return true for valid ISO date strings', () => {

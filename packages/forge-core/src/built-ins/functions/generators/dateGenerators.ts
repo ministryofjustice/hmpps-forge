@@ -1,19 +1,17 @@
 import { z } from 'zod'
-import GeneratorRegistry from '../../../authoring/registries/GeneratorRegistry'
+import { generator } from '../../../authoring/functions/generator'
 
 const noArgsSchema = z.tuple([])
 
-const dateGenerators = new GeneratorRegistry()
-
 export const DateGenerators = {
   /** Generates the current date and time */
-  Now: dateGenerators.register('Date.Now', {
+  Now: generator('Date.Now', {
     argumentsSchema: noArgsSchema,
     factory: () => () => new Date(),
   }),
 
   /** Generates today's date at midnight */
-  Today: dateGenerators.register('Date.Today', {
+  Today: generator('Date.Today', {
     argumentsSchema: noArgsSchema,
     factory: () => () => {
       const now = new Date()
@@ -22,5 +20,3 @@ export const DateGenerators = {
     },
   }),
 }
-
-export { dateGenerators as dateGeneratorsRegistry }

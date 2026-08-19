@@ -6,8 +6,9 @@ import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
-  formatGeneratorsRegistry,
+  FormatGenerators,
 } from '../../../../built-ins/functions/generators/formatGenerators'
+import { FunctionEntryRegistry } from '../../../../authoring/functions/FunctionEntryRegistry'
 import { FieldBlockASTNode } from '../../../chassis/contracts/ast/structures.type'
 import { FunctionASTNode, IterateASTNode, ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import { TestPredicateASTNode } from '../../../chassis/contracts/ast/predicates.type'
@@ -136,6 +137,14 @@ function createGeneratorFunction(name: string, args: unknown[] = []): FunctionAS
   } as FunctionASTNode
 }
 
+const formatGeneratorRows = (() => {
+  const entryRegistry = new FunctionEntryRegistry()
+
+  Object.values(FormatGenerators).forEach(entry => entryRegistry.collectListed(entry))
+
+  return entryRegistry.build()
+})()
+
 function createTestPredicate(subject: ReferenceASTNode, condition: FunctionASTNode): TestPredicateASTNode {
   return {
     type: ASTNodeType.PREDICATE,
@@ -158,7 +167,7 @@ function createCtx(overrides: Partial<CompiledAnswerPreparationContext> = {}): C
     conditions: {
       get: vi.fn((name: string) => {
         if (name === FORMAT_STRING_GENERATOR_NAME) {
-          return formatGeneratorsRegistry.build()[FORMAT_STRING_GENERATOR_NAME]
+          return formatGeneratorRows[FORMAT_STRING_GENERATOR_NAME]
         }
 
         if (name === 'trim') {

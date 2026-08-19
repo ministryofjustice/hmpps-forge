@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import ConditionRegistry from '../../../authoring/registries/ConditionRegistry'
+import { condition } from '../../../authoring/functions/condition'
 
 function parseISODate(value: unknown): { year: number; month: number; day: number } | null {
   if (typeof value !== 'string') {
@@ -25,11 +25,9 @@ function parseISODate(value: unknown): { year: number; month: number; day: numbe
 const stringSchema = z.string()
 const stringArgsSchema = z.tuple([z.string()])
 
-const dateConditions = new ConditionRegistry()
-
 export const DateConditions = {
   /** Checks if a value is a valid ISO-8601 date string (YYYY-MM-DD) */
-  IsValid: dateConditions.register('Date.IsValid', {
+  IsValid: condition('Date.IsValid', {
     inputSchema: stringSchema,
     factory: () => (value: string) => {
       const parsed = parseISODate(value)
@@ -47,7 +45,7 @@ export const DateConditions = {
   }),
 
   /** Validates if an ISO date string has a valid year component (1000-9999) */
-  IsValidYear: dateConditions.register('Date.IsValidYear', {
+  IsValidYear: condition('Date.IsValidYear', {
     inputSchema: stringSchema,
     factory: () => (value: string) => {
       const parsed = parseISODate(value)
@@ -60,7 +58,7 @@ export const DateConditions = {
   }),
 
   /** Validates if an ISO date string has a valid month component (1-12) */
-  IsValidMonth: dateConditions.register('Date.IsValidMonth', {
+  IsValidMonth: condition('Date.IsValidMonth', {
     inputSchema: stringSchema,
     factory: () => (value: string) => {
       const parsed = parseISODate(value)
@@ -73,7 +71,7 @@ export const DateConditions = {
   }),
 
   /** Validates if a date string has a valid day component for its specific month/year */
-  IsValidDay: dateConditions.register('Date.IsValidDay', {
+  IsValidDay: condition('Date.IsValidDay', {
     inputSchema: stringSchema,
     factory: () => (value: string) => {
       const dateMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
@@ -96,7 +94,7 @@ export const DateConditions = {
   }),
 
   /** Checks if an ISO date string is before another ISO date string */
-  IsBefore: dateConditions.register('Date.IsBefore', {
+  IsBefore: condition('Date.IsBefore', {
     inputSchema: stringSchema,
     argumentsSchema: stringArgsSchema,
     factory: () => (value: string, dateStr: string) => {
@@ -118,7 +116,7 @@ export const DateConditions = {
   }),
 
   /** Checks if an ISO date string is after another ISO date string */
-  IsAfter: dateConditions.register('Date.IsAfter', {
+  IsAfter: condition('Date.IsAfter', {
     inputSchema: stringSchema,
     argumentsSchema: stringArgsSchema,
     factory: () => (value: string, dateStr: string) => {
@@ -140,7 +138,7 @@ export const DateConditions = {
   }),
 
   /** Checks if an ISO date string is in the future (after today) */
-  IsFutureDate: dateConditions.register('Date.IsFutureDate', {
+  IsFutureDate: condition('Date.IsFutureDate', {
     inputSchema: stringSchema,
     factory: () => (value: string) => {
       const parsed = parseISODate(value)
@@ -157,7 +155,7 @@ export const DateConditions = {
   }),
 
   /** Checks if an ISO date string is in the past (before today) */
-  IsPastDate: dateConditions.register('Date.IsPastDate', {
+  IsPastDate: condition('Date.IsPastDate', {
     inputSchema: stringSchema,
     factory: () => (value: string) => {
       const parsed = parseISODate(value)
@@ -174,7 +172,7 @@ export const DateConditions = {
   }),
 
   /** Checks if an ISO date string is today */
-  IsToday: dateConditions.register('Date.IsToday', {
+  IsToday: condition('Date.IsToday', {
     inputSchema: stringSchema,
     factory: () => (value: string) => {
       const parsed = parseISODate(value)
@@ -190,5 +188,3 @@ export const DateConditions = {
     },
   }),
 }
-
-export { dateConditions as dateConditionsRegistry }

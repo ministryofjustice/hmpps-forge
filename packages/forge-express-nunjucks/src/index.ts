@@ -35,4 +35,4 @@ export { buildNunjucksComponent } from './utils/buildNunjucksComponent'
 export type { NunjucksComponentRenderer } from './utils/buildNunjucksComponent'
 export { nunjucksComponent } from './utils/nunjucksComponent'
 
-export { NunjucksGenerators, nunjucksFunctions } from './generators/nunjucksGenerators'
+export { NunjucksGenerators } from './generators/nunjucksGenerators'

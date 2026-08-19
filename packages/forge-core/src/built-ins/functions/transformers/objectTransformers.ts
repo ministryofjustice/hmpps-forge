@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import TransformerRegistry from '../../../authoring/registries/TransformerRegistry'
+import { transformer } from '../../../authoring/functions/transformer'
 
 /** Gets a value from an object using a dot-notation path (e.g. 'user.profile.name') */
 function getByPath<T = unknown>(obj: unknown, path: string): T | undefined {
@@ -35,8 +35,6 @@ const datePartsArgsSchema = z.tuple([
   }),
 ])
 
-const objectTransformers = new TransformerRegistry()
-
 export const ObjectTransformers = {
   /**
    * Converts an object with date parts to an ISO 8601 date string
@@ -55,7 +53,7 @@ export const ObjectTransformers = {
    * // Nested paths: {date: {y: "2024", m: "3", d: "15"}} becomes "2024-03-15"
    * ToISO({year: 'date.y', month: 'date.m', day: 'date.d'})
    */
-  ToISO: objectTransformers.register('Object.ToISO', {
+  ToISO: transformer('Object.ToISO', {
     inputSchema: objectSchema,
     argumentsSchema: datePartsArgsSchema,
     factory: () => (value: Record<string, unknown>, paths: DateParts) => {
@@ -137,7 +135,7 @@ export const ObjectTransformers = {
    * // Year-month: "2024-03" becomes {year: "2024", month: "03"}
    * FromISO({year: 'year', month: 'month'})
    */
-  FromISO: objectTransformers.register('Object.FromISO', {
+  FromISO: transformer('Object.FromISO', {
     argumentsSchema: datePartsArgsSchema,
     factory: () => (value: unknown, paths: DateParts) => {
       if (typeof value === 'object' && value !== null) {
@@ -201,5 +199,3 @@ export const ObjectTransformers = {
     },
   }),
 }
-
-export { objectTransformers as objectTransformersRegistry }

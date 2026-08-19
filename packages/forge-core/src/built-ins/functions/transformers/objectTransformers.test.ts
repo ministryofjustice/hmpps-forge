@@ -1,9 +1,9 @@
-import { ObjectTransformers, objectTransformersRegistry, type DateParts } from './objectTransformers'
+import { ObjectTransformers, type DateParts } from './objectTransformers'
 import { FunctionType } from '../../../authoring/types/enums'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('Object Transformers', () => {
-  const harness = new FunctionRegistryTestHarness(objectTransformersRegistry)
+  const harness = new FunctionRegistryTestHarness(Object.values(ObjectTransformers))
 
   describe('ToISO', () => {
     it('should convert date objects to ISO format with zero-padding', () => {

@@ -1,9 +1,9 @@
-import { ArrayTransformers, arrayTransformersRegistry } from './arrayTransformers'
+import { ArrayTransformers } from './arrayTransformers'
 import { FunctionType } from '../../../authoring/types/enums'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('Array Transformers', () => {
-  const harness = new FunctionRegistryTestHarness(arrayTransformersRegistry)
+  const harness = new FunctionRegistryTestHarness(Object.values(ArrayTransformers))
 
   describe('Length', () => {
     it('should return length of array', () => {

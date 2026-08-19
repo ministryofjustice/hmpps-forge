@@ -1,9 +1,9 @@
-import { NumberTransformers, numberTransformersRegistry } from './numberTransformers'
+import { NumberTransformers } from './numberTransformers'
 import { FunctionType } from '../../../authoring/types/enums'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('Number Transformers', () => {
-  const harness = new FunctionRegistryTestHarness(numberTransformersRegistry)
+  const harness = new FunctionRegistryTestHarness(Object.values(NumberTransformers))
 
   describe('Add', () => {
     it('should add two positive numbers', () => {

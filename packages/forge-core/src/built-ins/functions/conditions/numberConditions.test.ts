@@ -1,9 +1,9 @@
-import { NumberConditions, numberConditionsRegistry } from './numberConditions'
+import { NumberConditions } from './numberConditions'
 import { FunctionType } from '../../../authoring/types/enums'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('NumberConditions', () => {
-  const harness = new FunctionRegistryTestHarness(numberConditionsRegistry)
+  const harness = new FunctionRegistryTestHarness(Object.values(NumberConditions))
 
   describe('IsNumber', () => {
     test('should return true for valid numbers', () => {

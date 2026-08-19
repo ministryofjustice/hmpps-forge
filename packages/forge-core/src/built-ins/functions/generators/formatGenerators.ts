@@ -1,13 +1,11 @@
 import { z } from 'zod'
-import GeneratorRegistry from '../../../authoring/registries/GeneratorRegistry'
+import { generator } from '../../../authoring/functions/generator'
 
 export const FORMAT_STRING_GENERATOR_NAME = 'FormatString'
 
-const formatGenerators = new GeneratorRegistry()
-
 export const FormatGenerators = {
   /** Generates a string from a template with %1-style positional placeholders */
-  FormatString: formatGenerators.register(FORMAT_STRING_GENERATOR_NAME, {
+  FormatString: generator(FORMAT_STRING_GENERATOR_NAME, {
     argumentsSchema: z.tuple([z.string()], z.unknown()),
     factory:
       () =>
@@ -15,8 +13,6 @@ export const FormatGenerators = {
         formatString(template, replacements),
   }),
 }
-
-export { formatGenerators as formatGeneratorsRegistry }
 
 function formatString(template: string, replacements: readonly unknown[]): string {
   return template.replace(/%([1-9]\d*)(?!\d)/g, (placeholder, indexValue) =>

@@ -1,9 +1,7 @@
 import { z } from 'zod'
-import TransformerRegistry from '../../../authoring/registries/TransformerRegistry'
+import { transformer } from '../../../authoring/functions/transformer'
 
 const arraySchema = z.array(z.unknown())
-
-const arrayTransformers = new TransformerRegistry()
 
 export const ArrayTransformers = {
   /**
@@ -11,7 +9,7 @@ export const ArrayTransformers = {
    * @example
    * // Length() applied to [1, 2, 3, 4] returns 4
    */
-  Length: arrayTransformers.register('Array.Length', {
+  Length: transformer('Array.Length', {
     inputSchema: arraySchema,
     factory: () => (value: unknown[]) => value.length,
   }),
@@ -21,7 +19,7 @@ export const ArrayTransformers = {
    * @example
    * // First() applied to [1, 2, 3] returns 1
    */
-  First: arrayTransformers.register('Array.First', {
+  First: transformer('Array.First', {
     inputSchema: arraySchema,
     factory: () => (value: unknown[]) => (value.length > 0 ? value[0] : undefined),
   }),
@@ -31,7 +29,7 @@ export const ArrayTransformers = {
    * @example
    * // Last() applied to [1, 2, 3] returns 3
    */
-  Last: arrayTransformers.register('Array.Last', {
+  Last: transformer('Array.Last', {
     inputSchema: arraySchema,
     factory: () => (value: unknown[]) => (value.length > 0 ? value[value.length - 1] : undefined),
   }),
@@ -41,7 +39,7 @@ export const ArrayTransformers = {
    * @example
    * // Reverse() applied to [1, 2, 3] returns [3, 2, 1]
    */
-  Reverse: arrayTransformers.register('Array.Reverse', {
+  Reverse: transformer('Array.Reverse', {
     inputSchema: arraySchema,
     factory: () => (value: unknown[]) => [...value].reverse(),
   }),
@@ -52,7 +50,7 @@ export const ArrayTransformers = {
    * @example
    * // Join(", ") applied to [1, 2, 3] returns "1, 2, 3"
    */
-  Join: arrayTransformers.register('Array.Join', {
+  Join: transformer('Array.Join', {
     inputSchema: arraySchema,
     argumentsSchema: z.tuple([z.string().optional()]),
     factory:
@@ -68,7 +66,7 @@ export const ArrayTransformers = {
    * @example
    * // Slice(1, 4) applied to [1, 2, 3, 4, 5] returns [2, 3, 4]
    */
-  Slice: arrayTransformers.register('Array.Slice', {
+  Slice: transformer('Array.Slice', {
     inputSchema: arraySchema,
     argumentsSchema: z.tuple([z.number(), z.number().optional()]),
     factory: () => (value: unknown[], start: number, end?: number) => value.slice(start, end),
@@ -80,7 +78,7 @@ export const ArrayTransformers = {
    * @example
    * // Concat([3, 4]) applied to [1, 2] returns [1, 2, 3, 4]
    */
-  Concat: arrayTransformers.register('Array.Concat', {
+  Concat: transformer('Array.Concat', {
     inputSchema: arraySchema,
     argumentsSchema: z.tuple([z.array(z.unknown())], z.array(z.unknown())),
     factory:
@@ -94,7 +92,7 @@ export const ArrayTransformers = {
    * @example
    * // Unique() applied to [1, 2, 2, 3, 1] returns [1, 2, 3]
    */
-  Unique: arrayTransformers.register('Array.Unique', {
+  Unique: transformer('Array.Unique', {
     inputSchema: arraySchema,
     factory: () => (value: unknown[]) => [...new Set(value)],
   }),
@@ -104,7 +102,7 @@ export const ArrayTransformers = {
    * @example
    * // Sort() applied to [3, 1, 4, 2] returns [1, 2, 3, 4]
    */
-  Sort: arrayTransformers.register('Array.Sort', {
+  Sort: transformer('Array.Sort', {
     inputSchema: arraySchema,
     factory: () => (value: unknown[]) =>
       [...value].sort((a, b) => {
@@ -122,7 +120,7 @@ export const ArrayTransformers = {
    * @example
    * // Filter(2) applied to [1, 2, 2, 3] returns [2, 2]
    */
-  Filter: arrayTransformers.register('Array.Filter', {
+  Filter: transformer('Array.Filter', {
     inputSchema: arraySchema,
     argumentsSchema: z.tuple([z.unknown()]),
     factory: () => (value: unknown[], filterValue: unknown) => value.filter(item => item === filterValue),
@@ -135,7 +133,7 @@ export const ArrayTransformers = {
    * // Map('name') applied to [{name: 'John'}, {name: 'Jane'}] returns ['John', 'Jane']
    * // Map(0) applied to [[1, 2], [3, 4]] returns [1, 3]
    */
-  Map: arrayTransformers.register('Array.Map', {
+  Map: transformer('Array.Map', {
     inputSchema: arraySchema,
     argumentsSchema: z.tuple([z.union([z.string(), z.number()])]),
     factory: () => (value: unknown[], property: string | number) =>
@@ -157,10 +155,8 @@ export const ArrayTransformers = {
    * @example
    * // Flatten() applied to [[1, 2], [3, 4]] returns [1, 2, 3, 4]
    */
-  Flatten: arrayTransformers.register('Array.Flatten', {
+  Flatten: transformer('Array.Flatten', {
     inputSchema: arraySchema,
     factory: () => (value: unknown[]) => value.flat(),
   }),
 }
-
-export { arrayTransformers as arrayTransformersRegistry }

@@ -1,11 +1,9 @@
 import { z } from 'zod'
-import TransformerRegistry from '../../../authoring/registries/TransformerRegistry'
+import { transformer } from '../../../authoring/functions/transformer'
 
 const numberSchema = z.number()
 const numberArgsSchema = z.tuple([z.number()])
 const numberRangeArgsSchema = z.tuple([z.number(), z.number()])
-
-const numberTransformers = new TransformerRegistry()
 
 export const NumberTransformers = {
   /**
@@ -15,7 +13,7 @@ export const NumberTransformers = {
    * // Add(3) applied to 5 returns 8
    * // Add(Answer('tax')) applied to Answer('price') - dynamic addition
    */
-  Add: numberTransformers.register('Number.Add', {
+  Add: transformer('Number.Add', {
     inputSchema: numberSchema,
     argumentsSchema: numberArgsSchema,
     factory: () => (value: number, addend: number) => value + addend,
@@ -27,7 +25,7 @@ export const NumberTransformers = {
    * @example
    * // Subtract(3) applied to 10 returns 7
    */
-  Subtract: numberTransformers.register('Number.Subtract', {
+  Subtract: transformer('Number.Subtract', {
     inputSchema: numberSchema,
     argumentsSchema: numberArgsSchema,
     factory: () => (value: number, subtrahend: number) => value - subtrahend,
@@ -40,7 +38,7 @@ export const NumberTransformers = {
    * // Multiply(3) applied to 4 returns 12
    * // Multiply(Answer('quantity')) applied to Answer('price') - dynamic multiplication
    */
-  Multiply: numberTransformers.register('Number.Multiply', {
+  Multiply: transformer('Number.Multiply', {
     inputSchema: numberSchema,
     argumentsSchema: numberArgsSchema,
     factory: () => (value: number, multiplier: number) => value * multiplier,
@@ -52,7 +50,7 @@ export const NumberTransformers = {
    * @example
    * // Divide(3) applied to 15 returns 5
    */
-  Divide: numberTransformers.register('Number.Divide', {
+  Divide: transformer('Number.Divide', {
     inputSchema: numberSchema,
     argumentsSchema: numberArgsSchema,
     factory: () => (value: number, divisor: number) => {
@@ -69,7 +67,7 @@ export const NumberTransformers = {
    * @example
    * // Abs() applied to -5 returns 5
    */
-  Abs: numberTransformers.register('Number.Abs', {
+  Abs: transformer('Number.Abs', {
     inputSchema: numberSchema,
     factory: () => (value: number) => Math.abs(value),
   }),
@@ -79,7 +77,7 @@ export const NumberTransformers = {
    * @example
    * // Round() applied to 4.7 returns 5
    */
-  Round: numberTransformers.register('Number.Round', {
+  Round: transformer('Number.Round', {
     inputSchema: numberSchema,
     factory: () => (value: number) => Math.round(value),
   }),
@@ -89,7 +87,7 @@ export const NumberTransformers = {
    * @example
    * // Floor() applied to 4.7 returns 4
    */
-  Floor: numberTransformers.register('Number.Floor', {
+  Floor: transformer('Number.Floor', {
     inputSchema: numberSchema,
     factory: () => (value: number) => Math.floor(value),
   }),
@@ -99,7 +97,7 @@ export const NumberTransformers = {
    * @example
    * // Ceil() applied to 4.2 returns 5
    */
-  Ceil: numberTransformers.register('Number.Ceil', {
+  Ceil: transformer('Number.Ceil', {
     inputSchema: numberSchema,
     factory: () => (value: number) => Math.ceil(value),
   }),
@@ -110,7 +108,7 @@ export const NumberTransformers = {
    * @example
    * // ToFixed(2) applied to 3.14159 returns 3.14
    */
-  ToFixed: numberTransformers.register('Number.ToFixed', {
+  ToFixed: transformer('Number.ToFixed', {
     inputSchema: numberSchema,
     argumentsSchema: numberArgsSchema,
     factory: () => (value: number, decimals: number) => parseFloat(value.toFixed(decimals)),
@@ -122,7 +120,7 @@ export const NumberTransformers = {
    * @example
    * // Max(10) applied to 5 returns 10
    */
-  Max: numberTransformers.register('Number.Max', {
+  Max: transformer('Number.Max', {
     inputSchema: numberSchema,
     argumentsSchema: numberArgsSchema,
     factory: () => (value: number, comparison: number) => Math.max(value, comparison),
@@ -134,7 +132,7 @@ export const NumberTransformers = {
    * @example
    * // Min(10) applied to 5 returns 5
    */
-  Min: numberTransformers.register('Number.Min', {
+  Min: transformer('Number.Min', {
     inputSchema: numberSchema,
     argumentsSchema: numberArgsSchema,
     factory: () => (value: number, comparison: number) => Math.min(value, comparison),
@@ -146,7 +144,7 @@ export const NumberTransformers = {
    * @example
    * // Power(3) applied to 2 returns 8
    */
-  Power: numberTransformers.register('Number.Power', {
+  Power: transformer('Number.Power', {
     inputSchema: numberSchema,
     argumentsSchema: numberArgsSchema,
     factory: () => (value: number, exponent: number) => value ** exponent,
@@ -157,7 +155,7 @@ export const NumberTransformers = {
    * @example
    * // Sqrt() applied to 16 returns 4
    */
-  Sqrt: numberTransformers.register('Number.Sqrt', {
+  Sqrt: transformer('Number.Sqrt', {
     inputSchema: numberSchema,
     factory: () => (value: number) => {
       if (value < 0) {
@@ -177,11 +175,9 @@ export const NumberTransformers = {
    * // Clamp(5, 10) applied to 3 returns 5
    * // Clamp(5, 10) applied to 7 returns 7
    */
-  Clamp: numberTransformers.register('Number.Clamp', {
+  Clamp: transformer('Number.Clamp', {
     inputSchema: numberSchema,
     argumentsSchema: numberRangeArgsSchema,
     factory: () => (value: number, min: number, max: number) => Math.min(Math.max(value, min), max),
   }),
 }
-
-export { numberTransformers as numberTransformersRegistry }

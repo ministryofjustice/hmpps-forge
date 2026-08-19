@@ -1,13 +1,13 @@
-import { GeneralConditions, generalConditionsRegistry } from './generalConditions'
+import { GeneralConditions } from './generalConditions'
 import { StringConditions } from './stringConditions'
 import { FunctionEntryRegistry } from '../../../authoring/functions/FunctionEntryRegistry'
-import { AddressConditions, addressConditionsRegistry } from './addressConditions'
-import { EmailConditions, emailConditionsRegistry } from './emailConditions'
-import { DateConditions, dateConditionsRegistry } from './dateConditions'
-import { NumberConditions, numberConditionsRegistry } from './numberConditions'
-import { PhoneConditions, phoneConditionsRegistry } from './phoneConditions'
-import { ArrayConditions, arrayConditionsRegistry } from './arrayConditions'
-import { ObjectConditions, objectConditionsRegistry } from './objectConditions'
+import { AddressConditions } from './addressConditions'
+import { EmailConditions } from './emailConditions'
+import { DateConditions } from './dateConditions'
+import { NumberConditions } from './numberConditions'
+import { PhoneConditions } from './phoneConditions'
+import { ArrayConditions } from './arrayConditions'
+import { ObjectConditions } from './objectConditions'
 
 // TypeScript declaration emit drops JSDoc when it structurally expands a type
 // imported from another file, so the built .d.ts would lose every per-function
@@ -67,25 +67,21 @@ export const Condition: typeof GeneralConditions & ConditionGroups = {
   Object: ObjectConditions,
 }
 
-// The string conditions are entries rather than a registry, so their global
-// rows come from the same entry registry `createForgePackage()` assembles
-// entries into - keeping the rows identical to what a registry build() produced.
-const stringConditionRows = (() => {
+export const ConditionsRegistry = (() => {
   const entryRegistry = new FunctionEntryRegistry()
+  const conditionGroups = [
+    GeneralConditions,
+    StringConditions,
+    EmailConditions,
+    PhoneConditions,
+    AddressConditions,
+    DateConditions,
+    NumberConditions,
+    ArrayConditions,
+    ObjectConditions,
+  ]
 
-  Object.values(StringConditions).forEach(entry => entryRegistry.collectListed(entry))
+  conditionGroups.forEach(entries => Object.values(entries).forEach(entry => entryRegistry.collectListed(entry)))
 
   return entryRegistry.build()
 })()
-
-export const ConditionsRegistry = {
-  ...generalConditionsRegistry.build(),
-  ...stringConditionRows,
-  ...emailConditionsRegistry.build(),
-  ...phoneConditionsRegistry.build(),
-  ...addressConditionsRegistry.build(),
-  ...dateConditionsRegistry.build(),
-  ...numberConditionsRegistry.build(),
-  ...arrayConditionsRegistry.build(),
-  ...objectConditionsRegistry.build(),
-}

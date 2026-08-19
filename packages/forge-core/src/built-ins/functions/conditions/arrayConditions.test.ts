@@ -1,9 +1,9 @@
-import { ArrayConditions, arrayConditionsRegistry } from './arrayConditions'
+import { ArrayConditions } from './arrayConditions'
 import { FunctionType } from '../../../authoring/types/enums'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('ArrayConditions', () => {
-  const harness = new FunctionRegistryTestHarness(arrayConditionsRegistry)
+  const harness = new FunctionRegistryTestHarness(Object.values(ArrayConditions))
 
   describe('IsArray', () => {
     test('should return true when value is an array', () => {
