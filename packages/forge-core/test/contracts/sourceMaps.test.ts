@@ -1,25 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import inspector from 'node:inspector'
 import { GovUKInsetText, govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
-import {
-  journey,
-  step,
-  access,
-  defineEffectFunctions,
-  createForgePackage,
-  type EffectFunctionExpr,
-} from '../../src/authoring'
+import { journey, step, access, effect, createForgePackage } from '../../src/authoring'
 import { ForgeTestHarness } from '../../src/testing'
 
-interface SourceMapEffectShape {
-  Ping: () => EffectFunctionExpr
+const MapEffects = {
+  Ping: effect('Ping', {
+    factory: () => context => {
+      context.setData('pinged', 'yes')
+    },
+  }),
 }
-
-const { effects: MapEffects, implementations: mapEffectImplementations } = defineEffectFunctions<SourceMapEffectShape>({
-  Ping: () => context => {
-    context.setData('pinged', 'yes')
-  },
-})
 
 // A shared wiring helper, mirroring the idiomatic `loadContent(slug)` pattern:
 // the effect node is built inside the helper, so its author chain carries both
@@ -47,12 +38,7 @@ const sourceMapJourney = journey({
 function createSourceMapClient() {
   return new ForgeTestHarness()
     .registerGlobalComponents(govukComponents)
-    .registerPackage(
-      createForgePackage({
-        journey: sourceMapJourney,
-        functions: mapEffectImplementations,
-      }),
-    )
+    .registerPackage(createForgePackage({ journey: sourceMapJourney }))
     .createClient()
 }
 

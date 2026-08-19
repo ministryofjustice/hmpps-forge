@@ -3,6 +3,8 @@ import { finaliseBuilders } from './finaliseBuilders'
 import { BlockType, ExpressionType, StructureType } from '../../types/enums'
 import { FormatGenerators } from '../../../built-ins/functions/generators/formatGenerators'
 import { Condition } from '../../../built-ins/functions/conditions'
+import { condition } from '../../functions/condition'
+import { getEntryStamp } from './stampEntry'
 import type { Callsite } from './captureCallsite'
 import type { DSLSourceLocation } from '../../../shared/diagnostics/sourceLocation.type'
 
@@ -177,14 +179,30 @@ describe('finaliseBuilders', () => {
 
     it('should stamp a condition handle output and carry it through the walk', () => {
       // Arrange
-      const condition = Condition.Equals('x')
-      expect(callsiteOf(condition)?.stack).toContain('finaliseBuilders.test.ts')
+      const equals = Condition.Equals('x')
+      expect(callsiteOf(equals)?.stack).toContain('finaliseBuilders.test.ts')
 
       // Act
-      const result = finaliseBuilders({ when: condition }) as Record<string, any>
+      const result = finaliseBuilders({ when: equals }) as Record<string, any>
 
       // Assert
       expect(callsiteOf(result.when)?.stack).toContain('finaliseBuilders.test.ts')
+    })
+
+    it('should carry an entry stamp through the walk by reference identity', () => {
+      // Arrange
+      const IsLongEnough = condition({ factory: () => value => typeof value === 'string' })
+      const expr = IsLongEnough()
+      const input = { steps: [{ blocks: [{ visibleWhen: expr }] }] }
+
+      // Act
+      const result = finaliseBuilders(input) as Record<string, any>
+
+      // Assert
+      const copied = result.steps[0].blocks[0].visibleWhen
+      expect(copied).not.toBe(expr)
+      expect(getEntryStamp(copied)).toBe(IsLongEnough)
+      expect(Object.getOwnPropertyDescriptor(copied, '__entry')?.enumerable).toBe(false)
     })
 
     it('should keep callsite stamps invisible to JSON serialisation', () => {

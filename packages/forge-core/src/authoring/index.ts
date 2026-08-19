@@ -1,4 +1,13 @@
 export * from './builders'
+export { condition } from './functions/condition'
+export { transformer } from './functions/transformer'
+export { generator } from './functions/generator'
+export { effect } from './functions/effect'
+export { isFunctionEntry } from './functions/createEntry'
+export type { ConditionEntry, ConditionOptions } from './functions/condition'
+export type { TransformerEntry, TransformerOptions } from './functions/transformer'
+export type { GeneratorEntry, GeneratorOptions } from './functions/generator'
+export type { EffectEntry, EffectOptions, EffectContext } from './functions/effect'
 export { Condition, ConditionsRegistry } from '../built-ins/functions/conditions'
 export { Generator, GeneratorsRegistry } from '../built-ins/functions/generators'
 export { Transformer, TransformersRegistry } from '../built-ins/functions/transformers'
@@ -27,7 +36,13 @@ export { EffectFunctionContext } from '../engine/chassis/runtime/context/EffectF
 export { StructureType, BlockType, FunctionType, ExpressionType, ConditionCombinatorType } from './types/enums'
 
 export type { ForgePackage, RegisteredForgePackage } from './types/package.type'
-export type { FunctionEvaluator, FunctionRegistryEntry, FunctionRegistryObject } from './types/functions.type'
+export type {
+  FunctionEntry,
+  FunctionEvaluator,
+  FunctionRegistryBuilder,
+  FunctionRegistryEntry,
+  FunctionRegistryObject,
+} from './types/functions.type'
 export type {
   JourneyDefinition,
   JourneyReachability,

@@ -1,5 +1,6 @@
 import { GeneralConditions, generalConditionsRegistry } from './generalConditions'
-import { StringConditions, stringConditionsRegistry } from './stringConditions'
+import { StringConditions } from './stringConditions'
+import { FunctionEntryRegistry } from '../../../authoring/functions/FunctionEntryRegistry'
 import { AddressConditions, addressConditionsRegistry } from './addressConditions'
 import { EmailConditions, emailConditionsRegistry } from './emailConditions'
 import { DateConditions, dateConditionsRegistry } from './dateConditions'
@@ -66,9 +67,20 @@ export const Condition: typeof GeneralConditions & ConditionGroups = {
   Object: ObjectConditions,
 }
 
+// The string conditions are entries rather than a registry, so their global
+// rows come from the same entry registry `createForgePackage()` assembles
+// entries into - keeping the rows identical to what a registry build() produced.
+const stringConditionRows = (() => {
+  const entryRegistry = new FunctionEntryRegistry()
+
+  Object.values(StringConditions).forEach(entry => entryRegistry.collectListed(entry))
+
+  return entryRegistry.build()
+})()
+
 export const ConditionsRegistry = {
   ...generalConditionsRegistry.build(),
-  ...stringConditionsRegistry.build(),
+  ...stringConditionRows,
   ...emailConditionsRegistry.build(),
   ...phoneConditionsRegistry.build(),
   ...addressConditionsRegistry.build(),

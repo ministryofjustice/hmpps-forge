@@ -1,7 +1,5 @@
 import type { JourneyDefinition } from '../authoring/types/structures.type'
 import type { ForgePackageRegistration, PackageDependencies, NodeId } from './chassis/contracts/ast/engine.type'
-import { createFunctionsRegistry } from '../authoring/utils/deprecated/createFunctionsRegistry'
-import { isFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
 import ComponentRegistry from './chassis/registries/ComponentRegistry'
 import FunctionRegistry from './chassis/registries/FunctionRegistry'
 import ScopedComponentRegistry from './chassis/registries/ScopedComponentRegistry'
@@ -100,15 +98,12 @@ export default class PackageInstance {
 
     const { functions } = pkg
 
-    if (isFunctionRegistry(functions)) {
-      scopedFunctionRegistry.register(functions.build(resolvedDeps))
-    } else if (Array.isArray(functions)) {
+    if (Array.isArray(functions)) {
       functions.forEach(registry => {
         scopedFunctionRegistry.register(registry.build(resolvedDeps))
       })
     } else {
-      // deprecated: old implementations-map path
-      scopedFunctionRegistry.register(createFunctionsRegistry(functions, resolvedDeps))
+      scopedFunctionRegistry.register(functions.build(resolvedDeps))
     }
 
     return scopedFunctionRegistry

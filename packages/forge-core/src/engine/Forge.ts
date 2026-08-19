@@ -8,14 +8,11 @@ import FunctionRegistry from './chassis/registries/FunctionRegistry'
 import ComponentRegistry from './chassis/registries/ComponentRegistry'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import type { BlockDefinition } from '../components/types/structures.type'
-import { createFunctionsRegistry } from '../authoring/utils/deprecated/createFunctionsRegistry'
 import { ConditionsRegistry } from '../built-ins/functions/conditions'
 import { GeneratorsRegistry } from '../built-ins/functions/generators'
 import { TransformersRegistry } from '../built-ins/functions/transformers'
 import { coreComponents } from '../built-ins/components'
-import { isFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
 import { ForgeDeprecations } from '../shared/ForgeDeprecations'
-import type { FunctionImplementations, FunctionShapeMap } from '../authoring/utils/deprecated/defineFunction.type'
 import type { Logger } from '../framework/types/adapter.type'
 import type { ForgeRenderer } from '../framework/types/rendering.type'
 import type { ForgeError, ForgeOutcome } from '../framework/types/outcome.type'
@@ -188,18 +185,12 @@ export default class Forge {
   registerGlobalFunctions<TDeps>(functions: ForgePackageFunctions<TDeps>, deps?: TDeps): this {
     const resolvedDeps = (deps ?? {}) as TDeps
 
-    if (isFunctionRegistry(functions)) {
-      this.functionRegistry.register(functions.build(resolvedDeps))
-    } else if (Array.isArray(functions)) {
+    if (Array.isArray(functions)) {
       functions.forEach(registry => {
-        if (isFunctionRegistry(registry)) {
-          this.functionRegistry.register(registry.build(resolvedDeps))
-        }
+        this.functionRegistry.register(registry.build(resolvedDeps))
       })
     } else {
-      this.functionRegistry.register(
-        createFunctionsRegistry(functions as FunctionImplementations<FunctionShapeMap, TDeps>, resolvedDeps),
-      )
+      this.functionRegistry.register(functions.build(resolvedDeps))
     }
 
     return this

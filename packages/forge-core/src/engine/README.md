@@ -52,7 +52,6 @@ Important entry points:
 - [../authoring/types](../authoring/types) defines the authoring object shapes.
 - [../authoring/builders](../authoring/builders) defines expression and reference builders.
 - [../built-ins/functions/conditions](../built-ins/functions/conditions), [../built-ins/functions/generators](../built-ins/functions/generators), and [../built-ins/functions/transformers](../built-ins/functions/transformers) define built-in function sets.
-- [../authoring/utils/deprecated](../authoring/utils/deprecated) contains helpers for defining functions and function scopes.
 
 ### DSL Validation
 

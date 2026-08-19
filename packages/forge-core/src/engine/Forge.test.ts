@@ -1,6 +1,8 @@
 import type { MockInstance } from 'vitest'
 import { buildComponent } from '../components/utils/buildComponent'
 import { createForgePackage } from '../authoring/builders'
+import ConditionRegistry from '../authoring/registries/ConditionRegistry'
+import TransformerRegistry from '../authoring/registries/TransformerRegistry'
 import { ConditionsRegistry } from '../built-ins/functions/conditions'
 import { GeneratorsRegistry } from '../built-ins/functions/generators'
 import { TransformersRegistry } from '../built-ins/functions/transformers'
@@ -165,27 +167,25 @@ describe('Forge', () => {
   })
 
   describe('registerGlobalFunctions', () => {
-    it('should register function implementations', () => {
+    it('should register functions from a registry', () => {
       const engine = new Forge(createDefaultOptions())
-      const functions = {
-        Function1: () => () => true,
-        Function2: () => (value: unknown) => value,
-      }
+      const functions = new TransformerRegistry()
+      functions.register('Function1', () => () => true)
+      functions.register('Function2', () => (value: unknown) => value)
 
       engine.registerGlobalFunctions(functions)
 
       const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
       expect(mockFunctionRegistry.register).toHaveBeenCalledWith({
-        Function1: { name: 'Function1', evaluate: expect.any(Function), isAsync: false },
-        Function2: { name: 'Function2', evaluate: expect.any(Function), isAsync: false },
+        Function1: expect.objectContaining({ name: 'Function1', evaluate: expect.any(Function), isAsync: false }),
+        Function2: expect.objectContaining({ name: 'Function2', evaluate: expect.any(Function), isAsync: false }),
       })
     })
 
-    it('should inject dependencies into global function implementations', () => {
+    it('should inject dependencies into global function registries', () => {
       const engine = new Forge(createDefaultOptions())
-      const functions = {
-        WithSuffix: (deps: { suffix: string }) => (value: unknown) => `${String(value)}${deps.suffix}`,
-      }
+      const functions = new TransformerRegistry<{ suffix: string }>()
+      functions.register('WithSuffix', deps => (value: unknown) => `${String(value)}${deps.suffix}`)
 
       engine.registerGlobalFunctions(functions, { suffix: '!' })
 
@@ -416,12 +416,11 @@ describe('Forge', () => {
       const engine = new Forge(createDefaultOptions())
       const component1 = buildComponent('comp-1', () => '<div>1</div>')
       const component2 = buildComponent('comp-2', () => '<div>2</div>')
-      const functions1 = {
-        Func1: () => () => true,
-      }
-      const functions2 = {
-        Func2: () => (value: unknown) => value,
-      }
+      const functions1 = new TransformerRegistry()
+      functions1.register('Func1', () => () => true)
+
+      const functions2 = new TransformerRegistry()
+      functions2.register('Func2', () => (value: unknown) => value)
 
       const result = engine
         .registerGlobalComponent(component1)
@@ -460,9 +459,8 @@ describe('Forge', () => {
     it('should handle complete registration workflow with chaining', () => {
       const engine = new Forge(createDefaultOptions())
       const customComponent = buildComponent('custom-input', () => '<input />')
-      const customFunctions = {
-        CustomValidator: () => (value: unknown) => value !== null,
-      }
+      const customFunctions = new ConditionRegistry()
+      customFunctions.register('CustomValidator', () => (value: unknown) => value !== null)
 
       const result = engine
         .registerGlobalComponent(customComponent)
@@ -478,7 +476,11 @@ describe('Forge', () => {
 
       expect(mockComponentRegistry.registerMany).toHaveBeenCalledWith([customComponent])
       expect(mockFunctionRegistry.register).toHaveBeenCalledWith({
-        CustomValidator: { name: 'CustomValidator', evaluate: expect.any(Function), isAsync: false },
+        CustomValidator: expect.objectContaining({
+          name: 'CustomValidator',
+          evaluate: expect.any(Function),
+          isAsync: false,
+        }),
       })
       expect(mockMountRegistry.register).toHaveBeenCalledWith(mockPackageInstance)
     })

@@ -1,4 +1,7 @@
 import { BaseFunctionRegistry } from '../../authoring/registries/BaseFunctionRegistry'
+import { isFunctionEntry } from '../../authoring/functions/createEntry'
+import { getEntryStamp } from '../../authoring/builders/utils/stampEntry'
+import { FunctionEntryRegistry } from '../../authoring/functions/FunctionEntryRegistry'
 import { GeneratorBuilder } from '../../authoring/builders/GeneratorBuilder'
 import type { ChainableGenerator } from '../../authoring/builders/types'
 import { FunctionType } from '../../authoring/types/enums'
@@ -8,7 +11,7 @@ import type {
   GeneratorFunctionExpr,
   TransformerFunctionExpr,
 } from '../../authoring/types/expressions.type'
-import type { FunctionRegistryEntry } from '../../authoring/types/functions.type'
+import type { FunctionEntry, FunctionRegistryEntry } from '../../authoring/types/functions.type'
 import type { EffectFunctionContext } from '../../engine/chassis/runtime/context/EffectFunctionContext'
 import {
   precheckShortCircuit,
@@ -49,20 +52,39 @@ import {
 export class FunctionRegistryTestHarness<TDeps = Record<string, never>> {
   private readonly entries = new Map<string, FunctionRegistryEntry>()
 
-  constructor(functions: BaseFunctionRegistry<TDeps> | BaseFunctionRegistry<TDeps>[], deps?: TDeps) {
-    const registries = Array.isArray(functions) ? functions : [functions]
+  private readonly entryNames = new Map<FunctionEntry<TDeps>, string>()
 
-    registries.forEach(registry => {
-      const built = registry.build(deps)
+  constructor(
+    functions:
+      | BaseFunctionRegistry<TDeps>
+      | FunctionEntry<TDeps>
+      | (BaseFunctionRegistry<TDeps> | FunctionEntry<TDeps>)[],
+    deps?: TDeps,
+  ) {
+    const sources = Array.isArray(functions) ? functions : [functions]
+    const entryRegistry = new FunctionEntryRegistry<TDeps>()
 
-      Object.values(built).forEach(entry => {
-        if (this.entries.has(entry.name)) {
-          throw new Error(`Function "${entry.name}" is registered in more than one registry passed to this harness`)
-        }
+    sources.forEach(source => {
+      if (isFunctionEntry(source)) {
+        this.entryNames.set(source, entryRegistry.collect(source))
 
-        this.entries.set(entry.name, entry)
-      })
+        return
+      }
+
+      const built = (source as BaseFunctionRegistry<TDeps>).build(deps)
+
+      Object.values(built).forEach(entry => this.add(entry))
     })
+
+    Object.values(entryRegistry.build(deps)).forEach(entry => this.add(entry))
+  }
+
+  private add(entry: FunctionRegistryEntry): void {
+    if (this.entries.has(entry.name)) {
+      throw new Error(`Function "${entry.name}" is registered in more than one registry passed to this harness`)
+    }
+
+    this.entries.set(entry.name, entry)
   }
 
   evaluate(expr: GeneratorFunctionExpr | ChainableGenerator): unknown
@@ -83,7 +105,11 @@ export class FunctionRegistryTestHarness<TDeps = Record<string, never>> {
   ): unknown {
     const functionExpr =
       expr instanceof GeneratorBuilder ? expr.build() : (expr as Exclude<typeof expr, ChainableGenerator>)
-    const entry = this.lookup(functionExpr.name)
+    // Expressions from same-named entries carry identical names until the
+    // engine's finalisation walk renames them, so resolve by the entry stamp
+    // when one is present and fall back to the name for registry handles.
+    const stampedEntry = getEntryStamp(functionExpr) as FunctionEntry<TDeps> | undefined
+    const entry = this.lookup((stampedEntry && this.entryNames.get(stampedEntry)) ?? functionExpr.name)
 
     if (functionExpr.type === FunctionType.EFFECT) {
       return {

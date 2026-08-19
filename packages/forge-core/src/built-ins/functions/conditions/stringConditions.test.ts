@@ -1,9 +1,10 @@
-import { StringConditions, stringConditionsRegistry } from './stringConditions'
+import { StringConditions } from './stringConditions'
+import { Data } from '../../../authoring/builders/references'
 import { FunctionType } from '../../../authoring/types/enums'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('StringConditions', () => {
-  const harness = new FunctionRegistryTestHarness(stringConditionsRegistry)
+  const harness = new FunctionRegistryTestHarness(Object.values(StringConditions))
 
   describe('MatchesRegex', () => {
     test('should return true when string matches regex pattern', () => {
@@ -74,6 +75,12 @@ describe('StringConditions', () => {
         name: 'String.HasMaxLength',
         arguments: [10],
       })
+    })
+
+    test('should accept a reference argument that resolves at runtime', () => {
+      const expr = StringConditions.HasMaxLength(Data('maximumLength'))
+      expect(expr.name).toBe('String.HasMaxLength')
+      expect(expr.arguments).toHaveLength(1)
     })
   })
 

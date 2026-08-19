@@ -15,10 +15,8 @@ import {
   throwError,
   validation,
   tieBreaker,
-  defineEffectFunctions,
-  defineConditionFunctions,
-  type EffectFunctionExpr,
-  type ConditionFunctionExpr,
+  effect,
+  condition,
   Answer,
   Data,
   Post,
@@ -28,43 +26,28 @@ import {
   createForgePackage,
 } from '../../src/authoring'
 import { ForgeTestHarness } from '../../src/testing'
-import { Effects, effectImplementations } from './contractHelpers'
+import { Effects } from './contractHelpers'
 
-interface NavigationEffectShape {
-  SetHeader: (name: string, value: string) => EffectFunctionExpr
-}
-
-const { effects: NavigationEffects, implementations: navigationEffectImplementations } =
-  defineEffectFunctions<NavigationEffectShape>({
-    SetHeader: () => (context, name: string, value: string) => {
+const NavigationEffects = {
+  SetHeader: effect('SetHeader', {
+    factory: () => (context, name: string, value: string) => {
       context.setResponseHeader(name, value)
     },
-  })
-
-interface NavigationConditionShape {
-  HasContent: () => ConditionFunctionExpr
+  }),
 }
 
-const { conditions: NavigationConditions, implementations: navigationConditionImplementations } =
-  defineConditionFunctions<NavigationConditionShape>({
-    // No inputSchema, and the body reads `value.length` with no guard, so it throws
-    // on undefined — the engine must short-circuit to false before it is called.
-    HasContent: () => (value: unknown) => (value as string).length > 0,
-  })
+const NavigationConditions = {
+  // No inputSchema, and the body reads `value.length` with no guard, so it throws
+  // on undefined — the engine must short-circuit to false before it is called.
+  HasContent: condition('HasContent', {
+    factory: () => (value: string) => value.length > 0,
+  }),
+}
 
 export function createNavigationClient(journeyDef: ReturnType<typeof journey>) {
   return new ForgeTestHarness()
     .registerGlobalComponents(govukComponents)
-    .registerPackage(
-      createForgePackage({
-        journey: journeyDef,
-        functions: {
-          ...effectImplementations,
-          ...navigationEffectImplementations,
-          ...navigationConditionImplementations,
-        },
-      }),
-    )
+    .registerPackage(createForgePackage({ journey: journeyDef }))
     .createClient()
 }
 

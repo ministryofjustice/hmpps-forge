@@ -17,9 +17,9 @@ import {
   xor,
   not,
   createForgePackage,
-  defineConditionFunctions,
-  defineGeneratorFunctions,
-  defineTransformerFunctions,
+  condition,
+  generator,
+  transformer,
   Answer,
   Data,
   Format,
@@ -34,7 +34,7 @@ import {
 } from '../../src/authoring'
 import { CollectionBlock } from '../../src/components'
 import { ForgeTestHarness } from '../../src/testing'
-import { Effects, effectImplementations } from './contractHelpers'
+import { Effects } from './contractHelpers'
 
 export const requiredFieldJourney = journey({
   code: 'required',
@@ -1204,17 +1204,23 @@ export const sameCodeVariantsJourney = journey({
 // with arguments as the subject of another function call used to compile both
 // argument consts to one name, and the inner declaration shadowed the outer
 // before it ran ("Cannot access 'functionArgument1' before initialization").
-const { generators: scopingGenerators, implementations: scopingGeneratorImplementations } = defineGeneratorFunctions({
-  ScopingFixed: () => (text: ResolvableValue) => text,
-  ScopingMutateState: () => (state: ResolvableValue) => {
+const FixedText = generator('ScopingFixed', {
+  factory: () => (text: ResolvableValue) => text,
+})
+const MutateState = generator('ScopingMutateState', {
+  factory: () => (state: ResolvableValue) => {
     if (typeof state === 'object' && state !== null) {
       Reflect.set(state, 'value', 'after')
     }
 
     return 'mutated'
   },
-  ScopingIdentity: () => (value: ResolvableValue) => value,
-  ScopingArgumentsInOrder: () => (first: ResolvableValue, second: ResolvableValue, state: ResolvableValue) => {
+})
+const IdentityValue = generator('ScopingIdentity', {
+  factory: () => (value: ResolvableValue) => value,
+})
+const ArgumentsInOrder = generator('ScopingArgumentsInOrder', {
+  factory: () => (first: ResolvableValue, second: ResolvableValue, state: ResolvableValue) => {
     const observedValues =
       typeof state === 'object' && state !== null ? Reflect.get(state, 'observedValues') : undefined
 
@@ -1225,38 +1231,21 @@ const { generators: scopingGenerators, implementations: scopingGeneratorImplemen
     return first === 'mutated'
   },
 })
-const { conditions: scopingConditions, implementations: scopingConditionImplementations } = defineConditionFunctions({
-  ScopingEquals: () => (value: ResolvableValue, expected: ResolvableValue) => value === expected,
-  ScopingLengthBetween: () => (value: ResolvableValue, lower: number, upper: number) =>
+const EqualsValue = condition('ScopingEquals', {
+  factory: () => (value: ResolvableValue, expected: ResolvableValue) => value === expected,
+})
+const LengthBetween = condition('ScopingLengthBetween', {
+  factory: () => (value: ResolvableValue, lower: number, upper: number) =>
     String(value).length >= lower && String(value).length <= upper,
 })
-const { transformers: scopingTransformers, implementations: scopingTransformerImplementations } =
-  defineTransformerFunctions({
-    ScopingAppendSuffix: () => (value: ResolvableValue, suffix: string) => `${value}${suffix}`,
-  })
-
-const FixedText = scopingGenerators.ScopingFixed
-const MutateState = scopingGenerators.ScopingMutateState
-const IdentityValue = scopingGenerators.ScopingIdentity
-const ArgumentsInOrder = scopingGenerators.ScopingArgumentsInOrder
-const EqualsValue = scopingConditions.ScopingEquals
-const LengthBetween = scopingConditions.ScopingLengthBetween
-const AppendSuffix = scopingTransformers.ScopingAppendSuffix
+const AppendSuffix = transformer('ScopingAppendSuffix', {
+  factory: () => (value: ResolvableValue, suffix: string) => `${value}${suffix}`,
+})
 
 export function createArgumentScopingClient(journeyDef: ReturnType<typeof journey>) {
   return new ForgeTestHarness()
     .registerGlobalComponents(govukComponents)
-    .registerPackage(
-      createForgePackage({
-        journey: journeyDef,
-        functions: {
-          ...effectImplementations,
-          ...scopingGeneratorImplementations,
-          ...scopingConditionImplementations,
-          ...scopingTransformerImplementations,
-        },
-      }),
-    )
+    .registerPackage(createForgePackage({ journey: journeyDef }))
     .createClient()
 }
 
