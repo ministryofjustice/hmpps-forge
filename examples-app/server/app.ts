@@ -2,8 +2,6 @@ import express from 'express'
 import createError from 'http-errors'
 import { Forge, type ForgeInstrumentationSink } from '@ministryofjustice/hmpps-forge/core'
 import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
-import { mojComponents } from '@ministryofjustice/hmpps-forge/moj-components'
 import nunjucksSetup from './utils/nunjucksSetup'
 import errorHandler from './errorHandler'
 import setUpCsrf from './middleware/setUpCsrf'
@@ -22,15 +20,15 @@ export default function createApp(services: Services): express.Application {
   const app = express()
   const nunjucksEnv = nunjucksSetup(app)
 
-  const forge = new Forge({ logger, instrumentation: { sinks: createForgeInstrumentationSinks() } })
-    .registerGlobalComponents(govukComponents)
-    .registerGlobalComponents(mojComponents)
-    .registerPackage(developerGuidePackage, {
-      guideContentStore: services.guideContentStore,
-      guideSearch: services.guideSearch,
-      formDataStore: services.formDataStore,
-      mocksApi: services.mocksApi,
-    })
+  const forge = new Forge({
+    logger,
+    instrumentation: { sinks: createForgeInstrumentationSinks() },
+  }).registerPackage(developerGuidePackage, {
+    guideContentStore: services.guideContentStore,
+    guideSearch: services.guideSearch,
+    formDataStore: services.formDataStore,
+    mocksApi: services.mocksApi,
+  })
 
   app.set('json spaces', 2)
   app.set('trust proxy', true)
