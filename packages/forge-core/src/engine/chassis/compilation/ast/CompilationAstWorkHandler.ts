@@ -20,7 +20,7 @@ export const COMPILATION_AST_WORK_HANDLER: WorkHandler<'compilation.ast', undefi
 
     const rootNode = nodeFactory.createNode(state.journeyDefinition) as JourneyASTNode
 
-    const walker = new NodeRegistrationWalker(nodeIdGenerator, nodeIndex, templateNodeIndex)
+    const walker = new NodeRegistrationWalker(nodeIndex, templateNodeIndex)
 
     walker.register(rootNode)
 

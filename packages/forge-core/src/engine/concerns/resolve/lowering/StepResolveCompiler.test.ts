@@ -542,6 +542,60 @@ describe('StepResolveCompiler', () => {
       expect(result.props.blocks[0].props.properties.value).toBe('test@example.com')
     })
 
+    it('should resolve Self references in non-validation field properties', async () => {
+      // Arrange
+      const block = ASTTestFactory.block('text-input', BlockType.FIELD)
+        .withCode('email')
+        .withProperty('hint', createReference(['answers', '@self']))
+        .build()
+      const step = createStepWithBlocks([block])
+      const compiled = compiler.compile(resolveModel(step, []))
+      const source = compiler.generateSource(resolveModel(step, []))
+
+      if (!compiled) {
+        throw new Error('Expected render compiler to produce a function')
+      }
+
+      // Act
+      const result = await compiled(
+        createCtx({
+          answers: { email: { current: 'test@example.com' } },
+        }),
+      )
+
+      // Assert
+      expect(source).toContain('ctx.answers["email"]?.current')
+      expect(result.props.blocks[0].props.properties.hint).toBe('test@example.com')
+    })
+
+    it('should resolve Self references inside a visibility gated field', async () => {
+      // Arrange
+      const block = ASTTestFactory.block('text-input', BlockType.FIELD)
+        .withCode('email')
+        .withProperty('visibleWhen', createReference(['answers', 'show']))
+        .withProperty('hint', createReference(['answers', '@self']))
+        .build()
+      const step = createStepWithBlocks([block])
+      const compiled = compiler.compile(resolveModel(step, []))
+
+      if (!compiled) {
+        throw new Error('Expected render compiler to produce a function')
+      }
+
+      // Act
+      const result = await compiled(
+        createCtx({
+          answers: {
+            email: { current: 'test@example.com' },
+            show: { current: true },
+          },
+        }),
+      )
+
+      // Assert
+      expect(result.props.blocks[0].props.properties.hint).toBe('test@example.com')
+    })
+
     it('should resolve dynamic registered field codes as strings', async () => {
       // Arrange
       const dynamicCode = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'fieldCode')
@@ -577,7 +631,8 @@ describe('StepResolveCompiler', () => {
       )
 
       // Assert
-      expect(source).toContain('code: String(')
+      expect(source).toContain('const fieldCode = String(')
+      expect(source).toContain('code: fieldCode')
       expect(result.props.blocks[0].props.properties.code).toBe('123')
       expect(result.props.blocks[0].props.properties.value).toBe('Ada')
     })

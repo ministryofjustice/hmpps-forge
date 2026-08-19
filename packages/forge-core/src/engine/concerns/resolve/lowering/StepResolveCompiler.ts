@@ -306,14 +306,41 @@ export default class StepResolveCompiler {
     generator: CodeGenerator,
     comment: string,
   ): IdentifierName {
-    const entries = this.compileBlockPropEntries(plan, generator)
+    const boundPlan = this.toSelfBoundPlan(plan, generator)
 
-    generator.comment(comment)
-    const props = generator.const(plan.namePrefix, objectCode(entries))
+    return this.expr.withSelfCodeExpression(boundPlan.codeExpression, () => {
+      const entries = this.compileBlockPropEntries(boundPlan, generator)
 
-    this.compileFieldResolution(plan, props, generator)
+      generator.comment(comment)
+      const props = generator.const(boundPlan.namePrefix, objectCode(entries))
 
-    return props
+      this.compileFieldResolution(boundPlan, props, generator)
+
+      return props
+    })
+  }
+
+  /**
+   * Resolves a FIELD block's code expression ahead of property compilation so
+   * `Self()` references in the block's properties can bind to it. Hoisted once
+   * outside the `withSelfCodeExpression` scope, so the code expression itself
+   * never self-resolves.
+   */
+  private toSelfBoundPlan(plan: BlockPropsCompilation, generator: CodeGenerator): BlockPropsCompilation {
+    if (plan.blockType !== BlockType.FIELD || plan.codeExpression !== undefined) {
+      return plan
+    }
+
+    const codeProperty = plan.properties.find(property => property.key === 'code')
+
+    if (codeProperty === undefined) {
+      return plan
+    }
+
+    return {
+      ...plan,
+      codeExpression: this.fieldCodes.compileRegisteredExpression(toRawOperand(codeProperty.value), generator),
+    }
   }
 
   private compileBlockPropEntries(plan: BlockPropsCompilation, generator: CodeGenerator): ObjectCodeProperty[] {
@@ -339,25 +366,35 @@ export default class StepResolveCompiler {
     visibleWhen: ResolvePropertyModel,
     generator: CodeGenerator,
   ): IdentifierName {
-    const props = generator.const(plan.namePrefix, code`{}`)
-    const hoistedKeys = new Set<string>(['visibleWhen'])
-    const codeProperty = plan.properties.find(property => property.key === 'code')
+    const boundPlan = this.toSelfBoundPlan(plan, generator)
 
-    this.compilePropertyAssignment(visibleWhen.value, props, 'visibleWhen', generator)
+    return this.expr.withSelfCodeExpression(boundPlan.codeExpression, () => {
+      const props = generator.const(boundPlan.namePrefix, code`{}`)
+      const hoistedKeys = new Set<string>(['visibleWhen'])
+      const codeProperty = boundPlan.properties.find(property => property.key === 'code')
 
-    if (plan.blockType === BlockType.FIELD && codeProperty !== undefined) {
-      this.fieldCodes.assignProperty(toRawOperand(codeProperty.value), generator, props, 'code', plan.codeExpression)
-      hoistedKeys.add('code')
-    }
+      this.compilePropertyAssignment(visibleWhen.value, props, 'visibleWhen', generator)
 
-    generator.if(code`${props}.visibleWhen !== false`, () => {
-      plan.properties
-        .filter(property => !hoistedKeys.has(property.key))
-        .forEach(property => this.compileBlockPropAssignment(property, plan, props, generator))
-      this.compileFieldResolution(plan, props, generator)
+      if (boundPlan.blockType === BlockType.FIELD && codeProperty !== undefined) {
+        this.fieldCodes.assignProperty(
+          toRawOperand(codeProperty.value),
+          generator,
+          props,
+          'code',
+          boundPlan.codeExpression,
+        )
+        hoistedKeys.add('code')
+      }
+
+      generator.if(code`${props}.visibleWhen !== false`, () => {
+        boundPlan.properties
+          .filter(property => !hoistedKeys.has(property.key))
+          .forEach(property => this.compileBlockPropAssignment(property, boundPlan, props, generator))
+        this.compileFieldResolution(boundPlan, props, generator)
+      })
+
+      return props
     })
-
-    return props
   }
 
   private compileBlockPropAssignment(

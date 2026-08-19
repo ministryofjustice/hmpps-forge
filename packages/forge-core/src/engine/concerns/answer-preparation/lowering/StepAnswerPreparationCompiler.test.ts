@@ -844,6 +844,25 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(lastMutation.source).toBe('dependentWhen')
     })
 
+    it('should resolve Self references in dependentWhen', async () => {
+      // Arrange
+      const cond = createConditionFunction('isRequired')
+      const predicate = createTestPredicate(createReference(['answers', '@self']), cond)
+      const block = createFieldBlock('email', { dependentWhen: predicate })
+      const localCompiler = createSyncCompiler('isRequired')
+      const ctx = createCtx({
+        post: { email: 'test@example.com' },
+      })
+
+      // Act
+      const source = localCompiler.generateSource(prepModel([block]))
+      await runGeneratedSource(source, ctx)
+
+      // Assert
+      expect(source).toContain('ctx.answers["email"]?.current')
+      expect(ctx.answers.email.current).toBe('test@example.com')
+    })
+
     it('should throw runtime errors when dependentWhen expression throws', async () => {
       // Arrange
       const ref = createReference(['answers', 'nonexistent', 'deep', 'path'])

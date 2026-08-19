@@ -40,6 +40,7 @@ Semantic analysis rejects those cases before they turn into confusing failures l
 - Collect all semantic errors that can be found in one pass.
   - Reject unregistered function names and component variants.
   - Reject references that escape the available iterator scope.
+  - Reject `Self()` references outside a field block, or inside the field's own `code` expression.
   - Reject nodes that are valid AST nodes but illegal in their current container.
   - Validate iterator templates that are intentionally not registered as normal AST descendants.
   - *Note: The above rules fall out of the rules implemented, obviously can change in future - the phase isn't tied
@@ -139,6 +140,7 @@ flowchart TD
 - [rules/types.ts](rules/types.ts) defines the shared rule contract.
   Every rule gets the same registry and AST structures.
 - [rules/validateReferenceScopes.ts](rules/validateReferenceScopes.ts) validates `@scope` and `@loop` references.
+- [rules/validateSelfScope.ts](rules/validateSelfScope.ts) validates `@self` reference placement: inside a field block, but not inside that field's own `code` expression. Lowering resolves valid `@self` references against the field code bound through `ExpressionDispatcher.withSelfCodeExpression()`.
   It uses ancestor iterator depth for registered nodes and explicit template depth for iterator templates.
 - [rules/validateEffectScope.ts](rules/validateEffectScope.ts), [rules/validateOutcomeScope.ts](rules/validateOutcomeScope.ts), [rules/validateHookScope.ts](rules/validateHookScope.ts), [rules/validateTieBreakerScope.ts](rules/validateTieBreakerScope.ts), [rules/validateValidationScope.ts](rules/validateValidationScope.ts), [rules/validateStructureScope.ts](rules/validateStructureScope.ts), [rules/validateBlockScope.ts](rules/validateBlockScope.ts), and [rules/validateFunctionArguments.ts](rules/validateFunctionArguments.ts) validate where AST node families are allowed to appear.
 - [rules/validateRegisteredFunctions.ts](rules/validateRegisteredFunctions.ts) checks all `FunctionType` expression nodes and function template nodes against `FunctionRegistry`.
@@ -170,6 +172,8 @@ flowchart TD
   A rule with a template case queries `templateNodeIndex.findByType()` next to its registered-node query.
 - `validateReferenceScopes()` cannot use `TemplateNodeIndex` for its template case.
   The flat index erases iterator nesting, and `Item()` and `Loop` levels depend on that nesting, so the rule keeps a local depth-tracking walk.
+- `validateSelfScope()` cannot use `TemplateNodeIndex` for its template case either.
+  The flat index erases which template field block a reference sits under, so the rule keeps a local walk carrying field-block and field-code scope flags.
 - `validateReferenceScopes()` treats iterate input differently from iterate templates.
   The input expression is outside the iterator's item scope, but the yield and predicate templates are inside that scope.
 - `validateValidationScope()` tracks the IDs that are direct entries of `validWhen`.
@@ -225,6 +229,7 @@ flowchart TD
 - [ASTSemanticValidator.ts](ASTSemanticValidator.ts) runs the semantic rule set and raises the aggregate failure.
 - [rules/types.ts](rules/types.ts) defines `ASTValidationContext` and `ASTValidationRule`.
 - [rules/validateReferenceScopes.ts](rules/validateReferenceScopes.ts) answers whether `Item()` and `Loop` references are valid in the current iterator depth.
+- [rules/validateSelfScope.ts](rules/validateSelfScope.ts) answers whether a `Self()` reference sits inside a field block and outside that field's `code`.
 - [rules/validateRegisteredFunctions.ts](rules/validateRegisteredFunctions.ts) answers whether every referenced function name exists.
 - [rules/validateFunctionArity.ts](rules/validateFunctionArity.ts) answers whether each function call supplies an argument count the function's tuple schema accepts.
 - [rules/validateRegisteredComponents.ts](rules/validateRegisteredComponents.ts) answers whether every block variant exists.

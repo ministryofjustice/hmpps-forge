@@ -115,6 +115,17 @@ it directly. The shared `templateWalker.ts` is deleted.
 - `ForgeDeprecations` and `routePath` moved up from `shared/utils/` to `shared/` — the
   `utils/` folder is empty now
 
+#### `Self()` resolution moved to lowering
+
+Previously `Self()` references were resolved during AST registration —
+`NodeRegistrationWalker` cloned the referenced subtree, assigned it fresh node ids, and
+spliced it into the tree in place. Now `Self()` stays in the AST as-is and the resolve
+and answer-preparation compilers expand it at lowering, which means the AST walker no
+longer needs `astValueCloning.ts` (deleted) and the cloned subtree no longer inflates the
+node index. A new `validateSelfScope` semantic-analysis rule rejects `Self()` in
+positions where lowering can't expand it (outside a step's blocks, or nested inside
+another `Self()`).
+
 ---
 
 ## 0.4.0
