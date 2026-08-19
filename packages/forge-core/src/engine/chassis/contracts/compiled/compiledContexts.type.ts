@@ -1,6 +1,7 @@
 import type FunctionRegistry from '../../registries/FunctionRegistry'
 import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
 import type { ValidationResult } from '../../../concerns/validation/contracts/validationResult.type'
+import type { IteratorBudgetContract } from '../runtime/iteratorBudget.type'
 
 /**
  * The answer snapshot the generated source reads at the compiled-function boundary:
@@ -34,6 +35,7 @@ interface CompiledPreparedAnswer extends CompiledAnswerSnapshot {
  * tasks; no type-checked code does.
  */
 export interface CompiledBaseContext {
+  iteratorBudget: IteratorBudgetContract
   answers: Record<string, CompiledAnswerSnapshot>
   data: Record<string, unknown>
   session: Record<string, unknown>

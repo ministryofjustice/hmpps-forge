@@ -12,6 +12,7 @@ import RouteMetadataCompiler from './RouteMetadataCompiler'
 
 function createCtx(overrides: Partial<CompiledRouteMetadataContext> = {}): CompiledRouteMetadataContext {
   return {
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},

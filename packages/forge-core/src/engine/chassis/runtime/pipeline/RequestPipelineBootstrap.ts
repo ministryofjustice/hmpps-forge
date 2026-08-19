@@ -21,6 +21,7 @@ import { createRequestEntryValidationTask } from '../../../concerns/validation/r
 import { createRequestResolveTask } from '../../../concerns/resolve/runtime/RequestResolveWorkHandler'
 import { createRequestRouteTreeTask } from '../../../concerns/route/runtime/RequestRouteTreeWorkHandler'
 import { createRequestRenderTask } from '../../../concerns/render/runtime/RequestRenderWorkHandler'
+import IteratorBudget from './IteratorBudget'
 
 export interface RequestPipelineConfig {
   readonly method: HttpMethod
@@ -29,6 +30,7 @@ export interface RequestPipelineConfig {
   readonly renderer?: ForgeRenderer<unknown>
   readonly traceEnabled: boolean
   readonly responseBindings: ResponseBindings
+  readonly maxIteratorIterations: number
 }
 
 export default class RequestPipelineBootstrap {
@@ -53,6 +55,8 @@ export default class RequestPipelineBootstrap {
       },
       evaluation: {},
     } as RuntimeContext
+
+    context.evaluation.iteratorBudget = new IteratorBudget(this.config.maxIteratorIterations)
 
     const buildStepValidation = (stepId: NodeId, filter: ValidationRuleFilter) =>
       buildStepValidationTask(

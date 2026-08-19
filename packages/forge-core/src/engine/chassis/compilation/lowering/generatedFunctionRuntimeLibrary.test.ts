@@ -439,7 +439,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
       expect(result).toEqual({ unexpected: true })
     })
 
-    it('should return the original value when it satisfies the input schema', () => {
+    it('should return the parsed value when it satisfies the input schema', () => {
       // Arrange
       const ctx = componentContextFor({ inputSchema: z.string() })
 
@@ -448,6 +448,21 @@ describe('generatedFunctionRuntimeLibrary', () => {
 
       // Assert
       expect(result).toBe('Ada')
+    })
+
+    it('should return the sanitised value when the input schema strips unknown properties', () => {
+      // Arrange
+      const ctx = componentContextFor({ inputSchema: z.object({ day: z.string() }) })
+      const submittedValue = {
+        day: '1',
+        unexpected: { deeply: { nested: true } },
+      }
+
+      // Act
+      const result = generatedFunctionRuntimeLibrary.checkComponentInputValue(ctx, 'dateInput', submittedValue, false)
+
+      // Assert
+      expect(result).toEqual({ day: '1' })
     })
 
     it('should return undefined when a single-value schema rejects the value', () => {

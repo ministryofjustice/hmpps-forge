@@ -1,6 +1,7 @@
 import type { ZodType } from 'zod'
 import { RENDER_BLOCK_BRAND } from '../../../concerns/render/contracts/renderBlock.brand'
 import { FunctionType } from '../../../../authoring/types/enums'
+import type { IteratorBudgetContract } from '../../contracts/runtime/iteratorBudget.type'
 
 interface AnswerHistory {
   current: unknown
@@ -40,6 +41,10 @@ interface FunctionEvaluationContext {
   conditions: {
     get(name: string): FunctionRegistryLookupEntry
   }
+}
+
+interface IteratorBudgetContext {
+  iteratorBudget: IteratorBudgetContract
 }
 
 interface ComponentRegistryLookupEntry {
@@ -132,6 +137,7 @@ const VALIDATION_CONDITION_FUNCTION_TYPE = 'FunctionType.Condition'
 
 export interface GeneratedFunctionRuntimeLibrary {
   renderBlockBrand: symbol
+  consumeIteratorIteration(ctx: IteratorBudgetContext): void
   ensureAnswerHistory(ctx: AnswerHistoryContext, code: string): AnswerHistory
   pushAnswerMutation(answerHistory: AnswerHistory, value: unknown, source: string): void
   normalizePostValue(rawValue: unknown, multiple: boolean): unknown
@@ -200,6 +206,10 @@ export interface GeneratedFunctionRuntimeLibrary {
 
 export const generatedFunctionRuntimeLibrary: GeneratedFunctionRuntimeLibrary = {
   renderBlockBrand: RENDER_BLOCK_BRAND,
+
+  consumeIteratorIteration(ctx) {
+    ctx.iteratorBudget.consume()
+  },
 
   // Answer-preparation functions are detached from this object by generated
   // code (`mode === "POST" ? _forgeHelpers.preparePostedFieldAnswerGroup : ...`),
@@ -366,8 +376,9 @@ function normalizePostValue(rawValue: unknown, multiple: boolean): unknown {
  * normalisation. A value that fails the schema can't have come from the
  * rendered form, so it's replaced with an empty value (`[]` for multi-value
  * fields, `undefined` for single-value fields) rather than throwing. A passing
- * value is returned unchanged (no Zod coercion in v1). An unanswered value,
- * an unknown variant, or a variant without a schema is left untouched.
+ * value uses the schema's parsed output so its sanitisation and transformations
+ * are retained. An unanswered value, an unknown variant, or a variant without
+ * a schema is left untouched.
  */
 function checkComponentInputValue(
   ctx: ComponentInputContext,
@@ -388,7 +399,7 @@ function checkComponentInputValue(
   const parsed = entry.inputSchema.safeParse(value)
 
   if (parsed.success) {
-    return value
+    return parsed.data
   }
 
   return multiple ? [] : undefined

@@ -123,6 +123,7 @@ function createStateTable(entries: readonly ReachabilityEntryModel[]): Reachabil
 
 function createCtx(overrides: Partial<CompiledReachabilityContext> = {}): CompiledReachabilityContext {
   return {
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},

@@ -55,6 +55,29 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ## 0.4.1
 
+### Fixed
+
+- **Component input schemas now apply their sanitisation.** Previously
+  `checkComponentInputValue` validated the submitted value against the component's
+  `inputSchema` but returned the raw value on success — any coercion or transformation
+  the schema declared was silently dropped. Now the schema's parsed output is used, so
+  the date input's sanitisation (stripping non-digit characters from day/month/year
+  parts) actually takes effect
+- **Nested static data no longer leaks between requests.** Static `data` on journeys and
+  steps was shallow-copied with a spread, so nested objects were shared across requests —
+  a hook that mutated `context.getData('nested.key')` on one request changed the value
+  for every subsequent request. Now `structuredClone` produces a deep copy
+- **HEAD requests no longer reach the engine as an unknown method.** Express treats HEAD
+  as GET for routing, but the snapshot factory passed the raw `req.method` through —
+  the engine received `'HEAD'` and either threw or skipped POST-only phases depending on
+  the step. HEAD is now normalised to GET before the snapshot is built, and any method
+  other than GET or POST throws a `TypeError`
+- **Iterator work is capped per request.** Previously a crafted answer state with large
+  collections could force the engine to expand unbounded iterator loops, consuming CPU
+  and memory. `IteratorBudget` tracks total iterations across all compiled functions in a
+  request and throws `ForgeIteratorBudgetExceededError` when the cap is exceeded. The
+  default is configurable via `Forge`'s constructor options
+
 ### Changed
 
 - Compilation and request trace events now carry the same span structure produced by

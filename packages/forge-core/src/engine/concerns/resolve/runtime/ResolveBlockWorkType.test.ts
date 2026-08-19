@@ -10,6 +10,7 @@ import { RESOLVE_BLOCK_WORK_HANDLER, RESOLVE_BLOCK_WORK_INSTRUMENTATION } from '
 
 function createContext(): WorkContext<CompiledResolveContext> {
   return new WorkContext({
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},

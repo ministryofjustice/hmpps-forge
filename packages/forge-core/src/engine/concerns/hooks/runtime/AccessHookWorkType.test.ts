@@ -10,6 +10,7 @@ import { HOOK_EFFECT_WORK_HANDLER } from './HookEffectWorkHandler'
 
 function createContext(): WorkContext<CompiledHookLifecycleContext> {
   return new WorkContext({
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},

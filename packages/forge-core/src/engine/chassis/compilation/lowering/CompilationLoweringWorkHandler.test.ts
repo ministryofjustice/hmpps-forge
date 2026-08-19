@@ -106,6 +106,46 @@ describe('CompilationLoweringWorkHandler', () => {
       )
     })
 
+    it('should return isolated nested static data for separate requests', () => {
+      // Arrange
+      const journeyNode = ASTTestFactory.journey().withProperty('path', '/journey').build()
+      const stepNode = ASTTestFactory.step().withPath('/first').build()
+      const staticData = {
+        preferences: { colour: 'blue' },
+        options: [{ label: 'First' }],
+      }
+      const model = createCompilationModel([
+        createJourneyModel({
+          journeyNode,
+          steps: [createStepModel({ stepNode, staticData })],
+          staticData: {},
+        }),
+      ])
+      const { state } = runLowering(model, {
+        functionRegistry: new FunctionRegistry(),
+        componentRegistry: new ComponentRegistry(),
+      })
+      const compiledStaticData = state.steps.get(stepNode.id)?.compiledStaticData
+
+      // Act
+      const firstRequestData = compiledStaticData?.()
+      const firstRequestPreferences = firstRequestData?.preferences
+
+      if (typeof firstRequestPreferences !== 'object' || firstRequestPreferences === null) {
+        throw new TypeError('Expected nested static data')
+      }
+
+      Object.assign(firstRequestPreferences, { colour: 'red' })
+      const secondRequestData = compiledStaticData?.()
+
+      // Assert
+      expect(firstRequestData).toEqual({ ...staticData, preferences: { colour: 'red' } })
+      expect(secondRequestData).toEqual(staticData)
+      expect(firstRequestData).not.toBe(secondRequestData)
+      expect(firstRequestData?.preferences).not.toBe(secondRequestData?.preferences)
+      expect(firstRequestData?.options).not.toBe(secondRequestData?.options)
+    })
+
     it('should skip journey-scoped validation maps when reachability checks are disabled', () => {
       // Arrange
       const journeyNode = ASTTestFactory.journey().withProperty('path', '/journey').build()

@@ -4,6 +4,7 @@ import type { JourneyReachabilityProjection } from '../../../concerns/reachabili
 import type { RequestLocation } from '../../../../framework/types/request.type'
 import type { ValidationResult } from '../../../concerns/validation/contracts/validationResult.type'
 import type { StepValidityResult } from '../../../concerns/validation/contracts/stepValidityResult.type'
+import type { IteratorBudgetContract } from './iteratorBudget.type'
 
 export interface StepValidationFailure extends ValidationResult {
   blockId: NodeId
@@ -31,6 +32,7 @@ interface DomainContextState {
 }
 
 interface EvaluationContextState {
+  iteratorBudget?: IteratorBudgetContract
   reachabilityValidities?: Map<NodeId, StepValidityResult>
   reachability?: JourneyReachabilityProjection
   fieldsToClear?: readonly string[]

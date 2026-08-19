@@ -30,6 +30,8 @@ import { createSubmitLifecycleTask } from '../../../concerns/hooks/runtime/Submi
 import { createSubmitHookTask } from '../../../concerns/hooks/runtime/SubmitHookWorkHandler'
 import { createSubmitPredicateTask } from '../../../concerns/hooks/runtime/SubmitHookPredicateWorkHandler'
 import { createSubmitBranchTask } from '../../../concerns/hooks/runtime/SubmitBranchWorkHandler'
+import IteratorBudget from '../pipeline/IteratorBudget'
+import type { IteratorBudgetContract } from '../../contracts/runtime/iteratorBudget.type'
 
 /**
  * The task-construction surface handed to generated functions as `ctx.workTasks`.
@@ -63,6 +65,7 @@ export const workTaskBuilders = {
  */
 function buildCompiledBaseContext(context: RuntimeContext, functionRegistry: FunctionRegistry): CompiledBaseContext {
   return {
+    iteratorBudget: resolveIteratorBudget(context),
     answers: context.domain.answers,
     data: context.domain.data,
     session: context.request.session,
@@ -72,6 +75,12 @@ function buildCompiledBaseContext(context: RuntimeContext, functionRegistry: Fun
     conditions: functionRegistry,
     workTasks: workTaskBuilders,
   }
+}
+
+function resolveIteratorBudget(context: RuntimeContext): IteratorBudgetContract {
+  context.evaluation.iteratorBudget ??= new IteratorBudget()
+
+  return context.evaluation.iteratorBudget
 }
 
 export function buildCompiledAnswerPreparationContext(

@@ -9,6 +9,7 @@ import { DOMAIN_VALIDATION_WORK_HANDLER, DOMAIN_VALIDATION_WORK_INSTRUMENTATION 
 
 function createContext(): WorkContext<CompiledValidationContext> {
   return new WorkContext({
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},

@@ -15,7 +15,7 @@ export default class ExpressSnapshotFactory {
 
     return {
       nodeId: route.nodeId,
-      method: req.method as HttpMethod,
+      method: this.normalizeMethod(req.method),
       location,
       params,
       query: this.normalizeQuery(req.query),
@@ -45,6 +45,18 @@ export default class ExpressSnapshotFactory {
     const requestState = (req as RequestWithState).state ?? {}
 
     return { ...appLocals, ...res.locals, ...requestState }
+  }
+
+  private static normalizeMethod(method: string): HttpMethod {
+    if (method === 'HEAD') {
+      return 'GET'
+    }
+
+    if (method === 'GET' || method === 'POST') {
+      return method
+    }
+
+    throw new TypeError(`Unsupported HTTP method: ${method}`)
   }
 
   private static normalizeParams(params: Record<string, string | string[] | undefined>): Record<string, string> {

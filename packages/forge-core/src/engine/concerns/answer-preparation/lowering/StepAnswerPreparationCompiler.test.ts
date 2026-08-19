@@ -148,6 +148,7 @@ function createTestPredicate(subject: ReferenceASTNode, condition: FunctionASTNo
 
 function createCtx(overrides: Partial<CompiledAnswerPreparationContext> = {}): CompiledAnswerPreparationContext {
   return {
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},

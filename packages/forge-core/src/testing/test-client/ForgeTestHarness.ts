@@ -15,6 +15,7 @@ const silentLogger = {
 
 export interface ForgeTestHarnessOptions {
   readonly instrumentation?: ForgeInstrumentationOptions
+  readonly maxIteratorIterations?: number
 }
 
 /**
@@ -41,6 +42,7 @@ export class ForgeTestHarness {
     this.forge = new Forge({
       logger: silentLogger,
       instrumentation: options.instrumentation,
+      maxIteratorIterations: options.maxIteratorIterations,
     })
   }
 
