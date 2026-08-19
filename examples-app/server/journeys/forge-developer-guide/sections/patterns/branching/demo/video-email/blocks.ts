@@ -2,6 +2,7 @@ import {
   Self,
   Condition,
   Transformer,
+  condition,
   validation,
 } from '@ministryofjustice/hmpps-forge/core/authoring'
 import {
@@ -30,6 +31,16 @@ export const videoEmailField = GovUKTextInput({
     validation({
       condition: Self().match(Condition.Email.IsValidEmail()),
       message: 'Enter a valid email address',
+    }),
+    validation({
+      // The invite must reach the visitor themselves, not a shared inbox.
+      condition: Self().match(
+        condition({
+          factory: () => (value: unknown) =>
+            typeof value === 'string' && !/^(info|admin|office|enquiries)@/.test(value),
+        })(),
+      ),
+      message: 'Enter a personal email address, not a shared inbox',
     }),
   ],
 })

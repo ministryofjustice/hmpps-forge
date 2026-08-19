@@ -3,7 +3,7 @@ title: Shaping data inline
 section: patterns
 path: patterns/inline-functions
 teaches: [inline-function-pattern, scoped-transformer, scoped-condition, data-shaping-pattern, derive-transformer]
-prerequisites: [TransformerRegistry, Data, pipe, match-method]
+prerequisites: [Data, pipe, match-method]
 ---
 
 <p class="govuk-caption-xl">Patterns</p>
@@ -13,9 +13,8 @@ prerequisites: [TransformerRegistry, Data, pipe, match-method]
 When an effect loads structured data from an API or data store,
 the block definition often needs to reshape it before rendering.
 Rather than scattering `when().then().else()` chains and deep
-`Data()` paths across the block, you can register small
-transformers and conditions on a registry right where they are
-used.
+`Data()` paths across the block, you can define small
+transformers and conditions right where they are used.
 
 This pattern keeps the effect focused on loading, keeps the block
 focused on page structure, and puts the data-shaping logic in a
@@ -46,24 +45,24 @@ data-shaping logic.
 
 ## The solution
 
-With a shared `TransformerRegistry`, the repeated logic collapses
-into a single inline transformer. Register it once to get a
-callable handle, then a reusable helper function reuses that handle
-for each risk area:
+With `transformer()`, the repeated logic collapses into a single
+transformer defined in the block file. Using it in the journey
+registers it automatically - no registry or `functions` listing
+needed. A small helper then reuses it for each risk area:
 
 ```typescript
-const myTransformers = new TransformerRegistry()
+const riskLevelTag = transformer('RiskLevelTag', {
+  factory: () => (value: unknown) => {
+    const config: Record<string, { text: string; colour: string }> = {
+      VERY_HIGH: { text: 'Very high', colour: 'red' },
+      HIGH: { text: 'High', colour: 'red' },
+      MEDIUM: { text: 'Medium', colour: 'yellow' },
+      LOW: { text: 'Low', colour: 'green' },
+    }
+    const { text, colour } = config[value as string] ?? { text: String(value), colour: 'grey' }
 
-const riskLevelTag = myTransformers.register('RiskLevelTag', () => (value: unknown) => {
-  const config: Record<string, { text: string; colour: string }> = {
-    VERY_HIGH: { text: 'Very high', colour: 'red' },
-    HIGH: { text: 'High', colour: 'red' },
-    MEDIUM: { text: 'Medium', colour: 'yellow' },
-    LOW: { text: 'Low', colour: 'green' },
-  }
-  const { text, colour } = config[value as string] ?? { text: String(value), colour: 'grey' }
-
-  return `<strong class="govuk-tag govuk-tag--${colour}">${text}</strong>`
+    return `<strong class="govuk-tag govuk-tag--${colour}">${text}</strong>`
+  },
 })
 
 const riskRow = (area: string, ref: ReturnType<typeof Data>) => ({
@@ -91,11 +90,13 @@ become inline transformers that derive from the raw data:
 ```typescript
 export const goalsSummary = GovUKBody({
   text: Data('case.goals').pipe(
-    myTransformers.register('GoalsSummary', () => (value: unknown) => {
-      const goals = value as CaseGoal[]
-      const achieved = goals.filter(g => g.status === 'ACHIEVED').length
+    transformer('GoalsSummary', {
+      factory: () => (value: unknown) => {
+        const goals = value as CaseGoal[]
+        const achieved = goals.filter(g => g.status === 'ACHIEVED').length
 
-      return `${achieved} of ${goals.length} goals achieved`
+        return `${achieved} of ${goals.length} goals achieved`
+      },
     })(),
   ),
 })
@@ -123,13 +124,12 @@ Compare the code panels to see the difference:
 ## Best practices
 
 - **Keep inline functions short.** If a transformer grows beyond
-  10 to 15 lines, extract it into its own `TransformerRegistry`
-  file with its own tests.
+  10 to 15 lines, extract it into its own file with its own tests.
 - **Name functions after the output.** `RiskLevelTag` and
   `GoalsSummary` describe what they produce.
-- **One registry per package.** Create it in a shared file, import
-  it into blocks. All inline functions flow through a single
-  registry for registration.
+- **Define shared logic once.** Capture the entry in a module-level
+  `const` and call it wherever it is needed, rather than defining
+  the same transformer in several blocks.
 - **Do not reshape data in effects.** Effects load and save.
   Transformers reshape. Mixing the two ties effects to specific
   component shapes and makes them harder to test.

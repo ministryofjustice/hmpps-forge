@@ -2,7 +2,7 @@
 title: Custom transformers
 section: building-functions-and-components
 path: building-functions-and-components/custom-transformers
-teaches: [TransformerRegistry, register, inputSchema, argumentsSchema, transformer-implementation]
+teaches: [transformer, TransformerRegistry, register, inputSchema, argumentsSchema, transformer-implementation]
 prerequisites: [Transformer, pipe, formatters, createForgePackage]
 ---
 
@@ -12,9 +12,9 @@ prerequisites: [Transformer, pipe, formatters, createForgePackage]
 
 Forge ships with transformers for strings, dates, numbers, arrays,
 and objects. When you need a transformation that the built-in set
-does not cover, you can define your own. Custom transformers follow
-the same pattern as all custom functions in Forge: you register them
-on a registry and pass that registry to a package.
+does not cover, you can define your own. A custom transformer is
+declared with `transformer()`, and using it in a journey registers
+it automatically.
 
 {{slot:toc}}
 
@@ -22,115 +22,91 @@ on a registry and pass that registry to a package.
 
 ## Declaring transformers
 
-Custom transformers are declared through a `TransformerRegistry`.
-You create one registry, register each transformer on it, and group
-the returned handles in a plain object for use in journey
+`transformer()` takes a name and an options object containing the
+factory. It returns a callable handle you use directly in journey
 definitions:
 
 ```typescript
-import { TransformerRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { transformer } from '@ministryofjustice/hmpps-forge/core/authoring'
 
-const myTransformers = new TransformerRegistry<MyDeps>()
+/** Converts a date value into a human-readable relative time string like "Today" or "3 days ago". */
+export const RelativeTime = transformer('RelativeTime', {
+  factory: () => (value: unknown) => {
+    if (typeof value !== 'string' && !(value instanceof Date)) {
+      throw new TypeError('RelativeTime expects a string or Date')
+    }
 
-export const MyTransformers = {
-  /** Converts a date value into a human-readable relative time string like "Today" or "3 days ago". */
-  RelativeTime: myTransformers.register(
-    'RelativeTime',
-    (deps) => (value: unknown) => {
-      if (typeof value !== 'string' && !(value instanceof Date)) {
-        throw new TypeError('RelativeTime expects a string or Date')
-      }
+    const date = new Date(value)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
-      const date = new Date(value)
-      const now = new Date()
-      const diffMs = now.getTime() - date.getTime()
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    if (diffDays === 0) return 'Today'
+    if (diffDays === 1) return 'Yesterday'
 
-      if (diffDays === 0) return 'Today'
-      if (diffDays === 1) return 'Yesterday'
+    return `${diffDays} days ago`
+  },
+})
 
-      return `${diffDays} days ago`
-    },
-  ),
+/**
+ * Shortens a string to the given length, appending the suffix if truncated.
+ * @param maxLength - The maximum number of characters to keep.
+ * @param suffix - The string to append when truncation occurs.
+ */
+export const Truncate = transformer('Truncate', {
+  factory: () => (value: unknown, maxLength: number, suffix: string) => {
+    if (typeof value !== 'string') {
+      throw new TypeError('Truncate expects a string')
+    }
 
-  /**
-   * Shortens a string to the given length, appending the suffix if truncated.
-   * @param maxLength - The maximum number of characters to keep.
-   * @param suffix - The string to append when truncation occurs.
-   */
-  Truncate: myTransformers.register(
-    'Truncate',
-    (deps) => (value: unknown, maxLength: number, suffix: string) => {
-      if (typeof value !== 'string') {
-        throw new TypeError('Truncate expects a string')
-      }
+    if (value.length <= maxLength) return value
 
-      if (value.length <= maxLength) return value
-
-      return value.slice(0, maxLength) + suffix
-    },
-  ),
-}
+    return value.slice(0, maxLength) + suffix
+  },
+})
 ```
 
-There is no separate shape interface to maintain. `register` infers
-the argument types straight from the factory, so
-`MyTransformers.Truncate` becomes
-`(maxLength: number, suffix: string) => TransformerFunctionExpr`
-and `MyTransformers.RelativeTime` becomes
-`() => TransformerFunctionExpr`. The JSDoc on each grouped handle
-documents the transformer the same way a shape interface used to.
+There is no registry to create and no shape interface to maintain.
+The factory follows the pattern `(deps) => (value, ...args) => result`,
+and the argument types come straight from it: `Truncate` is
+`(maxLength, suffix) => TransformerFunctionExpr` and `RelativeTime`
+is `() => TransformerFunctionExpr`. `Truncate(100, '...')` creates a
+transformer expression that Forge knows how to evaluate.
 
-Each `register` call takes a name, an optional options object, and
-a factory following the pattern `(deps) => (value, ...args) => result`.
-It returns a callable handle. `MyTransformers.Truncate(100, '...')`
-creates a transformer expression that Forge knows how to evaluate.
-
-Arguments passed to a handle can be static values or expressions:
+Arguments passed to a handle can be static values or expressions.
+Each parameter automatically accepts an expression as well as the
+type the factory declares - there is no widening to do - and Forge
+resolves the expression before the evaluator runs:
 
 ```typescript
 // Static arguments
-Answer('bio').pipe(MyTransformers.Truncate(100, '...'))
+Answer('bio').pipe(Truncate(100, '...'))
 
 // Dynamic argument
-Answer('bio').pipe(MyTransformers.Truncate(Data('maxBioLength'), '...'))
+Answer('bio').pipe(Truncate(Data('maxBioLength'), '...'))
 ```
 
-The handle's signature is inferred from the factory, so a factory
-that declares `maxLength: number` produces a handle that only
-accepts a number at the type level. To accept expressions too,
-widen the parameter to `number | ResolvableValue` (exported from
-`@ministryofjustice/hmpps-forge/core/authoring`) - the built-in
-transformers do the same. Forge resolves the expression before the
-evaluator runs.
+Using the handle anywhere in a journey definition is also what
+registers it. At `registerPackage()`, Forge collects every entry
+the journey uses and registers its evaluator - there is nothing to
+list on the package.
 
 ### The outer function: dependencies
 
 The outer function `(deps) => ...` receives whatever dependencies
-you pass when registering the package. Even if your transformer
-does not need any dependencies, the outer function is still
-required. Omit its parameter when it is unused:
+you pass when registering the package. Pass the dependency type as
+a type argument, and omit the parameter when it is unused:
 
 ```typescript
-RelativeTime: myTransformers.register('RelativeTime', () => (value: unknown) => {
-  // no dependencies needed here
-}),
-```
-
-If your transformer does need external services, they are available
-through `deps`:
-
-```typescript
-FormatCurrency: myTransformers.register(
-  'FormatCurrency',
-  (deps) => (value: unknown, currencyCode: string) => {
+export const FormatCurrency = transformer<MyDeps>('FormatCurrency', {
+  factory: (deps) => (value: unknown, currencyCode: string) => {
     if (typeof value !== 'number') {
       throw new TypeError('FormatCurrency expects a number')
     }
 
     return deps.currencyFormatter.format(value, currencyCode)
   },
-),
+})
 ```
 
 ### The inner function: value and arguments
@@ -161,29 +137,22 @@ your evaluator runs. This is the declarative alternative to manual
 
 ```typescript
 import { z } from 'zod'
-import { TransformerRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { transformer } from '@ministryofjustice/hmpps-forge/core/authoring'
 
-const myTransformers = new TransformerRegistry<MyDeps>()
+/**
+ * Shortens a string to the given length, appending the suffix if truncated.
+ * @param maxLength - The maximum number of characters to keep.
+ * @param suffix - The string to append when truncation occurs.
+ */
+export const Truncate = transformer('Truncate', {
+  inputSchema: z.string(),
+  argumentsSchema: z.tuple([z.number().int().positive(), z.string()]),
+  factory: () => (value: string, maxLength: number, suffix: string) => {
+    if (value.length <= maxLength) return value
 
-export const MyTransformers = {
-  /**
-   * Shortens a string to the given length, appending the suffix if truncated.
-   * @param maxLength - The maximum number of characters to keep.
-   * @param suffix - The string to append when truncation occurs.
-   */
-  Truncate: myTransformers.register(
-    'Truncate',
-    {
-      inputSchema: z.string(),
-      argumentsSchema: z.tuple([z.number().int().positive(), z.string()]),
-    },
-    (deps) => (value: string, maxLength: number, suffix: string) => {
-      if (value.length <= maxLength) return value
-
-      return value.slice(0, maxLength) + suffix
-    },
-  ),
-}
+    return value.slice(0, maxLength) + suffix
+  },
+})
 ```
 
 With `inputSchema: z.string()` in place, a non-string value never
@@ -213,42 +182,35 @@ handle and returns them as an array. The returned array replaces
 the original arguments in the built expression.
 
 ```typescript
-const myTransformers = new TransformerRegistry<MyDeps>()
+export const Truncate = transformer('Truncate', {
+  prepare: (maxLength: number, suffix: string): [number, string] => {
+    if (!Number.isInteger(maxLength) || maxLength < 1) {
+      throw new Error('Truncate requires a positive integer maxLength')
+    }
 
-export const MyTransformers = {
-  Truncate: myTransformers.register(
-    'Truncate',
-    {
-      prepare: (maxLength: number, suffix: string): [number, string] => {
-        if (!Number.isInteger(maxLength) || maxLength < 1) {
-          throw new Error('Truncate requires a positive integer maxLength')
-        }
+    if (typeof suffix !== 'string') {
+      throw new Error('Truncate requires a string suffix')
+    }
 
-        if (typeof suffix !== 'string') {
-          throw new Error('Truncate requires a string suffix')
-        }
+    return [maxLength, suffix]
+  },
+  factory: () => (value: unknown, maxLength: number, suffix: string) => {
+    if (typeof value !== 'string') {
+      throw new TypeError('Truncate expects a string')
+    }
 
-        return [maxLength, suffix]
-      },
-    },
-    (deps) => (value: unknown, maxLength: number, suffix: string) => {
-      if (typeof value !== 'string') {
-        throw new TypeError('Truncate expects a string')
-      }
+    if (value.length <= maxLength) return value
 
-      if (value.length <= maxLength) return value
-
-      return value.slice(0, maxLength) + suffix
-    },
-  ),
-}
+    return value.slice(0, maxLength) + suffix
+  },
+})
 ```
 
 A bad call fails as soon as the definition is imported:
 
 ```typescript
 // Throws 'Truncate requires a positive integer maxLength'.
-MyTransformers.Truncate(0, '...')
+Truncate(0, '...')
 ```
 
 `prepare` does not see injected dependencies or the runtime value,
@@ -279,16 +241,18 @@ declared an `inputSchema`, verify the value matches what you
 expect, and throw a `TypeError` if it does not.
 
 ```typescript
-Slugify: myTransformers.register('Slugify', (deps) => (value: unknown) => {
-  if (typeof value !== 'string') {
-    throw new TypeError('Slugify expects a string')
-  }
+export const Slugify = transformer('Slugify', {
+  factory: () => (value: unknown) => {
+    if (typeof value !== 'string') {
+      throw new TypeError('Slugify expects a string')
+    }
 
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-}),
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+  },
+})
 ```
 
 Forge treats `TypeError` differently from other errors. Outside of
@@ -302,26 +266,10 @@ type mismatches from other failures.
 
 ## Registration
 
-Pass the registry to a package through the `functions` property:
-
-```typescript
-import { createForgePackage } from '@ministryofjustice/hmpps-forge/core/authoring'
-
-export default createForgePackage<MyDeps>({
-  journey: myJourney,
-  functions: myTransformers,
-})
-```
-
-`functions` also accepts an array of registries when a package
-mixes several function kinds:
-
-```typescript
-functions: [myTransformers, myConditions],
-```
-
-Dependencies are injected at application startup when you register
-the package:
+Using a transformer in a journey definition registers it - there is
+nothing to declare on the package. Dependencies are injected at
+application startup when you register the package, and every
+entry's factory receives them:
 
 ```typescript
 forge.registerPackage(myPackage, {
@@ -329,16 +277,22 @@ forge.registerPackage(myPackage, {
 })
 ```
 
-Every transformer in the registry receives these dependencies as
-its outer function argument. To make transformers available to
-every journey rather than a single package, register the registry
-globally instead:
+If a journey refers to a transformer only by name - a journey
+defined in JSON, for example - nothing uses the handle, so there is
+nothing to collect. List the entry on the package's `functions`
+property to register it under its declared name regardless:
 
 ```typescript
-forge.registerGlobalFunctions(myTransformers, {
-  currencyFormatter: services.currencyFormatter,
+export default createForgePackage<MyDeps>({
+  journey: myJourney,
+  functions: [Truncate, RelativeTime],
 })
 ```
+
+The `functions` array mixes entries and registries freely. To make
+transformers available to every journey rather than a single
+package, group them on a registry and register it globally - see
+[Grouping with a registry](#grouping-with-a-registry).
 
 ---
 
@@ -351,9 +305,9 @@ in the `formatters` property on fields.
 ### In `.pipe()`
 
 ```typescript
-Item().path('createdAt').pipe(MyTransformers.RelativeTime())
+Item().path('createdAt').pipe(RelativeTime())
 
-Answer('bio').pipe(MyTransformers.Truncate(200, '...'))
+Answer('bio').pipe(Truncate(200, '...'))
 ```
 
 ### In `formatters`
@@ -362,7 +316,7 @@ Answer('bio').pipe(MyTransformers.Truncate(200, '...'))
 GovUKTextInput({
   code: 'slug',
   label: { text: 'URL slug' },
-  formatters: [MyTransformers.Slugify()],
+  formatters: [Slugify()],
 })
 ```
 
@@ -374,8 +328,8 @@ Each one receives the output of the previous:
 ```typescript
 Answer('name').pipe(
   Transformer.String.Trim(),
-  MyTransformers.Slugify(),
-  MyTransformers.Truncate(50, ''),
+  Slugify(),
+  Truncate(50, ''),
 )
 ```
 
@@ -383,61 +337,99 @@ Answer('name').pipe(
 
 ## Testing
 
-`register` returns an expression handle, not the underlying
-function, so tests evaluate the transformer through the registry's
-`build` method. Call `build` with mock dependencies to get an
-object keyed by name, then read the `evaluate` function:
+Test a transformer with `FunctionRegistryTestHarness` from the
+testing module. Pass the entry to the constructor, then evaluate
+the expression the handle builds. The harness runs the engine's
+real evaluation pipeline - schemas, short-circuits, and output
+validation - so a wrong schema fails in your tests rather than
+shipping silently:
 
 ```typescript
-describe('MyTransformers', () => {
-  describe('Truncate', () => {
-    const truncate = myTransformers.build({} as MyDeps).Truncate.evaluate
+import { FunctionRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 
-    it('should return the value unchanged when shorter than max length', () => {
-      // Arrange
-      const value = 'short'
+describe('Truncate', () => {
+  const harness = new FunctionRegistryTestHarness(Truncate)
 
-      // Act
-      const result = truncate(value, 10, '...')
+  it('should return the value unchanged when shorter than max length', () => {
+    // Arrange / Act
+    const result = harness.evaluate(Truncate(10, '...')).withInput('short')
 
-      // Assert
-      expect(result).toBe('short')
-    })
+    // Assert
+    expect(result).toBe('short')
+  })
 
-    it('should truncate and append suffix when longer than max length', () => {
-      // Arrange
-      const value = 'a long string that should be truncated'
+  it('should truncate and append suffix when longer than max length', () => {
+    // Arrange / Act
+    const result = harness.evaluate(Truncate(10, '...')).withInput('a long string that should be truncated')
 
-      // Act
-      const result = truncate(value, 10, '...')
+    // Assert
+    expect(result).toBe('a long str...')
+  })
 
-      // Assert
-      expect(result).toBe('a long str...')
-    })
-
-    it('should throw TypeError when value is not a string', () => {
-      // Arrange / Act / Assert
-      expect(() => truncate(123, 10, '...')).toThrow(TypeError)
-    })
+  it('should throw TypeError when value is not a string', () => {
+    // Arrange / Act / Assert
+    expect(() => harness.evaluate(Truncate(10, '...')).withInput(123)).toThrow(TypeError)
   })
 })
 ```
 
-If your transformer depends on an external service, pass a stub to
-`build`:
+If your transformer depends on an external service, pass a stub as
+the second constructor argument:
 
 ```typescript
-const formatCurrency = myTransformers.build({
+const harness = new FunctionRegistryTestHarness(FormatCurrency, {
   currencyFormatter: { format: (v, c) => `${c} ${v.toFixed(2)}` },
-} as MyDeps).FormatCurrency.evaluate
+} as MyDeps)
 
-expect(formatCurrency(42.5, 'GBP')).toBe('GBP 42.50')
+expect(harness.evaluate(FormatCurrency('GBP')).withInput(42.5)).toBe('GBP 42.50')
 ```
 
-`build` returns the entry keyed by the name you registered, and
-`evaluate` is the `(value, ...args) => result` function itself. It
-bypasses the schemas and `prepare`, so it exercises the evaluator
-logic directly.
+`withInput` supplies the value the engine would resolve from the
+reference at runtime; the arguments come from the handle call.
+
+---
+
+## Grouping with a registry
+
+Entries suit transformers that live alongside the journeys using
+them. When a package exposes a family of transformers as a shared
+API - or when transformers must be available to every journey - a
+`TransformerRegistry` groups them under one handle object:
+
+```typescript
+import { TransformerRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
+
+const myTransformers = new TransformerRegistry<MyDeps>()
+
+export const MyTransformers = {
+  /** Converts a date value into a human-readable relative time string like "Today" or "3 days ago". */
+  RelativeTime: myTransformers.register('RelativeTime', () => (value: unknown) => {
+    // same evaluator as the entry form
+  }),
+}
+```
+
+`register` takes the same options (`inputSchema`, `argumentsSchema`,
+`outputSchema`, `prepare`) and the same factory shape, and returns
+the same kind of callable handle. Two differences from entries:
+
+- Nothing registers automatically. Pass the registry to a package's
+  `functions` property, or globally:
+
+  ```typescript
+  forge.registerGlobalFunctions(myTransformers, {
+    currencyFormatter: services.currencyFormatter,
+  })
+  ```
+
+- Handle parameters accept only the types the factory declares. To
+  accept expressions too, widen the parameter to
+  `number | ResolvableValue` (exported from
+  `@ministryofjustice/hmpps-forge/core/authoring`) - the built-in
+  transformers do the same.
+
+`FunctionRegistryTestHarness` accepts a registry in place of an
+entry, so the testing pattern above works unchanged.
 
 ---
 

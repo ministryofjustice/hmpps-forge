@@ -9,6 +9,7 @@ import {
   GovUKButton,
   GovUKUtilityClasses,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
+import { IsUkPhoneNumber } from './conditions'
 
 export const phoneNumberField = GovUKTextInput({
   code: 'phoneNumber',
@@ -29,6 +30,10 @@ export const phoneNumberField = GovUKTextInput({
     validation({
       condition: Self().match(Condition.Phone.IsValidPhoneNumber()),
       message: 'Enter a valid phone number',
+    }),
+    validation({
+      condition: Self().match(IsUkPhoneNumber()),
+      message: 'Enter a UK phone number, like 07700 900982',
     }),
   ],
 })

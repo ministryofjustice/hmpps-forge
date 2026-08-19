@@ -2,7 +2,7 @@
 title: Custom conditions
 section: building-functions-and-components
 path: building-functions-and-components/custom-conditions
-teaches: [ConditionRegistry, register, inputSchema, argumentsSchema, condition-implementation]
+teaches: [condition, ConditionRegistry, register, inputSchema, argumentsSchema, condition-implementation]
 prerequisites: [Condition, match-method, predicate, createForgePackage]
 ---
 
@@ -13,8 +13,9 @@ prerequisites: [Condition, match-method, predicate, createForgePackage]
 Forge ships with conditions for common checks: required fields,
 string lengths, date ranges, array membership, and more. When your
 application needs domain-specific validation or visibility logic,
-you can define your own conditions. They work the same way as the
-built-in set and can be used anywhere `.match()` is accepted.
+you can define your own conditions. A custom condition is declared
+with `condition()`, using it in a journey registers it
+automatically, and it works anywhere `.match()` is accepted.
 
 {{slot:toc}}
 
@@ -22,95 +23,83 @@ built-in set and can be used anywhere `.match()` is accepted.
 
 ## Declaring conditions
 
-Custom conditions are declared through a `ConditionRegistry`. You
-create one registry, register each condition on it, and group the
-returned handles in a plain object for use in journey definitions:
+`condition()` takes a name and an options object containing the
+factory. It returns a callable handle you use directly in journey
+definitions:
 
 ```typescript
-import { ConditionRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { condition } from '@ministryofjustice/hmpps-forge/core/authoring'
 
-const myConditions = new ConditionRegistry<MyDeps>()
+/**
+ * Checks that a numeric value meets the minimum score threshold.
+ * @param minScore - The minimum value required for eligibility.
+ */
+export const IsEligible = condition('IsEligible', {
+  factory: () => (value: unknown, minScore: number) => {
+    if (typeof value !== 'number') {
+      throw new TypeError('IsEligible expects a number')
+    }
 
-export const MyConditions = {
-  /**
-   * Checks that a numeric value meets the minimum score threshold.
-   * @param minScore - The minimum value required for eligibility.
-   */
-  IsEligible: myConditions.register(
-    'IsEligible',
-    (deps) => (value: unknown, minScore: number) => {
-      if (typeof value !== 'number') {
-        throw new TypeError('IsEligible expects a number')
-      }
+    return value >= minScore
+  },
+})
 
-      return value >= minScore
-    },
-  ),
+/** Validates that the value is a correctly formatted UK National Insurance number. */
+export const IsValidNiNumber = condition('IsValidNiNumber', {
+  factory: () => (value: unknown) => {
+    if (typeof value !== 'string') {
+      throw new TypeError('IsValidNiNumber expects a string')
+    }
 
-  /** Validates that the value is a correctly formatted UK National Insurance number. */
-  IsValidNiNumber: myConditions.register(
-    'IsValidNiNumber',
-    (deps) => (value: unknown) => {
-      if (typeof value !== 'string') {
-        throw new TypeError('IsValidNiNumber expects a string')
-      }
+    return /^[A-Z]{2}\d{6}[A-D]$/i.test(value.replace(/\s/g, ''))
+  },
+})
 
-      return /^[A-Z]{2}\d{6}[A-D]$/i.test(value.replace(/\s/g, ''))
-    },
-  ),
+/**
+ * Checks that a date string falls before the given deadline.
+ * @param deadline - An ISO date string representing the cutoff date.
+ */
+export const IsBeforeDeadline = condition('IsBeforeDeadline', {
+  factory: () => (value: unknown, deadline: string) => {
+    if (typeof value !== 'string') {
+      throw new TypeError('IsBeforeDeadline expects a date string')
+    }
 
-  /**
-   * Checks that a date string falls before the given deadline.
-   * @param deadline - An ISO date string representing the cutoff date.
-   */
-  IsBeforeDeadline: myConditions.register(
-    'IsBeforeDeadline',
-    (deps) => (value: unknown, deadline: string) => {
-      if (typeof value !== 'string') {
-        throw new TypeError('IsBeforeDeadline expects a date string')
-      }
-
-      return new Date(value) < new Date(deadline)
-    },
-  ),
-}
+    return new Date(value) < new Date(deadline)
+  },
+})
 ```
 
-There is no separate shape interface to maintain. `register` infers
-the argument types straight from the factory, so
-`MyConditions.IsEligible` becomes `(minScore: number) => ConditionFunctionExpr`
-and `MyConditions.IsValidNiNumber` becomes `() => ConditionFunctionExpr`.
-The JSDoc on each grouped handle documents the condition the same
-way a shape interface used to.
+There is no registry to create and no shape interface to maintain.
+The factory follows the pattern `(deps) => (value, ...args) => boolean`,
+and the argument types come straight from it: `IsEligible` is
+`(minScore) => ConditionFunctionExpr` and `IsValidNiNumber` is
+`() => ConditionFunctionExpr`. `IsEligible(50)` creates a condition
+expression that Forge evaluates through `.match()`.
 
-Each `register` call takes a name, an optional options object, and
-a factory following the pattern `(deps) => (value, ...args) => boolean`.
-It returns a callable handle. `MyConditions.IsEligible(50)` creates
-a condition expression that Forge evaluates through `.match()`.
-
-Arguments passed to a handle can be static values or expressions:
+Arguments passed to a handle can be static values or expressions.
+Each parameter automatically accepts an expression as well as the
+type the factory declares - there is no widening to do - and Forge
+resolves the expression before the evaluator runs:
 
 ```typescript
 // Static argument
-Answer('score').match(MyConditions.IsEligible(50))
+Answer('score').match(IsEligible(50))
 
 // Dynamic argument
-Answer('score').match(MyConditions.IsEligible(Data('minimumScore')))
+Answer('score').match(IsEligible(Data('minimumScore')))
 ```
 
-The handle's signature is inferred from the factory, so a factory
-that declares `minScore: number` produces a handle that only
-accepts a number at the type level. To accept expressions too,
-widen the parameter to `number | ResolvableValue` (exported from
-`@ministryofjustice/hmpps-forge/core/authoring`) - the built-in
-conditions do the same. Forge resolves the expression before the
-evaluator runs.
+Using the handle anywhere in a journey definition is also what
+registers it. At `registerPackage()`, Forge collects every entry
+the journey uses and registers its evaluator - there is nothing to
+list on the package.
 
 ### The value parameter
 
 The first parameter of every condition factory is the resolved
 value from the reference it is matched against. When you write
-`Answer('score').match(MyConditions.IsEligible(50))`, Forge resolves
+`Answer('score').match(IsEligible(50))`, Forge resolves
 `Answer('score')` to a concrete value and passes it as the first
 argument to the evaluator.
 
@@ -131,7 +120,7 @@ invalid. This keeps the logic consistent across `validWhen`,
 definition uses `.not.match()`:
 
 ```typescript
-Answer('date').not.match(MyConditions.IsBeforeDeadline('2026-12-31'))
+Answer('date').not.match(IsBeforeDeadline('2026-12-31'))
 ```
 
 ---
@@ -150,24 +139,17 @@ your evaluator runs. This is the declarative alternative to manual
 
 ```typescript
 import { z } from 'zod'
-import { ConditionRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { condition } from '@ministryofjustice/hmpps-forge/core/authoring'
 
-const myConditions = new ConditionRegistry<MyDeps>()
-
-export const MyConditions = {
-  /**
-   * Checks that a numeric value meets the minimum score threshold.
-   * @param minScore - The minimum value required for eligibility.
-   */
-  IsEligible: myConditions.register(
-    'IsEligible',
-    {
-      inputSchema: z.number(),
-      argumentsSchema: z.tuple([z.number().nonnegative()]),
-    },
-    (deps) => (value: number, minScore: number) => value >= minScore,
-  ),
-}
+/**
+ * Checks that a numeric value meets the minimum score threshold.
+ * @param minScore - The minimum value required for eligibility.
+ */
+export const IsEligible = condition('IsEligible', {
+  inputSchema: z.number(),
+  argumentsSchema: z.tuple([z.number().nonnegative()]),
+  factory: () => (value: number, minScore: number) => value >= minScore,
+})
 ```
 
 With `inputSchema: z.number()` in place, a non-numeric value never
@@ -201,36 +183,29 @@ handle and returns them as an array. The returned array replaces
 the original arguments in the built expression.
 
 ```typescript
-const myConditions = new ConditionRegistry<MyDeps>()
+export const IsEligible = condition('IsEligible', {
+  prepare: (minScore: number): [number] => {
+    if (!Number.isInteger(minScore) || minScore < 0) {
+      throw new Error('IsEligible requires a non-negative integer')
+    }
 
-export const MyConditions = {
-  IsEligible: myConditions.register(
-    'IsEligible',
-    {
-      prepare: (minScore: number): [number] => {
-        if (!Number.isInteger(minScore) || minScore < 0) {
-          throw new Error('IsEligible requires a non-negative integer')
-        }
+    return [minScore]
+  },
+  factory: () => (value: unknown, minScore: number) => {
+    if (typeof value !== 'number') {
+      throw new TypeError('IsEligible expects a number')
+    }
 
-        return [minScore]
-      },
-    },
-    (deps) => (value: unknown, minScore: number) => {
-      if (typeof value !== 'number') {
-        throw new TypeError('IsEligible expects a number')
-      }
-
-      return value >= minScore
-    },
-  ),
-}
+    return value >= minScore
+  },
+})
 ```
 
 A bad call fails as soon as the definition is imported:
 
 ```typescript
 // Throws 'IsEligible requires a non-negative integer'.
-MyConditions.IsEligible(-1)
+IsEligible(-1)
 ```
 
 `prepare` does not see injected dependencies or the runtime value,
@@ -261,16 +236,15 @@ and what the condition expects. When you have not declared an
 `inputSchema`, verify the type at the start of your evaluator.
 
 ```typescript
-IsValidNiNumber: myConditions.register(
-  'IsValidNiNumber',
-  (deps) => (value: unknown) => {
+export const IsValidNiNumber = condition('IsValidNiNumber', {
+  factory: () => (value: unknown) => {
     if (typeof value !== 'string') {
       throw new TypeError('IsValidNiNumber expects a string')
     }
 
     return /^[A-Z]{2}\d{6}[A-D]$/i.test(value.replace(/\s/g, ''))
   },
-),
+})
 ```
 
 Forge treats `TypeError` differently depending on context:
@@ -289,25 +263,10 @@ type mismatches from other failures.
 
 ## Registration
 
-Pass the registry to a package through the `functions` property:
-
-```typescript
-import { createForgePackage } from '@ministryofjustice/hmpps-forge/core/authoring'
-
-export default createForgePackage<MyDeps>({
-  journey: myJourney,
-  functions: myConditions,
-})
-```
-
-`functions` also accepts an array of registries when a package
-mixes conditions, transformers, generators, and effects:
-
-```typescript
-functions: [myConditions, myTransformers, myEffects],
-```
-
-Dependencies are injected at application startup:
+Using a condition in a journey definition registers it - there is
+nothing to declare on the package. Dependencies are injected at
+application startup when you register the package, and every
+entry's factory receives them:
 
 ```typescript
 forge.registerPackage(myPackage, {
@@ -315,14 +274,22 @@ forge.registerPackage(myPackage, {
 })
 ```
 
-To make conditions available to every journey rather than a single
-package, register the registry globally instead:
+If a journey refers to a condition only by name - a journey defined
+in JSON, for example - nothing uses the handle, so there is nothing
+to collect. List the entry on the package's `functions` property to
+register it under its declared name regardless:
 
 ```typescript
-forge.registerGlobalFunctions(myConditions, {
-  eligibilityService: services.eligibilityService,
+export default createForgePackage<MyDeps>({
+  journey: myJourney,
+  functions: [IsEligible, IsValidNiNumber],
 })
 ```
+
+The `functions` array mixes entries and registries freely. To make
+conditions available to every journey rather than a single package,
+group them on a registry and register it globally - see
+[Grouping with a registry](#grouping-with-a-registry).
 
 ---
 
@@ -336,7 +303,7 @@ are used through `.match()` on references.
 ```typescript
 validWhen: [
   validation({
-    condition: Self().match(MyConditions.IsValidNiNumber()),
+    condition: Self().match(IsValidNiNumber()),
     message: 'Enter a valid National Insurance number',
   }),
 ]
@@ -347,7 +314,7 @@ validWhen: [
 ```typescript
 GovUKInsetText({
   text: 'You are eligible for the programme.',
-  visibleWhen: Answer('score').match(MyConditions.IsEligible(50)),
+  visibleWhen: Answer('score').match(IsEligible(50)),
 })
 ```
 
@@ -356,7 +323,7 @@ GovUKInsetText({
 ```typescript
 access({
   when: Answer('submissionDate').not.match(
-    MyConditions.IsBeforeDeadline(Data('deadline')),
+    IsBeforeDeadline(Data('deadline')),
   ),
   next: [redirect({ goto: '/deadline-passed' })],
 })
@@ -371,7 +338,7 @@ same way built-in conditions do:
 validation({
   condition: and(
     Self().match(Condition.IsRequired()),
-    Self().match(MyConditions.IsValidNiNumber()),
+    Self().match(IsValidNiNumber()),
   ),
   message: 'Enter a valid National Insurance number',
 })
@@ -381,63 +348,103 @@ validation({
 
 ## Testing
 
-`register` returns an expression handle, not the underlying
-function, so tests evaluate the condition through the registry's
-`build` method. Call `build` with mock dependencies to get an
-object keyed by name, then read the `evaluate` function:
+Test a condition with `FunctionRegistryTestHarness` from the
+testing module. Pass the entry to the constructor, then evaluate
+the expression the handle builds. The harness runs the engine's
+real evaluation pipeline - schemas, short-circuits, and output
+validation - so a wrong schema fails in your tests rather than
+shipping silently:
 
 ```typescript
-describe('MyConditions', () => {
-  describe('IsEligible', () => {
-    const isEligible = myConditions.build({} as MyDeps).IsEligible.evaluate
+import { FunctionRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 
-    it('should return true when value meets minimum score', () => {
-      // Arrange / Act / Assert
-      expect(isEligible(75, 50)).toBe(true)
-    })
+describe('IsEligible', () => {
+  const harness = new FunctionRegistryTestHarness(IsEligible)
 
-    it('should return false when value is below minimum score', () => {
-      // Arrange / Act / Assert
-      expect(isEligible(30, 50)).toBe(false)
-    })
-
-    it('should return true when value equals minimum score', () => {
-      // Arrange / Act / Assert
-      expect(isEligible(50, 50)).toBe(true)
-    })
-
-    it('should throw TypeError when value is not a number', () => {
-      // Arrange / Act / Assert
-      expect(() => isEligible('fifty', 50)).toThrow(TypeError)
-    })
+  it('should return true when value meets minimum score', () => {
+    // Arrange / Act / Assert
+    expect(harness.evaluate(IsEligible(50)).withInput(75)).toBe(true)
   })
 
-  describe('IsValidNiNumber', () => {
-    const isValidNiNumber = myConditions.build({} as MyDeps).IsValidNiNumber.evaluate
+  it('should return false when value is below minimum score', () => {
+    // Arrange / Act / Assert
+    expect(harness.evaluate(IsEligible(50)).withInput(30)).toBe(false)
+  })
 
-    it('should return true for a valid NI number', () => {
-      // Arrange / Act / Assert
-      expect(isValidNiNumber('AB123456C')).toBe(true)
-    })
+  it('should return true when value equals minimum score', () => {
+    // Arrange / Act / Assert
+    expect(harness.evaluate(IsEligible(50)).withInput(50)).toBe(true)
+  })
 
-    it('should return true when spaces are present', () => {
-      // Arrange / Act / Assert
-      expect(isValidNiNumber('AB 12 34 56 C')).toBe(true)
-    })
+  it('should throw TypeError when value is not a number', () => {
+    // Arrange / Act / Assert
+    expect(() => harness.evaluate(IsEligible(50)).withInput('fifty')).toThrow(TypeError)
+  })
+})
 
-    it('should return false for an invalid format', () => {
-      // Arrange / Act / Assert
-      expect(isValidNiNumber('12345')).toBe(false)
-    })
+describe('IsValidNiNumber', () => {
+  const harness = new FunctionRegistryTestHarness(IsValidNiNumber)
+
+  it('should return true for a valid NI number', () => {
+    // Arrange / Act / Assert
+    expect(harness.evaluate(IsValidNiNumber()).withInput('AB123456C')).toBe(true)
+  })
+
+  it('should return false for an invalid format', () => {
+    // Arrange / Act / Assert
+    expect(harness.evaluate(IsValidNiNumber()).withInput('12345')).toBe(false)
   })
 })
 ```
 
-`build` returns the entry keyed by the name you registered, so
-`myConditions.build(deps).IsEligible.evaluate` is the
-`(value, ...args) => boolean` function itself. `evaluate` bypasses
-the schemas and `prepare`, so it exercises the evaluator logic
-directly.
+`withInput` supplies the value the engine would resolve from the
+reference at runtime; the arguments come from the handle call. If
+the condition depends on an external service, pass a stub as the
+second constructor argument.
+
+---
+
+## Grouping with a registry
+
+Entries suit conditions that live alongside the journeys using
+them. When a package exposes a family of conditions as a shared
+API - or when conditions must be available to every journey - a
+`ConditionRegistry` groups them under one handle object:
+
+```typescript
+import { ConditionRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
+
+const myConditions = new ConditionRegistry<MyDeps>()
+
+export const MyConditions = {
+  /** Validates that the value is a correctly formatted UK National Insurance number. */
+  IsValidNiNumber: myConditions.register('IsValidNiNumber', () => (value: unknown) => {
+    // same evaluator as the entry form
+  }),
+}
+```
+
+`register` takes the same options (`inputSchema`, `argumentsSchema`,
+`outputSchema`, `prepare`) and the same factory shape, and returns
+the same kind of callable handle. Two differences from entries:
+
+- Nothing registers automatically. Pass the registry to a package's
+  `functions` property, or globally:
+
+  ```typescript
+  forge.registerGlobalFunctions(myConditions, {
+    eligibilityService: services.eligibilityService,
+  })
+  ```
+
+- Handle parameters accept only the types the factory declares. To
+  accept expressions too, widen the parameter to
+  `number | ResolvableValue` (exported from
+  `@ministryofjustice/hmpps-forge/core/authoring`) - the built-in
+  conditions do the same.
+
+`FunctionRegistryTestHarness` accepts a registry in place of an
+entry, so the testing pattern above works unchanged.
 
 ---
 
