@@ -1,6 +1,6 @@
 import { DateConditions, dateConditionsRegistry } from './dateConditions'
 import { FunctionType } from '../../../authoring/types/enums'
-import { FunctionRegistryTestHarness } from '../../../testing/FunctionRegistryTestHarness'
+import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('DateConditions', () => {
   const harness = new FunctionRegistryTestHarness(dateConditionsRegistry)

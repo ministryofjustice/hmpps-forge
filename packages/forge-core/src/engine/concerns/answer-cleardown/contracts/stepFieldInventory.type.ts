@@ -1,4 +1,4 @@
-import { NodeId } from '../../../contracts/ast/ast.type'
+import { NodeId } from '../../../chassis/contracts/ast/ast.type'
 
 export interface StepFieldInventory {
   stepId: NodeId

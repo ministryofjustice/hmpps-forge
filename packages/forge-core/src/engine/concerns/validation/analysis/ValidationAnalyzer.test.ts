@@ -1,9 +1,9 @@
 import { BlockType } from '../../../../authoring/types/enums'
-import type { ASTNode } from '../../../contracts/ast/engine.type'
-import ASTNodeIndex from '../../../compilation/ast/ast-state/ASTNodeIndex'
-import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
-import { createStepAnalysisContext } from '../../../compilation/analysis/testing-helpers/analysisContexts'
-import { ValidationRulesKind } from '../../../contracts/models/fieldModel.type'
+import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
+import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
+import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
+import { createStepAnalysisContext } from '../../../chassis/compilation/analysis/testing-helpers/analysisContexts'
+import { ValidationRulesKind } from '../../../chassis/contracts/models/fieldModel.type'
 import ValidationAnalyzer from './ValidationAnalyzer'
 
 function setParent(child: ASTNode, parent: ASTNode): void {

@@ -4,7 +4,7 @@ import { createForgePackage, field, journey, step } from '../../src/authoring'
 import Forge from '../../src/engine/Forge'
 import type { JourneyDefinition } from '../../src/authoring/types/structures.type'
 import type { FieldBlockDefinition } from '../../src/components/types/structures.type'
-import type { CompilationTraceEvent } from '../../src/engine/contracts/compilation/trace.type'
+import type { CompilationTraceEvent } from '../../src/engine/chassis/contracts/compilation/trace.type'
 
 const silentLogger = {
   log: () => {},

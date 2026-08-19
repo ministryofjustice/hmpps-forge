@@ -1,4 +1,7 @@
-import type { JourneyAnalysisContext, JourneyModelAnalyzer } from '../../../compilation/analysis/concernAnalyzers.type'
+import type {
+  JourneyAnalysisContext,
+  JourneyModelAnalyzer,
+} from '../../../chassis/compilation/analysis/concernAnalyzers.type'
 import type { CleardownModel } from '../contracts/cleardownModel.type'
 
 export default class AnswerCleardownAnalyzer implements JourneyModelAnalyzer<CleardownModel> {

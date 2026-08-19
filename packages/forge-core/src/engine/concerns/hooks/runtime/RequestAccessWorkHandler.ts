@@ -1,17 +1,17 @@
 import type { CompiledAccessHookResult } from '../contracts/hookLifecycle.type'
-import { buildCompiledHookLifecycleContext } from '../../../runtime/context/compiledEvaluationContext'
+import { buildCompiledHookLifecycleContext } from '../../../chassis/runtime/context/compiledEvaluationContext'
 import { ACCESS_LIFECYCLE_KIND } from './AccessLifecycleWorkHandler'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/work/work.type'
-import { createWorkTask, isWorkTaskOfKind, singleChildOutput, singleTaskGroup } from '../../../work/workTask'
-import { phaseInstrumentation } from '../../../runtime/pipeline/contextSnapshot'
-import type { RequestAccessWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type RequestState from '../../../runtime/pipeline/RequestState'
-import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
+} from '../../../chassis/contracts/work/work.type'
+import { createWorkTask, isWorkTaskOfKind, singleChildOutput, singleTaskGroup } from '../../../chassis/work/workTask'
+import { phaseInstrumentation } from '../../../chassis/runtime/pipeline/contextSnapshot'
+import type { RequestAccessWorkProps } from '../../../chassis/contracts/runtime/RequestPipelineWork.type'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../chassis/contracts/runtime/requestPipelineOutput.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 const REQUEST_ACCESS_KIND = 'request.access'

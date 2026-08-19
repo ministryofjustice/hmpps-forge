@@ -8,13 +8,13 @@ Two pre-AST checks, both driven by [`DSLValidator`](./DSLValidator.ts):
 
 1. **Serialisation validation** - `DSLValidator.validateJSON` checks that object
    definitions are JSON-compatible (no functions, symbols, circular refs, etc.).
-2. **Schema validation** - [`schemas/`](./schemas/) defines Zod schemas for
+2. **Schema validation** - [`schemas/`](./schemas) defines Zod schemas for
    structures, expressions, and predicates. `DSLValidator.validateSchema` runs
    the authored input against them.
 
 Semantic rules (registered functions, registered components, reference scopes,
 effect scopes) run **after** the AST is built, inside
-[`semantic-analysis/`](../semantic-analysis/), the other compile-time-only concern. This follows the standard compiler
+[`semantic-analysis/`](../semantic-analysis), the other compile-time-only concern. This follows the standard compiler
 pattern: parse first, then validate the typed IR.
 
 Unlike the other concerns, this one has no stage folders: its whole job happens before the AST exists, so

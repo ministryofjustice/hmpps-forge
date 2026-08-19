@@ -1,5 +1,5 @@
-import type { NodeId } from '../../../contracts/ast/ast.type'
-import type { FieldModel } from '../../../contracts/models/fieldModel.type'
+import type { NodeId } from '../../../chassis/contracts/ast/ast.type'
+import type { FieldModel } from '../../../chassis/contracts/models/fieldModel.type'
 
 /**
  * The answer-cleardown concern's semantic model for one journey: the field

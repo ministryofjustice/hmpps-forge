@@ -1,15 +1,19 @@
 import type { JourneyDefinition } from '../authoring/types/structures.type'
-import type { ForgePackageRegistration, PackageDependencies, NodeId } from './contracts/ast/engine.type'
+import type { ForgePackageRegistration, PackageDependencies, NodeId } from './chassis/contracts/ast/engine.type'
 import { createFunctionsRegistry } from '../authoring/utils/deprecated/createFunctionsRegistry'
 import { isFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
-import ComponentRegistry from './registries/ComponentRegistry'
-import FunctionRegistry from './registries/FunctionRegistry'
-import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
-import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
-import CompilationPipeline from './compilation/pipeline/CompilationPipeline'
-import type { ForgeInstrumentation } from './tracing/ForgeTraceSinkDispatcher'
+import ComponentRegistry from './chassis/registries/ComponentRegistry'
+import FunctionRegistry from './chassis/registries/FunctionRegistry'
+import ScopedComponentRegistry from './chassis/registries/ScopedComponentRegistry'
+import ScopedFunctionRegistry from './chassis/registries/ScopedFunctionRegistry'
+import CompilationPipeline from './chassis/compilation/pipeline/CompilationPipeline'
+import type { ForgeInstrumentation } from './chassis/tracing/ForgeTraceSinkDispatcher'
 
-import type { CompiledJourney, CompiledStep, CompiledPackage } from './contracts/plans/compilationArtefacts.type'
+import type {
+  CompiledJourney,
+  CompiledStep,
+  CompiledPackage,
+} from './chassis/contracts/plans/compilationArtefacts.type'
 import type { JourneyRouteIndex, StepRouteIndex } from './concerns/route/contracts/routeDescriptors.type'
 import ForgeInternalError from './errors/ForgeInternalError'
 

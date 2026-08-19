@@ -1,9 +1,9 @@
 import type { ReachabilityStateTableEntry, ReachabilityStateTable } from '../../contracts/reachabilityModel.type'
 import { pickTieBreakerWinner } from './ReachabilityPathAnalyzer'
 import type { JourneyRouteTemplateCatalog } from '../../../route/contracts/routeTree.type'
-import type { NodeId } from '../../../../contracts/ast/ast.type'
+import type { NodeId } from '../../../../chassis/contracts/ast/ast.type'
 import type { ReachabilityNode } from '../../contracts/reachabilityEvaluation.type'
-import type { CompiledReachabilityResult } from '../../../../contracts/compiled/compiledFunctions.type'
+import type { CompiledReachabilityResult } from '../../../../chassis/contracts/compiled/compiledFunctions.type'
 import { resolveRouteTemplateTargetPath } from './routeTemplateTargetResolver'
 import ForgeInternalError from '../../../../errors/ForgeInternalError'
 

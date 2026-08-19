@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 import { NO_OP_RESPONSE_BINDINGS } from '../../../../framework/types/responseBindings.type'
-import FunctionRegistry from '../../../registries/FunctionRegistry'
-import ComponentRegistry from '../../../registries/ComponentRegistry'
+import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
+import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import { REQUEST_ROUTE_TREE_WORK_HANDLER } from './RequestRouteTreeWorkHandler'
-import type { CompiledRouteMetadataFunction } from '../../../contracts/compiled/compiledFunctions.type'
-import type RequestState from '../../../runtime/pipeline/RequestState'
-import type { RequestRouteTreeWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
+import type { CompiledRouteMetadataFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
+import type { RequestRouteTreeWorkProps } from '../../../chassis/contracts/runtime/RequestPipelineWork.type'
 import type { StoredRouteTree } from '../contracts/routeTree.type'
-import type { WorkContextContract } from '../../../contracts/work/work.type'
-import { createTestRequestState } from '../../../runtime/pipeline/testing-helpers/requestStateTestHelpers'
+import type { WorkContextContract } from '../../../chassis/contracts/work/work.type'
+import { createTestRequestState } from '../../../chassis/runtime/pipeline/testing-helpers/requestStateTestHelpers'
 
 const STORED_TREE: StoredRouteTree = [
   {

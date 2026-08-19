@@ -3,15 +3,15 @@ import type {
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/work/work.type'
-import { createWorkTask } from '../../../work/workTask'
-import { phaseInstrumentation } from '../../../runtime/pipeline/contextSnapshot'
+} from '../../../chassis/contracts/work/work.type'
+import { createWorkTask } from '../../../chassis/work/workTask'
+import { phaseInstrumentation } from '../../../chassis/runtime/pipeline/contextSnapshot'
 import { validationTaskKey } from './stepValidationStore'
 import { isStepValidityResult, recordReachabilityValidity } from './reachabilityValidityState'
 import type { ValidationRuleFilter } from '../contracts/ValidationWork.type'
-import type { RequestValiditiesWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type RequestState from '../../../runtime/pipeline/RequestState'
-import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
+import type { RequestValiditiesWorkProps } from '../../../chassis/contracts/runtime/RequestPipelineWork.type'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../chassis/contracts/runtime/requestPipelineOutput.type'
 
 const REQUEST_VALIDITIES_KIND = 'request.validities'
 

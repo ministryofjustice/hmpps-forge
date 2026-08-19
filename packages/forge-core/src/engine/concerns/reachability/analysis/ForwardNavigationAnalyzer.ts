@@ -1,8 +1,8 @@
-import type { ASTNode } from '../../../contracts/ast/ast.type'
-import type { RedirectOutcomeASTNode, SubmitHookASTNode } from '../../../contracts/ast/expressions.type'
-import type { StepASTNode } from '../../../contracts/ast/structures.type'
-import { isASTNode } from '../../../contracts/ast/nodes'
-import { isRedirectOutcomeNode } from '../../../contracts/ast/outcome-nodes'
+import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
+import type { RedirectOutcomeASTNode, SubmitHookASTNode } from '../../../chassis/contracts/ast/expressions.type'
+import type { StepASTNode } from '../../../chassis/contracts/ast/structures.type'
+import { isASTNode } from '../../../chassis/contracts/ast/nodes'
+import { isRedirectOutcomeNode } from '../../../chassis/contracts/ast/outcome-nodes'
 import type { ForwardOutcomeGroup } from '../contracts/reachabilityModel.type'
 import RequestTimeReferenceAnalyzer from './RequestTimeReferenceAnalyzer'
 

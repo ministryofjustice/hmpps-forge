@@ -1,7 +1,7 @@
 import { component } from '../../components/component'
 import { StructureType } from '../../authoring/types/enums'
 import { isRenderedBlock } from '../../components/typeguards'
-import { escapeHtmlEntities } from '../../shared/utils/sanitize'
+import { escapeHtmlEntities } from '../sanitize'
 import type {
   BlockDefinition,
   ResolvableArray,

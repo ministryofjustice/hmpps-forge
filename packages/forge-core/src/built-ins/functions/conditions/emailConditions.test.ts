@@ -1,6 +1,6 @@
 import { EmailConditions, emailConditionsRegistry } from './emailConditions'
 import { FunctionType } from '../../../authoring/types/enums'
-import { FunctionRegistryTestHarness } from '../../../testing/FunctionRegistryTestHarness'
+import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('EmailConditions', () => {
   const harness = new FunctionRegistryTestHarness(emailConditionsRegistry)

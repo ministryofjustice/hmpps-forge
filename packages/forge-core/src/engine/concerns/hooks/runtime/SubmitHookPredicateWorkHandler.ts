@@ -1,8 +1,8 @@
-import type RequestState from '../../../runtime/pipeline/RequestState'
-import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/work/work.type'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
+import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../chassis/contracts/work/work.type'
 import type { CompiledSubmitHookResult } from '../contracts/hookLifecycle.type'
 import type { HookStageResult } from '../contracts/HookStage.type'
-import { createWorkTask } from '../../../work/workTask'
+import { createWorkTask } from '../../../chassis/work/workTask'
 import type { SubmitHookPredicateWorkProps } from '../contracts/SubmitLifecycleWork.type'
 
 const SUBMIT_HOOK_PREDICATE_KIND = 'submit.predicate'

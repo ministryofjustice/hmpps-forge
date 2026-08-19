@@ -3,10 +3,10 @@ import type {
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/work/work.type'
-import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
-import { childOutputs, createWorkTask } from '../../../work/workTask'
-import type RequestState from '../../../runtime/pipeline/RequestState'
+} from '../../../chassis/contracts/work/work.type'
+import type { TraceSpanFields } from '../../../chassis/tracing/traceSpan.type'
+import { childOutputs, createWorkTask } from '../../../chassis/work/workTask'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
 import { FIELD_ANSWER_PREPARATION_KIND } from './FieldAnswerPreparationWorkHandler'
 import type {
   AnswerPreparationResult,

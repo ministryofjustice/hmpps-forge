@@ -17,8 +17,8 @@ class FakeForgeError extends ForgeBaseError {
 const INTERNAL_BODY_STACK = [
   'Error: boom',
   '    at author (/app/journeys/tax/steps.ts:42:13)',
-  '    at helperOne (/repo/packages/forge-core/src/engine/runtime/WorkExecutor.ts:10:5)',
-  '    at helperTwo (/repo/packages/forge-core/dist/engine/runtime/WorkExecutor.js:20:5)',
+  '    at helperOne (/repo/packages/forge-core/src/engine/chassis/work/WorkExecutor.ts:10:5)',
+  '    at helperTwo (/repo/packages/forge-core/dist/engine/chassis/work/WorkExecutor.js:20:5)',
   '    at run (/repo/node_modules/somelib/index.js:3:1)',
   '    at outerAuthor (/app/journeys/tax/journey.ts:7:3)',
 ].join('\n')
@@ -57,9 +57,9 @@ describe('ForgeBaseError', () => {
       const bodyStack = [
         'Error: boom',
         '    at author (/app/journeys/tax/steps.ts:42:13)',
-        '    at helperOne (/repo/packages/forge-core/dist/engine/runtime/WorkExecutor.js:10:5)',
+        '    at helperOne (/repo/packages/forge-core/dist/engine/chassis/work/WorkExecutor.js:10:5)',
         '    at Object.run (forge:compiled/hooks:69:27)',
-        '    at helperTwo (/repo/packages/forge-core/dist/engine/runtime/WorkExecutor.js:20:5)',
+        '    at helperTwo (/repo/packages/forge-core/dist/engine/chassis/work/WorkExecutor.js:20:5)',
       ].join('\n')
       const error = new FakeForgeError('boom', bodyStack)
 
@@ -76,7 +76,7 @@ describe('ForgeBaseError', () => {
       const bodyStack = [
         'Error: boom',
         '    at author (/app/journeys/tax/steps.ts:42:13)',
-        '    at helperOne (/repo/packages/forge-core/src/engine/runtime/WorkExecutor.ts:10:5)',
+        '    at helperOne (/repo/packages/forge-core/src/engine/chassis/work/WorkExecutor.ts:10:5)',
         '    at outerAuthor (/app/journeys/tax/journey.ts:7:3)',
       ].join('\n')
       const error = new FakeForgeError('boom', bodyStack)
@@ -98,7 +98,9 @@ describe('ForgeBaseError', () => {
       delete process.env.FORGE_FULL_STACK
 
       // Assert
-      expect(stack).toContain('    at helperOne (/repo/packages/forge-core/src/engine/runtime/WorkExecutor.ts:10:5)')
+      expect(stack).toContain(
+        '    at helperOne (/repo/packages/forge-core/src/engine/chassis/work/WorkExecutor.ts:10:5)',
+      )
       expect(stack).not.toContain('forge frames (')
     })
 

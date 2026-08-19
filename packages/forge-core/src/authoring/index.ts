@@ -22,7 +22,7 @@ export { defineTransformerFunctions } from './utils/deprecated/defineTransformer
 export { createFunctionScope, type FunctionScope } from './utils/deprecated/createFunctionScope'
 export type { FunctionImplementations, FunctionShapeMap } from './utils/deprecated/defineFunction.type'
 
-export { EffectFunctionContext } from '../engine/runtime/context/EffectFunctionContext'
+export { EffectFunctionContext } from '../engine/chassis/runtime/context/EffectFunctionContext'
 
 export { StructureType, BlockType, FunctionType, ExpressionType, ConditionCombinatorType } from './types/enums'
 

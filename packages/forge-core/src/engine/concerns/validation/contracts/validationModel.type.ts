@@ -1,5 +1,5 @@
-import type { StepEntryValidationAST } from '../../../contracts/ast/structures.type'
-import type { FieldModel, ValidationRulesModel } from '../../../contracts/models/fieldModel.type'
+import type { StepEntryValidationAST } from '../../../chassis/contracts/ast/structures.type'
+import type { FieldModel, ValidationRulesModel } from '../../../chassis/contracts/models/fieldModel.type'
 
 /**
  * The validation concern's semantic model for one step. Built by

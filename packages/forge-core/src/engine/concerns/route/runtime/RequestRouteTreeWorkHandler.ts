@@ -1,11 +1,11 @@
-import { buildCompiledRouteMetadataContext } from '../../../runtime/context/compiledEvaluationContext'
+import { buildCompiledRouteMetadataContext } from '../../../chassis/runtime/context/compiledEvaluationContext'
 import { hydrateRouteTree } from './hydrateRouteTree'
-import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/work/work.type'
-import { createWorkTask } from '../../../work/workTask'
-import { phaseInstrumentation } from '../../../runtime/pipeline/contextSnapshot'
-import type { RequestRouteTreeWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type RequestState from '../../../runtime/pipeline/RequestState'
-import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
+import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../chassis/contracts/work/work.type'
+import { createWorkTask } from '../../../chassis/work/workTask'
+import { phaseInstrumentation } from '../../../chassis/runtime/pipeline/contextSnapshot'
+import type { RequestRouteTreeWorkProps } from '../../../chassis/contracts/runtime/RequestPipelineWork.type'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../chassis/contracts/runtime/requestPipelineOutput.type'
 
 const REQUEST_ROUTE_TREE_KIND = 'request.route-tree'
 

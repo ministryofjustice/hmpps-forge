@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { AnswerHistory } from '../../../contracts/runtime/answerHistory.type'
+import type { AnswerHistory } from '../../../chassis/contracts/runtime/answerHistory.type'
 import type { JourneyReachabilityProjection } from '../../reachability/contracts/journeyReachabilityProjection.type'
 import { evaluateAnswerCleardown } from './evaluateAnswerCleardown'
 

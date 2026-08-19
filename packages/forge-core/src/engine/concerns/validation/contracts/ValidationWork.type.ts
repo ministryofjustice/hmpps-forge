@@ -1,5 +1,8 @@
-import type { DomainValidationFailure, StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
-import type { WorkTask } from '../../../contracts/work/work.type'
+import type {
+  DomainValidationFailure,
+  StepValidationFailure,
+} from '../../../chassis/contracts/runtime/evaluationState.type'
+import type { WorkTask } from '../../../chassis/contracts/work/work.type'
 
 /**
  * Selects which validation rules a run executes: only rules tagged with one of

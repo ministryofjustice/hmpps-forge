@@ -1,6 +1,6 @@
-import type ASTNodeIndex from '../../../compilation/ast/ast-state/ASTNodeIndex'
-import type FunctionRegistry from '../../../registries/FunctionRegistry'
-import type ComponentRegistry from '../../../registries/ComponentRegistry'
+import type ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
+import type FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
+import type ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 
 export interface ASTValidationContext {
   readonly nodeIndex: ASTNodeIndex

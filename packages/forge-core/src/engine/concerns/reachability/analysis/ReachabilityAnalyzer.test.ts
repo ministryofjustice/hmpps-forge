@@ -1,9 +1,9 @@
 import { BlockType, FunctionType, PredicateType } from '../../../../authoring/types/enums'
-import type { ASTNode } from '../../../contracts/ast/engine.type'
-import ASTNodeIndex from '../../../compilation/ast/ast-state/ASTNodeIndex'
-import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
-import type { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
-import { createJourneyAnalysisContext } from '../../../compilation/analysis/testing-helpers/analysisContexts'
+import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
+import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
+import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
+import type { TestPredicateASTNode } from '../../../chassis/contracts/ast/predicates.type'
+import { createJourneyAnalysisContext } from '../../../chassis/compilation/analysis/testing-helpers/analysisContexts'
 import ReachabilityAnalyzer from './ReachabilityAnalyzer'
 
 function setParent(child: ASTNode, parent: ASTNode): void {

@@ -1,8 +1,8 @@
 import { ExpressionType } from '../../../../authoring/types/enums'
-import type { ASTNode } from '../../../contracts/ast/ast.type'
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import type { ReferenceASTNode } from '../../../contracts/ast/expressions.type'
-import { isASTNode } from '../../../contracts/ast/nodes'
+import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
+import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import type { ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
+import { isASTNode } from '../../../chassis/contracts/ast/nodes'
 
 export default class RequestTimeReferenceAnalyzer {
   private static readonly REQUEST_TIME_NAMESPACES: ReadonlySet<string> = new Set(['post', 'params', 'query', 'request'])

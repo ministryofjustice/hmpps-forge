@@ -1,8 +1,8 @@
-import type RequestState from '../../../runtime/pipeline/RequestState'
-import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/work/work.type'
-import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
-import type { StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
-import { createWorkTask } from '../../../work/workTask'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
+import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../chassis/contracts/work/work.type'
+import type { TraceSpanFields } from '../../../chassis/tracing/traceSpan.type'
+import type { StepValidationFailure } from '../../../chassis/contracts/runtime/evaluationState.type'
+import { createWorkTask } from '../../../chassis/work/workTask'
 import type { FieldValidationWorkProps } from '../contracts/ValidationWork.type'
 
 export const FIELD_VALIDATION_KIND = 'validation.field'

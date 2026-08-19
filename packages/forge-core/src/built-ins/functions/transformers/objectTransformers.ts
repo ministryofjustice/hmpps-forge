@@ -1,6 +1,24 @@
 import { z } from 'zod'
 import TransformerRegistry from '../../../authoring/registries/TransformerRegistry'
-import { getByPath } from '../../../shared/utils/utils'
+
+/** Gets a value from an object using a dot-notation path (e.g. 'user.profile.name') */
+function getByPath<T = unknown>(obj: unknown, path: string): T | undefined {
+  if (obj == null) {
+    return undefined
+  }
+
+  if (path === '') {
+    return obj as T
+  }
+
+  return path.split('.').reduce<unknown>((current, key) => {
+    if (current == null || typeof current !== 'object') {
+      return undefined
+    }
+
+    return (current as Record<string, unknown>)[key]
+  }, obj) as T | undefined
+}
 
 export interface DateParts {
   year?: string

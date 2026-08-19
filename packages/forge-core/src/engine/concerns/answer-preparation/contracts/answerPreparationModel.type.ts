@@ -1,4 +1,4 @@
-import type { FieldModel } from '../../../contracts/models/fieldModel.type'
+import type { FieldModel } from '../../../chassis/contracts/models/fieldModel.type'
 
 /**
  * The answer-preparation concern's semantic model for one step (or, at journey

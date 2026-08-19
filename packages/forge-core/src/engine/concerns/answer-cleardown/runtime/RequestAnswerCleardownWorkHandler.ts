@@ -1,10 +1,10 @@
 import { evaluateAnswerCleardown } from './evaluateAnswerCleardown'
-import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/work/work.type'
-import { createWorkTask } from '../../../work/workTask'
-import { phaseInstrumentation } from '../../../runtime/pipeline/contextSnapshot'
-import type { RequestAnswerCleardownWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type RequestState from '../../../runtime/pipeline/RequestState'
-import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
+import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../chassis/contracts/work/work.type'
+import { createWorkTask } from '../../../chassis/work/workTask'
+import { phaseInstrumentation } from '../../../chassis/runtime/pipeline/contextSnapshot'
+import type { RequestAnswerCleardownWorkProps } from '../../../chassis/contracts/runtime/RequestPipelineWork.type'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../chassis/contracts/runtime/requestPipelineOutput.type'
 
 const REQUEST_ANSWER_CLEARDOWN_KIND = 'request.answer-cleardown'
 

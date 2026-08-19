@@ -1,10 +1,10 @@
 import { BlockType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import type { ASTNode } from '../../../contracts/ast/engine.type'
-import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
-import ASTNodeIndex from '../../../compilation/ast/ast-state/ASTNodeIndex'
-import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
-import { createJourneyAnalysisContext } from '../../../compilation/analysis/testing-helpers/analysisContexts'
+import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
+import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
+import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
+import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
+import { createJourneyAnalysisContext } from '../../../chassis/compilation/analysis/testing-helpers/analysisContexts'
 import AnswerCleardownAnalyzer from './AnswerCleardownAnalyzer'
 
 function setParent(child: ASTNode, parent: ASTNode): void {

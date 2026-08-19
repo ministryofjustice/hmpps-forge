@@ -1,11 +1,11 @@
-import type RequestState from '../../../runtime/pipeline/RequestState'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/work/work.type'
-import { createWorkTask, singleChildOutput, singleTaskGroup } from '../../../work/workTask'
+} from '../../../chassis/contracts/work/work.type'
+import { createWorkTask, singleChildOutput, singleTaskGroup } from '../../../chassis/work/workTask'
 import { STEP_VALIDATION_KIND } from './StepValidationWorkHandler'
 import type { StepValidityResult } from '../contracts/stepValidityResult.type'
 import type { CurrentStepValidationWorkProps } from '../contracts/ValidationWork.type'

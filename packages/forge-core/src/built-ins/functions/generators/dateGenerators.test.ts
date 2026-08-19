@@ -1,7 +1,7 @@
 import { DateGenerators, dateGeneratorsRegistry } from './dateGenerators'
 import { FunctionType } from '../../../authoring/types/enums'
 import { GeneratorBuilder } from '../../../authoring/builders/GeneratorBuilder'
-import { FunctionRegistryTestHarness } from '../../../testing/FunctionRegistryTestHarness'
+import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('DateGenerators', () => {
   const registry = dateGeneratorsRegistry.build()

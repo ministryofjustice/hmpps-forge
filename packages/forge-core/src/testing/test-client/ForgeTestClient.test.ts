@@ -1,5 +1,5 @@
 import { createForgePackage, journey, step } from '../../authoring/builders'
-import { ForgeTestHarness } from '../ForgeTestHarness'
+import { ForgeTestHarness } from './ForgeTestHarness'
 
 const testJourney = journey({
   code: 'test',

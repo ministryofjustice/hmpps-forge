@@ -1,12 +1,12 @@
 /* eslint-disable no-new-func */
-import AuthoredValueClassifier from '../../../compilation/analysis/shared/AuthoredValueClassifier'
-import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
+import AuthoredValueClassifier from '../../../chassis/compilation/analysis/shared/AuthoredValueClassifier'
+import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { FunctionType } from '../../../../authoring/types/enums'
-import FunctionRegistry from '../../../registries/FunctionRegistry'
-import ComponentRegistry from '../../../registries/ComponentRegistry'
+import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
+import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
-import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
-import type { CompiledRouteMetadataContext } from '../../../contracts/compiled/compiledContexts.type'
+import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
+import type { CompiledRouteMetadataContext } from '../../../chassis/contracts/compiled/compiledContexts.type'
 import type { RouteMetadataModel } from '../contracts/routeMetadataModel.type'
 import RouteMetadataCompiler from './RouteMetadataCompiler'
 

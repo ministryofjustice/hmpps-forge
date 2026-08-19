@@ -1,14 +1,17 @@
 import type { StepValidityResult } from '../contracts/stepValidityResult.type'
-import type { DomainValidationFailure, StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
-import type RequestState from '../../../runtime/pipeline/RequestState'
+import type {
+  DomainValidationFailure,
+  StepValidationFailure,
+} from '../../../chassis/contracts/runtime/evaluationState.type'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/work/work.type'
-import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
-import { childOutputs, createWorkTask } from '../../../work/workTask'
+} from '../../../chassis/contracts/work/work.type'
+import type { TraceSpanFields } from '../../../chassis/tracing/traceSpan.type'
+import { childOutputs, createWorkTask } from '../../../chassis/work/workTask'
 import { FIELD_VALIDATION_KIND } from './FieldValidationWorkHandler'
 import { DOMAIN_VALIDATION_KIND } from './DomainValidationWorkHandler'
 import type {

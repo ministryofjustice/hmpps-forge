@@ -1,12 +1,15 @@
-import type { ASTNode } from '../../../contracts/ast/ast.type'
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import type { JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
+import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
+import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import type { JourneyASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
 import type {
   ReachabilityStateTable,
   ReachabilityEntryModel,
   ReachabilityModel,
 } from '../contracts/reachabilityModel.type'
-import type { JourneyAnalysisContext, JourneyModelAnalyzer } from '../../../compilation/analysis/concernAnalyzers.type'
+import type {
+  JourneyAnalysisContext,
+  JourneyModelAnalyzer,
+} from '../../../chassis/compilation/analysis/concernAnalyzers.type'
 import ForwardNavigationAnalyzer from './ForwardNavigationAnalyzer'
 
 export default class ReachabilityAnalyzer implements JourneyModelAnalyzer<ReachabilityModel> {

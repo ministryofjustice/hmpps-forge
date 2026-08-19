@@ -2,7 +2,7 @@ import { FunctionEvaluator } from '../../types/functions.type'
 import { ResolvableValue } from '../../types/expressions.type'
 import { FunctionType } from '../../types/enums'
 import { GeneratorBuilder } from '../../builders/GeneratorBuilder'
-import { ForgeDeprecations } from '../../../shared/utils/ForgeDeprecations'
+import { ForgeDeprecations } from '../../../shared/ForgeDeprecations'
 import { extractPrepare, tagFunctionType } from './defineFunction'
 import type {
   FunctionImplementations,

@@ -1,5 +1,5 @@
-import type { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
-import { isTemplateNode } from '../../../contracts/ast/nodes'
+import type { TemplateNode, TemplateValue } from '../../../chassis/contracts/ast/template.type'
+import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 
 export interface TemplateVisitor {

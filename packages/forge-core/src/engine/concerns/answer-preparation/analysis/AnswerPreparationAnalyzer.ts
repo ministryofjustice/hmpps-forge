@@ -3,8 +3,8 @@ import type {
   JourneyModelAnalyzer,
   StepAnalysisContext,
   StepModelAnalyzer,
-} from '../../../compilation/analysis/concernAnalyzers.type'
-import type { FieldModel } from '../../../contracts/models/fieldModel.type'
+} from '../../../chassis/compilation/analysis/concernAnalyzers.type'
+import type { FieldModel } from '../../../chassis/contracts/models/fieldModel.type'
 import type { AnswerPreparationModel } from '../contracts/answerPreparationModel.type'
 
 export default class AnswerPreparationAnalyzer

@@ -1,5 +1,5 @@
-import type { ASTNode, NodeId } from '../../../contracts/ast/ast.type'
-import type { RedirectOutcomeASTNode } from '../../../contracts/ast/expressions.type'
+import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/ast.type'
+import type { RedirectOutcomeASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { UnreachableRedirectTarget } from '../../../../authoring/types/structures.type'
 
 /**

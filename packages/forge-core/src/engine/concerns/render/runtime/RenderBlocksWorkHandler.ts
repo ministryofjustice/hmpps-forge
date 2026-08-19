@@ -2,16 +2,16 @@ import type { RenderBlock, ForgeRenderer } from '../../../../framework/types/ren
 import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
 import type { ComponentRegistryEntry } from '../../../../components/types/components.type'
 import type { BlockDefinition } from '../../../../components/types/structures.type'
-import type RequestState from '../../../runtime/pipeline/RequestState'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/work/work.type'
-import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
+} from '../../../chassis/contracts/work/work.type'
+import type { TraceSpanFields } from '../../../chassis/tracing/traceSpan.type'
 import ForgeUnregisteredComponentError from '../../../errors/ForgeUnregisteredComponentError'
-import { childOutputs, createWorkTask } from '../../../work/workTask'
+import { childOutputs, createWorkTask } from '../../../chassis/work/workTask'
 import { RENDER_BLOCK_KIND, createRenderBlockTask } from './RenderBlockWorkHandler'
 
 export interface RenderBlocksWorkProps {

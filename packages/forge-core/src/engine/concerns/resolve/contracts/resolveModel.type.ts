@@ -1,7 +1,7 @@
-import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
-import type { BlockASTNode } from '../../../contracts/ast/structures.type'
-import type { TemplateNode } from '../../../contracts/ast/template.type'
-import type { AuthoredValue } from '../../../contracts/models/authoredValue.type'
+import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
+import type { BlockASTNode } from '../../../chassis/contracts/ast/structures.type'
+import type { TemplateNode } from '../../../chassis/contracts/ast/template.type'
+import type { AuthoredValue } from '../../../chassis/contracts/models/authoredValue.type'
 
 /**
  * The resolve concern's semantic model for one step. Built by

@@ -1,6 +1,6 @@
 import { ObjectConditions, objectConditionsRegistry } from './objectConditions'
 import { FunctionType } from '../../../authoring/types/enums'
-import { FunctionRegistryTestHarness } from '../../../testing/FunctionRegistryTestHarness'
+import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('ObjectConditions', () => {
   const harness = new FunctionRegistryTestHarness(objectConditionsRegistry)

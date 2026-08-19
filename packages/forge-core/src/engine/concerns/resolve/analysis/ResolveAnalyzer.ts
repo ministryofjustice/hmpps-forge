@@ -1,11 +1,14 @@
 import { BlockType, IteratorType } from '../../../../authoring/types/enums'
-import type { ASTNode } from '../../../contracts/ast/ast.type'
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import { isTemplateNode } from '../../../contracts/ast/nodes'
-import type { BlockASTNode, JourneyASTNode } from '../../../contracts/ast/structures.type'
-import type { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
-import { AuthoredValueKind, type AuthoredValue } from '../../../contracts/models/authoredValue.type'
-import type { StepAnalysisContext, StepModelAnalyzer } from '../../../compilation/analysis/concernAnalyzers.type'
+import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
+import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
+import type { BlockASTNode, JourneyASTNode } from '../../../chassis/contracts/ast/structures.type'
+import type { TemplateNode, TemplateValue } from '../../../chassis/contracts/ast/template.type'
+import { AuthoredValueKind, type AuthoredValue } from '../../../chassis/contracts/models/authoredValue.type'
+import type {
+  StepAnalysisContext,
+  StepModelAnalyzer,
+} from '../../../chassis/compilation/analysis/concernAnalyzers.type'
 import type {
   ResolveAncestorModel,
   ResolveBlockModel,

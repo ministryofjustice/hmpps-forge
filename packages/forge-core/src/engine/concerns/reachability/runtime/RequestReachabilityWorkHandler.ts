@@ -1,20 +1,20 @@
-import { buildCompiledReachabilityContext } from '../../../runtime/context/compiledEvaluationContext'
+import { buildCompiledReachabilityContext } from '../../../chassis/runtime/context/compiledEvaluationContext'
 import { resolveRedirect } from './reachabilityRedirects'
-import { captureContextSnapshot } from '../../../runtime/pipeline/contextSnapshot'
-import { createWorkTask } from '../../../work/workTask'
+import { captureContextSnapshot } from '../../../chassis/runtime/pipeline/contextSnapshot'
+import { createWorkTask } from '../../../chassis/work/workTask'
 import type {
   WorkBegin,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/work/work.type'
-import type { RequestReachabilityWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
+} from '../../../chassis/contracts/work/work.type'
+import type { RequestReachabilityWorkProps } from '../../../chassis/contracts/runtime/RequestPipelineWork.type'
 import type { ReachabilityStateInput } from '../contracts/generatedReachabilityEvaluation.type'
-import type { NodeId } from '../../../contracts/ast/ast.type'
+import type { NodeId } from '../../../chassis/contracts/ast/ast.type'
 import type { ReachabilityEvaluation } from '../contracts/reachabilityEvaluation.type'
 import type { StepValidityResult } from '../../validation/contracts/stepValidityResult.type'
-import type RequestState from '../../../runtime/pipeline/RequestState'
-import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../chassis/contracts/runtime/requestPipelineOutput.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 const REQUEST_REACHABILITY_KIND = 'request.reachability'

@@ -1,7 +1,7 @@
 import { ExpressionType, FunctionType, PredicateType } from '../../../../authoring/types/enums'
-import type { ASTNode } from '../../../contracts/ast/ast.type'
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
+import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
+import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import RequestTimeReferenceAnalyzer from './RequestTimeReferenceAnalyzer'
 
 describe('RequestTimeReferenceAnalyzer', () => {

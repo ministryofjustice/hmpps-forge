@@ -42,5 +42,5 @@ Each entry carries the node's authored `path` and its `ancestorJourneyIds`, deri
 
 - [RouteAnalyzer.ts](RouteAnalyzer.ts) builds route metadata inputs for one step or journey.
 - [RouteIndexBuilder.ts](RouteIndexBuilder.ts) builds the step and journey route indexes.
-- [CompilationModelBuilder.ts](../../../compilation/analysis/CompilationModelBuilder.ts) calls `buildInputs()` for every step and journey.
+- [CompilationModelBuilder.ts](../../../chassis/compilation/analysis/CompilationModelBuilder.ts) calls `buildInputs()` for every step and journey.
 - [../lowering/RouteMetadataCompiler.ts](../lowering/RouteMetadataCompiler.ts) consumes the collected inputs.

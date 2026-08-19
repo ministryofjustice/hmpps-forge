@@ -1,6 +1,6 @@
 import { NumberTransformers, numberTransformersRegistry } from './numberTransformers'
 import { FunctionType } from '../../../authoring/types/enums'
-import { FunctionRegistryTestHarness } from '../../../testing/FunctionRegistryTestHarness'
+import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('Number Transformers', () => {
   const harness = new FunctionRegistryTestHarness(numberTransformersRegistry)

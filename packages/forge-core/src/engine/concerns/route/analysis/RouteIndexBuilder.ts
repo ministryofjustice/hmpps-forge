@@ -1,5 +1,5 @@
-import type { JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
-import type { ASTNode, NodeId } from '../../../contracts/ast/engine.type'
+import type { JourneyASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
+import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { JourneyRouteIndex, StepRouteIndex } from '../contracts/routeDescriptors.type'
 
 /**

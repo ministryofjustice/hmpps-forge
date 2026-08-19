@@ -1,6 +1,6 @@
 import { ArrayConditions, arrayConditionsRegistry } from './arrayConditions'
 import { FunctionType } from '../../../authoring/types/enums'
-import { FunctionRegistryTestHarness } from '../../../testing/FunctionRegistryTestHarness'
+import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('ArrayConditions', () => {
   const harness = new FunctionRegistryTestHarness(arrayConditionsRegistry)
