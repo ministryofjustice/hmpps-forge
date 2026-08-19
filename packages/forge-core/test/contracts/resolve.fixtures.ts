@@ -873,3 +873,27 @@ export const nestedBlockValidationJourney = journey({
     step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
   ],
 })
+
+export const unusualNestedBlockCodesJourney = journey({
+  code: 'unusual-nested-block-codes',
+  path: '/unusual-nested-block-codes',
+  title: 'Unusual nested block codes',
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKRadioInput({
+          code: 'choice',
+          fieldset: { legend: { text: 'Choose' } },
+          items: [
+            { value: 'reserved', text: 'Reserved', block: GovUKTextInput({ code: 'class', label: 'Class' }) },
+            { value: 'punctuated', text: 'Punctuated', block: GovUKTextInput({ code: 'audit.log', label: 'Audit' }) },
+            { value: 'numeric', text: 'Numeric', block: GovUKTextInput({ code: '123 detail', label: 'Detail' }) },
+          ],
+        }),
+      ],
+    }),
+  ],
+})

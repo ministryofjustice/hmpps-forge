@@ -28,6 +28,7 @@ import {
   parsedValueRenderJourney,
   postBlockValueAfterDependentWhenJourney,
   nestedBlockValidationJourney,
+  unusualNestedBlockCodesJourney,
   transformerOverUnansweredJourney,
 } from './resolve.fixtures'
 
@@ -970,6 +971,24 @@ describe('resolve contracts', () => {
 
         expect(nestedErrors).toBeDefined()
         expect(nestedErrors.some(v => !v.passed && v.message === 'Enter a detail')).toBe(true)
+      }
+    })
+
+    it('should resolve nested blocks whose codes are not JavaScript identifiers', async () => {
+      // Arrange
+      const client = createClient(unusualNestedBlockCodesJourney)
+
+      // Act
+      const result = await client.get('/unusual-nested-block-codes/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const radioBlock = result.context.blocks.find(block => block.properties.code === 'choice')
+        const items = radioBlock?.properties.items as { block?: RenderBlock }[]
+
+        expect(items.map(item => item.block?.properties.code)).toEqual(['class', 'audit.log', '123 detail'])
       }
     })
   })
