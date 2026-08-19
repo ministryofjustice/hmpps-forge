@@ -81,6 +81,32 @@ The 390-line `WorkTaskFactory` that built the runtime task tree is gone - handle
 their own child tasks directly. `work.type.ts` and `workOutput.type.ts` moved from
 `contracts/runtime/` to `contracts/work/` since they're shared across both stages.
 
+#### Engine chassis
+
+The engine's stage-neutral machinery — compilation pipeline, runtime pipeline, work
+executor, contracts, registries, tracing — moved under `engine/chassis/`, separating it
+from the domain concerns that plug into it. Previously these sat as siblings alongside
+the concerns under `engine/`, so the two axes (machine vs domain) weren't visible in the
+folder tree. The concern folders under `engine/concerns/` are unchanged.
+
+#### Testing folder
+
+`testing/` is reorganised into subfolders by audience: `assertions/` (outcome assertion
+helpers), `functions/` (`FunctionRegistryTestHarness`, `createTestEffectContext`,
+`createTestPackage`), and `test-client/` (`ForgeTestClient`, `ForgeTestHarness`, result
+types). Published exports are unchanged.
+
+#### Dead code
+
+- `shared/utils/asserts.ts` deleted — the hand-rolled type asserts (`assertNumber`,
+  `assertDate`, `assertString`, `assertObject`, `assertArray`) were replaced by registry
+  `inputSchema` prechecks in 0.3.0
+- `shared/utils/utils.ts` (`getByPath`) deleted — no callers
+- `shared/typeguards/primitives.ts` (`isObjectValue`) deleted — inlined where needed
+- `sanitize.ts` moved from `shared/utils/` to `built-ins/` where its only consumers live
+- `ForgeDeprecations` and `routePath` moved up from `shared/utils/` to `shared/` — the
+  `utils/` folder is empty now
+
 ---
 
 ## 0.4.0
