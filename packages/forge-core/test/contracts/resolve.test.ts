@@ -15,6 +15,7 @@ import {
   matchCombinatorJourney,
   validationDisplayJourney,
   iteratorRenderJourney,
+  nestedExpressionIteratorJourney,
   dataDisplayJourney,
   domainValidationRenderJourney,
   backlinkJourney,
@@ -461,6 +462,31 @@ describe('resolve contracts', () => {
         const codes = expanded.map(b => b.properties.code)
 
         expect(codes).toEqual(['memberName_0', 'memberName_1'])
+      }
+    })
+
+    it('should resolve parent bindings in nested expression iterators', async () => {
+      // Arrange
+      const client = createClient(nestedExpressionIteratorJourney)
+      const session: ContractSession = {
+        data: {
+          teams: [
+            { name: 'Alpha', members: [{ name: 'Ada' }, { name: 'Grace' }] },
+            { name: 'Beta', members: [{ name: 'Linus' }] },
+          ],
+        },
+      }
+
+      // Act
+      const result = await client.get('/nested-expression-iterator/teams', { session })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const [insetText] = result.getBlocksByVariant('govukInsetText')
+
+        expect(insetText.properties.text).toBe('0:0:Alpha:Ada|0:1:Alpha:Grace,1:0:Beta:Linus')
       }
     })
   })

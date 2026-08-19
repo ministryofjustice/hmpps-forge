@@ -51,6 +51,9 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
    */
   private readonly callHoistingScopes: (CodeGenerator | undefined)[] = []
 
+  /** Nested expression bodies currently being emitted, innermost last. */
+  private readonly generatorScopes: CodeGenerator[] = []
+
   private readonly references = new ReferenceNodeCompiler(this)
 
   private readonly predicates = new PredicateNodeCompiler(this)
@@ -86,7 +89,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   get generator(): CodeGenerator {
-    return this.fragmentGenerator
+    return this.generatorScopes[this.generatorScopes.length - 1] ?? this.fragmentGenerator
   }
 
   get diagnosticCatalogue(): readonly DiagnosticMetadata[] {
@@ -121,6 +124,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     this.selfCodeExprs.length = 0
     this.validationFunctionPrefixes.length = 0
     this.callHoistingScopes.length = 0
+    this.generatorScopes.length = 0
     this.diagnostics.reset()
     this.usedAwait = false
     this.fragmentGenerator = new CodeGenerator()
@@ -159,6 +163,16 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       return compile()
     } finally {
       this.callHoistingScopes.pop()
+    }
+  }
+
+  private withGeneratorScope<T>(generator: CodeGenerator, compile: () => T): T {
+    this.generatorScopes.push(generator)
+
+    try {
+      return compile()
+    } finally {
+      this.generatorScopes.pop()
     }
   }
 
@@ -471,33 +485,34 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       generator: this.generator,
       isAsync: () => this.usedAwait,
       name: 'map_iterator',
-      compileBody: generator => {
-        const inputVar = generator.let('_input', inputExpr)
+      compileBody: generator =>
+        this.withGeneratorScope(generator, () => {
+          const inputVar = generator.let('_input', inputExpr)
 
-        this.compileNormalizeIteratorInput(inputVar, generator)
+          this.compileNormalizeIteratorInput(inputVar, generator)
 
-        const resultVar = generator.const('_result', arrayCode([]))
+          const resultVar = generator.const('_result', arrayCode([]))
 
-        this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
-          const itemVar = this.compileIteratorItemScope(rawItemExpr, generator)
-          const frame: IteratorScopeFrame = {
-            itemVar,
-            indexVar,
-            inputLengthExpr: code`${inputVar}.length`,
-            rawItemExpr,
-          }
-          const yieldExpr = this.withIteratorFrame(frame, () =>
-            yieldTemplate !== undefined ? this.compileOperandCode(yieldTemplate) : literal(undefined),
-          )
-          const scopedYieldExpr = this.compileScopedIteratorExpression(yieldExpr, itemVar, indexVar, generator)
-          const yieldVar = generator.const('_yield', scopedYieldExpr)
+          this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
+            const itemVar = this.compileIteratorItemScope(rawItemExpr, generator)
+            const frame: IteratorScopeFrame = {
+              itemVar,
+              indexVar,
+              inputLengthExpr: code`${inputVar}.length`,
+              rawItemExpr,
+            }
+            const yieldExpr = this.withIteratorFrame(frame, () =>
+              yieldTemplate !== undefined ? this.compileOperandCode(yieldTemplate) : literal(undefined),
+            )
+            const scopedYieldExpr = this.compileScopedIteratorExpression(yieldExpr, itemVar, indexVar, generator)
+            const yieldVar = generator.const('_yield', scopedYieldExpr)
 
-          generator.if(code`${yieldVar} !== undefined`, () => {
-            generator.statement(code`${resultVar}.push(${yieldVar})`)
+            generator.if(code`${yieldVar} !== undefined`, () => {
+              generator.statement(code`${resultVar}.push(${yieldVar})`)
+            })
           })
-        })
-        generator.return(resultVar)
-      },
+          generator.return(resultVar)
+        }),
     })
   }
 
@@ -513,32 +528,33 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       generator: this.generator,
       isAsync: () => this.usedAwait,
       name: 'filter_iterator',
-      compileBody: generator => {
-        const inputVar = generator.let('_input', inputExpr)
+      compileBody: generator =>
+        this.withGeneratorScope(generator, () => {
+          const inputVar = generator.let('_input', inputExpr)
 
-        this.compileNormalizeIteratorInput(inputVar, generator)
+          this.compileNormalizeIteratorInput(inputVar, generator)
 
-        const resultVar = generator.const('_result', arrayCode([]))
+          const resultVar = generator.const('_result', arrayCode([]))
 
-        this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
-          const itemVar = this.compileIteratorItemScope(rawItemExpr, generator)
-          const frame: IteratorScopeFrame = {
-            itemVar,
-            indexVar,
-            inputLengthExpr: code`${inputVar}.length`,
-            rawItemExpr,
-          }
-          const predicateExpr = this.withIteratorFrame(frame, () =>
-            predicateTemplate !== undefined ? this.compileOperandCode(predicateTemplate) : literal(false),
-          )
+          this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
+            const itemVar = this.compileIteratorItemScope(rawItemExpr, generator)
+            const frame: IteratorScopeFrame = {
+              itemVar,
+              indexVar,
+              inputLengthExpr: code`${inputVar}.length`,
+              rawItemExpr,
+            }
+            const predicateExpr = this.withIteratorFrame(frame, () =>
+              predicateTemplate !== undefined ? this.compileOperandCode(predicateTemplate) : literal(false),
+            )
 
-          generator.if(predicateExpr, () => {
-            generator.statement(code`${resultVar}.push(${rawItemExpr})`)
+            generator.if(predicateExpr, () => {
+              generator.statement(code`${resultVar}.push(${rawItemExpr})`)
+            })
           })
-        })
 
-        generator.return(resultVar)
-      },
+          generator.return(resultVar)
+        }),
     })
   }
 
@@ -554,33 +570,34 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       generator: this.generator,
       isAsync: () => this.usedAwait,
       name: 'find_iterator',
-      compileBody: generator => {
-        const inputVar = generator.let('_input', inputExpr)
+      compileBody: generator =>
+        this.withGeneratorScope(generator, () => {
+          const inputVar = generator.let('_input', inputExpr)
 
-        this.compileNormalizeIteratorInput(inputVar, generator)
+          this.compileNormalizeIteratorInput(inputVar, generator)
 
-        const resultVar = generator.let('_result', literal(undefined))
+          const resultVar = generator.let('_result', literal(undefined))
 
-        this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
-          const itemVar = this.compileIteratorItemScope(rawItemExpr, generator)
-          const frame: IteratorScopeFrame = {
-            itemVar,
-            indexVar,
-            inputLengthExpr: code`${inputVar}.length`,
-            rawItemExpr,
-          }
-          const predicateExpr = this.withIteratorFrame(frame, () =>
-            predicateTemplate !== undefined ? this.compileOperandCode(predicateTemplate) : literal(false),
-          )
+          this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
+            const itemVar = this.compileIteratorItemScope(rawItemExpr, generator)
+            const frame: IteratorScopeFrame = {
+              itemVar,
+              indexVar,
+              inputLengthExpr: code`${inputVar}.length`,
+              rawItemExpr,
+            }
+            const predicateExpr = this.withIteratorFrame(frame, () =>
+              predicateTemplate !== undefined ? this.compileOperandCode(predicateTemplate) : literal(false),
+            )
 
-          generator.if(predicateExpr, () => {
-            generator.assign(resultVar, rawItemExpr)
-            generator.break()
+            generator.if(predicateExpr, () => {
+              generator.assign(resultVar, rawItemExpr)
+              generator.break()
+            })
           })
-        })
 
-        generator.return(resultVar)
-      },
+          generator.return(resultVar)
+        }),
     })
   }
 
