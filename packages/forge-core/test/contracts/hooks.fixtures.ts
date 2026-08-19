@@ -20,6 +20,8 @@ import {
   Self,
   Condition,
   createForgePackage,
+  EffectRegistry,
+  type EffectFunctionContext,
 } from '../../src/authoring'
 import { ForgeTestHarness, type RequestTraceEvent } from '../../src/testing'
 import { Effects, effectImplementations, type ContractSession } from './contractHelpers'
@@ -236,6 +238,50 @@ export function createTracedHooksClient(journeyDef: ReturnType<typeof journey>, 
       )
       .createClient()
 }
+
+const unusualNameEffects = new EffectRegistry()
+const ReservedWordEffect = unusualNameEffects.register('class', () => (context: EffectFunctionContext) => {
+  const log = context.getData<string[]>('unusualEffectLog') ?? []
+
+  context.setData('unusualEffectLog', [...log, 'class'])
+})
+const PunctuatedEffect = unusualNameEffects.register('audit.log', () => (context: EffectFunctionContext) => {
+  const log = context.getData<string[]>('unusualEffectLog') ?? []
+
+  context.setData('unusualEffectLog', [...log, 'audit.log'])
+})
+const NumericEffect = unusualNameEffects.register('123 effect', () => (context: EffectFunctionContext) => {
+  const log = context.getData<string[]>('unusualEffectLog') ?? []
+
+  context.setData('unusualEffectLog', [...log, '123 effect'])
+})
+
+export function createUnusualNameEffectsClient() {
+  return new ForgeTestHarness()
+    .registerGlobalComponents(govukComponents)
+    .registerPackage(
+      createForgePackage({
+        journey: unusualNameEffectsJourney,
+        functions: unusualNameEffects,
+      }),
+    )
+    .createClient()
+}
+
+export const unusualNameEffectsJourney = journey({
+  code: 'unusual-effect-names',
+  path: '/unusual-effect-names',
+  title: 'Unusual effect names',
+  onAccess: [access({ effects: [ReservedWordEffect(), PunctuatedEffect(), NumericEffect()] })],
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [GovUKInsetText({ text: 'Content' })],
+    }),
+  ],
+})
 
 export const accessEffectOrderJourney = journey({
   code: 'access-order',

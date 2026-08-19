@@ -118,6 +118,31 @@ describe('CodeGenerator', () => {
         ].join('\n'),
       )
     })
+
+    it('should reject explicit declarations that shadow enclosing bindings', () => {
+      // Arrange
+      const declareInNestedFunction = (
+        declare: (generator: CodeGenerator, name: IdentifierName) => void,
+      ): (() => void) => {
+        return () => {
+          const generator = CodeGenerator.forFunction(['functionArgument1'])
+
+          generator.functionExpression('evaluate', [], functionGenerator => {
+            declare(functionGenerator, new IdentifierName('functionArgument1'))
+          })
+        }
+      }
+
+      // Act
+      const declareConst = declareInNestedFunction((generator, name) => generator.declareConst(name, code`value`))
+      const declareLet = declareInNestedFunction((generator, name) => generator.declareLet(name, code`value`))
+      const declareVar = declareInNestedFunction((generator, name) => generator.declareVar(name, code`value`))
+
+      // Assert
+      expect(declareConst).toThrow(/already visible/)
+      expect(declareLet).toThrow(/already visible/)
+      expect(declareVar).toThrow(/already declared/)
+    })
   })
 
   describe('tryCatch()', () => {

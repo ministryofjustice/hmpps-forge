@@ -1,4 +1,9 @@
-import { GovUKTextInput, GovUKButton, GovUKRadioInput } from '@ministryofjustice/hmpps-forge/govuk-components'
+import {
+  GovUKTextInput,
+  GovUKButton,
+  GovUKRadioInput,
+  govukComponents,
+} from '@ministryofjustice/hmpps-forge/govuk-components'
 
 import {
   journey,
@@ -11,6 +16,10 @@ import {
   or,
   xor,
   not,
+  createForgePackage,
+  defineConditionFunctions,
+  defineGeneratorFunctions,
+  defineTransformerFunctions,
   Answer,
   Data,
   Format,
@@ -21,9 +30,11 @@ import {
   Self,
   Condition,
   Transformer,
+  type ResolvableValue,
 } from '../../src/authoring'
 import { CollectionBlock } from '../../src/components'
-import { Effects } from './contractHelpers'
+import { ForgeTestHarness } from '../../src/testing'
+import { Effects, effectImplementations } from './contractHelpers'
 
 export const requiredFieldJourney = journey({
   code: 'required',
@@ -1169,6 +1180,201 @@ export const sameCodeVariantsJourney = journey({
         employedCopy('unavailable', 'employed-unavailable'),
         employedCopy('actively-seeking', 'employed-actively-seeking'),
         employedCopy('not-actively-seeking', 'employed-not-actively-seeking'),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: true,
+          onValid: {
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({
+      code: 'done',
+      path: '/done',
+      title: 'Done',
+      blocks: [],
+    }),
+  ],
+})
+
+// Regression coverage for generated-code argument scoping: a function call
+// with arguments as the subject of another function call used to compile both
+// argument consts to one name, and the inner declaration shadowed the outer
+// before it ran ("Cannot access 'functionArgument1' before initialization").
+const { generators: scopingGenerators, implementations: scopingGeneratorImplementations } = defineGeneratorFunctions({
+  ScopingFixed: () => (text: ResolvableValue) => text,
+  ScopingMutateState: () => (state: ResolvableValue) => {
+    if (typeof state === 'object' && state !== null) {
+      Reflect.set(state, 'value', 'after')
+    }
+
+    return 'mutated'
+  },
+  ScopingIdentity: () => (value: ResolvableValue) => value,
+  ScopingArgumentsInOrder: () => (first: ResolvableValue, second: ResolvableValue, state: ResolvableValue) => {
+    const observedValues =
+      typeof state === 'object' && state !== null ? Reflect.get(state, 'observedValues') : undefined
+
+    if (Array.isArray(observedValues)) {
+      observedValues.push(second)
+    }
+
+    return first === 'mutated'
+  },
+})
+const { conditions: scopingConditions, implementations: scopingConditionImplementations } = defineConditionFunctions({
+  ScopingEquals: () => (value: ResolvableValue, expected: ResolvableValue) => value === expected,
+  ScopingLengthBetween: () => (value: ResolvableValue, lower: number, upper: number) =>
+    String(value).length >= lower && String(value).length <= upper,
+})
+const { transformers: scopingTransformers, implementations: scopingTransformerImplementations } =
+  defineTransformerFunctions({
+    ScopingAppendSuffix: () => (value: ResolvableValue, suffix: string) => `${value}${suffix}`,
+  })
+
+const FixedText = scopingGenerators.ScopingFixed
+const MutateState = scopingGenerators.ScopingMutateState
+const IdentityValue = scopingGenerators.ScopingIdentity
+const ArgumentsInOrder = scopingGenerators.ScopingArgumentsInOrder
+const EqualsValue = scopingConditions.ScopingEquals
+const LengthBetween = scopingConditions.ScopingLengthBetween
+const AppendSuffix = scopingTransformers.ScopingAppendSuffix
+
+export function createArgumentScopingClient(journeyDef: ReturnType<typeof journey>) {
+  return new ForgeTestHarness()
+    .registerGlobalComponents(govukComponents)
+    .registerPackage(
+      createForgePackage({
+        journey: journeyDef,
+        functions: {
+          ...effectImplementations,
+          ...scopingGeneratorImplementations,
+          ...scopingConditionImplementations,
+          ...scopingTransformerImplementations,
+        },
+      }),
+    )
+    .createClient()
+}
+
+export const argumentScopingJourney = journey({
+  code: 'argument-scoping',
+  path: '/argument-scoping',
+  title: 'Argument scoping',
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKTextInput({
+          code: 'generatorSubject',
+          label: 'Generator subject',
+          validWhen: [
+            validation({
+              condition: FixedText('yes').match(EqualsValue('yes')),
+              message: 'Generator subject rule failed',
+            }),
+          ],
+        }),
+        GovUKTextInput({
+          code: 'twoArguments',
+          label: 'Two condition arguments',
+          validWhen: [
+            validation({
+              condition: FixedText('abcdef').match(LengthBetween(5, 9)),
+              message: 'Two-argument rule failed',
+            }),
+          ],
+        }),
+        GovUKTextInput({
+          code: 'pipedGenerator',
+          label: 'Piped generator',
+          validWhen: [
+            validation({
+              condition: FixedText('ye').pipe(AppendSuffix('s')).match(EqualsValue('yes')),
+              message: 'Piped generator rule failed',
+            }),
+          ],
+        }),
+        GovUKTextInput({
+          code: 'nestedGenerator',
+          label: 'Generator as generator argument',
+          validWhen: [
+            validation({
+              condition: FixedText(FixedText('yes')).match(EqualsValue('yes')),
+              message: 'Nested generator rule failed',
+            }),
+          ],
+        }),
+        GovUKTextInput({
+          code: 'argumentCall',
+          label: 'Generator as condition argument',
+          validWhen: [
+            validation({
+              condition: Self().match(EqualsValue(FixedText('yes'))),
+              message: 'Enter yes',
+            }),
+          ],
+        }),
+        GovUKTextInput({
+          code: 'combined',
+          label: 'Combined generator and answer rules',
+          validWhen: [
+            validation({
+              condition: and(FixedText('yes').match(EqualsValue('yes')), Self().match(EqualsValue('yes'))),
+              message: 'Enter yes here too',
+            }),
+          ],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: true,
+          onValid: {
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({
+      code: 'done',
+      path: '/done',
+      title: 'Done',
+      blocks: [],
+    }),
+  ],
+})
+
+export const argumentEvaluationOrderJourney = journey({
+  code: 'argument-evaluation-order',
+  path: '/argument-evaluation-order',
+  title: 'Argument evaluation order',
+  onAccess: [access({ effects: [Effects.LoadData()] })],
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKTextInput({
+          code: 'evaluationOrderTrigger',
+          label: 'Evaluation order',
+          validWhen: [
+            validation({
+              condition: ArgumentsInOrder(
+                MutateState(Data('evaluationOrderState')),
+                IdentityValue(Data('evaluationOrderState').path('value')),
+                Data('evaluationOrderState'),
+              ).match(EqualsValue(true)),
+              message: 'Function arguments evaluated out of order',
+            }),
+          ],
+        }),
         GovUKButton({ text: 'Continue' }),
       ],
       onSubmission: [

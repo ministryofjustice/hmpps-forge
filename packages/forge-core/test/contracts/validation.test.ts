@@ -28,6 +28,9 @@ import {
   entryDomainValidationJourney,
   entryConditionalWhenFalseJourney,
   sameCodeVariantsJourney,
+  argumentScopingJourney,
+  argumentEvaluationOrderJourney,
+  createArgumentScopingClient,
 } from './validation.fixtures'
 
 describe('validation contracts', () => {
@@ -1040,6 +1043,66 @@ describe('validation contracts', () => {
           expect.objectContaining({ message: 'Enter either email or phone, but not both' }),
         ])
       }
+    })
+  })
+
+  describe('function argument scoping', () => {
+    it('should redirect when every generator-subject rule evaluates true', async () => {
+      // Arrange
+      const client = createArgumentScopingClient(argumentScopingJourney)
+
+      // Act
+      const result = await client.post('/argument-scoping/form', {
+        session: {},
+        body: { argumentCall: 'yes', combined: 'yes' },
+      })
+
+      // Assert
+      expect(result.type).toBe('redirect')
+    })
+
+    it('should fail only the answer-dependent rules when their values are wrong', async () => {
+      // Arrange
+      const client = createArgumentScopingClient(argumentScopingJourney)
+
+      // Act
+      const result = await client.post('/argument-scoping/form', {
+        session: {},
+        body: { argumentCall: 'no', combined: 'no' },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.getValidationErrorsByFieldCode('generatorSubject')).toEqual([])
+        expect(result.getValidationErrorsByFieldCode('twoArguments')).toEqual([])
+        expect(result.getValidationErrorsByFieldCode('pipedGenerator')).toEqual([])
+        expect(result.getValidationErrorsByFieldCode('nestedGenerator')).toEqual([])
+        expect(result.getValidationErrorsByFieldCode('argumentCall')).toEqual([
+          expect.objectContaining({ message: 'Enter yes' }),
+        ])
+        expect(result.getValidationErrorsByFieldCode('combined')).toEqual([
+          expect.objectContaining({ message: 'Enter yes here too' }),
+        ])
+      }
+    })
+
+    it('should evaluate nested function arguments from left to right', async () => {
+      // Arrange
+      const client = createArgumentScopingClient(argumentEvaluationOrderJourney)
+      const evaluationOrderState = { value: 'before', observedValues: [] }
+
+      // Act
+      const result = await client.post('/argument-evaluation-order/form', {
+        session: { data: { evaluationOrderState } },
+        body: { evaluationOrderTrigger: 'submitted' },
+      })
+
+      // Assert
+      expect(evaluationOrderState.value).toBe('after')
+      expect(evaluationOrderState.observedValues).toEqual(['after', 'after'])
+      expect(result.type).toBe('redirect')
     })
   })
 

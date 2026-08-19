@@ -560,7 +560,7 @@ export default class StepResolveCompiler {
       const name = this.camelise(staticCode)
 
       if (name.length > 0) {
-        return name
+        return `nestedBlock${name.charAt(0).toUpperCase()}${name.slice(1)}`
       }
     }
 

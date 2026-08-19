@@ -53,14 +53,18 @@ export default class CodeGenerator {
 
   private variableCounter: number
 
+  private readonly inheritedNames: ReadonlySet<string>
+
   constructor(
     variableCounter = 0,
     functionNames: Set<string> = new Set(),
     scopeStack: ScopeFrame[] = [createScopeFrame()],
+    inheritedNames: ReadonlySet<string> = new Set(),
   ) {
     this.variableCounter = variableCounter
     this.functionNames = functionNames
     this.scopeStack = scopeStack
+    this.inheritedNames = inheritedNames
   }
 
   static forFunction(parameterPrefixes: readonly string[]): CodeGenerator {
@@ -75,6 +79,7 @@ export default class CodeGenerator {
       this.variableCounter,
       new Set(this.functionNames),
       this.scopeStack.map(frame => createScopeFrame(frame.names)),
+      this.inheritedNames,
     )
   }
 
@@ -99,6 +104,10 @@ export default class CodeGenerator {
   }
 
   declareVar(name: IdentifierName, value?: SafeCode): void {
+    if (this.inheritedNames.has(name.value)) {
+      throw new ForgeInternalError(`CodeGenerator: name "${name.value}" is already declared in an enclosing function`)
+    }
+
     this.reserveFunctionName(name)
     this.currentBody.push(new DeclarationCodeNode(DeclarationKind.VAR, name, value))
   }
@@ -229,7 +238,12 @@ export default class CodeGenerator {
     options: FunctionOptions = {},
   ): IdentifierName {
     const name = this.allocateLexicalName(prefix)
-    const functionGenerator = new CodeGenerator(this.variableCounter, new Set(), [createScopeFrame()])
+    const functionGenerator = new CodeGenerator(
+      this.variableCounter,
+      new Set(),
+      [createScopeFrame()],
+      this.namesVisibleHere(),
+    )
     const parameters = parameterPrefixes.map(parameter => new IdentifierName(parameter))
 
     parameters.forEach(parameter => functionGenerator.reserveFunctionName(parameter))
@@ -248,7 +262,12 @@ export default class CodeGenerator {
     options: FunctionOptions = {},
   ): CodeFragment {
     const name = prefix === undefined ? undefined : this.allocateFunctionName(prefix)
-    const functionGenerator = new CodeGenerator(this.variableCounter, new Set(), [createScopeFrame()])
+    const functionGenerator = new CodeGenerator(
+      this.variableCounter,
+      new Set(),
+      [createScopeFrame()],
+      this.namesVisibleHere(),
+    )
     const parameters = parameterPrefixes.map(parameter => new IdentifierName(parameter))
 
     parameters.forEach(parameter => functionGenerator.reserveFunctionName(parameter))
@@ -316,7 +335,7 @@ export default class CodeGenerator {
   private allocateLexicalName(prefix: string): IdentifierName {
     return this.allocateName(
       prefix,
-      name => this.isNameVisible(name),
+      name => this.isNameVisible(name) || this.inheritedNames.has(name),
       name => this.currentScope.names.add(name),
     )
   }
@@ -324,7 +343,7 @@ export default class CodeGenerator {
   private allocateFunctionName(prefix: string): IdentifierName {
     return this.allocateName(
       prefix,
-      name => this.isNameVisible(name),
+      name => this.isNameVisible(name) || this.inheritedNames.has(name),
       name => {
         this.functionNames.add(name)
         this.rootScope.names.add(name)
@@ -359,7 +378,7 @@ export default class CodeGenerator {
   }
 
   private reserveLexicalName(name: IdentifierName): void {
-    if (this.isNameVisible(name.value)) {
+    if (this.isNameVisible(name.value) || this.inheritedNames.has(name.value)) {
       throw new ForgeInternalError(`CodeGenerator: name "${name.value}" is already visible in this scope`)
     }
 
@@ -377,6 +396,14 @@ export default class CodeGenerator {
 
   private isNameVisible(name: string): boolean {
     return this.functionNames.has(name) || this.scopeStack.some(frame => frame.names.has(name))
+  }
+
+  private namesVisibleHere(): ReadonlySet<string> {
+    return new Set([
+      ...this.inheritedNames,
+      ...this.functionNames,
+      ...this.scopeStack.flatMap(frame => [...frame.names]),
+    ])
   }
 
   private get currentBody(): CodeNode[] {

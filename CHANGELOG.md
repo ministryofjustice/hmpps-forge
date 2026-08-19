@@ -77,6 +77,13 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
   and memory. `IteratorBudget` tracks total iterations across all compiled functions in a
   request and throws `ForgeIteratorBudgetExceededError` when the cap is exceeded. The
   default is configurable via `Forge`'s constructor options
+- **Generator arguments no longer collide with condition arguments.** A rule like
+  `Fixed('yes').match(Equals('yes'))` - a generator with an argument piped into a
+  condition with an argument - compiled both arguments to the same `functionArgument1`
+  name in nested scopes, and the inner one shadowed the outer before it was declared.
+  The request then failed with `Cannot access 'functionArgument1' before
+  initialization`. Generated nested functions now avoid reusing names visible in their
+  enclosing function
 
 ### Changed
 
