@@ -23,7 +23,7 @@ This document does not cover validation rule semantics, validation runtime execu
 ## Rules
 
 - A field counts as validating when its `validWhen` is configured.
-  `undefined` and empty arrays are not configured; the shared classifiers in `contracts/models/validationRules.ts` own that definition.
+  `undefined` and empty arrays are not configured; the shared classifiers in `chassis/contracts/models/validationRules.ts` own that definition.
 - Template fields never count towards `hasValidation`.
   Only registered validating fields and a domain `validWhen` trigger eager validities.
 - Do not repeat semantic placement checks here.
@@ -31,7 +31,7 @@ This document does not cover validation rule semantics, validation runtime execu
 
 ## Editing Notes
 
-- To change what counts as configured or direct rules, start in `contracts/models/validationRules.ts`.
+- To change what counts as configured or direct rules, start in `chassis/contracts/models/validationRules.ts`.
 - To change how field validation is classified, start in `FieldModelBuilder`.
 - To add validation model fields, update `ValidationModel` in `../contracts/validationModel.type.ts`, then update `ValidationAnalyzer`.
 

@@ -11,7 +11,7 @@ resolve for itself.
 - [analysis](analysis/README.md) gives resolve compilation the step, its ancestor journeys, and every iterate node under the step.
 - [lowering](lowering/README.md) emits the `CompiledResolveFunction` that returns the block and metadata work.
 - [runtime](runtime/README.md) runs that work, brands the blocks, and assembles `RenderContext`.
-- `contracts` holds `resolveBlocksOutput.type.ts`.
+- `contracts` holds `resolveBlocksOutput.type.ts` and `resolveModel.type.ts`.
 
 ## Runtime phase
 

@@ -50,15 +50,15 @@ Under the hood it builds a `CompilationState`, runs the `compilation.pipeline` w
 - `componentRegistry`, used to validate block variants and component metadata.
 
 `CompilationState`, in [pipeline/CompilationState.ts](pipeline/CompilationState.ts), is the draft the phases build up.
-Each phase records its output - the `AstContext` (root `JourneyASTNode` plus `ASTNodeIndex`), the `CompilationModel`, the compiled artifact maps, the route indexes - and later phases read it back.
+Each phase records its output - the `AstContext` (root `JourneyASTNode`, `ASTNodeIndex`, and `TemplateNodeIndex`), the `CompilationModel`, the compiled artifact maps, the route indexes - and later phases read it back.
 Its getters throw when read before the owning phase has run, because the phase order is fixed and a missing value is a pipeline bug.
 Like the AST, it never leaves compilation.
 
 Parent and ancestor lookup happens through the `parent` link on each registered node, not through a separate tree structure.
 
 `CompilationModel` is produced by analysis.
-It contains `stepInputs`, `journeyInputs`, and `reachabilityInputs`.
-Those maps are shaped around lowering phases.
+It contains `routeMetadata` for every node and a `journeys` map of `JourneyModel`s, each owning its `StepModel`s.
+Those models are shaped around lowering phases.
 
 `CompiledPackage` is the final output.
 It contains:

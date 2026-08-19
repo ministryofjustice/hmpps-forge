@@ -11,13 +11,11 @@ This document does not cover semantic validation or runtime validation handler e
 
 ## Inputs
 
-`StepValidationCompiler.compileStepValidation()` receives:
-- the step node.
-- field blocks with configured validation.
-- step-level `validWhen` values.
-- map iterate nodes that may yield validating fields.
+`StepValidationCompiler.compileStepValidation()` receives the step's `ValidationModel`:
+- the validating field occurrences, carrying their iterator scope.
+- the step-level `validWhen` rules.
 
-`EntryValidationCompiler.compileOnEntryValidation()` receives the step's `validateOnEntry` entries and emits
+`EntryValidationCompiler.compileOnEntryValidation()` receives the same `ValidationModel` and, from its `validateOnEntry` entries, emits
 the group selector the entry-validation phase runs: it evaluates each entry's `when` predicate and returns the
 combined unique groups from every matching entry.
 
@@ -55,7 +53,7 @@ Each domain validation is built as:
 - To change rule filtering, start in `compileRuleFilterSetup()`.
 - To change field validation tasks, start in `compileFieldValidationSlot()`.
 - To change domain validation tasks, start in `compileDomainValidationSlot()`.
-- To change iterator validation, start in `compileIterateBlock()` and `compileTemplateValidations()`.
+- To change iterator validation, start in `compileTemplateField()` and `ScopedTemplateCompiler.compileFieldOccurrences()`.
 - To change template field identity, update `ScopedTemplateCompiler` and check resolve at the same time.
 - To inspect generated source, use `generateStepValidationSource()` in the tests.
 - To change entry group selection, start in `EntryValidationCompiler.buildEntryValidationSource()`.

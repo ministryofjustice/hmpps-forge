@@ -11,7 +11,7 @@ runs so early in the pipeline.
 - [analysis](analysis/README.md) selects the field blocks and map iterates that can produce answers for a step or journey.
 - [lowering](lowering/README.md) emits the `CompiledAnswerPreparationFunction` that builds the field task list.
 - [runtime](runtime/README.md) runs those tasks and folds the per-field summaries.
-- `contracts` holds `AnswerPreparationWork.type.ts`, the work props and result types shared by lowering and runtime.
+- `contracts` holds `AnswerPreparationWork.type.ts`, the work props and result types shared by lowering and runtime, and `answerPreparationModel.type.ts`, the model analysis hands to lowering.
 
 ## Runtime phase
 

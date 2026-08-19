@@ -10,7 +10,7 @@ The substrate itself is stage-neutral. Spans are recorded by the work executor i
 - [`../runtime/pipeline/RequestPipelineTraceProjector.ts`](../runtime/pipeline/RequestPipelineTraceProjector.ts) projects a finished request pipeline into a `RequestTraceEvent`.
 
 Source-location diagnostics - DSL path formatting and the source locations attached to AST nodes during
-compilation - are a separate subsystem and live in [`../../shared/diagnostics`](../../shared/diagnostics).
+compilation - are a separate subsystem and live in [`../../../shared/diagnostics`](../../../shared/diagnostics).
 
 | File | What it does |
 |------|--------------|

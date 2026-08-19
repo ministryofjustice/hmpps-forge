@@ -216,8 +216,8 @@ flowchart TD
   When reachability checks are disabled, that journey-scoped index is empty.
 - `request.entry-validation` contains no validation implementation; it only triggers `validation.current-step`.
   It selects active groups and projects the already-stored current step validity.
-- `request.submit` does not write `ctx.state.validation` directly.
-  Submit validation runs inside the hook lifecycle through `buildStepValidation()` and `recordStepValidation()`.
+- `request.submit` does not write `ctx.state.currentPageValidation` directly.
+  Submit validation runs inside the hook lifecycle through `buildStepValidation()` and `recordCurrentPageValidation()`.
 - `request.answer-cleardown` runs after reachability and before submit or entry validation.
   It needs the reachability projection and current answers from the same request point.
 - `request.resolve` groups field failures by render block ID.

@@ -18,8 +18,8 @@ have a compile-time half and a runtime half, and those halves only make sense re
 The stage axis is the structure of [chassis/](chassis/) - `compilation/`, `runtime/`, and the substrate both
 stages run on. The concern axis is the outer structure of everything else: each concern owns a vertical slice
 under `concerns/<name>/`, with `analysis/`, `lowering/`, `runtime/`, and `contracts/` inside it. The stages
-still exist; they are now the inner axis. DSL validation is the one concern with no stage folders - its whole
-job happens before the AST exists.
+still exist; they are now the inner axis. DSL validation and semantic analysis are the two concerns with no
+stage folders - each is a compile-time-only gate, run before or just after the AST is built.
 
 ## The Four Stages
 
@@ -152,13 +152,13 @@ what any of them mean.
 
 - [chassis/work](chassis/work) owns the stage-neutral work substrate: the executor, work context, and task helpers.
   Both stages run their pipelines through it - runtime asynchronously, compilation synchronously - and it imports neither.
-- [chassis/compilation](chassis/compilation) owns phase order, the AST, semantic analysis, plan assembly, the expression and emitter layers, and generated-function construction.
+- [chassis/compilation](chassis/compilation) owns phase order, the AST, model assembly, the expression and emitter layers, and generated-function construction.
 - [chassis/runtime](chassis/runtime) owns the request pipeline order, the compiled-function contexts, and request trace projection.
 - [chassis/contracts](chassis/contracts) owns the kernel types every layer shares: AST, compiled functions, plans, work, and runtime plumbing.
 - [chassis/registries](chassis/registries) owns function, component, and mount registries.
 - [chassis/tracing](chassis/tracing) owns the shared trace substrate and the instrumentation fan-out.
 
-[concerns/dsl-validation](concerns/dsl-validation) also behaves like chassis: it runs the pre-AST JSON and Zod checks as the first compilation phase.
+[concerns/dsl-validation](concerns/dsl-validation) and [concerns/semantic-analysis](concerns/semantic-analysis) also behave like chassis: the first runs the pre-AST JSON and Zod checks as the first compilation phase, the second runs the post-AST placement rules straight after AST building.
 
 ## Supporting Areas
 

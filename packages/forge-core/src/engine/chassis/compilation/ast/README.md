@@ -102,7 +102,7 @@ which becomes this AST node:
 
 ## Flow
 
-AST building is a two-pass process, driven in sequence by `CompilationPipeline.buildAstTree()`.
+AST building is a two-pass process, driven in sequence by `CompilationAstWorkHandler`.
 The first pass (`NodeFactory.createNode()`) builds the node tree from authoring definitions.
 The second pass (`NodeRegistrationWalker.register()`) walks that tree to wire each node's `parent` link and index each node.
 

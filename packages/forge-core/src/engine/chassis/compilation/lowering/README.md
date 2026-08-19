@@ -40,9 +40,9 @@ under heavy-load - so Forge remains performant!
 
 ## Responsibilities
 
-- Compile every `StepCompilationInputs` entry into a `CompiledStep`.
-- Compile every `JourneyCompilationInputs` entry into a `CompiledJourney`.
-- Compile every `ReachabilityCompilationInputs` entry into a `CompiledReachabilityFactsFunction`.
+- Compile every `StepModel` entry into a `CompiledStep`.
+- Compile every `JourneyModel` entry into a `CompiledJourney`.
+- Compile every journey's `ReachabilityModel` into a `CompiledReachabilityFactsFunction`.
 - Compile the `RouteMetadataModel` entries into one package-level `compiledRouteMetadata` function.
 - Emit inspectable JavaScript source for phase compilers.
 - Construct sync or async functions based on discovered `await` usage.
@@ -62,12 +62,12 @@ The lowering phase handler consumes it and the codegen tasks fill:
 - `steps`, a `Map<NodeId, CompiledStep>` on `CompilationState`.
 - `journeys`, a `Map<NodeId, CompiledJourney>` on `CompilationState`.
 
-`CompiledStep` contains the step runtime plan, the step-owned compiled functions, and the journey-scoped and package-scoped compiled functions/indexes it needs at runtime.
+`CompiledStep` contains the step mount info, the step-owned compiled functions, and the journey-scoped and package-scoped compiled functions/indexes it needs at runtime.
 Step-owned functions include step access lifecycle, submit hooks, answer preparation, submit validation, entry validation, and resolve.
 Journey-scoped fields include reachability facts, reachability state, field inventory, and `compiledStepValidations`.
 The package-scoped field is `compiledRouteMetadata`, shared by every step and journey in the package.
 
-`CompiledJourney` contains the journey runtime plan and journey-owned compiled functions/indexes, plus the package-scoped `compiledRouteMetadata`.
+`CompiledJourney` contains the journey mount info and journey-owned compiled functions/indexes, plus the package-scoped `compiledRouteMetadata`.
 Journey-owned functions include reachability facts, reachability state, field inventory, static data, access lifecycle, and answer preparation.
 `compiledStepValidations` is a journey-scoped index of validating step ids to step-specific validation functions.
 

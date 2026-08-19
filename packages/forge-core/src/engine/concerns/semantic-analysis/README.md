@@ -12,7 +12,7 @@ This document does not cover AST creation, AST registration, dependency planning
 Like [dsl-validation](../dsl-validation/README.md), this concern has no stage folders: the whole pass runs once
 during compilation, between AST building and analysis, so there is nothing to lower or execute per
 request. It sits under `concerns/` rather than the compilation chassis because it is self-contained gate logic,
-not orchestration or shared machinery — `CompilationPipeline.validateSemantics()` calls in from the chassis.
+not orchestration or shared machinery — the chassis pipeline calls in through [CompilationSemanticAnalysisWorkHandler.ts](CompilationSemanticAnalysisWorkHandler.ts), the `compilation.semantic-analysis` phase.
 
 ## Background
 
@@ -110,21 +110,21 @@ AST creation still turns that function into an expression node:
 ```
 
 `validateEffectScope()` then walks the node's `parent` links to find its ancestors.
-If no ancestor has `ASTNodeType.HOOK`, it returns a `ForgeReferenceScopeError` with code `effect_outside_hook`.
+If no ancestor has `ASTNodeType.HOOK`, it returns a `ForgeReferenceScopeError`.
 `ASTSemanticValidator.validate()` includes that error in the final `AggregateError`.
 
 *Note: Pretty sure the DSL Validation stage would catch this, but suspend disbelief for the example please!*
 
 ## Flow
 
-Semantic analysis is a rule pass driven by `CompilationPipeline.validateSemantics()`.
-It runs after `CompilationPipeline.buildAstTree()` has created and registered the AST.
+Semantic analysis is a rule pass driven by `CompilationSemanticAnalysisWorkHandler`, the `compilation.semantic-analysis` phase.
+It runs after the `compilation.ast` phase has created and registered the AST.
 It runs before analysis and lowering.
 
 ```mermaid
 flowchart TD
   rootAst["Registered AST"] -->|enter semantic analysis| semanticValidator["ASTSemanticValidator.validate()"]
-  semanticValidator -->|build shared context| validationContext["ASTValidationContext"]
+  semanticValidator -->|shared context| validationContext["ASTValidationContext"]
   validationContext -->|run each rule| rules["RULES"]
   rules -->|registered-node checks| registeredRules["Rules using ASTNodeIndex and parent links"]
   rules -->|template-content checks| templateRules["Rules using TemplateNodeIndex"]
@@ -136,7 +136,7 @@ flowchart TD
 ```
 
 - [ASTSemanticValidator.ts](ASTSemanticValidator.ts) owns rule orchestration.
-  It builds the shared context, runs the `RULES` array in order, and throws `AggregateError` when errors were collected.
+  It receives the shared context from `CompilationSemanticAnalysisWorkHandler`, runs the `RULES` array in order, and throws `AggregateError` when errors were collected.
 - [rules/types.ts](rules/types.ts) defines the shared rule contract.
   Every rule gets the same registry and AST structures.
 - [rules/validateReferenceScopes.ts](rules/validateReferenceScopes.ts) validates `@scope` and `@loop` references.
@@ -146,6 +146,7 @@ flowchart TD
 - [rules/validateRegisteredFunctions.ts](rules/validateRegisteredFunctions.ts) checks all `FunctionType` expression nodes and function template nodes against `FunctionRegistry`.
 - [rules/validateFunctionArity.ts](rules/validateFunctionArity.ts) checks each function expression's authored argument count against the arity of its registered `argumentsSchema` tuple.
 - [rules/validateRegisteredComponents.ts](rules/validateRegisteredComponents.ts) checks all block variants against `ComponentRegistry`.
+- [rules/validateFieldCodeUniqueness.ts](rules/validateFieldCodeUniqueness.ts) checks that field blocks sharing a code on one step each declare `dependentWhen`.
 - [rules/validateContainerTypes.ts](rules/validateContainerTypes.ts) checks arrays such as `onAccess`, `onSubmission`, `blocks`, `effects`, and `next` for the node types later phases expect.
 
 ## Boundaries
@@ -240,5 +241,6 @@ flowchart TD
 - [rules/validateValidationScope.ts](rules/validateValidationScope.ts) answers whether validation expressions appear in `validWhen`.
 - [rules/validateStructureScope.ts](rules/validateStructureScope.ts) answers whether steps sit in a journey's `steps` array and journeys sit at the root or in a journey's `children` array.
 - [rules/validateBlockScope.ts](rules/validateBlockScope.ts) answers whether blocks sit in a step's `blocks` array or nested within another block.
+- [rules/validateFieldCodeUniqueness.ts](rules/validateFieldCodeUniqueness.ts) answers whether field blocks sharing a code on one step are legal `dependentWhen` variants.
 - [rules/validateFunctionArguments.ts](rules/validateFunctionArguments.ts) answers whether function arguments contain illegal block definitions.
 - [rules/validateContainerTypes.ts](rules/validateContainerTypes.ts) answers whether constrained arrays contain the node families later phases expect.

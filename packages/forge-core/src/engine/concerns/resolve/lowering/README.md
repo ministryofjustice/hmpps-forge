@@ -11,12 +11,12 @@ This document does not cover component rendering or runtime resolve handler exec
 
 ## Inputs
 
-`StepResolveCompiler.compile()` receives:
-- the step node.
-- ancestor journey nodes.
-- iterate nodes under the step.
+`StepResolveCompiler.compile()` receives the `ResolveModel` for one step:
+- the step's classified render-facing properties.
+- ancestor journey models, root-first.
+- the step's blocks and the standalone iterate blocks.
 
-Analysis provides those inputs.
+Analysis (`ResolveAnalyzer`) provides that model.
 The compiler emits evaluated step metadata, ancestor metadata, registered blocks, and iterator-yielded blocks.
 
 ## Work Returned
@@ -47,7 +47,7 @@ The runtime resolve and render phases execute the tasks and render components.
 
 ## Editing Notes
 
-- To change step metadata output, start in `compileStepMetadata()`.
+- To change step metadata output, start in `buildSource()` and `compileDynamicProperties()`.
 - To change ancestor metadata output, start in `compileAncestorMetadata()`.
 - To change block property handling, start in `compileBlockProperties()` and `RuntimeValueCompiler` policy hooks.
 - To change iterator-yielded block behavior, start in `compileIterateBlocks()` and `compileTemplateBlock()`.

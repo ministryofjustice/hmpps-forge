@@ -176,7 +176,7 @@ Compilation builds its tasks directly in its phase handlers.
 
 - This folder is stage-neutral.
   It may import only `tracing/`, `contracts/`, and `errors/` - never `compilation/`, `runtime/`, or `concerns/`.
-  The eslint zone in [eslint.config.mjs](../../../eslint.config.mjs) enforces this.
+  The eslint zone in [eslint.config.mjs](../../../../eslint.config.mjs) enforces this.
 - `WorkExecutor` owns execution order.
   It should not know request phases, compilation phases, validation rules, hook semantics, or rendering rules.
 - `WorkHandler` implementations own domain behavior and live with their stage or concern.

@@ -26,7 +26,6 @@ This document does not cover phase-specific input assembly.
 - component facts, transformer pipelines, and pre-classified validation rules per occurrence.
 
 `NodeLabeller` derives the script-URL identity segment stamped on each concern model.
-- all iterate nodes under a step.
 
 `AuthoredValueClassifier` eagerly classifies authored values into the `AuthoredValue` union — static,
 expression, conditional, match, iteration, record, list, and block arms — so lowering consumes typed trees
@@ -47,7 +46,7 @@ and never re-derives value kinds at emission time.
 - Static data merges from ancestor to descendant.
   Descendant keys override ancestor keys.
 - Paths are normalized through `normalizeRelativePath()`.
-  Runtime plans should not keep leading slash details from authoring paths.
+  Mount info should not keep leading slash details from authoring paths.
 
 ## Editing Notes
 

@@ -67,12 +67,12 @@ Someone who has read one analyzer can predict the layout of the rest.
 - `routeMetadata`, keyed by step or journey node ID — every node, container journeys included.
 - `journeys`, keyed by journey node ID — every journey; a container journey has an empty `steps` map.
 
-`JourneyModel` contains the journey's label, runtime plan, merged `staticData`, and the journey-scoped concern
+`JourneyModel` contains the journey's label, mount info, merged `staticData`, and the journey-scoped concern
 models: `hooks` (`JourneyHookModel`), `reachability` (`ReachabilityModel`), `cleardown` (`CleardownModel`),
 `answerPreparation`, plus `steps` — a map of `StepModel` in document order, which is also the reachability
 state table's order.
 
-`StepModel` contains the step's label, runtime plan, merged `staticData`, its `fields` (every `FieldModel`
+`StepModel` contains the step's label, mount info, merged `staticData`, its `fields` (every `FieldModel`
 occurrence the step owns — concern models hold projections of these), and the step-scoped concern models:
 `answerPreparation`, `hooks` (`StepHookModel`), `validation` (`ValidationModel`), and `resolve` (`ResolveModel`).
 
