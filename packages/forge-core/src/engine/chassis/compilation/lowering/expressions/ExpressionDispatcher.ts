@@ -748,7 +748,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
 
     return compileIifeExpression({
       awaitResult: () => this.usedAwait,
-      generator: this.generator,
+      generator: hoistingScope ?? this.generator,
       isAsync: () => this.usedAwait,
       name: functionName,
       compileBody: generator => {
