@@ -286,9 +286,9 @@ export default createForgePackage<MyDeps>({
 })
 ```
 
-The `functions` array mixes entries and registries freely. To make
-conditions available to every journey rather than a single package,
-group them on a registry and register it globally - see
+The `functions` array mixes entries and registries freely. To share
+conditions across journeys, use the same entries in each journey, or
+group them on a registry and list it on each package - see
 [Grouping with a registry](#grouping-with-a-registry).
 
 ---
@@ -408,7 +408,7 @@ second constructor argument.
 
 Entries suit conditions that live alongside the journeys using
 them. When a package exposes a family of conditions as a shared
-API - or when conditions must be available to every journey - a
+API - or when several packages share the same conditions - a
 `ConditionRegistry` groups them under one handle object:
 
 ```typescript
@@ -429,11 +429,12 @@ export const MyConditions = {
 the same kind of callable handle. Two differences from entries:
 
 - Nothing registers automatically. Pass the registry to a package's
-  `functions` property, or globally:
+  `functions` property:
 
   ```typescript
-  forge.registerGlobalFunctions(myConditions, {
-    eligibilityService: services.eligibilityService,
+  export const myPackage = createForgePackage({
+    journey: myJourney,
+    functions: myConditions,
   })
   ```
 

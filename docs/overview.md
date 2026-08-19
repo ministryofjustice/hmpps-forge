@@ -75,9 +75,9 @@ consistently across the request.
 ### Scoped isolation of packages
 
 When multiple journeys are registered with a single `Forge` instance, each
-package registration can carry its own functions and components without mutating
-the global registries. A custom condition or component variant registered for
-one package is not visible to another package unless it is registered globally.
+package registration carries its own functions and components without mutating
+any shared registry. A custom condition or component variant registered for
+one package is not visible to another package.
 
 ### Fail fast, fail clearly
 
@@ -133,7 +133,7 @@ with eight export entry points declared in `packages/package.json`:
 
 | Entry point | Source area | Role |
 |---|---|---|
-| `./core` | `forge-core` | `Forge` class, global registries, selected runtime-facing types |
+| `./core` | `forge-core` | `Forge` class, registry types, selected runtime-facing types |
 | `./core/authoring` | `forge-core` | Builder API, definition types, conditions, transformers, generators, effects helpers |
 | `./core/components` | `forge-core` | Component system interfaces and built-in components |
 | `./core/framework` | `forge-core` | Renderer interface (`ForgeRenderer`), response bindings, snapshot/outcome/topology types, render context types, path utilities |

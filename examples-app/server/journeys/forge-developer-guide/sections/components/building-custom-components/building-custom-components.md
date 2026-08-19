@@ -432,9 +432,10 @@ export default createForgePackage({
 })
 ```
 
-To make a component available to every journey in the application,
-use `forge.registerGlobalComponents()` instead. This is how the
-GOV.UK and MOJ component packages expose their built-ins.
+Components are always scoped to the package that registers them.
+Sharing one across journeys just means using it in each journey -
+the same handle registers wherever it is used. This is how the
+GOV.UK and MOJ component packages work too.
 
 ---
 
@@ -544,6 +545,7 @@ block to exercise populated and error states separately.
   bracketed input names so the body parser combines the parts into a
   single object, then collapse the object into a canonical form with
   a formatter like `Transformer.Object.ToISO` before validation runs.
-- **Scope components through the package by default.** Register
-  globally only when a component is genuinely shared across every
-  journey in the application.
+- **Let use drive registration.** Building a block with a component
+  registers it for that journey's package - the same handle
+  registers wherever it is used, so shared components need no
+  special treatment.

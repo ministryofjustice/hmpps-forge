@@ -57,8 +57,9 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 Functions and components without the registry ceremony - write a condition with
 `condition()`, use it in your journey, and it registers itself. Components declared
-with `component()` now do the same. The deprecated `defineFunction`-era helpers and
-the implementations-map `functions` form are gone.
+with `component()` now do the same, and global registration is gone entirely - a
+package carries everything its journey uses. The deprecated `defineFunction`-era
+helpers and the implementations-map `functions` form are gone too.
 
 ### Added
 
@@ -67,7 +68,8 @@ the implementations-map `functions` form are gone.
   `functions` listing needed
 - Components declared with `component()` register themselves the same way - building
   a block with one in a journey is enough, no `components` listing needed. The listing
-  stays for renderer-only entries and journeys that reference a variant by string
+  stays for journeys that reference a variant by string, and for entries with no
+  builder attached (the deprecated `buildComponent` kind)
 - `FunctionRegistryTestHarness` accepts entries alongside registries
 
 ### Deprecated
@@ -77,13 +79,20 @@ the implementations-map `functions` form are gone.
 
 ### Removed
 
+- Global registration - `registerGlobalComponent`, `registerGlobalComponents`, and
+  `registerGlobalFunctions` on `Forge`, and the matching `ForgeTestHarness` methods.
+  Self-registration and the package `components`/`functions` listings cover everything
+  they did: components and function entries register by being used, while registries or
+  entry lists like `nunjucksFunctions` list on the package's `functions`. The `govukComponents` and
+  `mojComponents` arrays stay for listing on packages whose journeys reference variants
+  by string. The built-in authoring namespaces are unchanged
 - The deprecated `defineConditionFunctions`, `defineTransformerFunctions`,
   `defineGeneratorFunctions`, and `defineEffectFunctions` helpers, along with
   `createFunctionsRegistry` and `createFunctionScope`
-- The implementations-map form of `functions` - `createForgePackage` and
-  `registerGlobalFunctions` take a registry, or an array of registries and entries.
-  Port a map by registering each function on the matching registry class, or drop the
-  registry entirely and define the function as an entry
+- The implementations-map form of `functions` - `createForgePackage` takes a registry,
+  or an array of registries and entries. Port a map by registering each function on the
+  matching registry class, or drop the registry entirely and define the function as an
+  entry
 - `createTestPackage` from the testing module - its `overrides` only ever applied to
   the implementations-map form, so with the map gone it did nothing. Inject mock
   dependencies through `registerPackage()` instead, or exercise a function directly

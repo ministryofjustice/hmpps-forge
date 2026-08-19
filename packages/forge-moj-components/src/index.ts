@@ -7,18 +7,10 @@
  *
  * @see https://design-patterns.service.justice.gov.uk/
  *
- * @example
- * ```typescript
- * import { Forge } from '@ministryofjustice/hmpps-forge/core'
- * import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
- * import { mojComponents } from '@ministryofjustice/hmpps-forge/moj-components'
- *
- * const forge = new Forge({ logger })
- *   .registerGlobalComponents(mojComponents)
- *   .registerPackage(myPackage)
- *
- * app.use(createExpressRouter(forge, { nunjucksEnv }))
- * ```
+ * Building a block with a component in a journey registers it for that
+ * package automatically. The `mojComponents` array exists for journeys
+ * that reference variants by string only (a JSON journey, for example) -
+ * list it on the package's `components` property.
  */
 
 export { mojComponents } from './components/index'

@@ -3,7 +3,7 @@ title: Using Forge with Express and Nunjucks
 section: get-started
 path: get-started/using-forge-with-express-and-nunjucks
 teaches: [createExpressRouter, nunjucks-setup, page-template]
-prerequisites: [Forge, registerGlobalComponents]
+prerequisites: [Forge, registerPackage]
 ---
 
 <p class="govuk-caption-xl">Get started</p>
@@ -154,8 +154,6 @@ import nunjucks from 'nunjucks'
 import path from 'node:path'
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
 import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
-import { mojComponents } from '@ministryofjustice/hmpps-forge/moj-components'
 
 const app = express()
 
@@ -173,9 +171,6 @@ const nunjucksEnv = nunjucks.configure(
 
 // Forge
 const forge = new Forge({ logger })
-
-forge.registerGlobalComponents(govukComponents)
-forge.registerGlobalComponents(mojComponents)
 
 // Register journey packages here
 // forge.registerPackage(myPackage)

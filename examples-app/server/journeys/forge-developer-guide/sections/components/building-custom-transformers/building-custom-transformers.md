@@ -289,9 +289,9 @@ export default createForgePackage<MyDeps>({
 })
 ```
 
-The `functions` array mixes entries and registries freely. To make
-transformers available to every journey rather than a single
-package, group them on a registry and register it globally - see
+The `functions` array mixes entries and registries freely. To share
+transformers across journeys, use the same entries in each journey,
+or group them on a registry and list it on each package - see
 [Grouping with a registry](#grouping-with-a-registry).
 
 ---
@@ -393,7 +393,7 @@ reference at runtime; the arguments come from the handle call.
 
 Entries suit transformers that live alongside the journeys using
 them. When a package exposes a family of transformers as a shared
-API - or when transformers must be available to every journey - a
+API - or when several packages share the same transformers - a
 `TransformerRegistry` groups them under one handle object:
 
 ```typescript
@@ -414,11 +414,12 @@ export const MyTransformers = {
 the same kind of callable handle. Two differences from entries:
 
 - Nothing registers automatically. Pass the registry to a package's
-  `functions` property, or globally:
+  `functions` property:
 
   ```typescript
-  forge.registerGlobalFunctions(myTransformers, {
-    currencyFormatter: services.currencyFormatter,
+  export const myPackage = createForgePackage({
+    journey: myJourney,
+    functions: myTransformers,
   })
   ```
 

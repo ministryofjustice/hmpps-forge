@@ -2,15 +2,15 @@
 title: Using Forge in your app
 section: get-started
 path: get-started/using-forge-in-your-app
-teaches: [Forge, createExpressRouter, registerGlobalComponents, registerPackage]
+teaches: [Forge, createExpressRouter, registerPackage]
 prerequisites: [installation]
 ---
 
 <p class="govuk-caption-xl">Get started</p>
 
 # Using Forge in your app
-Forge has three setup steps: create an instance, register your
-component libraries, and register your journey packages.
+Forge has two setup steps: create an instance and register your
+journey packages.
 
 {{slot:toc}}
 
@@ -18,9 +18,9 @@ component libraries, and register your journey packages.
 
 ## Create a Forge instance
 
-Create a Forge instance and register your component libraries and
-journey packages. Forge itself is framework-agnostic - connecting
-it to Express happens separately via `createExpressRouter`.
+Create a Forge instance and register your journey packages. Forge
+itself is framework-agnostic - connecting it to Express happens
+separately via `createExpressRouter`.
 
 ```typescript
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
@@ -34,24 +34,16 @@ how to create the Express router and wire everything together.
 
 ---
 
-## Register component libraries
+## Component libraries register themselves
 
-Forge needs to know about the component libraries your journeys will
-use. Register them after creating the Forge instance:
+There is no separate registration step for component libraries.
+Building a block with a component like `GovUKTextInput`,
+`GovUKRadioInput`, or `GovUKButton` in a journey definition
+registers that component for the journey's package automatically.
 
-```typescript
-import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
-import { mojComponents } from '@ministryofjustice/hmpps-forge/moj-components'
-
-forge.registerGlobalComponents(govukComponents)
-forge.registerGlobalComponents(mojComponents)
-```
-
-This makes components like `GovUKTextInput`, `GovUKRadioInput`, and
-`GovUKButton` available for use in your journey definitions.
-
-You can register as many component libraries as you need, including
-your own custom components.
+The same applies to your own custom components and to functions
+declared with `condition()`, `transformer()`, and friends - using
+one is registering it.
 
 ---
 
@@ -86,6 +78,6 @@ references.
 
 ## What is next
 
-You now have a Forge instance with component libraries registered.
+You now have a Forge instance with your journeys registered.
 Continue to [Using Forge with Express and Nunjucks](using-forge-with-express-and-nunjucks)
 to create the Express router and wire Forge into your web application.

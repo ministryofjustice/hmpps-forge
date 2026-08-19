@@ -136,22 +136,19 @@ environment that a journey is allowed to use.
 
 ## Scoping
 
-Forge supports global and package-scoped extension registration.
+Extension registration is package-scoped.
 
-Global registration makes functions and components visible to every journey
-registered with the same `Forge` instance.
+A package's functions and components go into scoped registries for that
+package. Those scoped registries fall back to the built-in registries, but
+entries registered in the package take precedence for that package.
 
-Package-scoped registration creates scoped registries for a package. Those
-scoped registries fall back to the global registries, but entries registered in
-the package take precedence for that package.
-
-This gives packages local extension names without mutating the global registry.
+This gives packages local extension names without mutating a shared registry.
 It also means one package can register a custom function or component variant
 without making it visible to another package.
 
 The rule to preserve is that scoped extensions should be visible to the journey
-they are registered with, and invisible to unrelated journeys unless they are
-registered globally.
+they are registered with, and invisible to unrelated journeys. Only the
+built-in functions and components are shared across every journey.
 
 ## What Forge does not define
 
@@ -195,7 +192,7 @@ components, and render-facing contracts in more detail.
 The function registry doc explains function entries, sync and async metadata,
 function families, and generated-function call sites.
 
-The registry scoping doc explains global registration, package-scoped
+The registry scoping doc explains built-in registries, package-scoped
 registration, fallback lookup, and isolation rules.
 
 The framework rendering doc explains how evaluated blocks are dispatched to

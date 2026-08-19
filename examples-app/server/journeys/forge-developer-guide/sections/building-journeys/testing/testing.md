@@ -22,22 +22,21 @@ assert on the data.
 ## Setting up
 
 Import `ForgeTestHarness` from the testing module, register your
-components and packages, and call `createClient()`.
+packages, and call `createClient()`.
 
 ```typescript
 import { ForgeTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
-import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 const client = new ForgeTestHarness()
-  .registerGlobalComponents(govukComponents)
-  .registerPackage({ journey: myJourney, functions: myEffects }, deps)
+  .registerPackage(myPackage, deps)
   .createClient()
 ```
 
 `ForgeTestHarness` wires up the test adapter and a silent logger
-internally. You register components and packages the same way you
-would with `Forge`, then `createClient()` gives you a
-`ForgeTestClient` you can send requests through.
+internally. You register packages the same way you would with
+`Forge` - the components and functions the journey uses come with
+the package - then `createClient()` gives you a `ForgeTestClient`
+you can send requests through.
 
 ---
 
@@ -171,8 +170,7 @@ import { ForgeTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 const mockApi = { saveRecord: vi.fn() }
 
 const client = new ForgeTestHarness()
-  .registerGlobalComponents(govukComponents)
-  .registerPackage({ journey: myJourney, functions: myEffects }, { api: mockApi })
+  .registerPackage(myPackage, { api: mockApi })
   .createClient()
 
 await client.post('/my-journey/step-one', {

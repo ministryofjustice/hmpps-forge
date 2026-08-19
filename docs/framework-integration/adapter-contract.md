@@ -254,8 +254,8 @@ for detail.
 without HTTP or HTML rendering — there is no separate test adapter type.
 
 `ForgeTestHarness` wraps a `Forge` instance (with a silent logger). Its
-`registerGlobalComponents`, `registerGlobalFunctions`, and `registerPackage`
-methods delegate to `Forge`, and `createClient()` returns a `ForgeTestClient`.
+`registerPackage` method delegates to `Forge`, and `createClient()` returns a
+`ForgeTestClient`.
 
 `ForgeTestClient.get(path, options?)` / `.post(path, options?)`:
 
