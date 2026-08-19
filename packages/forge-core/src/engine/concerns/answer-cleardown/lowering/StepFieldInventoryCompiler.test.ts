@@ -63,6 +63,7 @@ function createContext(
   overrides: Partial<FieldInventoryContext> = {},
 ): FieldInventoryContext {
   return {
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},

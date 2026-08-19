@@ -17,6 +17,7 @@ import { NO_OP_RESPONSE_BINDINGS, type ResponseBindings } from '../../../../fram
 
 export interface RequestPipelineOptions {
   readonly instrumentation: ForgeInstrumentation
+  readonly maxIteratorIterations: number
 }
 
 export interface RequestEvaluationRequest {
@@ -68,6 +69,7 @@ export default class RequestPipeline {
       snapshot,
       renderer,
       traceEnabled: instrumentation.enabled,
+      maxIteratorIterations: this.options.maxIteratorIterations,
       responseBindings,
     })
 

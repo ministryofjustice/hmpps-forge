@@ -24,6 +24,7 @@ function createReference(path: string[]): ReferenceASTNode {
 
 function createCtx(overrides: Partial<CompiledValidationContext> = {}): CompiledValidationContext {
   return {
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},

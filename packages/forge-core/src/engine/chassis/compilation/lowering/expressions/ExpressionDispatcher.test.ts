@@ -1,4 +1,4 @@
-import { FunctionType, PredicateType } from '../../../../../authoring/types/enums'
+import { ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../../authoring/types/enums'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
@@ -54,6 +54,23 @@ describe('ExpressionDispatcher', () => {
       // Assert
       expect(source).toContain('_forgeHelpers.evaluateTracked')
       expect(source).toContain('_forgeHelpers.evaluateFunction')
+    })
+
+    it('should consume the request budget for inline iterator expressions', () => {
+      // Arrange
+      const expression = ASTTestFactory.expression(ExpressionType.ITERATE)
+        .withProperty('input', ['Ada', 'Bea'])
+        .withProperty('iterator', {
+          type: IteratorType.MAP,
+          yieldTemplate: 'member',
+        })
+        .build()
+
+      // Act
+      const source = new SourceRenderer().renderCode(compiler.compileExpressionCode(expression)).source
+
+      // Assert
+      expect(source).toContain('_forgeHelpers.consumeIteratorIteration(ctx)')
     })
   })
 })

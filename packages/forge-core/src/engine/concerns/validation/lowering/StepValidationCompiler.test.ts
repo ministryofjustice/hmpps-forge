@@ -129,6 +129,7 @@ function createValidation(
 
 function createCtx(overrides: Partial<CompiledValidationContext> = {}): CompiledValidationContext {
   return {
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},

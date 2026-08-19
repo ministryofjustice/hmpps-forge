@@ -7,8 +7,9 @@ import ComponentRegistry from '../../../registries/ComponentRegistry'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import IteratorLoopEmitter from './IteratorLoopEmitter'
+import IteratorBudget from '../../../runtime/pipeline/IteratorBudget'
 
-type CollectFunction = (ctx: { data: Record<string, unknown> }) => unknown[]
+type CollectFunction = (ctx: { data: Record<string, unknown>; iteratorBudget?: IteratorBudget }) => unknown[]
 
 describe('IteratorLoopEmitter', () => {
   let expr: ExpressionDispatcher
@@ -42,9 +43,13 @@ describe('IteratorLoopEmitter', () => {
     it('should iterate array inputs and skip empty items', async () => {
       // Arrange
       const collect = compileCollector(ASTTestFactory.reference(['data', 'members']))
+      const ctx = {
+        data: { members: [{ name: 'Ada' }, null, { name: 'Bea' }] },
+        iteratorBudget: new IteratorBudget(),
+      }
 
       // Act
-      const results = await collect({ data: { members: [{ name: 'Ada' }, null, { name: 'Bea' }] } })
+      const results = await collect(ctx)
 
       // Assert
       expect(results).toEqual([{ name: 'Ada' }, { name: 'Bea' }])
@@ -53,9 +58,13 @@ describe('IteratorLoopEmitter', () => {
     it('should normalize object inputs into keyed entries', async () => {
       // Arrange
       const collect = compileCollector(ASTTestFactory.reference(['data', 'members']))
+      const ctx = {
+        data: { members: { ada: { age: 36 }, bea: 'young' } },
+        iteratorBudget: new IteratorBudget(),
+      }
 
       // Act
-      const results = await collect({ data: { members: { ada: { age: 36 }, bea: 'young' } } })
+      const results = await collect(ctx)
 
       // Assert
       expect(results).toEqual([
@@ -67,12 +76,31 @@ describe('IteratorLoopEmitter', () => {
     it('should produce no iterations when the input is not a collection', async () => {
       // Arrange
       const collect = compileCollector(ASTTestFactory.reference(['data', 'members']))
+      const ctx = {
+        data: { members: 42 },
+        iteratorBudget: new IteratorBudget(),
+      }
 
       // Act
-      const results = await collect({ data: { members: 42 } })
+      const results = await collect(ctx)
 
       // Assert
       expect(results).toEqual([])
+    })
+
+    it('should stop iterating when the request budget is exhausted', () => {
+      // Arrange
+      const collect = compileCollector(ASTTestFactory.reference(['data', 'members']))
+      const ctx = {
+        data: { members: ['Ada', 'Bea', 'Cora'] },
+        iteratorBudget: new IteratorBudget(2),
+      }
+
+      // Act
+      const act = () => collect(ctx)
+
+      // Assert
+      expect(act).toThrow('Forge iterator evaluation exceeded the per-request limit of 2 iterations')
     })
   })
 })

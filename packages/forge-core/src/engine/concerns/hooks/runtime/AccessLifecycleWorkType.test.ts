@@ -11,6 +11,7 @@ import type { CompiledHookLifecycleContext } from '../contracts/hookLifecycle.ty
 
 function createContext(): WorkContext<CompiledHookLifecycleContext> {
   return new WorkContext({
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},

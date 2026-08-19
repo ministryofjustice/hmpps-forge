@@ -669,6 +669,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
         generator.if(code`${rawItemExpr} == null`, () => {
           generator.continue()
         })
+        generator.statement(code`_forgeHelpers.consumeIteratorIteration(ctx)`)
 
         compileItem(indexVar, rawItemExpr)
       })

@@ -29,6 +29,7 @@ import type { ForgeInstrumentation, ForgeInstrumentationOptions } from './chassi
 import RegistrationErrorFormatter from './errors/RegistrationErrorFormatter'
 import ForgeRegistrationError from './errors/ForgeRegistrationError'
 import ForgeInternalError from './errors/ForgeInternalError'
+import { DEFAULT_MAX_ITERATOR_ITERATIONS } from './chassis/runtime/pipeline/IteratorBudget'
 
 export interface ForgeExecutionRequest {
   readonly snapshot: RequestSnapshot
@@ -87,6 +88,9 @@ export interface ForgeOptions {
 
   instrumentation?: ForgeInstrumentationOptions
 
+  /** Maximum cumulative iterator iterations allowed during one request. Default: 10,000 */
+  maxIteratorIterations?: number
+
   /**
    * @deprecated Build framework routers directly, for example `createExpressRouter(forge, options)`.
    */
@@ -136,6 +140,7 @@ export default class Forge {
       logger: console,
       basePath: '',
       instrumentation: {},
+      maxIteratorIterations: DEFAULT_MAX_ITERATOR_ITERATIONS,
     }
 
     this.options = {
@@ -159,7 +164,10 @@ export default class Forge {
 
     this.mountRegistry = new MountRegistry(this.options.basePath)
     this.instrumentation = new ForgeTraceSinkDispatcher(this.options.instrumentation)
-    this.requestPipeline = new RequestPipeline({ instrumentation: this.instrumentation })
+    this.requestPipeline = new RequestPipeline({
+      instrumentation: this.instrumentation,
+      maxIteratorIterations: this.options.maxIteratorIterations,
+    })
   }
 
   /** Add a component to the global registry, making it available to all journeys. */

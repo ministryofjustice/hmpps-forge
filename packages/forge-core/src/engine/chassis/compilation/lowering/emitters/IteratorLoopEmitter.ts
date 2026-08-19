@@ -38,6 +38,7 @@ export default class IteratorLoopEmitter {
 
         generator.assign(indexName, code`${indexName} + 1`)
         generator.if(code`${rawItem} == null`, () => generator.continue())
+        generator.statement(code`_forgeHelpers.consumeIteratorIteration(ctx)`)
 
         const item = generator.const('iteratorItem', this.expr.compileIteratorItemScopeExpression(rawItem))
         const inputLength = code`${inputName}.length`

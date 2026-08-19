@@ -1,6 +1,7 @@
 import type { ZodType } from 'zod'
 import { RENDER_BLOCK_BRAND } from '../../../concerns/render/contracts/renderBlock.brand'
 import { FunctionType } from '../../../../authoring/types/enums'
+import type { IteratorBudgetContract } from '../../contracts/runtime/iteratorBudget.type'
 
 interface AnswerHistory {
   current: unknown
@@ -40,6 +41,10 @@ interface FunctionEvaluationContext {
   conditions: {
     get(name: string): FunctionRegistryLookupEntry
   }
+}
+
+interface IteratorBudgetContext {
+  iteratorBudget: IteratorBudgetContract
 }
 
 interface ComponentRegistryLookupEntry {
@@ -132,6 +137,7 @@ const VALIDATION_CONDITION_FUNCTION_TYPE = 'FunctionType.Condition'
 
 export interface GeneratedFunctionRuntimeLibrary {
   renderBlockBrand: symbol
+  consumeIteratorIteration(ctx: IteratorBudgetContext): void
   ensureAnswerHistory(ctx: AnswerHistoryContext, code: string): AnswerHistory
   pushAnswerMutation(answerHistory: AnswerHistory, value: unknown, source: string): void
   normalizePostValue(rawValue: unknown, multiple: boolean): unknown
@@ -200,6 +206,10 @@ export interface GeneratedFunctionRuntimeLibrary {
 
 export const generatedFunctionRuntimeLibrary: GeneratedFunctionRuntimeLibrary = {
   renderBlockBrand: RENDER_BLOCK_BRAND,
+
+  consumeIteratorIteration(ctx) {
+    ctx.iteratorBudget.consume()
+  },
 
   // Answer-preparation functions are detached from this object by generated
   // code (`mode === "POST" ? _forgeHelpers.preparePostedFieldAnswerGroup : ...`),

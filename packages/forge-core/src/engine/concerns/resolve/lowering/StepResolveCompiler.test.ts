@@ -85,6 +85,7 @@ function createIterateNode(
 
 function createCtx(overrides: Partial<CompiledResolveContext> = {}): CompiledResolveContext {
   return {
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},

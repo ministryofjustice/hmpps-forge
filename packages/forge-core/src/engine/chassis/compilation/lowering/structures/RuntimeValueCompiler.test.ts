@@ -111,7 +111,10 @@ describe('RuntimeValueCompiler', () => {
       const run = compileValueFunction(iterate)
 
       // Act
-      const result = await run({ data: { members: ['a', 'b'] } })
+      const result = await run({
+        data: { members: ['a', 'b'] },
+        iteratorBudget: { consume: vi.fn() },
+      })
 
       // Assert
       expect(result).toEqual(['seen', 'seen'])
