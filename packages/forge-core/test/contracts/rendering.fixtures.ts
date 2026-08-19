@@ -25,8 +25,9 @@ interface ContractMultiFieldProbe extends BlockDefinition {
   fields: FieldBlockDefinition[]
 }
 
-interface ContractScopedField extends FieldBlockDefinition {
-  variant: 'contractScopedField'
+interface ContractScopedHtml extends BlockDefinition {
+  variant: 'html'
+  content: string
 }
 
 const contractFieldComponent = buildComponent<ContractField>('contractField', block => {
@@ -54,14 +55,9 @@ const contractMultiFieldProbeComponent = buildComponent<ContractMultiFieldProbe>
   return `<section>${inner}</section>`
 })
 
-/** Global-scope entry for the shadowing test. Same variant as the package-scoped entry below. */
-export const contractScopedGlobalComponent = buildComponent<ContractScopedField>('contractScopedField', block => {
-  return `<global id="${block.code}">`
-})
-
-/** Package-scope entry that shadows the global one for the journey it is registered against. */
-export const contractScopedPackageComponent = buildComponent<ContractScopedField>('contractScopedField', block => {
-  return `<scoped id="${block.code}">`
+/** Package-scope entry claiming the built-in `html` variant - the scoped entry must win for its own journey. */
+export const contractScopedHtmlComponent = buildComponent<ContractScopedHtml>('html', block => {
+  return `<scoped>${block.content}</scoped>`
 })
 
 function ContractField(props: Omit<ContractField, 'type' | 'blockType' | 'variant'>): ContractField {
@@ -82,10 +78,6 @@ function ContractMultiFieldProbe(
   props: Omit<ContractMultiFieldProbe, 'type' | 'blockType' | 'variant'>,
 ): ContractMultiFieldProbe {
   return blockBuilder<ContractMultiFieldProbe>({ ...props, variant: 'contractMultiFieldProbe' })
-}
-
-function ContractScopedField(props: Omit<ContractScopedField, 'type' | 'blockType' | 'variant'>): ContractScopedField {
-  return fieldBuilder<ContractScopedField>({ ...props, variant: 'contractScopedField' })
 }
 
 export const renderingContractComponents = [
@@ -207,7 +199,7 @@ export const scopedOverrideRenderJourney = journey({
       path: '/form',
       title: 'Form',
       reachability: { entryWhen: true },
-      blocks: [ContractScopedField({ code: 'scopedField' })],
+      blocks: [blockBuilder<ContractScopedHtml>({ variant: 'html', content: 'shadowed' })],
     }),
   ],
 })

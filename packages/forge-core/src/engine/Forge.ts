@@ -1,13 +1,7 @@
 import PackageInstance from './PackageInstance'
-import type {
-  ForgeDependencies,
-  ForgePackageFunctions,
-  ForgePackageRegistration,
-} from './chassis/contracts/ast/engine.type'
+import type { ForgeDependencies, ForgePackageRegistration } from './chassis/contracts/ast/engine.type'
 import FunctionRegistry from './chassis/registries/FunctionRegistry'
 import ComponentRegistry from './chassis/registries/ComponentRegistry'
-import type { ComponentRegistryEntry } from '../components/types/components.type'
-import type { BlockDefinition } from '../components/types/structures.type'
 import { ConditionsRegistry } from '../built-ins/functions/conditions'
 import { GeneratorsRegistry } from '../built-ins/functions/generators'
 import { TransformersRegistry } from '../built-ins/functions/transformers'
@@ -97,8 +91,10 @@ export interface ForgeOptions {
 export default class Forge {
   private readonly options: Required<Omit<ForgeOptions, 'frameworkAdapter'>> & Pick<ForgeOptions, 'frameworkAdapter'>
 
+  /** Built-in functions only - the parent every package-scoped function registry falls back to. */
   private readonly functionRegistry = new FunctionRegistry()
 
+  /** Built-in components only - the parent every package-scoped component registry falls back to. */
   private readonly componentRegistry = new ComponentRegistry()
 
   private readonly dependencies: ForgeDependencies
@@ -111,7 +107,7 @@ export default class Forge {
 
   /**
    * Create a new Forge instance
-   * Use this for package registration, component/function registries, and routing.
+   * Use this for package registration and routing.
    *
    * @param constructorOptions - Configuration options for Forge
    *
@@ -119,10 +115,8 @@ export default class Forge {
    * ```typescript
    * import { Forge } from '.'
    * import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-   * import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
    *
    * const forge = new Forge({ logger })
-   *   .registerGlobalComponents(govukComponents(nunjucksEnv))
    *   .registerPackage(myPackage)
    *
    * app.use(createExpressRouter(forge, { nunjucksEnv }))
@@ -165,35 +159,6 @@ export default class Forge {
       instrumentation: this.instrumentation,
       maxIteratorIterations: this.options.maxIteratorIterations,
     })
-  }
-
-  /** Add a component to the global registry, making it available to all journeys. */
-  registerGlobalComponent(component: ComponentRegistryEntry<BlockDefinition, unknown>): this {
-    this.componentRegistry.registerMany([component])
-
-    return this
-  }
-
-  /** Add components to the global registry, making them available to all journeys. */
-  registerGlobalComponents(components: ComponentRegistryEntry<BlockDefinition, unknown>[]): this {
-    this.componentRegistry.registerMany(components)
-
-    return this
-  }
-
-  /** Add functions to the global registry, making them available to all journeys. */
-  registerGlobalFunctions<TDeps>(functions: ForgePackageFunctions<TDeps>, deps?: TDeps): this {
-    const resolvedDeps = (deps ?? {}) as TDeps
-
-    if (Array.isArray(functions)) {
-      functions.forEach(registry => {
-        this.functionRegistry.register(registry.build(resolvedDeps))
-      })
-    } else {
-      this.functionRegistry.register(functions.build(resolvedDeps))
-    }
-
-    return this
   }
 
   /**

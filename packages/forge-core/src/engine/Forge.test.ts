@@ -1,8 +1,6 @@
 import type { MockInstance } from 'vitest'
 import { buildComponent } from '../components/utils/buildComponent'
 import { createForgePackage } from '../authoring/builders'
-import ConditionRegistry from '../authoring/registries/ConditionRegistry'
-import TransformerRegistry from '../authoring/registries/TransformerRegistry'
 import { ConditionsRegistry } from '../built-ins/functions/conditions'
 import { GeneratorsRegistry } from '../built-ins/functions/generators'
 import { TransformersRegistry } from '../built-ins/functions/transformers'
@@ -136,64 +134,6 @@ describe('Forge', () => {
 
       // Logger is stored and will be used in other methods
       expect(engine).toBeDefined()
-    })
-  })
-
-  describe('registerGlobalComponent', () => {
-    it('should register a single component', () => {
-      const engine = new Forge(createDefaultOptions())
-      const mockComponent = buildComponent('test-component', () => '<div>Test</div>')
-
-      engine.registerGlobalComponent(mockComponent)
-
-      const mockComponentRegistry = (ComponentRegistry as MockedClass<typeof ComponentRegistry>).mock.instances[0]
-      expect(mockComponentRegistry.registerMany).toHaveBeenCalledWith([mockComponent])
-    })
-  })
-
-  describe('registerGlobalComponents', () => {
-    it('should register multiple components', () => {
-      const engine = new Forge(createDefaultOptions())
-      const mockComponents = [
-        buildComponent('component-1', () => '<div>1</div>'),
-        buildComponent('component-2', () => '<div>2</div>'),
-      ]
-
-      engine.registerGlobalComponents(mockComponents)
-
-      const mockComponentRegistry = (ComponentRegistry as MockedClass<typeof ComponentRegistry>).mock.instances[0]
-      expect(mockComponentRegistry.registerMany).toHaveBeenCalledWith(mockComponents)
-    })
-  })
-
-  describe('registerGlobalFunctions', () => {
-    it('should register functions from a registry', () => {
-      const engine = new Forge(createDefaultOptions())
-      const functions = new TransformerRegistry()
-      functions.register('Function1', () => () => true)
-      functions.register('Function2', () => (value: unknown) => value)
-
-      engine.registerGlobalFunctions(functions)
-
-      const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
-      expect(mockFunctionRegistry.register).toHaveBeenCalledWith({
-        Function1: expect.objectContaining({ name: 'Function1', evaluate: expect.any(Function), isAsync: false }),
-        Function2: expect.objectContaining({ name: 'Function2', evaluate: expect.any(Function), isAsync: false }),
-      })
-    })
-
-    it('should inject dependencies into global function registries', () => {
-      const engine = new Forge(createDefaultOptions())
-      const functions = new TransformerRegistry<{ suffix: string }>()
-      functions.register('WithSuffix', deps => (value: unknown) => `${String(value)}${deps.suffix}`)
-
-      engine.registerGlobalFunctions(functions, { suffix: '!' })
-
-      const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
-      const registerMock = vi.mocked(mockFunctionRegistry.register)
-      const registeredFunctions = registerMock.mock.calls.at(-1)?.[0]
-
-      expect(registeredFunctions?.WithSuffix.evaluate('hello')).toBe('hello!')
     })
   })
 
@@ -412,21 +352,10 @@ describe('Forge', () => {
   })
 
   describe('fluent interface / method chaining', () => {
-    it('should support method chaining for all registration methods', () => {
+    it('should support method chaining for package registration', () => {
       const engine = new Forge(createDefaultOptions())
-      const component1 = buildComponent('comp-1', () => '<div>1</div>')
-      const component2 = buildComponent('comp-2', () => '<div>2</div>')
-      const functions1 = new TransformerRegistry()
-      functions1.register('Func1', () => () => true)
-
-      const functions2 = new TransformerRegistry()
-      functions2.register('Func2', () => (value: unknown) => value)
 
       const result = engine
-        .registerGlobalComponent(component1)
-        .registerGlobalComponents([component2])
-        .registerGlobalFunctions(functions1)
-        .registerGlobalFunctions(functions2)
         .registerPackage(createMinimalPackage('config-1'))
         .registerPackage(createMinimalPackage('config-2'))
 
@@ -436,7 +365,6 @@ describe('Forge', () => {
 
     it('should support chaining even when package registration fails', () => {
       const engine = new Forge(createDefaultOptions({ logger: mockLogger, strictRegistration: false }))
-      const component = buildComponent('comp', () => '<div />')
 
       ;(PackageInstance as unknown as Mock)
         .mockImplementationOnce(function mockPackageInstanceCtor() {
@@ -447,42 +375,12 @@ describe('Forge', () => {
         })
 
       const result = engine
-        .registerGlobalComponent(component)
         .registerPackage(createMinimalPackage('bad-config'))
         .registerPackage(createMinimalPackage('good-config'))
 
       expect(result).toBe(engine)
       expect(mockLogger.error).toHaveBeenCalledWith(expect.any(Error))
       expect(mockMountRegistry.register).toHaveBeenCalledTimes(1)
-    })
-
-    it('should handle complete registration workflow with chaining', () => {
-      const engine = new Forge(createDefaultOptions())
-      const customComponent = buildComponent('custom-input', () => '<input />')
-      const customFunctions = new ConditionRegistry()
-      customFunctions.register('CustomValidator', () => (value: unknown) => value !== null)
-
-      const result = engine
-        .registerGlobalComponent(customComponent)
-        .registerGlobalFunctions(customFunctions)
-        .registerPackage(createMinimalPackage('test-config'))
-
-      // Verify chaining returns the engine
-      expect(result).toBe(engine)
-
-      // Verify all registrations worked
-      const mockComponentRegistry = (ComponentRegistry as MockedClass<typeof ComponentRegistry>).mock.instances[0]
-      const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
-
-      expect(mockComponentRegistry.registerMany).toHaveBeenCalledWith([customComponent])
-      expect(mockFunctionRegistry.register).toHaveBeenCalledWith({
-        CustomValidator: expect.objectContaining({
-          name: 'CustomValidator',
-          evaluate: expect.any(Function),
-          isAsync: false,
-        }),
-      })
-      expect(mockMountRegistry.register).toHaveBeenCalledWith(mockPackageInstance)
     })
   })
 

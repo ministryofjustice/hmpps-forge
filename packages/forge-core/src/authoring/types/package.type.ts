@@ -33,9 +33,15 @@ export interface ForgePackage<TDeps = Record<string, never>> {
    * Entries embedded in the journey itself register automatically and need
    * no listing here.
    *
+   * A registry that needs no dependencies can be listed on any package,
+   * whatever that package's own dependencies are.
+   *
    * @see {@link BaseFunctionRegistry}
    */
-  functions?: BaseFunctionRegistry<TDeps> | (BaseFunctionRegistry<TDeps> | FunctionEntry<TDeps>)[]
+  functions?:
+    | BaseFunctionRegistry<TDeps>
+    | BaseFunctionRegistry
+    | (BaseFunctionRegistry<TDeps> | BaseFunctionRegistry | FunctionEntry<TDeps>)[]
 
   /**
    * Custom components for this package, layered over the global component

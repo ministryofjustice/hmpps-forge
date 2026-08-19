@@ -130,7 +130,8 @@ function assembleFunctions<TDeps>(
       }
     })
   } else if (functions) {
-    listedRegistries.push(functions)
+    // A depless registry is safe under any TDeps - build() just ignores the deps.
+    listedRegistries.push(functions as FunctionRegistryBuilder<TDeps>)
   }
 
   entryRegistry.collectEmbedded(finalisedJourney)

@@ -1,9 +1,4 @@
-import {
-  GovUKTextInput,
-  GovUKButton,
-  GovUKRadioInput,
-  govukComponents,
-} from '@ministryofjustice/hmpps-forge/govuk-components'
+import { GovUKTextInput, GovUKButton, GovUKRadioInput } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 import {
   journey,
@@ -1244,7 +1239,6 @@ const AppendSuffix = transformer('ScopingAppendSuffix', {
 
 export function createArgumentScopingClient(journeyDef: ReturnType<typeof journey>) {
   return new ForgeTestHarness()
-    .registerGlobalComponents(govukComponents)
     .registerPackage(createForgePackage({ journey: journeyDef }))
     .createClient()
 }
