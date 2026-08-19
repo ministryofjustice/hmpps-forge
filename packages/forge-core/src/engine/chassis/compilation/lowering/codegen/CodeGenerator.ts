@@ -104,6 +104,10 @@ export default class CodeGenerator {
   }
 
   declareVar(name: IdentifierName, value?: SafeCode): void {
+    if (this.inheritedNames.has(name.value)) {
+      throw new ForgeInternalError(`CodeGenerator: name "${name.value}" is already declared in an enclosing function`)
+    }
+
     this.reserveFunctionName(name)
     this.currentBody.push(new DeclarationCodeNode(DeclarationKind.VAR, name, value))
   }
@@ -374,7 +378,7 @@ export default class CodeGenerator {
   }
 
   private reserveLexicalName(name: IdentifierName): void {
-    if (this.isNameVisible(name.value)) {
+    if (this.isNameVisible(name.value) || this.inheritedNames.has(name.value)) {
       throw new ForgeInternalError(`CodeGenerator: name "${name.value}" is already visible in this scope`)
     }
 
