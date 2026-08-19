@@ -1,11 +1,8 @@
-import { ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type { NodeId } from '../../../chassis/contracts/ast/engine.type'
-import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
-import { walkTemplateValue } from './templateWalker'
 
 function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeReferenceScopeError {
   const source = diagnostics?.source
@@ -22,7 +19,7 @@ function containsNode(container: unknown, nodeId: NodeId): boolean {
 }
 
 export const validateHookScope: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
-  const { nodeIndex } = context
+  const { nodeIndex, templateNodeIndex } = context
   const errors: Error[] = []
 
   nodeIndex.findByType(ASTNodeType.HOOK).forEach(node => {
@@ -42,26 +39,8 @@ export const validateHookScope: ASTValidationRule = (context: ASTValidationConte
     }
   })
 
-  const iterateNodes = nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE)
-
-  iterateNodes.forEach(iterateNode => {
-    const { iterator } = iterateNode.properties
-
-    const templates = [iterator.yieldTemplate, iterator.predicateTemplate].filter(
-      (t): t is NonNullable<typeof t> => t !== undefined,
-    )
-
-    templates.forEach(template => {
-      walkTemplateValue(template, {
-        onTemplateNode(templateNode, templateMetadata) {
-          if (templateNode.originalType !== ASTNodeType.HOOK) {
-            return
-          }
-
-          errors.push(buildError(templateMetadata))
-        },
-      })
-    })
+  templateNodeIndex.findByType(ASTNodeType.HOOK).forEach(({ node }) => {
+    errors.push(buildError(node.diagnostics))
   })
 
   return errors

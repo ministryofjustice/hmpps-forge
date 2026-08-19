@@ -8,11 +8,12 @@ export const COMPILATION_SEMANTIC_ANALYSIS_WORK_HANDLER: WorkHandler<'compilatio
 
   begin(ctx: WorkContextContract<CompilationState, undefined>) {
     const state = ctx.state
-    const validator = new ASTSemanticValidator(
-      state.ast.nodeRegistry,
-      state.dependencies.functionRegistry,
-      state.dependencies.componentRegistry,
-    )
+    const validator = new ASTSemanticValidator({
+      nodeIndex: state.ast.nodeIndex,
+      templateNodeIndex: state.ast.templateNodeIndex,
+      functionRegistry: state.dependencies.functionRegistry,
+      componentRegistry: state.dependencies.componentRegistry,
+    })
 
     validator.validate()
 

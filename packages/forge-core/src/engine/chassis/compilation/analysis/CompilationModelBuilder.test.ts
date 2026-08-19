@@ -6,8 +6,8 @@ import ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../ast/testing-helpers/ASTTestFactory'
 import CompilationModelBuilder from './CompilationModelBuilder'
 
-function createBuilder(nodeRegistry: ASTNodeIndex): CompilationModelBuilder {
-  return new CompilationModelBuilder(nodeRegistry, {
+function createBuilder(nodeIndex: ASTNodeIndex): CompilationModelBuilder {
+  return new CompilationModelBuilder(nodeIndex, {
     componentRegistry: new ComponentRegistry(),
     functionRegistry: new FunctionRegistry(),
   })
@@ -25,18 +25,18 @@ describe('CompilationModelBuilder', () => {
   describe('build()', () => {
     it('should build a journey model owning its steps in state-table order', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().withProperty('path', '/journey').build()
       const firstStepNode = ASTTestFactory.step().withPath('/first').withCode('first').build()
       const secondStepNode = ASTTestFactory.step().withPath('/second').withCode('second').build()
 
       setParent(firstStepNode, journeyNode)
       setParent(secondStepNode, journeyNode)
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(firstStepNode.id, firstStepNode)
-      nodeRegistry.register(secondStepNode.id, secondStepNode)
+      nodeIndex.register(journeyNode.id, journeyNode)
+      nodeIndex.register(firstStepNode.id, firstStepNode)
+      nodeIndex.register(secondStepNode.id, secondStepNode)
 
-      const builder = createBuilder(nodeRegistry)
+      const builder = createBuilder(nodeIndex)
 
       // Act
       const model = builder.build(
@@ -69,15 +69,15 @@ describe('CompilationModelBuilder', () => {
 
     it('should agree between reachability entries and the state table rows', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().withProperty('path', '/journey').build()
       const stepNode = ASTTestFactory.step().withPath('/first').withCode('first').build()
 
       setParent(stepNode, journeyNode)
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
+      nodeIndex.register(journeyNode.id, journeyNode)
+      nodeIndex.register(stepNode.id, stepNode)
 
-      const builder = createBuilder(nodeRegistry)
+      const builder = createBuilder(nodeIndex)
 
       // Act
       const model = builder.build(new Map([[stepNode.id, stepNode]]))
@@ -93,7 +93,7 @@ describe('CompilationModelBuilder', () => {
 
     it('should model a container journey with no direct steps as an empty step map with route metadata', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().withProperty('path', '/journey').build()
       const stepNode = ASTTestFactory.step().withPath('/first').withCode('first').build()
       const containerJourneyNode = ASTTestFactory.journey()
@@ -103,11 +103,11 @@ describe('CompilationModelBuilder', () => {
 
       setParent(stepNode, journeyNode)
       setParent(containerJourneyNode, journeyNode)
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
-      nodeRegistry.register(containerJourneyNode.id, containerJourneyNode)
+      nodeIndex.register(journeyNode.id, journeyNode)
+      nodeIndex.register(stepNode.id, stepNode)
+      nodeIndex.register(containerJourneyNode.id, containerJourneyNode)
 
-      const builder = createBuilder(nodeRegistry)
+      const builder = createBuilder(nodeIndex)
 
       // Act
       const model = builder.build(new Map([[stepNode.id, stepNode]]))

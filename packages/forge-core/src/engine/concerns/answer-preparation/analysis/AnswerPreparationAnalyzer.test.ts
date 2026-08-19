@@ -20,18 +20,18 @@ describe('AnswerPreparationAnalyzer', () => {
   describe('analyzeStep()', () => {
     it('should model every field occurrence the step owns when the step declares field blocks', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step().withPath('/step').build()
       const fieldBlock = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('fieldA').build()
 
       setParent(stepNode, journeyNode)
       setParent(fieldBlock, stepNode)
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
-      nodeRegistry.register(fieldBlock.id, fieldBlock)
+      nodeIndex.register(journeyNode.id, journeyNode)
+      nodeIndex.register(stepNode.id, stepNode)
+      nodeIndex.register(fieldBlock.id, fieldBlock)
 
-      const context = createStepAnalysisContext({ stepNode, nodeRegistry })
+      const context = createStepAnalysisContext({ stepNode, nodeIndex })
       const analyzer = new AnswerPreparationAnalyzer()
 
       // Act
@@ -48,7 +48,7 @@ describe('AnswerPreparationAnalyzer', () => {
   describe('analyzeJourney()', () => {
     it('should aggregate the owned steps field models in step order when the journey owns steps', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().build()
       const firstStep = ASTTestFactory.step().withPath('/first').build()
       const secondStep = ASTTestFactory.step().withPath('/second').build()
@@ -59,13 +59,13 @@ describe('AnswerPreparationAnalyzer', () => {
       setParent(secondStep, journeyNode)
       setParent(firstField, firstStep)
       setParent(secondField, secondStep)
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(firstStep.id, firstStep)
-      nodeRegistry.register(secondStep.id, secondStep)
-      nodeRegistry.register(firstField.id, firstField)
-      nodeRegistry.register(secondField.id, secondField)
+      nodeIndex.register(journeyNode.id, journeyNode)
+      nodeIndex.register(firstStep.id, firstStep)
+      nodeIndex.register(secondStep.id, secondStep)
+      nodeIndex.register(firstField.id, firstField)
+      nodeIndex.register(secondField.id, secondField)
 
-      const context = createJourneyAnalysisContext({ journeyNode, nodeRegistry })
+      const context = createJourneyAnalysisContext({ journeyNode, nodeIndex })
       const analyzer = new AnswerPreparationAnalyzer()
 
       // Act

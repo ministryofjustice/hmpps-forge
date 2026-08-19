@@ -32,13 +32,13 @@ export default class OwnershipIndex {
   private readonly journeyBuckets = new Map<NodeId, JourneyOwnership>()
 
   constructor(
-    nodeRegistry: ASTNodeIndex,
+    nodeIndex: ASTNodeIndex,
     private readonly ancestry: Ancestry = new Ancestry(),
   ) {
-    nodeRegistry.findByType<JourneyASTNode>(ASTNodeType.JOURNEY).forEach(journeyNode => {
+    nodeIndex.findByType<JourneyASTNode>(ASTNodeType.JOURNEY).forEach(journeyNode => {
       this.journeyBuckets.set(journeyNode.id, { journeyNode, stepNodes: [] })
     })
-    nodeRegistry.findByType<StepASTNode>(ASTNodeType.STEP).forEach(stepNode => {
+    nodeIndex.findByType<StepASTNode>(ASTNodeType.STEP).forEach(stepNode => {
       this.stepBuckets.set(stepNode.id, {
         stepNode,
         fieldBlocks: [],
@@ -47,10 +47,10 @@ export default class OwnershipIndex {
       })
       this.journeyBucketFor(stepNode)?.stepNodes.push(stepNode)
     })
-    nodeRegistry.findByType<FieldBlockASTNode>(BlockType.FIELD).forEach(fieldBlock => {
+    nodeIndex.findByType<FieldBlockASTNode>(BlockType.FIELD).forEach(fieldBlock => {
       this.nearestStepBucket(fieldBlock)?.fieldBlocks.push(fieldBlock)
     })
-    nodeRegistry.findByType<IterateASTNode>(ExpressionType.ITERATE).forEach(iterateNode => {
+    nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE).forEach(iterateNode => {
       const stepBucket = this.nearestStepBucket(iterateNode)
 
       if (stepBucket === undefined) {

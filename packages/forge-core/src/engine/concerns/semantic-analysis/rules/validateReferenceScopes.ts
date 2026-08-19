@@ -4,9 +4,60 @@ import type { IterateASTNode, ReferenceASTNode } from '../../../chassis/contract
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
-import { walkTemplateValue } from './templateWalker'
-import type { TemplateNode } from '../../../chassis/contracts/ast/template.type'
+import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
+import type { TemplateNode, TemplateValue } from '../../../chassis/contracts/ast/template.type'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
+
+interface TemplateVisitor {
+  /** Return false to skip walking this node's children. */
+  onTemplateNode(node: TemplateNode, diagnostics: ASTNodeDiagnostics | undefined): boolean | void
+}
+
+// The depth-tracking walk below is the one template check TemplateNodeIndex cannot
+// serve: the flat index erases iterator nesting, and Item()/Loop levels depend on it.
+function walkTemplateValue(value: TemplateValue, visitor: TemplateVisitor): void {
+  if (value === null || value === undefined || typeof value !== 'object') {
+    return
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach(item => walkTemplateValue(item, visitor))
+
+    return
+  }
+
+  if (isTemplateNode(value)) {
+    const shouldWalkChildren = visitor.onTemplateNode(value, value.diagnostics)
+
+    if (shouldWalkChildren !== false) {
+      walkTemplateProperties(value, visitor)
+    }
+
+    return
+  }
+
+  Object.values(value as Record<string, TemplateValue>).forEach(child => {
+    walkTemplateValue(child, visitor)
+  })
+}
+
+function walkTemplateProperties(node: TemplateNode, visitor: TemplateVisitor): void {
+  if (!node.properties) {
+    return
+  }
+
+  Object.values(node.properties).forEach(propValue => {
+    walkTemplateValue(propValue, visitor)
+  })
+
+  Object.entries(node).forEach(([key, value]) => {
+    if (key === 'type' || key === 'originalType' || key === 'id' || key === 'diagnostics' || key === 'properties') {
+      return
+    }
+
+    walkTemplateValue(value as TemplateValue, visitor)
+  })
+}
 
 const LOOP_PROPERTIES: ReadonlySet<string> = new Set([
   'index',

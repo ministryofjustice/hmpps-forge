@@ -96,6 +96,14 @@ helpers), `functions/` (`FunctionRegistryTestHarness`, `createTestEffectContext`
 `createTestPackage`), and `test-client/` (`ForgeTestClient`, `ForgeTestHarness`, result
 types). Published exports are unchanged.
 
+#### `TemplateNodeIndex`
+
+Previously every semantic-analysis rule that needed to visit nodes inside iterator
+templates did its own template walking — each rule carried a `templateWalker` callback
+and recursed through the template tree independently. Now `TemplateNodeIndex` (built
+during AST registration) indexes template-nested nodes by type once, and the rules query
+it directly. The shared `templateWalker.ts` is deleted.
+
 #### Dead code
 
 - `shared/utils/asserts.ts` deleted — the hand-rolled type asserts (`assertNumber`,

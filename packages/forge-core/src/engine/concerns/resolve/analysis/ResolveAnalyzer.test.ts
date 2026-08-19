@@ -47,16 +47,16 @@ describe('ResolveAnalyzer', () => {
   describe('analyzeStep()', () => {
     it('should classify render-facing step properties and exclude skip props', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step().withPath('/step').withTitle('Step').build()
 
       setParent(stepNode, journeyNode)
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
+      nodeIndex.register(journeyNode.id, journeyNode)
+      nodeIndex.register(stepNode.id, stepNode)
 
       // Act
-      const model = new ResolveAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode, nodeRegistry }))
+      const model = new ResolveAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode, nodeIndex }))
 
       // Assert
       expect(model.step.map(property => property.key)).not.toContain('blocks')
@@ -70,19 +70,19 @@ describe('ResolveAnalyzer', () => {
 
     it('should precompose ancestor paths when every path segment is static', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const outerJourney = ASTTestFactory.journey().withProperty('path', '/outer').build()
       const innerJourney = ASTTestFactory.journey().withProperty('path', '/inner').build()
       const stepNode = ASTTestFactory.step().withPath('/step').build()
 
       setParent(innerJourney, outerJourney)
       setParent(stepNode, innerJourney)
-      nodeRegistry.register(outerJourney.id, outerJourney)
-      nodeRegistry.register(innerJourney.id, innerJourney)
-      nodeRegistry.register(stepNode.id, stepNode)
+      nodeIndex.register(outerJourney.id, outerJourney)
+      nodeIndex.register(innerJourney.id, innerJourney)
+      nodeIndex.register(stepNode.id, stepNode)
 
       // Act
-      const model = new ResolveAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode, nodeRegistry }))
+      const model = new ResolveAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode, nodeIndex }))
 
       // Assert
       expect(model.ancestors.map(ancestor => ancestor.composedPath)).toEqual(['/outer', '/outer/inner'])
@@ -90,7 +90,7 @@ describe('ResolveAnalyzer', () => {
 
     it('should partition iterators into inline and standalone when both are present', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().build()
       const inlineIterate = createIterateNode({ label: 'inline value' })
       const standaloneIterate = createIterateNode(blockTemplate())
@@ -102,15 +102,15 @@ describe('ResolveAnalyzer', () => {
       const stepNode = ASTTestFactory.step().withPath('/step').withProperty('blocks', [block]).build()
 
       setParent(stepNode, journeyNode)
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
+      nodeIndex.register(journeyNode.id, journeyNode)
+      nodeIndex.register(stepNode.id, stepNode)
       ;[inlineIterate, standaloneIterate, skipPropIterate].forEach(iterateNode => {
         setParent(iterateNode, stepNode)
-        nodeRegistry.register(iterateNode.id, iterateNode)
+        nodeIndex.register(iterateNode.id, iterateNode)
       })
 
       // Act
-      const model = new ResolveAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode, nodeRegistry }))
+      const model = new ResolveAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode, nodeIndex }))
 
       // Assert
       const standaloneIds = model.standaloneIterateBlocks.map(iterate => iterate.node.id)
@@ -123,7 +123,7 @@ describe('ResolveAnalyzer', () => {
 
     it('should prune skip props from nested block values', () => {
       // Arrange
-      const nodeRegistry = new ASTNodeIndex()
+      const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().build()
       const nestedBlock = {
         type: ASTNodeType.BLOCK,
@@ -134,11 +134,11 @@ describe('ResolveAnalyzer', () => {
       const stepNode = ASTTestFactory.step().withPath('/step').withProperty('summaryBlock', nestedBlock).build()
 
       setParent(stepNode, journeyNode)
-      nodeRegistry.register(journeyNode.id, journeyNode)
-      nodeRegistry.register(stepNode.id, stepNode)
+      nodeIndex.register(journeyNode.id, journeyNode)
+      nodeIndex.register(stepNode.id, stepNode)
 
       // Act
-      const model = new ResolveAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode, nodeRegistry }))
+      const model = new ResolveAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode, nodeIndex }))
 
       // Assert
       const summaryBlock = model.step.find(property => property.key === 'summaryBlock')?.value

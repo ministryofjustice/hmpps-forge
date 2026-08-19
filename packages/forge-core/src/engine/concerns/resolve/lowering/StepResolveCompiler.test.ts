@@ -119,7 +119,7 @@ function resolveModel(
   ancestorNodes: JourneyASTNode[] = [],
   iterateNodes: IterateASTNode[] = [],
 ): ResolveModel {
-  const nodeRegistry = new ASTNodeIndex()
+  const nodeIndex = new ASTNodeIndex()
   let parent: ASTNode | undefined
 
   ancestorNodes.forEach(ancestorNode => {
@@ -127,7 +127,7 @@ function resolveModel(
       setParent(ancestorNode, parent)
     }
 
-    nodeRegistry.register(ancestorNode.id, ancestorNode)
+    nodeIndex.register(ancestorNode.id, ancestorNode)
     parent = ancestorNode
   })
 
@@ -135,13 +135,13 @@ function resolveModel(
     setParent(stepNode, parent)
   }
 
-  nodeRegistry.register(stepNode.id, stepNode)
+  nodeIndex.register(stepNode.id, stepNode)
   iterateNodes.forEach(iterateNode => {
     setParent(iterateNode, stepNode)
-    nodeRegistry.register(iterateNode.id, iterateNode)
+    nodeIndex.register(iterateNode.id, iterateNode)
   })
 
-  return new ResolveAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode, nodeRegistry }))
+  return new ResolveAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode, nodeIndex }))
 }
 
 describe('StepResolveCompiler', () => {

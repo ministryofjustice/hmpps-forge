@@ -12,8 +12,8 @@ export const COMPILATION_ROUTES_WORK_HANDLER: WorkHandler<'compilation.routes', 
     const state = ctx.state
     const routeIndexBuilder = new RouteIndexBuilder()
 
-    const stepNodes = state.ast.nodeRegistry.findByType<StepASTNode>(ASTNodeType.STEP)
-    const journeyNodes = state.ast.nodeRegistry.findByType<JourneyASTNode>(ASTNodeType.JOURNEY)
+    const stepNodes = state.ast.nodeIndex.findByType<StepASTNode>(ASTNodeType.STEP)
+    const journeyNodes = state.ast.nodeIndex.findByType<JourneyASTNode>(ASTNodeType.JOURNEY)
 
     state.recordRouteIndexes({
       stepRouteIndex: routeIndexBuilder.buildStepRouteIndex(stepNodes),

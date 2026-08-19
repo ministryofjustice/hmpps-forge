@@ -1,11 +1,10 @@
-import { FunctionType, ExpressionType } from '../../../../authoring/types/enums'
+import { FunctionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
-import type { FunctionASTNode, IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
+import type { FunctionASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
-import { walkTemplateValue } from './templateWalker'
 
 function buildError(name: string, diagnostics: ASTNodeDiagnostics | undefined): ForgeReferenceScopeError {
   const source = diagnostics?.source
@@ -32,7 +31,7 @@ function hasHookAncestor(node: ASTNode): boolean {
 }
 
 export const validateEffectScope: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
-  const { nodeIndex } = context
+  const { nodeIndex, templateNodeIndex } = context
   const errors: Error[] = []
 
   const effectNodes = nodeIndex.findByType<FunctionASTNode>(FunctionType.EFFECT)
@@ -43,39 +42,14 @@ export const validateEffectScope: ASTValidationRule = (context: ASTValidationCon
     }
   })
 
-  const iterateNodes = nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE)
+  templateNodeIndex.findByType(FunctionType.EFFECT).forEach(({ node, owningNode }) => {
+    if (hasHookAncestor(owningNode)) {
+      return
+    }
 
-  iterateNodes.forEach(iterateNode => {
-    const iterateInsideHook = hasHookAncestor(iterateNode)
-    const { iterator } = iterateNode.properties
+    const name = (node.properties?.name as string) ?? ''
 
-    const templates = [iterator.yieldTemplate, iterator.predicateTemplate].filter(
-      (t): t is NonNullable<typeof t> => t !== undefined,
-    )
-
-    templates.forEach(template => {
-      walkTemplateValue(template, {
-        onTemplateNode(templateNode, templateMetadata) {
-          if (templateNode.originalType !== ASTNodeType.EXPRESSION) {
-            return
-          }
-
-          const expressionType = (templateNode as Record<string, unknown>).expressionType as string | undefined
-
-          if (expressionType !== FunctionType.EFFECT) {
-            return
-          }
-
-          if (iterateInsideHook) {
-            return
-          }
-
-          const name = (templateNode.properties?.name as string) ?? ''
-
-          errors.push(buildError(name, templateMetadata))
-        },
-      })
-    })
+    errors.push(buildError(name, node.diagnostics))
   })
 
   return errors

@@ -29,6 +29,7 @@ but super awkward to answer against the raw definition.
 - Turn recognised authoring objects into AST nodes.
 - Attach source diagnostics to those nodes while the original DSL path is still known.
 - Register the created AST nodes by ID, indexed type, and parent relationship.
+- Index template contents by type in `TemplateNodeIndex` for semantic analysis, without registering them as AST nodes.
 
 ## Data Model
 
@@ -113,7 +114,7 @@ flowchart TD
   astNode -->|attach source diagnostics| diagnosticNode["AST node with diagnostics"]
   diagnosticNode -->|start registration walk| registrationWalker["NodeRegistrationWalker"]
   registrationWalker -->|inspect value| templateCheck{"Template node?"}
-  templateCheck -->|yes| skipTemplate["Skip node and children"]
+  templateCheck -->|yes| indexTemplate["Index contents in TemplateNodeIndex"]
   templateCheck -->|no| wireParent["Wire parent link"]
   wireParent -->|assign non-enumerable parent| registerNode["ASTNodeIndex"]
   registerNode -->|store frozen node by ID and type| walkProperties["Node properties"]
@@ -132,7 +133,8 @@ flowchart TD
   They are consumed by the match and iterate creators directly and are never standalone AST nodes; the throwing row keeps a stray one failing compilation with an error that says where it belongs.
 - `withDiagnostics()` reads the `__source`/`__callsite` stamps off the authored object to attach source information to the node.
 - [NodeRegistrationWalker.ts](ast-state/NodeRegistrationWalker.ts) starts registration.
-  The walker skips template nodes, assigns a compile ID when an AST-shaped value has no ID, resolves `Self()` references, wires each node's `parent` link, and registers each ordinary AST node in `ASTNodeIndex`.
+  The walker assigns a compile ID when an AST-shaped value has no ID, resolves `Self()` references, wires each node's `parent` link, and registers each ordinary AST node in `ASTNodeIndex`.
+  When the walker meets a template node, it indexes the template contents in `TemplateNodeIndex` against the registered node that carries the template, and does not descend further as an ordinary registration.
 
 ## Boundaries
 
@@ -163,10 +165,13 @@ flowchart TD
 
 ## Constraints
 
-- Do not register template nodes.
+- Do not register template nodes in `ASTNodeIndex`.
   If these are registered, they are added to the AST tree and pulled into compilation plans,
-  even though they are not materialized. The registration walk returns immediately
-  for `isTemplateNode(value)`, and `isASTNode()` excludes `ASTNodeType.TEMPLATE`, to prevent that.
+  even though they are not materialized. The registration walk diverts template nodes into
+  `TemplateNodeIndex`, and `isASTNode()` excludes `ASTNodeType.TEMPLATE`, to prevent that.
+- Do not consume `TemplateNodeIndex` outside semantic analysis.
+  The index exists so semantic rules can query template contents by type.
+  Analysis and lowering must not plan against unmaterialised nodes.
 - Do not add `Self()` resolution to node factories.
   `Self()` resolution depends on the current field stack and the field whose `code` property owns the current traversal.
   That state exists in `NodeRegistrationWalker`, not in `NodeFactory`.
@@ -203,4 +208,5 @@ flowchart TD
 - [NodeFactory.ts](nodes/NodeFactory.ts) holds the `creatorsByType` registry of `type` discriminants and dispatches authoring definitions through it.
 - [NodeRegistrationWalker.ts](ast-state/NodeRegistrationWalker.ts) registers nodes and handles `Self()`.
 - [ASTNodeIndex.ts](ast-state/ASTNodeIndex.ts) registers frozen nodes and indexes them by type.
+- [TemplateNodeIndex.ts](ast-state/TemplateNodeIndex.ts) indexes template contents by type for semantic analysis.
 - [template.ts](nodes/template.ts) compiles AST-shaped values into template nodes.

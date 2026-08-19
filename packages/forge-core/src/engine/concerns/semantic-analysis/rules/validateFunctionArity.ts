@@ -1,11 +1,9 @@
 import { z, type ZodType } from 'zod'
-import { FunctionType, ExpressionType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
-import type { FunctionASTNode, IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
+import { FunctionType } from '../../../../authoring/types/enums'
+import type { FunctionASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ForgeFunctionArityError from '../../../errors/ForgeFunctionArityError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
-import { walkTemplateValue } from './templateWalker'
 
 const FUNCTION_TYPES = Object.values(FunctionType)
 
@@ -73,13 +71,11 @@ function buildError(
 }
 
 export const validateFunctionArity: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
-  const { nodeIndex, functionRegistry } = context
+  const { nodeIndex, templateNodeIndex, functionRegistry } = context
   const errors: Error[] = []
 
   FUNCTION_TYPES.forEach(functionType => {
-    const functionNodes = nodeIndex.findByType<FunctionASTNode>(functionType)
-
-    functionNodes.forEach(node => {
+    nodeIndex.findByType<FunctionASTNode>(functionType).forEach(node => {
       const entry = functionRegistry.get(node.properties.name)
 
       if (!entry?.argumentsSchema) {
@@ -93,45 +89,21 @@ export const validateFunctionArity: ASTValidationRule = (context: ASTValidationC
         errors.push(buildError(node.properties.name, functionType, node.diagnostics, violation.expected, received))
       }
     })
-  })
 
-  const iterateNodes = nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE)
+    templateNodeIndex.findByType(functionType).forEach(({ node }) => {
+      const name = (node.properties?.name as string) ?? ''
+      const entry = functionRegistry.get(name)
 
-  iterateNodes.forEach(iterateNode => {
-    const { iterator } = iterateNode.properties
+      if (!entry?.argumentsSchema) {
+        return
+      }
 
-    const templates = [iterator.yieldTemplate, iterator.predicateTemplate].filter(
-      (t): t is NonNullable<typeof t> => t !== undefined,
-    )
+      const received = (node.properties?.arguments as unknown[] | undefined)?.length ?? 0
+      const violation = arityViolation(entry.argumentsSchema, received)
 
-    templates.forEach(template => {
-      walkTemplateValue(template, {
-        onTemplateNode(templateNode, templateMetadata) {
-          if (templateNode.originalType !== ASTNodeType.EXPRESSION) {
-            return
-          }
-
-          const expressionType = (templateNode as Record<string, unknown>).expressionType as string | undefined
-
-          if (!expressionType || !FUNCTION_TYPES.includes(expressionType as FunctionType)) {
-            return
-          }
-
-          const name = (templateNode.properties?.name as string) ?? ''
-          const entry = functionRegistry.get(name)
-
-          if (!entry?.argumentsSchema) {
-            return
-          }
-
-          const received = (templateNode.properties?.arguments as unknown[] | undefined)?.length ?? 0
-          const violation = arityViolation(entry.argumentsSchema, received)
-
-          if (violation) {
-            errors.push(buildError(name, expressionType, templateMetadata, violation.expected, received))
-          }
-        },
-      })
+      if (violation) {
+        errors.push(buildError(name, functionType, node.diagnostics, violation.expected, received))
+      }
     })
   })
 

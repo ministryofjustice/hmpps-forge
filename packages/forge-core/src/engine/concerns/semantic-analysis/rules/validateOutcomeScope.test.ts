@@ -1,6 +1,11 @@
-import { HookType, BlockType } from '../../../../authoring/types/enums'
+import { HookType, BlockType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
 import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
+import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
+import type { TemplateValue } from '../../../chassis/contracts/ast/template.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
+import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'
+import { NodeIDGenerator } from '../../../chassis/compilation/ast/ast-state/NodeIDGenerator'
+import { compileTemplate } from '../../../chassis/compilation/ast/nodes/template'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
 import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
@@ -23,12 +28,29 @@ const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, 
   const nodeIndex = new ASTNodeIndex()
   nodes.forEach(node => nodeIndex.register(node.id, node))
 
+  const templateNodeIndex = new TemplateNodeIndex()
+
+  nodes.forEach(node => {
+    const iterator = node.properties?.iterator as { yieldTemplate?: TemplateValue } | undefined
+
+    if (iterator?.yieldTemplate !== undefined) {
+      templateNodeIndex.registerTree(iterator.yieldTemplate, node)
+    }
+  })
+
   return {
     nodeIndex,
+    templateNodeIndex,
     functionRegistry: new FunctionRegistry(),
     componentRegistry: new ComponentRegistry(),
   }
 }
+
+const iterateNodeWithYield = (yieldTemplate: TemplateValue): IterateASTNode =>
+  ASTTestFactory.expression<IterateASTNode>(ExpressionType.ITERATE)
+    .withProperty('input', ASTTestFactory.reference(['answers', 'items']))
+    .withProperty('iterator', { type: IteratorType.MAP, yieldTemplate })
+    .build()
 
 const errorMessages = (errors: readonly Error[]): string[] =>
   errors.map(error => (error as ForgeReferenceScopeError).message)
@@ -120,6 +142,33 @@ describe('validateOutcomeScope', () => {
 
       // Assert
       expect(errorMessages(errors)).toEqual(['Outcomes can only be used inside a hook (onAccess or onSubmission)'])
+    })
+
+    it('should return an error when an iterator template holds an outcome and the iterate is outside a hook', () => {
+      // Arrange
+      const template = compileTemplate(createOutcome(), new NodeIDGenerator())
+      const iterate = iterateNodeWithYield(template)
+      const context = createContext([iterate], [])
+
+      // Act
+      const errors = validateOutcomeScope(context)
+
+      // Assert
+      expect(errorMessages(errors)).toEqual(['Outcomes can only be used inside a hook (onAccess or onSubmission)'])
+    })
+
+    it('should return no errors when an iterator template holds an outcome and the iterate is inside a hook', () => {
+      // Arrange
+      const template = compileTemplate(createOutcome(), new NodeIDGenerator())
+      const iterate = iterateNodeWithYield(template)
+      const hook = ASTTestFactory.hook(HookType.ACCESS).withProperty('next', [iterate]).build()
+      const context = createContext([iterate, hook], [[iterate.id, hook.id]])
+
+      // Act
+      const errors = validateOutcomeScope(context)
+
+      // Assert
+      expect(errors).toHaveLength(0)
     })
   })
 })

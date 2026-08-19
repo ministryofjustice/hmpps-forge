@@ -1,6 +1,7 @@
 import { BlockType } from '../../../../authoring/types/enums'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
+import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
 import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
@@ -15,6 +16,7 @@ function setParent(child: ASTNode, parent: ASTNode): void {
 function createContext(nodeIndex: ASTNodeIndex): ASTValidationContext {
   return {
     nodeIndex,
+    templateNodeIndex: new TemplateNodeIndex(),
     functionRegistry: new FunctionRegistry(),
     componentRegistry: new ComponentRegistry(),
   }
