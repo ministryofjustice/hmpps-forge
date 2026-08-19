@@ -202,12 +202,13 @@ export default class HookLifecycleCompiler {
   }
 
   private compileEffectTask(effect: EffectCall, generator: CodeGenerator): IdentifierName {
-    const run = this.compileFunctionExpression(`run${this.toFunctionNamePart(effect.name)}`, generator, body => {
+    const effectNamePart = this.toFunctionNamePart(this.camelise(effect.name))
+    const run = this.compileFunctionExpression(`run${effectNamePart}`, generator, body => {
       body.return(this.compileEffectCall(effect))
     })
 
     return generator.const(
-      this.camelise(effect.name),
+      `hookEffect${effectNamePart}`,
       code`${CONTEXT}.workTasks.hookEffect(${effect.key}, ${objectCode([
         { key: 'name', value: literal(effect.name) },
         { key: 'run', value: run },
