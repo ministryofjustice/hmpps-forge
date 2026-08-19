@@ -19,7 +19,7 @@ describe('NodeRegistrationWalker', () => {
       const block = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('field').build()
       const step = ASTTestFactory.step().withProperty('blocks', [block]).build()
       const journey = ASTTestFactory.journey().withProperty('steps', [step]).build()
-      const walker = new NodeRegistrationWalker(new NodeIDGenerator(), new ASTNodeIndex())
+      const walker = new NodeRegistrationWalker(new ASTNodeIndex())
 
       // Act
       walker.register(journey)
@@ -34,7 +34,7 @@ describe('NodeRegistrationWalker', () => {
       // Arrange
       const step = ASTTestFactory.step().withProperty('blocks', []).build()
       const journey = ASTTestFactory.journey().withProperty('steps', [step]).build()
-      const walker = new NodeRegistrationWalker(new NodeIDGenerator(), new ASTNodeIndex())
+      const walker = new NodeRegistrationWalker(new ASTNodeIndex())
 
       // Act
       walker.register(journey)
@@ -56,7 +56,7 @@ describe('NodeRegistrationWalker', () => {
         .build()
       const nodeIndex = new ASTNodeIndex()
       const templateNodeIndex = new TemplateNodeIndex()
-      const walker = new NodeRegistrationWalker(new NodeIDGenerator(), nodeIndex, templateNodeIndex)
+      const walker = new NodeRegistrationWalker(nodeIndex, templateNodeIndex)
 
       // Act
       walker.register(iterate)

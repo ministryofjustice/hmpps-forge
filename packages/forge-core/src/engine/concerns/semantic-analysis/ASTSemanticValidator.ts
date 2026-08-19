@@ -1,5 +1,6 @@
 import type { ASTValidationContext, ASTValidationRule } from './rules/types'
 import { validateReferenceScopes } from './rules/validateReferenceScopes'
+import { validateSelfScope } from './rules/validateSelfScope'
 import { validateEffectScope } from './rules/validateEffectScope'
 import { validateRegisteredFunctions } from './rules/validateRegisteredFunctions'
 import { validateFunctionArity } from './rules/validateFunctionArity'
@@ -16,6 +17,7 @@ import { validateContainerTypes } from './rules/validateContainerTypes'
 
 const RULES: readonly ASTValidationRule[] = [
   validateReferenceScopes,
+  validateSelfScope,
   validateEffectScope,
   validateRegisteredFunctions,
   validateFunctionArity,

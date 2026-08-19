@@ -120,11 +120,15 @@ export default class StepAnswerPreparationCompiler {
       return
     }
 
-    generator.statement(
-      callCode(code`${fieldDefinitions}.push`, [
-        this.compileFieldDefinition(field, codeExpression ?? literal(undefined), generator),
-      ]),
-    )
+    // Bind @self for the field's formatters, parsers, dependentWhen, and
+    // defaultValue; the code expression itself compiles above, unbound.
+    this.expr.withSelfCodeExpression(codeExpression, () => {
+      generator.statement(
+        callCode(code`${fieldDefinitions}.push`, [
+          this.compileFieldDefinition(field, codeExpression ?? literal(undefined), generator),
+        ]),
+      )
+    })
   }
 
   private compileFieldDefinition(field: FieldModel, codeExpression: SafeCode, generator: CodeGenerator): CodeFragment {

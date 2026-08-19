@@ -158,7 +158,7 @@ The compilation trace comes out of the same execution: the executor records a sp
   Neither should contain AST factory rules, semantic rule logic, dependency queries, or source emission details.
 - `CompilationPipeline` owns the boundary between compiler mechanics and runtime artifacts.
   It should return route descriptors and compiled artifacts, not AST nodes or AST indexes.
-- `ast/` owns AST creation, registration, node IDs, `Self()` resolution, and AST lookup structures.
+- `ast/` owns AST creation, registration, node IDs, and AST lookup structures.
   It should not validate semantic placement rules or emit runtime functions.
 - `../concerns/semantic-analysis/` owns compiler semantic checks.
   It should not mutate AST nodes, register dependencies, or generate code.

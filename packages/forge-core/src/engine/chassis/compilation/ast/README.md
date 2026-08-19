@@ -104,7 +104,7 @@ which becomes this AST node:
 
 AST building is a two-pass process, driven in sequence by `CompilationPipeline.buildAstTree()`.
 The first pass (`NodeFactory.createNode()`) builds the node tree from authoring definitions.
-The second pass (`NodeRegistrationWalker.register()`) walks that tree to assign any missing compile IDs, resolve `Self()`, wire each node's `parent` link, and index each node.
+The second pass (`NodeRegistrationWalker.register()`) walks that tree to wire each node's `parent` link and index each node.
 
 ```mermaid
 flowchart TD
@@ -133,7 +133,7 @@ flowchart TD
   They are consumed by the match and iterate creators directly and are never standalone AST nodes; the throwing row keeps a stray one failing compilation with an error that says where it belongs.
 - `withDiagnostics()` reads the `__source`/`__callsite` stamps off the authored object to attach source information to the node.
 - [NodeRegistrationWalker.ts](ast-state/NodeRegistrationWalker.ts) starts registration.
-  The walker assigns a compile ID when an AST-shaped value has no ID, resolves `Self()` references, wires each node's `parent` link, and registers each ordinary AST node in `ASTNodeIndex`.
+  The walker wires each node's `parent` link and registers each ordinary AST node in `ASTNodeIndex`.
   When the walker meets a template node, it indexes the template contents in `TemplateNodeIndex` against the registered node that carries the template, and does not descend further as an ordinary registration.
 
 ## Boundaries
@@ -141,7 +141,9 @@ flowchart TD
 - Node factories create node structure.
   They should not register nodes.
 - `NodeRegistrationWalker` owns registration-time behavior.
-  That includes missing compile IDs, parent links, and `Self()` resolution.
+  That includes parent links and the diversion of template contents into `TemplateNodeIndex`.
+- `Self()` is not an AST concern.
+  Semantic analysis validates its placement (`validateSelfScope`), and lowering resolves it against the field code bound through `ExpressionDispatcher.withSelfCodeExpression()`.
 - Lookup and ancestry are separately handled.
   `ASTNodeIndex` owns lookup by type, and ancestry lives on each node's `parent` link.
 - `compileTemplate` owns conversion of AST-shaped values into template nodes.
@@ -156,9 +158,6 @@ flowchart TD
   `compileTemplate()` runs at compile time, freezing the iterator payload into a template.
   Templates are never rebuilt into AST nodes at request time. Lowering compiles the template's values inline into generated source (see `ScopedTemplateCompiler`), and the generated loop evaluates them once per collection item, using the template ID as the stable prefix for generated instance IDs.
   Deferring evaluation to runtime is the reason templates exist: the form is materialised only when the iterated collection is known.
-- `Self()` is resolved during registration.
-  Node factories can see the current DSL path, but they do not know the containing field stack.
-  The registration walk has that context, so it replaces `Self()` while registering the tree.
 - The index does not answer ancestry questions.
   `ASTNodeIndex` answers lookup questions by type.
   Ancestry questions are answered by walking the `parent` link carried on each registered node.
@@ -172,14 +171,6 @@ flowchart TD
 - Do not consume `TemplateNodeIndex` outside semantic analysis.
   The index exists so semantic rules can query template contents by type.
   Analysis and lowering must not plan against unmaterialised nodes.
-- Do not add `Self()` resolution to node factories.
-  `Self()` resolution depends on the current field stack and the field whose `code` property owns the current traversal.
-  That state exists in `NodeRegistrationWalker`, not in `NodeFactory`.
-- Keep `Self()` valid for its resolution context.
-  `NodeRegistrationWalker.resolveSelfReference()` throws in three cases:
-  - `self_outside_field` when `Self()` is used with no containing field on the stack.
-  - `self_inside_code` when the current code owner is the containing field (`Self()` inside that field's own `code`).
-  - `missing_field_code` when the containing field has no `code` for `Self()` to resolve to.
 - Do not mutate nodes after registration.
   `ASTNodeIndex.register()` stores `Object.freeze(node)`.
 - Do not use one ID counter for compile AST nodes and template nodes.
@@ -187,7 +178,6 @@ flowchart TD
 - Do not move semantic analysis before registration.
   It is tempting to reject a bad journey before building the tree, but semantic rules consume the registry and `parent` links that registration produces.
   `ASTSemanticValidator` queries `ASTNodeIndex` (e.g. every function node via `findByType`) and walks `parent` links (ancestry for scope rules), so those must already exist.
-  The `Self()` errors that the walker throws are failures of a required normalization step, not free-standing validation that could run earlier.
 
 ## Editing Notes
 
@@ -206,7 +196,7 @@ flowchart TD
 ## Entry Points
 
 - [NodeFactory.ts](nodes/NodeFactory.ts) holds the `creatorsByType` registry of `type` discriminants and dispatches authoring definitions through it.
-- [NodeRegistrationWalker.ts](ast-state/NodeRegistrationWalker.ts) registers nodes and handles `Self()`.
+- [NodeRegistrationWalker.ts](ast-state/NodeRegistrationWalker.ts) registers nodes and wires parent links.
 - [ASTNodeIndex.ts](ast-state/ASTNodeIndex.ts) registers frozen nodes and indexes them by type.
 - [TemplateNodeIndex.ts](ast-state/TemplateNodeIndex.ts) indexes template contents by type for semantic analysis.
 - [template.ts](nodes/template.ts) compiles AST-shaped values into template nodes.
