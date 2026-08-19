@@ -80,7 +80,7 @@ export default class PipelineNodeCompiler {
   compileFunction(properties: Record<string, unknown>, source?: unknown): CodeFragment {
     const funcName = properties.name as string
     const funcArgs = (properties.arguments ?? []) as unknown[]
-    const argExprs = funcArgs.map(arg => this.ctx.compileOperandCode(arg))
+    const argExprs = this.ctx.withoutCallHoisting(() => funcArgs.map(arg => this.ctx.compileOperandCode(arg)))
 
     return this.ctx.compileFunctionCallCode(funcName, argExprs, source ?? properties, {
       argumentPrefixes: funcArgs.map((_, index) => `functionArgument${index + 1}`),

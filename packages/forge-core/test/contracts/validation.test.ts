@@ -29,6 +29,7 @@ import {
   entryConditionalWhenFalseJourney,
   sameCodeVariantsJourney,
   argumentScopingJourney,
+  argumentEvaluationOrderJourney,
   createArgumentScopingClient,
 } from './validation.fixtures'
 
@@ -1085,6 +1086,23 @@ describe('validation contracts', () => {
           expect.objectContaining({ message: 'Enter yes here too' }),
         ])
       }
+    })
+
+    it('should evaluate nested function arguments from left to right', async () => {
+      // Arrange
+      const client = createArgumentScopingClient(argumentEvaluationOrderJourney)
+      const evaluationOrderState = { value: 'before', observedValues: [] }
+
+      // Act
+      const result = await client.post('/argument-evaluation-order/form', {
+        session: { data: { evaluationOrderState } },
+        body: { evaluationOrderTrigger: 'submitted' },
+      })
+
+      // Assert
+      expect(evaluationOrderState.value).toBe('after')
+      expect(evaluationOrderState.observedValues).toEqual(['after', 'after'])
+      expect(result.type).toBe('redirect')
     })
   })
 

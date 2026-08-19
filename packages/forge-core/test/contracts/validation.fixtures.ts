@@ -1206,6 +1206,24 @@ export const sameCodeVariantsJourney = journey({
 // before it ran ("Cannot access 'functionArgument1' before initialization").
 const { generators: scopingGenerators, implementations: scopingGeneratorImplementations } = defineGeneratorFunctions({
   ScopingFixed: () => (text: ResolvableValue) => text,
+  ScopingMutateState: () => (state: ResolvableValue) => {
+    if (typeof state === 'object' && state !== null) {
+      Reflect.set(state, 'value', 'after')
+    }
+
+    return 'mutated'
+  },
+  ScopingIdentity: () => (value: ResolvableValue) => value,
+  ScopingArgumentsInOrder: () => (first: ResolvableValue, second: ResolvableValue, state: ResolvableValue) => {
+    const observedValues =
+      typeof state === 'object' && state !== null ? Reflect.get(state, 'observedValues') : undefined
+
+    if (Array.isArray(observedValues)) {
+      observedValues.push(second)
+    }
+
+    return first === 'mutated'
+  },
 })
 const { conditions: scopingConditions, implementations: scopingConditionImplementations } = defineConditionFunctions({
   ScopingEquals: () => (value: ResolvableValue, expected: ResolvableValue) => value === expected,
@@ -1218,6 +1236,9 @@ const { transformers: scopingTransformers, implementations: scopingTransformerIm
   })
 
 const FixedText = scopingGenerators.ScopingFixed
+const MutateState = scopingGenerators.ScopingMutateState
+const IdentityValue = scopingGenerators.ScopingIdentity
+const ArgumentsInOrder = scopingGenerators.ScopingArgumentsInOrder
 const EqualsValue = scopingConditions.ScopingEquals
 const LengthBetween = scopingConditions.ScopingLengthBetween
 const AppendSuffix = scopingTransformers.ScopingAppendSuffix
@@ -1306,6 +1327,51 @@ export const argumentScopingJourney = journey({
             validation({
               condition: and(FixedText('yes').match(EqualsValue('yes')), Self().match(EqualsValue('yes'))),
               message: 'Enter yes here too',
+            }),
+          ],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: true,
+          onValid: {
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({
+      code: 'done',
+      path: '/done',
+      title: 'Done',
+      blocks: [],
+    }),
+  ],
+})
+
+export const argumentEvaluationOrderJourney = journey({
+  code: 'argument-evaluation-order',
+  path: '/argument-evaluation-order',
+  title: 'Argument evaluation order',
+  onAccess: [access({ effects: [Effects.LoadData()] })],
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKTextInput({
+          code: 'evaluationOrderTrigger',
+          label: 'Evaluation order',
+          validWhen: [
+            validation({
+              condition: ArgumentsInOrder(
+                MutateState(Data('evaluationOrderState')),
+                IdentityValue(Data('evaluationOrderState').path('value')),
+                Data('evaluationOrderState'),
+              ).match(EqualsValue(true)),
+              message: 'Function arguments evaluated out of order',
             }),
           ],
         }),

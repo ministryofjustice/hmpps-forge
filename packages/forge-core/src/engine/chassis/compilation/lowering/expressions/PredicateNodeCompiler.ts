@@ -46,11 +46,12 @@ export default class PredicateNodeCompiler {
       return literal(false)
     }
 
-    const subjectExpr = this.ctx.compileOperandCode(subject)
     const conditionProps = (condition.properties ?? condition) as Record<string, unknown>
     const funcName = conditionProps.name as string
     const funcArgs = (conditionProps.arguments ?? []) as unknown[]
-    const argExprs = funcArgs.map(arg => this.ctx.compileOperandCode(arg))
+    const [subjectExpr, ...argExprs] = this.ctx.withoutCallHoisting(() =>
+      [subject, ...funcArgs].map(arg => this.ctx.compileOperandCode(arg)),
+    )
     const callExpr = this.ctx.compileFunctionCallCode(funcName, [subjectExpr, ...argExprs], condition, {
       argumentPrefixes: ['subject', ...funcArgs.map((_, index) => `functionArgument${index + 1}`)],
     })
