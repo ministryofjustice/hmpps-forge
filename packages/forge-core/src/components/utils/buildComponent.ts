@@ -8,23 +8,17 @@ export interface BuildComponentOptions {
 }
 
 /**
- * Creates a component for the registry.
+ * Creates a registry entry with no block builder attached - just a variant
+ * and a render function.
  *
- * Use this for simple components that render HTML directly, such as
- * HTML passthrough or collection blocks.
- *
+ * @deprecated Declare the component with `component()` instead - one declaration
+ * is both the block builder and the registry entry, and using it in a journey
+ * registers it automatically.
  *
  * @param variant - The block variant identifier (e.g., 'html', 'collection-block')
  * @param renderer - Function that takes a block and returns HTML string
  * @param options - Optional input schema and fixed-shape `multiple` flag for the entry
  * @returns A registerable component
- *
- * @example
- * ```typescript
- * export const html = buildComponent<HtmlBlock>('html', block => {
- *   return block.content
- * })
- * ```
  */
 export const buildComponent = <T extends BlockDefinition, TRenderOutput = string>(
   variant: string,
