@@ -1,4 +1,4 @@
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
 import type { CompiledAccessHookResult } from '../contracts/hookLifecycle.type'
 import type {
   CompletedWork,
@@ -6,9 +6,9 @@ import type {
   WorkTask,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/runtime/work.type'
+} from '../../../contracts/work/work.type'
 import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
-import { createWorkTask, findTerminalStage, isTerminalStage } from '../../../runtime/evaluation/work/workTask'
+import { createWorkTask, findTerminalStage, isTerminalStage } from '../../../work/workTask'
 import { ACCESS_HOOK_NEXT_WORK_INSTRUMENTATION, ACCESS_HOOK_NEXT_WORK_HANDLER } from './AccessHookNextWorkHandler'
 import type { AccessHookWorkProps } from '../contracts/AccessLifecycleWork.type'
 
@@ -33,7 +33,7 @@ export const ACCESS_HOOK_WORK_INSTRUMENTATION: WorkInstrumentation<AccessHookWor
 export const ACCESS_HOOK_WORK_HANDLER: WorkHandler<'access.hook', AccessHookWorkProps> = {
   kind: ACCESS_HOOK_KIND,
 
-  begin(ctx: WorkContextContract<RequestExecutionContext, AccessHookWorkProps>) {
+  begin(ctx: WorkContextContract<RequestState, AccessHookWorkProps>) {
     const next = ctx.props.next
 
     const stages: WorkTask[] = [
@@ -50,7 +50,7 @@ export const ACCESS_HOOK_WORK_HANDLER: WorkHandler<'access.hook', AccessHookWork
   },
 
   complete(
-    _ctx: WorkContextContract<RequestExecutionContext, AccessHookWorkProps>,
+    _ctx: WorkContextContract<RequestState, AccessHookWorkProps>,
     children: readonly CompletedWork[],
   ): CompiledAccessHookResult {
     return findTerminalStage<CompiledAccessHookResult>(children) ?? { executed: true, outcome: 'continue' }
@@ -62,4 +62,8 @@ function traceComplete(output: CompiledAccessHookResult): TraceSpanFields {
     executed: output.executed,
     outcome: output.outcome,
   }
+}
+
+export function createAccessHookTask(key: string, props: AccessHookWorkProps) {
+  return createWorkTask(key, ACCESS_HOOK_WORK_HANDLER, props, ACCESS_HOOK_WORK_INSTRUMENTATION)
 }

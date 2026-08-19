@@ -34,7 +34,7 @@ No AST nodes, `CompilationModel`, lowering, or registration should appear in thi
 ## Responsibilities
 
 - Evaluate one `RequestEvaluationRequest`.
-- Build a `RequestExecutionContext` for the request.
+- Build a `RequestState` for the request.
 - Build and run the root `request.pipeline` task.
 - Run request phases in the correct order for journey, step `GET`, and step `POST`.
 - Execute nested phase work through `WorkExecutor`.
@@ -46,7 +46,7 @@ No AST nodes, `CompilationModel`, lowering, or registration should appear in thi
 
 ## Data Model
 
-`RequestEvaluator` is the root runtime entry point.
+`RequestPipeline` is the root runtime entry point.
 It accepts a `RequestEvaluationRequest` and returns a `ForgeOutcome`.
 
 `RequestEvaluationRequest` contains:
@@ -67,7 +67,7 @@ It has three branches:
 - `domain`, with `data` and `answers`.
 - `evaluation`, with reachability validities, reachability, and answer-cleardown state.
 
-`RequestExecutionContext` wraps `RuntimeContext`.
+`RequestState`, in [pipeline/RequestState.ts](pipeline/RequestState.ts), wraps `RuntimeContext`.
 It adds request-phase signals such as `reachabilityEvaluation`, `currentPageValidation`, `renderContext`, `renderedBlocks`, and `pipelineResult`.
 It also carries `functionRegistry`, `responseBindings`, `currentStepId`, `hasRenderer`, `buildStepValidation()`, and `recordStepValidation()`.
 
@@ -82,7 +82,7 @@ It is one of:
 - `error`, with status and message.
 
 `ForgeOutcome` is the public runtime output.
-`RequestEvaluator.buildOutcome()` turns redirects into navigation URLs, errors into error outcomes, and render results into render outcomes.
+`RequestPipeline.buildOutcome()` turns redirects into navigation URLs, errors into error outcomes, and render results into render outcomes.
 
 Route-tree state is built before request execution.
 `RouteTreeBuilder`, in the [route](../concerns/route/README.md) concern, builds `RouteTreeIndex`, `StoredRouteTree`, `JourneyRouteTemplateCatalog`, `JourneyRouteContext`, and `StepRouteContext` from compiled route indexes.
@@ -92,16 +92,16 @@ Route-tree state is built before request execution.
 
 Runtime starts with a mounted node.
 The framework layer has already matched a route and chosen the node.
-`RequestEvaluator.evaluate()` builds a request pipeline, runs it as work, projects traces, then converts the result.
+`RequestPipeline.evaluate()` builds a request pipeline, runs it as work, projects traces, then converts the result.
 
 ```mermaid
 flowchart TD
   compiled["CompiledPackage"] -->|"registered package"| mount["MountRegistry.register()"]
   mount -->|"build route tree + mounted nodes"| mounted["MountedNode"]
-  request["RequestSnapshot"] --> runtime["RequestEvaluator.evaluate()"]
+  request["RequestSnapshot"] --> runtime["RequestPipeline.evaluate()"]
   mounted --> runtime
   runtime -->|"preparePipeline()"| bootstrap["RequestPipelineBootstrap"]
-  bootstrap -->|"buildExecutionContext()"| requestContext["RequestExecutionContext"]
+  bootstrap -->|"buildExecutionContext()"| requestContext["RequestState"]
   bootstrap -->|"buildPipelineElement()"| pipelineTask["request.pipeline WorkTask"]
   requestContext --> executor["WorkExecutor.executeWithUnit()"]
   pipelineTask --> executor
@@ -151,21 +151,23 @@ Runtime executes that work against one request.
 | [resolve](../concerns/resolve/README.md) | `compiledResolve` | `request.resolve` builds `RenderContext` |
 | [render](../concerns/render/README.md) | `componentRegistry` and `renderer` | `request.render` renders blocks and assembles output |
 
-- [RequestEvaluator.ts](RequestEvaluator.ts) owns runtime entry, pipeline execution, trace projection, and outcome conversion.
-- [evaluation/request/README.md](evaluation/request/README.md) covers request phase order and cross-phase request state.
-- [evaluation/work/README.md](evaluation/work/README.md) covers `WorkTask`, `WorkExecutor`, child groups, and work traces.
-- [evaluation/context](evaluation/context) builds the compiled-function contexts each phase passes to its compiled function.
+- [RequestPipeline.ts](pipeline/RequestPipeline.ts) owns runtime entry, pipeline execution, trace projection, and outcome conversion.
+- [pipeline/README.md](pipeline/README.md) covers request phase order and cross-phase request state.
+- [../work/README.md](../work/README.md) covers `WorkTask`, `WorkExecutor`, child groups, and work traces.
+  The work substrate is stage-neutral and shared with compilation; runtime is its asynchronous caller.
+- [context](context) builds the compiled-function contexts each phase passes to its compiled function.
 - [../concerns](../concerns) holds the phase handlers themselves, one folder per concern.
 - [../concerns/route/runtime/RouteTreeBuilder.ts](../concerns/route/runtime/RouteTreeBuilder.ts) builds route-tree data used by mounting and route-aware render context.
 
 ## Boundaries
 
-- `RequestEvaluator` owns request execution from mounted node to `ForgeOutcome`.
+- `RequestPipeline` owns request execution from mounted node to `ForgeOutcome`.
   It should not choose routes, compile packages, or implement phase rules.
 - `RequestPipelineBootstrap` owns request pipeline construction.
   It should not execute the pipeline.
-- `WorkExecutor` owns work execution mechanics.
+- `WorkExecutor`, in [../work](../work), owns work execution mechanics for both stages.
   It should not know about request phase semantics, hooks, validation, or rendering.
+  Runtime owns the request pipeline order and the phase handlers, not the executor itself.
 - Request work handlers own request-level orchestration.
   They should call compiled functions and phase tasks, not recreate compiler decisions.
   They live in their concern's `runtime/` folder; only `RequestContextPreparationWorkHandler` is chassis, because copying the snapshot belongs to no concern.
@@ -220,30 +222,30 @@ Runtime executes that work against one request.
 
 ## Editing Notes
 
-- To change runtime entry behavior, start in [RequestEvaluator.ts](RequestEvaluator.ts).
+- To change runtime entry behavior, start in [RequestPipeline.ts](pipeline/RequestPipeline.ts).
   Keep route selection outside this class.
-- To change request phase order, start in [evaluation/request/RequestPipelineBootstrap.ts](evaluation/request/RequestPipelineBootstrap.ts).
+- To change request phase order, start in [pipeline/RequestPipelineBootstrap.ts](pipeline/RequestPipelineBootstrap.ts).
   Check journey, step `GET`, and step `POST` paths together.
-- To add a new request phase, update request phase props, `WorkTaskFactory`, the new request handler, and `RequestPipelineBootstrap`.
-  Then document the phase in [evaluation/request/README.md](evaluation/request/README.md).
-- To change work execution behavior, start in [evaluation/work/WorkExecutor.ts](evaluation/work/WorkExecutor.ts).
-  Update order, failure, and trace tests together.
+- To add a new request phase, add its request phase props, add the request handler with its co-located `create<X>Task` builder, and wire it in `RequestPipelineBootstrap`.
+  Then document the phase in [pipeline/README.md](pipeline/README.md).
+- To change work execution behavior, start in [../work/WorkExecutor.ts](../work/WorkExecutor.ts).
+  Update order, failure, and trace tests together, and remember compilation runs on the same executor.
 - To change a phase's internal behavior, start in that concern's `runtime/` folder under [../concerns](../concerns).
   Keep request ordering rules in request evaluation.
 - To change render block attachment, start in [../concerns/resolve/runtime/RequestResolveWorkHandler.ts](../concerns/resolve/runtime/RequestResolveWorkHandler.ts) and the resolve concern docs.
   Keep matching by block ID.
 - To change route tree shape, start in [../concerns/route/runtime/RouteTreeBuilder.ts](../concerns/route/runtime/RouteTreeBuilder.ts) and route tree contracts.
   Then check mounted node creation in `MountRegistry`.
-- To change trace output, start in [evaluation/request/RequestPipelineTraceProjector.ts](evaluation/request/RequestPipelineTraceProjector.ts) and [evaluation/work/tracing](evaluation/work/tracing).
+- To change trace output, start in [pipeline/RequestPipelineTraceProjector.ts](pipeline/RequestPipelineTraceProjector.ts) and [pipeline/contextSnapshot.ts](pipeline/contextSnapshot.ts).
 
 ## Entry Points
 
-- [RequestEvaluator.ts](RequestEvaluator.ts) answers how one mounted request becomes a `ForgeOutcome`.
-- [evaluation/request/README.md](evaluation/request/README.md) explains request pipeline order and `RequestExecutionContext`.
-- [evaluation/work/README.md](evaluation/work/README.md) explains the runtime work executor and trace tree.
+- [RequestPipeline.ts](pipeline/RequestPipeline.ts) answers how one mounted request becomes a `ForgeOutcome`.
+- [pipeline/README.md](pipeline/README.md) explains request pipeline order and `RequestState`.
+- [../work/README.md](../work/README.md) explains the work executor and trace tree.
 - [../concerns](../concerns) explains what each phase actually does, one README per concern.
 - [../concerns/route/runtime/RouteTreeBuilder.ts](../concerns/route/runtime/RouteTreeBuilder.ts) answers how compiled route indexes become runtime route-tree data.
 - [../registries/MountRegistry.ts](../registries/MountRegistry.ts) answers how compiled package artifacts become `MountedNode` values.
-- [../contracts/runtime/RequestExecutionContext.type.ts](../contracts/runtime/RequestExecutionContext.type.ts) defines `RequestExecutionContext`, `PhaseWorkOutput`, and `RequestPipelineResult`.
+- [pipeline/RequestState.ts](pipeline/RequestState.ts) defines `RequestState`; [../contracts/runtime/requestPipelineOutput.type.ts](../contracts/runtime/requestPipelineOutput.type.ts) defines `PhaseWorkOutput` and `RequestPipelineResult`.
 - [../contracts/runtime/evaluationState.type.ts](../contracts/runtime/evaluationState.type.ts) defines `RuntimeContext`.
-- [../contracts/runtime/work.type.ts](../contracts/runtime/work.type.ts) defines `WorkTask`, `WorkHandler`, `WorkGroup`, and `CompletedWork`.
+- [../contracts/work/work.type.ts](../contracts/work/work.type.ts) defines `WorkTask`, `WorkHandler`, `WorkGroup`, and `CompletedWork`.

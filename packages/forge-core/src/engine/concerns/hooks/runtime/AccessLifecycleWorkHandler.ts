@@ -1,16 +1,16 @@
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
 import type { CompiledAccessHookResult } from '../contracts/hookLifecycle.type'
-import type { CompletedWork, WorkContextContract, WorkHandler } from '../../../contracts/runtime/work.type'
-import { childOutputs } from '../../../runtime/evaluation/work/workTask'
+import type { CompletedWork, WorkContextContract, WorkHandler } from '../../../contracts/work/work.type'
+import { childOutputs, createWorkTask } from '../../../work/workTask'
 import { ACCESS_HOOK_KIND } from './AccessHookWorkHandler'
-import type { AccessLifecycleWorkProps } from '../contracts/AccessLifecycleWork.type'
+import type { AccessHookWorkTask, AccessLifecycleWorkProps } from '../contracts/AccessLifecycleWork.type'
 
 export const ACCESS_LIFECYCLE_KIND = 'access.lifecycle'
 
 export const ACCESS_LIFECYCLE_WORK_HANDLER: WorkHandler<'access.lifecycle', AccessLifecycleWorkProps> = {
   kind: ACCESS_LIFECYCLE_KIND,
 
-  begin(ctx: WorkContextContract<RequestExecutionContext, AccessLifecycleWorkProps>) {
+  begin(ctx: WorkContextContract<RequestState, AccessLifecycleWorkProps>) {
     return {
       groups: [
         {
@@ -23,7 +23,7 @@ export const ACCESS_LIFECYCLE_WORK_HANDLER: WorkHandler<'access.lifecycle', Acce
   },
 
   complete(
-    _ctx: WorkContextContract<RequestExecutionContext, AccessLifecycleWorkProps>,
+    _ctx: WorkContextContract<RequestState, AccessLifecycleWorkProps>,
     children: readonly CompletedWork[],
   ): CompiledAccessHookResult {
     const halting = childOutputs(children, ACCESS_HOOK_KIND).find(result => result.outcome !== 'continue')
@@ -42,4 +42,8 @@ function isAccessHookResult(output: unknown): output is CompiledAccessHookResult
     typeof output === 'object' &&
     'outcome' in output &&
     typeof output.outcome === 'string'
+}
+
+export function createAccessLifecycleTask(hooks: readonly AccessHookWorkTask[]) {
+  return createWorkTask('access-lifecycle', ACCESS_LIFECYCLE_WORK_HANDLER, { hooks })
 }

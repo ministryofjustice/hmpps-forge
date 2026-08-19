@@ -18,8 +18,8 @@ import type { CompilationDependencies } from '../../../compilation/lowering/comp
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import type { CompiledResolveContext } from '../../../contracts/compiled/compiledContexts.type'
 import type { CompiledResolveBlockWorkTask } from '../../../contracts/compiled/compiledFunctions.type'
-import { isWorkTask } from '../../../runtime/evaluation/work/workTask'
-import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
+import { isWorkTask } from '../../../work/workTask'
+import { workTaskBuilders } from '../../../runtime/context/compiledEvaluationContext'
 import ASTNodeIndex from '../../../compilation/ast/ast-state/ASTNodeIndex'
 import { createStepAnalysisContext } from '../../../compilation/analysis/testing-helpers/analysisContexts'
 import type { ASTNode } from '../../../contracts/ast/engine.type'
@@ -95,7 +95,7 @@ function createCtx(overrides: Partial<CompiledResolveContext> = {}): CompiledRes
     fieldFailureAnchors: {},
     components: new ComponentRegistry(),
     request: { method: 'GET' },
-    workTasks: WorkTaskFactory,
+    workTasks: workTaskBuilders,
     conditions: {
       get: vi.fn((name: string) => {
         if (name === FORMAT_STRING_GENERATOR_NAME) {

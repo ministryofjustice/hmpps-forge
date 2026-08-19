@@ -2,18 +2,17 @@ import type { RenderBlock, ForgeRenderer } from '../../../../framework/types/ren
 import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
 import type { ComponentRegistryEntry } from '../../../../components/types/components.type'
 import type { BlockDefinition } from '../../../../components/types/structures.type'
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/runtime/work.type'
+} from '../../../contracts/work/work.type'
 import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
 import ForgeUnregisteredComponentError from '../../../errors/ForgeUnregisteredComponentError'
-import { childOutputs } from '../../../runtime/evaluation/work/workTask'
-import { RENDER_BLOCK_KIND } from './RenderBlockWorkHandler'
-import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
+import { childOutputs, createWorkTask } from '../../../work/workTask'
+import { RENDER_BLOCK_KIND, createRenderBlockTask } from './RenderBlockWorkHandler'
 
 export interface RenderBlocksWorkProps {
   readonly blocks: readonly RenderBlock[]
@@ -24,9 +23,7 @@ export interface RenderBlocksWorkProps {
 const RENDER_BLOCKS_KIND = 'render.render-blocks'
 
 export const RENDER_BLOCKS_WORK_INSTRUMENTATION: WorkInstrumentation<RenderBlocksWorkProps, unknown> = {
-  resolveTraceMetadataAtStart(
-    ctx: WorkContextContract<RequestExecutionContext, RenderBlocksWorkProps>,
-  ): TraceSpanFields {
+  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestState, RenderBlocksWorkProps>): TraceSpanFields {
     return {
       blocks: ctx.props.blocks.length,
     }
@@ -40,11 +37,11 @@ export const RENDER_BLOCKS_WORK_INSTRUMENTATION: WorkInstrumentation<RenderBlock
 export const RENDER_BLOCKS_WORK_HANDLER: WorkHandler<'render.render-blocks', RenderBlocksWorkProps> = {
   kind: RENDER_BLOCKS_KIND,
 
-  begin(ctx: WorkContextContract<RequestExecutionContext, RenderBlocksWorkProps>) {
+  begin(ctx: WorkContextContract<RequestState, RenderBlocksWorkProps>) {
     const { blocks, renderer, componentRegistry } = ctx.props
 
     const children = blocks.map(block =>
-      WorkTaskFactory.renderBlock(
+      createRenderBlockTask(
         block.id,
         block,
         resolveComponentEntry(componentRegistry, block.variant),
@@ -63,13 +60,10 @@ export const RENDER_BLOCKS_WORK_HANDLER: WorkHandler<'render.render-blocks', Ren
     }
   },
 
-  complete(
-    ctx: WorkContextContract<RequestExecutionContext, RenderBlocksWorkProps>,
-    children: readonly CompletedWork[],
-  ) {
+  complete(ctx: WorkContextContract<RequestState, RenderBlocksWorkProps>, children: readonly CompletedWork[]) {
     const renderedBlocks = childOutputs(children, RENDER_BLOCK_KIND)
 
-    ctx.request.renderedBlocks = renderedBlocks
+    ctx.state.recordRenderedBlocks(renderedBlocks)
 
     return renderedBlocks
   },
@@ -86,4 +80,17 @@ function resolveComponentEntry(
   }
 
   return entry
+}
+
+export function createRenderBlocksTask(
+  blocks: readonly RenderBlock[],
+  renderer: ForgeRenderer<unknown>,
+  componentRegistry: ComponentRegistry,
+) {
+  return createWorkTask(
+    'render-blocks',
+    RENDER_BLOCKS_WORK_HANDLER,
+    { blocks, renderer, componentRegistry },
+    RENDER_BLOCKS_WORK_INSTRUMENTATION,
+  )
 }

@@ -1,9 +1,7 @@
 import type { NodeId } from '../../contracts/ast/engine.type'
 import type {
-  CompiledJourney,
   CompiledJourneyFunctions,
   CompiledPackageFunctions,
-  CompiledStep,
   CompiledStepFunctions,
 } from '../../contracts/plans/compilationArtefacts.type'
 import type {
@@ -11,7 +9,7 @@ import type {
   CompiledValidationFunction,
 } from '../../contracts/compiled/compiledFunctions.type'
 import type { CompilationDependencies } from './compilationDependencies.type'
-import type { CompilationModel, JourneyModel, StepModel } from '../../contracts/models/compilationModel.type'
+import type { JourneyModel, StepModel } from '../../contracts/models/compilationModel.type'
 import type { RouteMetadataModel } from '../../concerns/route/contracts/routeMetadataModel.type'
 import StepValidationCompiler from '../../concerns/validation/lowering/StepValidationCompiler'
 import EntryValidationCompiler from '../../concerns/validation/lowering/EntryValidationCompiler'
@@ -22,73 +20,11 @@ import StepResolveCompiler from '../../concerns/resolve/lowering/StepResolveComp
 import StepAnswerPreparationCompiler from '../../concerns/answer-preparation/lowering/StepAnswerPreparationCompiler'
 import HookLifecycleCompiler from '../../concerns/hooks/lowering/HookLifecycleCompiler'
 import RouteMetadataCompiler from '../../concerns/route/lowering/RouteMetadataCompiler'
-import CompilationTracer from '../tracing/CompilationTracer'
 
 export default class CodegenOrchestrator {
-  private readonly tracer: CompilationTracer
+  constructor(private readonly dependencies: CompilationDependencies) {}
 
-  constructor(private readonly dependencies: CompilationDependencies) {
-    this.tracer = dependencies.tracer ?? CompilationTracer.disabled
-  }
-
-  compileAll(model: CompilationModel): { steps: Map<NodeId, CompiledStep>; journeys: Map<NodeId, CompiledJourney> } {
-    const packageFunctions = this.tracer.span('package-functions', 'codegen.package-functions', () =>
-      this.compilePackageFunctions(model.routeMetadata),
-    )
-    const journeys = new Map<NodeId, CompiledJourney>()
-    const steps = new Map<NodeId, CompiledStep>()
-
-    model.journeys.forEach((journey, journeyId) => {
-      // A container journey owns no steps and has never produced a compiled
-      // journey; emitting one would change the compiled package surface.
-      if (journey.steps.size === 0) {
-        return
-      }
-
-      this.tracer.span(
-        `journey:${journeyId}`,
-        'codegen.journey',
-        () => {
-          const journeyFunctions = this.compileJourneyFunctions(journey)
-
-          journeys.set(journeyId, {
-            mountInfo: journey.mountInfo,
-            ...journeyFunctions,
-            ...packageFunctions,
-          })
-
-          journey.steps.forEach((step, stepId) => {
-            this.tracer.span(
-              `step:${stepId}`,
-              'codegen.step',
-              () => {
-                const stepFunctions = this.compileStepFunctions(
-                  step,
-                  journeyFunctions.compiledStepValidations.get(stepId),
-                )
-
-                steps.set(stepId, {
-                  mountInfo: step.mountInfo,
-                  compiledReachabilityFacts: journeyFunctions.compiledReachabilityFacts,
-                  compiledReachabilityState: journeyFunctions.compiledReachabilityState,
-                  compiledFieldInventory: journeyFunctions.compiledFieldInventory,
-                  compiledStepValidations: journeyFunctions.compiledStepValidations,
-                  ...stepFunctions,
-                  ...packageFunctions,
-                })
-              },
-              { nodeId: stepId },
-            )
-          })
-        },
-        { nodeId: journeyId },
-      )
-    })
-
-    return { steps, journeys }
-  }
-
-  private compilePackageFunctions(routeMetadata: ReadonlyMap<NodeId, RouteMetadataModel>): CompiledPackageFunctions {
+  compilePackageFunctions(routeMetadata: ReadonlyMap<NodeId, RouteMetadataModel>): CompiledPackageFunctions {
     const routeMetadataCompiler = new RouteMetadataCompiler(this.dependencies)
 
     return {
@@ -96,7 +32,7 @@ export default class CodegenOrchestrator {
     }
   }
 
-  private compileStepFunctions(
+  compileStepFunctions(
     step: StepModel,
     journeyValidation: CompiledValidationFunction | undefined,
   ): CompiledStepFunctions {
@@ -117,7 +53,7 @@ export default class CodegenOrchestrator {
     }
   }
 
-  private compileJourneyFunctions(journey: JourneyModel): CompiledJourneyFunctions {
+  compileJourneyFunctions(journey: JourneyModel): CompiledJourneyFunctions {
     const { stateTable } = journey.reachability
     const reachabilityCompiler = new ReachabilityCompiler(this.dependencies)
     const fieldInventoryCompiler = new StepFieldInventoryCompiler(this.dependencies)
@@ -131,9 +67,7 @@ export default class CodegenOrchestrator {
       compiledStaticData: this.compileStaticData(journey.staticData),
       compiledAccessLifecycle: hookCompiler.compileAccessLifecycle(journey.hooks.access),
       compiledAnswerPreparation: answerPrepCompiler.compile(journey.answerPreparation),
-      compiledStepValidations: this.tracer.span('validation-index', 'codegen.validation-index', () =>
-        this.compileJourneyValidationIndex(journey),
-      ),
+      compiledStepValidations: this.compileJourneyValidationIndex(journey),
     }
   }
 

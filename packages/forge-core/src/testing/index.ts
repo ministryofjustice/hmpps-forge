@@ -20,5 +20,5 @@ export type {
   CompilationTraceError,
   CompilationTraceEvent,
   CompilationTracePhase,
-} from '../engine/compilation/tracing/compilationTrace.type'
+} from '../engine/contracts/compilation/trace.type'
 export type { SerializedTraceSpan } from '../engine/tracing/traceSpan.type'

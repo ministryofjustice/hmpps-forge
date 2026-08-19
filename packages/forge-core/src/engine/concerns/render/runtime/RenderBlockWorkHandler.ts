@@ -4,17 +4,17 @@ import { StructureType } from '../../../../authoring/types/enums'
 import { RENDER_BLOCK_BRAND } from '../contracts/renderBlock.brand'
 import type { RenderBlock, ForgeRenderer } from '../../../../framework/types/rendering.type'
 import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
   WorkTask,
-} from '../../../contracts/runtime/work.type'
+} from '../../../contracts/work/work.type'
 import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
 import ForgeUnregisteredComponentError from '../../../errors/ForgeUnregisteredComponentError'
-import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
+import { createWorkTask } from '../../../work/workTask'
 
 export interface RenderBlockWorkProps {
   readonly block: RenderBlock
@@ -28,9 +28,7 @@ type RenderBlockWorkTask = WorkTask<'render.render-blocks.block', RenderBlockWor
 export const RENDER_BLOCK_KIND = 'render.render-blocks.block'
 
 export const RENDER_BLOCK_WORK_INSTRUMENTATION: WorkInstrumentation<RenderBlockWorkProps, unknown> = {
-  resolveTraceMetadataAtStart(
-    ctx: WorkContextContract<RequestExecutionContext, RenderBlockWorkProps>,
-  ): TraceSpanFields {
+  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestState, RenderBlockWorkProps>): TraceSpanFields {
     return {
       id: ctx.props.block.id,
       variant: ctx.props.block.variant,
@@ -46,7 +44,7 @@ export const RENDER_BLOCK_WORK_INSTRUMENTATION: WorkInstrumentation<RenderBlockW
 export const RENDER_BLOCK_WORK_HANDLER: WorkHandler<'render.render-blocks.block', RenderBlockWorkProps> = {
   kind: RENDER_BLOCK_KIND,
 
-  begin(ctx: WorkContextContract<RequestExecutionContext, RenderBlockWorkProps>) {
+  begin(ctx: WorkContextContract<RequestState, RenderBlockWorkProps>) {
     const { block, renderer, componentRegistry } = ctx.props
 
     if (block.properties.visibleWhen === false) {
@@ -71,10 +69,7 @@ export const RENDER_BLOCK_WORK_HANDLER: WorkHandler<'render.render-blocks.block'
     }
   },
 
-  async complete(
-    ctx: WorkContextContract<RequestExecutionContext, RenderBlockWorkProps>,
-    children: readonly CompletedWork[],
-  ) {
+  async complete(ctx: WorkContextContract<RequestState, RenderBlockWorkProps>, children: readonly CompletedWork[]) {
     const { block, entry, renderer } = ctx.props
 
     if (block.properties.visibleWhen === false) {
@@ -87,7 +82,7 @@ export const RENDER_BLOCK_WORK_HANDLER: WorkHandler<'render.render-blocks.block'
     const output = await renderer.renderBlock(entry, evaluatedBlock)
 
     // Mark only while devtools is tracing, so production output stays unmarked.
-    if (ctx.request.traceEnabled && renderer.markBlock) {
+    if (ctx.state.dependencies.traceEnabled && renderer.markBlock) {
       return renderer.markBlock(block.id, output)
     }
 
@@ -129,7 +124,7 @@ function collectNestedBlockTasks(
       throw new ForgeUnregisteredComponentError({ variant: value.variant })
     }
 
-    tasks.push(WorkTaskFactory.renderBlock(value.id, value, entry, renderer, componentRegistry))
+    tasks.push(createRenderBlockTask(value.id, value, entry, renderer, componentRegistry))
   })
 
   return tasks
@@ -206,4 +201,19 @@ function replaceInValue(value: unknown, replacer: (value: unknown) => unknown): 
   })
 
   return result
+}
+
+export function createRenderBlockTask(
+  id: string,
+  block: RenderBlock,
+  entry: ComponentRegistryEntry<BlockDefinition, unknown>,
+  renderer: ForgeRenderer<unknown>,
+  componentRegistry: ComponentRegistry,
+) {
+  return createWorkTask(
+    id,
+    RENDER_BLOCK_WORK_HANDLER,
+    { block, entry, renderer, componentRegistry },
+    RENDER_BLOCK_WORK_INSTRUMENTATION,
+  )
 }

@@ -1,6 +1,7 @@
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
-import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/runtime/work.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/work/work.type'
 import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
+import { createWorkTask } from '../../../work/workTask'
 import type {
   AnswerPreparationFieldResult,
   FieldAnswerPreparationWorkProps,
@@ -12,7 +13,7 @@ export const FIELD_ANSWER_PREPARATION_WORK_INSTRUMENTATION: WorkInstrumentation<
   FieldAnswerPreparationWorkProps,
   AnswerPreparationFieldResult
 > = {
-  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestExecutionContext, FieldAnswerPreparationWorkProps>) {
+  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestState, FieldAnswerPreparationWorkProps>) {
     return {
       code: ctx.props.code,
       mode: ctx.props.mode,
@@ -30,7 +31,7 @@ export const FIELD_ANSWER_PREPARATION_WORK_HANDLER: WorkHandler<
 > = {
   kind: FIELD_ANSWER_PREPARATION_KIND,
 
-  async begin(ctx: WorkContextContract<RequestExecutionContext, FieldAnswerPreparationWorkProps>) {
+  async begin(ctx: WorkContextContract<RequestState, FieldAnswerPreparationWorkProps>) {
     return { output: await ctx.props.run() }
   },
 }
@@ -42,4 +43,13 @@ function traceComplete(output: AnswerPreparationFieldResult): TraceSpanFields {
     mutationCount: output.mutations.length,
     parsed: output.parsed !== undefined,
   }
+}
+
+export function createFieldAnswerPreparationTask(key: string, props: FieldAnswerPreparationWorkProps) {
+  return createWorkTask(
+    key,
+    FIELD_ANSWER_PREPARATION_WORK_HANDLER,
+    props,
+    FIELD_ANSWER_PREPARATION_WORK_INSTRUMENTATION,
+  )
 }

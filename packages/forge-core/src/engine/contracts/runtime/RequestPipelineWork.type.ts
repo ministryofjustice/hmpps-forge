@@ -19,7 +19,7 @@ import type {
 import type { JourneyRouteTemplateCatalog, StoredRouteTree } from '../../concerns/route/contracts/routeTree.type'
 import type { HttpMethod } from '../../../framework/types/request.type'
 import type { RequestSnapshot } from '../../../framework/types/snapshot.type'
-import type { WorkTask } from './work.type'
+import type { WorkTask } from '../work/work.type'
 
 export interface RequestPipelineWorkProps {
   readonly phases: readonly WorkTask[]

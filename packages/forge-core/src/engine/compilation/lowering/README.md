@@ -56,12 +56,11 @@ under heavy-load - so Forge remains performant!
 `CompilationDependencies` contains the registries lowering needs while generating source:
 - `functionRegistry`, used by `ExpressionDispatcher` to decide whether generated function calls need `await`.
 - `componentRegistry`, carried with the lowering dependencies for compilers that need component metadata.
-- `tracer`, an optional `CompilationTracer` that records codegen spans; it defaults to a disabled tracer.
 
 `CompilationModel` is the input from analysis.
-`CodegenOrchestrator.compileAll()` consumes it and returns:
-- `steps`, a `Map<NodeId, CompiledStep>`.
-- `journeys`, a `Map<NodeId, CompiledJourney>`.
+The lowering phase handler consumes it and the codegen tasks fill:
+- `steps`, a `Map<NodeId, CompiledStep>` on `CompilationState`.
+- `journeys`, a `Map<NodeId, CompiledJourney>` on `CompilationState`.
 
 `CompiledStep` contains the step runtime plan, the step-owned compiled functions, and the journey-scoped and package-scoped compiled functions/indexes it needs at runtime.
 Step-owned functions include step access lifecycle, submit hooks, answer preparation, submit validation, entry validation, and resolve.
@@ -80,8 +79,6 @@ Resolve returns a resolve-blocks task that contains resolve-block tasks.
 Generated functions are created by `compileGeneratedFunction()`.
 It wraps source with runtime diagnostics, passes `_forgeHelpers` and `_forgeRuntimeDiagnostics` as extra parameters that the compiled wrapper supplies on each call, and calls `createCompiledFunction()` with either `Function` or `AsyncFunction`.
 
-Every compiled function is also recorded as a `codegen.function` span on the compilation trace.
-When `ForgeInstrumentationOptions.captureGeneratedSource` is set, the wrapped generated source is attached to the span's begin fields.
 The source is captured before the `Function` construction, so a failed compile still carries the source that produced it.
 
 The main source-building helpers are:
@@ -150,23 +147,23 @@ The generated function builds the work description; it does not execute the answ
 
 ## Flow
 
-Lowering starts when `CodegenOrchestrator.compileAll()` receives a `CompilationModel`.
-The orchestrator is constructed with `CompilationDependencies` (the registries and optional tracer).
-It compiles package functions first, then loops over journeys.
-For each journey, it compiles journey functions and the journey validation index from plan inputs, then loops over that journey's steps and compiles step functions.
+Lowering starts when the work executor runs the `lowering` task.
+`COMPILATION_LOWERING_WORK_HANDLER` reads the `CompilationModel` off `CompilationState` and fans out into one `codegen.package-functions` task plus one `codegen.journey` task per journey, and each journey task fans out into its `codegen.step` tasks - all sequential.
+The task handlers construct `CodegenOrchestrator` with `CompilationDependencies` (the registries) and call its compile methods.
+For each journey, it compiles journey functions and the journey validation index from plan inputs, then the step tasks compile step functions.
 The final step artifacts receive their step-owned functions plus the journey-scoped functions/indexes they need at runtime.
 
 ```mermaid
 flowchart TD
-  compilationPlan["CompilationModel"] --> orchestrator["CodegenOrchestrator.compileAll()"]
-  dependencies["CompilationDependencies"] --> orchestrator
-  orchestrator --> packageFunctions["compilePackageFunctions()"]
-  packageFunctions --> journeyLoop["for each JourneyCompilationInputs"]
+  compilationPlan["CompilationModel"] --> loweringHandler["COMPILATION_LOWERING_WORK_HANDLER"]
+  dependencies["CompilationDependencies"] --> loweringHandler
+  loweringHandler --> packageFunctions["codegen.package-functions task"]
+  packageFunctions --> journeyLoop["one codegen.journey task per journey"]
   journeyLoop --> journeyFunctions["compileJourneyFunctions()"]
   journeyFunctions --> validationIndex["compileJourneyValidationIndex()"]
   journeyFunctions --> compiledJourney["CompiledJourney"]
   validationIndex --> compiledJourney
-  journeyLoop --> stepLoop["for each step in journey state table"]
+  journeyLoop --> stepLoop["one codegen.step task per step"]
   stepLoop --> stepFunctions["compileStepFunctions()"]
   stepFunctions --> compiledStep["CompiledStep"]
   journeyFunctions --> compiledStep
@@ -179,7 +176,7 @@ flowchart TD
   compiledStep --> result
 ```
 
-- [CodegenOrchestrator.ts](CodegenOrchestrator.ts) owns compile order.
+- [CompilationLoweringWorkHandler.ts](CompilationLoweringWorkHandler.ts) exports the lowering phase handler and the codegen task handlers; [CodegenOrchestrator.ts](CodegenOrchestrator.ts) owns compile order.
   The order follows ownership: package scope, journey scope, then step scope.
   Child scopes may receive parent-scoped compiled functions at assembly time, but parent scopes do not depend on compiled child artifacts.
 - The phase compilers `CodegenOrchestrator` drives live in their concerns.
@@ -255,7 +252,7 @@ flowchart TD
   Iterator frames, `@self`, local variable counters, and `usesAwait` are per-function state.
 - Preserve generated diagnostics.
   Runtime errors need node IDs, function names, function types, and DSL source paths to be useful.
-- Preserve phase ordering in `CodegenOrchestrator.compileAll()`.
+- Preserve the codegen task ordering in `CompilationLoweringWorkHandler.ts`.
   Keep parent scopes before child scopes: package, journey, then step.
   Do not make journey compilation depend on compiled step artifacts.
 - Do not import runtime implementation details into lowering.
@@ -288,7 +285,8 @@ flowchart TD
 
 ## Entry Points
 
-- [CodegenOrchestrator.ts](CodegenOrchestrator.ts) compiles the full `CompilationModel`.
+- [CompilationLoweringWorkHandler.ts](CompilationLoweringWorkHandler.ts) runs the full `CompilationModel` through the lowering and codegen tasks.
+- [CodegenOrchestrator.ts](CodegenOrchestrator.ts) is the compile-order facade those tasks drive.
 - [compilationDependencies.type.ts](compilationDependencies.type.ts) defines the registries available during lowering.
 - [GeneratedFunctionCompiler.ts](GeneratedFunctionCompiler.ts) wraps source, injects the runtime library, and compiles generated functions.
 - [generatedFunctionRuntimeLibrary.ts](generatedFunctionRuntimeLibrary.ts) is the runtime library injected into generated source as `_forgeHelpers`.

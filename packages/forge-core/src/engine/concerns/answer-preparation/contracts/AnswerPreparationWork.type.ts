@@ -1,5 +1,5 @@
 import type { AnswerMutation } from '../../../contracts/runtime/answerHistory.type'
-import type { WorkTask } from '../../../contracts/runtime/work.type'
+import type { WorkTask } from '../../../contracts/work/work.type'
 
 type AnswerPreparationMode = 'GET' | 'POST'
 

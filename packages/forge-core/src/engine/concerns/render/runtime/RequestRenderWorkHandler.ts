@@ -3,14 +3,14 @@ import type {
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/runtime/work.type'
-import { singleChildOutput } from '../../../runtime/evaluation/work/workTask'
-import { phaseInstrumentation } from '../../../runtime/evaluation/request/requestPhase'
-import { RENDER_ASSEMBLE_PAGE_KIND } from './RenderAssemblePageWorkHandler'
-import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
+} from '../../../contracts/work/work.type'
+import { createWorkTask, singleChildOutput } from '../../../work/workTask'
+import { phaseInstrumentation } from '../../../runtime/pipeline/contextSnapshot'
+import { RENDER_ASSEMBLE_PAGE_KIND, createAssemblePageTask } from './RenderAssemblePageWorkHandler'
+import { createRenderBlocksTask } from './RenderBlocksWorkHandler'
 import type { RequestRenderWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
-import ForgeInternalError from '../../../errors/ForgeInternalError'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
 
 const REQUEST_RENDER_KIND = 'request.render'
 
@@ -20,17 +20,12 @@ export const REQUEST_RENDER_WORK_INSTRUMENTATION: WorkInstrumentation<RequestRen
 export const REQUEST_RENDER_WORK_HANDLER: WorkHandler<'request.render', RequestRenderWorkProps> = {
   kind: REQUEST_RENDER_KIND,
 
-  begin(ctx: WorkContextContract<RequestExecutionContext, RequestRenderWorkProps>) {
-    const renderContext = ctx.request.renderContext
-
-    if (!renderContext) {
-      throw new ForgeInternalError('Render phase reached without a render context — resolve phase did not produce one')
-    }
-
+  begin(ctx: WorkContextContract<RequestState, RequestRenderWorkProps>) {
+    const renderContext = ctx.state.renderContext
     const { renderer, componentRegistry } = ctx.props
 
-    const renderBlocks = WorkTaskFactory.renderBlocks(renderContext.blocks, renderer, componentRegistry)
-    const assemblePage = WorkTaskFactory.assemblePage(renderContext, renderer)
+    const renderBlocks = createRenderBlocksTask(renderContext.blocks, renderer, componentRegistry)
+    const assemblePage = createAssemblePageTask(renderContext, renderer)
 
     return {
       groups: [
@@ -41,12 +36,16 @@ export const REQUEST_RENDER_WORK_HANDLER: WorkHandler<'request.render', RequestR
   },
 
   complete(
-    ctx: WorkContextContract<RequestExecutionContext, RequestRenderWorkProps>,
+    ctx: WorkContextContract<RequestState, RequestRenderWorkProps>,
     children: readonly CompletedWork[],
   ): PhaseWorkOutput {
-    const renderContext = ctx.request.renderContext!
+    const renderContext = ctx.state.renderContext
     const output = singleChildOutput(children, RENDER_ASSEMBLE_PAGE_KIND)
 
     return { action: 'render', renderContext, output }
   },
+}
+
+export function createRequestRenderTask(props: RequestRenderWorkProps) {
+  return createWorkTask('render', REQUEST_RENDER_WORK_HANDLER, props, REQUEST_RENDER_WORK_INSTRUMENTATION)
 }

@@ -1,15 +1,12 @@
 import type { JourneyDefinition } from '../authoring/types/structures.type'
 import type { ForgePackageRegistration, PackageDependencies, NodeId } from './contracts/ast/engine.type'
-import { DSLValidator } from './concerns/dsl-validation/DSLValidator'
 import { createFunctionsRegistry } from '../authoring/utils/deprecated/createFunctionsRegistry'
 import { isFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
 import ComponentRegistry from './registries/ComponentRegistry'
 import FunctionRegistry from './registries/FunctionRegistry'
 import ScopedComponentRegistry from './registries/ScopedComponentRegistry'
 import ScopedFunctionRegistry from './registries/ScopedFunctionRegistry'
-import CompilationPipeline from './compilation/CompilationPipeline'
-import CompilationTracer from './compilation/tracing/CompilationTracer'
-import CompilationTraceProjector from './compilation/tracing/CompilationTraceProjector'
+import CompilationPipeline from './compilation/pipeline/CompilationPipeline'
 import type { ForgeInstrumentation } from './tracing/ForgeTraceSinkDispatcher'
 
 import type { CompiledJourney, CompiledStep, CompiledPackage } from './contracts/plans/compilationArtefacts.type'
@@ -24,8 +21,6 @@ export interface PackageInstanceOptions<TDeps> {
 }
 
 export default class PackageInstance {
-  private readonly traceProjector = new CompilationTraceProjector()
-
   private readonly dependencies: PackageDependencies
 
   private readonly compilation: CompiledPackage
@@ -33,35 +28,21 @@ export default class PackageInstance {
   private readonly rawConfiguration: JourneyDefinition
 
   constructor(pkg: ForgePackageRegistration<any>, options: PackageInstanceOptions<any>) {
-    const { instrumentation } = options
-    const tracer = new CompilationTracer({
-      enabled: instrumentation.enabled,
-      captureGeneratedSource: instrumentation.captureGeneratedSource,
-    })
-
     this.dependencies = {
       functionRegistry: PackageInstance.resolveFunctionRegistry(pkg, options),
       componentRegistry: PackageInstance.resolveComponentRegistry(pkg, options.componentRegistry),
     }
 
-    try {
-      this.rawConfiguration = tracer.span('load-configuration', 'compilation.dsl-validation', () =>
-        PackageInstance.loadConfiguration(pkg.journey),
-      )
+    const pipeline = new CompilationPipeline({
+      functionRegistry: this.dependencies.functionRegistry,
+      componentRegistry: this.dependencies.componentRegistry,
+      instrumentation: options.instrumentation,
+    })
 
-      const pipeline = new CompilationPipeline({
-        functionRegistry: this.dependencies.functionRegistry,
-        componentRegistry: this.dependencies.componentRegistry,
-        tracer,
-      })
-
-      this.compilation = pipeline.compile(this.rawConfiguration)
-      this.traceProjector.emit(instrumentation, tracer, 'compiled')
-    } catch (e) {
-      this.traceProjector.emit(instrumentation, tracer, 'error', e)
-
-      throw e
-    }
+    // The pipeline validates the definition in its dsl-validation phase and
+    // emits the compilation trace (success or error) before rethrowing.
+    this.rawConfiguration = pkg.journey
+    this.compilation = pipeline.compile(pkg.journey)
   }
 
   getDependencies(): PackageDependencies {
@@ -100,13 +81,6 @@ export default class PackageInstance {
 
   getJourneyCode(): string {
     return this.compilation.journeyCode
-  }
-
-  private static loadConfiguration(configuration: JourneyDefinition): JourneyDefinition {
-    DSLValidator.validateJSON(configuration)
-    DSLValidator.validateSchema(configuration)
-
-    return configuration
   }
 
   private static resolveFunctionRegistry(

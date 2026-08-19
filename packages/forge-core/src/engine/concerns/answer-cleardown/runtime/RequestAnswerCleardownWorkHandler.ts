@@ -1,8 +1,10 @@
 import { evaluateAnswerCleardown } from './evaluateAnswerCleardown'
-import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/runtime/work.type'
-import { phaseInstrumentation } from '../../../runtime/evaluation/request/requestPhase'
+import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/work/work.type'
+import { createWorkTask } from '../../../work/workTask'
+import { phaseInstrumentation } from '../../../runtime/pipeline/contextSnapshot'
 import type { RequestAnswerCleardownWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
 
 const REQUEST_ANSWER_CLEARDOWN_KIND = 'request.answer-cleardown'
 
@@ -30,9 +32,9 @@ export const REQUEST_ANSWER_CLEARDOWN_WORK_HANDLER: WorkHandler<
     return { groups: [] }
   },
 
-  complete(ctx: WorkContextContract<RequestExecutionContext, RequestAnswerCleardownWorkProps>): PhaseWorkOutput {
-    const context = ctx.request.context
-    const evaluation = ctx.request.reachabilityEvaluation
+  complete(ctx: WorkContextContract<RequestState, RequestAnswerCleardownWorkProps>): PhaseWorkOutput {
+    const context = ctx.state.context
+    const evaluation = ctx.state.reachabilityEvaluation
 
     if (context.evaluation.reachability === undefined || evaluation === undefined) {
       return { action: 'continue' }
@@ -42,4 +44,13 @@ export const REQUEST_ANSWER_CLEARDOWN_WORK_HANDLER: WorkHandler<
 
     return { action: 'continue' }
   },
+}
+
+export function createRequestAnswerCleardownTask(props: RequestAnswerCleardownWorkProps) {
+  return createWorkTask(
+    'answer-cleardown',
+    REQUEST_ANSWER_CLEARDOWN_WORK_HANDLER,
+    props,
+    REQUEST_ANSWER_CLEARDOWN_WORK_INSTRUMENTATION,
+  )
 }

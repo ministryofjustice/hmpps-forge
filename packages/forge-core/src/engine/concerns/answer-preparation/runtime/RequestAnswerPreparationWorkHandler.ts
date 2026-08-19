@@ -1,14 +1,17 @@
-import { buildCompiledAnswerPreparationContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
+import ForgeInternalError from '../../../errors/ForgeInternalError'
+import { buildCompiledAnswerPreparationContext } from '../../../runtime/context/compiledEvaluationContext'
 import { ANSWER_PREPARATION_KIND } from './AnswerPreparationWorkHandler'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/runtime/work.type'
-import { phaseInstrumentation, runTaskPhase } from '../../../runtime/evaluation/request/requestPhase'
+} from '../../../contracts/work/work.type'
+import { createWorkTask, isWorkTaskOfKind, singleTaskGroup } from '../../../work/workTask'
+import { phaseInstrumentation } from '../../../runtime/pipeline/contextSnapshot'
 import type { RequestAnswerPreparationWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
 
 const REQUEST_ANSWER_PREPARATION_KIND = 'request.answer-preparation'
 
@@ -28,24 +31,35 @@ export const REQUEST_ANSWER_PREPARATION_WORK_HANDLER: WorkHandler<
 > = {
   kind: REQUEST_ANSWER_PREPARATION_KIND,
 
-  async begin(ctx: WorkContextContract<RequestExecutionContext, RequestAnswerPreparationWorkProps>) {
+  async begin(ctx: WorkContextContract<RequestState, RequestAnswerPreparationWorkProps>) {
     const answerPreparationContext = buildCompiledAnswerPreparationContext(
-      ctx.request.context,
-      ctx.request.functionRegistry,
-      ctx.request.componentRegistry,
+      ctx.state.context,
+      ctx.state.dependencies.functionRegistry,
+      ctx.state.dependencies.componentRegistry,
     )
 
-    return runTaskPhase(
-      ctx.props.compiled(answerPreparationContext),
-      ANSWER_PREPARATION_KIND,
-      'Compiled answer preparation returned an invalid work task',
-    )
+    const resolved = await ctx.props.compiled(answerPreparationContext)
+
+    if (!isWorkTaskOfKind(resolved, ANSWER_PREPARATION_KIND)) {
+      throw new ForgeInternalError('Compiled answer preparation returned an invalid work task')
+    }
+
+    return singleTaskGroup(resolved)
   },
 
   complete(
-    _ctx: WorkContextContract<RequestExecutionContext, RequestAnswerPreparationWorkProps>,
+    _ctx: WorkContextContract<RequestState, RequestAnswerPreparationWorkProps>,
     _children: readonly CompletedWork[],
   ): PhaseWorkOutput {
     return { action: 'continue' }
   },
+}
+
+export function createRequestAnswerPreparationTask(props: RequestAnswerPreparationWorkProps) {
+  return createWorkTask(
+    'answer-preparation',
+    REQUEST_ANSWER_PREPARATION_WORK_HANDLER,
+    props,
+    REQUEST_ANSWER_PREPARATION_WORK_INSTRUMENTATION,
+  )
 }

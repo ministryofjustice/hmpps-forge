@@ -67,6 +67,8 @@ This stage does not know enough to answer semantic questions.
 It cannot decide whether `Item()` is inside an iterator, whether an effect function is inside a hook, or whether a component variant is registered.
 Those checks need compiler state.
 
+Mechanically it runs as the first phase of the compilation pipeline, so it still happens before any AST node exists.
+
 Read [concerns/dsl-validation/README.md](concerns/dsl-validation/README.md) for details.
 
 ### Compilation
@@ -100,7 +102,7 @@ Runtime evaluates compiled artifacts for one request.
 It lives under [runtime](runtime).
 
 The framework layer selects a `MountedNode` and passes a `RequestSnapshot`.
-`RequestEvaluator.evaluate()` builds a request pipeline, executes work tasks, records traces, and returns a `ForgeOutcome`.
+`RequestPipeline.evaluate()` builds a request pipeline, executes work tasks, records traces, and returns a `ForgeOutcome`.
 
 Runtime calls compiled functions.
 It does not rebuild AST nodes, plans, route indexes, or generated source.
@@ -110,7 +112,7 @@ It keeps compiler cost and compiler failures out of request handling.
 ```mermaid
 flowchart TD
   compiled["CompiledPackage"] -->|"MountRegistry.register()"| mounted["MountedNode"]
-  mounted --> evaluator["RequestEvaluator.evaluate()"]
+  mounted --> evaluator["RequestPipeline.evaluate()"]
   snapshot["RequestSnapshot"] --> evaluator
   evaluator -->|"request.pipeline WorkTask"| work["WorkExecutor"]
   work -->|"RequestPipelineResult"| result["RequestPipelineResult"]
@@ -149,14 +151,16 @@ Everything that is not a concern is chassis - the machinery that runs concerns i
 what any of them mean.
 
 - [concerns/dsl-validation](concerns/dsl-validation) runs the pre-AST JSON and Zod checks.
+- [work](work) owns the stage-neutral work substrate: the executor, work context, and task helpers.
+  Both stages run their pipelines through it - runtime asynchronously, compilation synchronously - and it imports neither.
 - [compilation](compilation) owns phase order, the AST, semantic analysis, plan assembly, the expression and emitter layers, and generated-function construction.
-- [runtime](runtime) owns the request pipeline order, the work executor, the compiled-function contexts, and trace projection.
-- [contracts](contracts) owns the kernel types every layer shares: AST, compiled functions, plans, and runtime plumbing.
+- [runtime](runtime) owns the request pipeline order, the compiled-function contexts, and request trace projection.
+- [contracts](contracts) owns the kernel types every layer shares: AST, compiled functions, plans, work, and runtime plumbing.
 
 ## Supporting Areas
 
 - [Forge.ts](Forge.ts) is the public engine facade.
-- [PackageInstance.ts](PackageInstance.ts) owns package-level validation and compilation.
+- [PackageInstance.ts](PackageInstance.ts) owns package-level registry scoping and compilation.
 - [registries](registries) owns function, component, and mount registries.
 - [tracing](tracing) owns the shared trace substrate and the instrumentation fan-out.
 - [errors](errors) owns engine error types and formatting.
@@ -167,4 +171,4 @@ what any of them mean.
 - To change one domain question - validation, reachability, resolve - start at that concern's README and read its stage folders in order. You should not need to open another concern.
 - To debug authoring shape errors, start in [concerns/dsl-validation](concerns/dsl-validation).
 - To debug generated runtime behavior, start in the concern's `lowering/` folder and the matching `runtime/` folder next to it.
-- To debug one request, start in [runtime/RequestEvaluator.ts](runtime/RequestEvaluator.ts) and [runtime/evaluation/request](runtime/evaluation/request).
+- To debug one request, start in [runtime/pipeline/RequestPipeline.ts](runtime/pipeline/RequestPipeline.ts) and [runtime/pipeline](runtime/pipeline).

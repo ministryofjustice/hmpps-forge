@@ -21,13 +21,13 @@ import HookAnalyzer from '../analysis/HookAnalyzer'
 import type { AccessLifecycleModel, SubmitHooksModel } from '../contracts/hookModel.type'
 import { createStepAnalysisContext } from '../../../compilation/analysis/testing-helpers/analysisContexts'
 import HookLifecycleCompiler from './HookLifecycleCompiler'
-import EffectFunctionContextImpl from '../../../runtime/evaluation/context/EffectFunctionContext'
-import WorkContext from '../../../runtime/evaluation/work/WorkContext'
-import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
-import { createWorkTask, isWorkTask } from '../../../runtime/evaluation/work/workTask'
-import type { WorkTask, WorkHandler } from '../../../contracts/runtime/work.type'
+import EffectFunctionContextImpl from '../../../runtime/context/EffectFunctionContext'
+import WorkContext from '../../../work/WorkContext'
+import WorkExecutor from '../../../work/WorkExecutor'
+import { createWorkTask, isWorkTask } from '../../../work/workTask'
+import type { WorkTask, WorkHandler } from '../../../contracts/work/work.type'
 import type { SubmitLifecycleWorkTask } from '../contracts/SubmitLifecycleWork.type'
-import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
+import { workTaskBuilders } from '../../../runtime/context/compiledEvaluationContext'
 
 function accessModel(hooks: AccessHookASTNode[]): AccessLifecycleModel {
   const stepNode = ASTTestFactory.step().withProperty('onAccess', hooks).build()
@@ -91,7 +91,7 @@ function createContext(
   } as unknown as ResponseBindings
   const stepValidities = new Map<string, StepValidityResult>()
 
-  return {
+  const state = {
     answers,
     data,
     session: {},
@@ -112,11 +112,21 @@ function createContext(
       response,
       'access',
     ),
-    workTasks: WorkTaskFactory,
+    workTasks: workTaskBuilders,
     currentStepId: 'submit-step',
     context: { evaluation: { stepValidities }, domain: { data: {}, answers: {} }, request: {} },
     ...overrides,
-  } as unknown as CompiledHookLifecycleContext
+  } as Record<string, unknown>
+
+  state.dependencies = {
+    currentStepId: state.currentStepId,
+    buildStepValidation: state.buildStepValidation ?? (() => undefined),
+  }
+  state.recordCurrentPageValidation = (view: unknown) => {
+    state.currentPageValidation = view
+  }
+
+  return state as unknown as CompiledHookLifecycleContext
 }
 
 async function executeCompiledAccessLifecycle(

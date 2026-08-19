@@ -1,19 +1,20 @@
-import { buildCompiledValidationContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
+import { buildCompiledValidationContext } from '../../../runtime/context/compiledEvaluationContext'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/runtime/work.type'
-import { createWorkTask, singleTaskGroup } from '../../../runtime/evaluation/work/workTask'
-import { phaseInstrumentation } from '../../../runtime/evaluation/request/requestPhase'
+} from '../../../contracts/work/work.type'
+import { createWorkTask, singleTaskGroup } from '../../../work/workTask'
+import { phaseInstrumentation } from '../../../runtime/pipeline/contextSnapshot'
 import {
   CURRENT_STEP_VALIDATION_WORK_HANDLER,
   CURRENT_STEP_VALIDATION_WORK_INSTRUMENTATION,
 } from './CurrentStepValidationWorkHandler'
 import type { CurrentStepValidationWorkProps } from '../contracts/ValidationWork.type'
 import type { RequestEntryValidationWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
-import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
 
 const REQUEST_ENTRY_VALIDATION_KIND = 'request.entry-validation'
 
@@ -37,8 +38,8 @@ export const REQUEST_ENTRY_VALIDATION_WORK_HANDLER: WorkHandler<
 > = {
   kind: REQUEST_ENTRY_VALIDATION_KIND,
 
-  async begin(ctx: WorkContextContract<RequestExecutionContext, RequestEntryValidationWorkProps>) {
-    const validationContext = buildCompiledValidationContext(ctx.request.context, ctx.request.functionRegistry)
+  async begin(ctx: WorkContextContract<RequestState, RequestEntryValidationWorkProps>) {
+    const validationContext = buildCompiledValidationContext(ctx.state.context, ctx.state.dependencies.functionRegistry)
     const groups = await ctx.props.compiled(validationContext)
 
     if (groups.length === 0) {
@@ -58,9 +59,18 @@ export const REQUEST_ENTRY_VALIDATION_WORK_HANDLER: WorkHandler<
   },
 
   complete(
-    _ctx: WorkContextContract<RequestExecutionContext, RequestEntryValidationWorkProps>,
+    _ctx: WorkContextContract<RequestState, RequestEntryValidationWorkProps>,
     _children: readonly CompletedWork[],
   ): PhaseWorkOutput {
     return { action: 'continue' }
   },
+}
+
+export function createRequestEntryValidationTask(props: RequestEntryValidationWorkProps) {
+  return createWorkTask(
+    'entry-validation',
+    REQUEST_ENTRY_VALIDATION_WORK_HANDLER,
+    props,
+    REQUEST_ENTRY_VALIDATION_WORK_INSTRUMENTATION,
+  )
 }

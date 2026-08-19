@@ -41,7 +41,7 @@ shape the contract allows.
 ## Engine surface
 
 The adapter holds a configured `Forge` instance and drives every request through
-it. `forge-core` does not expose `RequestEvaluator` to the host; `Forge`
+it. `forge-core` does not expose `RequestPipeline` to the host; `Forge`
 constructs it internally.
 
 | Method | What it provides |

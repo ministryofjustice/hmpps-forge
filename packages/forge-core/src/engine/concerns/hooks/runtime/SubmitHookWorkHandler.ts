@@ -1,4 +1,4 @@
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
 import type { CompiledSubmitHookResult } from '../contracts/hookLifecycle.type'
 import type {
   CompletedWork,
@@ -6,9 +6,9 @@ import type {
   WorkTask,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/runtime/work.type'
+} from '../../../contracts/work/work.type'
 import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
-import { findChildByTask, findTerminalStage, isTerminalStage } from '../../../runtime/evaluation/work/workTask'
+import { createWorkTask, findChildByTask, findTerminalStage, isTerminalStage } from '../../../work/workTask'
 import type { SubmitHookWorkProps } from '../contracts/SubmitLifecycleWork.type'
 
 export const SUBMIT_HOOK_KIND = 'submit.hook'
@@ -35,7 +35,7 @@ export const SUBMIT_HOOK_WORK_INSTRUMENTATION: WorkInstrumentation<SubmitHookWor
 export const SUBMIT_HOOK_WORK_HANDLER: WorkHandler<'submit.hook', SubmitHookWorkProps> = {
   kind: SUBMIT_HOOK_KIND,
 
-  begin(ctx: WorkContextContract<RequestExecutionContext, SubmitHookWorkProps>) {
+  begin(ctx: WorkContextContract<RequestState, SubmitHookWorkProps>) {
     const stages: WorkTask[] = [
       ...(ctx.props.when ? [ctx.props.when] : []),
       ...(ctx.props.guards ? [ctx.props.guards] : []),
@@ -51,7 +51,7 @@ export const SUBMIT_HOOK_WORK_HANDLER: WorkHandler<'submit.hook', SubmitHookWork
   },
 
   complete(
-    ctx: WorkContextContract<RequestExecutionContext, SubmitHookWorkProps>,
+    ctx: WorkContextContract<RequestState, SubmitHookWorkProps>,
     children: readonly CompletedWork[],
   ): CompiledSubmitHookResult {
     const terminal = findTerminalStage<CompiledSubmitHookResult>(children)
@@ -67,7 +67,7 @@ export const SUBMIT_HOOK_WORK_HANDLER: WorkHandler<'submit.hook', SubmitHookWork
       return { executed: true, validated: false, outcome: 'continue' }
     }
 
-    const isValid = ctx.request.currentPageValidation?.isValid ?? true
+    const isValid = ctx.state.currentPageValidation?.isValid ?? true
 
     return { executed: true, validated: true, isValid, outcome: 'continue' }
   },
@@ -80,4 +80,8 @@ function traceComplete(output: CompiledSubmitHookResult): TraceSpanFields {
     isValid: output.isValid,
     outcome: output.outcome,
   }
+}
+
+export function createSubmitHookTask(key: string, props: SubmitHookWorkProps) {
+  return createWorkTask(key, SUBMIT_HOOK_WORK_HANDLER, props, SUBMIT_HOOK_WORK_INSTRUMENTATION)
 }

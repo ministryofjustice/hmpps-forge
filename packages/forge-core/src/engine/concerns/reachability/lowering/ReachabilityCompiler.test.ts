@@ -16,7 +16,7 @@ import type { CompilationDependencies } from '../../../compilation/lowering/comp
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import ReachabilityCompiler from './ReachabilityCompiler'
 import type { CompiledReachabilityContext } from '../../../contracts/compiled/compiledContexts.type'
-import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
+import { workTaskBuilders } from '../../../runtime/context/compiledEvaluationContext'
 
 function createReference(path: string[]): ReferenceASTNode {
   return {
@@ -143,7 +143,7 @@ function createCtx(overrides: Partial<CompiledReachabilityContext> = {}): Compil
         return { evaluate: () => false }
       }),
     } as unknown as CompiledReachabilityContext['conditions'],
-    workTasks: WorkTaskFactory,
+    workTasks: workTaskBuilders,
     ...overrides,
   }
 }

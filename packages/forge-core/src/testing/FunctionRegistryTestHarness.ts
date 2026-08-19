@@ -9,7 +9,7 @@ import type {
   TransformerFunctionExpr,
 } from '../authoring/types/expressions.type'
 import type { FunctionRegistryEntry } from '../authoring/types/functions.type'
-import type { EffectFunctionContext } from '../engine/runtime/evaluation/context/EffectFunctionContext'
+import type { EffectFunctionContext } from '../engine/runtime/context/EffectFunctionContext'
 import { precheckShortCircuit, validateOutput } from '../engine/compilation/lowering/generatedFunctionRuntimeLibrary'
 
 /**

@@ -212,7 +212,7 @@ flowchart TD
   The analyzers assume effects, outcomes, hooks, validations etc. are all valid, and throw
   `ForgeInternalError` for impossible states only.
 - Run analysis before lowering.
-  `CodegenOrchestrator.compileAll()` consumes `CompilationModel`, not raw step and journey maps.
+  The lowering phase consumes `CompilationModel`, not raw step and journey maps.
 - Keep model contents typed: no `unknown` past this stage, AST nodes only as expression leaves and
   diagnostic tokens.
 - Do not make lowering compilers recompute semantic facts.

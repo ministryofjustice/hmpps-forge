@@ -3,7 +3,7 @@ import type { CookieMutation, CookieOptions } from '../framework/types/response.
 import type { HookType } from '../engine/contracts/runtime/answerHistory.type'
 import type { ResponseBindings } from '../framework/types/responseBindings.type'
 import type { RuntimeContext } from '../engine/contracts/runtime/evaluationState.type'
-import { EffectFunctionContext } from '../engine/runtime/evaluation/context/EffectFunctionContext'
+import { EffectFunctionContext } from '../engine/runtime/context/EffectFunctionContext'
 import { extractPathname } from './extractPathname'
 
 /**

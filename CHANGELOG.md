@@ -53,6 +53,36 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.4.1
+
+### Changed
+
+- Compilation and request trace events now carry the same span structure produced by
+  the unified trace projectors - sinks that destructure trace events will need updating
+  to match the new shapes
+
+### Details
+
+#### Unified work executor
+
+Previously `CompilationPipeline` called each phase method directly and wrapped them in
+`CompilationTracer` spans, while the request pipeline ran through `WorkExecutor` under
+`runtime/evaluation/work/`. Now one `WorkExecutor` at `engine/work/` serves both stages.
+The executor uses a `MaybeAsync<T>` pattern so the same recursion stays synchronous for
+compilation and becomes async only when a handler suspends at runtime.
+
+Compilation is restructured to match the request pipeline's shape:
+`CompilationPipelineBootstrap` declares the phase order, `CompilationState` carries
+mutable state (like `RequestState` for runtime), and each concern has a
+`Compilation*WorkHandler` that plugs into the tree. Adding a compilation phase now works
+the same way as adding a runtime phase - write a handler, register it in the bootstrap.
+
+The 390-line `WorkTaskFactory` that built the runtime task tree is gone - handlers create
+their own child tasks directly. `work.type.ts` and `workOutput.type.ts` moved from
+`contracts/runtime/` to `contracts/work/` since they're shared across both stages.
+
+---
+
 ## 0.4.0
 
 A tidy-up of the authoring surface - the GOV.UK utility wrappers are real components

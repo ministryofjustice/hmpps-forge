@@ -1,7 +1,8 @@
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
-import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/runtime/work.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/work/work.type'
 import type { CompiledSubmitHookResult } from '../contracts/hookLifecycle.type'
 import type { HookStageResult } from '../contracts/HookStage.type'
+import { createWorkTask } from '../../../work/workTask'
 import type { SubmitHookPredicateWorkProps } from '../contracts/SubmitLifecycleWork.type'
 
 const SUBMIT_HOOK_PREDICATE_KIND = 'submit.predicate'
@@ -10,7 +11,7 @@ export const SUBMIT_HOOK_PREDICATE_WORK_INSTRUMENTATION: WorkInstrumentation<
   SubmitHookPredicateWorkProps,
   HookStageResult<CompiledSubmitHookResult>
 > = {
-  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestExecutionContext, SubmitHookPredicateWorkProps>) {
+  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestState, SubmitHookPredicateWorkProps>) {
     return { name: ctx.props.name }
   },
 
@@ -23,11 +24,15 @@ export const SUBMIT_HOOK_PREDICATE_WORK_HANDLER: WorkHandler<'submit.predicate',
   kind: SUBMIT_HOOK_PREDICATE_KIND,
 
   // A failed predicate (when/guards) ends the hook: it owns the "not executed" result.
-  async begin(ctx: WorkContextContract<RequestExecutionContext, SubmitHookPredicateWorkProps>) {
+  async begin(ctx: WorkContextContract<RequestState, SubmitHookPredicateWorkProps>) {
     if (await ctx.props.evaluate()) {
       return { output: { status: 'continue' } }
     }
 
     return { output: { status: 'terminal', result: { executed: false, validated: false, outcome: 'continue' } } }
   },
+}
+
+export function createSubmitPredicateTask(key: string, props: SubmitHookPredicateWorkProps) {
+  return createWorkTask(key, SUBMIT_HOOK_PREDICATE_WORK_HANDLER, props, SUBMIT_HOOK_PREDICATE_WORK_INSTRUMENTATION)
 }

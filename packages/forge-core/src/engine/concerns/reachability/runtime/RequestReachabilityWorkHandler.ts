@@ -1,18 +1,20 @@
-import { buildCompiledReachabilityContext } from '../../../runtime/evaluation/context/compiledEvaluationContext'
+import { buildCompiledReachabilityContext } from '../../../runtime/context/compiledEvaluationContext'
 import { resolveRedirect } from './reachabilityRedirects'
-import { captureContextSnapshot } from '../../../runtime/evaluation/work/tracing/contextSnapshot'
+import { captureContextSnapshot } from '../../../runtime/pipeline/contextSnapshot'
+import { createWorkTask } from '../../../work/workTask'
 import type {
   WorkBegin,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/runtime/work.type'
+} from '../../../contracts/work/work.type'
 import type { RequestReachabilityWorkProps } from '../../../contracts/runtime/RequestPipelineWork.type'
 import type { ReachabilityStateInput } from '../contracts/generatedReachabilityEvaluation.type'
 import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { ReachabilityEvaluation } from '../contracts/reachabilityEvaluation.type'
 import type { StepValidityResult } from '../../validation/contracts/stepValidityResult.type'
-import type { PhaseWorkOutput, RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import type { PhaseWorkOutput } from '../../../contracts/runtime/requestPipelineOutput.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 const REQUEST_REACHABILITY_KIND = 'request.reachability'
@@ -21,26 +23,26 @@ export const REQUEST_REACHABILITY_WORK_INSTRUMENTATION: WorkInstrumentation<
   RequestReachabilityWorkProps,
   PhaseWorkOutput
 > = {
-  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestExecutionContext, RequestReachabilityWorkProps>) {
+  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestState, RequestReachabilityWorkProps>) {
     return {
-      currentStepId: ctx.request.currentStepId,
+      currentStepId: ctx.state.dependencies.currentStepId,
       mode: ctx.props.mode,
       stepCount: ctx.props.routeTemplateCatalog.routeTemplatePathByStepId.size,
-      hasParams: ctx.request.context.request.params !== undefined,
+      hasParams: ctx.state.context.request.params !== undefined,
     }
   },
 
-  resolveTraceMetadataAtFinish(ctx: WorkContextContract<RequestExecutionContext, RequestReachabilityWorkProps>) {
-    const evaluation = ctx.request.reachabilityEvaluation
+  resolveTraceMetadataAtFinish(ctx: WorkContextContract<RequestState, RequestReachabilityWorkProps>) {
+    const evaluation = ctx.state.reachabilityEvaluation
 
     return {
-      ...captureContextSnapshot(ctx.request.context),
+      ...captureContextSnapshot(ctx.state.context),
       resumeOutcome: evaluation?.resumeOutcome,
       resumeActive: evaluation?.resumeActive,
       reachableSteps: evaluation?.steps.filter(step => step.isReachable).length,
       defaultEntryRouteTemplatePath: evaluation?.defaultEntryRouteTemplatePath,
       frontierRouteTemplatePath: evaluation?.frontierRouteTemplatePath,
-      hasReachabilityProjection: ctx.request.context.evaluation.reachability !== undefined,
+      hasReachabilityProjection: ctx.state.context.evaluation.reachability !== undefined,
     }
   },
 }
@@ -60,13 +62,16 @@ export const REQUEST_REACHABILITY_WORK_HANDLER: WorkHandler<'request.reachabilit
   kind: REQUEST_REACHABILITY_KIND,
 
   async begin(
-    ctx: WorkContextContract<RequestExecutionContext, RequestReachabilityWorkProps>,
+    ctx: WorkContextContract<RequestState, RequestReachabilityWorkProps>,
   ): Promise<WorkBegin<'request.reachability'>> {
     const { compiledReachabilityFacts, compiledReachabilityState } = ctx.props
 
-    const reachabilityContext = buildCompiledReachabilityContext(ctx.request.context, ctx.request.functionRegistry)
-    const stepValidities = toReachabilityValidities(ctx.request.context.evaluation.reachabilityValidities)
-    const params = ctx.request.context.request.params
+    const reachabilityContext = buildCompiledReachabilityContext(
+      ctx.state.context,
+      ctx.state.dependencies.functionRegistry,
+    )
+    const stepValidities = toReachabilityValidities(ctx.state.context.evaluation.reachabilityValidities)
+    const params = ctx.state.context.request.params
 
     const facts = await compiledReachabilityFacts(reachabilityContext)
 
@@ -82,7 +87,7 @@ export const REQUEST_REACHABILITY_WORK_HANDLER: WorkHandler<'request.reachabilit
         ? { facts, routeTemplateCatalog: ctx.props.routeTemplateCatalog, stepValidities }
         : {
             facts,
-            currentStepId: ctx.request.currentStepId,
+            currentStepId: ctx.state.dependencies.currentStepId,
             routeTemplateCatalog: ctx.props.routeTemplateCatalog,
             stepValidities,
             params,
@@ -92,10 +97,10 @@ export const REQUEST_REACHABILITY_WORK_HANDLER: WorkHandler<'request.reachabilit
     const result = compiledReachabilityState(stateInput)
 
     if (result.reachability !== undefined) {
-      ctx.request.context.evaluation.reachability = result.reachability
+      ctx.state.context.evaluation.reachability = result.reachability
     }
 
-    ctx.request.reachabilityEvaluation = result.evaluation
+    ctx.state.recordReachabilityEvaluation(result.evaluation)
 
     return { output: resolvePhaseOutput(result.evaluation, ctx.props) }
   },
@@ -134,4 +139,13 @@ function toReachabilityValidities(
   })
 
   return validityByStepId
+}
+
+export function createRequestReachabilityTask(props: RequestReachabilityWorkProps) {
+  return createWorkTask(
+    'reachability',
+    REQUEST_REACHABILITY_WORK_HANDLER,
+    props,
+    REQUEST_REACHABILITY_WORK_INSTRUMENTATION,
+  )
 }

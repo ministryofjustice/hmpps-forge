@@ -1,7 +1,7 @@
 export { default as Forge } from './engine/Forge'
 export { default as FunctionRegistry } from './engine/registries/FunctionRegistry'
 export { default as ComponentRegistry } from './engine/registries/ComponentRegistry'
-export { default as EffectFunctionContext } from './engine/runtime/evaluation/context/EffectFunctionContext'
+export { default as EffectFunctionContext } from './engine/runtime/context/EffectFunctionContext'
 export { isRenderBlock } from './engine/concerns/resolve/runtime/typeguards'
 export { RENDER_BLOCK_BRAND } from './engine/concerns/render/contracts/renderBlock.brand'
 export { default as ForgeBaseError } from './engine/errors/ForgeBaseError'
@@ -51,5 +51,5 @@ export type {
   CompilationTraceError,
   CompilationTraceEvent,
   CompilationTracePhase,
-} from './engine/compilation/tracing/compilationTrace.type'
+} from './engine/contracts/compilation/trace.type'
 export type { SerializedTraceSpan } from './engine/tracing/traceSpan.type'

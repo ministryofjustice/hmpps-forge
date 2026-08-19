@@ -1,7 +1,8 @@
 import type { RenderContext, ForgeRenderer } from '../../../../framework/types/rendering.type'
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
-import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/runtime/work.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
+import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/work/work.type'
 import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
+import { createWorkTask } from '../../../work/workTask'
 
 export interface RenderAssemblePageWorkProps {
   readonly renderContext: RenderContext
@@ -11,11 +12,9 @@ export interface RenderAssemblePageWorkProps {
 export const RENDER_ASSEMBLE_PAGE_KIND = 'render.assemble-page'
 
 export const RENDER_ASSEMBLE_PAGE_WORK_INSTRUMENTATION: WorkInstrumentation<RenderAssemblePageWorkProps, unknown> = {
-  resolveTraceMetadataAtStart(
-    ctx: WorkContextContract<RequestExecutionContext, RenderAssemblePageWorkProps>,
-  ): TraceSpanFields {
+  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestState, RenderAssemblePageWorkProps>): TraceSpanFields {
     return {
-      renderedBlocks: (ctx.request.renderedBlocks ?? []).length,
+      renderedBlocks: (ctx.state.renderedBlocks ?? []).length,
     }
   },
 
@@ -27,13 +26,22 @@ export const RENDER_ASSEMBLE_PAGE_WORK_INSTRUMENTATION: WorkInstrumentation<Rend
 export const RENDER_ASSEMBLE_PAGE_WORK_HANDLER: WorkHandler<'render.assemble-page', RenderAssemblePageWorkProps> = {
   kind: RENDER_ASSEMBLE_PAGE_KIND,
 
-  begin(ctx: WorkContextContract<RequestExecutionContext, RenderAssemblePageWorkProps>) {
+  begin(ctx: WorkContextContract<RequestState, RenderAssemblePageWorkProps>) {
     const { renderContext, renderer } = ctx.props
-    const renderedBlocks = ctx.request.renderedBlocks ?? []
-    const requestState = ctx.request.context.request.state
+    const renderedBlocks = ctx.state.renderedBlocks ?? []
+    const requestState = ctx.state.context.request.state
 
     const output = renderer.assemblePage(renderContext, renderedBlocks, requestState)
 
     return { output: output as Promise<unknown> }
   },
+}
+
+export function createAssemblePageTask(renderContext: RenderContext, renderer: ForgeRenderer<unknown>) {
+  return createWorkTask(
+    'assemble-page',
+    RENDER_ASSEMBLE_PAGE_WORK_HANDLER,
+    { renderContext, renderer },
+    RENDER_ASSEMBLE_PAGE_WORK_INSTRUMENTATION,
+  )
 }

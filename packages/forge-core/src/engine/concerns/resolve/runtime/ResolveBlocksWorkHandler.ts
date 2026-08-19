@@ -1,13 +1,13 @@
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../runtime/pipeline/RequestState'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/runtime/work.type'
+} from '../../../contracts/work/work.type'
 import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
 import type { ResolveBlocksOutput } from '../contracts/resolveBlocksOutput.type'
-import { childOutputs } from '../../../runtime/evaluation/work/workTask'
+import { childOutputs, createWorkTask } from '../../../work/workTask'
 import { RESOLVE_BLOCK_KIND, type ResolveBlockWorkTask } from './ResolveBlockWorkHandler'
 
 export interface ResolveBlocksWorkProps {
@@ -19,7 +19,7 @@ export interface ResolveBlocksWorkProps {
 export const RESOLVE_BLOCKS_KIND = 'resolve.blocks'
 
 export const RESOLVE_BLOCKS_WORK_INSTRUMENTATION: WorkInstrumentation<ResolveBlocksWorkProps, ResolveBlocksOutput> = {
-  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestExecutionContext, ResolveBlocksWorkProps>) {
+  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestState, ResolveBlocksWorkProps>) {
     return traceBegin(ctx.props)
   },
 
@@ -31,7 +31,7 @@ export const RESOLVE_BLOCKS_WORK_INSTRUMENTATION: WorkInstrumentation<ResolveBlo
 export const RESOLVE_BLOCKS_WORK_HANDLER: WorkHandler<'resolve.blocks', ResolveBlocksWorkProps> = {
   kind: RESOLVE_BLOCKS_KIND,
 
-  begin(ctx: WorkContextContract<RequestExecutionContext, ResolveBlocksWorkProps>) {
+  begin(ctx: WorkContextContract<RequestState, ResolveBlocksWorkProps>) {
     return {
       groups: [
         {
@@ -43,7 +43,7 @@ export const RESOLVE_BLOCKS_WORK_HANDLER: WorkHandler<'resolve.blocks', ResolveB
   },
 
   complete(
-    ctx: WorkContextContract<RequestExecutionContext, ResolveBlocksWorkProps>,
+    ctx: WorkContextContract<RequestState, ResolveBlocksWorkProps>,
     children: readonly CompletedWork[],
   ): ResolveBlocksOutput {
     const blocks = childOutputs(children, RESOLVE_BLOCK_KIND)
@@ -62,4 +62,17 @@ function traceComplete(output: ResolveBlocksOutput): TraceSpanFields {
   return {
     visibleBlocks: output.blocks.filter(block => block.properties.visibleWhen !== false).length,
   }
+}
+
+export function createResolveBlocksTask(
+  blocks: readonly ResolveBlockWorkTask[],
+  step: Record<string, unknown>,
+  ancestors: readonly Record<string, unknown>[],
+) {
+  return createWorkTask(
+    'resolve-blocks',
+    RESOLVE_BLOCKS_WORK_HANDLER,
+    { blocks, step, ancestors },
+    RESOLVE_BLOCKS_WORK_INSTRUMENTATION,
+  )
 }

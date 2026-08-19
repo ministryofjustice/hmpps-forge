@@ -7,7 +7,8 @@ export default [
     //   analysis/            — builds the semantic compilation model; may depend on ast/ + contracts/ but NOT semantic-analysis/, lowering/, or runtime/.
     //   lowering/            — code generation; may depend on ast/ + contracts/ but NOT analysis/, semantic-analysis/, or runtime/.
     //   lowering/codegen/    — generated-source IR: fragments, statement nodes, builder, rendering. A leaf inside lowering that imports nothing from the stages or the rest of lowering.
-    //   runtime/             — execution; may depend only on contracts/
+    //   work/                — stage-neutral work substrate (executor, context, task helpers); may depend only on tracing/, contracts/, and errors/
+    //   runtime/             — execution; may depend only on contracts/ and work/
     // Tests and testing-helpers are exempt: they wire mocks across layers.
     files: ['forge-core/src/engine/**/*.ts'],
     ignores: ['**/*.test.ts', 'forge-core/src/engine/**/testing-helpers/**'],
@@ -24,8 +25,19 @@ export default [
                 './forge-core/src/engine/compilation/analysis',
                 './forge-core/src/engine/compilation/lowering',
                 './forge-core/src/engine/runtime',
+                './forge-core/src/engine/work',
               ],
-              message: 'contracts/ is a runtime-free sink and must not import from compilation/ or runtime/.',
+              message: 'contracts/ is a runtime-free sink and must not import from compilation/, runtime/, or work/.',
+            },
+            {
+              target: './forge-core/src/engine/work',
+              from: [
+                './forge-core/src/engine/compilation',
+                './forge-core/src/engine/concerns',
+                './forge-core/src/engine/runtime',
+              ],
+              message:
+                'work/ is the stage-neutral work substrate beneath compilation/ and runtime/: it may import only tracing/, contracts/, and errors/.',
             },
             {
               target: './forge-core/src/engine/compilation/ast',
