@@ -161,7 +161,7 @@ jobs:
           npm run build
       - name: Create app version
         id: version
-        uses: ministryofjustice/hmpps-github-shared-actions/.github/actions/build-test-and-deploy/create_app_version@v1.0.21
+        uses: ministryofjustice/hmpps-github-shared-actions/.github/actions/build-test-and-deploy/create_app_version@v1.1.0
       - name: Login to GHCR
         uses: docker/login-action@v4.6.0
         with:
