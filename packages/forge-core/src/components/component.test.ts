@@ -1,6 +1,7 @@
 import { expectTypeOf, vi } from 'vitest'
 import { z } from 'zod'
 import { Answer, block, field } from '../authoring/builders'
+import { getComponentStamp } from '../authoring/builders/utils/stampEntry'
 import { BlockType, StructureType } from '../authoring/types/enums'
 import { component } from './component'
 import type {
@@ -226,6 +227,27 @@ describe('component()', () => {
       expect('inputSchema' in TestCard).toBe(false)
       expect('multiple' in TestCard).toBe(false)
       expect('multiple' in TestField).toBe(false)
+    })
+  })
+
+  describe('stamping', () => {
+    it('should stamp built blocks with the component by reference identity', () => {
+      // Act
+      const card = TestCard({ title: 'Hello' })
+      const input = TestField({ code: 'firstName', label: 'First name' })
+
+      // Assert
+      expect(getComponentStamp(card)).toBe(TestCard)
+      expect(getComponentStamp(input)).toBe(TestField)
+    })
+
+    it('should keep the stamp invisible to enumeration and JSON serialisation', () => {
+      // Act
+      const card = TestCard({ title: 'Hello' })
+
+      // Assert
+      expect(Object.getOwnPropertyDescriptor(card, '__component')?.enumerable).toBe(false)
+      expect(JSON.stringify(card)).not.toContain('__component')
     })
   })
 
