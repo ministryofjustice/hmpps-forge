@@ -1,9 +1,9 @@
 import { FunctionType, HookType, OutcomeType, PredicateType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import type { RedirectOutcomeASTNode, SubmitHookASTNode } from '../../../contracts/ast/expressions.type'
-import type { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
-import type { StepASTNode } from '../../../contracts/ast/structures.type'
-import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
+import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import type { RedirectOutcomeASTNode, SubmitHookASTNode } from '../../../chassis/contracts/ast/expressions.type'
+import type { TestPredicateASTNode } from '../../../chassis/contracts/ast/predicates.type'
+import type { StepASTNode } from '../../../chassis/contracts/ast/structures.type'
+import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import ForwardNavigationAnalyzer from './ForwardNavigationAnalyzer'
 
 function createSubmitHookWithRedirect(

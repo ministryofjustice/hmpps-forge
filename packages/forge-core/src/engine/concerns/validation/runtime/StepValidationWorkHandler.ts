@@ -1,22 +1,29 @@
 import type { StepValidityResult } from '../contracts/stepValidityResult.type'
-import type { DomainValidationFailure, StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type {
+  DomainValidationFailure,
+  StepValidationFailure,
+} from '../../../chassis/contracts/runtime/evaluationState.type'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
 import type {
   CompletedWork,
   WorkContextContract,
   WorkHandler,
   WorkInstrumentation,
-} from '../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
-import { childOutputs } from '../../../runtime/evaluation/work/workTask'
+} from '../../../chassis/contracts/work/work.type'
+import type { TraceSpanFields } from '../../../chassis/tracing/traceSpan.type'
+import { childOutputs, createWorkTask } from '../../../chassis/work/workTask'
 import { FIELD_VALIDATION_KIND } from './FieldValidationWorkHandler'
 import { DOMAIN_VALIDATION_KIND } from './DomainValidationWorkHandler'
-import type { StepValidationWorkProps } from '../contracts/ValidationWork.type'
+import type {
+  DomainValidationWorkTask,
+  FieldValidationWorkTask,
+  StepValidationWorkProps,
+} from '../contracts/ValidationWork.type'
 
 export const STEP_VALIDATION_KIND = 'validation.step'
 
 export const STEP_VALIDATION_WORK_INSTRUMENTATION: WorkInstrumentation<StepValidationWorkProps, StepValidityResult> = {
-  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestExecutionContext, StepValidationWorkProps>) {
+  resolveTraceMetadataAtStart(ctx: WorkContextContract<RequestState, StepValidationWorkProps>) {
     return traceBegin(ctx.props)
   },
 
@@ -28,7 +35,7 @@ export const STEP_VALIDATION_WORK_INSTRUMENTATION: WorkInstrumentation<StepValid
 export const STEP_VALIDATION_WORK_HANDLER: WorkHandler<'validation.step', StepValidationWorkProps> = {
   kind: STEP_VALIDATION_KIND,
 
-  begin(ctx: WorkContextContract<RequestExecutionContext, StepValidationWorkProps>) {
+  begin(ctx: WorkContextContract<RequestState, StepValidationWorkProps>) {
     return {
       groups: [
         {
@@ -44,7 +51,7 @@ export const STEP_VALIDATION_WORK_HANDLER: WorkHandler<'validation.step', StepVa
   },
 
   complete(
-    _ctx: WorkContextContract<RequestExecutionContext, StepValidationWorkProps>,
+    _ctx: WorkContextContract<RequestState, StepValidationWorkProps>,
     children: readonly CompletedWork[],
   ): StepValidityResult {
     const fieldFailures = collectFieldFailures(children)
@@ -74,4 +81,16 @@ function traceComplete(output: StepValidityResult): TraceSpanFields {
     fieldFailures: output.fieldFailures.length,
     domainFailures: output.domainFailures.length,
   }
+}
+
+export function createStepValidationTask(
+  fields: readonly FieldValidationWorkTask[],
+  domains: readonly DomainValidationWorkTask[],
+) {
+  return createWorkTask(
+    'validation-step',
+    STEP_VALIDATION_WORK_HANDLER,
+    { fields, domains },
+    STEP_VALIDATION_WORK_INSTRUMENTATION,
+  )
 }

@@ -5,7 +5,7 @@ import {
   ResolvableBoolean,
   ResolvableObject,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
  * Label configuration for the MOJ Date Picker component.

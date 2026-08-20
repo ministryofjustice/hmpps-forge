@@ -1,13 +1,13 @@
 import { BlockType } from '../../../../authoring/types/enums'
-import { isTemplateNode } from '../../../contracts/ast/nodes'
-import type { TemplateNode } from '../../../contracts/ast/template.type'
+import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
+import type { TemplateNode } from '../../../chassis/contracts/ast/template.type'
 import {
   AuthoredValueKind,
   toRawOperand,
   type AuthoredValue,
   type BlockValue,
   type RecordEntryValue,
-} from '../../../contracts/models/authoredValue.type'
+} from '../../../chassis/contracts/models/authoredValue.type'
 import {
   CodeFragment,
   code,
@@ -16,21 +16,21 @@ import {
   structuredLiteralCode,
   SafeCode,
   ObjectCodeProperty,
-} from '../../../compilation/lowering/codegen/fragments/CodeFragment'
-import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
-import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
-import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
-import FieldCodeEmitter from '../../../compilation/lowering/emitters/FieldCodeEmitter'
-import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
+} from '../../../chassis/compilation/lowering/codegen/fragments/CodeFragment'
+import CodeGenerator from '../../../chassis/compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../chassis/compilation/lowering/codegen/fragments/IdentifierName'
+import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
+import FieldCodeEmitter from '../../../chassis/compilation/lowering/emitters/FieldCodeEmitter'
+import ExpressionDispatcher from '../../../chassis/compilation/lowering/expressions/ExpressionDispatcher'
 import {
   CompilationPhase,
   compileGeneratedFunction,
   GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM,
   renderGeneratedSource,
-} from '../../../compilation/lowering/GeneratedFunctionCompiler'
-import RuntimeValueCompiler from '../../../compilation/lowering/structures/RuntimeValueCompiler'
-import ScopedTemplateCompiler from '../../../compilation/lowering/structures/ScopedTemplateCompiler'
-import type { CompiledResolveFunction } from '../../../contracts/compiled/compiledFunctions.type'
+} from '../../../chassis/compilation/lowering/GeneratedFunctionCompiler'
+import RuntimeValueCompiler from '../../../chassis/compilation/lowering/structures/RuntimeValueCompiler'
+import ScopedTemplateCompiler from '../../../chassis/compilation/lowering/structures/ScopedTemplateCompiler'
+import type { CompiledResolveFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 import type {
   ResolveAncestorModel,
   ResolveBlockModel,
@@ -306,14 +306,41 @@ export default class StepResolveCompiler {
     generator: CodeGenerator,
     comment: string,
   ): IdentifierName {
-    const entries = this.compileBlockPropEntries(plan, generator)
+    const boundPlan = this.toSelfBoundPlan(plan, generator)
 
-    generator.comment(comment)
-    const props = generator.const(plan.namePrefix, objectCode(entries))
+    return this.expr.withSelfCodeExpression(boundPlan.codeExpression, () => {
+      const entries = this.compileBlockPropEntries(boundPlan, generator)
 
-    this.compileFieldResolution(plan, props, generator)
+      generator.comment(comment)
+      const props = generator.const(boundPlan.namePrefix, objectCode(entries))
 
-    return props
+      this.compileFieldResolution(boundPlan, props, generator)
+
+      return props
+    })
+  }
+
+  /**
+   * Resolves a FIELD block's code expression ahead of property compilation so
+   * `Self()` references in the block's properties can bind to it. Hoisted once
+   * outside the `withSelfCodeExpression` scope, so the code expression itself
+   * never self-resolves.
+   */
+  private toSelfBoundPlan(plan: BlockPropsCompilation, generator: CodeGenerator): BlockPropsCompilation {
+    if (plan.blockType !== BlockType.FIELD || plan.codeExpression !== undefined) {
+      return plan
+    }
+
+    const codeProperty = plan.properties.find(property => property.key === 'code')
+
+    if (codeProperty === undefined) {
+      return plan
+    }
+
+    return {
+      ...plan,
+      codeExpression: this.fieldCodes.compileRegisteredExpression(toRawOperand(codeProperty.value), generator),
+    }
   }
 
   private compileBlockPropEntries(plan: BlockPropsCompilation, generator: CodeGenerator): ObjectCodeProperty[] {
@@ -339,25 +366,35 @@ export default class StepResolveCompiler {
     visibleWhen: ResolvePropertyModel,
     generator: CodeGenerator,
   ): IdentifierName {
-    const props = generator.const(plan.namePrefix, code`{}`)
-    const hoistedKeys = new Set<string>(['visibleWhen'])
-    const codeProperty = plan.properties.find(property => property.key === 'code')
+    const boundPlan = this.toSelfBoundPlan(plan, generator)
 
-    this.compilePropertyAssignment(visibleWhen.value, props, 'visibleWhen', generator)
+    return this.expr.withSelfCodeExpression(boundPlan.codeExpression, () => {
+      const props = generator.const(boundPlan.namePrefix, code`{}`)
+      const hoistedKeys = new Set<string>(['visibleWhen'])
+      const codeProperty = boundPlan.properties.find(property => property.key === 'code')
 
-    if (plan.blockType === BlockType.FIELD && codeProperty !== undefined) {
-      this.fieldCodes.assignProperty(toRawOperand(codeProperty.value), generator, props, 'code', plan.codeExpression)
-      hoistedKeys.add('code')
-    }
+      this.compilePropertyAssignment(visibleWhen.value, props, 'visibleWhen', generator)
 
-    generator.if(code`${props}.visibleWhen !== false`, () => {
-      plan.properties
-        .filter(property => !hoistedKeys.has(property.key))
-        .forEach(property => this.compileBlockPropAssignment(property, plan, props, generator))
-      this.compileFieldResolution(plan, props, generator)
+      if (boundPlan.blockType === BlockType.FIELD && codeProperty !== undefined) {
+        this.fieldCodes.assignProperty(
+          toRawOperand(codeProperty.value),
+          generator,
+          props,
+          'code',
+          boundPlan.codeExpression,
+        )
+        hoistedKeys.add('code')
+      }
+
+      generator.if(code`${props}.visibleWhen !== false`, () => {
+        boundPlan.properties
+          .filter(property => !hoistedKeys.has(property.key))
+          .forEach(property => this.compileBlockPropAssignment(property, boundPlan, props, generator))
+        this.compileFieldResolution(boundPlan, props, generator)
+      })
+
+      return props
     })
-
-    return props
   }
 
   private compileBlockPropAssignment(
@@ -523,7 +560,7 @@ export default class StepResolveCompiler {
       const name = this.camelise(staticCode)
 
       if (name.length > 0) {
-        return name
+        return `nestedBlock${name.charAt(0).toUpperCase()}${name.slice(1)}`
       }
     }
 

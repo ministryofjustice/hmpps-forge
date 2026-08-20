@@ -1,7 +1,7 @@
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
 import type { CompiledAccessHookResult } from '../contracts/hookLifecycle.type'
-import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../contracts/runtime/work.type'
-import type { TraceSpanFields } from '../../../tracing/traceSpan.type'
+import type { WorkContextContract, WorkHandler, WorkInstrumentation } from '../../../chassis/contracts/work/work.type'
+import type { TraceSpanFields } from '../../../chassis/tracing/traceSpan.type'
 import type { HookStageResult } from '../contracts/HookStage.type'
 import type { AccessHookNextWorkProps } from '../contracts/AccessLifecycleWork.type'
 
@@ -28,7 +28,7 @@ export const ACCESS_HOOK_NEXT_WORK_INSTRUMENTATION: WorkInstrumentation<
 export const ACCESS_HOOK_NEXT_WORK_HANDLER: WorkHandler<'access.hook.next', AccessHookNextWorkProps> = {
   kind: ACCESS_HOOK_NEXT_KIND,
 
-  async begin(ctx: WorkContextContract<RequestExecutionContext, AccessHookNextWorkProps>) {
+  async begin(ctx: WorkContextContract<RequestState, AccessHookNextWorkProps>) {
     const outcome = await ctx.props.next()
 
     if (outcome?.type === 'redirect') {

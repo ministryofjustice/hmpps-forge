@@ -2,7 +2,7 @@ import ReachabilityPathAnalyzer from './ReachabilityPathAnalyzer'
 import ReachabilityGraphBuilder from './ReachabilityGraphBuilder'
 import ReachabilityStateProjector from './ReachabilityStateProjector'
 import type { ReachabilityStateTable } from '../../contracts/reachabilityModel.type'
-import type { NodeId } from '../../../../contracts/ast/ast.type'
+import type { NodeId } from '../../../../chassis/contracts/ast/ast.type'
 import type {
   ReachabilityEvaluation,
   ReachabilityNode,

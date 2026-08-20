@@ -53,6 +53,118 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.4.1
+
+Release focused mainly on internal engine cleanup plus a few bug fixes/security improvements 
+for Forge's codegen and the express-adapter.
+
+### Fixed
+
+- **Component input schemas now apply their sanitisation.** Previously
+  `checkComponentInputValue` validated the submitted value against the component's
+  `inputSchema` but returned the raw value on success — any coercion or transformation
+  the schema declared was silently dropped. Now the schema's parsed output is used, so
+  the date input's sanitisation (stripping non-digit characters from day/month/year
+  parts) actually takes effect
+- **Nested static data no longer leaks between requests.** Static `data` on journeys and
+  steps was shallow-copied with a spread, so nested objects were shared across requests —
+  a hook that mutated `context.getData('nested.key')` on one request changed the value
+  for every subsequent request. Now `structuredClone` produces a deep copy
+- **HEAD requests no longer reach the engine as an unknown method.** Express treats HEAD
+  as GET for routing, but the snapshot factory passed the raw `req.method` through —
+  the engine received `'HEAD'` and either threw or skipped POST-only phases depending on
+  the step. HEAD is now normalised to GET before the snapshot is built, and any method
+  other than GET or POST throws a `TypeError`
+- **Iterator work is capped per request.** Previously a crafted answer state with large
+  collections could force the engine to expand unbounded iterator loops, consuming CPU
+  and memory. `IteratorBudget` tracks total iterations across all compiled functions in a
+  request and throws `ForgeIteratorBudgetExceededError` when the cap is exceeded. The
+  default is configurable via `Forge`'s constructor options
+- **Generator arguments no longer collide with condition arguments.** A rule like
+  `Fixed('yes').match(Equals('yes'))` - a generator with an argument piped into a
+  condition with an argument - compiled both arguments to the same `functionArgument1`
+  name in nested scopes, and the inner one shadowed the outer before it was declared.
+  The request then failed with `Cannot access 'functionArgument1' before
+  initialization`. Generated nested functions now avoid reusing names visible in their
+  enclosing function
+
+### Changed
+
+- The govuk and moj component packages now define their renderers with a local
+  `nunjucksComponent` helper instead of importing it from `express-nunjucks` -
+  previously that import pulled the express adapter (and express itself) into every
+  browser bundle that used the components
+- Compilation and request trace events now carry the same span structure produced by
+  the unified trace projectors - sinks that destructure trace events will need updating
+  to match the new shapes
+
+### Details
+
+#### Unified work executor
+
+Previously `CompilationPipeline` called each phase method directly and wrapped them in
+`CompilationTracer` spans, while the request pipeline ran through `WorkExecutor` under
+`runtime/evaluation/work/`. Now one `WorkExecutor` at `engine/work/` serves both stages.
+The executor uses a `MaybeAsync<T>` pattern so the same recursion stays synchronous for
+compilation and becomes async only when a handler suspends at runtime.
+
+Compilation is restructured to match the request pipeline's shape:
+`CompilationPipelineBootstrap` declares the phase order, `CompilationState` carries
+mutable state (like `RequestState` for runtime), and each concern has a
+`Compilation*WorkHandler` that plugs into the tree. Adding a compilation phase now works
+the same way as adding a runtime phase - write a handler, register it in the bootstrap.
+
+The 390-line `WorkTaskFactory` that built the runtime task tree is gone - handlers create
+their own child tasks directly. `work.type.ts` and `workOutput.type.ts` moved from
+`contracts/runtime/` to `contracts/work/` since they're shared across both stages.
+
+#### Engine chassis
+
+The engine's stage-neutral machinery — compilation pipeline, runtime pipeline, work
+executor, contracts, registries, tracing — moved under `engine/chassis/`, separating it
+from the domain concerns that plug into it. Previously these sat as siblings alongside
+the concerns under `engine/`, so the two axes (machine vs domain) weren't visible in the
+folder tree. The concern folders under `engine/concerns/` are unchanged.
+
+#### Testing folder
+
+`testing/` is reorganised into subfolders by audience: `assertions/` (outcome assertion
+helpers), `functions/` (`FunctionRegistryTestHarness`, `createTestEffectContext`,
+`createTestPackage`), and `test-client/` (`ForgeTestClient`, `ForgeTestHarness`, result
+types). Published exports are unchanged.
+
+#### `TemplateNodeIndex`
+
+Previously every semantic-analysis rule that needed to visit nodes inside iterator
+templates did its own template walking — each rule carried a `templateWalker` callback
+and recursed through the template tree independently. Now `TemplateNodeIndex` (built
+during AST registration) indexes template-nested nodes by type once, and the rules query
+it directly. The shared `templateWalker.ts` is deleted.
+
+#### Dead code
+
+- `shared/utils/asserts.ts` deleted — the hand-rolled type asserts (`assertNumber`,
+  `assertDate`, `assertString`, `assertObject`, `assertArray`) were replaced by registry
+  `inputSchema` prechecks in 0.3.0
+- `shared/utils/utils.ts` (`getByPath`) deleted — no callers
+- `shared/typeguards/primitives.ts` (`isObjectValue`) deleted — inlined where needed
+- `sanitize.ts` moved from `shared/utils/` to `built-ins/` where its only consumers live
+- `ForgeDeprecations` and `routePath` moved up from `shared/utils/` to `shared/` — the
+  `utils/` folder is empty now
+
+#### `Self()` resolution moved to lowering
+
+Previously `Self()` references were resolved during AST registration —
+`NodeRegistrationWalker` cloned the referenced subtree, assigned it fresh node ids, and
+spliced it into the tree in place. Now `Self()` stays in the AST as-is and the resolve
+and answer-preparation compilers expand it at lowering, which means the AST walker no
+longer needs `astValueCloning.ts` (deleted) and the cloned subtree no longer inflates the
+node index. A new `validateSelfScope` semantic-analysis rule rejects `Self()` in
+positions where lowering can't expand it (outside a step's blocks, or nested inside
+another `Self()`).
+
+---
+
 ## 0.4.0
 
 A tidy-up of the authoring surface - the GOV.UK utility wrappers are real components

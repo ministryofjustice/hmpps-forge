@@ -1,29 +1,29 @@
 /* eslint-disable no-new-func */
-import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
+import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   formatGeneratorsRegistry,
 } from '../../../../built-ins/functions/generators/formatGenerators'
 import { stringTransformersRegistry } from '../../../../built-ins/functions/transformers/stringTransformers'
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import { BlockASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
-import { IterateASTNode, ReferenceASTNode } from '../../../contracts/ast/expressions.type'
-import { TemplateValue } from '../../../contracts/ast/template.type'
-import { compileTemplate } from '../../../compilation/ast/nodes/template'
-import { NodeIDGenerator } from '../../../compilation/ast/ast-state/NodeIDGenerator'
-import FunctionRegistry from '../../../registries/FunctionRegistry'
-import ComponentRegistry from '../../../registries/ComponentRegistry'
-import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { BlockASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
+import { IterateASTNode, ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
+import { TemplateValue } from '../../../chassis/contracts/ast/template.type'
+import { compileTemplate } from '../../../chassis/compilation/ast/nodes/template'
+import { NodeIDGenerator } from '../../../chassis/compilation/ast/ast-state/NodeIDGenerator'
+import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
+import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
+import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
-import type { CompiledResolveContext } from '../../../contracts/compiled/compiledContexts.type'
-import type { CompiledResolveBlockWorkTask } from '../../../contracts/compiled/compiledFunctions.type'
-import { isWorkTask } from '../../../runtime/evaluation/work/workTask'
-import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
-import ASTNodeIndex from '../../../compilation/ast/ast-state/ASTNodeIndex'
-import { createStepAnalysisContext } from '../../../compilation/analysis/testing-helpers/analysisContexts'
-import type { ASTNode } from '../../../contracts/ast/engine.type'
-import type { JourneyASTNode } from '../../../contracts/ast/structures.type'
+import type { CompiledResolveContext } from '../../../chassis/contracts/compiled/compiledContexts.type'
+import type { CompiledResolveBlockWorkTask } from '../../../chassis/contracts/compiled/compiledFunctions.type'
+import { isWorkTask } from '../../../chassis/work/workTask'
+import { workTaskBuilders } from '../../../chassis/runtime/context/compiledEvaluationContext'
+import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
+import { createStepAnalysisContext } from '../../../chassis/compilation/analysis/testing-helpers/analysisContexts'
+import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
+import type { JourneyASTNode } from '../../../chassis/contracts/ast/structures.type'
 import type { ResolveModel } from '../contracts/resolveModel.type'
 import ResolveAnalyzer from '../analysis/ResolveAnalyzer'
 import StepResolveCompiler from './StepResolveCompiler'
@@ -85,6 +85,7 @@ function createIterateNode(
 
 function createCtx(overrides: Partial<CompiledResolveContext> = {}): CompiledResolveContext {
   return {
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},
@@ -95,7 +96,7 @@ function createCtx(overrides: Partial<CompiledResolveContext> = {}): CompiledRes
     fieldFailureAnchors: {},
     components: new ComponentRegistry(),
     request: { method: 'GET' },
-    workTasks: WorkTaskFactory,
+    workTasks: workTaskBuilders,
     conditions: {
       get: vi.fn((name: string) => {
         if (name === FORMAT_STRING_GENERATOR_NAME) {
@@ -119,7 +120,7 @@ function resolveModel(
   ancestorNodes: JourneyASTNode[] = [],
   iterateNodes: IterateASTNode[] = [],
 ): ResolveModel {
-  const nodeRegistry = new ASTNodeIndex()
+  const nodeIndex = new ASTNodeIndex()
   let parent: ASTNode | undefined
 
   ancestorNodes.forEach(ancestorNode => {
@@ -127,7 +128,7 @@ function resolveModel(
       setParent(ancestorNode, parent)
     }
 
-    nodeRegistry.register(ancestorNode.id, ancestorNode)
+    nodeIndex.register(ancestorNode.id, ancestorNode)
     parent = ancestorNode
   })
 
@@ -135,13 +136,13 @@ function resolveModel(
     setParent(stepNode, parent)
   }
 
-  nodeRegistry.register(stepNode.id, stepNode)
+  nodeIndex.register(stepNode.id, stepNode)
   iterateNodes.forEach(iterateNode => {
     setParent(iterateNode, stepNode)
-    nodeRegistry.register(iterateNode.id, iterateNode)
+    nodeIndex.register(iterateNode.id, iterateNode)
   })
 
-  return new ResolveAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode, nodeRegistry }))
+  return new ResolveAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode, nodeIndex }))
 }
 
 describe('StepResolveCompiler', () => {
@@ -542,6 +543,60 @@ describe('StepResolveCompiler', () => {
       expect(result.props.blocks[0].props.properties.value).toBe('test@example.com')
     })
 
+    it('should resolve Self references in non-validation field properties', async () => {
+      // Arrange
+      const block = ASTTestFactory.block('text-input', BlockType.FIELD)
+        .withCode('email')
+        .withProperty('hint', createReference(['answers', '@self']))
+        .build()
+      const step = createStepWithBlocks([block])
+      const compiled = compiler.compile(resolveModel(step, []))
+      const source = compiler.generateSource(resolveModel(step, []))
+
+      if (!compiled) {
+        throw new Error('Expected render compiler to produce a function')
+      }
+
+      // Act
+      const result = await compiled(
+        createCtx({
+          answers: { email: { current: 'test@example.com' } },
+        }),
+      )
+
+      // Assert
+      expect(source).toContain('ctx.answers["email"]?.current')
+      expect(result.props.blocks[0].props.properties.hint).toBe('test@example.com')
+    })
+
+    it('should resolve Self references inside a visibility gated field', async () => {
+      // Arrange
+      const block = ASTTestFactory.block('text-input', BlockType.FIELD)
+        .withCode('email')
+        .withProperty('visibleWhen', createReference(['answers', 'show']))
+        .withProperty('hint', createReference(['answers', '@self']))
+        .build()
+      const step = createStepWithBlocks([block])
+      const compiled = compiler.compile(resolveModel(step, []))
+
+      if (!compiled) {
+        throw new Error('Expected render compiler to produce a function')
+      }
+
+      // Act
+      const result = await compiled(
+        createCtx({
+          answers: {
+            email: { current: 'test@example.com' },
+            show: { current: true },
+          },
+        }),
+      )
+
+      // Assert
+      expect(result.props.blocks[0].props.properties.hint).toBe('test@example.com')
+    })
+
     it('should resolve dynamic registered field codes as strings', async () => {
       // Arrange
       const dynamicCode = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'fieldCode')
@@ -577,7 +632,8 @@ describe('StepResolveCompiler', () => {
       )
 
       // Assert
-      expect(source).toContain('code: String(')
+      expect(source).toContain('const fieldCode = String(')
+      expect(source).toContain('code: fieldCode')
       expect(result.props.blocks[0].props.properties.code).toBe('123')
       expect(result.props.blocks[0].props.properties.value).toBe('Ada')
     })

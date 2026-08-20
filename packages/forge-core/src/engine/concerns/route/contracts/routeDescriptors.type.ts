@@ -1,4 +1,4 @@
-import type { NodeId } from '../../../contracts/ast/ast.type'
+import type { NodeId } from '../../../chassis/contracts/ast/ast.type'
 
 export interface JourneyRouteDescriptor {
   readonly nodeId: NodeId

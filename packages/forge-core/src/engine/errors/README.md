@@ -26,6 +26,7 @@ single `instanceof ForgeBaseError` check answers "did Forge throw this".
 | [`ForgeRegistryValidationError`](./ForgeRegistryValidationError.ts) | A registry entry is malformed (e.g. missing `evaluate` or `variant`) |
 | [`ForgeUnregisteredComponentError`](./ForgeUnregisteredComponentError.ts) | A block references a component variant that isn't in the registry |
 | [`ForgeUnregisteredFunctionError`](./ForgeUnregisteredFunctionError.ts) | An expression references a function name that isn't in the registry |
+| [`ForgeFunctionArityError`](./ForgeFunctionArityError.ts) | An authored expression calls a registered function with the wrong number of arguments |
 | [`ForgeRegistrationError`](./ForgeRegistrationError.ts) | Package registration fails while `strictRegistration` is enabled |
 | [`ForgeInternalError`](./ForgeInternalError.ts) | An internal consistency check fails - a state the engine should make impossible, so reaching one is a bug in Forge |
 

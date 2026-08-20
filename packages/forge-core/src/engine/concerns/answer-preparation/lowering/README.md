@@ -11,12 +11,11 @@ This document does not cover validation, rendering, or answer preparation work-h
 
 ## Inputs
 
-`StepAnswerPreparationCompiler.compile()` receives:
-- field blocks selected by analysis.
-- map iterate nodes whose yield templates may contain field blocks.
+`StepAnswerPreparationCompiler.compile()` receives the `AnswerPreparationModel` analysis built:
+- the classified field occurrences the step owns, including template fields under MAP iterators.
 
 `CodegenOrchestrator` uses the same compiler for step answer preparation and journey answer preparation.
-Journey calls pass the fields and map iterates from all steps in that journey's reachability state table.
+Journey calls pass the journey model, which aggregates the owned steps' fields in step order.
 
 ## Work Returned
 
@@ -47,10 +46,10 @@ The runtime work executor runs the answer-preparation handler and field handlers
 
 ## Editing Notes
 
-- To change POST behavior, start in `StepAnswerPreparationCompiler.compilePostPath()`.
-- To change GET/default behavior, start in `StepAnswerPreparationCompiler.compileGetPath()`.
-- To change formatter sequencing, start in `compileFormatterPipeline()`.
-- To change iterator field preparation, start around `compileIterateBlock()` and `compileTemplateAnswerPreparation()`.
+- To change POST behavior, start in `preparePostedFieldAnswerGroup()` in [generatedFunctionRuntimeLibrary.ts](../../../chassis/compilation/lowering/generatedFunctionRuntimeLibrary.ts).
+- To change GET/default behavior, start in `prepareStoredFieldAnswerGroup()` in the same runtime library.
+- To change formatter sequencing, start in `runPostedFieldPipeline()` there.
+- To change iterator field preparation, start in `FieldModelBuilder` for classification and `compileFieldDefinitionEntry()` for the emitted entries.
 - To inspect generated source, use `generateSource()` in the tests.
 
 ## Entry Points

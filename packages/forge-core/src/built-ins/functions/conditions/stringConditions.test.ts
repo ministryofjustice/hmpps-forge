@@ -1,6 +1,6 @@
 import { StringConditions, stringConditionsRegistry } from './stringConditions'
 import { FunctionType } from '../../../authoring/types/enums'
-import { FunctionRegistryTestHarness } from '../../../testing/FunctionRegistryTestHarness'
+import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('StringConditions', () => {
   const harness = new FunctionRegistryTestHarness(stringConditionsRegistry)

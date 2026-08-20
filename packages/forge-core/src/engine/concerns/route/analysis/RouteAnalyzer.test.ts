@@ -1,9 +1,9 @@
-import { staticValue } from '../../../contracts/models/authoredValue.type'
-import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
+import { staticValue } from '../../../chassis/contracts/models/authoredValue.type'
+import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import {
   createJourneyAnalysisContext,
   createStepAnalysisContext,
-} from '../../../compilation/analysis/testing-helpers/analysisContexts'
+} from '../../../chassis/compilation/analysis/testing-helpers/analysisContexts'
 import RouteAnalyzer from './RouteAnalyzer'
 
 describe('RouteAnalyzer', () => {

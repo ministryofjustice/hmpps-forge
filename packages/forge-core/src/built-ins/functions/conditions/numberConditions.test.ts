@@ -1,6 +1,6 @@
 import { NumberConditions, numberConditionsRegistry } from './numberConditions'
 import { FunctionType } from '../../../authoring/types/enums'
-import { FunctionRegistryTestHarness } from '../../../testing/FunctionRegistryTestHarness'
+import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('NumberConditions', () => {
   const harness = new FunctionRegistryTestHarness(numberConditionsRegistry)

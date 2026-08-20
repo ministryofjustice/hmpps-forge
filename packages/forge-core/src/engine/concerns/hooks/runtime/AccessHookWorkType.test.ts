@@ -1,15 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
-import WorkContext from '../../../runtime/evaluation/work/WorkContext'
-import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
+import WorkContext from '../../../chassis/work/WorkContext'
+import WorkExecutor from '../../../chassis/work/WorkExecutor'
 import type { CompiledHookLifecycleContext } from '../contracts/hookLifecycle.type'
 import type { AccessHookNextResult } from '../contracts/AccessLifecycleWork.type'
-import { createWorkTask } from '../../../runtime/evaluation/work/workTask'
+import { createWorkTask } from '../../../chassis/work/workTask'
 import { ACCESS_HOOK_WORK_HANDLER } from './AccessHookWorkHandler'
 import { ACCESS_HOOK_WHEN_WORK_HANDLER } from './AccessHookWhenWorkHandler'
 import { HOOK_EFFECT_WORK_HANDLER } from './HookEffectWorkHandler'
 
 function createContext(): WorkContext<CompiledHookLifecycleContext> {
   return new WorkContext({
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},

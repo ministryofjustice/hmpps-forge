@@ -26,7 +26,7 @@ That function returns a `CompiledReachabilityResult`, not a `WorkTask`:
 - `tieBreakerPriorities`, per-step resolved priority, or `undefined`.
 - `resumeActive`, the journey-level resume result.
 
-Every per-step array is indexed by `plan.entries` order.
+Every per-step array is indexed by `model.entries` order.
 The compiled state function consumes them later to walk the graph.
 
 ## Flow
@@ -35,7 +35,7 @@ The facts function emits one declaration block, then each algorithm in turn, the
 
 ```mermaid
 flowchart TD
-  start["compileFacts(plan)"] --> arrays["declare entryResults, outcomeValues, declaredOutcomeValues, tieBreakerPriorities"]
+  start["compileFacts(model)"] --> arrays["declare entryResults, outcomeValues, declaredOutcomeValues, tieBreakerPriorities"]
   arrays --> entry["compileEntryPredicates"]
   entry --> forward["compileForwardOutcomes"]
   forward --> tie["compileTieBreakers"]
@@ -118,11 +118,11 @@ flowchart TD
 ### Resume condition
 
 Resume is a single journey-level flag.
-An always-resume plan emits `true`; a plan with a resume predicate emits its boolean; everything else emits `false`.
+An always-resume model emits `true`; a model with a resume predicate emits its boolean; everything else emits `false`.
 
 ```mermaid
 flowchart TD
-  q1{"plan.resumeAlways?"}
+  q1{"model.resumeAlways?"}
   q1 -->|yes| t["resumeActive = true"]
   q1 -->|no| q2{"resumeWhen node present?"}
   q2 -->|no| f["resumeActive = false"]
@@ -131,7 +131,7 @@ flowchart TD
 
 ## Rules
 
-- Per-step result arrays are indexed by `plan.entries` order.
+- Per-step result arrays are indexed by `model.entries` order.
   Keep entry order stable; the state function relies on the alignment.
 - Forward outcome groups preserve submit-hook grouping.
   The cascade `outcomeMatched` flag resets per group.

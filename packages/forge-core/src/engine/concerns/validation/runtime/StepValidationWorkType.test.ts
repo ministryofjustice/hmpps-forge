@@ -1,14 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
-import WorkContext from '../../../runtime/evaluation/work/WorkContext'
-import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
-import type { CompiledValidationContext } from '../../../contracts/compiled/compiledContexts.type'
-import { createWorkTask } from '../../../runtime/evaluation/work/workTask'
+import WorkContext from '../../../chassis/work/WorkContext'
+import WorkExecutor from '../../../chassis/work/WorkExecutor'
+import type { CompiledValidationContext } from '../../../chassis/contracts/compiled/compiledContexts.type'
+import { createWorkTask } from '../../../chassis/work/workTask'
 import { STEP_VALIDATION_WORK_HANDLER, STEP_VALIDATION_WORK_INSTRUMENTATION } from './StepValidationWorkHandler'
 import { FIELD_VALIDATION_WORK_HANDLER, FIELD_VALIDATION_WORK_INSTRUMENTATION } from './FieldValidationWorkHandler'
 import { DOMAIN_VALIDATION_WORK_HANDLER, DOMAIN_VALIDATION_WORK_INSTRUMENTATION } from './DomainValidationWorkHandler'
 
 function createContext(): WorkContext<CompiledValidationContext> {
   return new WorkContext({
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},

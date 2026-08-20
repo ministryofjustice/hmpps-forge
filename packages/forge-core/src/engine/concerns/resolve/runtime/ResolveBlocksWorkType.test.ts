@@ -1,14 +1,15 @@
 import { BlockType } from '../../../../authoring/types/enums'
-import type { CompiledResolveContext } from '../../../contracts/compiled/compiledContexts.type'
-import ComponentRegistry from '../../../registries/ComponentRegistry'
-import WorkContext from '../../../runtime/evaluation/work/WorkContext'
-import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
-import { createWorkTask } from '../../../runtime/evaluation/work/workTask'
+import type { CompiledResolveContext } from '../../../chassis/contracts/compiled/compiledContexts.type'
+import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
+import WorkContext from '../../../chassis/work/WorkContext'
+import WorkExecutor from '../../../chassis/work/WorkExecutor'
+import { createWorkTask } from '../../../chassis/work/workTask'
 import { RESOLVE_BLOCK_WORK_HANDLER } from './ResolveBlockWorkHandler'
 import { RESOLVE_BLOCKS_WORK_HANDLER, RESOLVE_BLOCKS_WORK_INSTRUMENTATION } from './ResolveBlocksWorkHandler'
 
 function createContext(): WorkContext<CompiledResolveContext> {
   return new WorkContext({
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},

@@ -7,6 +7,7 @@ import { answerOf, answersFromTrace } from './contractHelpers'
 import {
   createHooksClient,
   createTracedHooksClient,
+  createUnusualNameEffectsClient,
   type HooksSession,
   accessEffectOrderJourney,
   submitEffectOrderJourney,
@@ -70,6 +71,21 @@ describe('hooks and effects contracts', () => {
 
       // Assert
       expect(session.effectLog).toEqual(['alpha', 'beta'])
+    })
+
+    it('should execute effects whose names are not JavaScript identifiers', async () => {
+      // Arrange
+      const client = createUnusualNameEffectsClient()
+
+      // Act
+      const result = await client.get('/unusual-effect-names/form', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.data.unusualEffectLog).toEqual(['class', 'audit.log', '123 effect'])
+      }
     })
 
     it('should complete access effects before evaluating outcomes', async () => {

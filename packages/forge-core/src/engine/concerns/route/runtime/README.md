@@ -17,11 +17,11 @@ Title, description, and metadata are authored as expressions, so they cannot liv
 The route-tree phase runs just before resolve on step requests.
 Its request handler ([RequestRouteTreeWorkHandler.ts](RequestRouteTreeWorkHandler.ts)) evaluates the
 package-level `compiledRouteMetadata` function once, then calls `hydrateRouteTree` to merge the resolved metadata onto the
-stored topology by node ID. It publishes the result on `ctx.request.routeTree`, which the resolve phase reads when assembling
+stored topology by node ID. It publishes the result on `ctx.state.routeTree`, which the resolve phase reads when assembling
 `RenderContext`.
 
 Redirect targets are the other half of this folder.
-Once any phase has chosen to redirect, `RequestEvaluator` calls `resolveRedirectTarget()` to turn a route-template path or an authored target string into a concrete URL against the request origin and base path.
+Once any phase has chosen to redirect, `RequestPipeline` calls `resolveRedirectTarget()` to turn a route-template path or an authored target string into a concrete URL against the request origin and base path.
 
 ## Responsibilities
 
@@ -51,7 +51,7 @@ flowchart TD
   handler -->|"stored topology + params"| hydrate["hydrateRouteTree()"]
   metadata --> hydrate
   hydrate --> tree["RouteTree"]
-  tree --> stash["ctx.request.routeTree"]
+  tree --> stash["ctx.state.routeTree"]
 ```
 
 ## Boundaries
@@ -59,7 +59,7 @@ flowchart TD
 - This folder owns turning a stored route tree into render route-tree data.
   It should not evaluate authored expressions — the compiled route-metadata function does that in the handler.
 - The route-tree request handler owns metadata evaluation and stashing.
-  Resolve owns reading `ctx.request.routeTree` into `RenderContext`.
+  Resolve owns reading `ctx.state.routeTree` into `RenderContext`.
 - `RouteTreeBuilder` owns route topology from compiled route indexes.
   It should not resolve request outcomes.
 - `redirectTarget` owns string-to-URL resolution only.

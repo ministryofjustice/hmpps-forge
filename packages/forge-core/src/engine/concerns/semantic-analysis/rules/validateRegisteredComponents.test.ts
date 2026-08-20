@@ -1,13 +1,14 @@
 import { BlockType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
-import type { ASTNode } from '../../../contracts/ast/engine.type'
-import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
-import type { TemplateValue } from '../../../contracts/ast/template.type'
-import ASTNodeIndex from '../../../compilation/ast/ast-state/ASTNodeIndex'
-import { NodeIDGenerator } from '../../../compilation/ast/ast-state/NodeIDGenerator'
-import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
-import { compileTemplate } from '../../../compilation/ast/nodes/template'
-import ComponentRegistry from '../../../registries/ComponentRegistry'
-import FunctionRegistry from '../../../registries/FunctionRegistry'
+import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
+import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
+import type { TemplateValue } from '../../../chassis/contracts/ast/template.type'
+import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
+import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'
+import { NodeIDGenerator } from '../../../chassis/compilation/ast/ast-state/NodeIDGenerator'
+import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
+import { compileTemplate } from '../../../chassis/compilation/ast/nodes/template'
+import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
+import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
 import ForgeUnregisteredComponentError from '../../../errors/ForgeUnregisteredComponentError'
 import { buildComponent } from '../../../../components/utils/buildComponent'
 import { validateRegisteredComponents } from './validateRegisteredComponents'
@@ -17,6 +18,16 @@ function buildContext(nodes: ASTNode[], registeredVariants: string[]): ASTValida
   const nodeIndex = new ASTNodeIndex()
   nodes.forEach(node => nodeIndex.register(node.id, node))
 
+  const templateNodeIndex = new TemplateNodeIndex()
+
+  nodes.forEach(node => {
+    const iterator = node.properties?.iterator as { yieldTemplate?: TemplateValue } | undefined
+
+    if (iterator?.yieldTemplate !== undefined) {
+      templateNodeIndex.registerTree(iterator.yieldTemplate, node)
+    }
+  })
+
   const componentRegistry = new ComponentRegistry()
 
   if (registeredVariants.length > 0) {
@@ -25,6 +36,7 @@ function buildContext(nodes: ASTNode[], registeredVariants: string[]): ASTValida
 
   return {
     nodeIndex,
+    templateNodeIndex,
     functionRegistry: new FunctionRegistry(),
     componentRegistry,
   }

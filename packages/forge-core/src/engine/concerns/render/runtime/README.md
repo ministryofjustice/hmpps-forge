@@ -29,7 +29,7 @@ The `RenderContext` already contains the effective inherited view at `step.view`
 - Render visible top-level blocks.
 - Render nested `RenderBlock` values inside block properties.
 - Omit invisible block trace units where possible.
-- Store `ctx.request.renderedBlocks`.
+- Store `ctx.state.renderedBlocks`.
 - Assemble final page output through `renderer.assemblePage()`.
 
 ## Data Model
@@ -89,7 +89,7 @@ flowchart TD
   nestedChildren --> block
   nested -->|no| renderBlock["renderer.renderBlock()"]
   block -->|"after nested children complete"| renderBlock
-  renderBlock --> rendered["ctx.request.renderedBlocks"]
+  renderBlock --> rendered["ctx.state.renderedBlocks"]
   rendered --> assemble
   assemble --> output["renderer.assemblePage()"]
 ```
@@ -119,7 +119,7 @@ flowchart TD
   They call `omitFromTrace()` so empty branch noise is reduced.
 - Nested render blocks are rendered before the parent block.
   Parent properties are replaced with nested renderer output.
-- `render.render-blocks` stores output on `ctx.request.renderedBlocks`.
+- `render.render-blocks` stores output on `ctx.state.renderedBlocks`.
   `render.assemble-page` reads that shared value in the next request-render child group.
 - Renderer output is `unknown`.
   Runtime does not assume HTML.
@@ -127,7 +127,7 @@ flowchart TD
 ## Constraints
 
 - Keep `render.render-blocks` before `render.assemble-page`.
-  Page assembly needs `ctx.request.renderedBlocks`.
+  Page assembly needs `ctx.state.renderedBlocks`.
 - Keep nested block rendering inside `RenderBlockWorkHandler`.
   Component renderers should receive nested renderer output, not raw `RenderBlock` objects.
 - Throw for missing component entries.

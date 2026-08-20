@@ -34,7 +34,7 @@ depends on.
 - Run domain validation tasks concurrently.
 - Fold child failures into `StepValidityResult`.
 - Store reachability-round results by `NodeId` in `reachabilityValidities`.
-- Store the current-page result on `RequestExecutionContext.currentPageValidation`.
+- Store the current-page result on `RequestState.currentPageValidation`.
 - Build step validation tasks from compiled validation functions.
 - Keep field failure `blockId` available for resolve.
 
@@ -60,7 +60,7 @@ depends on.
 `ValidationView` is the current-page read model with `isValid` plus the failure lists.
 
 `context.evaluation.reachabilityValidities` stores reachability-round `StepValidityResult` values keyed by step
-`NodeId`. `RequestExecutionContext.currentPageValidation` stores the one current-page `ValidationView`; its
+`NodeId`. `RequestState.currentPageValidation` stores the one current-page `ValidationView`; its
 presence is the display signal.
 
 ## Flow

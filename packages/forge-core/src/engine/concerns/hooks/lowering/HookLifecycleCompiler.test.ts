@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
+import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { FunctionType, HookType, PredicateType } from '../../../../authoring/types/enums'
 import { formatGeneratorsRegistry } from '../../../../built-ins/functions/generators/formatGenerators'
-import FunctionRegistry from '../../../registries/FunctionRegistry'
-import ComponentRegistry from '../../../registries/ComponentRegistry'
-import { AccessHookASTNode, SubmitHookASTNode } from '../../../contracts/ast/expressions.type'
-import { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
+import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
+import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
+import { AccessHookASTNode, SubmitHookASTNode } from '../../../chassis/contracts/ast/expressions.type'
+import { TestPredicateASTNode } from '../../../chassis/contracts/ast/predicates.type'
 import type { ResponseBindings } from '../../../../framework/types/responseBindings.type'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import type {
@@ -16,18 +16,18 @@ import type {
   CompiledHookLifecycleContext,
 } from '../contracts/hookLifecycle.type'
 import type { StepValidityResult } from '../../validation/contracts/stepValidityResult.type'
-import type { NodeId } from '../../../contracts/ast/ast.type'
+import type { NodeId } from '../../../chassis/contracts/ast/ast.type'
 import HookAnalyzer from '../analysis/HookAnalyzer'
 import type { AccessLifecycleModel, SubmitHooksModel } from '../contracts/hookModel.type'
-import { createStepAnalysisContext } from '../../../compilation/analysis/testing-helpers/analysisContexts'
+import { createStepAnalysisContext } from '../../../chassis/compilation/analysis/testing-helpers/analysisContexts'
 import HookLifecycleCompiler from './HookLifecycleCompiler'
-import EffectFunctionContextImpl from '../../../runtime/evaluation/context/EffectFunctionContext'
-import WorkContext from '../../../runtime/evaluation/work/WorkContext'
-import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
-import { createWorkTask, isWorkTask } from '../../../runtime/evaluation/work/workTask'
-import type { WorkTask, WorkHandler } from '../../../contracts/runtime/work.type'
+import EffectFunctionContextImpl from '../../../chassis/runtime/context/EffectFunctionContext'
+import WorkContext from '../../../chassis/work/WorkContext'
+import WorkExecutor from '../../../chassis/work/WorkExecutor'
+import { createWorkTask, isWorkTask } from '../../../chassis/work/workTask'
+import type { WorkTask, WorkHandler } from '../../../chassis/contracts/work/work.type'
 import type { SubmitLifecycleWorkTask } from '../contracts/SubmitLifecycleWork.type'
-import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
+import { workTaskBuilders } from '../../../chassis/runtime/context/compiledEvaluationContext'
 
 function accessModel(hooks: AccessHookASTNode[]): AccessLifecycleModel {
   const stepNode = ASTTestFactory.step().withProperty('onAccess', hooks).build()
@@ -91,7 +91,7 @@ function createContext(
   } as unknown as ResponseBindings
   const stepValidities = new Map<string, StepValidityResult>()
 
-  return {
+  const state = {
     answers,
     data,
     session: {},
@@ -112,11 +112,21 @@ function createContext(
       response,
       'access',
     ),
-    workTasks: WorkTaskFactory,
+    workTasks: workTaskBuilders,
     currentStepId: 'submit-step',
     context: { evaluation: { stepValidities }, domain: { data: {}, answers: {} }, request: {} },
     ...overrides,
-  } as unknown as CompiledHookLifecycleContext
+  } as Record<string, unknown>
+
+  state.dependencies = {
+    currentStepId: state.currentStepId,
+    buildStepValidation: state.buildStepValidation ?? (() => undefined),
+  }
+  state.recordCurrentPageValidation = (view: unknown) => {
+    state.currentPageValidation = view
+  }
+
+  return state as unknown as CompiledHookLifecycleContext
 }
 
 async function executeCompiledAccessLifecycle(

@@ -58,7 +58,7 @@ resolveRedirect(unreachableEvaluation, 'step', 'GET') // '/apply/check-answers'
 ```
 
 `RequestReachabilityWorkHandler` turns a returned path into a `halt-redirect`.
-`RequestEvaluator` later resolves that route-template path to a concrete URL:
+`RequestPipeline` later resolves that route-template path to a concrete URL:
 
 ```ts
 resolveRedirectTarget('/apply/check-answers', snapshot.location)
@@ -80,7 +80,7 @@ flowchart TD
 - [reachabilityRedirects.ts](reachabilityRedirects.ts) decides the redirect and backlink route-template paths from the evaluation.
   `RequestReachabilityWorkHandler` reads the redirect; `RequestResolveWorkHandler` reads the backlink.
 - [redirectTarget.ts](../../route/runtime/redirectTarget.ts) classifies a redirect target and resolves it into a concrete URL.
-  It belongs to the [route](../../route/README.md) concern; `RequestEvaluator` calls it once a phase has chosen to redirect.
+  It belongs to the [route](../../route/README.md) concern; `RequestPipeline` calls it once a phase has chosen to redirect.
 
 ## Boundaries
 
@@ -89,7 +89,7 @@ flowchart TD
 - `resolveRedirect` owns the redirect decision; it returns a target or `undefined`.
   `RequestReachabilityWorkHandler` owns whether that target halts the pipeline.
 - `redirectTarget` owns string-to-URL resolution.
-  It runs from `RequestEvaluator`, after a phase has chosen to redirect.
+  It runs from `RequestPipeline`, after a phase has chosen to redirect.
 - Route-template paths stay distinct from resolved URLs.
   Redirect decisions work in route templates; `resolveRedirectTarget` resolves the target against the request origin and base path. Route params are substituted earlier, before it runs.
 

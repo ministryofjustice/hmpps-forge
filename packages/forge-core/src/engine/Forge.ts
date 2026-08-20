@@ -1,7 +1,11 @@
 import PackageInstance from './PackageInstance'
-import type { ForgeDependencies, ForgePackageFunctions, ForgePackageRegistration } from './contracts/ast/engine.type'
-import FunctionRegistry from './registries/FunctionRegistry'
-import ComponentRegistry from './registries/ComponentRegistry'
+import type {
+  ForgeDependencies,
+  ForgePackageFunctions,
+  ForgePackageRegistration,
+} from './chassis/contracts/ast/engine.type'
+import FunctionRegistry from './chassis/registries/FunctionRegistry'
+import ComponentRegistry from './chassis/registries/ComponentRegistry'
 import type { ComponentRegistryEntry } from '../components/types/components.type'
 import type { BlockDefinition } from '../components/types/structures.type'
 import { createFunctionsRegistry } from '../authoring/utils/deprecated/createFunctionsRegistry'
@@ -10,7 +14,7 @@ import { GeneratorsRegistry } from '../built-ins/functions/generators'
 import { TransformersRegistry } from '../built-ins/functions/transformers'
 import { coreComponents } from '../built-ins/components'
 import { isFunctionRegistry } from '../authoring/registries/BaseFunctionRegistry'
-import { ForgeDeprecations } from '../shared/utils/ForgeDeprecations'
+import { ForgeDeprecations } from '../shared/ForgeDeprecations'
 import type { FunctionImplementations, FunctionShapeMap } from '../authoring/utils/deprecated/defineFunction.type'
 import type { Logger } from '../framework/types/adapter.type'
 import type { ForgeRenderer } from '../framework/types/rendering.type'
@@ -18,13 +22,14 @@ import type { ForgeError, ForgeOutcome } from '../framework/types/outcome.type'
 import type { RequestSnapshot } from '../framework/types/snapshot.type'
 import type { ResponseBindings } from '../framework/types/responseBindings.type'
 import type { ForgeTopology } from '../framework/types/topology.type'
-import MountRegistry from './registries/MountRegistry'
-import RequestEvaluator from './runtime/RequestEvaluator'
-import ForgeTraceSinkDispatcher from './tracing/ForgeTraceSinkDispatcher'
-import type { ForgeInstrumentation, ForgeInstrumentationOptions } from './tracing/ForgeTraceSinkDispatcher'
+import MountRegistry from './chassis/registries/MountRegistry'
+import RequestPipeline from './chassis/runtime/pipeline/RequestPipeline'
+import ForgeTraceSinkDispatcher from './chassis/tracing/ForgeTraceSinkDispatcher'
+import type { ForgeInstrumentation, ForgeInstrumentationOptions } from './chassis/tracing/ForgeTraceSinkDispatcher'
 import RegistrationErrorFormatter from './errors/RegistrationErrorFormatter'
 import ForgeRegistrationError from './errors/ForgeRegistrationError'
 import ForgeInternalError from './errors/ForgeInternalError'
+import { DEFAULT_MAX_ITERATOR_ITERATIONS } from './chassis/runtime/pipeline/IteratorBudget'
 
 export interface ForgeExecutionRequest {
   readonly snapshot: RequestSnapshot
@@ -83,6 +88,9 @@ export interface ForgeOptions {
 
   instrumentation?: ForgeInstrumentationOptions
 
+  /** Maximum cumulative iterator iterations allowed during one request. Default: 10,000 */
+  maxIteratorIterations?: number
+
   /**
    * @deprecated Build framework routers directly, for example `createExpressRouter(forge, options)`.
    */
@@ -102,7 +110,7 @@ export default class Forge {
 
   private readonly instrumentation: ForgeInstrumentation
 
-  private readonly requestEvaluator: RequestEvaluator
+  private readonly requestPipeline: RequestPipeline
 
   /**
    * Create a new Forge instance
@@ -112,7 +120,7 @@ export default class Forge {
    *
    * @example
    * ```typescript
-   * import { Forge } from './'
+   * import { Forge } from '.'
    * import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
    * import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
    *
@@ -132,6 +140,7 @@ export default class Forge {
       logger: console,
       basePath: '',
       instrumentation: {},
+      maxIteratorIterations: DEFAULT_MAX_ITERATOR_ITERATIONS,
     }
 
     this.options = {
@@ -155,7 +164,10 @@ export default class Forge {
 
     this.mountRegistry = new MountRegistry(this.options.basePath)
     this.instrumentation = new ForgeTraceSinkDispatcher(this.options.instrumentation)
-    this.requestEvaluator = new RequestEvaluator({ instrumentation: this.instrumentation })
+    this.requestPipeline = new RequestPipeline({
+      instrumentation: this.instrumentation,
+      maxIteratorIterations: this.options.maxIteratorIterations,
+    })
   }
 
   /** Add a component to the global registry, making it available to all journeys. */
@@ -317,7 +329,7 @@ export default class Forge {
         throw new ForgeInternalError(`No node registered for "${request.snapshot.nodeId}"`)
       }
 
-      return await this.requestEvaluator.evaluate({ node, ...request })
+      return await this.requestPipeline.evaluate({ node, ...request })
     } catch (error) {
       return { kind: 'error', error: this.toError(error) }
     }

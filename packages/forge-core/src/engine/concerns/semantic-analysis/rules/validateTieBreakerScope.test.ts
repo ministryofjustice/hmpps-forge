@@ -1,9 +1,10 @@
 import { ExpressionType, BlockType } from '../../../../authoring/types/enums'
-import type { ASTNode, NodeId } from '../../../contracts/ast/engine.type'
-import ASTNodeIndex from '../../../compilation/ast/ast-state/ASTNodeIndex'
-import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
-import FunctionRegistry from '../../../registries/FunctionRegistry'
-import ComponentRegistry from '../../../registries/ComponentRegistry'
+import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
+import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
+import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'
+import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
+import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
+import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTValidationContext } from './types'
 import { validateTieBreakerScope } from './validateTieBreakerScope'
@@ -25,6 +26,7 @@ const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, 
 
   return {
     nodeIndex,
+    templateNodeIndex: new TemplateNodeIndex(),
     functionRegistry: new FunctionRegistry(),
     componentRegistry: new ComponentRegistry(),
   }

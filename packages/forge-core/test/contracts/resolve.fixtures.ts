@@ -17,6 +17,7 @@ import {
   Data,
   Format,
   Iterator,
+  Item,
   Loop,
   Self,
   Condition,
@@ -386,6 +387,45 @@ export const iteratorRenderJourney = journey({
       ],
     }),
     step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})
+
+export const nestedExpressionIteratorJourney = journey({
+  code: 'nested-expression-iterator',
+  path: '/nested-expression-iterator',
+  title: 'Nested expression iterator',
+  onAccess: [access({ effects: [Effects.LoadData()] })],
+  steps: [
+    step({
+      path: '/teams',
+      title: 'Teams',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKInsetText({
+          text: Format(
+            '%1',
+            Data('teams').each(
+              Iterator.Map(
+                Item()
+                  .path('members')
+                  .each(
+                    Iterator.Map(
+                      Format(
+                        '%1:%2:%3:%4',
+                        Loop.Parent.Index0(),
+                        Loop.Index0(),
+                        Item().parent.path('name'),
+                        Item().path('name'),
+                      ),
+                    ),
+                  )
+                  .pipe(Transformer.Array.Join('|')),
+              ),
+            ),
+          ),
+        }),
+      ],
+    }),
   ],
 })
 
@@ -831,5 +871,29 @@ export const nestedBlockValidationJourney = journey({
       ],
     }),
     step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})
+
+export const unusualNestedBlockCodesJourney = journey({
+  code: 'unusual-nested-block-codes',
+  path: '/unusual-nested-block-codes',
+  title: 'Unusual nested block codes',
+  steps: [
+    step({
+      path: '/form',
+      title: 'Form',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKRadioInput({
+          code: 'choice',
+          fieldset: { legend: { text: 'Choose' } },
+          items: [
+            { value: 'reserved', text: 'Reserved', block: GovUKTextInput({ code: 'class', label: 'Class' }) },
+            { value: 'punctuated', text: 'Punctuated', block: GovUKTextInput({ code: 'audit.log', label: 'Audit' }) },
+            { value: 'numeric', text: 'Numeric', block: GovUKTextInput({ code: '123 detail', label: 'Detail' }) },
+          ],
+        }),
+      ],
+    }),
   ],
 })

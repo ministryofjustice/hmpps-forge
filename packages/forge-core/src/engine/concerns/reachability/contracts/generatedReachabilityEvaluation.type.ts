@@ -1,7 +1,7 @@
-import type { NodeId } from '../../../contracts/ast/ast.type'
+import type { NodeId } from '../../../chassis/contracts/ast/ast.type'
 import type { JourneyReachabilityProjection } from './journeyReachabilityProjection.type'
 import type { ReachabilityEvaluation } from './reachabilityEvaluation.type'
-import type { CompiledReachabilityResult } from '../../../contracts/compiled/compiledFunctions.type'
+import type { CompiledReachabilityResult } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 import type { StepFieldInventory } from '../../answer-cleardown/contracts/stepFieldInventory.type'
 import type { JourneyRouteTemplateCatalog } from '../../route/contracts/routeTree.type'
 

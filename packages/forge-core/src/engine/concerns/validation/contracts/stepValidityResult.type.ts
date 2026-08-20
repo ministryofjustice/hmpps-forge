@@ -1,4 +1,7 @@
-import type { DomainValidationFailure, StepValidationFailure } from '../../../contracts/runtime/evaluationState.type'
+import type {
+  DomainValidationFailure,
+  StepValidationFailure,
+} from '../../../chassis/contracts/runtime/evaluationState.type'
 
 /**
  * A step's recorded failure set from one validation run — every selected rule that

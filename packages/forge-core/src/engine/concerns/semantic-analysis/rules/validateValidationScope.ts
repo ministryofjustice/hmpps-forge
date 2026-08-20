@@ -1,12 +1,12 @@
 import { ExpressionType, BlockType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import type { ValidationASTNode, IterateASTNode } from '../../../contracts/ast/expressions.type'
-import type { FieldBlockASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
+import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import type { ValidationASTNode, IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
+import type { FieldBlockASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
-import { isTemplateNode } from '../../../contracts/ast/nodes'
-import type { TemplateValue } from '../../../contracts/ast/template.type'
-import type { ASTNode } from '../../../contracts/ast/engine.type'
+import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
+import type { TemplateValue } from '../../../chassis/contracts/ast/template.type'
+import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 
 function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeReferenceScopeError {

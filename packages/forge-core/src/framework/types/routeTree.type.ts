@@ -1,4 +1,4 @@
-import type { NodeId } from '../../engine/contracts/ast/ast.type'
+import type { NodeId } from '../../engine/chassis/contracts/ast/ast.type'
 
 export type RouteTreeRouteKind = 'journey' | 'step'
 

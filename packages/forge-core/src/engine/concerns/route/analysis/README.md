@@ -22,7 +22,7 @@ Steps and journeys carry the same metadata shape, so one analyzer serves both.
 
 `RouteIndexBuilder` builds the `stepRouteIndex` and `journeyRouteIndex` maps for the compiled package.
 Each entry carries the node's authored `path` and its `ancestorJourneyIds`, derived by walking AST `parent` links from the outermost journey down.
-`CompilationPipeline.buildRouteIndexes()` calls it after lowering and spreads the indexes onto the `CompiledPackage`.
+`CompilationRoutesWorkHandler` runs it as the final compilation phase, after lowering, and records the indexes on `CompilationState` for the `CompiledPackage`.
 
 ## Rules
 
@@ -35,12 +35,13 @@ Each entry carries the node's authored `path` and its `ancestorJourneyIds`, deri
 
 ## Editing Notes
 
-- To add a route metadata field, update `RouteMetadataModel` in `contracts/models/compilationModel.type.ts`, then update `RouteAnalyzer` and `RouteMetadataCompiler.compileEntry()` together.
+- To add a route metadata field, update `RouteMetadataModel` in `../contracts/routeMetadataModel.type.ts`, then update `RouteAnalyzer` and `RouteMetadataCompiler.compileEntry()` together.
 - To change which nodes get entries, start in the route-metadata collection inside `CompilationModelBuilder.build()`.
 
 ## Entry Points
 
 - [RouteAnalyzer.ts](RouteAnalyzer.ts) builds route metadata inputs for one step or journey.
 - [RouteIndexBuilder.ts](RouteIndexBuilder.ts) builds the step and journey route indexes.
-- [CompilationModelBuilder.ts](../../../compilation/analysis/CompilationModelBuilder.ts) calls `buildInputs()` for every step and journey.
+- [CompilationRoutesWorkHandler.ts](CompilationRoutesWorkHandler.ts) runs `RouteIndexBuilder` as the final compilation phase.
+- [CompilationModelBuilder.ts](../../../chassis/compilation/analysis/CompilationModelBuilder.ts) calls `analyzeStep()` and `analyzeJourney()` for every step and journey.
 - [../lowering/RouteMetadataCompiler.ts](../lowering/RouteMetadataCompiler.ts) consumes the collected inputs.

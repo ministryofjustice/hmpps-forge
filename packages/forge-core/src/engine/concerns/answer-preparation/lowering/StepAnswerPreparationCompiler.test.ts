@@ -1,34 +1,34 @@
 /* eslint-disable no-new-func */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z, type ZodType } from 'zod'
-import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
-import { ASTNodeType } from '../../../contracts/ast/enums'
+import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
+import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   formatGeneratorsRegistry,
 } from '../../../../built-ins/functions/generators/formatGenerators'
-import { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
-import { FunctionASTNode, IterateASTNode, ReferenceASTNode } from '../../../contracts/ast/expressions.type'
-import { TestPredicateASTNode } from '../../../contracts/ast/predicates.type'
-import { TemplateValue } from '../../../contracts/ast/template.type'
-import { compileTemplate } from '../../../compilation/ast/nodes/template'
-import { NodeIDGenerator } from '../../../compilation/ast/ast-state/NodeIDGenerator'
-import FunctionRegistry from '../../../registries/FunctionRegistry'
-import ComponentRegistry from '../../../registries/ComponentRegistry'
+import { FieldBlockASTNode } from '../../../chassis/contracts/ast/structures.type'
+import { FunctionASTNode, IterateASTNode, ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
+import { TestPredicateASTNode } from '../../../chassis/contracts/ast/predicates.type'
+import { TemplateValue } from '../../../chassis/contracts/ast/template.type'
+import { compileTemplate } from '../../../chassis/compilation/ast/nodes/template'
+import { NodeIDGenerator } from '../../../chassis/compilation/ast/ast-state/NodeIDGenerator'
+import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
+import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
-import { generatedFunctionRuntimeLibrary } from '../../../compilation/lowering/generatedFunctionRuntimeLibrary'
-import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
-import { buildStepFieldModels } from '../../../compilation/analysis/testing-helpers/analysisContexts'
+import { generatedFunctionRuntimeLibrary } from '../../../chassis/compilation/lowering/generatedFunctionRuntimeLibrary'
+import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
+import { buildStepFieldModels } from '../../../chassis/compilation/analysis/testing-helpers/analysisContexts'
 import type { AnswerPreparationModel } from '../contracts/answerPreparationModel.type'
 import StepAnswerPreparationCompiler from './StepAnswerPreparationCompiler'
-import type { CompiledAnswerPreparationFunction } from '../../../contracts/compiled/compiledFunctions.type'
-import type { CompiledAnswerPreparationContext } from '../../../contracts/compiled/compiledContexts.type'
-import type { RequestExecutionContext } from '../../../contracts/runtime/RequestExecutionContext.type'
-import WorkContext from '../../../runtime/evaluation/work/WorkContext'
-import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
-import { isWorkTask } from '../../../runtime/evaluation/work/workTask'
-import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
+import type { CompiledAnswerPreparationFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
+import type { CompiledAnswerPreparationContext } from '../../../chassis/contracts/compiled/compiledContexts.type'
+import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
+import WorkContext from '../../../chassis/work/WorkContext'
+import WorkExecutor from '../../../chassis/work/WorkExecutor'
+import { isWorkTask } from '../../../chassis/work/workTask'
+import { workTaskBuilders } from '../../../chassis/runtime/context/compiledEvaluationContext'
 
 function createSyncRegistry(...funcNames: string[]): FunctionRegistry {
   const registry = new FunctionRegistry()
@@ -148,6 +148,7 @@ function createTestPredicate(subject: ReferenceASTNode, condition: FunctionASTNo
 
 function createCtx(overrides: Partial<CompiledAnswerPreparationContext> = {}): CompiledAnswerPreparationContext {
   return {
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},
@@ -186,7 +187,7 @@ function createCtx(overrides: Partial<CompiledAnswerPreparationContext> = {}): C
     } as unknown as CompiledAnswerPreparationContext['conditions'],
     post: {},
     components: new ComponentRegistry(),
-    workTasks: WorkTaskFactory,
+    workTasks: workTaskBuilders,
     ...overrides,
   }
 }
@@ -231,11 +232,11 @@ async function executeAnswerPreparationTask(task: unknown, ctx: CompiledAnswerPr
     throw new Error('Expected answer preparation task')
   }
 
-  // The task's run-closures mutate `ctx.answers`; thread a RequestExecutionContext
+  // The task's run-closures mutate `ctx.answers`; thread a RequestState
   // whose context.answers aliases it, so the trace reads the same store.
   const requestContext = {
     context: { domain: { answers: ctx.answers, data: ctx.data }, evaluation: {}, request: {} },
-  } as unknown as RequestExecutionContext
+  } as unknown as RequestState
 
   await new WorkExecutor().execute(task, new WorkContext(requestContext))
 }
@@ -844,6 +845,25 @@ describe('StepAnswerPreparationCompiler', () => {
       expect(lastMutation.source).toBe('dependentWhen')
     })
 
+    it('should resolve Self references in dependentWhen', async () => {
+      // Arrange
+      const cond = createConditionFunction('isRequired')
+      const predicate = createTestPredicate(createReference(['answers', '@self']), cond)
+      const block = createFieldBlock('email', { dependentWhen: predicate })
+      const localCompiler = createSyncCompiler('isRequired')
+      const ctx = createCtx({
+        post: { email: 'test@example.com' },
+      })
+
+      // Act
+      const source = localCompiler.generateSource(prepModel([block]))
+      await runGeneratedSource(source, ctx)
+
+      // Assert
+      expect(source).toContain('ctx.answers["email"]?.current')
+      expect(ctx.answers.email.current).toBe('test@example.com')
+    })
+
     it('should throw runtime errors when dependentWhen expression throws', async () => {
       // Arrange
       const ref = createReference(['answers', 'nonexistent', 'deep', 'path'])
@@ -1027,7 +1047,7 @@ describe('StepAnswerPreparationCompiler', () => {
         post: { employed: 'yes', name: 'Jo' },
         answers: { showA: activeFlag() },
       })
-      const fieldAnswerPreparation = vi.spyOn(WorkTaskFactory, 'fieldAnswerPreparation')
+      const fieldAnswerPreparation = vi.spyOn(workTaskBuilders, 'fieldAnswerPreparation')
 
       // Act
       const source = localCompiler.generateSource(prepModel([...variants, other]))

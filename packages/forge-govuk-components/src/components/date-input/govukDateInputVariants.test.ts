@@ -8,6 +8,65 @@ vi.mock('nunjucks')
 describe('govukDateInputVariants', () => {
   setupComponentTest()
 
+  describe('input schemas', () => {
+    const dateInputCases = [
+      {
+        name: 'full date input',
+        inputSchema: GovUKDateInputFull.inputSchema,
+        completeValue: { day: '1', month: '12', year: '' },
+        incompleteValue: { day: '1', month: '12' },
+      },
+      {
+        name: 'year and month date input',
+        inputSchema: GovUKDateInputYearMonth.inputSchema,
+        completeValue: { month: '12', year: '' },
+        incompleteValue: { month: '12' },
+      },
+      {
+        name: 'month and day date input',
+        inputSchema: GovUKDateInputMonthDay.inputSchema,
+        completeValue: { day: '', month: '12' },
+        incompleteValue: { month: '12' },
+      },
+    ]
+
+    it.each(dateInputCases)('should accept blank fields when parsing $name', ({ inputSchema, completeValue }) => {
+      // Arrange
+      const submittedValue = completeValue
+
+      // Act
+      const result = inputSchema?.safeParse(submittedValue)
+
+      // Assert
+      expect(result?.success).toBe(true)
+    })
+
+    it.each(dateInputCases)('should reject missing fields when parsing $name', ({ inputSchema, incompleteValue }) => {
+      // Arrange
+      const submittedValue = incompleteValue
+
+      // Act
+      const result = inputSchema?.safeParse(submittedValue)
+
+      // Assert
+      expect(result?.success).toBe(false)
+    })
+
+    it.each(dateInputCases)('should reject unknown fields when parsing $name', ({ inputSchema, completeValue }) => {
+      // Arrange
+      const submittedValue = {
+        ...completeValue,
+        unexpected: { deeply: { nested: true } },
+      }
+
+      // Act
+      const result = inputSchema?.safeParse(submittedValue)
+
+      // Assert
+      expect(result?.success).toBe(false)
+    })
+  })
+
   describe('govukDateInputFull', () => {
     const helper = new GovukComponentTestHelper(GovUKDateInputFull)
 

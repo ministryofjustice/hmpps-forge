@@ -1,4 +1,5 @@
-import type FunctionRegistry from '../../../registries/FunctionRegistry'
+import type FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
+import type { IteratorBudgetContract } from '../../../chassis/contracts/runtime/iteratorBudget.type'
 import type { StepFieldInventory } from './stepFieldInventory.type'
 
 /**
@@ -8,6 +9,7 @@ import type { StepFieldInventory } from './stepFieldInventory.type'
  * generated source.
  */
 export interface FieldInventoryContext {
+  iteratorBudget: IteratorBudgetContract
   answers: Record<string, { current: unknown }>
   data: Record<string, unknown>
   session: Record<string, unknown>

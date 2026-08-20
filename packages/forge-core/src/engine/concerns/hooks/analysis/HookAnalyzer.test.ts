@@ -1,12 +1,12 @@
 import { FunctionType, HookType } from '../../../../authoring/types/enums'
-import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
+import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import {
   createJourneyAnalysisContext,
   createStepAnalysisContext,
-} from '../../../compilation/analysis/testing-helpers/analysisContexts'
-import type { ASTNode } from '../../../contracts/ast/engine.type'
-import type { AccessHookASTNode, SubmitHookASTNode } from '../../../contracts/ast/expressions.type'
-import { AuthoredValueKind } from '../../../contracts/models/authoredValue.type'
+} from '../../../chassis/compilation/analysis/testing-helpers/analysisContexts'
+import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
+import type { AccessHookASTNode, SubmitHookASTNode } from '../../../chassis/contracts/ast/expressions.type'
+import { AuthoredValueKind } from '../../../chassis/contracts/models/authoredValue.type'
 import { HookOutcomeKind } from '../contracts/hookModel.type'
 import HookAnalyzer from './HookAnalyzer'
 

@@ -1,5 +1,8 @@
-import type { StepAnalysisContext, StepModelAnalyzer } from '../../../compilation/analysis/concernAnalyzers.type'
-import { classifyValidationRules, hasConfiguredValue } from '../../../contracts/models/validationRules'
+import type {
+  StepAnalysisContext,
+  StepModelAnalyzer,
+} from '../../../chassis/compilation/analysis/concernAnalyzers.type'
+import { classifyValidationRules, hasConfiguredValue } from '../../../chassis/contracts/models/validationRules'
 import type { ValidationModel } from '../contracts/validationModel.type'
 
 export default class ValidationAnalyzer implements StepModelAnalyzer<ValidationModel> {

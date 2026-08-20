@@ -1,15 +1,16 @@
 import { BlockType } from '../../../../authoring/types/enums'
-import type { CompiledResolveContext } from '../../../contracts/compiled/compiledContexts.type'
-import ComponentRegistry from '../../../registries/ComponentRegistry'
-import WorkContext from '../../../runtime/evaluation/work/WorkContext'
-import TraceSpan from '../../../tracing/TraceSpan'
-import WorkExecutor from '../../../runtime/evaluation/work/WorkExecutor'
-import { createWorkTask } from '../../../runtime/evaluation/work/workTask'
+import type { CompiledResolveContext } from '../../../chassis/contracts/compiled/compiledContexts.type'
+import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
+import WorkContext from '../../../chassis/work/WorkContext'
+import TraceSpan from '../../../chassis/tracing/TraceSpan'
+import WorkExecutor from '../../../chassis/work/WorkExecutor'
+import { createWorkTask } from '../../../chassis/work/workTask'
 import { isRenderBlock } from './typeguards'
 import { RESOLVE_BLOCK_WORK_HANDLER, RESOLVE_BLOCK_WORK_INSTRUMENTATION } from './ResolveBlockWorkHandler'
 
 function createContext(): WorkContext<CompiledResolveContext> {
   return new WorkContext({
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},

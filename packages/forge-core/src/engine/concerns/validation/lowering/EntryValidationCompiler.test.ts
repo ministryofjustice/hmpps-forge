@@ -1,16 +1,16 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { ASTTestFactory } from '../../../compilation/ast/testing-helpers/ASTTestFactory'
-import { ASTNodeType } from '../../../contracts/ast/enums'
+import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
+import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import { ExpressionType, FunctionType, PredicateType } from '../../../../authoring/types/enums'
-import { StepEntryValidationAST } from '../../../contracts/ast/structures.type'
-import { ReferenceASTNode } from '../../../contracts/ast/expressions.type'
-import FunctionRegistry from '../../../registries/FunctionRegistry'
-import ComponentRegistry from '../../../registries/ComponentRegistry'
-import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
+import { StepEntryValidationAST } from '../../../chassis/contracts/ast/structures.type'
+import { ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
+import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
+import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
+import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
 import type { ValidationModel } from '../contracts/validationModel.type'
 import EntryValidationCompiler from './EntryValidationCompiler'
-import type { CompiledValidationContext } from '../../../contracts/compiled/compiledContexts.type'
-import WorkTaskFactory from '../../../runtime/evaluation/work/WorkTaskFactory'
+import type { CompiledValidationContext } from '../../../chassis/contracts/compiled/compiledContexts.type'
+import { workTaskBuilders } from '../../../chassis/runtime/context/compiledEvaluationContext'
 
 function createReference(path: string[]): ReferenceASTNode {
   return {
@@ -24,13 +24,14 @@ function createReference(path: string[]): ReferenceASTNode {
 
 function createCtx(overrides: Partial<CompiledValidationContext> = {}): CompiledValidationContext {
   return {
+    iteratorBudget: { consume: vi.fn() },
     answers: {},
     data: {},
     session: {},
     params: {},
     query: {},
     request: {},
-    workTasks: WorkTaskFactory,
+    workTasks: workTaskBuilders,
     conditions: new FunctionRegistry(),
     ...overrides,
   }

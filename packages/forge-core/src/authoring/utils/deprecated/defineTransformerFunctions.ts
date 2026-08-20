@@ -1,5 +1,5 @@
 import { FunctionType } from '../../types/enums'
-import { ForgeDeprecations } from '../../../shared/utils/ForgeDeprecations'
+import { ForgeDeprecations } from '../../../shared/ForgeDeprecations'
 import { buildExpressionFunctions, tagFunctionType } from './defineFunction'
 import type {
   FunctionImplementations,

@@ -1,4 +1,4 @@
-import { resolvePathParams } from '../../../../../shared/utils/routePath'
+import { resolvePathParams } from '../../../../../shared/routePath'
 import {
   JourneyReachabilityProjection,
   StepReachabilityProjection,

@@ -7,7 +7,7 @@ import type { ForgeTopology } from '../../framework/types/topology.type'
 import type { ForgeExecutionRequest } from '../../engine/Forge'
 import TestRouteResolver from './TestRouteResolver'
 import TestSnapshotFactory from './TestSnapshotFactory'
-import type { TestRequestOptions, TestResult } from '../types'
+import type { TestRequestOptions, TestResult } from './testResult.type'
 
 interface TestClientForge {
   getTopology(): ForgeTopology

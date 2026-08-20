@@ -1,5 +1,5 @@
-import { ASTNode } from '../../../contracts/ast/ast.type'
-import type { CompiledReachabilityFactsFunction } from '../../../contracts/compiled/compiledFunctions.type'
+import { ASTNode } from '../../../chassis/contracts/ast/ast.type'
+import type { CompiledReachabilityFactsFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 import type {
   ForwardOutcomeGroup,
   ForwardRedirectOutcome,
@@ -13,16 +13,16 @@ import {
   code,
   literal,
   objectCode,
-} from '../../../compilation/lowering/codegen/fragments/CodeFragment'
-import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
-import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
-import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
-import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
+} from '../../../chassis/compilation/lowering/codegen/fragments/CodeFragment'
+import CodeGenerator from '../../../chassis/compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../chassis/compilation/lowering/codegen/fragments/IdentifierName'
+import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
+import ExpressionDispatcher from '../../../chassis/compilation/lowering/expressions/ExpressionDispatcher'
 import {
   CompilationPhase,
   compileGeneratedFunction,
   renderGeneratedSource,
-} from '../../../compilation/lowering/GeneratedFunctionCompiler'
+} from '../../../chassis/compilation/lowering/GeneratedFunctionCompiler'
 
 interface ReachabilityResultNames {
   readonly entryResults: IdentifierName

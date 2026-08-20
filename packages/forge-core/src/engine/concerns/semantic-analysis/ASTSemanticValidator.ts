@@ -1,8 +1,6 @@
-import type ASTNodeIndex from '../../compilation/ast/ast-state/ASTNodeIndex'
-import type FunctionRegistry from '../../registries/FunctionRegistry'
-import type ComponentRegistry from '../../registries/ComponentRegistry'
 import type { ASTValidationContext, ASTValidationRule } from './rules/types'
 import { validateReferenceScopes } from './rules/validateReferenceScopes'
+import { validateSelfScope } from './rules/validateSelfScope'
 import { validateEffectScope } from './rules/validateEffectScope'
 import { validateRegisteredFunctions } from './rules/validateRegisteredFunctions'
 import { validateFunctionArity } from './rules/validateFunctionArity'
@@ -19,6 +17,7 @@ import { validateContainerTypes } from './rules/validateContainerTypes'
 
 const RULES: readonly ASTValidationRule[] = [
   validateReferenceScopes,
+  validateSelfScope,
   validateEffectScope,
   validateRegisteredFunctions,
   validateFunctionArity,
@@ -35,11 +34,7 @@ const RULES: readonly ASTValidationRule[] = [
 ]
 
 export default class ASTSemanticValidator {
-  private readonly context: ASTValidationContext
-
-  constructor(nodeIndex: ASTNodeIndex, functionRegistry: FunctionRegistry, componentRegistry: ComponentRegistry) {
-    this.context = { nodeIndex, functionRegistry, componentRegistry }
-  }
+  constructor(private readonly context: ASTValidationContext) {}
 
   validate(): void {
     const errors: Error[] = []

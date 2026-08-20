@@ -1,5 +1,5 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import type { NodeId } from '../../../contracts/ast/engine.type'
+import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import type { NodeId } from '../../../chassis/contracts/ast/engine.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'

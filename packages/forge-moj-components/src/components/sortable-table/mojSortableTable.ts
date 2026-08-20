@@ -1,5 +1,5 @@
 import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
-import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
  * Configuration for a sortable table header cell.

@@ -11,7 +11,7 @@ trace each stage and stop at the right point.
 - [analysis](analysis/README.md) resolves which access hooks and submit hooks apply to a step or journey.
 - [lowering](lowering/README.md) emits the access and submit lifecycle functions.
 - [runtime](runtime/README.md) runs the lifecycles, gates the predicates, and folds hook results.
-- `contracts` holds `AccessLifecycleWork.type.ts`, `SubmitLifecycleWork.type.ts`, `HookEffectWork.type.ts`, `hookLifecycle.type.ts`, and `HookStage.type.ts`.
+- `contracts` holds `AccessLifecycleWork.type.ts`, `SubmitLifecycleWork.type.ts`, `HookEffectWork.type.ts`, `hookLifecycle.type.ts`, `hookModel.type.ts`, and `HookStage.type.ts`.
 
 ## Runtime phases
 

@@ -4,7 +4,10 @@ import { ForgeTestHarness, type RequestTraceEvent } from '../../src/testing'
 import type { ForgeRenderer } from '../../src/framework/types/rendering.type'
 import type { ComponentRegistryEntry } from '../../src/components/types/components.type'
 import type { BlockDefinition } from '../../src/components'
-import type { RuntimeContextSnapshotTrace, RequestTraceUnit } from '../../src/engine/contracts/runtime/trace.type'
+import type {
+  RuntimeContextSnapshotTrace,
+  RequestTraceUnit,
+} from '../../src/engine/chassis/contracts/runtime/trace.type'
 
 export interface ContractEffectShape {
   LoadAnswers: (journeyCode: string) => EffectFunctionExpr

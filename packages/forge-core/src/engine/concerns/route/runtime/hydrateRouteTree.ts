@@ -1,9 +1,9 @@
-import { resolvePathParams } from '../../../../shared/utils/routePath'
+import { resolvePathParams } from '../../../../shared/routePath'
 import { RouteTree, RouteTreeNode, RouteTreeRoute } from '../../../../framework/types/routeTree.type'
 import type {
   ResolvedRouteMetadata,
   ResolvedRouteMetadataEntry,
-} from '../../../contracts/compiled/compiledFunctions.type'
+} from '../../../chassis/contracts/compiled/compiledFunctions.type'
 import { StoredRouteTree, StoredRouteTreeNode, StoredRouteTreeRoute } from '../contracts/routeTree.type'
 
 /**

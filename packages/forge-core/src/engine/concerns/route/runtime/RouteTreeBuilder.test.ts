@@ -1,4 +1,4 @@
-import { CompileAstNodeId, NodeId } from '../../../contracts/ast/ast.type'
+import { CompileAstNodeId, NodeId } from '../../../chassis/contracts/ast/ast.type'
 import type { JourneyRouteDescriptor, StepRouteDescriptor } from '../contracts/routeDescriptors.type'
 import ForgeDuplicateRouteError from '../../../errors/ForgeDuplicateRouteError'
 import { createRouteTreeIndex, RouteTreeBuildResult, RouteTreeIndex } from '../contracts/routeTree.type'

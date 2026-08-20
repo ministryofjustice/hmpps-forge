@@ -1,11 +1,11 @@
 import { FunctionType, ExpressionType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
+import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
-import { isTemplateNode } from '../../../contracts/ast/nodes'
-import type { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
-import type { ASTNode } from '../../../contracts/ast/engine.type'
+import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
+import type { TemplateNode, TemplateValue } from '../../../chassis/contracts/ast/template.type'
+import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 
 const FUNCTION_TYPES: readonly string[] = Object.values(FunctionType)

@@ -1,4 +1,4 @@
-import { NodeId } from '../../../contracts/ast/ast.type'
+import { NodeId } from '../../../chassis/contracts/ast/ast.type'
 import type { RouteTreeRouteKind } from '../../../../framework/types/routeTree.type'
 
 export interface JourneyRouteTemplateCatalog {

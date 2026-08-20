@@ -1,7 +1,7 @@
 import { FunctionType } from '../../../authoring/types/enums'
 import { ResolvableValue } from '../../../authoring/types/expressions.type'
 import { FORMAT_STRING_GENERATOR_NAME, FormatGenerators, formatGeneratorsRegistry } from './formatGenerators'
-import { FunctionRegistryTestHarness } from '../../../testing/FunctionRegistryTestHarness'
+import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 import { GeneratorBuilder } from '../../../authoring/builders/GeneratorBuilder'
 
 describe('FormatGenerators', () => {

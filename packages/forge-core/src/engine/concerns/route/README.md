@@ -8,22 +8,22 @@ redirect target strings into concrete URLs once some other phase has decided to 
 
 ## Stage folders
 
-- [analysis](analysis/README.md) collects the authored `title`, `description`, and `metadata` from every step and journey.
+- [analysis](analysis/README.md) collects the authored `title`, `description`, and `metadata` from every step and journey, and builds the static route indexes in the final compilation phase.
 - [lowering](lowering/README.md) emits the package-level `CompiledRouteMetadataFunction`.
 - [runtime](runtime/README.md) builds the route tree at mount, hydrates it per request, and resolves redirect targets.
-- `contracts` holds `routeDescriptors.type.ts` and `routeTree.type.ts`.
+- `contracts` holds `routeDescriptors.type.ts`, `routeMetadataModel.type.ts`, and `routeTree.type.ts`.
 
 ## Runtime phase
 
 This concern owns `request.route-tree`, which runs on step requests just before resolve. It creates no child work
 tasks. Its other two runtime jobs sit outside the phase list: `RouteTreeBuilder` runs at mount, and
-`resolveRedirectTarget()` runs from `RequestEvaluator` after any phase has chosen to redirect.
+`resolveRedirectTarget()` runs from `RequestPipeline` after any phase has chosen to redirect.
 
 ## Cross-concern edges
 
 - Route imports no other concern.
 - **reachability** imports route for `JourneyRouteTemplateCatalog`.
 
-Route descriptors are also read by the compilation chassis, which builds the route indexes in
-`CompilationPipeline`. That is not a concern edge - the chassis may read any concern's contracts. The zones are in
+Route descriptors are also read by the compilation chassis, which assembles the route indexes onto the
+`CompiledPackage`. That is not a concern edge - the chassis may read any concern's contracts. The zones are in
 [eslint.config.mjs](../../../../eslint.config.mjs).

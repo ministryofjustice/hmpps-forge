@@ -5,17 +5,17 @@ import {
   code,
   literal,
   objectCode,
-} from '../../../compilation/lowering/codegen/fragments/CodeFragment'
-import CodeGenerator from '../../../compilation/lowering/codegen/CodeGenerator'
-import IdentifierName from '../../../compilation/lowering/codegen/fragments/IdentifierName'
-import type { CompilationDependencies } from '../../../compilation/lowering/compilationDependencies.type'
-import ExpressionDispatcher from '../../../compilation/lowering/expressions/ExpressionDispatcher'
+} from '../../../chassis/compilation/lowering/codegen/fragments/CodeFragment'
+import CodeGenerator from '../../../chassis/compilation/lowering/codegen/CodeGenerator'
+import IdentifierName from '../../../chassis/compilation/lowering/codegen/fragments/IdentifierName'
+import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
+import ExpressionDispatcher from '../../../chassis/compilation/lowering/expressions/ExpressionDispatcher'
 import {
   CompilationPhase,
   compileGeneratedFunction,
   renderGeneratedSource,
-} from '../../../compilation/lowering/GeneratedFunctionCompiler'
-import { toRawOperand, type ExpressionValue } from '../../../contracts/models/authoredValue.type'
+} from '../../../chassis/compilation/lowering/GeneratedFunctionCompiler'
+import { toRawOperand, type ExpressionValue } from '../../../chassis/contracts/models/authoredValue.type'
 import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from '../contracts/hookLifecycle.type'
 import type {
   AccessHookModel,
@@ -202,12 +202,13 @@ export default class HookLifecycleCompiler {
   }
 
   private compileEffectTask(effect: EffectCall, generator: CodeGenerator): IdentifierName {
-    const run = this.compileFunctionExpression(`run${this.toFunctionNamePart(effect.name)}`, generator, body => {
+    const effectNamePart = this.toFunctionNamePart(this.camelise(effect.name))
+    const run = this.compileFunctionExpression(`run${effectNamePart}`, generator, body => {
       body.return(this.compileEffectCall(effect))
     })
 
     return generator.const(
-      this.camelise(effect.name),
+      `hookEffect${effectNamePart}`,
       code`${CONTEXT}.workTasks.hookEffect(${effect.key}, ${objectCode([
         { key: 'name', value: literal(effect.name) },
         { key: 'run', value: run },

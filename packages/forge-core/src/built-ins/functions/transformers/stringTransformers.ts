@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import TransformerRegistry from '../../../authoring/registries/TransformerRegistry'
-import { escapeHtmlEntities } from '../../../shared/utils/sanitize'
+import { escapeHtmlEntities } from '../../sanitize'
 
 const DEFAULT_FORMAT_DATE_LOCALE = 'en-GB'
 const DEFAULT_FORMAT_DATE_TIME_ZONE = 'Europe/London'

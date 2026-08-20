@@ -5,7 +5,7 @@ import {
   ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
 /**

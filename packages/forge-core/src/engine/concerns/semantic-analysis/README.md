@@ -12,7 +12,7 @@ This document does not cover AST creation, AST registration, dependency planning
 Like [dsl-validation](../dsl-validation/README.md), this concern has no stage folders: the whole pass runs once
 during compilation, between AST building and analysis, so there is nothing to lower or execute per
 request. It sits under `concerns/` rather than the compilation chassis because it is self-contained gate logic,
-not orchestration or shared machinery — `CompilationPipeline.validateSemantics()` calls in from the chassis.
+not orchestration or shared machinery — the chassis pipeline calls in through [CompilationSemanticAnalysisWorkHandler.ts](CompilationSemanticAnalysisWorkHandler.ts), the `compilation.semantic-analysis` phase.
 
 ## Background
 
@@ -40,6 +40,7 @@ Semantic analysis rejects those cases before they turn into confusing failures l
 - Collect all semantic errors that can be found in one pass.
   - Reject unregistered function names and component variants.
   - Reject references that escape the available iterator scope.
+  - Reject `Self()` references outside a field block, or inside the field's own `code` expression.
   - Reject nodes that are valid AST nodes but illegal in their current container.
   - Validate iterator templates that are intentionally not registered as normal AST descendants.
   - *Note: The above rules fall out of the rules implemented, obviously can change in future - the phase isn't tied
@@ -50,20 +51,22 @@ Semantic analysis rejects those cases before they turn into confusing failures l
 Semantic analysis has a small data model.
 
 `ASTValidationContext` contains:
-- `nodeIndex`, an `ASTNodeIndex` used to find nodes by broad type or subtype.
+- `nodeIndex`, an `ASTNodeIndex` used to find registered nodes by broad type or subtype.
+- `templateNodeIndex`, a `TemplateNodeIndex` used to find template contents by the same types.
 - `functionRegistry`, a `FunctionRegistry` used to check function names.
 - `componentRegistry`, a `ComponentRegistry` used to check block variants.
 
 Parent and ancestor relationships are inspected through the `parent` link on each registered node.
+A `TemplateNodeEntry` carries `owningNode`, the registered node that holds the template, so a rule can also inspect the ancestry of template contents.
 
 An `ASTValidationRule` is a function that accepts `ASTValidationContext` and returns `readonly Error[]`.
 Rules do not throw directly.
 `ASTSemanticValidator.validate()` runs each rule, appends the returned errors, and throws one `AggregateError` when any errors exist.
 
-Most rules inspect registered nodes through `ASTNodeIndex.findByType()`.
-Some rules also inspect iterator `yieldTemplate` and `predicateTemplate` values with `walkTemplateValue()`.
+Most rules inspect registered nodes through `ASTNodeIndex.findByType()` and template contents through `TemplateNodeIndex.findByType()`.
 Templates are AST-shaped, but they are not registered in `ASTNodeIndex`.
-That is why template-aware rules need an explicit walk.
+The registration walk indexes their contents in `TemplateNodeIndex` instead, so most template checks are bucket lookups.
+Only depth-sensitive and path-sensitive checks still walk templates by hand.
 
 ### Example
 
@@ -107,24 +110,24 @@ AST creation still turns that function into an expression node:
 ```
 
 `validateEffectScope()` then walks the node's `parent` links to find its ancestors.
-If no ancestor has `ASTNodeType.HOOK`, it returns a `ForgeReferenceScopeError` with code `effect_outside_hook`.
+If no ancestor has `ASTNodeType.HOOK`, it returns a `ForgeReferenceScopeError`.
 `ASTSemanticValidator.validate()` includes that error in the final `AggregateError`.
 
 *Note: Pretty sure the DSL Validation stage would catch this, but suspend disbelief for the example please!*
 
 ## Flow
 
-Semantic analysis is a rule pass driven by `CompilationPipeline.validateSemantics()`.
-It runs after `CompilationPipeline.buildAstTree()` has created and registered the AST.
+Semantic analysis is a rule pass driven by `CompilationSemanticAnalysisWorkHandler`, the `compilation.semantic-analysis` phase.
+It runs after the `compilation.ast` phase has created and registered the AST.
 It runs before analysis and lowering.
 
 ```mermaid
 flowchart TD
   rootAst["Registered AST"] -->|enter semantic analysis| semanticValidator["ASTSemanticValidator.validate()"]
-  semanticValidator -->|build shared context| validationContext["ASTValidationContext"]
+  semanticValidator -->|shared context| validationContext["ASTValidationContext"]
   validationContext -->|run each rule| rules["RULES"]
   rules -->|registered-node checks| registeredRules["Rules using ASTNodeIndex and parent links"]
-  rules -->|template-walk checks| templateRules["Rules walking iterator templates"]
+  rules -->|template-content checks| templateRules["Rules using TemplateNodeIndex"]
   registeredRules -->|collect errors| errors["Error[]"]
   templateRules -->|collect errors| errors
   errors --> hasErrors{"Any errors?"}
@@ -133,18 +136,18 @@ flowchart TD
 ```
 
 - [ASTSemanticValidator.ts](ASTSemanticValidator.ts) owns rule orchestration.
-  It builds the shared context, runs the `RULES` array in order, and throws `AggregateError` when errors were collected.
+  It receives the shared context from `CompilationSemanticAnalysisWorkHandler`, runs the `RULES` array in order, and throws `AggregateError` when errors were collected.
 - [rules/types.ts](rules/types.ts) defines the shared rule contract.
   Every rule gets the same registry and AST structures.
 - [rules/validateReferenceScopes.ts](rules/validateReferenceScopes.ts) validates `@scope` and `@loop` references.
+- [rules/validateSelfScope.ts](rules/validateSelfScope.ts) validates `@self` reference placement: inside a field block, but not inside that field's own `code` expression. Lowering resolves valid `@self` references against the field code bound through `ExpressionDispatcher.withSelfCodeExpression()`.
   It uses ancestor iterator depth for registered nodes and explicit template depth for iterator templates.
 - [rules/validateEffectScope.ts](rules/validateEffectScope.ts), [rules/validateOutcomeScope.ts](rules/validateOutcomeScope.ts), [rules/validateHookScope.ts](rules/validateHookScope.ts), [rules/validateTieBreakerScope.ts](rules/validateTieBreakerScope.ts), [rules/validateValidationScope.ts](rules/validateValidationScope.ts), [rules/validateStructureScope.ts](rules/validateStructureScope.ts), [rules/validateBlockScope.ts](rules/validateBlockScope.ts), and [rules/validateFunctionArguments.ts](rules/validateFunctionArguments.ts) validate where AST node families are allowed to appear.
 - [rules/validateRegisteredFunctions.ts](rules/validateRegisteredFunctions.ts) checks all `FunctionType` expression nodes and function template nodes against `FunctionRegistry`.
 - [rules/validateFunctionArity.ts](rules/validateFunctionArity.ts) checks each function expression's authored argument count against the arity of its registered `argumentsSchema` tuple.
 - [rules/validateRegisteredComponents.ts](rules/validateRegisteredComponents.ts) checks all block variants against `ComponentRegistry`.
+- [rules/validateFieldCodeUniqueness.ts](rules/validateFieldCodeUniqueness.ts) checks that field blocks sharing a code on one step each declare `dependentWhen`.
 - [rules/validateContainerTypes.ts](rules/validateContainerTypes.ts) checks arrays such as `onAccess`, `onSubmission`, `blocks`, `effects`, and `next` for the node types later phases expect.
-- [rules/templateWalker.ts](rules/templateWalker.ts) walks AST-shaped template payloads.
-  It lets rules inspect template nodes without registering those nodes.
 
 ## Boundaries
 
@@ -152,21 +155,26 @@ flowchart TD
   It should not contain individual semantic checks.
 - Validation rules own semantic checks.
   They should return errors and should not throw unless the error is an unexpected programming failure.
-- Semantic analysis reads `ASTNodeIndex` and node `parent` links.
-  It should not create nodes, register nodes, or mutate nodes.
+- Semantic analysis reads `ASTNodeIndex`, `TemplateNodeIndex`, and node `parent` links.
+  It should not create nodes, register nodes, index nodes, or mutate nodes.
 - Registry validation reads `FunctionRegistry` and `ComponentRegistry`.
   It should not register missing functions or components.
 - Scope rules own compile-time placement checks.
   Runtime evaluation should not need to re-check whether an effect, outcome, hook, validation, or tie-breaker was legal.
-- Template walking is local to semantic analysis rules.
-  It should not make template nodes ordinary registered AST descendants.
+- Template checks read `TemplateNodeIndex`, which the AST phase builds during registration.
+  They should not make template nodes ordinary registered AST descendants.
 
 ## Quirks
 
 - Rules collect errors instead of throwing immediately.
   This lets one bad journey report multiple semantic problems in one `AggregateError`.
 - Iterator templates are checked separately from registered nodes.
-  Template nodes are not in `ASTNodeIndex`, so a rule that only uses `findByType()` will miss errors inside `yieldTemplate` and `predicateTemplate`.
+  Template nodes are not in `ASTNodeIndex`, so a rule that only queries it will miss errors inside `yieldTemplate` and `predicateTemplate`.
+  A rule with a template case queries `templateNodeIndex.findByType()` next to its registered-node query.
+- `validateReferenceScopes()` cannot use `TemplateNodeIndex` for its template case.
+  The flat index erases iterator nesting, and `Item()` and `Loop` levels depend on that nesting, so the rule keeps a local depth-tracking walk.
+- `validateSelfScope()` cannot use `TemplateNodeIndex` for its template case either.
+  The flat index erases which template field block a reference sits under, so the rule keeps a local walk carrying field-block and field-code scope flags.
 - `validateReferenceScopes()` treats iterate input differently from iterate templates.
   The input expression is outside the iterator's item scope, but the yield and predicate templates are inside that scope.
 - `validateValidationScope()` tracks the IDs that are direct entries of `validWhen`.
@@ -203,8 +211,9 @@ flowchart TD
   Use broad types such as `ASTNodeType.BLOCK` or indexed subtypes such as `FunctionType.EFFECT` when the index supports them.
 - To validate ancestor or parent placement, walk `node.parent` links.
   Do not infer ancestry from source paths.
-- To validate iterator templates, use `walkTemplateValue()`.
-  Check `templateNode.originalType` first, then inspect fields such as `expressionType`, `blockType`, `hookType`, or `properties`.
+- To validate iterator templates, query `templateNodeIndex.findByType()` with the same broad type or subtype as the registered-node case.
+  Use the entry's `owningNode` when the verdict depends on where the template sits in the registered tree.
+  Fall back to a local walk only when the check depends on template structure the flat index cannot express, as `validateReferenceScopes()` does for iterator depth.
 - To add a new function subtype, make sure `validateRegisteredFunctions()` sees it through `Object.values(FunctionType)`.
   If the subtype has special placement rules, add a separate scope rule.
 - To add a new component-like structure, decide whether it is a block variant checked by `ComponentRegistry`.
@@ -221,6 +230,7 @@ flowchart TD
 - [ASTSemanticValidator.ts](ASTSemanticValidator.ts) runs the semantic rule set and raises the aggregate failure.
 - [rules/types.ts](rules/types.ts) defines `ASTValidationContext` and `ASTValidationRule`.
 - [rules/validateReferenceScopes.ts](rules/validateReferenceScopes.ts) answers whether `Item()` and `Loop` references are valid in the current iterator depth.
+- [rules/validateSelfScope.ts](rules/validateSelfScope.ts) answers whether a `Self()` reference sits inside a field block and outside that field's `code`.
 - [rules/validateRegisteredFunctions.ts](rules/validateRegisteredFunctions.ts) answers whether every referenced function name exists.
 - [rules/validateFunctionArity.ts](rules/validateFunctionArity.ts) answers whether each function call supplies an argument count the function's tuple schema accepts.
 - [rules/validateRegisteredComponents.ts](rules/validateRegisteredComponents.ts) answers whether every block variant exists.
@@ -231,6 +241,6 @@ flowchart TD
 - [rules/validateValidationScope.ts](rules/validateValidationScope.ts) answers whether validation expressions appear in `validWhen`.
 - [rules/validateStructureScope.ts](rules/validateStructureScope.ts) answers whether steps sit in a journey's `steps` array and journeys sit at the root or in a journey's `children` array.
 - [rules/validateBlockScope.ts](rules/validateBlockScope.ts) answers whether blocks sit in a step's `blocks` array or nested within another block.
+- [rules/validateFieldCodeUniqueness.ts](rules/validateFieldCodeUniqueness.ts) answers whether field blocks sharing a code on one step are legal `dependentWhen` variants.
 - [rules/validateFunctionArguments.ts](rules/validateFunctionArguments.ts) answers whether function arguments contain illegal block definitions.
 - [rules/validateContainerTypes.ts](rules/validateContainerTypes.ts) answers whether constrained arrays contain the node families later phases expect.
-- [rules/templateWalker.ts](rules/templateWalker.ts) walks template payloads that are not present in the normal AST registry.
