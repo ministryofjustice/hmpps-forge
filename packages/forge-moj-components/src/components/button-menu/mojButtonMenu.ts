@@ -4,7 +4,7 @@ import {
   ResolvableBoolean,
   ResolvableArray,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
  * Menu alignment options for the button menu dropdown.
