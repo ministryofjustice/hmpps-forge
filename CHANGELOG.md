@@ -55,6 +55,9 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ## 0.4.1
 
+Release focused mainly on internal engine cleanup plus a few bug fixes/security improvements 
+for Forge's codegen and the express-adapter.
+
 ### Fixed
 
 - **Component input schemas now apply their sanitisation.** Previously
