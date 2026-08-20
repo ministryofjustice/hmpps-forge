@@ -5,8 +5,8 @@ import {
   FieldBlockDefinition,
   ResolvedPropsOf,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import { Transformer } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import {
   normaliseGovukErrorMessage,
   normaliseGovukFieldset,

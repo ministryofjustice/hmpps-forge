@@ -7,7 +7,7 @@ import type { Mocked } from 'vitest'
 import { StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { BlockDefinition, ComponentRegistryEntry, EvaluatedBlock } from '@ministryofjustice/hmpps-forge/core/components'
 
-import { NunjucksComponentRenderer } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import type { NunjucksComponentRenderer } from '../utils/nunjucksComponent'
 
 /**
  * Test helper for GOV.UK Frontend components
