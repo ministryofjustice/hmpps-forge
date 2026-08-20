@@ -90,6 +90,10 @@ for Forge's codegen and the express-adapter.
 
 ### Changed
 
+- The govuk and moj component packages now define their renderers with a local
+  `nunjucksComponent` helper instead of importing it from `express-nunjucks` -
+  previously that import pulled the express adapter (and express itself) into every
+  browser bundle that used the components
 - Compilation and request trace events now carry the same span structure produced by
   the unified trace projectors - sinks that destructure trace events will need updating
   to match the new shapes
