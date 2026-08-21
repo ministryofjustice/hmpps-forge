@@ -24,7 +24,7 @@ application.
 ```typescript
 import {
   createExpressRouter,
-  buildNunjucksComponent,
+  nunjucksComponent,
   NunjucksGenerators,
 } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 ```
@@ -69,7 +69,7 @@ app.use(createExpressRouter(forge, { nunjucksEnv }))
   variables are available in the Nunjucks context, and how
   view locals merge.
 - [Building Components](building-components) - using
-  `buildNunjucksComponent` to create Nunjucks-rendered components
+  `nunjucksComponent` to create Nunjucks-rendered components
   and how validation errors reach them.
 - [Nunjucks Generators](nunjucks-generators) - inline Nunjucks
   template composition with `NunjucksGenerators.String`.

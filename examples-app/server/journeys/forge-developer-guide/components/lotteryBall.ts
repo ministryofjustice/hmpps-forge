@@ -1,5 +1,4 @@
-import { buildComponent } from '@ministryofjustice/hmpps-forge/core/components'
-import { block as blockBuilder } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { component } from '@ministryofjustice/hmpps-forge/core/components'
 import type {
   BasicBlockProps,
   BlockDefinition,
@@ -16,16 +15,14 @@ export interface LotteryBall extends BlockDefinition, LotteryBallProps {
   variant: 'lotteryBall'
 }
 
-export const lotteryBallComponent = buildComponent<LotteryBall>('lotteryBall', block => {
-  const num = String(block.number ?? '')
-  const colorClass = `lottery-ball--${block.color ?? 'blue'}`
-  const extraClasses = block.classes ? ` ${block.classes}` : ''
+export const LotteryBall = component<LotteryBall>('lotteryBall', {
+  render: block => {
+    const num = String(block.number ?? '')
+    const colorClass = `lottery-ball--${block.color ?? 'blue'}`
+    const extraClasses = block.classes ? ` ${block.classes}` : ''
 
-  return `<div class="lottery-ball ${colorClass}${extraClasses}">
+    return `<div class="lottery-ball ${colorClass}${extraClasses}">
     <span class="lottery-ball__number">${num}</span>
   </div>`
+  },
 })
-
-export function LotteryBall(props: LotteryBallProps): LotteryBall {
-  return blockBuilder<LotteryBall>({ ...props, variant: 'lotteryBall' })
-}

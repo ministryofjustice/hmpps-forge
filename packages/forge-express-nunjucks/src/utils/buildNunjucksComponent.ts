@@ -19,24 +19,14 @@ export type NunjucksComponentRenderer<T extends BlockDefinition> = (
 /**
  * Creates a Nunjucks component that receives its renderer at render time.
  *
- * Prefer `nunjucksComponent` for new components - one block interface plus one call
- * replaces the props interface, block interface, wrapper function and this registration.
- * This function will be deprecated once the built-in components have moved over.
+ * @deprecated Declare the component with `nunjucksComponent()` instead - one
+ * declaration is both the block builder and the registry entry, and using it
+ * in a journey registers it automatically.
  *
  * @param variant - The block variant identifier
  * @param render - Render function that receives (block, nunjucksEnv)
  * @param options - Optional input schema and fixed-shape `multiple` flag for the entry
  * @returns A component ready for registration with Forge
- *
- * @example
- * ```typescript
- * export const myTextInput = buildNunjucksComponent<MyTextInput>(
- *   'myTextInput',
- *   (block, nunjucksEnv) => {
- *     return nunjucksEnv.render('components/text-input.njk', { block })
- *   }
- * )
- * ```
  */
 export const buildNunjucksComponent = <T extends BlockDefinition>(
   variant: string,

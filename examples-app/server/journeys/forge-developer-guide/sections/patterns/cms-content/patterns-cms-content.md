@@ -48,7 +48,7 @@ The live demo is a minimal blog. Following the flow shows:
 
 ### The rich text editor component
 
-The custom `RichTextEditor` component uses `buildNunjucksComponent`
+The custom `RichTextEditor` component uses `nunjucksComponent`
 to render the standard `govukTextarea` Nunjucks template with
 additional `data-module` and `data-toolbar.*` attributes on the
 form group wrapper. The MOJ frontend JavaScript, already initialised

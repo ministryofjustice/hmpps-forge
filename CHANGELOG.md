@@ -55,16 +55,25 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ## 0.5.0
 
-Functions without the registry ceremony - write a condition with `condition()`, use it
-in your journey, and it registers itself. The deprecated `defineFunction`-era helpers
-and the implementations-map `functions` form are gone.
+Functions and components without the registry ceremony - write a condition with
+`condition()`, use it in your journey, and it registers itself. Components declared
+with `component()` now do the same. The deprecated `defineFunction`-era helpers and
+the implementations-map `functions` form are gone.
 
 ### Added
 
 - `condition()`, `transformer()`, `generator()`, and `effect()` - define a function as
   a standalone entry that registers itself when a journey uses it, no registry or
   `functions` listing needed
+- Components declared with `component()` register themselves the same way - building
+  a block with one in a journey is enough, no `components` listing needed. The listing
+  stays for renderer-only entries and journeys that reference a variant by string
 - `FunctionRegistryTestHarness` accepts entries alongside registries
+
+### Deprecated
+
+- `buildComponent` and `buildNunjucksComponent` - declare the component with
+  `component()` or `nunjucksComponent()` instead, which also gets self-registration
 
 ### Removed
 

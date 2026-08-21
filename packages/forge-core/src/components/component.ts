@@ -1,7 +1,9 @@
 import { block as buildBlock, field as buildField } from '../authoring/builders'
+import { stampComponent } from '../authoring/builders/utils/stampEntry'
 import type {
   BaseComponentOptions,
   ComponentOptions,
+  ComponentRegistryEntry,
   FieldComponentOptions,
   ForgeComponent,
   PropsOf,
@@ -12,7 +14,9 @@ import type { BlockDefinition, EvaluatedBlock, FieldBlockDefinition } from './ty
  * Defines a component from a single block interface.
  *
  * The returned value is both the authoring builder and the registry entry, so one
- * declaration covers both roles:
+ * declaration covers both roles. Building a block with it in a journey definition
+ * also registers the component - a `components` listing is only needed when a
+ * journey refers to the variant by name alone (a JSON journey, for example):
  *
  * ```typescript
  * export interface MyCard extends BlockDefinition { title: string }
@@ -53,16 +57,35 @@ export function component<TBlock extends BlockDefinition, TOutput = string, TRen
     // share one definition, and the declared `field` option picks the right one.
     const definition = { ...prepared, variant } as unknown as Omit<TBlock & FieldBlockDefinition, 'type' | 'blockType'>
 
-    return field
+    const built = field
       ? buildField<TBlock & FieldBlockDefinition>(definition)
       : buildBlock<TBlock & FieldBlockDefinition>(definition)
+    stampComponent(built, handle)
+
+    return built
   }
 
-  return Object.assign(buildDefinition, {
+  const handle = Object.assign(buildDefinition, {
     variant,
     render: (block: EvaluatedBlock<TBlock>, renderer?: unknown) => render(block, renderer as TRenderer),
     ...(inputSchema !== undefined && { inputSchema }),
     ...(multiple !== undefined && { multiple }),
     ...(errorAnchor !== undefined && { errorAnchor }),
   })
+
+  return handle
+}
+
+/**
+ * Whether a value is a component built by {@link component}: a callable block
+ * builder carrying the registry entry surface.
+ */
+export function isForgeComponent(value: unknown): value is ForgeComponent<BlockDefinition, unknown> {
+  if (typeof value !== 'function') {
+    return false
+  }
+
+  const candidate = value as Partial<ComponentRegistryEntry<BlockDefinition, unknown>>
+
+  return typeof candidate.variant === 'string' && typeof candidate.render === 'function'
 }

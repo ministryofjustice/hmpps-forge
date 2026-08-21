@@ -2,6 +2,8 @@ import { finaliseBuilders } from './utils/finaliseBuilders'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { isFunctionEntry } from '../functions/createEntry'
 import { FunctionEntryRegistry } from '../functions/FunctionEntryRegistry'
+import { ComponentEntryCollector } from '../../components/ComponentEntryCollector'
+import { ComponentRegistryEntry } from '../../components/types/components.type'
 import { BlockDefinition, FieldBlockDefinition } from '../../components/types/structures.type'
 import { JourneyDefinition, StepDefinition } from '../types/structures.type'
 import { ForgePackage, RegisteredForgePackage } from '../types/package.type'
@@ -97,6 +99,7 @@ export function createForgePackage<TDeps = Record<string, never>>(
     ...pkg,
     journey: finalisedJourney,
     functions: assembleFunctions(pkg.functions, finalisedJourney),
+    components: assembleComponents(pkg.components, finalisedJourney),
     forgePackage: true,
   }
   stampCallsite(result, captureCallsite(createForgePackage))
@@ -139,4 +142,26 @@ function assembleFunctions<TDeps>(
   }
 
   return [...listedRegistries, entryRegistry]
+}
+
+/**
+ * Collects the package's components - listed in `components` or stamped onto
+ * blocks their builders created in the journey - into one listing, so the
+ * engine registers every component the journey uses without the author naming
+ * them. Packages whose journey embeds no components pass through untouched.
+ */
+function assembleComponents(
+  components: ComponentRegistryEntry<BlockDefinition, unknown>[] | undefined,
+  finalisedJourney: JourneyDefinition,
+): ComponentRegistryEntry<BlockDefinition, unknown>[] | undefined {
+  const componentCollector = new ComponentEntryCollector()
+
+  components?.forEach(component => componentCollector.collectListed(component))
+  componentCollector.collectEmbedded(finalisedJourney)
+
+  if (!componentCollector.hasEmbedded()) {
+    return components
+  }
+
+  return componentCollector.entries()
 }

@@ -1,5 +1,4 @@
-import { buildNunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { field as buildField } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 import type {
   ResolvableBoolean,
   ResolvableString,
@@ -41,9 +40,9 @@ export interface RichTextEditor extends FieldBlockDefinition, RichTextEditorProp
   variant: 'richTextEditor'
 }
 
-export const richTextEditorComponent = buildNunjucksComponent<RichTextEditor>(
-  'richTextEditor',
-  (block, nunjucksEnv) => {
+export const RichTextEditor = nunjucksComponent<RichTextEditor>('richTextEditor', {
+  field: true,
+  render: (block, nunjucksEnv) => {
     const toolbar = block.toolbar ?? {
       bold: true,
       italic: true,
@@ -86,8 +85,4 @@ export const richTextEditorComponent = buildNunjucksComponent<RichTextEditor>(
 
     return nunjucksEnv.render('govuk/components/textarea/template.njk', { params })
   },
-)
-
-export function RichTextEditor(props: RichTextEditorProps): RichTextEditor {
-  return buildField<RichTextEditor>({ ...props, variant: 'richTextEditor' })
-}
+})

@@ -1,4 +1,5 @@
 import { buildComponent } from '../components/utils/buildComponent'
+import { component } from '../components/component'
 import { createForgePackage, field, journey, step, submit, validation, Self } from '../authoring/builders'
 import { condition } from '../authoring/functions/condition'
 import TransformerRegistry from '../authoring/registries/TransformerRegistry'
@@ -108,6 +109,25 @@ describe('PackageInstance', () => {
       expect(componentRegistry.has('package-component')).toBe(false)
     })
 
+    it('should scope an embedded component to the registering package', () => {
+      // Arrange
+      const componentRegistry = new ComponentRegistry()
+
+      // Act
+      const instance = new PackageInstance(
+        createForgePackage({ journey: journeyWithBlocks([TestCard({ title: 'Hello' })]) }),
+        {
+          functionRegistry: new FunctionRegistry(),
+          componentRegistry,
+          instrumentation: new ForgeTraceSinkDispatcher(),
+        },
+      )
+
+      // Assert
+      expect(instance.getDependencies().componentRegistry.has('test-card')).toBe(true)
+      expect(componentRegistry.has('test-card')).toBe(false)
+    })
+
     it('should scope embedded function entries to the registering package', () => {
       // Arrange
       const Scoped = condition('Test.Scoped', { factory: () => () => true })
@@ -149,6 +169,11 @@ describe('PackageInstance', () => {
   })
 })
 
+interface TestCardBlock extends BlockDefinition {
+  title: string
+}
+
+const TestCard = component<TestCardBlock>('test-card', { render: card => `<h2>${card.title}</h2>` })
 const testInput = buildComponent('test-input', () => '<input />')
 
 function fieldWithRule(code: string, rule: PredicateExpr, message: string) {
