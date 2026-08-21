@@ -1,10 +1,8 @@
-import ConditionRegistry from '../../../authoring/registries/ConditionRegistry'
-
-const generalConditions = new ConditionRegistry()
+import { condition } from '../../../authoring/functions/condition'
 
 export const GeneralConditions = {
   /** Checks if a value is not empty/null/undefined */
-  IsRequired: generalConditions.register('IsRequired', {
+  IsRequired: condition('IsRequired', {
     factory: () => (value: unknown) =>
       !(
         value === null ||
@@ -15,9 +13,7 @@ export const GeneralConditions = {
   }),
 
   /** Checks if a value is strictly equal to an expected value */
-  Equals: generalConditions.register('Equals', {
+  Equals: condition('Equals', {
     factory: () => (value: unknown, expected: unknown) => value === expected,
   }),
 }
-
-export { generalConditions as generalConditionsRegistry }

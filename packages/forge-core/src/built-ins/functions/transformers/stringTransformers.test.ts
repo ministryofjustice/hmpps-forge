@@ -1,9 +1,9 @@
-import { StringTransformers, stringTransformersRegistry } from './stringTransformers'
+import { StringTransformers } from './stringTransformers'
 import { FunctionType } from '../../../authoring/types/enums'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('String Transformers', () => {
-  const harness = new FunctionRegistryTestHarness(stringTransformersRegistry)
+  const harness = new FunctionRegistryTestHarness(Object.values(StringTransformers))
 
   describe('Trim', () => {
     it('should remove leading and trailing whitespace', () => {

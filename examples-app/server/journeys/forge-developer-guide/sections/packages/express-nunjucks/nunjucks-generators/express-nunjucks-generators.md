@@ -2,7 +2,7 @@
 title: Nunjucks Generators
 section: packages
 path: packages/express-nunjucks/nunjucks-generators
-teaches: [NunjucksGenerators, NunjucksGenerators.String, nunjucksFunctions]
+teaches: [NunjucksGenerators, NunjucksGenerators.String]
 prerequisites: [express-nunjucks]
 ---
 
@@ -74,23 +74,19 @@ custom generator or component instead.
 
 ---
 
-## Registering the generators
+## Registration
 
-The generator has two parts: the authoring-time namespace
-(`NunjucksGenerators`) and the runtime implementations. You
-need to register the implementations so the runtime can execute
-them:
+`NunjucksGenerators.String` is self-registering. Use it in a journey
+and Forge carries its runtime implementation into the package automatically:
 
 ```typescript
-import { nunjucksFunctions } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { Answer } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { NunjucksGenerators } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
-forge.registerGlobalFunctions(nunjucksFunctions)
+NunjucksGenerators.String({
+  template: '<p>Hello, {{ name }}</p>',
+  data: { name: Answer('full-name') },
+})
 ```
 
-This registers all generator and function implementations from
-the package in one call. Register them before any packages
-whose journeys use the generator - `registerPackage` validates
-function references during compilation, so a journey that uses
-`NunjucksGenerators.String` without the implementations
-registered fails at registration time with an
-`UnregisteredFunctionError`.
+No `functions` listing is needed on `createForgePackage`.

@@ -69,9 +69,8 @@ import type { ForgeRenderer, ForgeTopology, RequestSnapshot } from '@ministryofj
 ### `@ministryofjustice/hmpps-forge/core/testing`
 
 The in-memory test harness for exercising journeys without a real
-web framework: `ForgeTestHarness`, `ForgeTestClient`, and
-`createTestPackage`.
+web framework: `ForgeTestHarness` and `ForgeTestClient`.
 
 ```typescript
-import { ForgeTestHarness, createTestPackage } from '@ministryofjustice/hmpps-forge/core/testing'
+import { ForgeTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 ```

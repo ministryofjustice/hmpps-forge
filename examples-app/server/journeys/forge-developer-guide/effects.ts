@@ -1,8 +1,4 @@
-import {
-  access,
-  EffectFunctionContext,
-  EffectRegistry,
-} from '@ministryofjustice/hmpps-forge/core/authoring'
+import { access, effect } from '@ministryofjustice/hmpps-forge/core/authoring'
 import type GuideContentStore from '../../data/guideContentStore'
 import type GuideSearch from '../../data/guideSearch'
 import type FormDataStore from '../../data/formDataStore'
@@ -15,12 +11,9 @@ export interface GuideDeps {
   mocksApi: MocksApi
 }
 
-export const guideEffectRegistry = new EffectRegistry<GuideDeps>()
-
 export const GuideEffects = {
-  LoadContent: guideEffectRegistry.register(
-    'LoadContent',
-    deps => async (context: EffectFunctionContext, slug: string) => {
+  LoadContent: effect('LoadContent', {
+    factory: (deps: GuideDeps) => async (context, slug: string) => {
       await deps.guideContentStore.load()
 
       const entry = deps.guideContentStore.get(slug)
@@ -31,11 +24,13 @@ export const GuideEffects = {
         context.setData('pageTitle', entry.title)
       }
     },
-  ),
+  }),
 
-  SearchContent: guideEffectRegistry.register(
-    'SearchContent',
-    deps => async (context: EffectFunctionContext) => {
+  /**
+   * Yum, tasty tasty guide content
+   */
+  SearchContent: effect('SearchContent', {
+    factory: (deps: GuideDeps) => async context => {
       const queryParam = context.getQueryParam('q')
       const query = typeof queryParam === 'string' ? queryParam : ''
 
@@ -48,7 +43,7 @@ export const GuideEffects = {
         context.setData('searchQuery', '')
       }
     },
-  ),
+  }),
 }
 
 export function loadContent(slug: string) {

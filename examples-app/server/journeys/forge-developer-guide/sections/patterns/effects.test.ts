@@ -3,43 +3,15 @@ import {
   FunctionRegistryTestHarness,
   createTestEffectContext,
 } from '@ministryofjustice/hmpps-forge/core/testing'
-import type { GuideDeps } from '../../effects'
-import { PatternEffects, patternEffectRegistry } from './effects'
+import { PatternEffects } from './effects'
 import type { PatternSession } from './context.type'
 
-const deps = {
-  guideContentStore: {
-    load: async () => {},
-    getMarkdown: (): undefined => undefined,
-    getHeadings: (): never[] => [],
-  },
-  guideSearch: {
-    search: async (): Promise<never[]> => [],
-  },
-  formDataStore: {
-    get: async (): Promise<null> => null,
-    set: async () => {},
-    delete: async () => {},
-  },
-  mocksApi: {
-    lookupAddress: async () => ({
-      line1: '',
-      line2: '',
-      town: '',
-      county: '',
-      postcode: '',
-    }),
-    getLotteryBalls: async () => ({
-      balls: [1, 2, 3, 4, 5, 6],
-      bonusBall: 7,
-      drawDate: 'Tuesday 21 April 2026',
-    }),
-  },
-} as unknown as GuideDeps
+const harness = new FunctionRegistryTestHarness([
+  PatternEffects.AddRepeatingItem,
+  PatternEffects.SaveRepeatingItems,
+])
 
-const harness = new FunctionRegistryTestHarness(patternEffectRegistry, deps)
-
-describe('patternEffectRegistry', () => {
+describe('PatternEffects', () => {
   describe('AddRepeatingItem()', () => {
     it('should append a new row from live context data when no draft collection exists yet', () => {
       // Arrange

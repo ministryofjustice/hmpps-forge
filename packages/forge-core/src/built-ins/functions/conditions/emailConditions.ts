@@ -1,7 +1,5 @@
 import { z } from 'zod'
-import ConditionRegistry from '../../../authoring/registries/ConditionRegistry'
-
-const emailConditions = new ConditionRegistry()
+import { condition } from '../../../authoring/functions/condition'
 
 // Domain labels use the unambiguous form `[a-z0-9](?:[a-z0-9-]*[a-z0-9])?` so any span
 // matches exactly one way - no nested overlapping quantifiers, so no catastrophic
@@ -16,7 +14,7 @@ const MAX_EMAIL_LENGTH = 254
 
 export const EmailConditions = {
   /** Validates if a string is a properly formatted email address */
-  IsValidEmail: emailConditions.register('Email.IsValidEmail', {
+  IsValidEmail: condition('Email.IsValidEmail', {
     inputSchema: z.string(),
     factory: () => (value: string) => {
       if (value.length > MAX_EMAIL_LENGTH) {
@@ -27,5 +25,3 @@ export const EmailConditions = {
     },
   }),
 }
-
-export { emailConditions as emailConditionsRegistry }

@@ -2,7 +2,7 @@
 title: Testing
 section: building-journeys
 path: building-journeys/testing
-teaches: [ForgeTestHarness, ForgeTestClient, createTestPackage, TestRenderResult, TestRedirectResult, TestResult, getBlocksByVariant, getValidationErrorsByFieldCode]
+teaches: [ForgeTestHarness, ForgeTestClient, TestRenderResult, TestRedirectResult, TestResult, getBlocksByVariant, getValidationErrorsByFieldCode]
 prerequisites: [journey, step, block, field, onSubmission, onAccess, effects, registerPackage, createForgePackage]
 ---
 
@@ -25,7 +25,7 @@ Import `ForgeTestHarness` from the testing module, register your
 components and packages, and call `createClient()`.
 
 ```typescript
-import { ForgeTestHarness, createTestPackage } from '@ministryofjustice/hmpps-forge/core/testing'
+import { ForgeTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 const client = new ForgeTestHarness()
@@ -187,26 +187,6 @@ This keeps the effect's real logic under test while the service it
 calls is a spy you can assert on. It is useful when some effects only
 touch the session (and can run against their real dependencies) while
 others call APIs or databases that you want to stub out.
-
-### `createTestPackage` and the deprecated map form
-
-`createTestPackage` replaces named function implementations with
-spies or stubs, but its `overrides` apply only to the deprecated
-implementations-map form of `functions`. A package whose `functions`
-is a registry (or an array of registries) is returned unchanged, so
-reach for dependency injection above instead.
-
-```typescript
-import { createTestPackage } from '@ministryofjustice/hmpps-forge/core/testing'
-
-const mockSaveRecord = vi.fn()
-
-// Only takes effect when `functions` is an implementations map
-const testPkg = createTestPackage(
-  { journey: myJourney, functions: myEffectImplementations },
-  { overrides: { SaveRecord: mockSaveRecord } },
-)
-```
 
 ---
 

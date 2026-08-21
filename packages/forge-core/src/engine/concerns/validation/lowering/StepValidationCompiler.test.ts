@@ -5,8 +5,9 @@ import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
-  formatGeneratorsRegistry,
+  FormatGenerators,
 } from '../../../../built-ins/functions/generators/formatGenerators'
+import { FunctionEntryRegistry } from '../../../../authoring/functions/FunctionEntryRegistry'
 import { FieldBlockASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
 import {
   FunctionASTNode,
@@ -88,6 +89,14 @@ function createGeneratorFunction(name: string, args: unknown[] = []): FunctionAS
   } as FunctionASTNode
 }
 
+const formatGeneratorRows = (() => {
+  const entryRegistry = new FunctionEntryRegistry()
+
+  Object.values(FormatGenerators).forEach(entry => entryRegistry.collectListed(entry))
+
+  return entryRegistry.build()
+})()
+
 function createTestPredicate(
   subject: ReferenceASTNode,
   condition: FunctionASTNode,
@@ -140,7 +149,7 @@ function createCtx(overrides: Partial<CompiledValidationContext> = {}): Compiled
     conditions: {
       get: vi.fn((name: string) => {
         if (name === FORMAT_STRING_GENERATOR_NAME) {
-          return formatGeneratorsRegistry.build()[FORMAT_STRING_GENERATOR_NAME]
+          return formatGeneratorRows[FORMAT_STRING_GENERATOR_NAME]
         }
 
         if (name === 'isRequired') {

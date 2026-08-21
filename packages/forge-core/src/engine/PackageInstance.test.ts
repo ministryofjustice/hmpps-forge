@@ -1,7 +1,11 @@
 import { buildComponent } from '../components/utils/buildComponent'
-import { createForgePackage } from '../authoring/builders'
+import { createForgePackage, field, journey, step, submit, validation, Self } from '../authoring/builders'
+import { condition } from '../authoring/functions/condition'
+import TransformerRegistry from '../authoring/registries/TransformerRegistry'
 import { StructureType } from '../authoring/types/enums'
 import type { JourneyDefinition } from '../authoring/types/structures.type'
+import type { PredicateExpr } from '../authoring/types/expressions.type'
+import type { BlockDefinition } from '../components/types/structures.type'
 import type { CompiledPackage } from './chassis/contracts/plans/compilationArtefacts.type'
 import CompilationPipeline from './chassis/compilation/pipeline/CompilationPipeline'
 import ComponentRegistry from './chassis/registries/ComponentRegistry'
@@ -50,13 +54,14 @@ describe('PackageInstance', () => {
       })
       mockCompilation()
 
+      const packageFunctions = new TransformerRegistry<{ prefix: string }>()
+      packageFunctions.register('WithPrefix', deps => (value: unknown) => `${deps.prefix}${String(value)}`)
+
       // Act
       const instance = new PackageInstance(
         createForgePackage({
           journey: createJourneyDefinition(),
-          functions: {
-            WithPrefix: (deps: { prefix: string }) => (value: unknown) => `${deps.prefix}${String(value)}`,
-          },
+          functions: packageFunctions,
         }),
         {
           functionRegistry,
@@ -102,8 +107,75 @@ describe('PackageInstance', () => {
       expect(scopedComponentRegistry.get('package-component')).toBe(packageComponent)
       expect(componentRegistry.has('package-component')).toBe(false)
     })
+
+    it('should scope embedded function entries to the registering package', () => {
+      // Arrange
+      const Scoped = condition('Test.Scoped', { factory: () => () => true })
+      const functionRegistry = new FunctionRegistry()
+      const componentRegistry = new ComponentRegistry()
+
+      componentRegistry.registerMany([testInput])
+
+      // Act
+      const instance = new PackageInstance(
+        createForgePackage({ journey: journeyWithBlocks([fieldWithRule('crn', Self().match(Scoped()), 'Nope')]) }),
+        { functionRegistry, componentRegistry, instrumentation: new ForgeTraceSinkDispatcher() },
+      )
+
+      // Assert
+      expect(instance.getDependencies().functionRegistry.has('Test.Scoped')).toBe(true)
+      expect(functionRegistry.has('Test.Scoped')).toBe(false)
+    })
+
+    it('should register an async embedded entry evaluator as isAsync', () => {
+      // Arrange
+      const IsOkAsync = condition('Test.IsOkAsync', { factory: () => async (value: unknown) => value === 'ok' })
+      const functionRegistry = new FunctionRegistry()
+      const componentRegistry = new ComponentRegistry()
+
+      componentRegistry.registerMany([testInput])
+
+      // Act
+      const instance = new PackageInstance(
+        createForgePackage({
+          journey: journeyWithBlocks([fieldWithRule('status', Self().match(IsOkAsync()), 'Not ok')]),
+        }),
+        { functionRegistry, componentRegistry, instrumentation: new ForgeTraceSinkDispatcher() },
+      )
+
+      // Assert
+      expect(instance.getDependencies().functionRegistry.get('Test.IsOkAsync')?.isAsync).toBe(true)
+    })
   })
 })
+
+const testInput = buildComponent('test-input', () => '<input />')
+
+function fieldWithRule(code: string, rule: PredicateExpr, message: string) {
+  return field({
+    variant: 'test-input',
+    code,
+    validWhen: [validation({ condition: rule, message })],
+  })
+}
+
+function journeyWithBlocks(blocks: BlockDefinition[]) {
+  return journey({
+    code: 'scoping',
+    title: 'Scoping Journey',
+    path: '/scoping',
+    reachability: { disableReachabilityChecks: true },
+    steps: [
+      step({
+        code: 'step-one',
+        title: 'Step One',
+        path: '/step-one',
+        onSubmission: [submit({ validate: true })],
+        blocks,
+      }),
+    ],
+  })
+}
 
 function mockCompilation(): void {
   vi.spyOn(CompilationPipeline.prototype, 'compile')

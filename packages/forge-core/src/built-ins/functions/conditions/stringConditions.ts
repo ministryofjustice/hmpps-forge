@@ -1,15 +1,13 @@
 import { z } from 'zod'
-import ConditionRegistry from '../../../authoring/registries/ConditionRegistry'
+import { condition } from '../../../authoring/functions/condition'
 
 const stringSchema = z.string()
 const stringArgsSchema = z.tuple([z.string()])
 const nonNegativeNumberArgsSchema = z.tuple([z.number().nonnegative()])
 
-const stringConditions = new ConditionRegistry()
-
 export const StringConditions = {
   /** Checks if a string matches a regular expression pattern */
-  MatchesRegex: stringConditions.register('String.MatchesRegex', {
+  MatchesRegex: condition('String.MatchesRegex', {
     inputSchema: stringSchema,
     argumentsSchema: stringArgsSchema,
     factory: () => (value: string, pattern: string) => {
@@ -22,28 +20,28 @@ export const StringConditions = {
   }),
 
   /** Checks if a string has at least the minimum specified length */
-  HasMinLength: stringConditions.register('String.HasMinLength', {
+  HasMinLength: condition('String.HasMinLength', {
     inputSchema: stringSchema,
     argumentsSchema: nonNegativeNumberArgsSchema,
     factory: () => (value: string, min: number) => value.length >= min,
   }),
 
   /** Checks if a string does not exceed the maximum specified length */
-  HasMaxLength: stringConditions.register('String.HasMaxLength', {
+  HasMaxLength: condition('String.HasMaxLength', {
     inputSchema: stringSchema,
     argumentsSchema: nonNegativeNumberArgsSchema,
     factory: () => (value: string, max: number) => value.length <= max,
   }),
 
   /** Checks if a string has exactly the specified length */
-  HasExactLength: stringConditions.register('String.HasExactLength', {
+  HasExactLength: condition('String.HasExactLength', {
     inputSchema: stringSchema,
     argumentsSchema: nonNegativeNumberArgsSchema,
     factory: () => (value: string, len: number) => value.length === len,
   }),
 
   /** Checks if a string contains at most the specified number of words */
-  HasMaxWords: stringConditions.register('String.HasMaxWords', {
+  HasMaxWords: condition('String.HasMaxWords', {
     inputSchema: stringSchema,
     argumentsSchema: nonNegativeNumberArgsSchema,
     factory: () => (value: string, maxWords: number) => {
@@ -58,67 +56,65 @@ export const StringConditions = {
   }),
 
   /** Contains only letters (A-Z, a-z) */
-  LettersOnly: stringConditions.register('String.LettersOnly', {
+  LettersOnly: condition('String.LettersOnly', {
     inputSchema: stringSchema,
     factory: () => (value: string) => /^[A-Za-z]+$/.test(value),
   }),
 
   /** Contains only digits (0-9) */
-  DigitsOnly: stringConditions.register('String.DigitsOnly', {
+  DigitsOnly: condition('String.DigitsOnly', {
     inputSchema: stringSchema,
     factory: () => (value: string) => /^[0-9]+$/.test(value),
   }),
 
   /** Contains only letters and common punctuation */
-  LettersWithCommonPunctuation: stringConditions.register('String.LettersWithCommonPunctuation', {
+  LettersWithCommonPunctuation: condition('String.LettersWithCommonPunctuation', {
     inputSchema: stringSchema,
     factory: () => (value: string) => /^[A-Za-z.,'"()\-!? ]+$/.test(value),
   }),
 
   /** Contains only letters, spaces, dashes, and apostrophes */
-  LettersWithSpaceDashApostrophe: stringConditions.register('String.LettersWithSpaceDashApostrophe', {
+  LettersWithSpaceDashApostrophe: condition('String.LettersWithSpaceDashApostrophe', {
     inputSchema: stringSchema,
     factory: () => (value: string) => /^[A-Za-z\s\-']+$/.test(value),
   }),
 
   /** Contains only letters and digits (alphanumeric) */
-  LettersAndDigitsOnly: stringConditions.register('String.LettersAndDigitsOnly', {
+  LettersAndDigitsOnly: condition('String.LettersAndDigitsOnly', {
     inputSchema: stringSchema,
     factory: () => (value: string) => /^[A-Za-z0-9]+$/.test(value),
   }),
 
   /** Contains only alphanumeric characters and common punctuation */
-  AlphanumericWithCommonPunctuation: stringConditions.register('String.AlphanumericWithCommonPunctuation', {
+  AlphanumericWithCommonPunctuation: condition('String.AlphanumericWithCommonPunctuation', {
     inputSchema: stringSchema,
     factory: () => (value: string) => /^[A-Za-z0-9.,'"()\-!? ]+$/.test(value),
   }),
 
   /** Contains only alphanumeric characters and safe symbols */
-  AlphanumericWithAllSafeSymbols: stringConditions.register('String.AlphanumericWithAllSafeSymbols', {
+  AlphanumericWithAllSafeSymbols: condition('String.AlphanumericWithAllSafeSymbols', {
     inputSchema: stringSchema,
     factory: () => (value: string) => /^[A-Za-z0-9 .,;:'"()\-!?@#$%^&*]+$/.test(value),
   }),
 
   /** Checks if a string starts with the specified prefix */
-  StartsWith: stringConditions.register('String.StartsWith', {
+  StartsWith: condition('String.StartsWith', {
     inputSchema: stringSchema,
     argumentsSchema: stringArgsSchema,
     factory: () => (value: string, prefix: string) => value.startsWith(prefix),
   }),
 
   /** Checks if a string ends with the specified suffix */
-  EndsWith: stringConditions.register('String.EndsWith', {
+  EndsWith: condition('String.EndsWith', {
     inputSchema: stringSchema,
     argumentsSchema: stringArgsSchema,
     factory: () => (value: string, suffix: string) => value.endsWith(suffix),
   }),
 
   /** Checks if a string contains the specified substring */
-  Contains: stringConditions.register('String.Contains', {
+  Contains: condition('String.Contains', {
     inputSchema: stringSchema,
     argumentsSchema: stringArgsSchema,
     factory: () => (value: string, substring: string) => value.includes(substring),
   }),
 }
-
-export { stringConditions as stringConditionsRegistry }

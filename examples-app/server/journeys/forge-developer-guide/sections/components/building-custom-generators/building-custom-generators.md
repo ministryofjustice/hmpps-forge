@@ -2,7 +2,7 @@
 title: Custom generators
 section: building-functions-and-components
 path: building-functions-and-components/custom-generators
-teaches: [GeneratorRegistry, register, argumentsSchema, generator-implementation]
+teaches: [generator, GeneratorRegistry, register, argumentsSchema, generator-implementation]
 prerequisites: [Generator, pipe, createForgePackage]
 ---
 
@@ -14,7 +14,9 @@ Generators produce values at runtime. The built-in generators
 cover dates, but your application might need UUIDs, reference
 numbers, or computed defaults. Custom generators let you define
 any value-producing function and use it in your definitions the
-same way you use `Generator.Date.Today()`.
+same way you use `Generator.Date.Today()`. A custom generator is
+declared with `generator()`, and using it in a journey registers
+it automatically.
 
 {{slot:toc}}
 
@@ -22,63 +24,54 @@ same way you use `Generator.Date.Today()`.
 
 ## Declaring generators
 
-Custom generators are declared through a `GeneratorRegistry`. You
-create one registry, register each generator on it, and group the
-returned handles in a plain object for use in journey definitions:
+`generator()` takes a name and an options object containing the
+factory. It returns a callable handle you use directly in journey
+definitions:
 
 ```typescript
-import { GeneratorRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { generator } from '@ministryofjustice/hmpps-forge/core/authoring'
 
-const myGenerators = new GeneratorRegistry<MyDeps>()
+/** Produces a new v4 UUID. */
+export const NewUUID = generator('NewUUID', {
+  factory: () => () => crypto.randomUUID(),
+})
 
-export const MyGenerators = {
-  /** Produces a new v4 UUID. */
-  NewUUID: myGenerators.register('NewUUID', (deps) => () => {
-    return crypto.randomUUID()
-  }),
+/**
+ * Produces a unique reference number with the given prefix.
+ * @param prefix - The string to prepend to the generated number.
+ */
+export const NewReferenceNumber = generator('NewReferenceNumber', {
+  factory: () => (prefix: string) => {
+    const timestamp = Date.now().toString(36)
+    const random = Math.random().toString(36).substring(2, 6)
 
-  /**
-   * Produces a unique reference number with the given prefix.
-   * @param prefix - The string to prepend to the generated number.
-   */
-  NewReferenceNumber: myGenerators.register(
-    'NewReferenceNumber',
-    (deps) => (prefix: string) => {
-      const timestamp = Date.now().toString(36)
-      const random = Math.random().toString(36).substring(2, 6)
-
-      return `${prefix}-${timestamp}-${random}`.toUpperCase()
-    },
-  ),
-}
+    return `${prefix}-${timestamp}-${random}`.toUpperCase()
+  },
+})
 ```
 
-There is no separate shape interface to maintain. `register` infers
-the argument types straight from the factory, so
-`MyGenerators.NewReferenceNumber` becomes
-`(prefix: string) => GeneratorBuilder` and `MyGenerators.NewUUID`
-becomes `() => GeneratorBuilder`. The JSDoc on each grouped handle
-documents the generator the same way a shape interface used to.
-
-Each `register` call takes a name, an optional options object, and
-a factory following the pattern `(deps) => (...args) => result`. It
-returns a callable handle. `MyGenerators.NewUUID()` creates an
-expression that Forge evaluates at runtime.
+There is no registry to create and no shape interface to maintain.
+The factory follows the pattern `(deps) => (...args) => result`,
+and the argument types come straight from it: `NewReferenceNumber`
+is `(prefix) => GeneratorBuilder` and `NewUUID` is
+`() => GeneratorBuilder`. `NewUUID()` creates an expression that
+Forge evaluates at runtime.
 
 As with all custom functions, arguments passed to a handle can be
-static values or expressions:
+static values or expressions. Each parameter automatically accepts
+an expression as well as the type the factory declares - there is
+no widening to do - and Forge resolves the expression before the
+evaluator runs:
 
 ```typescript
-defaultValue: MyGenerators.NewReferenceNumber('REF')
-defaultValue: MyGenerators.NewReferenceNumber(Data('referencePrefix'))
+defaultValue: NewReferenceNumber('REF')
+defaultValue: NewReferenceNumber(Data('referencePrefix'))
 ```
 
-The handle's signature is inferred from the factory, so a factory
-that declares `prefix: string` produces a handle that only accepts
-a string at the type level. To accept expressions too, widen the
-parameter to `string | ResolvableValue` (exported from
-`@ministryofjustice/hmpps-forge/core/authoring`). Forge resolves
-the expression before the evaluator runs.
+Using the handle anywhere in a journey definition is also what
+registers it. At `registerPackage()`, Forge collects every entry
+the journey uses and registers its evaluator - there is nothing to
+list on the package.
 
 ### How generators differ from transformers
 
@@ -89,22 +82,27 @@ produces something from nothing.
 
 ```typescript
 // Transformer: (deps) => (value, ...args) => result
-Slugify: myTransformers.register('Slugify', (deps) => (value: unknown) => { ... })
+export const Slugify = transformer('Slugify', {
+  factory: () => (value: unknown) => { ... },
+})
 
 // Generator: (deps) => (...args) => result
-NewUUID: myGenerators.register('NewUUID', (deps) => () => { ... })
+export const NewUUID = generator('NewUUID', {
+  factory: () => () => { ... },
+})
 ```
 
 ### The outer function: dependencies
 
 The outer function `(deps) => ...` receives injected dependencies,
 even if your generator does not need them. If it does need external
-services, they are available through `deps`:
+services, pass the dependency type as a type argument and read them
+through `deps`:
 
 ```typescript
-NextSequenceNumber: myGenerators.register('NextSequenceNumber', (deps) => () => {
-  return deps.sequenceService.next()
-}),
+export const NextSequenceNumber = generator<MyDeps>('NextSequenceNumber', {
+  factory: (deps) => () => deps.sequenceService.next(),
+})
 ```
 
 ---
@@ -122,28 +120,21 @@ Generators have no resolved value, so `inputSchema` does not apply.
 
 ```typescript
 import { z } from 'zod'
-import { GeneratorRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { generator } from '@ministryofjustice/hmpps-forge/core/authoring'
 
-const myGenerators = new GeneratorRegistry<MyDeps>()
+/**
+ * Produces a unique reference number with the given prefix.
+ * @param prefix - The string to prepend to the generated number.
+ */
+export const NewReferenceNumber = generator('NewReferenceNumber', {
+  argumentsSchema: z.tuple([z.string().min(1)]),
+  factory: () => (prefix: string) => {
+    const timestamp = Date.now().toString(36)
+    const random = Math.random().toString(36).substring(2, 6)
 
-export const MyGenerators = {
-  /**
-   * Produces a unique reference number with the given prefix.
-   * @param prefix - The string to prepend to the generated number.
-   */
-  NewReferenceNumber: myGenerators.register(
-    'NewReferenceNumber',
-    {
-      argumentsSchema: z.tuple([z.string().min(1)]),
-    },
-    (deps) => (prefix: string) => {
-      const timestamp = Date.now().toString(36)
-      const random = Math.random().toString(36).substring(2, 6)
-
-      return `${prefix}-${timestamp}-${random}`.toUpperCase()
-    },
-  ),
-}
+    return `${prefix}-${timestamp}-${random}`.toUpperCase()
+  },
+})
 ```
 
 The `argumentsSchema` catches an author passing an empty prefix.
@@ -167,35 +158,28 @@ them as an array. The returned array replaces the original
 arguments in the built expression.
 
 ```typescript
-const myGenerators = new GeneratorRegistry<MyDeps>()
+export const NewReferenceNumber = generator('NewReferenceNumber', {
+  prepare: (prefix: string): [string] => {
+    if (typeof prefix !== 'string' || prefix.length === 0) {
+      throw new Error('NewReferenceNumber requires a non-empty prefix')
+    }
 
-export const MyGenerators = {
-  NewReferenceNumber: myGenerators.register(
-    'NewReferenceNumber',
-    {
-      prepare: (prefix: string): [string] => {
-        if (typeof prefix !== 'string' || prefix.length === 0) {
-          throw new Error('NewReferenceNumber requires a non-empty prefix')
-        }
+    return [prefix]
+  },
+  factory: () => (prefix: string) => {
+    const timestamp = Date.now().toString(36)
+    const random = Math.random().toString(36).substring(2, 6)
 
-        return [prefix]
-      },
-    },
-    (deps) => (prefix: string) => {
-      const timestamp = Date.now().toString(36)
-      const random = Math.random().toString(36).substring(2, 6)
-
-      return `${prefix}-${timestamp}-${random}`.toUpperCase()
-    },
-  ),
-}
+    return `${prefix}-${timestamp}-${random}`.toUpperCase()
+  },
+})
 ```
 
 A bad call fails as soon as the definition is imported:
 
 ```typescript
 // Throws 'NewReferenceNumber requires a non-empty prefix'.
-MyGenerators.NewReferenceNumber('')
+NewReferenceNumber('')
 ```
 
 Since generators have no injected first parameter, `prepare` sees
@@ -231,7 +215,7 @@ Generator.Date.Today().pipe(
 Your custom generators work the same way:
 
 ```typescript
-MyGenerators.NewReferenceNumber('REF').pipe(
+NewReferenceNumber('REF').pipe(
   Transformer.String.ToUpperCase(),
 )
 ```
@@ -241,7 +225,7 @@ MyGenerators.NewReferenceNumber('REF').pipe(
 You can test a generator's output with `.match()`:
 
 ```typescript
-visibleWhen: MyGenerators.FeatureFlag('showNewSection')
+visibleWhen: FeatureFlag('showNewSection')
   .match(Condition.Equals(true))
 ```
 
@@ -249,25 +233,10 @@ visibleWhen: MyGenerators.FeatureFlag('showNewSection')
 
 ## Registration
 
-Pass the registry to a package through the `functions` property:
-
-```typescript
-import { createForgePackage } from '@ministryofjustice/hmpps-forge/core/authoring'
-
-export default createForgePackage<MyDeps>({
-  journey: myJourney,
-  functions: myGenerators,
-})
-```
-
-`functions` also accepts an array of registries when a package
-mixes several function kinds:
-
-```typescript
-functions: [myGenerators, myTransformers],
-```
-
-Dependencies are injected at application startup:
+Using a generator in a journey definition registers it - there is
+nothing to declare on the package. Dependencies are injected at
+application startup when you register the package, and every
+entry's factory receives them:
 
 ```typescript
 forge.registerPackage(myPackage, {
@@ -275,14 +244,22 @@ forge.registerPackage(myPackage, {
 })
 ```
 
-To make generators available to every journey rather than a single
-package, register the registry globally instead:
+If a journey refers to a generator only by name - a journey defined
+in JSON, for example - nothing uses the handle, so there is nothing
+to collect. List the entry on the package's `functions` property to
+register it under its declared name regardless:
 
 ```typescript
-forge.registerGlobalFunctions(myGenerators, {
-  sequenceService: services.sequenceService,
+export default createForgePackage<MyDeps>({
+  journey: myJourney,
+  functions: [NewUUID, NewReferenceNumber],
 })
 ```
+
+The `functions` array mixes entries and registries freely. To make
+generators available to every journey rather than a single package,
+group them on a registry and register it globally - see
+[Grouping with a registry](#grouping-with-a-registry).
 
 ---
 
@@ -297,7 +274,7 @@ block properties, field defaults, `Format()` arguments, and more.
 GovUKTextInput({
   code: 'referenceId',
   label: { text: 'Reference number' },
-  defaultValue: MyGenerators.NewReferenceNumber('REF'),
+  defaultValue: NewReferenceNumber('REF'),
 })
 ```
 
@@ -307,7 +284,7 @@ GovUKTextInput({
 GovUKBody({
   text: Format(
     'Your reference is %1.',
-    MyGenerators.NewReferenceNumber('APP'),
+    NewReferenceNumber('APP'),
   ),
 })
 ```
@@ -316,7 +293,7 @@ GovUKBody({
 
 ```typescript
 GovUKInsetText({
-  text: MyGenerators.DisclaimerText('en'),
+  text: DisclaimerText('en'),
 })
 ```
 
@@ -346,49 +323,88 @@ instead.
 
 ## Testing
 
-`register` returns an expression handle, not the underlying
-function, so tests evaluate the generator through the registry's
-`build` method. Call `build` with mock dependencies to get an
-object keyed by name, then read the `evaluate` function:
+Test a generator with `FunctionRegistryTestHarness` from the
+testing module. Pass the entry to the constructor, then evaluate
+the expression the handle builds. Generators take no injected
+input, so `evaluate` runs them immediately. The harness runs the
+engine's real evaluation pipeline - schemas and output validation
+included - so a wrong schema fails in your tests rather than
+shipping silently:
 
 ```typescript
-describe('MyGenerators', () => {
-  describe('NewReferenceNumber', () => {
-    const newReferenceNumber = myGenerators.build({} as MyDeps).NewReferenceNumber.evaluate
+import { FunctionRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 
-    it('should start with the given prefix', () => {
-      // Arrange / Act
-      const result = newReferenceNumber('REF')
+describe('NewReferenceNumber', () => {
+  const harness = new FunctionRegistryTestHarness(NewReferenceNumber)
 
-      // Assert
-      expect(result).toMatch(/^REF-/)
-    })
+  it('should start with the given prefix', () => {
+    // Arrange / Act
+    const result = harness.evaluate(NewReferenceNumber('REF'))
+
+    // Assert
+    expect(result).toMatch(/^REF-/)
   })
+})
 
-  describe('NextSequenceNumber', () => {
-    it('should call the sequence service', () => {
-      // Arrange
-      const deps = {
-        sequenceService: { next: jest.fn().mockReturnValue(42) },
-      } as unknown as MyDeps
+describe('NextSequenceNumber', () => {
+  it('should call the sequence service', () => {
+    // Arrange
+    const deps = {
+      sequenceService: { next: jest.fn().mockReturnValue(42) },
+    } as unknown as MyDeps
 
-      const nextSequenceNumber = myGenerators.build(deps).NextSequenceNumber.evaluate
+    const harness = new FunctionRegistryTestHarness(NextSequenceNumber, deps)
 
-      // Act
-      const result = nextSequenceNumber()
+    // Act
+    const result = harness.evaluate(NextSequenceNumber())
 
-      // Assert
-      expect(result).toBe(42)
-      expect(deps.sequenceService.next).toHaveBeenCalled()
-    })
+    // Assert
+    expect(result).toBe(42)
+    expect(deps.sequenceService.next).toHaveBeenCalled()
   })
 })
 ```
 
-`build` returns the entry keyed by the name you registered, and
-`evaluate` is the `(...args) => result` function itself. It
-bypasses the schemas and `prepare`, so it exercises the evaluator
-logic directly.
+---
+
+## Grouping with a registry
+
+Entries suit generators that live alongside the journeys using
+them. When a package exposes a family of generators as a shared
+API - or when generators must be available to every journey - a
+`GeneratorRegistry` groups them under one handle object:
+
+```typescript
+import { GeneratorRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
+
+const myGenerators = new GeneratorRegistry<MyDeps>()
+
+export const MyGenerators = {
+  /** Produces a new v4 UUID. */
+  NewUUID: myGenerators.register('NewUUID', () => () => crypto.randomUUID()),
+}
+```
+
+`register` takes the same options (`argumentsSchema`,
+`outputSchema`, `prepare`) and the same factory shape, and returns
+the same kind of callable handle. Two differences from entries:
+
+- Nothing registers automatically. Pass the registry to a package's
+  `functions` property, or globally:
+
+  ```typescript
+  forge.registerGlobalFunctions(myGenerators, {
+    sequenceService: services.sequenceService,
+  })
+  ```
+
+- Handle parameters accept only the types the factory declares. To
+  accept expressions too, widen the parameter to
+  `string | ResolvableValue` (exported from
+  `@ministryofjustice/hmpps-forge/core/authoring`).
+
+`FunctionRegistryTestHarness` accepts a registry in place of an
+entry, so the testing pattern above works unchanged.
 
 ---
 

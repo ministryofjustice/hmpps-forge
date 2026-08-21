@@ -1,6 +1,6 @@
 import nunjucks from 'nunjucks'
 import { z } from 'zod'
-import { GeneratorRegistry } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { generator } from '@ministryofjustice/hmpps-forge/core/authoring'
 
 /**
  * Throws if the template uses any forbidden tags. Wired into the generator's
@@ -60,8 +60,6 @@ const nunjucksStringArgsSchema = z.tuple([
   }),
 ])
 
-const nunjucksGenerators = new GeneratorRegistry()
-
 export const NunjucksGenerators = {
   /**
    * Render a Nunjucks template to a ResolvableString expression.
@@ -76,7 +74,7 @@ export const NunjucksGenerators = {
    * `{% macro %}` are rejected at author-call time. If you need reusable
    * composition logic, extract a custom generator or component instead.
    */
-  String: nunjucksGenerators.register('String', {
+  String: generator('String', {
     argumentsSchema: nunjucksStringArgsSchema,
     prepare: (props: NunjucksStringGeneratorProps) => {
       assertTemplateIsAllowed(props.template)
@@ -97,4 +95,4 @@ export const NunjucksGenerators = {
   }),
 }
 
-export { nunjucksGenerators as nunjucksFunctions }
+export const nunjucksFunctions = Object.values(NunjucksGenerators)

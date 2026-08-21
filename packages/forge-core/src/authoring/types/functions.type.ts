@@ -60,3 +60,38 @@ export interface FunctionRegistryEntry {
  * function calls against, and what `build()` on a registry returns.
  */
 export type FunctionRegistryObject = Record<string, FunctionRegistryEntry>
+
+/**
+ * The contract the engine consumes custom functions through: anything that can
+ * build registry rows from dependencies at registration time. Satisfied by
+ * `BaseFunctionRegistry` subclasses and by the entry registry that
+ * `createForgePackage()` assembles from function entries.
+ */
+export interface FunctionRegistryBuilder<TDeps = any> {
+  build(deps?: TDeps): FunctionRegistryObject
+}
+
+/**
+ * The registration surface of a function entry created by helpers such as
+ * `condition()`. Structural rather than the concrete entry shape so the
+ * engine can consume entries without depending on the authoring helpers.
+ */
+export interface FunctionEntry<TDeps = any> {
+  /** The author-given name, or undefined for an anonymous entry. */
+  readonly name: string | undefined
+
+  /** Which function table the entry belongs to. */
+  readonly functionType: FunctionType
+
+  /** Validates the injected value, where declared. */
+  readonly inputSchema?: ZodType
+
+  /** Validates the authored arguments, where declared. */
+  readonly argumentsSchema?: ZodType
+
+  /** Validates the evaluator's result, where declared. */
+  readonly outputSchema?: ZodType
+
+  /** Builds the evaluator from the dependencies supplied at registration time. */
+  readonly factory: (deps: TDeps) => FunctionEvaluator
+}

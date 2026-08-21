@@ -1,11 +1,17 @@
 import { assertTemplateIsAllowed, NunjucksGenerators, nunjucksFunctions } from './nunjucksGenerators'
 
 describe('nunjucksGenerators', () => {
-  const registry = nunjucksFunctions.build()
+  const evaluate = NunjucksGenerators.String.factory({})
+
+  it('should export the generator entries for explicit package listings', () => {
+    // Act
+    const functions = nunjucksFunctions
+
+    // Assert
+    expect(functions).toEqual([NunjucksGenerators.String])
+  })
 
   describe('String evaluator', () => {
-    const evaluate = registry.String.evaluate
-
     it('should render a plain template', () => {
       // Arrange / Act
       const result = evaluate({ template: '<p>Hello world</p>' })
@@ -156,9 +162,6 @@ describe('nunjucksGenerators', () => {
     })
 
     it('should reject at render time when a forbidden tag slips past the prepare hook', () => {
-      // Arrange
-      const evaluate = registry.String.evaluate
-
       // Act / Assert: calling the generator evaluator directly still catches it on cache miss.
       expect(() => evaluate({ template: '{% include "x.njk" %}' })).toThrow(/include/)
     })

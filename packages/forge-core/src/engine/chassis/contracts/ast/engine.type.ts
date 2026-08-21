@@ -2,12 +2,7 @@ import ComponentRegistry from '../../registries/ComponentRegistry'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import type { Logger } from '../../../../framework/types/adapter.type'
 import type { RegisteredForgePackage } from '../../../../authoring/types/package.type'
-import type { FunctionEvaluator } from '../../../../authoring/types/functions.type'
-import type { BaseFunctionRegistry } from '../../../../authoring/registries/BaseFunctionRegistry'
-import type {
-  FunctionImplementations,
-  FunctionShapeMap,
-} from '../../../../authoring/utils/deprecated/defineFunction.type'
+import type { FunctionRegistryBuilder } from '../../../../authoring/types/functions.type'
 
 export type { ASTNode, AstNodeId, NodeId, TemplateNodeId } from './ast.type'
 
@@ -20,13 +15,7 @@ export interface PackageDependencies {
   componentRegistry: ComponentRegistry
 }
 
-/** @deprecated Use BaseFunctionRegistry subclasses instead */
-export type ForgeFunctionImplementations<TDeps> = Record<string, (deps: TDeps) => FunctionEvaluator<unknown>>
-
-export type ForgePackageFunctions<TDeps> =
-  | FunctionImplementations<FunctionShapeMap, TDeps>
-  | BaseFunctionRegistry<TDeps>
-  | BaseFunctionRegistry<TDeps>[]
+export type ForgePackageFunctions<TDeps> = FunctionRegistryBuilder<TDeps> | FunctionRegistryBuilder<TDeps>[]
 
 /**
  * A package accepted by `Forge.registerPackage()`: the branded output of

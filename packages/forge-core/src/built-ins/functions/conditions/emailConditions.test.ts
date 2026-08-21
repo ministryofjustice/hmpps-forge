@@ -1,9 +1,9 @@
-import { EmailConditions, emailConditionsRegistry } from './emailConditions'
+import { EmailConditions } from './emailConditions'
 import { FunctionType } from '../../../authoring/types/enums'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('EmailConditions', () => {
-  const harness = new FunctionRegistryTestHarness(emailConditionsRegistry)
+  const harness = new FunctionRegistryTestHarness(Object.values(EmailConditions))
 
   describe('IsValidEmail', () => {
     test('should return true for valid email addresses', () => {

@@ -53,6 +53,65 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.5.0
+
+Functions without the registry ceremony - write a condition with `condition()`, use it
+in your journey, and it registers itself. The deprecated `defineFunction`-era helpers
+and the implementations-map `functions` form are gone.
+
+### Added
+
+- `condition()`, `transformer()`, `generator()`, and `effect()` - define a function as
+  a standalone entry that registers itself when a journey uses it, no registry or
+  `functions` listing needed
+- `FunctionRegistryTestHarness` accepts entries alongside registries
+
+### Removed
+
+- The deprecated `defineConditionFunctions`, `defineTransformerFunctions`,
+  `defineGeneratorFunctions`, and `defineEffectFunctions` helpers, along with
+  `createFunctionsRegistry` and `createFunctionScope`
+- The implementations-map form of `functions` - `createForgePackage` and
+  `registerGlobalFunctions` take a registry, or an array of registries and entries.
+  Port a map by registering each function on the matching registry class, or drop the
+  registry entirely and define the function as an entry
+- `createTestPackage` from the testing module - its `overrides` only ever applied to
+  the implementations-map form, so with the map gone it did nothing. Inject mock
+  dependencies through `registerPackage()` instead, or exercise a function directly
+  with `FunctionRegistryTestHarness`
+
+### Fixed
+
+- Generator arguments no longer collide with condition arguments - a rule like
+  `Fixed('yes').match(Equals('yes'))` compiled both arguments to the same name in
+  nested scopes and failed with `Cannot access 'functionArgument1' before
+  initialization`. Generated nested functions now avoid reusing names visible in their
+  enclosing function
+- Dotted function names work in hook effects - an effect named `Draft.Save` made
+  codegen emit `runDraft.Save` as a generated function name, which failed compilation.
+  Authored names are now reduced to their words before they are joined into generated
+  identifiers
+
+### Details
+
+#### Functions as entries
+
+Previously every custom function meant a registry: create a `ConditionRegistry`,
+register the function on it, list the registry in the package's `functions`. Now the
+four entry helpers each define a function as a standalone entry - the returned value
+is both the authoring handle and the registration entry, so calling it in a journey is
+enough for `registerPackage()` to collect it, run its factory with the package's deps,
+and register the evaluator.
+
+Anonymous inline entries work too, and two different entries sharing a name are kept
+isolated - one of them registers as `name@2` and the expressions that used it are
+renamed to match. Listing an entry in `functions` still works and promises its exact
+name, for journeys that reference functions by name only (for example plain JSON) - a
+name clash there throws instead of renaming. The built-in string conditions are
+entries now.
+
+---
+
 ## 0.4.1
 
 Release focused mainly on internal engine cleanup plus a few bug fixes/security improvements 

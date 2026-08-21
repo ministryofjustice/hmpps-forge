@@ -1,9 +1,9 @@
-import { PhoneConditions, phoneConditionsRegistry } from './phoneConditions'
+import { PhoneConditions } from './phoneConditions'
 import { FunctionType } from '../../../authoring/types/enums'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('PhoneConditions', () => {
-  const harness = new FunctionRegistryTestHarness(phoneConditionsRegistry)
+  const harness = new FunctionRegistryTestHarness(Object.values(PhoneConditions))
 
   describe('IsValidPhoneNumber', () => {
     test('should return true for valid phone numbers', () => {

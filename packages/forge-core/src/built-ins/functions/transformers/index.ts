@@ -1,8 +1,9 @@
-import { ArrayTransformers, arrayTransformersRegistry } from './arrayTransformers'
-import { DateTransformers, dateTransformersRegistry } from './dateTransformers'
-import { NumberTransformers, numberTransformersRegistry } from './numberTransformers'
-import { ObjectTransformers, objectTransformersRegistry } from './objectTransformers'
-import { StringTransformers, stringTransformersRegistry } from './stringTransformers'
+import { ArrayTransformers } from './arrayTransformers'
+import { DateTransformers } from './dateTransformers'
+import { NumberTransformers } from './numberTransformers'
+import { ObjectTransformers } from './objectTransformers'
+import { StringTransformers } from './stringTransformers'
+import { FunctionEntryRegistry } from '../../../authoring/functions/FunctionEntryRegistry'
 
 // TypeScript declaration emit drops JSDoc when it structurally expands a type
 // imported from another file, so the built .d.ts would lose every per-function
@@ -42,10 +43,17 @@ export const Transformer: TransformerGroups = {
   Date: DateTransformers,
 }
 
-export const TransformersRegistry = {
-  ...stringTransformersRegistry.build(),
-  ...numberTransformersRegistry.build(),
-  ...arrayTransformersRegistry.build(),
-  ...objectTransformersRegistry.build(),
-  ...dateTransformersRegistry.build(),
-}
+export const TransformersRegistry = (() => {
+  const entryRegistry = new FunctionEntryRegistry()
+  const transformerGroups = [
+    StringTransformers,
+    NumberTransformers,
+    ArrayTransformers,
+    ObjectTransformers,
+    DateTransformers,
+  ]
+
+  transformerGroups.forEach(entries => Object.values(entries).forEach(entry => entryRegistry.collectListed(entry)))
+
+  return entryRegistry.build()
+})()

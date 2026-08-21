@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import TransformerRegistry from '../../../authoring/registries/TransformerRegistry'
+import { transformer } from '../../../authoring/functions/transformer'
 
 const formatDate = (date: Date, format: string): string => {
   const monthNames = [
@@ -58,8 +58,6 @@ const stringArgsSchema = z.tuple([z.string()])
 const numberArgsSchema = z.tuple([z.number()])
 const optionalStringArgsSchema = z.tuple([z.string().optional()])
 
-const dateTransformers = new TransformerRegistry()
-
 export const DateTransformers = {
   /**
    * Formats a Date object into a string using the specified format
@@ -87,7 +85,7 @@ export const DateTransformers = {
    * // Format("D M YYYY") returns "15 3 2024"
    * // Format("HH:mm:ss") returns "14:30:45"
    */
-  Format: dateTransformers.register('Date.Format', {
+  Format: transformer('Date.Format', {
     inputSchema: dateSchema,
     argumentsSchema: stringArgsSchema,
     factory: () => (value: Date, format: string) => formatDate(value, format),
@@ -100,7 +98,7 @@ export const DateTransformers = {
    * // AddDays(7) adds one week
    * // AddDays(-1) subtracts one day
    */
-  AddDays: dateTransformers.register('Date.AddDays', {
+  AddDays: transformer('Date.AddDays', {
     inputSchema: dateSchema,
     argumentsSchema: numberArgsSchema,
     factory: () => (value: Date, days: number) => {
@@ -117,7 +115,7 @@ export const DateTransformers = {
    * @example
    * // SubtractDays(7) subtracts one week
    */
-  SubtractDays: dateTransformers.register('Date.SubtractDays', {
+  SubtractDays: transformer('Date.SubtractDays', {
     inputSchema: dateSchema,
     argumentsSchema: numberArgsSchema,
     factory: () => (value: Date, days: number) => {
@@ -135,7 +133,7 @@ export const DateTransformers = {
    * // AddMonths(1) adds one month
    * // AddMonths(-6) subtracts 6 months
    */
-  AddMonths: dateTransformers.register('Date.AddMonths', {
+  AddMonths: transformer('Date.AddMonths', {
     inputSchema: dateSchema,
     argumentsSchema: numberArgsSchema,
     factory: () => (value: Date, months: number) => {
@@ -153,7 +151,7 @@ export const DateTransformers = {
    * // AddYears(1) adds one year
    * // AddYears(-18) subtracts 18 years
    */
-  AddYears: dateTransformers.register('Date.AddYears', {
+  AddYears: transformer('Date.AddYears', {
     inputSchema: dateSchema,
     argumentsSchema: numberArgsSchema,
     factory: () => (value: Date, years: number) => {
@@ -169,7 +167,7 @@ export const DateTransformers = {
    * @example
    * // StartOfDay() returns 2024-03-15T00:00:00.000
    */
-  StartOfDay: dateTransformers.register('Date.StartOfDay', {
+  StartOfDay: transformer('Date.StartOfDay', {
     inputSchema: dateSchema,
     factory: () => (value: Date) => {
       const result = new Date(value)
@@ -184,7 +182,7 @@ export const DateTransformers = {
    * @example
    * // EndOfDay() returns 2024-03-15T23:59:59.999
    */
-  EndOfDay: dateTransformers.register('Date.EndOfDay', {
+  EndOfDay: transformer('Date.EndOfDay', {
     inputSchema: dateSchema,
     factory: () => (value: Date) => {
       const result = new Date(value)
@@ -199,7 +197,7 @@ export const DateTransformers = {
    * @example
    * // ToISOString() returns "2024-03-15T14:30:45.123Z"
    */
-  ToISOString: dateTransformers.register('Date.ToISOString', {
+  ToISOString: transformer('Date.ToISOString', {
     inputSchema: dateSchema,
     factory: () => (value: Date) => value.toISOString(),
   }),
@@ -211,7 +209,7 @@ export const DateTransformers = {
    * // ToLocaleString() returns "15/03/2024, 14:30:45" (UK locale)
    * // ToLocaleString('en-US') returns "3/15/2024, 2:30:45 PM"
    */
-  ToLocaleString: dateTransformers.register('Date.ToLocaleString', {
+  ToLocaleString: transformer('Date.ToLocaleString', {
     inputSchema: dateSchema,
     argumentsSchema: optionalStringArgsSchema,
     factory: () => (value: Date, locale?: string) => value.toLocaleString(locale),
@@ -222,7 +220,7 @@ export const DateTransformers = {
    * @example
    * // ToUKLongDate() returns "18 March 2026"
    */
-  ToUKLongDate: dateTransformers.register('Date.ToUKLongDate', {
+  ToUKLongDate: transformer('Date.ToUKLongDate', {
     inputSchema: dateSchema,
     factory: () => (value: Date) =>
       value.toLocaleDateString('en-GB', {
@@ -232,5 +230,3 @@ export const DateTransformers = {
       }),
   }),
 }
-
-export { dateTransformers as dateTransformersRegistry }

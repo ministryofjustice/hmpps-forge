@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { FunctionType, HookType, PredicateType } from '../../../../authoring/types/enums'
-import { formatGeneratorsRegistry } from '../../../../built-ins/functions/generators/formatGenerators'
+import { FormatGenerators } from '../../../../built-ins/functions/generators/formatGenerators'
+import { FunctionEntryRegistry } from '../../../../authoring/functions/FunctionEntryRegistry'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
 import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import { AccessHookASTNode, SubmitHookASTNode } from '../../../chassis/contracts/ast/expressions.type'
@@ -47,6 +48,14 @@ function createPredicate(answerCode: string, functionName = 'isRequired'): TestP
     condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, functionName),
   }) as TestPredicateASTNode
 }
+
+const formatGeneratorRows = (() => {
+  const entryRegistry = new FunctionEntryRegistry()
+
+  Object.values(FormatGenerators).forEach(entry => entryRegistry.collectListed(entry))
+
+  return entryRegistry.build()
+})()
 
 function stubValidation(result: StepValidityResult) {
   const workType: WorkHandler<'validation.step', Record<string, never>> = {
@@ -172,7 +181,7 @@ describe('HookLifecycleCompiler', () => {
     functionRegistry = new FunctionRegistry()
     compiler = new HookLifecycleCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
     functionRegistry.register({
-      ...formatGeneratorsRegistry.build(),
+      ...formatGeneratorRows,
       isRequired: {
         name: 'isRequired',
         isAsync: false,

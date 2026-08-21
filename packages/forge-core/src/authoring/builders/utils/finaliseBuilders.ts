@@ -2,12 +2,19 @@ import ForgeAuthoringError from '../../../engine/errors/ForgeAuthoringError'
 import DSLSourceLocator from '../../../shared/diagnostics/DSLSourceLocator'
 import type { DSLPathSegment } from '../../../shared/diagnostics/sourceLocation.type'
 import { stampCallsite } from './captureCallsite'
+import { getEntryStamp, stampEntry } from './stampEntry'
 
-const carryCallsite = (from: object, to: unknown): void => {
+const carryStamps = (from: object, to: unknown): void => {
   const callsite = Object.getOwnPropertyDescriptor(from, '__callsite')?.value
 
   if (callsite) {
     stampCallsite(to, callsite)
+  }
+
+  const entry = getEntryStamp(from)
+
+  if (entry) {
+    stampEntry(to, entry)
   }
 }
 
@@ -48,7 +55,7 @@ const finalise = (value: unknown, path: DSLPathSegment[], ancestors: Set<object>
       // Recurse into the built output at the same path so shared builder
       // instances produce a fresh copy per tree position.
       const built = value.build()
-      carryCallsite(value, built)
+      carryStamps(value, built)
       return finalise(built, path, ancestors)
     }
 
@@ -56,7 +63,7 @@ const finalise = (value: unknown, path: DSLPathSegment[], ancestors: Set<object>
     Object.entries(value).forEach(([key, entry]) => {
       result[key] = finalise(entry, [...path, key], ancestors)
     })
-    carryCallsite(value, result)
+    carryStamps(value, result)
     return result
   } finally {
     ancestors.delete(value)

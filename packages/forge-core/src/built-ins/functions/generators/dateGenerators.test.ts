@@ -1,11 +1,17 @@
-import { DateGenerators, dateGeneratorsRegistry } from './dateGenerators'
+import { DateGenerators } from './dateGenerators'
 import { FunctionType } from '../../../authoring/types/enums'
 import { GeneratorBuilder } from '../../../authoring/builders/GeneratorBuilder'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
+import { FunctionEntryRegistry } from '../../../authoring/functions/FunctionEntryRegistry'
 
 describe('DateGenerators', () => {
-  const registry = dateGeneratorsRegistry.build()
-  const harness = new FunctionRegistryTestHarness(dateGeneratorsRegistry)
+  const entries = Object.values(DateGenerators)
+  const entryRegistry = new FunctionEntryRegistry()
+
+  entries.forEach(entry => entryRegistry.collectListed(entry))
+
+  const builtRegistry = entryRegistry.build()
+  const harness = new FunctionRegistryTestHarness(entries)
 
   describe('Now', () => {
     it('should return current date and time', () => {
@@ -73,12 +79,12 @@ describe('DateGenerators', () => {
   describe('Registry Metadata', () => {
     it('should mark Now as sync', () => {
       // Assert
-      expect(registry['Date.Now'].isAsync).toBe(false)
+      expect(builtRegistry['Date.Now'].isAsync).toBe(false)
     })
 
     it('should mark Today as sync', () => {
       // Assert
-      expect(registry['Date.Today'].isAsync).toBe(false)
+      expect(builtRegistry['Date.Today'].isAsync).toBe(false)
     })
   })
 })

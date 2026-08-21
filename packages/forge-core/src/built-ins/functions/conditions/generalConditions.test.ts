@@ -1,9 +1,9 @@
-import { GeneralConditions, generalConditionsRegistry } from './generalConditions'
+import { GeneralConditions } from './generalConditions'
 import { FunctionType } from '../../../authoring/types/enums'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('GeneralConditions', () => {
-  const harness = new FunctionRegistryTestHarness(generalConditionsRegistry)
+  const harness = new FunctionRegistryTestHarness(Object.values(GeneralConditions))
 
   describe('IsRequired', () => {
     test('should return true if a value is provided', () => {

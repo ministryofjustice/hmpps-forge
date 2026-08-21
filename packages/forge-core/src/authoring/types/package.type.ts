@@ -1,7 +1,7 @@
 import type { ComponentRegistryEntry } from '../../components/types/components.type'
 import type { BlockDefinition } from '../../components/types/structures.type'
-import type { FunctionImplementations, FunctionShapeMap } from '../utils/deprecated/defineFunction.type'
 import type { BaseFunctionRegistry } from '../registries/BaseFunctionRegistry'
+import type { FunctionEntry, FunctionRegistryBuilder } from './functions.type'
 import type { JourneyDefinition } from './structures.type'
 
 /**
@@ -24,16 +24,18 @@ export interface ForgePackage<TDeps = Record<string, never>> {
   /**
    * Custom functions for this package, layered over the global function
    * registry and visible only to this package's journey. Accepts a function
-   * registry, an array of registries, or the deprecated implementations-map
-   * form. The dependencies passed to `registerPackage()` are given to each
-   * registry's `build()`.
+   * registry or an array of registries and function entries. The dependencies
+   * passed to `registerPackage()` are given to each registry's `build()` and
+   * each entry's `factory`.
+   *
+   * Listed entries register under their author name, which serves journey
+   * definitions that reference functions by name only (e.g. plain JSON).
+   * Entries embedded in the journey itself register automatically and need
+   * no listing here.
    *
    * @see {@link BaseFunctionRegistry}
    */
-  functions?:
-    | FunctionImplementations<FunctionShapeMap, TDeps>
-    | BaseFunctionRegistry<TDeps>
-    | BaseFunctionRegistry<TDeps>[]
+  functions?: BaseFunctionRegistry<TDeps> | (BaseFunctionRegistry<TDeps> | FunctionEntry<TDeps>)[]
 
   /**
    * Custom components for this package, layered over the global component
@@ -69,9 +71,20 @@ export interface ForgePackage<TDeps = Record<string, never>> {
  *
  * @typeParam TDeps - Dependencies required to create the function registries
  */
-export interface RegisteredForgePackage<TDeps = Record<string, never>> extends Omit<ForgePackage<TDeps>, 'journey'> {
+export interface RegisteredForgePackage<TDeps = Record<string, never>> extends Omit<
+  ForgePackage<TDeps>,
+  'journey' | 'functions'
+> {
   /** The parsed, finalised journey definition this package mounts. */
   journey: JourneyDefinition
+
+  /**
+   * The package's function registries. `createForgePackage()` assembles any
+   * function entries - listed or embedded in the journey - into a registry, so
+   * a finalised package carries registries only and the engine never sees
+   * entries.
+   */
+  functions?: FunctionRegistryBuilder<TDeps> | FunctionRegistryBuilder<TDeps>[]
 
   /** Brand stamped by {@link createForgePackage}; registration requires it. */
   forgePackage: true

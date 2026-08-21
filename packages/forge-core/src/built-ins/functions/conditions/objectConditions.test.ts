@@ -1,9 +1,9 @@
-import { ObjectConditions, objectConditionsRegistry } from './objectConditions'
+import { ObjectConditions } from './objectConditions'
 import { FunctionType } from '../../../authoring/types/enums'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('ObjectConditions', () => {
-  const harness = new FunctionRegistryTestHarness(objectConditionsRegistry)
+  const harness = new FunctionRegistryTestHarness(Object.values(ObjectConditions))
 
   describe('IsObject', () => {
     test('should return true for plain objects', () => {

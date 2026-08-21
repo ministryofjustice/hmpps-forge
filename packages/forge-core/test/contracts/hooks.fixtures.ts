@@ -13,7 +13,7 @@ import {
   redirect,
   throwError,
   validation,
-  defineEffectFunctions,
+  effect,
   type EffectFunctionExpr,
   Answer,
   Data,
@@ -24,30 +24,11 @@ import {
   type EffectFunctionContext,
 } from '../../src/authoring'
 import { ForgeTestHarness, type RequestTraceEvent } from '../../src/testing'
-import { Effects, effectImplementations, type ContractSession } from './contractHelpers'
+import { Effects, type ContractSession } from './contractHelpers'
 
 export interface HooksSession extends ContractSession {
   effectLog?: string[]
   captured?: Record<string, unknown>
-}
-
-interface HooksEffectShape {
-  AppendLog: (marker: string) => EffectFunctionExpr
-  SetHeader: (name: string, value: string) => EffectFunctionExpr
-  SetCookie: (name: string, value: string) => EffectFunctionExpr
-  SetCookieWithOptions: (name: string, value: string) => EffectFunctionExpr
-  CaptureRequest: () => EffectFunctionExpr
-  CaptureAnswerIntrospection: (code: string) => EffectFunctionExpr
-  CaptureRequestFull: () => EffectFunctionExpr
-  CaptureAllData: () => EffectFunctionExpr
-  CaptureFieldsToClear: () => EffectFunctionExpr
-  DirectSetAnswer: (code: string, value: string) => EffectFunctionExpr
-  DirectSetData: (key: string, value: string) => EffectFunctionExpr
-  DirectClearAnswer: (code: string) => EffectFunctionExpr
-  ThrowUnhandled: () => EffectFunctionExpr
-  ThrowHttpError: () => EffectFunctionExpr
-  ThrowNonError: () => EffectFunctionExpr
-  StoreHasAnswer: (code: string, dataKey: string) => EffectFunctionExpr
 }
 
 export const httpEffectError = Object.assign(new Error('Booking not found'), {
@@ -58,164 +39,191 @@ export const httpEffectError = Object.assign(new Error('Booking not found'), {
 export const accidentalEffectError = new SyntaxError('Unexpected token in booking data')
 export const nonErrorEffectFailure = { reason: 'booking data was malformed' }
 
-const { effects: HooksEffects, implementations: hooksEffectImplementations } = defineEffectFunctions<HooksEffectShape>({
-  AppendLog: () => (context, marker: string) => {
-    const log = context.getData<string[]>('effectLog') ?? []
-    const updatedLog = [...log, marker]
+const HooksEffects = {
+  AppendLog: effect('AppendLog', {
+    factory: () => (context, marker: string) => {
+      const log = context.getData<string[]>('effectLog') ?? []
+      const updatedLog = [...log, marker]
 
-    context.setData('effectLog', updatedLog)
+      context.setData('effectLog', updatedLog)
 
-    const session = context.getSession() as HooksSession | undefined
+      const session = context.getSession() as HooksSession | undefined
 
-    if (session) {
-      session.effectLog = updatedLog
-    }
-  },
-
-  SetHeader: () => (context, name: string, value: string) => {
-    context.setResponseHeader(name, value)
-  },
-
-  SetCookie: () => (context, name: string, value: string) => {
-    context.setResponseCookie(name, value)
-  },
-
-  CaptureRequest: () => context => {
-    const session = context.getSession() as HooksSession | undefined
-
-    context.setData('capturedPost', context.getAllPostData())
-    context.setData('capturedQuery', context.getAllQueryParams())
-    context.setData('sessionAnswerKeys', session?.answers ? Object.keys(session.answers) : [])
-
-    if (session) {
-      session.captured = { post: context.getAllPostData() }
-    }
-  },
-
-  DirectSetAnswer: () => (context, code: string, value: string) => {
-    context.setAnswer(code, value)
-  },
-
-  DirectSetData: () => (context, key: string, value: string) => {
-    context.setData(key, value)
-  },
-
-  DirectClearAnswer: () => (context, code: string) => {
-    context.clearAnswer(code)
-  },
-
-  StoreHasAnswer: () => (context, code: string, dataKey: string) => {
-    context.setData(dataKey, context.hasAnswer(code))
-  },
-
-  SetCookieWithOptions: () => (context, name: string, value: string) => {
-    context.setResponseCookie(name, value, {
-      httpOnly: true,
-      secure: true,
-      maxAge: 86400,
-      sameSite: 'strict',
-    })
-  },
-
-  CaptureAnswerIntrospection: () => (context, code: string) => {
-    context.setData('singleAnswer', context.getAnswer(code))
-    context.setData('allAnswers', context.getAllAnswers())
-
-    const history = context.getAnswerHistory(code)
-
-    if (history) {
-      context.setData('answerHistory', { current: history.current, mutations: history.mutations })
-    }
-
-    context.setData('hasAnswerHistory', history !== undefined)
-    context.setData('allHistoryKeys', Object.keys(context.getAllAnswerHistories()))
-  },
-
-  CaptureRequestFull: () => context => {
-    const session = context.getSession() as HooksSession | undefined
-
-    context.setData('requestUrl', context.getRequestUrl())
-    context.setData('allParams', context.getAllRequestParams())
-    context.setData('allState', context.getAllState())
-
-    const singleParam = context.getRequestParam('id')
-    const singleQuery = context.getQueryParam('page')
-    const singlePost = context.getPostData<string>('name')
-    const singleState = context.getState<string>('user')
-    const singleHeader = context.getRequestHeader('x-custom')
-    const singleCookie = context.getRequestCookie('session')
-
-    if (singleParam !== undefined) {
-      context.setData('singleParam', singleParam)
-    }
-    if (singleQuery !== undefined) {
-      context.setData('singleQuery', singleQuery)
-    }
-    if (singlePost !== undefined) {
-      context.setData('singlePost', singlePost)
-    }
-    if (singleState !== undefined) {
-      context.setData('singleState', singleState)
-    }
-    if (singleHeader !== undefined) {
-      context.setData('singleHeader', singleHeader)
-    }
-    if (singleCookie !== undefined) {
-      context.setData('singleCookie', singleCookie)
-    }
-
-    if (session) {
-      session.captured = {
-        ...session.captured,
-        singlePost,
-        singleHeader,
-        singleCookie,
+      if (session) {
+        session.effectLog = updatedLog
       }
-    }
-  },
+    },
+  }),
 
-  CaptureAllData: () => context => {
-    const session = context.getSession() as HooksSession | undefined
+  SetHeader: effect('SetHeader', {
+    factory: () => (context, name: string, value: string) => {
+      context.setResponseHeader(name, value)
+    },
+  }),
 
-    if (session) {
-      session.captured = { ...session.captured, allData: context.getAllData() }
-    }
-  },
+  SetCookie: effect('SetCookie', {
+    factory: () => (context, name: string, value: string) => {
+      context.setResponseCookie(name, value)
+    },
+  }),
 
-  CaptureFieldsToClear: () => context => {
-    const fieldsToClear = context.getFieldsToClear()
+  CaptureRequest: effect('CaptureRequest', {
+    factory: () => context => {
+      const session = context.getSession() as HooksSession | undefined
 
-    context.setData('fieldsToClear', fieldsToClear)
+      context.setData('capturedPost', context.getAllPostData())
+      context.setData('capturedQuery', context.getAllQueryParams())
+      context.setData('sessionAnswerKeys', session?.answers ? Object.keys(session.answers) : [])
 
-    const session = context.getSession() as HooksSession | undefined
+      if (session) {
+        session.captured = { post: context.getAllPostData() }
+      }
+    },
+  }),
 
-    if (session) {
-      session.captured = { ...session.captured, fieldsToClear }
-    }
-  },
+  DirectSetAnswer: effect('DirectSetAnswer', {
+    factory: () => (context, code: string, value: string) => {
+      context.setAnswer(code, value)
+    },
+  }),
 
-  ThrowUnhandled: () => () => {
-    throw accidentalEffectError
-  },
+  DirectSetData: effect('DirectSetData', {
+    factory: () => (context, key: string, value: string) => {
+      context.setData(key, value)
+    },
+  }),
 
-  ThrowHttpError: () => () => {
-    throw httpEffectError
-  },
+  DirectClearAnswer: effect('DirectClearAnswer', {
+    factory: () => (context, code: string) => {
+      context.clearAnswer(code)
+    },
+  }),
 
-  ThrowNonError: () => () => {
-    throw nonErrorEffectFailure
-  },
-})
+  StoreHasAnswer: effect('StoreHasAnswer', {
+    factory: () => (context, code: string, dataKey: string) => {
+      context.setData(dataKey, context.hasAnswer(code))
+    },
+  }),
+
+  SetCookieWithOptions: effect('SetCookieWithOptions', {
+    factory: () => (context, name: string, value: string) => {
+      context.setResponseCookie(name, value, {
+        httpOnly: true,
+        secure: true,
+        maxAge: 86400,
+        sameSite: 'strict',
+      })
+    },
+  }),
+
+  CaptureAnswerIntrospection: effect('CaptureAnswerIntrospection', {
+    factory: () => (context, code: string) => {
+      context.setData('singleAnswer', context.getAnswer(code))
+      context.setData('allAnswers', context.getAllAnswers())
+
+      const history = context.getAnswerHistory(code)
+
+      if (history) {
+        context.setData('answerHistory', { current: history.current, mutations: history.mutations })
+      }
+
+      context.setData('hasAnswerHistory', history !== undefined)
+      context.setData('allHistoryKeys', Object.keys(context.getAllAnswerHistories()))
+    },
+  }),
+
+  CaptureRequestFull: effect('CaptureRequestFull', {
+    factory: () => context => {
+      const session = context.getSession() as HooksSession | undefined
+
+      context.setData('requestUrl', context.getRequestUrl())
+      context.setData('allParams', context.getAllRequestParams())
+      context.setData('allState', context.getAllState())
+
+      const singleParam = context.getRequestParam('id')
+      const singleQuery = context.getQueryParam('page')
+      const singlePost = context.getPostData<string>('name')
+      const singleState = context.getState<string>('user')
+      const singleHeader = context.getRequestHeader('x-custom')
+      const singleCookie = context.getRequestCookie('session')
+
+      if (singleParam !== undefined) {
+        context.setData('singleParam', singleParam)
+      }
+      if (singleQuery !== undefined) {
+        context.setData('singleQuery', singleQuery)
+      }
+      if (singlePost !== undefined) {
+        context.setData('singlePost', singlePost)
+      }
+      if (singleState !== undefined) {
+        context.setData('singleState', singleState)
+      }
+      if (singleHeader !== undefined) {
+        context.setData('singleHeader', singleHeader)
+      }
+      if (singleCookie !== undefined) {
+        context.setData('singleCookie', singleCookie)
+      }
+
+      if (session) {
+        session.captured = {
+          ...session.captured,
+          singlePost,
+          singleHeader,
+          singleCookie,
+        }
+      }
+    },
+  }),
+
+  CaptureAllData: effect('CaptureAllData', {
+    factory: () => context => {
+      const session = context.getSession() as HooksSession | undefined
+
+      if (session) {
+        session.captured = { ...session.captured, allData: context.getAllData() }
+      }
+    },
+  }),
+
+  CaptureFieldsToClear: effect('CaptureFieldsToClear', {
+    factory: () => context => {
+      const fieldsToClear = context.getFieldsToClear()
+
+      context.setData('fieldsToClear', fieldsToClear)
+
+      const session = context.getSession() as HooksSession | undefined
+
+      if (session) {
+        session.captured = { ...session.captured, fieldsToClear }
+      }
+    },
+  }),
+
+  ThrowUnhandled: effect('ThrowUnhandled', {
+    factory: () => () => {
+      throw accidentalEffectError
+    },
+  }),
+
+  ThrowHttpError: effect('ThrowHttpError', {
+    factory: () => () => {
+      throw httpEffectError
+    },
+  }),
+
+  ThrowNonError: effect('ThrowNonError', {
+    factory: () => () => {
+      throw nonErrorEffectFailure
+    },
+  }),
+}
 
 export function createHooksClient(journeyDef: ReturnType<typeof journey>) {
   return new ForgeTestHarness()
     .registerGlobalComponents(govukComponents)
-    .registerPackage(
-      createForgePackage({
-        journey: journeyDef,
-        functions: { ...effectImplementations, ...hooksEffectImplementations },
-      }),
-    )
+    .registerPackage(createForgePackage({ journey: journeyDef }))
     .createClient()
 }
 
@@ -230,12 +238,7 @@ export function createTracedHooksClient(journeyDef: ReturnType<typeof journey>, 
       },
     })
       .registerGlobalComponents(govukComponents)
-      .registerPackage(
-        createForgePackage({
-          journey: journeyDef,
-          functions: { ...effectImplementations, ...hooksEffectImplementations },
-        }),
-      )
+      .registerPackage(createForgePackage({ journey: journeyDef }))
       .createClient()
 }
 
@@ -965,12 +968,12 @@ export const journeyRootAccessRedirectJourney = journey({
   ],
 })
 
-const errorOutcomeJourney = (code: string, effect: EffectFunctionExpr) =>
+const errorOutcomeJourney = (code: string, effectExpr: EffectFunctionExpr) =>
   journey({
     code,
     path: `/${code}`,
     title: 'Error Outcome',
-    onAccess: [access({ effects: [effect] })],
+    onAccess: [access({ effects: [effectExpr] })],
     steps: [
       step({
         path: '/form',

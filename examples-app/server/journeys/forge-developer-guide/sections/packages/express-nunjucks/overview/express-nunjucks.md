@@ -26,7 +26,6 @@ import {
   createExpressRouter,
   buildNunjucksComponent,
   NunjucksGenerators,
-  nunjucksFunctions,
 } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 ```
 

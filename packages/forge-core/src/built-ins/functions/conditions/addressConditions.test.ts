@@ -1,9 +1,9 @@
-import { AddressConditions, addressConditionsRegistry } from './addressConditions'
+import { AddressConditions } from './addressConditions'
 import { FunctionType } from '../../../authoring/types/enums'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('AddressConditions', () => {
-  const harness = new FunctionRegistryTestHarness(addressConditionsRegistry)
+  const harness = new FunctionRegistryTestHarness(Object.values(AddressConditions))
 
   describe('IsValidPostcode', () => {
     test('should return true for valid UK postcodes', () => {

@@ -1,8 +1,8 @@
-import { DateTransformers, dateTransformersRegistry } from './dateTransformers'
+import { DateTransformers } from './dateTransformers'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('DateTransformers', () => {
-  const harness = new FunctionRegistryTestHarness(dateTransformersRegistry)
+  const harness = new FunctionRegistryTestHarness(Object.values(DateTransformers))
 
   describe('Format', () => {
     it('should format date with DD/MM/YYYY pattern', () => {

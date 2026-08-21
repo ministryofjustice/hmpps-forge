@@ -3,12 +3,10 @@ import { ForgeTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { describe, expect, it, vi } from 'vitest'
 import type { GuideDeps } from '../../../../effects'
-import { patternEffectRegistry } from '../../effects'
 import { branchingDemoJourney } from './journey'
 
-const basePackage = createForgePackage({
+const basePackage = createForgePackage<GuideDeps>({
   journey: branchingDemoJourney,
-  functions: patternEffectRegistry,
 })
 
 const mockFormDataStore = {
@@ -128,6 +126,90 @@ describe('branchingDemoJourney', () => {
       const drafts = session.patternDrafts as Record<string, Record<string, unknown>> | undefined
 
       expect(drafts?.branching?.visitType).toBe('in-person')
+    })
+  })
+
+  describe('phone-number', () => {
+    it('should redirect to check-answers for a UK phone number', async () => {
+      // Arrange
+      const client = createClient()
+
+      // Act
+      const result = await client.post('/branching/phone-number', {
+        session: { patternDrafts: { branching: { visitType: 'phone' } } },
+        body: { phoneNumber: '07700 900982' },
+      })
+
+      // Assert
+      expect(result.type).toBe('redirect')
+
+      if (result.type === 'redirect') {
+        expect(result.url).toContain('check-answers')
+      }
+    })
+
+    it('should re-render with a validation error for a non-UK phone number', async () => {
+      // Arrange
+      const client = createClient()
+
+      // Act
+      const result = await client.post('/branching/phone-number', {
+        session: { patternDrafts: { branching: { visitType: 'phone' } } },
+        body: { phoneNumber: '+1 202 555 0143' },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.showValidationFailures).toBe(true)
+        expect(result.context.fieldValidationErrors).toContainEqual(
+          expect.objectContaining({ message: 'Enter a UK phone number, like 07700 900982' }),
+        )
+      }
+    })
+  })
+
+  describe('video-email', () => {
+    it('should redirect to check-answers for a personal email address', async () => {
+      // Arrange
+      const client = createClient()
+
+      // Act
+      const result = await client.post('/branching/video-email', {
+        session: { patternDrafts: { branching: { visitType: 'video' } } },
+        body: { videoEmail: 'jane.doe@example.com' },
+      })
+
+      // Assert
+      expect(result.type).toBe('redirect')
+
+      if (result.type === 'redirect') {
+        expect(result.url).toContain('check-answers')
+      }
+    })
+
+    it('should re-render with a validation error for a shared inbox address', async () => {
+      // Arrange
+      const client = createClient()
+
+      // Act
+      const result = await client.post('/branching/video-email', {
+        session: { patternDrafts: { branching: { visitType: 'video' } } },
+        body: { videoEmail: 'info@example.com' },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.context.showValidationFailures).toBe(true)
+        expect(result.context.fieldValidationErrors).toContainEqual(
+          expect.objectContaining({
+            message: 'Enter a personal email address, not a shared inbox',
+          }),
+        )
+      }
     })
   })
 

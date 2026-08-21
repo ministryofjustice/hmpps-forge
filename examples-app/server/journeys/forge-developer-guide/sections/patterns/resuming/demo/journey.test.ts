@@ -3,12 +3,10 @@ import { ForgeTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { describe, expect, it, vi } from 'vitest'
 import type { GuideDeps } from '../../../../effects'
-import { patternEffectRegistry } from '../../effects'
 import { resumingDemoJourney } from './journey'
 
-const basePackage = createForgePackage({
+const basePackage = createForgePackage<GuideDeps>({
   journey: resumingDemoJourney,
-  functions: patternEffectRegistry,
 })
 
 const mockFormDataStore = {

@@ -88,7 +88,7 @@ export const myPackage = createForgePackage({
 | Property | Type | Description |
 |----------|------|-------------|
 | `journey` | `JourneyDefinition` | The journey definition (required). |
-| `functions` | `Registry \| Registry[]` | One or more function registries (`EffectRegistry`, `ConditionRegistry`, `TransformerRegistry`, `GeneratorRegistry`) holding your custom implementations. A deprecated implementations map is also accepted. |
+| `functions` | `Registry \| Registry[]` | One or more function registries (`EffectRegistry`, `ConditionRegistry`, `TransformerRegistry`, `GeneratorRegistry`) holding your custom implementations. Function entries can be listed alongside registries. |
 | `components` | `ComponentRegistryEntry[]` | Custom components scoped to this journey. |
 | `enabled` | `boolean` | Whether to register the package. Defaults to `true`. |
 
@@ -108,9 +108,9 @@ forge
   .registerGlobalFunctions(nunjucksFunctions)
 ```
 
-`registerGlobalFunctions()` accepts a single function registry, an
-array of registries, or (deprecated) an implementations map. Pass
-any dependencies those functions need as the second argument:
+`registerGlobalFunctions()` accepts a single function registry or an
+array of registries. Pass any dependencies those functions need as
+the second argument:
 
 ```typescript
 forge.registerGlobalFunctions([myConditions, myTransformers], { api: services.apiClient })

@@ -20,5 +20,5 @@ export const phoneNumberStep = patternStep({
     }),
   ],
   sourceBase: 'branching/demo/phone-number',
-  codeFiles: ['step.ts', 'blocks.ts'],
+  codeFiles: ['step.ts', 'blocks.ts', 'conditions.ts'],
 })
