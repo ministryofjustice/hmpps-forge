@@ -12,13 +12,10 @@
  * ```typescript
  * import { Forge } from '@ministryofjustice/hmpps-forge/core'
  * import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
- * import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
  *
  * const nunjucksEnv = nunjucks.configure([...])
  *
- * const forge = new Forge({ logger })
- *   .registerGlobalComponents(govukComponents())
- *   .registerPackage(myPackage)
+ * const forge = new Forge({ logger }).registerPackage(myPackage)
  *
  * app.use(createExpressRouter(forge, { nunjucksEnv }))
  * ```

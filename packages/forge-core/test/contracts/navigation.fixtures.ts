@@ -3,7 +3,6 @@ import {
   GovUKButton,
   GovUKRadioInput,
   GovUKInsetText,
-  govukComponents,
 } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 import {
@@ -46,7 +45,6 @@ const NavigationConditions = {
 
 export function createNavigationClient(journeyDef: ReturnType<typeof journey>) {
   return new ForgeTestHarness()
-    .registerGlobalComponents(govukComponents)
     .registerPackage(createForgePackage({ journey: journeyDef }))
     .createClient()
 }

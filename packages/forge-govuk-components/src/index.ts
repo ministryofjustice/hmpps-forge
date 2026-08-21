@@ -5,20 +5,10 @@
  * components. Components receive the Nunjucks environment at render time from the
  * framework adapter.
  *
- * @example
- * ```typescript
- * import { Forge } from '@ministryofjustice/hmpps-forge/core'
- * import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
- * import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
- *
- * const nunjucksEnv = nunjucksSetup(app)
- *
- * const forge = new Forge({ logger })
- *   .registerGlobalComponents(govukComponents())
- *   .registerPackage(myPackage)
- *
- * app.use(createExpressRouter(forge, { nunjucksEnv }))
- * ```
+ * Building a block with a component in a journey registers it for that
+ * package automatically. The `govukComponents` array exists for journeys
+ * that reference variants by string only (a JSON journey, for example) -
+ * list it on the package's `components` property.
  */
 
 export { govukComponents } from './components/index'

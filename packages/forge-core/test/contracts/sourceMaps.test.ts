@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import inspector from 'node:inspector'
-import { GovUKInsetText, govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
+import { GovUKInsetText } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { journey, step, access, effect, createForgePackage } from '../../src/authoring'
 import { ForgeTestHarness } from '../../src/testing'
 
@@ -37,7 +37,6 @@ const sourceMapJourney = journey({
 
 function createSourceMapClient() {
   return new ForgeTestHarness()
-    .registerGlobalComponents(govukComponents)
     .registerPackage(createForgePackage({ journey: sourceMapJourney }))
     .createClient()
 }

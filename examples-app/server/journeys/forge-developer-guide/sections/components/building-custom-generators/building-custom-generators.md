@@ -256,9 +256,9 @@ export default createForgePackage<MyDeps>({
 })
 ```
 
-The `functions` array mixes entries and registries freely. To make
-generators available to every journey rather than a single package,
-group them on a registry and register it globally - see
+The `functions` array mixes entries and registries freely. To share
+generators across journeys, use the same entries in each journey, or
+group them on a registry and list it on each package - see
 [Grouping with a registry](#grouping-with-a-registry).
 
 ---
@@ -371,7 +371,7 @@ describe('NextSequenceNumber', () => {
 
 Entries suit generators that live alongside the journeys using
 them. When a package exposes a family of generators as a shared
-API - or when generators must be available to every journey - a
+API - or when several packages share the same generators - a
 `GeneratorRegistry` groups them under one handle object:
 
 ```typescript
@@ -390,11 +390,12 @@ export const MyGenerators = {
 the same kind of callable handle. Two differences from entries:
 
 - Nothing registers automatically. Pass the registry to a package's
-  `functions` property, or globally:
+  `functions` property:
 
   ```typescript
-  forge.registerGlobalFunctions(myGenerators, {
-    sequenceService: services.sequenceService,
+  export const myPackage = createForgePackage({
+    journey: myJourney,
+    functions: myGenerators,
   })
   ```
 

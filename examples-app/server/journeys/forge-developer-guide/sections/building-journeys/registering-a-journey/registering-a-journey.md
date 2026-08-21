@@ -53,8 +53,11 @@ implementations all bundled together, to create reusable flows with integrations
 
 ## Adding custom components
 
-If your journey uses components beyond the built-in GOV.UK and MOJ
-libraries, register them in the package:
+Components declared with `component()` register themselves when the
+journey builds a block with them - that includes the GOV.UK and MOJ
+libraries and your own custom components. A `components` listing is
+only needed when the journey refers to a variant by string alone (a
+JSON journey, for example):
 
 ```typescript
 export default createForgePackage({
@@ -63,9 +66,8 @@ export default createForgePackage({
 })
 ```
 
-Components registered through a package are scoped to that journey.
-To register components globally (available to all journeys), use
-`forge.registerGlobalComponents()`.
+Either way, components registered through a package are scoped to
+that journey.
 
 ---
 
@@ -86,8 +88,9 @@ export default createForgePackage<MyDeps>({
 ```
 
 Like components, functions registered through a package are scoped
-to that journey. To register functions globally, use
-`forge.registerGlobalFunctions()`.
+to that journey. Functions declared as standalone entries with
+`condition()`, `transformer()`, `generator()`, or `effect()` need no
+listing at all - using one in the journey registers it.
 
 ---
 
@@ -168,9 +171,9 @@ are collected and reported together so you can fix them in one pass.
 
 ## Best practices
 
-- **Co-locate what belongs together.** Register components and
-  functions in the package when they are part of the same journey.
-  Register them globally when they are shared across journeys.
+- **Co-locate what belongs together.** Components and functions
+  belong to the packages whose journeys use them - sharing across
+  journeys just means using the same handles in each.
 - **Keep the package file thin.** It should import and assemble,
   not contain logic. Journey definitions live in `journey.ts`,
   function implementations in their own files.

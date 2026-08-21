@@ -83,14 +83,9 @@ export const myPackage = createForgePackage({
 forge.registerPackage(myPackage)
 ```
 
-To make it available to every journey in the application, pass
-it to `registerGlobalComponents`:
-
-```typescript
-import { MyInput } from './components/myInput'
-
-forge.registerGlobalComponents([MyInput])
-```
+Components are always scoped to the package that registers them.
+To share one across journeys, use it in each journey - the same
+handle registers wherever it is used.
 
 ---
 

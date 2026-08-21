@@ -95,11 +95,8 @@ Create the engine, register your journeys, and mount the Express router:
 ```typescript
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
 import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 
-const forge = new Forge({ logger })
-  .registerGlobalComponents(govukComponents)
-  .registerPackage(myJourneyPackage)
+const forge = new Forge({ logger }).registerPackage(myJourneyPackage)
 
 app.use(createExpressRouter(forge, { nunjucksEnv }))
 ```

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { GovUKButton, GovUKTextInput, govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
+import { GovUKButton, GovUKTextInput } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { createForgePackage, field, journey, step } from '../../src/authoring'
 import Forge from '../../src/engine/Forge'
 import type { JourneyDefinition } from '../../src/authoring/types/structures.type'
@@ -51,7 +51,7 @@ function registerAndCollect(
     logger: silentLogger,
     strictRegistration,
     instrumentation: { sinks: [{ onRequestTrace: () => {}, onCompilationTrace: event => events.push(event) }] },
-  }).registerGlobalComponents(govukComponents)
+  })
 
   return { register: () => forge.registerPackage(createForgePackage({ journey: targetJourney })), events }
 }

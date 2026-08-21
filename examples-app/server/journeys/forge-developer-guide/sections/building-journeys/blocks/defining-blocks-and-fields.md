@@ -353,15 +353,9 @@ once for a common group of fields such as an address.
 
 For a `variant` to work, a component must be registered for it. Components
 declared with `component()` register themselves: building a block with one
-in a journey is enough, and Forge collects it at `registerPackage()`.
-Component libraries like the GOV.UK and MOJ packages are registered once
-when you configure Forge, not in your form definitions:
-
-```typescript
-const forge = new Forge({ ... })
-  .registerGlobalComponents(govukComponents)
-  .registerGlobalComponents(mojComponents)
-```
+in a journey is enough, and Forge collects it at `registerPackage()`. That
+covers the GOV.UK and MOJ component libraries too - using `GovUKTextInput`
+in a journey registers it, with nothing to configure on the Forge instance.
 
 A component is just a variant string paired with a render function, and
 the result doubles as the block builder for that variant:

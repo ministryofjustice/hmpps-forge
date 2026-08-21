@@ -1,9 +1,4 @@
-import {
-  GovUKTextInput,
-  GovUKButton,
-  GovUKInsetText,
-  govukComponents,
-} from '@ministryofjustice/hmpps-forge/govuk-components'
+import { GovUKTextInput, GovUKButton, GovUKInsetText } from '@ministryofjustice/hmpps-forge/govuk-components'
 
 import {
   journey,
@@ -222,7 +217,6 @@ const HooksEffects = {
 
 export function createHooksClient(journeyDef: ReturnType<typeof journey>) {
   return new ForgeTestHarness()
-    .registerGlobalComponents(govukComponents)
     .registerPackage(createForgePackage({ journey: journeyDef }))
     .createClient()
 }
@@ -237,7 +231,6 @@ export function createTracedHooksClient(journeyDef: ReturnType<typeof journey>, 
         ],
       },
     })
-      .registerGlobalComponents(govukComponents)
       .registerPackage(createForgePackage({ journey: journeyDef }))
       .createClient()
 }
@@ -261,7 +254,6 @@ const NumericEffect = unusualNameEffects.register('123 effect', () => (context: 
 
 export function createUnusualNameEffectsClient() {
   return new ForgeTestHarness()
-    .registerGlobalComponents(govukComponents)
     .registerPackage(
       createForgePackage({
         journey: unusualNameEffectsJourney,

@@ -82,8 +82,9 @@ describe('IteratorBudget', () => {
 
     beforeEach(() => {
       client = new ForgeTestHarness({ maxIteratorIterations: 100 })
-        .registerGlobalComponents([MultiValueField, RepeatedBlock])
-        .registerPackage(createForgePackage({ journey: iteratorBudgetJourney }))
+        .registerPackage(
+          createForgePackage({ journey: iteratorBudgetJourney, components: [MultiValueField, RepeatedBlock] }),
+        )
         .createClient()
     })
 

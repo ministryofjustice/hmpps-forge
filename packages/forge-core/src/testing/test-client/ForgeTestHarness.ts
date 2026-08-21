@@ -1,7 +1,5 @@
 import Forge from '../../engine/Forge'
-import type { ForgePackageFunctions, ForgePackageRegistration } from '../../engine/chassis/contracts/ast/engine.type'
-import type { ComponentRegistryEntry } from '../../components/types/components.type'
-import type { BlockDefinition } from '../../components/types/structures.type'
+import type { ForgePackageRegistration } from '../../engine/chassis/contracts/ast/engine.type'
 import type { ForgeInstrumentationOptions } from '../../engine/chassis/tracing/ForgeTraceSinkDispatcher'
 import type { ForgeRenderer } from '../../framework/types/rendering.type'
 import { ForgeTestClient } from './ForgeTestClient'
@@ -27,7 +25,6 @@ export interface ForgeTestHarnessOptions {
  * @example
  * ```typescript
  * const client = new ForgeTestHarness()
- *   .registerGlobalComponents(govukComponents)
  *   .registerPackage(createForgePackage({ journey: myJourney, functions: myEffects }), deps)
  *   .createClient()
  *
@@ -44,18 +41,6 @@ export class ForgeTestHarness {
       instrumentation: options.instrumentation,
       maxIteratorIterations: options.maxIteratorIterations,
     })
-  }
-
-  registerGlobalComponents(components: ComponentRegistryEntry<BlockDefinition, unknown>[]): this {
-    this.forge.registerGlobalComponents(components)
-
-    return this
-  }
-
-  registerGlobalFunctions<TDeps>(functions: ForgePackageFunctions<TDeps>, deps?: TDeps): this {
-    this.forge.registerGlobalFunctions(functions, deps)
-
-    return this
   }
 
   registerPackage<TDeps>(pkg: ForgePackageRegistration<TDeps>, deps?: TDeps): this {

@@ -368,9 +368,9 @@ export default createForgePackage<MyDeps>({
 })
 ```
 
-The `functions` array mixes entries and registries freely. To make
-effects available to every journey rather than a single package,
-group them on a registry and register it globally - see
+The `functions` array mixes entries and registries freely. To share
+effects across journeys, use the same entries in each journey, or
+group them on a registry and list it on each package - see
 [Grouping with a registry](#grouping-with-a-registry).
 
 ---
@@ -525,7 +525,7 @@ and `outputSchema` are exercised too.
 
 Entries suit effects that live alongside the journeys using them.
 When a package exposes a family of effects as a shared API - or
-when effects must be available to every journey - an
+when several packages share the same effects - an
 `EffectRegistry` groups them under one handle object:
 
 ```typescript
@@ -546,12 +546,12 @@ and the same factory shape, and returns the same kind of callable
 handle. Two differences from entries:
 
 - Nothing registers automatically. Pass the registry to a package's
-  `functions` property, or globally:
+  `functions` property:
 
   ```typescript
-  forge.registerGlobalFunctions(myEffects, {
-    caseApi: services.caseApi,
-    formDataStore: services.formDataStore,
+  export const myPackage = createForgePackage({
+    journey: myJourney,
+    functions: myEffects,
   })
   ```
 

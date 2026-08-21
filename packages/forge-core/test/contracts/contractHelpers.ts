@@ -1,4 +1,3 @@
-import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { createForgePackage, journey, effect } from '../../src/authoring'
 import { ForgeTestHarness, type RequestTraceEvent } from '../../src/testing'
 import type { ForgeRenderer } from '../../src/framework/types/rendering.type'
@@ -77,7 +76,6 @@ export function answerOf(answers: Record<string, unknown>, code: string): Answer
 
 export function createClient(journeyDef: ReturnType<typeof journey>) {
   return new ForgeTestHarness()
-    .registerGlobalComponents(govukComponents)
     .registerPackage(createForgePackage({ journey: journeyDef }))
     .createClient()
 }
@@ -92,7 +90,6 @@ export function createTracedClient(journeyDef: ReturnType<typeof journey>, trace
         ],
       },
     })
-      .registerGlobalComponents(govukComponents)
       .registerPackage(createForgePackage({ journey: journeyDef }))
       .createClient()
 }
@@ -103,8 +100,7 @@ export function createRenderClient(
   components: ComponentRegistryEntry<BlockDefinition, unknown>[],
 ) {
   return new ForgeTestHarness()
-    .registerGlobalComponents(components)
-    .registerPackage(createForgePackage({ journey: journeyDef }))
+    .registerPackage(createForgePackage({ journey: journeyDef, components }))
     .createClient(renderer)
 }
 
@@ -123,8 +119,7 @@ export function createTracedRenderClient(
         ],
       },
     })
-      .registerGlobalComponents(components)
-      .registerPackage(createForgePackage({ journey: journeyDef }))
+      .registerPackage(createForgePackage({ journey: journeyDef, components }))
       .createClient(renderer)
 }
 

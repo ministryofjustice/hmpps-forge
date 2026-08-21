@@ -2,7 +2,7 @@
 title: Initialisation
 section: packages
 path: packages/forge-core/forge-class
-teaches: [Forge, ForgeOptions, ForgePackage, registerPackage, registerGlobalComponents, registerGlobalFunctions, createForgePackage]
+teaches: [Forge, ForgeOptions, ForgePackage, registerPackage, createForgePackage]
 prerequisites: [forge-core]
 ---
 
@@ -56,7 +56,7 @@ forge.registerPackage(myPackage, {
 
 When a package includes custom functions or components, Forge
 creates scoped registries so they are available to that journey
-without polluting the global registries.
+without becoming visible to any other journey.
 
 Packages can be conditionally disabled:
 
@@ -94,35 +94,19 @@ export const myPackage = createForgePackage({
 
 ---
 
-## Registering global components and functions
+## Where components and functions come from
 
-Components and functions registered globally are available to
-all journeys:
+There is no global registration step. Every component and
+function a journey uses arrives through its package:
 
-```typescript
-import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
-import { nunjucksFunctions } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+- Components and functions declared with `component()`,
+  `condition()`, and friends register themselves - using one in
+  the journey definition is enough.
+- Journeys that reference a variant or function by string only
+  (a JSON journey, for example) list what they need on the
+  package's `components` and `functions` properties.
 
-forge
-  .registerGlobalComponents(govukComponents)
-  .registerGlobalFunctions(nunjucksFunctions)
-```
-
-`registerGlobalFunctions()` accepts a single function registry or an
-array of registries. Pass any dependencies those functions need as
-the second argument:
-
-```typescript
-forge.registerGlobalFunctions([myConditions, myTransformers], { api: services.apiClient })
-```
-
-You can also register a single component:
-
-```typescript
-forge.registerGlobalComponent(myComponent)
-```
-
-All registration methods return `this`, so they can be chained.
+`registerPackage()` returns `this`, so registrations chain.
 
 ---
 

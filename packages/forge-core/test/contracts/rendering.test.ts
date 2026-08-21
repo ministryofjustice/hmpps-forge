@@ -15,8 +15,7 @@ import {
   multiNestedRenderJourney,
   scopedOverrideRenderJourney,
   renderingContractComponents,
-  contractScopedGlobalComponent,
-  contractScopedPackageComponent,
+  contractScopedHtmlComponent,
 } from './rendering.fixtures'
 
 interface RecordedAssemblePage {
@@ -107,8 +106,7 @@ describe('rendering contracts', () => {
     it('should leave output undefined when no renderer is supplied', async () => {
       // Arrange
       const client = new ForgeTestHarness()
-        .registerGlobalComponents(renderingContractComponents)
-        .registerPackage(createForgePackage({ journey: basicRenderJourney }))
+        .registerPackage(createForgePackage({ journey: basicRenderJourney, components: renderingContractComponents }))
         .createClient()
 
       // Act
@@ -270,15 +268,14 @@ describe('rendering contracts', () => {
   })
 
   describe('component registry', () => {
-    it('should render a package-scoped component in preference to a global one of the same variant', async () => {
+    it('should render a package-scoped component in preference to the built-in of the same variant', async () => {
       // Arrange
       const { renderer } = createRecordingRenderer()
       const client = new ForgeTestHarness()
-        .registerGlobalComponents([contractScopedGlobalComponent])
         .registerPackage(
           createForgePackage({
             journey: scopedOverrideRenderJourney,
-            components: [contractScopedPackageComponent],
+            components: [contractScopedHtmlComponent],
           }),
         )
         .createClient(renderer)
@@ -290,7 +287,7 @@ describe('rendering contracts', () => {
       expect(result.type).toBe('render')
 
       if (result.type === 'render') {
-        expect(result.output).toBe('<scoped id="scopedField">')
+        expect(result.output).toBe('<scoped>shadowed</scoped>')
       }
     })
   })

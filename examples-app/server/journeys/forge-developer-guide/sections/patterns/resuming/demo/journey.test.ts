@@ -1,6 +1,5 @@
 import { createForgePackage } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { ForgeTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
-import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
 import { describe, expect, it, vi } from 'vitest'
 import type { GuideDeps } from '../../../../effects'
 import { resumingDemoJourney } from './journey'
@@ -17,7 +16,6 @@ const mockFormDataStore = {
 
 function createClient() {
   return new ForgeTestHarness()
-    .registerGlobalComponents(govukComponents)
     .registerPackage(basePackage, { formDataStore: mockFormDataStore } as unknown as GuideDeps)
     .createClient()
 }

@@ -4,12 +4,12 @@
 
 Registry scoping controls which functions and components a journey can see.
 
-Forge has global registries for functions and components. Package registration
-can create scoped registries for one package. A scoped registry can use package
-entries first, then fall back to the global registry.
+Forge has built-in registries for functions and components. Package
+registration can create scoped registries for one package. A scoped registry
+can use package entries first, then fall back to the built-in registry.
 
 This lets packages bring their own functions and components without mutating
-the global extension environment for every other journey.
+the extension environment for every other journey.
 
 ## Where this sits in the pipeline
 
@@ -32,20 +32,19 @@ the journey lifecycle:
 The important point is that validation, compilation, runtime, and rendering all
 use the same scoped view of extensions for a journey.
 
-## Global registries
+## Built-in registries
 
-A `Forge` instance owns one global function registry and one global component
-registry.
+A `Forge` instance owns one built-in function registry and one built-in
+component registry.
 
-Global functions and components are visible to every journey registered with
-that `Forge` instance.
+Built-in functions and components are visible to every journey registered with
+that `Forge` instance. They are registered at construction unless Forge is
+configured to exclude them (`disableBuiltInFunctions`,
+`disableBuiltInComponents`).
 
-Built-in functions and built-in components are registered globally when Forge is
-configured to include them. Application code can also register global functions
-and components.
-
-Global registration is useful for extensions that should be shared across all
-journeys in the same runtime.
+These registries are not open to application code. Everything an application
+adds arrives through a package - self-registered by use in the journey, or
+listed on the package's `functions` and `components` properties.
 
 ## Package-scoped registries
 
@@ -73,8 +72,8 @@ name is not found there, lookup falls back to the parent function registry.
 For components, lookup checks the scoped component registry first. If the
 variant is not found there, lookup falls back to the parent component registry.
 
-This means package entries take precedence over global entries with the same
-name or variant, while still inheriting the global registry.
+This means package entries take precedence over built-in entries with the same
+name or variant, while still inheriting the built-in registry.
 
 The same precedence applies when all entries are read from a scoped registry.
 Parent entries are read first, then scoped entries replace matching names or
@@ -85,7 +84,8 @@ variants.
 Scoped registration isolates package extensions from unrelated journeys.
 
 If package A registers a custom function or component, package B should not see
-it unless that extension is registered globally too.
+it. Sharing an extension means each package registers it - the same handle used
+in two journeys registers for both packages.
 
 This matters when different packages use the same local names. It also matters
 when a package depends on services or renderers that should not be available to
@@ -104,7 +104,7 @@ copies it onto each route's `MountedNode` as `componentRegistry`, and render
 time resolves component variants through that per-route registry.
 
 Without this, validation could see a scoped component while rendering still
-used the global component registry.
+used the built-in component registry.
 
 The framework adapter is constructed once and is never passed or rebuilt with a
 component registry. Each route renders through the scoped component registry on
@@ -142,7 +142,7 @@ registered function or component renderer.
 
 ## Rules to preserve
 
-Global extensions should be visible to all journeys registered with the same
+Built-in extensions should be visible to all journeys registered with the same
 `Forge` instance.
 
 Package-scoped extensions should be visible to the package journey they are
@@ -150,7 +150,8 @@ registered with.
 
 Package-scoped extensions should not become visible to unrelated journeys.
 
-Scoped registries should prefer local entries, then fall back to global entries.
+Scoped registries should prefer local entries, then fall back to built-in
+entries.
 
 Validation, compilation, runtime evaluation, and rendering should use the same
 scoped view of functions and components for a journey.
