@@ -141,6 +141,7 @@ flowchart TD
   Every rule gets the same registry and AST structures.
 - [rules/validateReferenceScopes.ts](rules/validateReferenceScopes.ts) validates `@scope` and `@loop` references.
 - [rules/validateSelfScope.ts](rules/validateSelfScope.ts) validates `@self` reference placement: inside a field block, but not inside that field's own `code` expression. Lowering resolves valid `@self` references against the field code bound through `ExpressionDispatcher.withSelfCodeExpression()`.
+- [rules/validateAnswerScope.ts](rules/validateAnswerScope.ts) rejects `Answer()` references inside access hooks. Answer preparation runs after the access phase, so an answer read there sees unprepared state.
   It uses ancestor iterator depth for registered nodes and explicit template depth for iterator templates.
 - [rules/validateEffectScope.ts](rules/validateEffectScope.ts), [rules/validateOutcomeScope.ts](rules/validateOutcomeScope.ts), [rules/validateHookScope.ts](rules/validateHookScope.ts), [rules/validateTieBreakerScope.ts](rules/validateTieBreakerScope.ts), [rules/validateValidationScope.ts](rules/validateValidationScope.ts), [rules/validateStructureScope.ts](rules/validateStructureScope.ts), [rules/validateBlockScope.ts](rules/validateBlockScope.ts), and [rules/validateFunctionArguments.ts](rules/validateFunctionArguments.ts) validate where AST node families are allowed to appear.
 - [rules/validateRegisteredFunctions.ts](rules/validateRegisteredFunctions.ts) checks all `FunctionType` expression nodes and function template nodes against `FunctionRegistry`.
