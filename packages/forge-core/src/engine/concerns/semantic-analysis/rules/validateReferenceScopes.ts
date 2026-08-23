@@ -89,29 +89,6 @@ function parseReferenceLevel(value: unknown): number | undefined {
   return Number.isInteger(level) && level >= 0 ? level : undefined
 }
 
-function validateItemReference(
-  path: (ASTNode | string | number)[],
-  iteratorDepth: number,
-  diagnostics: ASTNodeDiagnostics | undefined,
-): readonly Error[] {
-  const level = parseReferenceLevel(path[1])
-
-  if (level === undefined) {
-    return [createError(diagnostics, 'Item() reference level must be a non-negative integer')]
-  }
-
-  if (level >= iteratorDepth) {
-    const message =
-      iteratorDepth === 0
-        ? 'Item() can only be used inside an iterator'
-        : `Item().parent references level ${level}, but only ${iteratorDepth} iterator scope is available`
-
-    return [createError(diagnostics, message)]
-  }
-
-  return []
-}
-
 function validateLoopReference(
   path: (ASTNode | string | number)[],
   iteratorDepth: number,
@@ -124,27 +101,35 @@ function validateLoopReference(
     return [createError(diagnostics, 'Loop reference level must be a non-negative integer')]
   }
 
-  if (level >= iteratorDepth) {
-    const message =
-      iteratorDepth === 0
-        ? 'Loop can only be used inside an iterator'
-        : `Loop.Parent references level ${level}, but only ${iteratorDepth} iterator scope is available`
+  // Item() references are rewritten into '@loop' item paths at AST build, so
+  // the item property keeps Item()-flavoured messages for its authors.
+  const property = path[2]
+  const isItemReference = property === 'item'
 
-    errors.push(createError(diagnostics, message))
+  if (level >= iteratorDepth) {
+    errors.push(createError(diagnostics, buildLevelMessage(isItemReference, level, iteratorDepth)))
   }
 
-  const property = path[2]
-
-  if (typeof property !== 'string' || !LOOP_PROPERTIES.has(property)) {
+  if (!isItemReference && (typeof property !== 'string' || !LOOP_PROPERTIES.has(property))) {
     errors.push(
       createError(
         diagnostics,
-        'Loop reference property must be one of index, index0, revindex, revindex0, first, last, length',
+        'Loop reference property must be one of item, index, index0, revindex, revindex0, first, last, length',
       ),
     )
   }
 
   return errors
+}
+
+function buildLevelMessage(isItemReference: boolean, level: number, iteratorDepth: number): string {
+  if (iteratorDepth === 0) {
+    return isItemReference ? 'Item() can only be used inside an iterator' : 'Loop can only be used inside an iterator'
+  }
+
+  return isItemReference
+    ? `Item().parent references level ${level}, but only ${iteratorDepth} iterator scope is available`
+    : `Loop.Parent references level ${level}, but only ${iteratorDepth} iterator scope is available`
 }
 
 function validateRegisteredReference(node: ReferenceASTNode): readonly Error[] {
@@ -153,10 +138,6 @@ function validateRegisteredReference(node: ReferenceASTNode): readonly Error[] {
 
   // Iterator bodies are lifted into templates at AST build, so any reference still
   // in the registered tree sits outside every iterator scope: its depth is always 0.
-  if (namespace === '@scope') {
-    return validateItemReference(path, 0, node.diagnostics)
-  }
-
   if (namespace === '@loop') {
     return validateLoopReference(path, 0, node.diagnostics)
   }
@@ -210,10 +191,6 @@ function walkIterateTemplateReferences(
 
         const templateRefPath = refPath as (string | number)[]
         const namespace = templateRefPath[0]
-
-        if (namespace === '@scope') {
-          errors.push(...validateItemReference(templateRefPath, currentDepth, templateMetadata))
-        }
 
         if (namespace === '@loop') {
           errors.push(...validateLoopReference(templateRefPath, currentDepth, templateMetadata))

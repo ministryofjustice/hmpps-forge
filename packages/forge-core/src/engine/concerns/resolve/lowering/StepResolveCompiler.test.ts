@@ -347,7 +347,7 @@ describe('StepResolveCompiler', () => {
       // Arrange
       const member: Record<string, unknown> = { memberName: 'Ada' }
       const members = [member]
-      const field = createFieldBlock('memberName_0', createReference(['@scope', '0', 'memberName']))
+      const field = createFieldBlock('memberName_0', createReference(['@loop', '0', 'item', 'memberName']))
       const iterateNode = createIterateNode(createTemplate([field]))
       const compiled = compiler.compile(resolveModel(createStep(), [], [iterateNode]))
 
@@ -368,7 +368,7 @@ describe('StepResolveCompiler', () => {
       // Arrange
       const member: Record<string, unknown> = { memberName: 'Ada' }
       const members = [member]
-      const field = createFieldBlock('memberName_0', createReference(['@scope', '0']))
+      const field = createFieldBlock('memberName_0', createReference(['@loop', '0', 'item']))
       const iterateNode = createIterateNode(createTemplate([field]))
       const model = resolveModel(createStep(), [], [iterateNode])
       const compiled = compiler.compile(model)
@@ -726,7 +726,7 @@ describe('StepResolveCompiler', () => {
             {
               template: '{{ memberName }}<br>Member',
               data: {
-                memberName: createReference(['@scope', '0', 'memberName']),
+                memberName: createReference(['@loop', '0', 'item', 'memberName']),
               },
             },
           ]),
@@ -773,7 +773,7 @@ describe('StepResolveCompiler', () => {
         .withProperty('first', createReference(['@loop', '0', 'first']))
         .withProperty('last', createReference(['@loop', '0', 'last']))
         .withProperty('length', createReference(['@loop', '0', 'length']))
-        .withProperty('memberName', createReference(['@scope', '0', 'memberName']))
+        .withProperty('memberName', createReference(['@loop', '0', 'item', 'memberName']))
         .build()
       const iterateNode = createIterateNode(createTemplate([templateBlock]))
       const compiled = compiler.compile(resolveModel(createStep(), [], [iterateNode]))
@@ -832,21 +832,21 @@ describe('StepResolveCompiler', () => {
         id: ASTTestFactory.getId(),
         diagnostics: ASTTestFactory.diagnostics(),
         properties: {
-          input: createReference(['@scope', '0', 'members']),
+          input: createReference(['@loop', '0', 'item', 'members']),
           iterator: {
             type: IteratorType.MAP,
             yieldTemplate: createTemplate({
               teamIndex: createReference(['@loop', '1', 'index']),
               teamIndex0: createReference(['@loop', '1', 'index0']),
               memberIndex: createReference(['@loop', '0', 'index']),
-              teamName: createReference(['@scope', '1', 'name']),
-              memberName: createReference(['@scope', '0', 'name']),
+              teamName: createReference(['@loop', '1', 'item', 'name']),
+              memberName: createReference(['@loop', '0', 'item', 'name']),
             }),
           },
         },
       }
       const templateBlock = ASTTestFactory.block('team-row', BlockType.BASIC)
-        .withProperty('teamName', createReference(['@scope', '0', 'name']))
+        .withProperty('teamName', createReference(['@loop', '0', 'item', 'name']))
         .withProperty('members', innerIterateNode)
         .build()
       const iterateNode = createIterateNode(createTemplate([templateBlock]), createReference(['data', 'teams']))
@@ -892,7 +892,7 @@ describe('StepResolveCompiler', () => {
                   type: ASTNodeType.EXPRESSION,
                   expressionType: ExpressionType.REFERENCE,
                   properties: {
-                    path: ['@scope', 0, 'memberName'],
+                    path: ['@loop', 0, 'item', 'memberName'],
                   },
                 },
               },
@@ -1138,7 +1138,7 @@ describe('StepResolveCompiler', () => {
           type: IteratorType.FILTER,
           predicateTemplate: createTemplate(
             ASTTestFactory.predicate(PredicateType.TEST, {
-              subject: createReference(['@scope', '0', 'status']),
+              subject: createReference(['@loop', '0', 'item', 'status']),
               condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', ['ACTIVE']),
             }),
           ),
@@ -1213,7 +1213,7 @@ describe('StepResolveCompiler', () => {
           type: IteratorType.FIND,
           predicateTemplate: createTemplate(
             ASTTestFactory.predicate(PredicateType.TEST, {
-              subject: createReference(['@scope', '0', 'slug']),
+              subject: createReference(['@loop', '0', 'item', 'slug']),
               condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', [
                 createReference(['params', 'area']),
               ]),

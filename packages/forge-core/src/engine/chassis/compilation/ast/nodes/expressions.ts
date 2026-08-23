@@ -98,7 +98,7 @@ export function createReferenceNode(json: ReferenceExpr, ctx: NodeBuildContext):
   const base = json.base ? ctx.transformValue<ASTNode>(json.base) : undefined
 
   // Build path - allow empty path when base is present
-  const referencePath = buildReferencePath(json.path, ctx, !!base)
+  const referencePath = unifyItemReferencePath(buildReferencePath(json.path, ctx, !!base))
 
   return {
     id: ctx.nextId(),
@@ -126,6 +126,19 @@ function buildReferencePath(
 
   // Transform any expressions in the path (e.g., dynamic keys)
   return path.map(segment => (isExpression(segment) ? ctx.transformValue(segment) : assertReferenceSegment(segment)))
+}
+
+/**
+ * Item() emits the legacy '@scope' path shape, while Loop.Item() emits the
+ * canonical `['@loop', level, 'item', ...]` shape. Rewriting the legacy shape
+ * here means every stage after AST build sees only the unified '@loop' form.
+ */
+function unifyItemReferencePath(path: ReferenceASTNode['properties']['path']): ReferenceASTNode['properties']['path'] {
+  if (path[0] !== '@scope') {
+    return path
+  }
+
+  return ['@loop', path[1], 'item', ...path.slice(2)]
 }
 
 function assertReferenceSegment(segment: unknown): string | number {

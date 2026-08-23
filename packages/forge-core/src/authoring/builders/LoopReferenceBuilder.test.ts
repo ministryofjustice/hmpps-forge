@@ -56,6 +56,63 @@ describe('LoopReferenceBuilder', () => {
     })
   })
 
+  describe('Item()', () => {
+    it('should return item property paths under the loop namespace', () => {
+      // Arrange
+      const builder = LoopReferenceBuilder.create(0)
+
+      // Act
+      const ref = builder.Item().path('name')
+
+      // Assert
+      expect(ref.expr).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'item', 'name'] })
+    })
+
+    it('should split dot notation in item property paths', () => {
+      // Arrange
+      const builder = LoopReferenceBuilder.create(0)
+
+      // Act
+      const ref = builder.Item().path('address.postcode')
+
+      // Assert
+      expect(ref.expr.path).toEqual(['@loop', '0', 'item', 'address', 'postcode'])
+    })
+
+    it('should return the bare item path from value()', () => {
+      // Arrange
+      const builder = LoopReferenceBuilder.create(0)
+
+      // Act
+      const ref = builder.Item().value()
+
+      // Assert
+      expect(ref.expr.path).toEqual(['@loop', '0', 'item'])
+    })
+
+    it('should return the item key path from key()', () => {
+      // Arrange
+      const builder = LoopReferenceBuilder.create(0)
+
+      // Act
+      const ref = builder.Item().key()
+
+      // Assert
+      expect(ref.expr.path).toEqual(['@loop', '0', 'item', '@key'])
+    })
+
+    it('should follow the builder level when reached through Parent', () => {
+      // Arrange
+      const builder = LoopReferenceBuilder.create(0)
+
+      // Act
+      const ref = builder.Parent.Parent.Item().path('groupId')
+
+      // Assert
+      expect(ref.expr.path).toEqual(['@loop', '2', 'item', 'groupId'])
+    })
+  })
+
   describe('metadata methods', () => {
     it('should return loop reference paths for all metadata values', () => {
       // Arrange

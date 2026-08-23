@@ -249,7 +249,10 @@ describe('StepFieldInventoryCompiler', () => {
         createReference(['@loop', 0, 'index0']),
       ])
       const memberField = createFieldBlock(dynamicCode)
-      const innerIterator = createIterateNode(createReference(['@scope', 0, 'members']), createTemplate(memberField))
+      const innerIterator = createIterateNode(
+        createReference(['@loop', 0, 'item', 'members']),
+        createTemplate(memberField),
+      )
       const template = createTemplate([innerIterator])
       const iterateNode = createIterateNode(createReference(['data', 'teams']), template)
       const steps: FieldInventoryStepSource[] = [

@@ -246,7 +246,7 @@ describe('ASTSemanticValidator', () => {
           const messages = error.errors.map((scopeError: ForgeReferenceScopeError) => scopeError.message)
 
           expect(error.errors).toHaveLength(2)
-          expect(messages).toContain('Item() reference level must be a non-negative integer')
+          expect(messages).toContain('Loop reference level must be a non-negative integer')
           expect(messages).toContain('Loop can only be used inside an iterator')
         }
       }

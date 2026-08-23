@@ -136,6 +136,48 @@ describe('expressions', () => {
       expect(result1.id).not.toBe(result2.id)
     })
 
+    it('should rewrite Item scope paths into loop item paths', () => {
+      // Arrange
+      const json = {
+        type: ExpressionType.REFERENCE,
+        path: ['@scope', '1', 'name'],
+      } satisfies ReferenceExpr
+
+      // Act
+      const result = createReferenceNode(json, nodeFactory.context)
+
+      // Assert
+      expect(result.properties.path).toEqual(['@loop', '1', 'item', 'name'])
+    })
+
+    it('should rewrite bare Item scope paths into loop item paths', () => {
+      // Arrange
+      const json = {
+        type: ExpressionType.REFERENCE,
+        path: ['@scope', '0'],
+      } satisfies ReferenceExpr
+
+      // Act
+      const result = createReferenceNode(json, nodeFactory.context)
+
+      // Assert
+      expect(result.properties.path).toEqual(['@loop', '0', 'item'])
+    })
+
+    it('should not rewrite loop paths', () => {
+      // Arrange
+      const json = {
+        type: ExpressionType.REFERENCE,
+        path: ['@loop', '0', 'index0'],
+      } satisfies ReferenceExpr
+
+      // Act
+      const result = createReferenceNode(json, nodeFactory.context)
+
+      // Assert
+      expect(result.properties.path).toEqual(['@loop', '0', 'index0'])
+    })
+
     it('should not modify paths without dot notation', () => {
       // Arrange
       const json = {
