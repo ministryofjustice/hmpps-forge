@@ -107,6 +107,22 @@ describe('ScopedReferenceBuilder', () => {
     })
   })
 
+  describe('build()', () => {
+    it('should build a bare Item() into the whole-item reference', () => {
+      // Arrange
+      const builder = ScopedReferenceBuilder.create(0)
+
+      // Act
+      const built = builder.build()
+
+      // Assert
+      expect(built).toEqual({
+        type: ExpressionType.REFERENCE,
+        path: ['@scope', '0'],
+      })
+    })
+  })
+
   describe('value()', () => {
     it('should return ReferenceBuilder for whole item', () => {
       // Arrange

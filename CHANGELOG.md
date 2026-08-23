@@ -71,8 +71,19 @@ helpers and the implementations-map `functions` form are gone too.
   stays for journeys that reference a variant by string, and for entries with no
   builder attached (the deprecated `buildComponent` kind)
 - `FunctionRegistryTestHarness` accepts entries alongside registries
+- `Loop.Item()` - the current loop's item under the `Loop` namespace, with the same
+  `.path()`, `.value()` and `.key()` accessors as `Item()`. Nested loops read as
+  `Loop.Parent.Item()` instead of `Item().parent`, so all loop access now lives in one
+  place. `Item()` still works and compiles to the same thing under the hood
 
 ### Changed
+
+- Iterating an object now works like `Object.entries` - each iteration's item is the
+  entry value and `Item().key()` is the entry key. Previously `Item().value()` leaked
+  the engine's internal wrapper: the value with a `@key` property injected into it, or
+  a `{'@key', '@value'}` pair object when the value was a scalar. Breaking only if you
+  read those hidden properties off `.value()` during object iteration - array
+  iteration is unchanged
 
 - `Answer()` in an `onAccess` hook now fails compilation - answer preparation runs after
   access hooks, so the reference could only ever read unprepared state. A new
@@ -116,6 +127,8 @@ helpers and the implementations-map `functions` form are gone too.
   codegen emit `runDraft.Save` as a generated function name, which failed compilation.
   Authored names are now reduced to their words before they are joined into generated
   identifiers
+- A bare `Item()` or `Loop.Item()` in a value position now means the whole item, same
+  as `.value()`. Previously it typechecked but finalised to a useless builder object
 
 ### Details
 

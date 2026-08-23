@@ -176,32 +176,25 @@ export default class ReferenceNodeCompiler {
   }
 
   /**
-   * Resolves the loop item and its sub-properties. The '@key', '@item', and
-   * '@value' segments address the keyed wrapper that object iteration builds
-   * around each entry.
+   * Resolves the loop item and its sub-properties against the entries model:
+   * the item is the entry value (array element, or object entry value
+   * unwrapped from its keyed wrapper), and the '@key' segment reads the entry
+   * key off the raw wrapper.
    */
   private compileLoopItemReference(frame: IteratorScopeFrame, path: (string | number | TemplateValue)[]): CodeFragment {
+    const itemVar = toCode(frame.itemVar)
+
     if (path.length === 3) {
-      return toCode(frame.rawItemExpr)
+      return itemVar
     }
 
     const property = path[3] as string
-    const itemVar = toCode(frame.itemVar)
-    const rawItemExpr = toCode(frame.rawItemExpr)
 
     if (property === '@key') {
-      return code`${itemVar}["@key"]`
+      return code`(${toCode(frame.rawItemExpr)})?.["@key"]`
     }
 
-    if (property === '@item') {
-      return rawItemExpr
-    }
-
-    if (property === '@value') {
-      return code`${itemVar}["@value"]`
-    }
-
-    let expr = code`${itemVar}${propertyCode(property)}`
+    let expr = code`${itemVar}${optionalPropertyCode(property)}`
 
     for (let i = 4; i < path.length; i++) {
       expr = code`${expr}${optionalPropertyCode(String(path[i]))}`

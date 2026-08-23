@@ -1,5 +1,6 @@
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { splitKey } from './utils/splitKey'
+import type { ReferenceExpr } from '../types/expressions.type'
 
 /**
  * Immutable builder for references to the item a loop is iterating, reached
@@ -26,6 +27,15 @@ export class LoopItemReferenceBuilder {
    */
   static create(level: number): LoopItemReferenceBuilder {
     return new LoopItemReferenceBuilder(level)
+  }
+
+  /**
+   * Build the whole-item reference expression, so a bare Loop.Item() in a
+   * value position means the same as Loop.Item().value().
+   * Called automatically by finaliseBuilders().
+   */
+  build(): ReferenceExpr {
+    return this.value().build()
   }
 
   /**

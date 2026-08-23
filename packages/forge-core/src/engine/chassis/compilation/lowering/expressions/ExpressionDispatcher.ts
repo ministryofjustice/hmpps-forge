@@ -602,9 +602,11 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Normalizes object inputs to keyed items so iterator templates can use @key
-   * and @value. Shared with `IteratorLoopEmitter` so both iterator code paths
-   * emit the same normalisation under the same generated names.
+   * Normalizes object inputs to Object.entries-style keyed wrappers, so every
+   * loop iterates a flat array: plain elements for array inputs, and
+   * `{ '@key', '@value' }` wrappers for object inputs. Shared with
+   * `IteratorLoopEmitter` so both iterator code paths emit the same
+   * normalisation under the same generated names.
    */
   compileNormalizeIteratorInput(inputVar: IdentifierName, generator: CodeGenerator): void {
     generator.if(code`${inputVar} != null && !Array.isArray(${inputVar}) && typeof ${inputVar} === "object"`, () => {
@@ -612,15 +614,12 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
         'normaliseIteratorEntry',
         ['entry'],
         (callbackGenerator, [entry]) => {
-          const keyedObject = objectCode([{ key: '@key', value: code`${entry}[0]` }])
-          const scalarObject = objectCode([
+          const keyedWrapper = objectCode([
             { key: '@key', value: code`${entry}[0]` },
             { key: '@value', value: code`${entry}[1]` },
           ])
 
-          callbackGenerator.return(
-            code`typeof ${entry}[1] === "object" && ${entry}[1] !== null ? Object.assign(${keyedObject}, ${entry}[1]) : ${scalarObject}`,
-          )
+          callbackGenerator.return(keyedWrapper)
         },
       )
 
@@ -637,11 +636,14 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Produces the per-item object exposed to @scope and `Item()` references.
+   * Produces the item value exposed to `Item()` / `Loop.Item()` references:
+   * the entry value for object inputs (unwrapped from the keyed wrapper), the
+   * element itself for array inputs. Detecting the wrapper by its '@key'
+   * property is safe because normalisation only wraps object inputs.
    * Shared with `IteratorLoopEmitter` for the same reason as normalisation.
    */
   compileIteratorItemScopeExpression(rawItemExpr: CodeFragment | IdentifierName): CodeFragment {
-    return code`typeof ${rawItemExpr} === "object" && ${rawItemExpr} !== null ? Object.assign({}, ${rawItemExpr}) : ${objectCode([{ key: '@value', value: rawItemExpr }])}`
+    return code`typeof ${rawItemExpr} === "object" && ${rawItemExpr} !== null && "@key" in ${rawItemExpr} ? ${rawItemExpr}["@value"] : ${rawItemExpr}`
   }
 
   private compileIteratorItemScope(rawItemExpr: CodeFragment, generator: CodeGenerator): IdentifierName {

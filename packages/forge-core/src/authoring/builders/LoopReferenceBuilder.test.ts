@@ -101,6 +101,17 @@ describe('LoopReferenceBuilder', () => {
       expect(ref.expr.path).toEqual(['@loop', '0', 'item', '@key'])
     })
 
+    it('should build a bare Item() into the whole-item reference', () => {
+      // Arrange
+      const builder = LoopReferenceBuilder.create(0)
+
+      // Act
+      const built = builder.Item().build()
+
+      // Assert
+      expect(built).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'item'] })
+    })
+
     it('should follow the builder level when reached through Parent', () => {
       // Arrange
       const builder = LoopReferenceBuilder.create(0)
