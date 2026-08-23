@@ -72,6 +72,13 @@ helpers and the implementations-map `functions` form are gone too.
   builder attached (the deprecated `buildComponent` kind)
 - `FunctionRegistryTestHarness` accepts entries alongside registries
 
+### Changed
+
+- `Answer()` in an `onAccess` hook now fails compilation - answer preparation runs after
+  access hooks, so the reference could only ever read unprepared state. A new
+  `validateAnswerScope` semantic-analysis rule rejects it at `registerPackage()` with an
+  error naming the source location ([#272])
+
 ### Deprecated
 
 - `buildComponent` and `buildNunjucksComponent` - declare the component with
@@ -127,6 +134,8 @@ renamed to match. Listing an entry in `functions` still works and promises its e
 name, for journeys that reference functions by name only (for example plain JSON) - a
 name clash there throws instead of renaming. The built-in string conditions are
 entries now.
+
+[#272]: https://github.com/ministryofjustice/hmpps-forge/pull/272
 
 ---
 
