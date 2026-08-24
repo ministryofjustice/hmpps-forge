@@ -1,12 +1,12 @@
 import { TemplateValue } from '../../../contracts/ast/template.type'
 import { CodeFragment, code, literal, optionalPropertyCode, propertyCode } from '../codegen/fragments/CodeFragment'
 import IdentifierName from '../codegen/fragments/IdentifierName'
-import { NodeCompilationContext } from './types'
+import { IteratorScopeFrame, NodeCompilationContext } from './types'
 
 /**
  * Compiles authored reference paths to safe JavaScript property access.
  *
- * This is where DSL namespaces such as answers, @self, @scope, and @loop are
+ * This is where DSL namespaces such as answers, @self, and @loop are
  * translated into the runtime values available inside generated functions.
  */
 export default class ReferenceNodeCompiler {
@@ -34,10 +34,6 @@ export default class ReferenceNodeCompiler {
     }
 
     const namespace = path[0] as string
-
-    if (namespace === '@scope') {
-      return this.compileIteratorScopeReference(path)
-    }
 
     if (namespace === '@loop') {
       return this.compileIteratorLoopReference(path)
@@ -123,51 +119,9 @@ export default class ReferenceNodeCompiler {
   }
 
   /**
-   * Resolves @scope references from the active iterator stack frame.
-   */
-  private compileIteratorScopeReference(path: (string | number | TemplateValue)[]): CodeFragment {
-    if (path.length < 2) {
-      return literal(undefined)
-    }
-
-    const level = typeof path[1] === 'string' ? parseInt(path[1] as string, 10) : (path[1] as number)
-    const frame = this.ctx.iteratorStack[this.ctx.iteratorStack.length - 1 - level]
-
-    if (!frame) {
-      return literal(undefined)
-    }
-
-    if (path.length === 2) {
-      return toCode(frame.rawItemExpr)
-    }
-
-    const property = path[2] as string
-    const itemVar = toCode(frame.itemVar)
-    const rawItemExpr = toCode(frame.rawItemExpr)
-
-    if (property === '@key') {
-      return code`${itemVar}["@key"]`
-    }
-
-    if (property === '@item') {
-      return rawItemExpr
-    }
-
-    if (property === '@value') {
-      return code`${itemVar}["@value"]`
-    }
-
-    let expr = code`${itemVar}${propertyCode(property)}`
-
-    for (let i = 3; i < path.length; i++) {
-      expr = code`${expr}${optionalPropertyCode(String(path[i]))}`
-    }
-
-    return expr
-  }
-
-  /**
-   * Resolves @loop metadata such as index, first, last, and length.
+   * Resolves @loop references from the active iterator stack frame: the loop
+   * item (`Loop.Item()`, and `Item()` references rewritten at AST build) and
+   * loop metadata such as index, first, last, and length.
    */
   private compileIteratorLoopReference(path: (string | number | TemplateValue)[]): CodeFragment {
     if (path.length < 3) {
@@ -182,6 +136,11 @@ export default class ReferenceNodeCompiler {
     }
 
     const property = path[2] as string
+
+    if (property === 'item') {
+      return this.compileLoopItemReference(frame, path)
+    }
+
     const indexVar = toCode(frame.indexVar)
     const inputLengthExpr = toCode(frame.inputLengthExpr)
 
@@ -214,6 +173,33 @@ export default class ReferenceNodeCompiler {
     }
 
     return literal(undefined)
+  }
+
+  /**
+   * Resolves the loop item and its sub-properties against the entries model:
+   * the item is the entry value for object inputs or the element for array
+   * inputs, and the '@key' segment reads the object entry key.
+   */
+  private compileLoopItemReference(frame: IteratorScopeFrame, path: (string | number | TemplateValue)[]): CodeFragment {
+    const itemVar = toCode(frame.itemVar)
+
+    if (path.length === 3) {
+      return itemVar
+    }
+
+    const property = path[3] as string
+
+    if (property === '@key') {
+      return code`${frame.inputWasKeyedVar} ? (${toCode(frame.rawItemExpr)})[0] : undefined`
+    }
+
+    let expr = code`${itemVar}${optionalPropertyCode(property)}`
+
+    for (let i = 4; i < path.length; i++) {
+      expr = code`${expr}${optionalPropertyCode(String(path[i]))}`
+    }
+
+    return expr
   }
 }
 

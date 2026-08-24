@@ -1523,7 +1523,7 @@ describe('StepValidationCompiler', () => {
               input: {
                 type: ASTNodeType.EXPRESSION,
                 expressionType: ExpressionType.REFERENCE,
-                properties: { path: ['@scope', 0, 'members'] },
+                properties: { path: ['@loop', 0, 'item', 'members'] },
               },
               iterator: {
                 type: IteratorType.MAP,
@@ -1633,7 +1633,7 @@ describe('StepValidationCompiler', () => {
                       subject: {
                         type: ASTNodeType.EXPRESSION,
                         expressionType: ExpressionType.REFERENCE,
-                        properties: { path: ['@scope', '0'] },
+                        properties: { path: ['@loop', '0', 'item'] },
                       },
                       condition: {
                         type: ASTNodeType.EXPRESSION,
@@ -1678,7 +1678,7 @@ describe('StepValidationCompiler', () => {
               {
                 type: ASTNodeType.EXPRESSION,
                 expressionType: ExpressionType.REFERENCE,
-                properties: { path: ['@scope', '0', '@key'] },
+                properties: { path: ['@loop', '0', 'item', '@key'] },
               },
             ]),
             validWhen: [
@@ -1751,7 +1751,7 @@ describe('StepValidationCompiler', () => {
                       subject: {
                         type: ASTNodeType.EXPRESSION,
                         expressionType: ExpressionType.REFERENCE,
-                        properties: { path: ['@scope', '0', 'name'] },
+                        properties: { path: ['@loop', '0', 'item', 'name'] },
                       },
                       condition: {
                         type: ASTNodeType.EXPRESSION,
@@ -1854,7 +1854,10 @@ describe('StepValidationCompiler', () => {
         createReference(['data', 'checks']),
         createTemplateValue(
           createValidation(
-            createTestPredicate(createReference(['@scope', '0', 'enabled']), createConditionFunction('equals', [true])),
+            createTestPredicate(
+              createReference(['@loop', '0', 'item', 'enabled']),
+              createConditionFunction('equals', [true]),
+            ),
             'Check must be enabled',
           ),
         ),
@@ -1883,7 +1886,10 @@ describe('StepValidationCompiler', () => {
         createReference(['data', 'checks']),
         createTemplateValue(
           createValidation(
-            createTestPredicate(createReference(['@scope', '0', 'passed']), createConditionFunction('equals', [true])),
+            createTestPredicate(
+              createReference(['@loop', '0', 'item', 'passed']),
+              createConditionFunction('equals', [true]),
+            ),
             'All checks must pass',
           ),
         ),

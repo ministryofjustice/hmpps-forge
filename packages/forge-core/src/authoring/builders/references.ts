@@ -134,6 +134,9 @@ export function Answer(target: FieldBlockDefinition | ResolvableString): Chainab
 /**
  * References the current collection item when inside a collection scope.
  *
+ * Prefer {@link Loop}.Item() — it keeps all loop access under one namespace,
+ * and nested loops read as Loop.Parent.Item() instead of Item().parent.
+ *
  * @example
  * Item().path('name')  // Access item.name
  * Item().value()  // Access the whole item
@@ -150,11 +153,13 @@ const createLoop = (): ChainableLoopRef => {
 }
 
 /**
- * References metadata for the current collection loop.
+ * References the current collection loop: its item and its metadata.
  *
  * @example
+ * Loop.Item().path('name')  // Current item's name property
  * Loop.Index()  // 1-based iteration position
  * Loop.Index0()  // 0-based iteration index
+ * Loop.Parent.Item().value()  // Parent loop's item in nested iterations
  * Loop.Parent.Index()  // Parent loop position in nested iterations
  */
 export const Loop: ChainableLoopRef = createLoop()

@@ -46,7 +46,7 @@ describe('validateReferenceScopes', () => {
 
     it('should reject an Item reference wrapped in a raw array as an iterate input', () => {
       // Arrange
-      const reference = ASTTestFactory.reference(['@scope', '0', 'firstName'])
+      const reference = ASTTestFactory.reference(['@loop', '0', 'item', 'firstName'])
       const iterate = ASTTestFactory.expression<IterateASTNode>(ExpressionType.ITERATE)
         .withProperty('input', [reference, 'other'])
         .withProperty('iterator', { type: IteratorType.MAP })

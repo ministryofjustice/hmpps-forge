@@ -6,6 +6,7 @@ export interface IteratorScopeFrame {
   readonly itemVar: IdentifierName
   readonly indexVar: IdentifierName
   readonly inputLengthExpr: CodeFragment | IdentifierName
+  readonly inputWasKeyedVar: IdentifierName
   readonly rawItemExpr: CodeFragment | IdentifierName
 }
 

@@ -1249,7 +1249,7 @@ describe('StepAnswerPreparationCompiler', () => {
         ]),
       )
       const innerIterator = createIterateNode(
-        createReference(['@scope', 0, 'members']),
+        createReference(['@loop', 0, 'item', 'members']),
         createTemplateValue(memberField),
       )
       const template = createTemplateValue([innerIterator])

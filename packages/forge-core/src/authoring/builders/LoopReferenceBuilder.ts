@@ -1,4 +1,5 @@
 import { ReferenceBuilder } from './ReferenceBuilder'
+import { LoopItemReferenceBuilder } from './LoopItemReferenceBuilder'
 
 /**
  * Immutable builder for creating references to iterator loop metadata.
@@ -34,6 +35,18 @@ export class LoopReferenceBuilder {
    */
   get Parent(): LoopReferenceBuilder {
     return new LoopReferenceBuilder(this.level + 1)
+  }
+
+  /**
+   * Get a reference to the item this loop is currently iterating.
+   *
+   * @example
+   * Loop.Item().path('name')  // Access item.name
+   * Loop.Item().value()  // Access the whole item
+   * Loop.Parent.Item().path('groupId')  // Access the parent loop's item
+   */
+  Item(): LoopItemReferenceBuilder {
+    return LoopItemReferenceBuilder.create(this.level)
   }
 
   /**

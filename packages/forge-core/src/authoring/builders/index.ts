@@ -29,6 +29,7 @@ export type {
   ChainableExpr,
   ChainableGenerator,
   ChainableIterable,
+  ChainableLoopItemRef,
   ChainableLoopRef,
   ChainableMatch,
   ChainableNegation,

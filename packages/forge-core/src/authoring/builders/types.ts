@@ -230,6 +230,28 @@ export interface ChainableScopedRef extends ResolvableExpression {
 }
 
 /**
+ * Public interface for loop item references (Loop.Item()).
+ */
+export interface ChainableLoopItemRef extends ResolvableExpression {
+  /**
+   * Get a sub-property of the loop item.
+   * Supports dot notation: .path('user.address.city')
+   */
+  path(key: string): ChainableRef
+
+  /**
+   * Get the full value of the loop item.
+   */
+  value(): ChainableRef
+
+  /**
+   * Get the key when iterating over an object.
+   * Only available when iterating over object entries (not arrays).
+   */
+  key(): ChainableRef
+}
+
+/**
  * Public interface for loop metadata references (Loop).
  */
 export interface ChainableLoopRef extends ResolvableExpression {
@@ -237,6 +259,11 @@ export interface ChainableLoopRef extends ResolvableExpression {
    * Navigate to the parent loop in nested collections.
    */
   readonly Parent: ChainableLoopRef
+
+  /**
+   * Get a reference to the item this loop is currently iterating.
+   */
+  Item(): ChainableLoopItemRef
 
   /**
    * Get the current iteration position, 1-based.

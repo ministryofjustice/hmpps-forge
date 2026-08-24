@@ -1,5 +1,6 @@
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { splitKey } from './utils/splitKey'
+import type { ReferenceExpr } from '../types/expressions.type'
 
 /**
  * Immutable builder for creating item references within iterator contexts.
@@ -50,6 +51,15 @@ export class ScopedReferenceBuilder {
    */
   get parent(): ScopedReferenceBuilder {
     return new ScopedReferenceBuilder(this.level + 1)
+  }
+
+  /**
+   * Build the whole-item reference expression, so a bare Item() in a value
+   * position means the same as Item().value().
+   * Called automatically by finaliseBuilders().
+   */
+  build(): ReferenceExpr {
+    return this.value().build()
   }
 
   /**
