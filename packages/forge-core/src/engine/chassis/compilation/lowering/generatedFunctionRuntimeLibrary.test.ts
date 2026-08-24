@@ -115,6 +115,140 @@ describe('generatedFunctionRuntimeLibrary', () => {
       // Assert
       expect(collect).toThrow('Broken custom validation')
     })
+
+    it('should collect every error returned by a validation function in order', () => {
+      // Arrange
+      const functionRule = {
+        function: vi.fn(() => [
+          { message: 'Enter a day', details: { field: 'day' } },
+          { message: 'Enter a month', details: { field: 'month' } },
+        ]),
+        groups: ['date'],
+        submissionOnly: true,
+      }
+
+      // Act
+      const failures = generatedFunctionRuntimeLibrary.collectFieldValidationFailures(
+        [functionRule],
+        () => true,
+        fieldIdentity,
+      )
+
+      // Assert
+      expect(failures).toEqual([
+        {
+          blockId: 'block:1',
+          blockCode: 'firstName',
+          passed: false,
+          message: 'Enter a day',
+          submissionOnly: true,
+          groups: ['date'],
+          details: { field: 'day' },
+        },
+        {
+          blockId: 'block:1',
+          blockCode: 'firstName',
+          passed: false,
+          message: 'Enter a month',
+          submissionOnly: true,
+          groups: ['date'],
+          details: { field: 'month' },
+        },
+      ])
+      expect(functionRule.function).toHaveBeenCalledOnce()
+    })
+
+    it('should pass validation when a validation function returns no errors', () => {
+      // Arrange
+      const functionRule = { function: vi.fn(() => []) }
+
+      // Act
+      const failures = generatedFunctionRuntimeLibrary.collectFieldValidationFailures(
+        [functionRule],
+        () => true,
+        fieldIdentity,
+      )
+
+      // Assert
+      expect(failures).toEqual([])
+      expect(functionRule.function).toHaveBeenCalledOnce()
+    })
+
+    it('should pass validation when a validation function returns undefined', () => {
+      // Arrange
+      const functionRule = { function: vi.fn(() => undefined) }
+
+      // Act
+      const failures = generatedFunctionRuntimeLibrary.collectFieldValidationFailures(
+        [functionRule],
+        () => true,
+        fieldIdentity,
+      )
+
+      // Assert
+      expect(failures).toEqual([])
+      expect(functionRule.function).toHaveBeenCalledOnce()
+    })
+
+    it('should not invoke an inactive validation function', () => {
+      // Arrange
+      const functionRule = { function: vi.fn(() => [{ message: 'Inactive' }]), groups: ['other'] }
+
+      // Act
+      const failures = generatedFunctionRuntimeLibrary.collectFieldValidationFailures(
+        [functionRule],
+        () => false,
+        fieldIdentity,
+      )
+
+      // Assert
+      expect(failures).toEqual([])
+      expect(functionRule.function).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      { name: 'null', result: null, message: 'must return undefined or an array' },
+      { name: 'an object', result: {}, message: 'must return undefined or an array' },
+      { name: 'a primitive entry', result: ['broken'], message: 'at index 0 must be an object' },
+      { name: 'a missing message', result: [{}], message: 'at index 0 must have a string message' },
+      { name: 'a non-string message', result: [{ message: 123 }], message: 'must have a string message' },
+      {
+        name: 'non-object details',
+        result: [{ message: 'Broken', details: [] }],
+        message: 'details must be an object',
+      },
+      {
+        name: 'unsupported properties',
+        result: [{ message: 'Broken', groups: ['other'] }],
+        message: 'contains unsupported properties: groups',
+      },
+    ])('should reject $name from a validation function', ({ result, message }) => {
+      // Arrange
+      const functionRule = { function: () => result }
+
+      // Act
+      const collect = () =>
+        generatedFunctionRuntimeLibrary.collectFieldValidationFailures([functionRule], () => true, fieldIdentity)
+
+      // Assert
+      expect(collect).toThrow(message)
+    })
+
+    it('should propagate TypeError from a validation function', () => {
+      // Arrange
+      const functionRule = {
+        function: () => {
+          throw new TypeError('Validation service failed')
+        },
+      }
+
+      // Act
+      const collect = () =>
+        generatedFunctionRuntimeLibrary.collectFieldValidationFailures([functionRule], () => true, fieldIdentity)
+
+      // Assert
+      expect(collect).toThrow('Validation service failed')
+    })
   })
 
   describe('collectFieldValidationFailuresAsync()', () => {
@@ -185,6 +319,34 @@ describe('generatedFunctionRuntimeLibrary', () => {
         },
       ])
       expect(conditionRule.condition).toHaveBeenCalledOnce()
+    })
+
+    it('should await a validation function and preserve its errors', async () => {
+      // Arrange
+      const functionRule = {
+        function: vi.fn(async () => [{ message: 'Async failure', details: { source: 'service' } }]),
+      }
+
+      // Act
+      const failures = await generatedFunctionRuntimeLibrary.collectFieldValidationFailuresAsync(
+        [functionRule],
+        () => true,
+        fieldIdentity,
+      )
+
+      // Assert
+      expect(failures).toEqual([
+        {
+          blockId: 'block:1',
+          blockCode: 'firstName',
+          passed: false,
+          message: 'Async failure',
+          submissionOnly: false,
+          groups: undefined,
+          details: { source: 'service' },
+        },
+      ])
+      expect(functionRule.function).toHaveBeenCalledOnce()
     })
   })
 

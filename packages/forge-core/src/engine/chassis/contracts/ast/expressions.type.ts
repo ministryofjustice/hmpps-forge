@@ -132,13 +132,23 @@ export interface FunctionASTNode extends ExpressionASTNode {
  */
 export interface ValidationASTNode extends ExpressionASTNode {
   expressionType: ExpressionType.VALIDATION
-  properties: {
-    condition: ASTNode // Required: the predicate — truthy means validation passes
-    message: ASTNode | string // Can be a plain string or a ResolvableString expression
-    submissionOnly?: boolean
-    groups?: string[]
-    details?: Record<string, any>
-  }
+  properties:
+    | {
+        condition: ASTNode // Required: the predicate — truthy means validation passes
+        message: ASTNode | string // Can be a plain string or a ResolvableString expression
+        function?: never
+        submissionOnly?: boolean
+        groups?: string[]
+        details?: Record<string, unknown>
+      }
+    | {
+        function: FunctionASTNode
+        condition?: never
+        message?: never
+        details?: never
+        submissionOnly?: boolean
+        groups?: string[]
+      }
 }
 
 /**

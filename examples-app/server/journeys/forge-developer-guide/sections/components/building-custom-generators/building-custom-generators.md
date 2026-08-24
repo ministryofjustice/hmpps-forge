@@ -306,18 +306,20 @@ serve different purposes.
 
 Use a **generator** when the value can be produced without side
 effects. UUIDs, timestamps, computed defaults, and formatted
-strings are all good candidates. Generators are pure functions.
-They do not read answers, set data, or call APIs.
+strings are all good candidates. Forge expressions such as
+`Answer()` and `Data()` can be passed as explicit arguments, and
+Forge resolves them before the generator runs. A generator can also
+use an injected dependency for a read-only service call.
 
 Use an **effect** when producing the value requires interacting
-with external systems or the request context. Loading data from an
-API, reading session state, or computing a value from multiple
-answers are effect territory. Effects have access to the full
-context object; generators do not.
+with or mutating the request context. Setting Forge data, changing
+session state, and writing through external services are effect
+territory. Effects have access to the full context object;
+generators do not.
 
-If you find yourself wishing a generator could read an answer or
-call an API, it should be an effect with `context.setData()`
-instead.
+Pass every value a generator reads explicitly and keep its injected
+service use read-only. If the operation needs to mutate Forge context
+or perform a write, use an effect instead.
 
 ---
 

@@ -9,11 +9,17 @@ import {
   FunctionType,
   Self,
 } from '../../src/authoring'
-import type { EffectContext } from '../../src/authoring'
+import type { EffectContext, ValidationFunctionResult } from '../../src/authoring'
 import type { ConditionFunctionExpr } from '../../src/authoring/types/expressions.type'
 import { ForgeTestHarness } from '../../src/testing'
 import ForgeRegistrationError from '../../src/engine/errors/ForgeRegistrationError'
-import { createEntriesClient, fieldWithRule, journeyWithFields, testInput } from './functionEntryRegistration.fixtures'
+import {
+  createEntriesClient,
+  fieldWithRule,
+  fieldWithValidationFunction,
+  journeyWithFields,
+  testInput,
+} from './functionEntryRegistration.fixtures'
 
 describe('function entry registration contracts', () => {
   describe('embedded entries', () => {
@@ -56,6 +62,57 @@ describe('function entry registration contracts', () => {
 
       if (valid.type === 'render') {
         expect(valid.getValidationErrorsByFieldCode('agree')).toHaveLength(0)
+      }
+    })
+
+    it('should register and evaluate a named validation generator with no functions listing', async () => {
+      // Arrange
+      const ValidateCrn = generator('Test.ValidateCrn', {
+        factory:
+          () =>
+          (value: unknown): ValidationFunctionResult =>
+            value === 'A1234BC'
+              ? undefined
+              : [
+                  { message: 'Enter a valid CRN', details: { reason: 'invalid' } },
+                  { message: 'Check the CRN and try again' },
+                ],
+      })
+      const client = createEntriesClient([fieldWithValidationFunction('crn', ValidateCrn(Self()))])
+
+      // Act
+      const invalid = await client.post('/entries/step-one', { session: {}, body: { crn: 'invalid' } })
+      const valid = await client.post('/entries/step-one', { session: {}, body: { crn: 'A1234BC' } })
+
+      // Assert
+      if (invalid.type === 'render') {
+        expect(invalid.getValidationErrorsByFieldCode('crn')).toMatchObject([
+          { message: 'Enter a valid CRN', details: { reason: 'invalid' } },
+          { message: 'Check the CRN and try again' },
+        ])
+      }
+
+      if (valid.type === 'render') {
+        expect(valid.getValidationErrorsByFieldCode('crn')).toEqual([])
+      }
+    })
+
+    it('should register and evaluate an anonymous validation generator', async () => {
+      // Arrange
+      const validate = generator({
+        factory:
+          () =>
+          (value: unknown): ValidationFunctionResult =>
+            value === 'yes' ? [] : [{ message: 'Enter yes' }],
+      })
+      const client = createEntriesClient([fieldWithValidationFunction('agree', validate(Self()))])
+
+      // Act
+      const invalid = await client.post('/entries/step-one', { session: {}, body: { agree: 'no' } })
+
+      // Assert
+      if (invalid.type === 'render') {
+        expect(invalid.getValidationErrorsByFieldCode('agree')).toMatchObject([{ message: 'Enter yes' }])
       }
     })
 

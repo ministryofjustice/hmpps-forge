@@ -2,7 +2,7 @@
 title: Validation
 section: building-journeys
 path: building-journeys/validation
-teaches: [validWhen, validation, ValidationExpr, submissionOnly, groups, validation-groups, Self, formatters, Transformer, dependentWhen, cross-field-validation, validateOnEntry]
+teaches: [validWhen, validation, ValidationExpr, ValidationFunctionResult, submissionOnly, groups, validation-groups, Self, formatters, Transformer, dependentWhen, cross-field-validation, validateOnEntry]
 prerequisites: [step, StepDefinition, block, field, FieldBlockDefinition, onSubmission, submit]
 ---
 
@@ -21,10 +21,10 @@ render however it sees fit.
 
 ## What is a validation rule?
 
-A validation rule is a pair: a condition and a message. The condition
-is a predicate expression that must be true for the field to be
-considered valid. When it evaluates to false, the message is included
-in the validation result.
+A validation rule can use either a condition and message, or a
+generator-backed validation function. A condition must be true for
+the field to be considered valid. When it evaluates to false, the
+message is included in the validation result.
 
 ```typescript
 import { validation, Self, Condition } from '@ministryofjustice/hmpps-forge/core/authoring'
@@ -114,7 +114,7 @@ import {
 } from '@ministryofjustice/hmpps-forge/core/authoring'
 ```
 
-### condition (Required)
+### condition
 
 A predicate expression that must be true for the field to be valid.
 
@@ -141,7 +141,7 @@ validation({
 Conditions can be composed with `and`, `or`, `not`, and `xor` for
 more complex rules. See [Complex conditions](#complex-conditions).
 
-### message (Required)
+### message
 
 The error message produced when the condition fails. This is passed
 to the component as part of the validation result.
@@ -152,6 +152,104 @@ validation({
   message: 'Enter your full name',
 })
 ```
+
+`condition` and `message` are required together. Alternatively, use
+`function` to return validation errors dynamically. The two forms
+cannot be combined in one rule.
+
+### function
+
+A direct call to a custom generator that returns an array of
+validation errors. Each error requires a `message` and can include a
+`details` object. Returning `undefined` or an empty array means the
+value is valid.
+
+```typescript
+import {
+  generator,
+  validation,
+  Self,
+  type ValidationFunctionResult,
+} from '@ministryofjustice/hmpps-forge/core/authoring'
+
+export const ValidateDate = generator('ValidateDate', {
+  factory: () => (date: { day?: string; month?: string; year?: string }): ValidationFunctionResult => {
+    const errors = []
+
+    if (!date.day) {
+      errors.push({ message: 'Enter a day', details: { field: 'day' } })
+    }
+
+    if (!date.month) {
+      errors.push({ message: 'Enter a month', details: { field: 'month' } })
+    }
+
+    return errors
+  },
+})
+
+validation({
+  function: ValidateDate(Self()),
+})
+```
+
+Forge preserves the returned array order and turns every item into a
+failure for the field. The rule's `groups` and `submissionOnly`
+settings are applied to every returned error; returned errors cannot
+override them.
+
+Only a direct `generator()` call is accepted. References, conditions,
+transformers, pipelines, and other resolvable values cannot be used as
+the `function` value. Arguments such as `Self()`, `Answer()`, and
+`Data()` are resolved normally before the generator runs.
+
+Generators can be asynchronous and can use injected read-only
+dependencies. For example, a generator can ask a service whether a
+reference is already in use:
+
+```typescript
+export const ValidateReference = generator<Dependencies>('ValidateReference', {
+  factory: ({ referenceService }) => async (reference: string): Promise<ValidationFunctionResult> => {
+    const isAvailable = await referenceService.isAvailable(reference)
+
+    if (isAvailable) {
+      return
+    }
+
+    return [{ message: 'Enter a reference that is not already in use' }]
+  },
+})
+
+validation({
+  function: ValidateReference(Self()),
+  groups: ['check-reference'],
+  submissionOnly: true,
+})
+```
+
+Forge checks `groups`, `submissionOnly`, and the field's
+`dependentWhen` before invoking the generator. This keeps inactive
+and traversal-excluded functions from making service calls.
+
+A validation function can also be used in a step's `validWhen` to
+produce step-level errors:
+
+```typescript
+step({
+  // ...
+  validWhen: [
+    validation({
+      function: ValidateContactDetails(Answer('email'), Answer('phone')),
+    }),
+  ],
+})
+```
+
+The return value is checked at runtime even when the generator has no
+`outputSchema`. Returning `null`, a non-array, malformed error items,
+or unsupported error properties causes evaluation to fail. Generator
+exceptions also propagate because Forge has no returned message to
+turn into a validation failure.
 
 ### submissionOnly (Optional)
 

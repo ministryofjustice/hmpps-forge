@@ -102,6 +102,7 @@ interface RuntimeValidationRule {
   readonly condition?: () => unknown
   readonly details?: unknown | (() => unknown)
   readonly evaluate?: () => unknown
+  readonly function?: () => unknown
   readonly groups?: unknown
   readonly message?: unknown | (() => unknown)
   readonly passed?: unknown
@@ -112,6 +113,11 @@ interface RuntimeValidationFailure {
   readonly rule: RuntimeValidationRule
   readonly message: unknown
   readonly details: unknown
+}
+
+interface RuntimeValidationFunctionError {
+  readonly message: string
+  readonly details?: Record<string, unknown>
 }
 
 /** Identifies the field a validation failure belongs to; template fields compute their block id per iteration. */
@@ -640,13 +646,31 @@ function collectValidationFailures(
   let validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
 
   while (validationRule !== undefined) {
-    const validationPassed = evaluateValidationRule(validationRule)
+    const activeValidationRule = validationRule
 
-    if (!validationPassed) {
-      const validationMessage = resolveValidationRuleValue(validationRule, validationRule.message, '')
-      const validationDetails = resolveValidationRuleValue(validationRule, validationRule.details, undefined)
+    if (typeof activeValidationRule.function === 'function') {
+      const validationErrors = evaluateValidationFunction(activeValidationRule)
 
-      failures.push({ rule: validationRule, message: validationMessage, details: validationDetails })
+      validationErrors.forEach(validationError => {
+        failures.push({
+          rule: activeValidationRule,
+          message: validationError.message,
+          details: validationError.details,
+        })
+      })
+    } else {
+      const validationPassed = evaluateValidationRule(activeValidationRule)
+
+      if (!validationPassed) {
+        const validationMessage = resolveValidationRuleValue(activeValidationRule, activeValidationRule.message, '')
+        const validationDetails = resolveValidationRuleValue(
+          activeValidationRule,
+          activeValidationRule.details,
+          undefined,
+        )
+
+        failures.push({ rule: activeValidationRule, message: validationMessage, details: validationDetails })
+      }
     }
 
     validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
@@ -664,13 +688,35 @@ async function collectValidationFailuresAsync(
   let validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
 
   while (validationRule !== undefined) {
-    const validationPassed = await evaluateValidationRuleAsync(validationRule)
+    const activeValidationRule = validationRule
 
-    if (!validationPassed) {
-      const validationMessage = await resolveValidationRuleValue(validationRule, validationRule.message, '')
-      const validationDetails = await resolveValidationRuleValue(validationRule, validationRule.details, undefined)
+    if (typeof activeValidationRule.function === 'function') {
+      const validationErrors = await evaluateValidationFunctionAsync(activeValidationRule)
 
-      failures.push({ rule: validationRule, message: validationMessage, details: validationDetails })
+      validationErrors.forEach(validationError => {
+        failures.push({
+          rule: activeValidationRule,
+          message: validationError.message,
+          details: validationError.details,
+        })
+      })
+    } else {
+      const validationPassed = await evaluateValidationRuleAsync(activeValidationRule)
+
+      if (!validationPassed) {
+        const validationMessage = await resolveValidationRuleValue(
+          activeValidationRule,
+          activeValidationRule.message,
+          '',
+        )
+        const validationDetails = await resolveValidationRuleValue(
+          activeValidationRule,
+          activeValidationRule.details,
+          undefined,
+        )
+
+        failures.push({ rule: activeValidationRule, message: validationMessage, details: validationDetails })
+      }
     }
 
     validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
@@ -904,6 +950,52 @@ function evaluateValidationRule(rule: RuntimeValidationRule): unknown {
   }
 
   return rule.passed
+}
+
+function evaluateValidationFunction(rule: RuntimeValidationRule): readonly RuntimeValidationFunctionError[] {
+  return validateValidationFunctionResult(rule.function?.call(rule))
+}
+
+async function evaluateValidationFunctionAsync(
+  rule: RuntimeValidationRule,
+): Promise<readonly RuntimeValidationFunctionError[]> {
+  return validateValidationFunctionResult(await rule.function?.call(rule))
+}
+
+function validateValidationFunctionResult(result: unknown): readonly RuntimeValidationFunctionError[] {
+  if (result === undefined) {
+    return []
+  }
+
+  if (!Array.isArray(result)) {
+    throw new TypeError('Validation function must return undefined or an array of validation errors')
+  }
+
+  return result.map((error, index) => validateValidationFunctionError(error, index))
+}
+
+function validateValidationFunctionError(error: unknown, index: number): RuntimeValidationFunctionError {
+  if (!isRecord(error)) {
+    throw new TypeError(`Validation function error at index ${index} must be an object`)
+  }
+
+  const unsupportedProperties = Object.keys(error).filter(key => key !== 'message' && key !== 'details')
+
+  if (unsupportedProperties.length > 0) {
+    throw new TypeError(
+      `Validation function error at index ${index} contains unsupported properties: ${unsupportedProperties.join(', ')}`,
+    )
+  }
+
+  if (typeof error.message !== 'string') {
+    throw new TypeError(`Validation function error at index ${index} must have a string message`)
+  }
+
+  if (error.details !== undefined && !isRecord(error.details)) {
+    throw new TypeError(`Validation function error at index ${index} details must be an object`)
+  }
+
+  return { message: error.message, details: error.details }
 }
 
 async function evaluateValidationRuleAsync(rule: RuntimeValidationRule): Promise<unknown> {
