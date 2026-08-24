@@ -38,7 +38,11 @@ export type {
   TieBreaker,
   TieBreakerProps,
   UnreachableRedirectTarget,
+  ConditionValidationExpr,
+  FunctionValidationExpr,
   ValidationExpr,
+  ValidationFunctionError,
+  ValidationFunctionResult,
   ValidationProps,
   ViewConfig,
 } from './types/structures.type'

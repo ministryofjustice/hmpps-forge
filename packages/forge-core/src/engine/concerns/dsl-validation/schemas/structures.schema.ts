@@ -99,14 +99,47 @@ const RouteMetadataSchema = z.record(z.string(), ResolvableValueSchema.optional(
 /**
  * @see {@link ValidationExpr}
  */
-const ValidationExprSchema = z.looseObject({
+const ValidationExecutionSchema = {
   type: z.literal(ExpressionType.VALIDATION),
-  condition: PredicateExprSchema,
-  message: ResolvableStringSchema,
   submissionOnly: z.boolean().optional(),
   groups: z.array(z.string().trim().min(1)).optional(),
-  details: z.record(z.string(), z.any()).optional(),
-})
+}
+
+const ValidationExprSchema = z
+  .looseObject({
+    ...ValidationExecutionSchema,
+    condition: PredicateExprSchema.optional(),
+    message: ResolvableStringSchema.optional(),
+    details: z.record(z.string(), z.any()).optional(),
+    function: GeneratorFunctionExprSchema.optional(),
+  })
+  .superRefine((value, ctx) => {
+    const hasFunction = value.function !== undefined
+    const hasConditionProperties =
+      value.condition !== undefined || value.message !== undefined || value.details !== undefined
+
+    if (hasFunction && hasConditionProperties) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['function'],
+        message: 'Validation must define either condition and message or function, not both',
+      })
+
+      return
+    }
+
+    if (hasFunction) {
+      return
+    }
+
+    if (value.condition === undefined) {
+      ctx.addIssue({ code: 'custom', path: ['condition'], message: 'Condition-backed validation requires condition' })
+    }
+
+    if (value.message === undefined) {
+      ctx.addIssue({ code: 'custom', path: ['message'], message: 'Condition-backed validation requires message' })
+    }
+  })
 
 const ValidWhenItemSchema = z.discriminatedUnion('type', [ValidationExprSchema, IterateExprSchema])
 const ValidWhenSchema = z.preprocess(value => {

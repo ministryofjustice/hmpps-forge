@@ -430,44 +430,55 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
    * validation rules.
    */
   private compileValidation(properties: Record<string, unknown>): CodeFragment {
+    const functionValue = properties.function
     const condition = properties.condition
 
-    if (condition === undefined) {
+    if (functionValue === undefined && condition === undefined) {
       return literal(undefined)
     }
 
-    const messageValue = properties.message
-    const detailsValue = properties.details
     const functionPrefix = this.validationFunctionPrefixes[this.validationFunctionPrefixes.length - 1] ?? 'validation'
-    const validationCondition = this.compileReturnFunctionExpression(
-      () => this.compileOperandCode(condition),
-      `evaluate_${functionPrefix}_condition`,
-    )
-    const message = this.isStaticOperand(messageValue)
-      ? this.compileStaticOperand(messageValue, literal(''))
-      : this.compileReturnFunctionExpression(
-          () => this.compileOperandCode(messageValue),
-          `evaluate_${functionPrefix}_message`,
-        )
-    const ruleProperties: ObjectCodeProperty[] = [
-      { key: 'condition', value: validationCondition },
-      { key: 'message', value: message },
-      { key: 'submissionOnly', value: literal(properties.submissionOnly === true) },
-    ]
+    const ruleProperties: ObjectCodeProperty[] = []
+
+    if (functionValue !== undefined) {
+      const validationFunction = this.compileReturnFunctionExpression(
+        () => this.compileOperandCode(functionValue),
+        `evaluate_${functionPrefix}_function`,
+      )
+
+      ruleProperties.push({ key: 'function', value: validationFunction })
+    } else {
+      const messageValue = properties.message
+      const detailsValue = properties.details
+      const validationCondition = this.compileReturnFunctionExpression(
+        () => this.compileOperandCode(condition),
+        `evaluate_${functionPrefix}_condition`,
+      )
+      const message = this.isStaticOperand(messageValue)
+        ? this.compileStaticOperand(messageValue, literal(''))
+        : this.compileReturnFunctionExpression(
+            () => this.compileOperandCode(messageValue),
+            `evaluate_${functionPrefix}_message`,
+          )
+
+      ruleProperties.push({ key: 'condition', value: validationCondition }, { key: 'message', value: message })
+
+      if (detailsValue !== undefined) {
+        const details = this.isStaticOperand(detailsValue)
+          ? this.compileStaticOperand(detailsValue, literal(undefined))
+          : this.compileReturnFunctionExpression(
+              () => this.compileOperandCode(detailsValue),
+              `evaluate_${functionPrefix}_details`,
+            )
+
+        ruleProperties.push({ key: 'details', value: details })
+      }
+    }
+
+    ruleProperties.push({ key: 'submissionOnly', value: literal(properties.submissionOnly === true) })
 
     if (properties.groups !== undefined) {
       ruleProperties.push({ key: 'groups', value: this.compileOperandCode(properties.groups) })
-    }
-
-    if (detailsValue !== undefined) {
-      const details = this.isStaticOperand(detailsValue)
-        ? this.compileStaticOperand(detailsValue, literal(undefined))
-        : this.compileReturnFunctionExpression(
-            () => this.compileOperandCode(detailsValue),
-            `evaluate_${functionPrefix}_details`,
-          )
-
-      ruleProperties.push({ key: 'details', value: details })
     }
 
     return objectCode(ruleProperties)

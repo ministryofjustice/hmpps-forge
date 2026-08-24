@@ -258,21 +258,31 @@ function compileIteratorTemplate(template: unknown, ctx: NodeBuildContext): Temp
  * Contains predicate condition and error message.
  */
 export function createValidationNode(json: ValidationExpr, ctx: NodeBuildContext): ValidationASTNode {
-  const properties: {
-    condition: ASTNode
-    message: ASTNode | string
-    submissionOnly?: boolean
-    groups?: string[]
-    details?: Record<string, unknown>
-  } = {
-    condition: ctx.createNode(json.condition),
-    message: ctx.transformValue(json.message || ''),
+  const executionProperties = {
     submissionOnly: false,
     groups: json.groups ?? ['default'],
   }
 
   if (json.submissionOnly !== undefined) {
-    properties.submissionOnly = json.submissionOnly
+    executionProperties.submissionOnly = json.submissionOnly
+  }
+
+  if ('function' in json && json.function !== undefined) {
+    return {
+      id: ctx.nextId(),
+      type: ASTNodeType.EXPRESSION,
+      expressionType: ExpressionType.VALIDATION,
+      properties: {
+        ...executionProperties,
+        function: ctx.createNode(json.function) as FunctionASTNode,
+      },
+    }
+  }
+
+  const properties: ValidationASTNode['properties'] = {
+    ...executionProperties,
+    condition: ctx.createNode(json.condition),
+    message: ctx.transformValue(json.message || ''),
   }
 
   if (json.details) {

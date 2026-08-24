@@ -682,6 +682,119 @@ describe('FormValidator', () => {
       expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
     })
 
+    it('should validate generator-backed field and step validation', () => {
+      // Arrange
+      const fieldValidation = {
+        type: ExpressionType.VALIDATION,
+        function: {
+          type: FunctionType.GENERATOR,
+          name: 'ValidateField',
+          arguments: [{ type: ExpressionType.REFERENCE, path: ['@self'] }],
+        },
+      }
+      const stepValidation = {
+        type: ExpressionType.VALIDATION,
+        groups: ['review'],
+        submissionOnly: true,
+        function: {
+          type: FunctionType.GENERATOR,
+          name: 'ValidateStep',
+          arguments: [{ type: ExpressionType.REFERENCE, path: ['answers', 'postcode'] }],
+        },
+      }
+      const validJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/review',
+            title: 'Review',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'TextInput',
+                code: 'postcode',
+                validWhen: [fieldValidation],
+              } as FieldBlockDefinition,
+            ],
+            validWhen: [stepValidation],
+          },
+        ],
+      } as JourneyDefinition
+
+      // Act
+      const validate = () => DSLValidator.validateSchema(validJourney)
+
+      // Assert
+      expect(validate).not.toThrow()
+    })
+
+    it.each([
+      {
+        name: 'both condition and function',
+        rule: {
+          type: ExpressionType.VALIDATION,
+          condition: {
+            type: PredicateType.TEST,
+            negate: false,
+            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'postcode'] },
+            condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+          },
+          message: 'Enter a postcode',
+          function: { type: FunctionType.GENERATOR, name: 'ValidatePostcode', arguments: [] },
+        },
+      },
+      { name: 'neither condition nor function', rule: { type: ExpressionType.VALIDATION } },
+      {
+        name: 'a condition function in the function property',
+        rule: {
+          type: ExpressionType.VALIDATION,
+          function: { type: FunctionType.CONDITION, name: 'ValidatePostcode', arguments: [] },
+        },
+      },
+      {
+        name: 'a transformer in the function property',
+        rule: {
+          type: ExpressionType.VALIDATION,
+          function: { type: FunctionType.TRANSFORMER, name: 'ValidatePostcode', arguments: [] },
+        },
+      },
+    ])('should reject validation with $name', ({ rule }) => {
+      // Arrange
+      const invalidJourney = {
+        type: StructureType.JOURNEY,
+        path: '/test-journey',
+        code: 'test-journey',
+        title: 'Test Journey',
+        steps: [
+          {
+            type: StructureType.STEP,
+            path: '/review',
+            title: 'Review',
+            blocks: [
+              {
+                type: StructureType.BLOCK,
+                blockType: BlockType.FIELD,
+                variant: 'TextInput',
+                code: 'postcode',
+                validWhen: [rule],
+              },
+            ],
+          },
+        ],
+      } as unknown as JourneyDefinition
+
+      // Act
+      const validate = () => DSLValidator.validateSchema(invalidJourney)
+
+      // Assert
+      expect(validate).toThrow(AggregateError)
+    })
+
     it('should validate field validWhen supplied by an iterator', () => {
       const block = {
         type: StructureType.BLOCK,

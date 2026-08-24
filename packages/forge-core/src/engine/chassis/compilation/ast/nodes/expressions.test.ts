@@ -20,6 +20,7 @@ import type {
   EffectFunctionExpr,
   TransformerFunctionExpr,
   IterateExpr,
+  GeneratorFunctionExpr,
 } from '../../../../../authoring/types/expressions.type'
 import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
 import {
@@ -1007,12 +1008,31 @@ describe('expressions', () => {
 
       // Act
       const result = createValidationNode(json, nodeFactory.context)
-      const condition = result.properties.condition
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(condition.type).toBe(ASTNodeType.PREDICATE)
-      expect(result.properties.condition !== undefined).toBe(true)
+      expect(result.properties.condition?.type).toBe(ASTNodeType.PREDICATE)
+    })
+
+    it('should create a Validation expression with a generator function', () => {
+      // Arrange
+      const json = {
+        type: ExpressionType.VALIDATION,
+        function: {
+          type: FunctionType.GENERATOR,
+          name: 'ValidateDate',
+          arguments: [{ type: ExpressionType.REFERENCE, path: ['@self'] } satisfies ReferenceExpr],
+        } satisfies GeneratorFunctionExpr,
+      } satisfies ValidationExpr
+
+      // Act
+      const result = createValidationNode(json, nodeFactory.context)
+
+      // Assert
+      expect(result.properties.function?.type).toBe(ASTNodeType.EXPRESSION)
+      expect(result.properties.function?.expressionType).toBe(FunctionType.GENERATOR)
+      expect(result.properties.condition).toBeUndefined()
+      expect(result.properties.message).toBeUndefined()
     })
 
     it('should set submissionOnly flag when provided', () => {

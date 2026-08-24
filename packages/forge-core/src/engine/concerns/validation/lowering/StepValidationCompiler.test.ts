@@ -136,6 +136,23 @@ function createValidation(
   } as ValidationASTNode
 }
 
+function createFunctionValidation(
+  validationFunction: FunctionASTNode,
+  options: { submissionOnly?: boolean; groups?: string[] } = {},
+): ValidationASTNode {
+  return {
+    type: ASTNodeType.EXPRESSION,
+    expressionType: ExpressionType.VALIDATION,
+    id: ASTTestFactory.getId(),
+    diagnostics: ASTTestFactory.diagnostics(),
+    properties: {
+      function: validationFunction,
+      submissionOnly: options.submissionOnly,
+      groups: options.groups,
+    },
+  } as ValidationASTNode
+}
+
 function createCtx(overrides: Partial<CompiledValidationContext> = {}): CompiledValidationContext {
   return {
     iteratorBudget: { consume: vi.fn() },
@@ -351,6 +368,205 @@ describe('StepValidationCompiler', () => {
       expect(result.isValid).toBe(true)
     })
 
+    it('should collect ordered errors from a synchronous field validation function', async () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('date')
+      const evaluate = vi.fn((value: unknown) =>
+        value === 'complete'
+          ? []
+          : [
+              { message: 'Enter a day', details: { field: 'day' } },
+              { message: 'Enter a month', details: { field: 'month' } },
+            ],
+      )
+      const functionRegistry = new FunctionRegistry()
+
+      block.properties.validWhen = [
+        createFunctionValidation(createGeneratorFunction('validateDate', [createReference(['@self'])])),
+      ]
+      functionRegistry.register({
+        validateDate: {
+          name: 'validateDate',
+          functionType: FunctionType.GENERATOR,
+          isAsync: false,
+          evaluate,
+        },
+      })
+
+      const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
+      const ctx = createCtx({
+        answers: { date: { current: 'incomplete' } },
+        conditions: functionRegistry,
+      })
+
+      // Act
+      const source = localCompiler.generateStepValidationSource(valModel(step, [block], []))
+      const result = await executeValidation(
+        localCompiler.compileStepValidation(valModel(step, [block], [])),
+        ctx,
+        false,
+      )
+
+      // Assert
+      expect(source).toContain('function evaluate_date_function()')
+      expect(source).not.toContain('function evaluate_date_condition()')
+      expect(result.fieldFailures.map(failure => failure.message)).toEqual(['Enter a day', 'Enter a month'])
+      expect(result.fieldFailures.map(failure => failure.details)).toEqual([{ field: 'day' }, { field: 'month' }])
+      expect(evaluate).toHaveBeenCalledWith('incomplete')
+    })
+
+    it('should only invoke a field validation function when its rule is active', async () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('crn')
+      const evaluate = vi.fn(() => [{ message: 'Enter a valid CRN' }])
+      const functionRegistry = new FunctionRegistry()
+
+      block.properties.validWhen = [
+        createFunctionValidation(createGeneratorFunction('validateCrn', [createReference(['@self'])]), {
+          groups: ['check-crn'],
+          submissionOnly: true,
+        }),
+      ]
+      functionRegistry.register({
+        validateCrn: {
+          name: 'validateCrn',
+          functionType: FunctionType.GENERATOR,
+          isAsync: false,
+          evaluate,
+        },
+      })
+
+      const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
+      const fn = localCompiler.compileStepValidation(valModel(step, [block], []))
+      const ctx = createCtx({ answers: { crn: { current: 'A1234BC' } }, conditions: functionRegistry })
+
+      // Act
+      const inactiveGroup = await executeValidation(fn, ctx, true, ['default'])
+      const traversal = await executeValidation(fn, ctx, false, ['check-crn'])
+      const submission = await executeValidation(fn, ctx, true, ['check-crn'])
+
+      // Assert
+      expect(inactiveGroup.fieldFailures).toEqual([])
+      expect(traversal.fieldFailures).toEqual([])
+      expect(submission.fieldFailures).toMatchObject([
+        { message: 'Enter a valid CRN', groups: ['check-crn'], submissionOnly: true },
+      ])
+      expect(evaluate).toHaveBeenCalledOnce()
+    })
+
+    it('should await an asynchronous field validation function', async () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('crn')
+      const functionRegistry = new FunctionRegistry()
+
+      block.properties.validWhen = [
+        createFunctionValidation(createGeneratorFunction('validateCrn', [createReference(['@self'])])),
+      ]
+      functionRegistry.register({
+        validateCrn: {
+          name: 'validateCrn',
+          functionType: FunctionType.GENERATOR,
+          isAsync: true,
+          evaluate: async () => [{ message: 'CRN was not found' }],
+        },
+      })
+
+      const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
+
+      // Act
+      const source = localCompiler.generateStepValidationSource(valModel(step, [block], []))
+      const result = await executeValidation(
+        localCompiler.compileStepValidation(valModel(step, [block], [])),
+        createCtx({ answers: { crn: { current: 'A1234BC' } }, conditions: functionRegistry }),
+        false,
+      )
+
+      // Assert
+      expect(source).toContain('async function evaluate_crn_function()')
+      expect(result.fieldFailures.map(failure => failure.message)).toEqual(['CRN was not found'])
+    })
+
+    it('should collect errors from a step validation function as domain failures', async () => {
+      // Arrange
+      const step = createStep()
+      const functionRegistry = new FunctionRegistry()
+      const validation = createFunctionValidation(
+        createGeneratorFunction('validateStep', [createReference(['answers', 'firstName'])]),
+      )
+
+      functionRegistry.register({
+        validateStep: {
+          name: 'validateStep',
+          functionType: FunctionType.GENERATOR,
+          isAsync: false,
+          evaluate: () => [{ message: 'The step is incomplete', details: { section: 'identity' } }],
+        },
+      })
+
+      const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
+
+      // Act
+      const result = await executeValidation(
+        localCompiler.compileStepValidation(valModel(step, [], [validation])),
+        createCtx({ answers: { firstName: { current: '' } }, conditions: functionRegistry }),
+        false,
+      )
+
+      // Assert
+      expect(result.fieldFailures).toEqual([])
+      expect(result.domainFailures).toMatchObject([
+        { message: 'The step is incomplete', details: { section: 'identity' } },
+      ])
+    })
+
+    it('should preserve rule order when condition and function validations are mixed', async () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('name')
+      const functionRegistry = new FunctionRegistry()
+
+      block.properties.validWhen = [
+        createValidation(
+          createTestPredicate(createReference(['@self']), createConditionFunction('isRequired')),
+          'Enter a name',
+        ),
+        createFunctionValidation(createGeneratorFunction('validateName', [createReference(['@self'])])),
+      ]
+      functionRegistry.register({
+        isRequired: {
+          name: 'isRequired',
+          functionType: FunctionType.CONDITION,
+          isAsync: false,
+          evaluate: () => false,
+        },
+        validateName: {
+          name: 'validateName',
+          functionType: FunctionType.GENERATOR,
+          isAsync: false,
+          evaluate: () => [{ message: 'Use your full name' }, { message: 'Do not include a title' }],
+        },
+      })
+
+      const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
+
+      // Act
+      const result = await executeValidation(
+        localCompiler.compileStepValidation(valModel(step, [block], [])),
+        createCtx({ answers: { name: { current: '' } }, conditions: functionRegistry }),
+        false,
+      )
+
+      // Assert
+      expect(result.fieldFailures.map(failure => failure.message)).toEqual([
+        'Enter a name',
+        'Use your full name',
+        'Do not include a title',
+      ])
+    })
+
     it('should compile a single field with a required validation', async () => {
       // Arrange
       const step = createStep()
@@ -495,6 +711,52 @@ describe('StepValidationCompiler', () => {
       // Assert
       expect(result.isValid).toBe(true)
       expect(result.fieldFailures).toHaveLength(0)
+    })
+
+    it('should not invoke a validation function when dependentWhen is false', async () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('conditionalField')
+      const evaluate = vi.fn(() => [{ message: 'Required' }])
+      const functionRegistry = new FunctionRegistry()
+
+      block.properties.validWhen = [
+        createFunctionValidation(createGeneratorFunction('validateRequired', [createReference(['@self'])])),
+      ]
+      block.properties.dependentWhen = createTestPredicate(
+        createReference(['answers', 'toggle']),
+        createConditionFunction('equals', ['yes']),
+      )
+      functionRegistry.register({
+        equals: {
+          name: 'equals',
+          functionType: FunctionType.CONDITION,
+          isAsync: false,
+          evaluate: (value: unknown, expected: unknown) => value === expected,
+        },
+        validateRequired: {
+          name: 'validateRequired',
+          functionType: FunctionType.GENERATOR,
+          isAsync: false,
+          evaluate,
+        },
+      })
+
+      const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
+
+      // Act
+      const result = await executeValidation(
+        localCompiler.compileStepValidation(valModel(step, [block], [])),
+        createCtx({
+          answers: { toggle: { current: 'no' }, conditionalField: { current: '' } },
+          conditions: functionRegistry,
+        }),
+        false,
+      )
+
+      // Assert
+      expect(result.isValid).toBe(true)
+      expect(evaluate).not.toHaveBeenCalled()
     })
 
     it('should run validations when dependentWhen is true', async () => {
@@ -785,6 +1047,53 @@ describe('StepValidationCompiler', () => {
           phase: 'validation',
           functionName: 'throwingCondition',
           functionType: FunctionType.CONDITION,
+        })
+      }
+    })
+
+    it('should propagate validation function errors with runtime diagnostics', async () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('date')
+      const functionRegistry = new FunctionRegistry()
+
+      block.properties.validWhen = [createFunctionValidation(createGeneratorFunction('validateDate'))]
+      functionRegistry.register({
+        validateDate: {
+          name: 'validateDate',
+          functionType: FunctionType.GENERATOR,
+          isAsync: true,
+          evaluate: async () => {
+            throw new TypeError('Date service returned an invalid response')
+          },
+        },
+      })
+
+      const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
+
+      // Act
+      const result = executeValidation(
+        localCompiler.compileStepValidation(valModel(step, [block], [])),
+        createCtx({ conditions: functionRegistry }),
+        false,
+      )
+
+      // Assert
+      try {
+        await result
+        throw new Error('Expected validateDate to throw')
+      } catch (error) {
+        if (!(error instanceof Error)) {
+          throw new Error('Expected validateDate to throw an Error')
+        }
+
+        expect(error.message).toBe(
+          'Failed to evaluate compiled Forge validation function: Date service returned an invalid response',
+        )
+        expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
+          phase: 'validation',
+          functionName: 'validateDate',
+          functionType: FunctionType.GENERATOR,
         })
       }
     })
@@ -1814,6 +2123,39 @@ describe('StepValidationCompiler', () => {
       expect(result.fieldFailures[0].blockId).toBe(block.id)
       expect(result.fieldFailures[0].blockCode).toBe('name')
       expect(result.fieldFailures[0].message).toBe('Enter a name')
+    })
+
+    it('should compile function validation rules yielded by an iterator', async () => {
+      // Arrange
+      const step = createStep()
+      const block = createFieldBlock('name')
+      const functionRegistry = new FunctionRegistry()
+      const iterateNode = createIterateNode(
+        createReference(['data', 'requirements']),
+        createTemplateValue(createFunctionValidation(createGeneratorFunction('validateName'))),
+      )
+
+      block.properties.validWhen = iterateNode
+      functionRegistry.register({
+        validateName: {
+          name: 'validateName',
+          functionType: FunctionType.GENERATOR,
+          isAsync: false,
+          evaluate: () => [{ message: 'Enter a name' }],
+        },
+      })
+
+      const localCompiler = new StepValidationCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
+
+      // Act
+      const result = await executeValidation(
+        localCompiler.compileStepValidation(valModel(step, [block], [])),
+        createCtx({ data: { requirements: [{ id: 'first' }, { id: 'second' }] }, conditions: functionRegistry }),
+        false,
+      )
+
+      // Assert
+      expect(result.fieldFailures.map(failure => failure.message)).toEqual(['Enter a name', 'Enter a name'])
     })
 
     it('should resolve Self references inside field validWhen iterators', async () => {

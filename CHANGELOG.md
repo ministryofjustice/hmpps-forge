@@ -59,22 +59,27 @@ Functions and components without the registry ceremony - write a condition with
 `condition()`, use it in your journey, and it registers itself. Components declared
 with `component()` now do the same, and global registration is gone entirely - a
 package carries everything its journey uses. The deprecated `defineFunction`-era
-helpers and the implementations-map `functions` form are gone too.
+helpers and the implementations-map `functions` form are gone too. Validation rules
+can also call generators directly when a predicate and single static message are not
+enough.
 
 ### Added
 
 - `condition()`, `transformer()`, `generator()`, and `effect()` - define a function as
   a standalone entry that registers itself when a journey uses it, no registry or
-  `functions` listing needed
+  `functions` listing needed ([#269])
 - Components declared with `component()` register themselves the same way - building
   a block with one in a journey is enough, no `components` listing needed. The listing
   stays for journeys that reference a variant by string, and for entries with no
-  builder attached (the deprecated `buildComponent` kind)
-- `FunctionRegistryTestHarness` accepts entries alongside registries
+  builder attached (the deprecated `buildComponent` kind) ([#270])
+- `FunctionRegistryTestHarness` accepts entries alongside registries ([#269])
 - `Loop.Item()` - the current loop's item under the `Loop` namespace, with the same
   `.path()`, `.value()` and `.key()` accessors as `Item()`. Nested loops read as
   `Loop.Parent.Item()` instead of `Item().parent`, so all loop access now lives in one
-  place. `Item()` still works and compiles to the same thing under the hood
+  place. `Item()` still works and compiles to the same thing under the hood ([#273])
+- Generator-backed validation - use `validation({ function: Validate(Self()) })` on a
+  field or step to return zero, one, or several validation errors from synchronous or
+  asynchronous application code ([#274])
 
 ### Changed
 
@@ -84,6 +89,7 @@ helpers and the implementations-map `functions` form are gone too.
   the corresponding JavaScript operations on `Object.entries(input)`. Previously,
   `Filter` and `Find` returned the engine's internal `{'@key', '@value'}` wrappers,
   and array values with literal `@key` properties could be mistaken for those wrappers
+  ([#273])
 
 - `Answer()` in an `onAccess` hook now fails compilation - answer preparation runs after
   access hooks, so the reference could only ever read unprepared state. A new
@@ -94,6 +100,7 @@ helpers and the implementations-map `functions` form are gone too.
 
 - `buildComponent` and `buildNunjucksComponent` - declare the component with
   `component()` or `nunjucksComponent()` instead, which also gets self-registration
+  ([#270])
 
 ### Removed
 
@@ -103,32 +110,24 @@ helpers and the implementations-map `functions` form are gone too.
   they did: components and function entries register by being used, while registries or
   entry lists like `nunjucksFunctions` list on the package's `functions`. The `govukComponents` and
   `mojComponents` arrays stay for listing on packages whose journeys reference variants
-  by string. The built-in authoring namespaces are unchanged
+  by string. The built-in authoring namespaces are unchanged ([#271])
 - The deprecated `defineConditionFunctions`, `defineTransformerFunctions`,
   `defineGeneratorFunctions`, and `defineEffectFunctions` helpers, along with
-  `createFunctionsRegistry` and `createFunctionScope`
+  `createFunctionsRegistry` and `createFunctionScope` ([#269])
 - The implementations-map form of `functions` - `createForgePackage` takes a registry,
   or an array of registries and entries. Port a map by registering each function on the
   matching registry class, or drop the registry entirely and define the function as an
-  entry
+  entry ([#269])
 - `createTestPackage` from the testing module - its `overrides` only ever applied to
   the implementations-map form, so with the map gone it did nothing. Inject mock
   dependencies through `registerPackage()` instead, or exercise a function directly
-  with `FunctionRegistryTestHarness`
+  with `FunctionRegistryTestHarness` ([#269])
 
 ### Fixed
 
-- Generator arguments no longer collide with condition arguments - a rule like
-  `Fixed('yes').match(Equals('yes'))` compiled both arguments to the same name in
-  nested scopes and failed with `Cannot access 'functionArgument1' before
-  initialization`. Generated nested functions now avoid reusing names visible in their
-  enclosing function
-- Dotted function names work in hook effects - an effect named `Draft.Save` made
-  codegen emit `runDraft.Save` as a generated function name, which failed compilation.
-  Authored names are now reduced to their words before they are joined into generated
-  identifiers
 - A bare `Item()` or `Loop.Item()` in a value position now means the whole item, same
   as `.value()`. Previously it typechecked but finalised to a useless builder object
+  ([#273])
 
 ### Details
 
@@ -146,9 +145,47 @@ isolated - one of them registers as `name@2` and the expressions that used it ar
 renamed to match. Listing an entry in `functions` still works and promises its exact
 name, for journeys that reference functions by name only (for example plain JSON) - a
 name clash there throws instead of renaming. The built-in string conditions are
-entries now.
+entries now. ([#269])
 
+#### Generator-backed validation
+
+`validation()` now accepts a direct generator call as an alternative to its existing
+`condition` and `message` form:
+
+```typescript
+const ValidateDate = generator('ValidateDate', {
+  factory: () => (date): ValidationFunctionResult => {
+    if (isValidDate(date)) {
+      return
+    }
+
+    return [{ message: 'Enter a valid date', details: { field: 'date' } }]
+  },
+})
+
+validation({
+  function: ValidateDate(Self()),
+  submissionOnly: true,
+  groups: ['dates'],
+})
+```
+
+Returning `undefined` or `[]` passes validation. Every item in a returned array becomes
+a failure, in order, and can contain a `message` plus optional `details`. The rule's
+`groups` and `submissionOnly` settings apply to every returned failure and are checked,
+along with a field's `dependentWhen`, before the generator runs.
+
+Validation generators can be synchronous or asynchronous, receive resolved expression
+arguments such as `Self()`, `Answer()`, and `Data()`, and use injected read-only
+dependencies. Throwing remains an evaluation failure rather than a validation failure;
+use returned error items for expected invalid input. ([#274])
+
+[#269]: https://github.com/ministryofjustice/hmpps-forge/pull/269
+[#270]: https://github.com/ministryofjustice/hmpps-forge/pull/270
+[#271]: https://github.com/ministryofjustice/hmpps-forge/pull/271
 [#272]: https://github.com/ministryofjustice/hmpps-forge/pull/272
+[#273]: https://github.com/ministryofjustice/hmpps-forge/pull/273
+[#274]: https://github.com/ministryofjustice/hmpps-forge/pull/274
 
 ---
 

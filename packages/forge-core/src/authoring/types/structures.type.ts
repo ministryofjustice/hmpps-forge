@@ -1,6 +1,13 @@
-import { IterateExpr, ResolvableValue, SubmitHook, AccessHook, PredicateExpr } from './expressions.type'
+import {
+  IterateExpr,
+  ResolvableValue,
+  SubmitHook,
+  AccessHook,
+  PredicateExpr,
+  GeneratorFunctionExpr,
+} from './expressions.type'
 import { ExpressionType, StructureType } from './enums'
-import type { ChainableIterable } from '../builders/types'
+import type { ChainableGenerator, ChainableIterable } from '../builders/types'
 import type { BlockDefinition, ResolvableString, ResolvableBoolean } from '../../components/types/structures.type'
 
 /**
@@ -16,25 +23,46 @@ export interface ViewConfig {
   locals?: Record<string, unknown>
 }
 
-/**
- * Represents a validation rule for a form field.
- * Includes the validation logic, error message, and execution context.
- */
-export interface ValidationExpr {
+interface BaseValidationExpr {
   type: ExpressionType.VALIDATION
-  /** A predicate that must be `true` for the field to be considered valid. */
-  condition: PredicateExpr
-  /** The error message shown when the condition fails. Can be a plain string, a reference expression, or a format expression. */
-  message: ResolvableString
   /** When `true`, the rule only runs on form submission, not during navigation/traversal checks. Useful for expensive or time-sensitive validations. */
   submissionOnly?: boolean
   /** Validation groups this rule belongs to. Defaults to `['default']` when omitted or empty. */
   groups?: string[]
-  /** Metadata passed to the error handler, e.g. `{ field: 'month' }` to highlight a specific part of a composite input like a date. */
-  details?: Record<string, any>
 }
 
-export type ValidationProps = Omit<ValidationExpr, 'type'>
+/** One error returned by a generator-backed validation function. */
+export interface ValidationFunctionError {
+  message: string
+  details?: Record<string, unknown>
+}
+
+/** The value a generator-backed validation function returns. `undefined` or an empty array means valid. */
+export type ValidationFunctionResult = readonly ValidationFunctionError[] | undefined
+
+/** A validation rule whose authored predicate must pass. */
+export interface ConditionValidationExpr extends BaseValidationExpr {
+  /** A predicate that must be `true` for the field to be considered valid. */
+  condition: PredicateExpr
+  /** The error message shown when the condition fails. Can be a plain string, a reference expression, or a format expression. */
+  message: ResolvableString
+  /** Metadata passed to the error handler, e.g. `{ field: 'month' }` to highlight a specific part of a composite input like a date. */
+  details?: Record<string, unknown>
+  function?: never
+}
+
+/** A validation rule whose generator returns zero or more validation errors. */
+export interface FunctionValidationExpr extends BaseValidationExpr {
+  function: GeneratorFunctionExpr | ChainableGenerator
+  condition?: never
+  message?: never
+  details?: never
+}
+
+/** Represents either a predicate-backed or generator-backed validation rule. */
+export type ValidationExpr = ConditionValidationExpr | FunctionValidationExpr
+
+export type ValidationProps = Omit<ConditionValidationExpr, 'type'> | Omit<FunctionValidationExpr, 'type'>
 
 type ValidWhenInput = ValidationExpr | IterateExpr | ChainableIterable
 
