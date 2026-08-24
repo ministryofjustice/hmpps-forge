@@ -177,9 +177,8 @@ export default class ReferenceNodeCompiler {
 
   /**
    * Resolves the loop item and its sub-properties against the entries model:
-   * the item is the entry value (array element, or object entry value
-   * unwrapped from its keyed wrapper), and the '@key' segment reads the entry
-   * key off the raw wrapper.
+   * the item is the entry value for object inputs or the element for array
+   * inputs, and the '@key' segment reads the object entry key.
    */
   private compileLoopItemReference(frame: IteratorScopeFrame, path: (string | number | TemplateValue)[]): CodeFragment {
     const itemVar = toCode(frame.itemVar)
@@ -191,7 +190,7 @@ export default class ReferenceNodeCompiler {
     const property = path[3] as string
 
     if (property === '@key') {
-      return code`(${toCode(frame.rawItemExpr)})?.["@key"]`
+      return code`${frame.inputWasKeyedVar} ? (${toCode(frame.rawItemExpr)})[0] : undefined`
     }
 
     let expr = code`${itemVar}${optionalPropertyCode(property)}`

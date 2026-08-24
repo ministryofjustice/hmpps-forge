@@ -26,8 +26,7 @@ export default class IteratorLoopEmitter {
 
   compileLoop(input: unknown, generator: CodeGenerator, compileItem: (scope: IteratorEmitScope) => void): void {
     const inputName = generator.let('iteratorInput', this.expr.compileOperandCode(input))
-
-    this.expr.compileNormalizeIteratorInput(inputName, generator)
+    const inputWasKeyedName = this.expr.compileNormalizeIteratorInput(inputName, generator)
 
     generator.if(code`Array.isArray(${inputName})`, () => {
       const indexName = generator.let('iteratorIndex', literal(0))
@@ -40,13 +39,17 @@ export default class IteratorLoopEmitter {
         generator.if(code`${rawItem} == null`, () => generator.continue())
         generator.statement(code`_forgeHelpers.consumeIteratorIteration(ctx)`)
 
-        const item = generator.const('iteratorItem', this.expr.compileIteratorItemScopeExpression(rawItem))
+        const item = generator.const(
+          'iteratorItem',
+          this.expr.compileIteratorItemScopeExpression(rawItem, inputWasKeyedName),
+        )
         const inputLength = code`${inputName}.length`
         const scope: IteratorEmitScope = { input: inputName, index: currentIndex, item, rawItem, inputLength }
         const frame: IteratorScopeFrame = {
           itemVar: item,
           indexVar: currentIndex,
           inputLengthExpr: inputLength,
+          inputWasKeyedVar: inputWasKeyedName,
           rawItemExpr: rawItem,
         }
 

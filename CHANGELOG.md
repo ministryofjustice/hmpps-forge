@@ -79,11 +79,11 @@ helpers and the implementations-map `functions` form are gone too.
 ### Changed
 
 - Iterating an object now works like `Object.entries` - each iteration's item is the
-  entry value and `Item().key()` is the entry key. Previously `Item().value()` leaked
-  the engine's internal wrapper: the value with a `@key` property injected into it, or
-  a `{'@key', '@value'}` pair object when the value was a scalar. Breaking only if you
-  read those hidden properties off `.value()` during object iteration - array
-  iteration is unchanged
+  entry value and `Item().key()` is the entry key. `Map` returns its mapped values,
+  while `Filter` retains `[key, value]` entries and `Find` returns one entry, matching
+  the corresponding JavaScript operations on `Object.entries(input)`. Previously,
+  `Filter` and `Find` returned the engine's internal `{'@key', '@value'}` wrappers,
+  and array values with literal `@key` properties could be mistaken for those wrappers
 
 - `Answer()` in an `onAccess` hook now fails compilation - answer preparation runs after
   access hooks, so the reference could only ever read unprepared state. A new

@@ -488,17 +488,17 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       compileBody: generator =>
         this.withGeneratorScope(generator, () => {
           const inputVar = generator.let('_input', inputExpr)
-
-          this.compileNormalizeIteratorInput(inputVar, generator)
+          const inputWasKeyedVar = this.compileNormalizeIteratorInput(inputVar, generator)
 
           const resultVar = generator.const('_result', arrayCode([]))
 
           this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
-            const itemVar = this.compileIteratorItemScope(rawItemExpr, generator)
+            const itemVar = this.compileIteratorItemScope(rawItemExpr, inputWasKeyedVar, generator)
             const frame: IteratorScopeFrame = {
               itemVar,
               indexVar,
               inputLengthExpr: code`${inputVar}.length`,
+              inputWasKeyedVar,
               rawItemExpr,
             }
             const yieldExpr = this.withIteratorFrame(frame, () =>
@@ -531,17 +531,17 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       compileBody: generator =>
         this.withGeneratorScope(generator, () => {
           const inputVar = generator.let('_input', inputExpr)
-
-          this.compileNormalizeIteratorInput(inputVar, generator)
+          const inputWasKeyedVar = this.compileNormalizeIteratorInput(inputVar, generator)
 
           const resultVar = generator.const('_result', arrayCode([]))
 
           this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
-            const itemVar = this.compileIteratorItemScope(rawItemExpr, generator)
+            const itemVar = this.compileIteratorItemScope(rawItemExpr, inputWasKeyedVar, generator)
             const frame: IteratorScopeFrame = {
               itemVar,
               indexVar,
               inputLengthExpr: code`${inputVar}.length`,
+              inputWasKeyedVar,
               rawItemExpr,
             }
             const predicateExpr = this.withIteratorFrame(frame, () =>
@@ -573,17 +573,17 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       compileBody: generator =>
         this.withGeneratorScope(generator, () => {
           const inputVar = generator.let('_input', inputExpr)
-
-          this.compileNormalizeIteratorInput(inputVar, generator)
+          const inputWasKeyedVar = this.compileNormalizeIteratorInput(inputVar, generator)
 
           const resultVar = generator.let('_result', literal(undefined))
 
           this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
-            const itemVar = this.compileIteratorItemScope(rawItemExpr, generator)
+            const itemVar = this.compileIteratorItemScope(rawItemExpr, inputWasKeyedVar, generator)
             const frame: IteratorScopeFrame = {
               itemVar,
               indexVar,
               inputLengthExpr: code`${inputVar}.length`,
+              inputWasKeyedVar,
               rawItemExpr,
             }
             const predicateExpr = this.withIteratorFrame(frame, () =>
@@ -602,28 +602,17 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Normalizes object inputs to Object.entries-style keyed wrappers, so every
-   * loop iterates a flat array: plain elements for array inputs, and
-   * `{ '@key', '@value' }` wrappers for object inputs. Shared with
-   * `IteratorLoopEmitter` so both iterator code paths emit the same
-   * normalisation under the same generated names.
+   * Normalizes object inputs to `Object.entries()` tuples and records whether
+   * the input was keyed before every iterator operates on the resulting array.
+   * Shared with `IteratorLoopEmitter` so both iterator code paths use the same
+   * entry model.
    */
-  compileNormalizeIteratorInput(inputVar: IdentifierName, generator: CodeGenerator): void {
+  compileNormalizeIteratorInput(inputVar: IdentifierName, generator: CodeGenerator): IdentifierName {
+    const inputWasKeyedVar = generator.let('iteratorInputWasKeyed', literal(false))
+
     generator.if(code`${inputVar} != null && !Array.isArray(${inputVar}) && typeof ${inputVar} === "object"`, () => {
-      const mapEntry = generator.functionExpression(
-        'normaliseIteratorEntry',
-        ['entry'],
-        (callbackGenerator, [entry]) => {
-          const keyedWrapper = objectCode([
-            { key: '@key', value: code`${entry}[0]` },
-            { key: '@value', value: code`${entry}[1]` },
-          ])
-
-          callbackGenerator.return(keyedWrapper)
-        },
-      )
-
-      generator.assign(inputVar, code`Object.entries(${inputVar}).map(${mapEntry})`)
+      generator.assign(inputVar, code`Object.entries(${inputVar})`)
+      generator.assign(inputWasKeyedVar, literal(true))
     })
 
     generator.if(code`Array.isArray(${inputVar})`, () => {
@@ -633,21 +622,28 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
 
       generator.assign(inputVar, code`${inputVar}.filter(${keepItem})`)
     })
+
+    return inputWasKeyedVar
   }
 
   /**
    * Produces the item value exposed to `Item()` / `Loop.Item()` references:
-   * the entry value for object inputs (unwrapped from the keyed wrapper), the
-   * element itself for array inputs. Detecting the wrapper by its '@key'
-   * property is safe because normalisation only wraps object inputs.
+   * the entry value for object inputs and the element itself for array inputs.
    * Shared with `IteratorLoopEmitter` for the same reason as normalisation.
    */
-  compileIteratorItemScopeExpression(rawItemExpr: CodeFragment | IdentifierName): CodeFragment {
-    return code`typeof ${rawItemExpr} === "object" && ${rawItemExpr} !== null && "@key" in ${rawItemExpr} ? ${rawItemExpr}["@value"] : ${rawItemExpr}`
+  compileIteratorItemScopeExpression(
+    rawItemExpr: CodeFragment | IdentifierName,
+    inputWasKeyedVar: IdentifierName,
+  ): CodeFragment {
+    return code`${inputWasKeyedVar} ? (${rawItemExpr})[1] : ${rawItemExpr}`
   }
 
-  private compileIteratorItemScope(rawItemExpr: CodeFragment, generator: CodeGenerator): IdentifierName {
-    return generator.const('_item', this.compileIteratorItemScopeExpression(rawItemExpr))
+  private compileIteratorItemScope(
+    rawItemExpr: CodeFragment,
+    inputWasKeyedVar: IdentifierName,
+    generator: CodeGenerator,
+  ): IdentifierName {
+    return generator.const('_item', this.compileIteratorItemScopeExpression(rawItemExpr, inputWasKeyedVar))
   }
 
   /**

@@ -70,6 +70,22 @@ describe('IteratorLoopEmitter', () => {
       expect(results).toEqual([{ age: 36 }, 'young'])
     })
 
+    it('should preserve reserved-looking properties in array items', async () => {
+      // Arrange
+      const collect = compileCollector(ASTTestFactory.reference(['data', 'members']))
+      const value = { '@key': 'literal-key', '@value': 'literal-value', name: 'Ada' }
+      const ctx = {
+        data: { members: [value] },
+        iteratorBudget: new IteratorBudget(),
+      }
+
+      // Act
+      const results = await collect(ctx)
+
+      // Assert
+      expect(results).toEqual([value])
+    })
+
     it('should produce no iterations when the input is not a collection', async () => {
       // Arrange
       const collect = compileCollector(ASTTestFactory.reference(['data', 'members']))
