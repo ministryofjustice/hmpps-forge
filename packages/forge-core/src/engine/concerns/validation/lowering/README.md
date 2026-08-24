@@ -38,8 +38,8 @@ Each domain validation is built as:
 - Rule filtering happens before rule conditions are evaluated: a rule outside `filter.groups` never runs, and a
   `submissionOnly` rule only runs when `filter.includeSubmissionOnly` is true.
 - Rule groups and filter groups default to `default` when omitted or empty.
-- A `TypeError` from a validation condition is treated as a validation failure.
-  Other runtime errors still throw.
+- An error thrown by a validation condition propagates as a runtime error.
+  Use `inputSchema` on the condition to fail softly on a wrongly-shaped value.
 - Iterator validation emits loops over map iterator templates.
   Runtime validation does not instantiate AST nodes for iterator rows.
 - Template field validation uses `ScopedTemplateCompiler.compileTemplateInstanceIdExpression()` for `blockId`.

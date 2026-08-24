@@ -981,7 +981,7 @@ describe('StepValidationCompiler', () => {
       expect(result.fieldFailures).toHaveLength(0)
     })
 
-    it('should treat condition TypeError as validation failures', async () => {
+    it('should throw runtime errors when a validation condition throws TypeError', async () => {
       // Arrange
       const step = createStep()
       const block = createFieldBlock('age')
@@ -1003,11 +1003,10 @@ describe('StepValidationCompiler', () => {
 
       // Act
       const fn = compiler.compileStepValidation(valModel(step, [block], []))
-      const result = await executeValidation(fn!, ctx, false)
+      const result = executeValidation(fn!, ctx, false)
 
       // Assert
-      expect(result.isValid).toBe(false)
-      expect(result.fieldFailures[0].message).toBe('Invalid age')
+      await expect(result).rejects.toThrow('Failed to evaluate compiled Forge validation function: Type mismatch')
     })
 
     it('should throw runtime errors when validation conditions fail unexpectedly', async () => {

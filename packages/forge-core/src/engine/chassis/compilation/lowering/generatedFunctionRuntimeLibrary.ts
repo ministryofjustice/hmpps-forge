@@ -139,8 +139,6 @@ interface RuntimeFieldValidationFailure extends RuntimeDomainValidationFailure {
   readonly blockCode: unknown
 }
 
-const VALIDATION_CONDITION_FUNCTION_TYPE = 'FunctionType.Condition'
-
 export interface GeneratedFunctionRuntimeLibrary {
   renderBlockBrand: symbol
   consumeIteratorIteration(ctx: IteratorBudgetContext): void
@@ -701,7 +699,7 @@ async function collectValidationFailuresAsync(
         })
       })
     } else {
-      const validationPassed = await evaluateValidationRuleAsync(activeValidationRule)
+      const validationPassed = await evaluateValidationRule(activeValidationRule)
 
       if (!validationPassed) {
         const validationMessage = await resolveValidationRuleValue(
@@ -773,11 +771,10 @@ export interface ShortCircuitOutcome {
  * arguments. Invalid config arguments are always an author mistake and throw,
  * even when the input value is absent.
  *
- * An undefined input value never reaches a condition or transformer: a
- * condition can't hold (`false`) and a transformer has nothing to transform
- * (`undefined`), regardless of any `inputSchema`. `null` is a real value and
- * flows through. Effects still receive an undefined context, since it may be
- * exactly what they act on.
+ * An absent input value (`undefined` or `null`) never reaches a condition or
+ * transformer: a condition can't hold (`false`) and a transformer has nothing
+ * to transform (`undefined`), regardless of any `inputSchema`. Effects still
+ * receive an absent context, since it may be exactly what they act on.
  *
  * For a defined value, `inputSchema` only fails softly for conditions -- a
  * wrongly-shaped field is a normal "not valid yet" outcome, so they return
@@ -803,7 +800,7 @@ export function precheckShortCircuit(
     return undefined
   }
 
-  if (args[0] === undefined) {
+  if (args[0] === undefined || args[0] === null) {
     if (entry.functionType === FunctionType.CONDITION) {
       return { value: false }
     }
@@ -942,7 +939,7 @@ function resolveValidationRuleValue(
 
 function evaluateValidationRule(rule: RuntimeValidationRule): unknown {
   if (typeof rule.condition === 'function') {
-    return evaluateValidationCondition(rule, rule.condition)
+    return rule.condition.call(rule)
   }
 
   if (typeof rule.evaluate === 'function') {
@@ -996,53 +993,6 @@ function validateValidationFunctionError(error: unknown, index: number): Runtime
   }
 
   return { message: error.message, details: error.details }
-}
-
-async function evaluateValidationRuleAsync(rule: RuntimeValidationRule): Promise<unknown> {
-  if (typeof rule.condition === 'function') {
-    return evaluateValidationConditionAsync(rule, rule.condition)
-  }
-
-  return evaluateValidationRule(rule)
-}
-
-function evaluateValidationCondition(rule: RuntimeValidationRule, condition: () => unknown): boolean {
-  try {
-    return !!condition.call(rule)
-  } catch (error) {
-    if (isValidationConditionTypeError(error)) {
-      return false
-    }
-
-    throw error
-  }
-}
-
-async function evaluateValidationConditionAsync(
-  rule: RuntimeValidationRule,
-  condition: () => unknown,
-): Promise<boolean> {
-  try {
-    return !!(await condition.call(rule))
-  } catch (error) {
-    if (isValidationConditionTypeError(error)) {
-      return false
-    }
-
-    throw error
-  }
-}
-
-function isValidationConditionTypeError(error: unknown): boolean {
-  if (error instanceof TypeError) {
-    return true
-  }
-
-  if (!isRecord(error)) {
-    return false
-  }
-
-  return error.cause instanceof TypeError && error.functionType === VALIDATION_CONDITION_FUNCTION_TYPE
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

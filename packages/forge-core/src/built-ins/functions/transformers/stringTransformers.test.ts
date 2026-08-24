@@ -652,12 +652,9 @@ describe('String Transformers', () => {
       expect(() => harness.evaluate(StringTransformers.ToDate()).withInput(123)).toThrow(
         'String.ToDate: value failed schema validation',
       )
-      // `null` is a real value, so it flows through to the transformer and fails its string assertion.
-      expect(() => harness.evaluate(StringTransformers.ToDate()).withInput(null)).toThrow(
-        'String.ToDate: value failed schema validation',
-      )
-      // An undefined input short-circuits to undefined without calling the transformer.
+      // An absent input short-circuits to undefined without calling the transformer.
       expect(harness.evaluate(StringTransformers.ToDate()).withInput(undefined)).toBeUndefined()
+      expect(harness.evaluate(StringTransformers.ToDate()).withInput(null)).toBeUndefined()
     })
 
     it('should return a function expression when called', () => {
@@ -985,12 +982,9 @@ describe('String Transformers', () => {
       expect(() => harness.evaluate(StringTransformers.ToISODate()).withInput(123)).toThrow(
         'String.ToISODate: value failed schema validation',
       )
-      // `null` is a real value, so it flows through to the transformer and fails its string assertion.
-      expect(() => harness.evaluate(StringTransformers.ToISODate()).withInput(null)).toThrow(
-        'String.ToISODate: value failed schema validation',
-      )
-      // An undefined input short-circuits to undefined without calling the transformer.
+      // An absent input short-circuits to undefined without calling the transformer.
       expect(harness.evaluate(StringTransformers.ToISODate()).withInput(undefined)).toBeUndefined()
+      expect(harness.evaluate(StringTransformers.ToISODate()).withInput(null)).toBeUndefined()
     })
 
     it('should return a function expression when called', () => {

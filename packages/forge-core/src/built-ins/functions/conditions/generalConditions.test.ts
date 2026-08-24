@@ -72,10 +72,8 @@ describe('GeneralConditions', () => {
       expect(harness.evaluate(GeneralConditions.Equals(123)).withInput(123)).toBe(true)
       expect(harness.evaluate(GeneralConditions.Equals(true)).withInput(true)).toBe(true)
       expect(harness.evaluate(GeneralConditions.Equals(false)).withInput(false)).toBe(true)
-      expect(harness.evaluate(GeneralConditions.Equals(null)).withInput(null)).toBe(true)
-      // An undefined input short-circuits the condition to false before the function runs.
-      // (`Equals` cannot take `undefined` as its expected argument — `ResolvableValue`
-      // excludes it — so the original undefined-vs-undefined pairing is not authorable.)
+      // An absent input (undefined or null) short-circuits the condition to false.
+      expect(harness.evaluate(GeneralConditions.Equals(null)).withInput(null)).toBe(false)
       expect(harness.evaluate(GeneralConditions.Equals(null)).withInput(undefined)).toBe(false)
     })
 
@@ -83,8 +81,6 @@ describe('GeneralConditions', () => {
       expect(harness.evaluate(GeneralConditions.Equals('world')).withInput('hello')).toBe(false)
       expect(harness.evaluate(GeneralConditions.Equals(456)).withInput(123)).toBe(false)
       expect(harness.evaluate(GeneralConditions.Equals(false)).withInput(true)).toBe(false)
-      // `Equals` cannot take `undefined` as its expected argument (`ResolvableValue`
-      // excludes it); a null input still differs from a defined expected value.
       expect(harness.evaluate(GeneralConditions.Equals(false)).withInput(null)).toBe(false)
       expect(harness.evaluate(GeneralConditions.Equals(false)).withInput(0)).toBe(false)
       expect(harness.evaluate(GeneralConditions.Equals(false)).withInput('')).toBe(false)
