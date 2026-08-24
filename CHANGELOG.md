@@ -96,6 +96,16 @@ enough.
   `validateAnswerScope` semantic-analysis rule rejects it at `registerPackage()` with an
   error naming the source location ([#272])
 
+- A condition evaluator that throws inside `validWhen` now fails the request, the same
+  as everywhere else. Previously a `TypeError` there was caught and shown as the rule's
+  validation message - a leftover from before `inputSchema`'s soft fail existed. Declare
+  an `inputSchema` on the condition to fail softly on a wrongly-shaped value ([#275])
+
+- `null` now counts as absent for conditions and transformers, same as `undefined` - a
+  condition short-circuits to `false` and a transformer to `undefined` before the
+  evaluator or `inputSchema` runs. Previously `null` reached the evaluator, or
+  soft-failed the schema ([#275])
+
 ### Deprecated
 
 - `buildComponent` and `buildNunjucksComponent` - declare the component with
@@ -186,6 +196,7 @@ use returned error items for expected invalid input. ([#274])
 [#272]: https://github.com/ministryofjustice/hmpps-forge/pull/272
 [#273]: https://github.com/ministryofjustice/hmpps-forge/pull/273
 [#274]: https://github.com/ministryofjustice/hmpps-forge/pull/274
+[#275]: https://github.com/ministryofjustice/hmpps-forge/pull/275
 
 ---
 

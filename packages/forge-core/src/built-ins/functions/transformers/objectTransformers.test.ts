@@ -76,9 +76,7 @@ describe('Object Transformers', () => {
     it('should throw errors for invalid inputs', () => {
       const paths = { year: 'year' }
 
-      expect(() => harness.evaluate(ObjectTransformers.ToISO(paths)).withInput(null)).toThrow(
-        'Object.ToISO: value failed schema validation',
-      )
+      expect(harness.evaluate(ObjectTransformers.ToISO(paths)).withInput(null)).toBeUndefined()
       expect(() => harness.evaluate(ObjectTransformers.ToISO(paths)).withInput('not-object')).toThrow(
         'Object.ToISO: value failed schema validation',
       )
@@ -178,10 +176,10 @@ describe('Object Transformers', () => {
       const paths = { year: 'year', month: 'month', day: 'day' }
 
       // Act / Assert
-      // An undefined input short-circuits to undefined without calling the transformer.
+      // An absent input short-circuits to undefined without calling the transformer.
       expect(harness.evaluate(ObjectTransformers.FromISO(paths)).withInput(undefined)).toBeUndefined()
+      expect(harness.evaluate(ObjectTransformers.FromISO(paths)).withInput(null)).toBeUndefined()
       expect(harness.evaluate(ObjectTransformers.FromISO(paths)).withInput('')).toEqual({})
-      expect(harness.evaluate(ObjectTransformers.FromISO(paths)).withInput(null)).toEqual({})
     })
 
     it('should return empty object for invalid formats', () => {

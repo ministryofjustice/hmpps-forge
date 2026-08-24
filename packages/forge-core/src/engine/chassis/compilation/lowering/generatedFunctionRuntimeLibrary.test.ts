@@ -67,37 +67,21 @@ describe('generatedFunctionRuntimeLibrary', () => {
       expect(ruleIsActive.mock.calls.map(([rule]) => rule)).toEqual([passingRule, inactiveRule, failingRule])
     })
 
-    it('should treat a generated condition TypeError as a validation failure', () => {
+    it('should propagate a TypeError thrown by a generated condition', () => {
       // Arrange
       const conditionRule = {
         condition: vi.fn(() => {
           throw new TypeError('Wrong input shape')
         }),
         message: 'Invalid value',
-        submissionOnly: true,
-        groups: ['default'],
       }
 
       // Act
-      const failures = generatedFunctionRuntimeLibrary.collectFieldValidationFailures(
-        [conditionRule],
-        () => true,
-        fieldIdentity,
-      )
+      const collect = () =>
+        generatedFunctionRuntimeLibrary.collectFieldValidationFailures([conditionRule], () => true, fieldIdentity)
 
       // Assert
-      expect(failures).toEqual([
-        {
-          blockId: 'block:1',
-          blockCode: 'firstName',
-          passed: false,
-          message: 'Invalid value',
-          submissionOnly: true,
-          groups: ['default'],
-          details: undefined,
-        },
-      ])
-      expect(conditionRule.condition).toHaveBeenCalledOnce()
+      expect(collect).toThrow('Wrong input shape')
     })
 
     it('should preserve errors from legacy evaluate callbacks', () => {
@@ -290,7 +274,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
       expect(evaluationOrder).toEqual(['first condition', 'first message', 'second condition'])
     })
 
-    it('should treat an asynchronous generated condition TypeError as a validation failure', async () => {
+    it('should propagate a TypeError thrown by an asynchronous generated condition', async () => {
       // Arrange
       const conditionRule = {
         condition: vi.fn(async () => {
@@ -300,25 +284,11 @@ describe('generatedFunctionRuntimeLibrary', () => {
       }
 
       // Act
-      const failures = await generatedFunctionRuntimeLibrary.collectFieldValidationFailuresAsync(
-        [conditionRule],
-        () => true,
-        fieldIdentity,
-      )
+      const collect = () =>
+        generatedFunctionRuntimeLibrary.collectFieldValidationFailuresAsync([conditionRule], () => true, fieldIdentity)
 
       // Assert
-      expect(failures).toEqual([
-        {
-          blockId: 'block:1',
-          blockCode: 'firstName',
-          passed: false,
-          message: 'Invalid value',
-          submissionOnly: false,
-          groups: undefined,
-          details: undefined,
-        },
-      ])
-      expect(conditionRule.condition).toHaveBeenCalledOnce()
+      await expect(collect).rejects.toThrow('Wrong input shape')
     })
 
     it('should await a validation function and preserve its errors', async () => {
@@ -459,10 +429,14 @@ describe('generatedFunctionRuntimeLibrary', () => {
       const ctx = contextFor({ evaluate, functionType: FunctionType.TRANSFORMER })
 
       // Act
-      const result = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'toUpperCase', [undefined])
+      const undefinedResult = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'toUpperCase', [
+        undefined,
+      ])
+      const nullResult = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'toUpperCase', [null])
 
       // Assert
-      expect(result).toBeUndefined()
+      expect(undefinedResult).toBeUndefined()
+      expect(nullResult).toBeUndefined()
       expect(evaluate).not.toHaveBeenCalled()
     })
 
@@ -472,10 +446,14 @@ describe('generatedFunctionRuntimeLibrary', () => {
       const ctx = contextFor({ evaluate, functionType: FunctionType.CONDITION })
 
       // Act
-      const result = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'isNotEmpty', [undefined])
+      const undefinedResult = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'isNotEmpty', [
+        undefined,
+      ])
+      const nullResult = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'isNotEmpty', [null])
 
       // Assert
-      expect(result).toBe(false)
+      expect(undefinedResult).toBe(false)
+      expect(nullResult).toBe(false)
       expect(evaluate).not.toHaveBeenCalled()
     })
 

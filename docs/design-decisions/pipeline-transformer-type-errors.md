@@ -4,14 +4,13 @@
 
 ### Decision
 
-Pipeline transformers should treat `undefined` as an absent value and skip the
-transformer call.
+Pipeline transformers should treat `undefined` and `null` as absent values and
+skip the transformer call.
 
 Transformer `TypeError`s should usually be treated as runtime errors.
 
-There are two deliberate exceptions:
+There is one deliberate exception:
 
-- validation conditions turn `TypeError`s into failed validation results
 - answer preparation formatters keep the submitted value and stop the formatter
   chain when a formatter throws a `TypeError`
 
@@ -31,37 +30,31 @@ date. When the input has the wrong shape, transformers commonly throw a
 That error can mean different things depending on where the pipeline is being
 evaluated.
 
-### Pipeline `undefined` values
+### Pipeline absent values
 
 A pipeline does not call a transformer when the current piped value is
-`undefined`.
+`undefined` or `null`.
 
-`undefined` means there is no value to transform. This can happen when a
+An absent value means there is no value to transform. This can happen when a
 reference does not resolve, a previous expression has no result, or a value is
 intentionally absent.
 
 Skipping the transformer keeps absence as absence. It avoids turning "there is
 no value" into "the value had the wrong type".
 
-This only applies to `undefined`. If a value exists but has the wrong type, the
-transformer is still called and can throw.
+This only applies to `undefined` and `null`. If a value exists but has the
+wrong type, the transformer is still called and can throw.
 
 ### Validation conditions
 
 Validation uses conditions to decide whether a validation rule passed.
 
-When a validation condition throws a `TypeError`, Forge treats that condition
-as failed validation rather than a runtime error.
+An error thrown by a validation condition is a runtime error, the same as a
+condition evaluated anywhere else.
 
-This is deliberate. A validation condition often encodes a type expectation. If
-the value does not have the expected shape, the validation rule should fail and
-the authored validation message should be shown.
-
-For example, a rule that checks a number should fail validation when the answer
-cannot be treated as a number. It should not usually crash the request.
-
-Other error types are still thrown. Only type-mismatch style failures are
-converted into failed validation results.
+A condition that encodes a type expectation should declare an `inputSchema`.
+A value that fails the schema makes the condition return `false`, so the
+authored validation message is shown without the evaluator running.
 
 ### Answer preparation formatters
 
@@ -85,8 +78,8 @@ failures because they are less likely to represent normal invalid input.
 
 ### Other evaluation contexts
 
-Outside validation conditions and answer preparation formatters, transformer
-`TypeError`s are runtime errors.
+Outside answer preparation formatters, transformer `TypeError`s are runtime
+errors.
 
 This includes pipelines used while rendering, generating values, evaluating
 hooks, or computing navigation-related expressions.
@@ -101,7 +94,8 @@ the authored expression or registered function.
 The behaviour differs because the phases have different jobs.
 
 Validation decides whether a value is acceptable. A type mismatch can be a
-normal validation failure.
+normal validation failure, but the sanctioned way to express that is a
+condition `inputSchema`, not a thrown error.
 
 Answer preparation preserves and records submitted answers. A formatter type
 mismatch should leave the original submitted value available for validation.
@@ -122,7 +116,7 @@ they are working in before changing error handling.
 
 The main rule is:
 
-- absence should stay absent
-- validation type mismatches should become validation failures
+- absence (`undefined` or `null`) should stay absent
+- validation type mismatches should become validation failures via `inputSchema`
 - answer-preparation formatter type mismatches should preserve submitted input
 - unexpected type mismatches elsewhere should fail with diagnostics

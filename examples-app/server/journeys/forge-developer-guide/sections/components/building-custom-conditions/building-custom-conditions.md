@@ -247,17 +247,12 @@ export const IsValidNiNumber = condition('IsValidNiNumber', {
 })
 ```
 
-Forge treats `TypeError` differently depending on context:
-
-- **Outside validation** (in `visibleWhen`, `dependentWhen`, hook
-  guards), a `TypeError` immediately surfaces as a configuration
-  error. This makes mismatches obvious during development.
-- **Inside `validWhen`**, a `TypeError` is caught and treated as a
-  validation failure. This is safe because the field will show an
-  error message and the user can correct their input.
-
-Use `TypeError` specifically, not `Error`, so Forge can distinguish
-type mismatches from other failures.
+An error thrown by an evaluator surfaces as a configuration error
+in every context — `validWhen` included. This makes mismatches
+obvious during development. To treat a wrongly-shaped value as a
+normal validation failure instead, declare an `inputSchema`: a
+value that fails the schema makes the condition evaluate to
+`false`, and the field shows its validation message.
 
 ---
 
@@ -455,9 +450,9 @@ entry, so the testing pattern above works unchanged.
   *is* valid, not when it fails. The definition can always negate
   with `.not.match()`.
 - **Declare an `inputSchema` or throw `TypeError`.** The resolved
-  value is `unknown`. Let a schema check it, or guard it and throw
-  `TypeError` so Forge can surface configuration errors during
-  development.
+  value is `unknown`. Let a schema check it and fail the condition
+  softly, or guard it and throw `TypeError` to surface a
+  configuration error during development.
 - **Keep conditions focused on a single check.** If a condition
   tests multiple things, split it into separate conditions and let
   the definition compose them with `and()`.
