@@ -36,7 +36,6 @@ export default class IteratorLoopEmitter {
         const rawItem = generator.const('rawIteratorItem', code`${inputName}[${currentIndex}]`)
 
         generator.assign(indexName, code`${indexName} + 1`)
-        generator.if(code`${rawItem} == null`, () => generator.continue())
         generator.statement(code`_forgeHelpers.consumeIteratorIteration(ctx)`)
 
         const item = generator.const(

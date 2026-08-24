@@ -294,6 +294,29 @@ describe('Array Transformers', () => {
     })
   })
 
+  describe('Compact', () => {
+    it('should remove null and undefined elements', () => {
+      const result = harness.evaluate(ArrayTransformers.Compact()).withInput([1, null, 2, undefined, 3])
+      expect(result).toEqual([1, 2, 3])
+    })
+
+    it('should keep falsy elements that are not nullish', () => {
+      const result = harness.evaluate(ArrayTransformers.Compact()).withInput([0, '', false, null])
+      expect(result).toEqual([0, '', false])
+    })
+
+    it('should handle empty array', () => {
+      const result = harness.evaluate(ArrayTransformers.Compact()).withInput([])
+      expect(result).toEqual([])
+    })
+
+    it('should throw error for non-array values', () => {
+      expect(() => harness.evaluate(ArrayTransformers.Compact()).withInput('hello')).toThrow(
+        'Array.Compact: value failed schema validation',
+      )
+    })
+  })
+
   describe('Map', () => {
     it('should map object properties', () => {
       const result = harness.evaluate(ArrayTransformers.Map('name')).withInput([{ name: 'John' }, { name: 'Jane' }])

@@ -626,14 +626,6 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       generator.assign(inputWasKeyedVar, literal(true))
     })
 
-    generator.if(code`Array.isArray(${inputVar})`, () => {
-      const keepItem = generator.functionExpression('keepIteratorItem', ['item'], (callbackGenerator, [item]) => {
-        callbackGenerator.return(code`${item} != null`)
-      })
-
-      generator.assign(inputVar, code`${inputVar}.filter(${keepItem})`)
-    })
-
     return inputWasKeyedVar
   }
 
@@ -692,9 +684,6 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       generator.forRange('_index', literal(0), code`${inputVar}.length`, indexVar => {
         const rawItemExpr = code`${inputVar}[${indexVar}]`
 
-        generator.if(code`${rawItemExpr} == null`, () => {
-          generator.continue()
-        })
         generator.statement(code`_forgeHelpers.consumeIteratorIteration(ctx)`)
 
         compileItem(indexVar, rawItemExpr)
