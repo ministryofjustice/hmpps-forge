@@ -80,6 +80,8 @@ enough.
 - Generator-backed validation - use `validation({ function: Validate(Self()) })` on a
   field or step to return zero, one, or several validation errors from synchronous or
   asynchronous application code ([#274])
+- `Transformer.Array.Compact()` - removes `null` and `undefined` elements from an
+  array, keeping other falsy values like `0` and `""` ([#276])
 
 ### Changed
 
@@ -105,6 +107,13 @@ enough.
   condition short-circuits to `false` and a transformer to `undefined` before the
   evaluator or `inputSchema` runs. Previously `null` reached the evaluator, or
   soft-failed the schema ([#275])
+
+- Iterators no longer silently drop `null` and `undefined` items from array inputs -
+  every item now iterates, so `Loop.Index()`, `Loop.Length()`, and `Loop.Last()`
+  reflect the real array and `Loop.Item()` can be null. The drop never applied to
+  keyed-object inputs anyway (their entries survived normalisation with null values
+  intact), so both input shapes now behave the same. Pipe the input through the new
+  `Transformer.Array.Compact()` if you relied on the old contiguous indices ([#276])
 
 ### Deprecated
 
@@ -197,6 +206,7 @@ use returned error items for expected invalid input. ([#274])
 [#273]: https://github.com/ministryofjustice/hmpps-forge/pull/273
 [#274]: https://github.com/ministryofjustice/hmpps-forge/pull/274
 [#275]: https://github.com/ministryofjustice/hmpps-forge/pull/275
+[#276]: https://github.com/ministryofjustice/hmpps-forge/pull/276
 
 ---
 

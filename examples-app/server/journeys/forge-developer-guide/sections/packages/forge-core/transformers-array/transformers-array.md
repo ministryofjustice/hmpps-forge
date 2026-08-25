@@ -157,6 +157,16 @@ Answer('selections').pipe(Transformer.Array.Unique())
 // [1, 2, 2, 3, 1] -> [1, 2, 3]
 ```
 
+### Compact
+
+Removes `null` and `undefined` elements. Other falsy values such as
+`0`, `""`, and `false` stay.
+
+```typescript
+Data('entries').pipe(Transformer.Array.Compact())
+// [1, null, 2, undefined, 3] -> [1, 2, 3]
+```
+
 ---
 
 ## Transformation

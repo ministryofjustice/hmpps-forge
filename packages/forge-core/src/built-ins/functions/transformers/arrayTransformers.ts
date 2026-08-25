@@ -127,6 +127,16 @@ export const ArrayTransformers = {
   }),
 
   /**
+   * Removes null and undefined elements from the array (returns a new array)
+   * @example
+   * // Compact() applied to [1, null, 2, undefined, 3] returns [1, 2, 3]
+   */
+  Compact: transformer('Array.Compact', {
+    inputSchema: arraySchema,
+    factory: () => (value: unknown[]) => value.filter(item => item !== null && item !== undefined),
+  }),
+
+  /**
    * Maps each array element by extracting a property (for objects) or applying an index (for arrays)
    * @param property - The property name (for objects) or index (for nested arrays) to extract
    * @example

@@ -40,7 +40,7 @@ describe('IteratorLoopEmitter', () => {
   }
 
   describe('compileLoop()', () => {
-    it('should iterate array inputs and skip empty items', async () => {
+    it('should iterate array inputs and keep null items', async () => {
       // Arrange
       const collect = compileCollector(ASTTestFactory.reference(['data', 'members']))
       const ctx = {
@@ -52,7 +52,7 @@ describe('IteratorLoopEmitter', () => {
       const results = await collect(ctx)
 
       // Assert
-      expect(results).toEqual([{ name: 'Ada' }, { name: 'Bea' }])
+      expect(results).toEqual([{ name: 'Ada' }, null, { name: 'Bea' }])
     })
 
     it('should expose entry values as items when iterating object inputs', async () => {
