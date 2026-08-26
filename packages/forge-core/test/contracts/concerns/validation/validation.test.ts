@@ -221,9 +221,6 @@ describe('validation contracts', () => {
     expect(result.type).toBe('render')
   })
 
-  // TODO: Probably should give thrown validation errors an HTTP status —
-  // like thrown expression errors, the outcome carries no status today, so
-  // this test pins class, message, and diagnostics only.
   it('should surface an error outcome with diagnostics when a validation condition throws', async () => {
     // Arrange
     const client = createClient(throwingConditionJourney)
