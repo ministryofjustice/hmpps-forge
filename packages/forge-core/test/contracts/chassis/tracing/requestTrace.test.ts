@@ -135,13 +135,8 @@ describe('request trace contracts', () => {
         'answer-cleardown',
         'submit',
       ])
-      // TODO: Probably should record redirect targets at one resolution level —
-      // the projector copies result.target verbatim, so a submit-hook redirect
-      // traces the authored goto ('done') while a reachability redirect traces
-      // the resolved path ('/trace-form/form'). Asserting only "defined" here
-      // until that is settled; then pin the exact target.
       expect(traces[0].trace.outcome).toBe('redirect')
-      expect(traces[0].trace.redirect).toBeDefined()
+      expect(traces[0].trace.redirect?.target).toBe('/trace-form/done')
     })
 
     it('should append a render phase after resolve when a renderer is supplied', async () => {

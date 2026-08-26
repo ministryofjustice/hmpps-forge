@@ -124,6 +124,23 @@ enough.
   intact), so both input shapes now behave the same. Pipe the input through the new
   `Transformer.Array.Compact()` if you relied on the old contiguous indices ([#276])
 
+- `Iterator.Map` no longer drops items whose yield resolves `undefined` - map output
+  is now the same length as its input, with `undefined` slots where the yield was
+  absent, matching how `null` items behave since the drop above was removed. Pipe the
+  result through `Transformer.Array.Compact()` if you relied on the old compacted
+  shape ([#278])
+
+- A class instance in a definition - a `Date`, a `Map`, anything not a plain object -
+  now fails registration with a serialisation error naming its path, alongside the
+  existing rejections for functions and bigints. Previously builder finalisation
+  rebuilt every object from its enumerable entries, so a class instance silently
+  became `{}` before validation could see it ([#278])
+
+- Request traces now record a redirect's fully resolved URL - the same value the
+  navigate outcome carries. Previously the trace copied whatever the redirecting
+  phase produced, so a submit-hook redirect traced the authored `goto` code while a
+  reachability redirect traced a path ([#278])
+
 ### Deprecated
 
 - `buildComponent` and `buildNunjucksComponent` - declare the component with
@@ -156,6 +173,11 @@ enough.
 - A bare `Item()` or `Loop.Item()` in a value position now means the whole item, same
   as `.value()`. Previously it typechecked but finalised to a useless builder object
   ([#273])
+
+- `Post()` now resolves the submitted body in every expression position. Previously
+  only answer preparation, resolve, and hooks received the body, so `Post()` inside a
+  `validWhen` or reachability rule silently resolved `undefined` even mid-POST
+  ([#278])
 
 ### Details
 
@@ -217,6 +239,7 @@ use returned error items for expected invalid input. ([#274])
 [#275]: https://github.com/ministryofjustice/hmpps-forge/pull/275
 [#276]: https://github.com/ministryofjustice/hmpps-forge/pull/276
 [#277]: https://github.com/ministryofjustice/hmpps-forge/pull/277
+[#278]: https://github.com/ministryofjustice/hmpps-forge/pull/278
 
 ---
 

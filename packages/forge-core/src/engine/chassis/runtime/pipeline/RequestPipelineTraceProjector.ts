@@ -34,6 +34,8 @@ interface RequestTraceEmissionBase {
 
 export interface RequestTraceEmission extends RequestTraceEmissionBase {
   readonly result: RequestPipelineResult
+  /** The fully resolved redirect URL the navigate outcome carries; set only for redirect results. */
+  readonly redirectUrl?: string
 }
 
 export interface FailedRequestTraceEmission extends RequestTraceEmissionBase {
@@ -45,7 +47,7 @@ export default class RequestPipelineTraceProjector {
   private readonly serializer = new TraceSpanSerializer()
 
   emit(emission: RequestTraceEmission): void {
-    const { instrumentation, snapshot, root, result, node, routeTree, reachabilityEvaluation } = emission
+    const { instrumentation, snapshot, root, result, redirectUrl, node, routeTree, reachabilityEvaluation } = emission
 
     if (!instrumentation.enabled) {
       return
@@ -64,7 +66,7 @@ export default class RequestPipelineTraceProjector {
       trace: {
         outcome,
         ...this.traceTiming(root),
-        ...this.resultDetail(result),
+        ...this.resultDetail(result, redirectUrl),
         ...this.reachabilityDetail(reachabilityEvaluation),
         phases,
       },
@@ -151,9 +153,12 @@ export default class RequestPipelineTraceProjector {
     return result.kind
   }
 
-  private resultDetail(result: RequestPipelineResult): Pick<RequestTrace, 'redirect' | 'error'> {
+  private resultDetail(
+    result: RequestPipelineResult,
+    redirectUrl: string | undefined,
+  ): Pick<RequestTrace, 'redirect' | 'error'> {
     if (result.kind === 'redirect') {
-      return { redirect: { target: result.target } }
+      return { redirect: { target: redirectUrl ?? result.target } }
     }
 
     if (result.kind === 'error') {

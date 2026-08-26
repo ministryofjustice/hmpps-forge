@@ -1,15 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createForgePackage, journey, step, StructureType } from '../../../../src/authoring'
 import ForgeDuplicateRouteError from '../../../../src/engine/errors/ForgeDuplicateRouteError'
+import ForgeRegistrationError from '../../../../src/engine/errors/ForgeRegistrationError'
 import { ForgeTestHarness } from '../../../../src/testing'
 import { journeyAt } from './packageRegistration.fixtures'
 
 describe('package registration contracts', () => {
-  // TODO: Probably should wrap these gate and route failures in
-  // ForgeRegistrationError like other registration errors —
-  // RegistrationErrorFormatter only formats aggregate registration failures,
-  // so the bare Error / ForgeDuplicateRouteError rethrow unwrapped in strict
-  // mode. Pinning class and message as they are today.
   describe('package gate', () => {
     it('should reject a package that was not created with createForgePackage', () => {
       // Arrange
@@ -19,6 +15,7 @@ describe('package registration contracts', () => {
       const act = () => harness.registerPackage(journeyAt('bare') as never)
 
       // Assert
+      expect(act).toThrow(ForgeRegistrationError)
       expect(act).toThrow('Packages must be created with createForgePackage(...) before registration')
     })
 

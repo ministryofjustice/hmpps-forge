@@ -41,10 +41,6 @@ describe('expression contracts', () => {
     })
   })
 
-  // TODO: Probably should give thrown expression errors an HTTP status —
-  // RequestPipeline rethrows evaluation errors unwrapped and the outcome
-  // carries no status, so these tests can only assert message content. Once a
-  // status is settled (500?), tighten the assertions here.
   describe('author mistakes', () => {
     it('should throw when a condition config argument fails its argumentsSchema even though the subject is absent', async () => {
       // Arrange

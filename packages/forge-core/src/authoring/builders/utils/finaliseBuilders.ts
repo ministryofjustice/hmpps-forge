@@ -65,6 +65,12 @@ const finalise = (value: unknown, path: DSLPathSegment[], ancestors: Set<object>
       return finalise(built, path, ancestors)
     }
 
+    const prototype = Object.getPrototypeOf(value)
+
+    if (prototype !== Object.prototype && prototype !== null) {
+      return value
+    }
+
     const result: Record<string, unknown> = {}
     Object.entries(value).forEach(([key, entry]) => {
       result[key] = finalise(entry, [...path, key], ancestors)

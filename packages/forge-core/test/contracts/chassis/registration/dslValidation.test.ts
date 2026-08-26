@@ -123,11 +123,6 @@ describe('DSL validation contracts', () => {
     })
   })
 
-  // TODO: Probably should make class instances (e.g. a Date) in a definition
-  // throw instead of vanishing — finaliseBuilders rebuilds every object via
-  // Object.entries, so a Date becomes {} before DSLValidator runs, leaving its
-  // "Date object" / "non-plain object" checks unreachable and the author with
-  // no error. Once fixed, add the rejection contract alongside these tests.
   describe('serialisation validation', () => {
     it('should reject a definition when a property is explicitly undefined', () => {
       // Arrange
@@ -206,6 +201,46 @@ describe('DSL validation contracts', () => {
       expect(act).toThrow(ForgeRegistrationError)
       expect(act).toThrow('JSON validation failed due to non-serializable types')
       expect(act).toThrow('Symbol at symbol-values > data > sym (not JSON serializable)')
+    })
+
+    it('should reject a definition when a value is a Date instance', () => {
+      // Arrange
+      const now = new Date('2026-01-01') as unknown as string
+      const journeyDefinition = journey({
+        code: 'date-values',
+        path: '/date-values',
+        title: 'Date Values',
+        data: { now },
+        steps: [step({ code: 'first', path: '/first', title: 'First', blocks: [] })],
+      })
+
+      // Act
+      const act = () => registerJourney(journeyDefinition)
+
+      // Assert
+      expect(act).toThrow(ForgeRegistrationError)
+      expect(act).toThrow('JSON validation failed due to non-serializable types')
+      expect(act).toThrow('Date object at date-values > data > now (not JSON serializable)')
+    })
+
+    it('should reject a definition when a value is a class instance', () => {
+      // Arrange
+      const lookup = new Map([['a', 1]]) as unknown as string
+      const journeyDefinition = journey({
+        code: 'instance-values',
+        path: '/instance-values',
+        title: 'Instance Values',
+        data: { lookup },
+        steps: [step({ code: 'first', path: '/first', title: 'First', blocks: [] })],
+      })
+
+      // Act
+      const act = () => registerJourney(journeyDefinition)
+
+      // Assert
+      expect(act).toThrow(ForgeRegistrationError)
+      expect(act).toThrow('JSON validation failed due to non-serializable types')
+      expect(act).toThrow('Non-plain object (Map) at instance-values > data > lookup (not JSON serializable)')
     })
   })
 

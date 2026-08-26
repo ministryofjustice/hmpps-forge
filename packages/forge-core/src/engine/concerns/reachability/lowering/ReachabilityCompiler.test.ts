@@ -129,6 +129,7 @@ function createCtx(overrides: Partial<CompiledReachabilityContext> = {}): Compil
     session: {},
     params: {},
     query: {},
+    post: {},
     request: {},
     conditions: {
       get: vi.fn((name: string) => {
