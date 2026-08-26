@@ -185,12 +185,6 @@ describe('compilation trace contracts', () => {
     })
   })
 
-  // TODO: Probably should decide whether compilation units ought to carry
-  // executionSlices — TraceSpanSerializer's comment says compilation "never
-  // records slices", but WorkExecutor.runUnit records them unconditionally for
-  // every span, compilation included, so they flow through. Pinning what
-  // actually emits; if clean compilation spans are the intent, strip the
-  // slices in the serializer and flip these assertions.
   describe('unit timing detail', () => {
     it('should record execution slices and self duration on compilation trace units', () => {
       // Arrange
