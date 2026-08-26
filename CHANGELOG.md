@@ -82,8 +82,17 @@ enough.
   asynchronous application code ([#274])
 - `Transformer.Array.Compact()` - removes `null` and `undefined` elements from an
   array, keeping other falsy values like `0` and `""` ([#276])
+- `ForgeTestHarness` options now cover engine configuration - `logger`,
+  `strictRegistration`, `basePath`, `disableBuiltInFunctions`, and
+  `disableBuiltInComponents` pass through to the underlying `Forge`, alongside the
+  existing `instrumentation` and `maxIteratorIterations` ([#277])
 
 ### Changed
+
+- The contract test suite now mirrors the engine's chassis/concerns split - per-area
+  suites under `test/contracts/chassis/` (expressions, references, registration,
+  tracing) and `test/contracts/concerns/` (one per runtime concern), expanded to 525
+  black-box tests pinning authored behaviour end-to-end ([#277])
 
 - Iterating an object now works like `Object.entries` - each iteration's item is the
   entry value and `Item().key()` is the entry key. `Map` returns its mapped values,
@@ -207,6 +216,7 @@ use returned error items for expected invalid input. ([#274])
 [#274]: https://github.com/ministryofjustice/hmpps-forge/pull/274
 [#275]: https://github.com/ministryofjustice/hmpps-forge/pull/275
 [#276]: https://github.com/ministryofjustice/hmpps-forge/pull/276
+[#277]: https://github.com/ministryofjustice/hmpps-forge/pull/277
 
 ---
 
