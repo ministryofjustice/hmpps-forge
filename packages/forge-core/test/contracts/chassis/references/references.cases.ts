@@ -163,11 +163,6 @@ export const stepCases: StepContractCase[] = [
         post: {},
         data: { captureRan: 'yes', answerMissing: undefined },
       },
-      // TODO: Probably should decide whether Post() ought to work everywhere —
-      // ctx.post is only wired into the answer-preparation, resolve, and
-      // hook-lifecycle compiled contexts, so Post() inside validWhen or
-      // reachability rules resolves undefined even mid-POST. Looks unintended;
-      // once ruled on, pin the behavior here as a contract.
       {
         name: 'should read the raw submitted value through Post() and the normalized answer through Answer()',
         post: { colors: 'red' },
@@ -222,6 +217,31 @@ export const stepCases: StepContractCase[] = [
         name: 'should resolve Self() per declaring field when several fields carry the same rule shape',
         post: { first: 'yes', second: 'no' },
         errors: { first: [], second: ['Second must be yes'] },
+      },
+    ],
+  },
+  {
+    description: 'Post() resolution in field validation',
+    step: {
+      blocks: [
+        TextField({
+          code: 'name',
+          validWhen: [
+            validation({ condition: Post('gate').match(Condition.Equals('open')), message: 'The gate must be open' }),
+          ],
+        }),
+      ],
+    },
+    tests: [
+      {
+        name: 'should resolve Post() in a validation rule to the raw submitted value',
+        post: { name: 'Jo', gate: 'open' },
+        valid: true,
+      },
+      {
+        name: 'should resolve Post() in a validation rule to undefined when the body has no such key',
+        post: { name: 'Jo' },
+        errors: { name: ['The gate must be open'] },
       },
     ],
   },
