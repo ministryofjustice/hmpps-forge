@@ -1,5 +1,5 @@
 import { createForgePackage, journey, effect } from '../../src/authoring'
-import { ForgeTestHarness, type RequestTraceEvent } from '../../src/testing'
+import { ForgeTestHarness, type ForgeTestHarnessOptions, type RequestTraceEvent } from '../../src/testing'
 import type { ForgeRenderer } from '../../src/framework/types/rendering.type'
 import type { ComponentRegistryEntry } from '../../src/components/types/components.type'
 import type { BlockDefinition } from '../../src/components'
@@ -74,8 +74,8 @@ export function answerOf(answers: Record<string, unknown>, code: string): Answer
   return answers[code] as AnswerHistory
 }
 
-export function createClient(journeyDef: ReturnType<typeof journey>) {
-  return new ForgeTestHarness()
+export function createClient(journeyDef: ReturnType<typeof journey>, options?: ForgeTestHarnessOptions) {
+  return new ForgeTestHarness(options)
     .registerPackage(createForgePackage({ journey: journeyDef }))
     .createClient()
 }

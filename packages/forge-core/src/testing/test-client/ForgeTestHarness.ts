@@ -1,6 +1,7 @@
 import Forge from '../../engine/Forge'
 import type { ForgePackageRegistration } from '../../engine/chassis/contracts/ast/engine.type'
 import type { ForgeInstrumentationOptions } from '../../engine/chassis/tracing/ForgeTraceSinkDispatcher'
+import type { Logger } from '../../framework/types/adapter.type'
 import type { ForgeRenderer } from '../../framework/types/rendering.type'
 import { ForgeTestClient } from './ForgeTestClient'
 
@@ -14,6 +15,11 @@ const silentLogger = {
 export interface ForgeTestHarnessOptions {
   readonly instrumentation?: ForgeInstrumentationOptions
   readonly maxIteratorIterations?: number
+  readonly strictRegistration?: boolean
+  readonly logger?: Logger | Console
+  readonly disableBuiltInFunctions?: boolean
+  readonly disableBuiltInComponents?: boolean
+  readonly basePath?: string
 }
 
 /**
@@ -37,9 +43,13 @@ export class ForgeTestHarness {
 
   constructor(options: ForgeTestHarnessOptions = {}) {
     this.forge = new Forge({
-      logger: silentLogger,
+      logger: options.logger ?? silentLogger,
       instrumentation: options.instrumentation,
       maxIteratorIterations: options.maxIteratorIterations,
+      strictRegistration: options.strictRegistration ?? true,
+      disableBuiltInFunctions: options.disableBuiltInFunctions ?? false,
+      disableBuiltInComponents: options.disableBuiltInComponents ?? false,
+      basePath: options.basePath ?? '',
     })
   }
 
