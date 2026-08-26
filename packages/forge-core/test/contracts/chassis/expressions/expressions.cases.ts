@@ -213,11 +213,6 @@ export const journeyCases: JourneyContractCase[] = [
         session: { data: { flag: false, tier: 'standard' } },
         data: { bareWhen: false, fluent: 'no', objectForm: 'fallback', nested: 'Standard' },
       },
-      // TODO: Probably should reconcile Conditional's JSDoc with this — the doc
-      // says "returns undefined when false" with no else, but the builder's
-      // constructor defaults the else branch to false and Conditional() only
-      // overrides it when options.else is present. Pinning the real behavior;
-      // if undefined is the intent, fix the builder and flip this row.
       {
         name: 'should resolve Conditional without else to false when the predicate is false',
         path: '/conditionals/result',
