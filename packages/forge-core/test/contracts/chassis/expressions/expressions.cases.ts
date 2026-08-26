@@ -383,17 +383,17 @@ export const journeyCases: JourneyContractCase[] = [
         session: { data: { items: [1, null, 2] } },
         data: { identityMap: [1, null, 2] },
       },
-      // TODO: Probably should decide whether map dropping undefined yields is
-      // still wanted now that null items are kept — the keep-null-items change
-      // removed the null skip from the loop, but compileMapIterator still only
-      // pushes yields !== undefined, so a .path() yield over a null item
-      // vanishes while an identity yield keeps the null. If dropping stays,
-      // these two rows are the contract; if not, update them together.
       {
-        name: 'should omit an item from map output when its yield resolves undefined',
+        name: 'should keep an undefined slot in map output when its yield resolves undefined',
         path: '/iterators/result',
         session: { data: { people: [{ name: 'Ada' }, {}, { name: 'Grace' }] } },
-        data: { namesFromMixed: ['Ada', 'Grace'] },
+        data: { namesFromMixed: ['Ada', undefined, 'Grace'] },
+      },
+      {
+        name: 'should remove undefined yields when the mapped collection is piped through Array.Compact',
+        path: '/iterators/result',
+        session: { data: { people: [{ name: 'Ada' }, {}, { name: 'Grace' }] } },
+        data: { namesCompacted: ['Ada', 'Grace'] },
       },
       {
         name: 'should present null items to the filter predicate and keep those that pass',

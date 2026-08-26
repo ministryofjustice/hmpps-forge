@@ -518,9 +518,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
             const scopedYieldExpr = this.compileScopedIteratorExpression(yieldExpr, itemVar, indexVar, generator)
             const yieldVar = generator.const('_yield', scopedYieldExpr)
 
-            generator.if(code`${yieldVar} !== undefined`, () => {
-              generator.statement(code`${resultVar}.push(${yieldVar})`)
-            })
+            generator.statement(code`${resultVar}.push(${yieldVar})`)
           })
           generator.return(resultVar)
         }),

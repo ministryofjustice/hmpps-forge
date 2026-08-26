@@ -159,6 +159,9 @@ export const matchFallbackJourney = evaluationJourney('match-fallback', {
 export const iteratorJourney = evaluationJourney('iterators', {
   identityMap: Data('items').each(Iterator.Map(Loop.Item())),
   namesFromMixed: Data('people').each(Iterator.Map(Loop.Item().path('name'))),
+  namesCompacted: Data('people')
+    .each(Iterator.Map(Loop.Item().path('name')))
+    .pipe(Transformer.Array.Compact()),
   filtered: Data('items').each(Iterator.Filter(Loop.Item().value().not.match(Condition.Equals('drop')))),
   compacted: Data('items').each(Iterator.Map(Loop.Item())).pipe(Transformer.Array.Compact()),
   positions: Data('letters').each(Iterator.Map(Format('%1:%2:%3', Loop.Index(), Loop.Index0(), Loop.Item().value()))),
