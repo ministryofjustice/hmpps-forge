@@ -34,7 +34,7 @@ function blockTemplate(): unknown {
   return {
     type: ASTNodeType.BLOCK,
     variant: 'content',
-    _forge: ComponentCallType.BASIC,
+    blockType: ComponentCallType.BASIC,
     content: 'Hello',
   }
 }
@@ -128,7 +128,7 @@ describe('ResolveAnalyzer', () => {
       const nestedBlock = {
         type: ASTNodeType.BLOCK,
         variant: 'text-input',
-        _forge: ComponentCallType.FIELD,
+        blockType: ComponentCallType.FIELD,
         properties: { code: 'nested', formatters: ['trim'], hint: 'Keep me' },
       }
       const stepNode = ASTTestFactory.step().withPath('/step').withProperty('summaryBlock', nestedBlock).build()

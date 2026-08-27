@@ -205,7 +205,7 @@ describe('semantic analysis contracts', () => {
       // Assert
       expect(act).toThrow(ForgeRegistrationError)
       expect(act).toThrow('Function "Semantic.HasMinLength" expects 1 argument but received 0')
-      expect(act).toThrow('Type: FunctionType.Condition')
+      expect(act).toThrow('Type: function.call.condition')
     })
   })
 })

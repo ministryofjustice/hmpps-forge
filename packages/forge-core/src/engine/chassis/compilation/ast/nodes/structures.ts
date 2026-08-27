@@ -1,8 +1,7 @@
 import { ASTNodeType } from '../../../contracts/ast/enums'
-import { PolicyType, ExpressionType, ComponentCallType } from '../../../../../authoring/types/enums'
+import { PolicyType, ComponentCallType } from '../../../../../authoring/types/enums'
 import {
   BasicBlockASTNode,
-  BlockASTNode,
   FieldBlockASTNode,
   JourneyASTNode,
   JourneyReachabilityAST,
@@ -15,7 +14,7 @@ import type { BlockDefinition, FieldBlockDefinition } from '../../../../../compo
 import type { NodeBuildContext } from './NodeFactory'
 
 function isTieBreaker(obj: unknown): obj is TieBreaker {
-  return obj != null && (obj as { type?: string }).type === PolicyType.NAVIGATION_TIE_BREAKER
+  return obj != null && (obj as { _forge?: string })._forge === PolicyType.NAVIGATION_TIE_BREAKER
 }
 
 /**

@@ -244,7 +244,7 @@ describe('StepResolveCompiler', () => {
           '',
           '_forgeHelpers.resolveFieldValue(ctx, textInputProps);',
           `_forgeHelpers.resolveFieldFailures(ctx, "${field.id}", "text-input", textInputProps);`,
-          `blocks.push(ctx.workTasks.resolveBlock("${field.id}", "text-input", "ComponentCallType.field", textInputProps));`,
+          `blocks.push(ctx.workTasks.resolveBlock("${field.id}", "text-input", "component.call.field", textInputProps));`,
           '',
           'return ctx.workTasks.resolveBlocks(blocks, step, ancestors);',
         ].join('\n'),
@@ -344,7 +344,7 @@ describe('StepResolveCompiler', () => {
       expect(child.props).toMatchObject({
         id: block.id,
         variant: 'content',
-        _forge: ComponentCallType.BASIC,
+        blockType: ComponentCallType.BASIC,
         properties: { content: 'Hello Ada' },
       })
     })
@@ -893,7 +893,7 @@ describe('StepResolveCompiler', () => {
             {
               type: ASTNodeType.BLOCK,
               variant: 'text-input',
-              _forge: ComponentCallType.FIELD,
+              blockType: ComponentCallType.FIELD,
               properties: {
                 code: ASTTestFactory.formatExpression('memberName_%1', [
                   {

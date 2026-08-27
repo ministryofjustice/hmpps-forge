@@ -1,4 +1,4 @@
-import { PolicyType, ExpressionType } from '../../../../authoring/types/enums'
+import { PolicyType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type { NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { TieBreakerASTNode } from '../../../chassis/contracts/ast/expressions.type'

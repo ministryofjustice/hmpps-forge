@@ -88,7 +88,7 @@ describe('BaseFunctionRegistry', () => {
 
       // Assert
       expect(act).toThrow(
-        'The FunctionType.Condition registration "Broken" has no factory - pass one positionally or as options.factory',
+        'The function.call.condition registration "Broken" has no factory - pass one positionally or as options.factory',
       )
     })
   })
@@ -102,7 +102,7 @@ describe('BaseFunctionRegistry', () => {
       const act = () => registry.register('IsAdult', () => (value: any) => value >= 21)
 
       // Assert
-      expect(act).toThrow('A FunctionType.Condition is already registered under the name "IsAdult"')
+      expect(act).toThrow('A function.call.condition is already registered under the name "IsAdult"')
     })
 
     it('should throw when two factories extract to the same name', () => {
@@ -116,7 +116,7 @@ describe('BaseFunctionRegistry', () => {
       const act = () => registry.register(validateAgain)
 
       // Assert
-      expect(act).toThrow('A FunctionType.Condition is already registered under the name "validate"')
+      expect(act).toThrow('A function.call.condition is already registered under the name "validate"')
     })
   })
 })

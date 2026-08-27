@@ -7,7 +7,6 @@ import {
   PredicateType,
   ComponentCallType,
   IteratorType,
-  StructureType,
 } from '../../../../../authoring/types/enums'
 import type {
   ReferenceExpr,

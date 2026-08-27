@@ -2,7 +2,7 @@ import { expectTypeOf, vi } from 'vitest'
 import { z } from 'zod'
 import { Answer, block, field } from '../authoring/builders'
 import { getComponentStamp } from '../authoring/builders/utils/stampEntry'
-import { ComponentCallType, StructureType } from '../authoring/types/enums'
+import { ComponentCallType } from '../authoring/types/enums'
 import { component } from './component'
 import type {
   ComponentOptions,

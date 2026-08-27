@@ -1,4 +1,4 @@
-import { ComponentCallType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { ComponentCallType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
 
 import { normaliseMojTextHtmlContent } from './mojParamNormalisers'

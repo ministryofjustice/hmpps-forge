@@ -832,9 +832,9 @@ describe('FormValidator', () => {
       expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
     })
 
-    it('should fail when type is missing with clear error path', () => {
+    it('should fail when _forge is missing with clear error path', () => {
       const invalidJourney = {
-        // Missing type
+        // Missing _forge
         code: 'test-journey',
         title: 'Test Journey',
         steps: [],
@@ -850,7 +850,7 @@ describe('FormValidator', () => {
           expect(error.errors.length).toBeGreaterThan(0)
 
           const typeError = error.errors.find(
-            e => e instanceof ForgeSchemaError && e.formattedPath === 'test-journey > type',
+            e => e instanceof ForgeSchemaError && e.formattedPath === 'test-journey > _forge',
           )
           expect(typeError).toBeDefined()
           expect(typeError?.message).toContain('Invalid input')

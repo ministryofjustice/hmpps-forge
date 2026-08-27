@@ -1192,7 +1192,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const template = createTemplateValue({
         type: ASTNodeType.BLOCK,
         variant: 'text-input',
-        _forge: ComponentCallType.FIELD,
+        blockType: ComponentCallType.FIELD,
         properties: {
           code: 'staticField',
         },
@@ -1217,7 +1217,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const template = createTemplateValue({
         type: ASTNodeType.BLOCK,
         variant: 'text-input',
-        _forge: ComponentCallType.FIELD,
+        blockType: ComponentCallType.FIELD,
         properties: {
           code: ASTTestFactory.formatExpression('person_%1', [
             {

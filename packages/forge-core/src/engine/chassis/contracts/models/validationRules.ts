@@ -1,4 +1,4 @@
-import { PolicyType, ExpressionType } from '../../../../authoring/types/enums'
+import { PolicyType } from '../../../../authoring/types/enums'
 import type { ASTNode } from '../ast/ast.type'
 import { ASTNodeType } from '../ast/enums'
 import { isASTNode, isTemplateNode } from '../ast/nodes'

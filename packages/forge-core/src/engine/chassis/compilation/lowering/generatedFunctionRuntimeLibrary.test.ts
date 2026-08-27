@@ -1,6 +1,6 @@
 import type { ZodType } from 'zod'
 import { z } from 'zod'
-import { FunctionCallType } from '../../../../authoring/types/enums'
+import { FunctionEntryType } from '../../../../authoring/types/enums'
 import { generatedFunctionRuntimeLibrary } from './generatedFunctionRuntimeLibrary'
 
 interface StubRegistryEntry {
@@ -8,7 +8,7 @@ interface StubRegistryEntry {
   inputSchema?: ZodType
   argumentsSchema?: ZodType
   outputSchema?: ZodType
-  functionType?: FunctionCallType
+  _forge?: FunctionEntryType
 }
 
 const contextFor = (entry: StubRegistryEntry) => ({
@@ -357,7 +357,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
     it('should return false without invoking the implementation when a condition value is absent', () => {
       // Arrange
       const evaluate = vi.fn()
-      const ctx = contextFor({ evaluate, functionType: FunctionCallType.CONDITION, inputSchema: z.string() })
+      const ctx = contextFor({ evaluate, _forge: FunctionEntryType.CONDITION, inputSchema: z.string() })
 
       // Act
       const nullResult = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'isNotEmpty', [null])
@@ -374,7 +374,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
     it('should return false without invoking the implementation when a condition value is wrongly typed', () => {
       // Arrange
       const evaluate = vi.fn()
-      const ctx = contextFor({ evaluate, functionType: FunctionCallType.CONDITION, inputSchema: z.string() })
+      const ctx = contextFor({ evaluate, _forge: FunctionEntryType.CONDITION, inputSchema: z.string() })
 
       // Act
       const result = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'isNotEmpty', [123])
@@ -387,7 +387,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
     it('should evaluate normally when a condition value satisfies its input schema', () => {
       // Arrange
       const evaluate = vi.fn(() => true)
-      const ctx = contextFor({ evaluate, functionType: FunctionCallType.CONDITION, inputSchema: z.string() })
+      const ctx = contextFor({ evaluate, _forge: FunctionEntryType.CONDITION, inputSchema: z.string() })
 
       // Act
       const result = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'isNotEmpty', ['hello'])
@@ -402,7 +402,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
       const evaluate = vi.fn()
       const ctx = contextFor({
         evaluate,
-        functionType: FunctionCallType.CONDITION,
+        _forge: FunctionEntryType.CONDITION,
         argumentsSchema: z.tuple([z.string()]),
       })
 
@@ -417,7 +417,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
     it('should throw TypeError when a non-condition value fails its input schema', () => {
       // Arrange
       const evaluate = vi.fn()
-      const ctx = contextFor({ evaluate, functionType: FunctionCallType.TRANSFORMER, inputSchema: z.string() })
+      const ctx = contextFor({ evaluate, _forge: FunctionEntryType.TRANSFORMER, inputSchema: z.string() })
 
       // Act
       const call = () => generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'toUpperCase', [123])
@@ -430,7 +430,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
     it('should return undefined without invoking the implementation when a transformer value is absent', () => {
       // Arrange
       const evaluate = vi.fn()
-      const ctx = contextFor({ evaluate, functionType: FunctionCallType.TRANSFORMER })
+      const ctx = contextFor({ evaluate, _forge: FunctionEntryType.TRANSFORMER })
 
       // Act
       const undefinedResult = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'toUpperCase', [
@@ -447,7 +447,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
     it('should return false without invoking the implementation when a condition value is absent and no input schema is registered', () => {
       // Arrange
       const evaluate = vi.fn()
-      const ctx = contextFor({ evaluate, functionType: FunctionCallType.CONDITION })
+      const ctx = contextFor({ evaluate, _forge: FunctionEntryType.CONDITION })
 
       // Act
       const undefinedResult = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'isNotEmpty', [
@@ -466,7 +466,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
       const evaluate = vi.fn()
       const ctx = contextFor({
         evaluate,
-        functionType: FunctionCallType.TRANSFORMER,
+        _forge: FunctionEntryType.TRANSFORMER,
         argumentsSchema: z.tuple([z.string()]),
       })
 
@@ -482,7 +482,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
     it('should invoke the implementation for a generator whose first argument is undefined', () => {
       // Arrange
       const evaluate = vi.fn(() => 'generated')
-      const ctx = contextFor({ evaluate, functionType: FunctionCallType.GENERATOR })
+      const ctx = contextFor({ evaluate, _forge: FunctionEntryType.GENERATOR })
 
       // Act
       const result = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'uuid', [undefined])
@@ -495,7 +495,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
     it('should not consult the output schema when a transformer short-circuits on an absent value', () => {
       // Arrange
       const evaluate = vi.fn()
-      const ctx = contextFor({ evaluate, functionType: FunctionCallType.TRANSFORMER, outputSchema: z.string() })
+      const ctx = contextFor({ evaluate, _forge: FunctionEntryType.TRANSFORMER, outputSchema: z.string() })
 
       // Act
       const result = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'toUpperCase', [undefined])
@@ -510,7 +510,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
     it('should return undefined without invoking the implementation when a transformer value is absent', async () => {
       // Arrange
       const evaluate = vi.fn()
-      const ctx = contextFor({ evaluate, functionType: FunctionCallType.TRANSFORMER })
+      const ctx = contextFor({ evaluate, _forge: FunctionEntryType.TRANSFORMER })
 
       // Act
       const result = await generatedFunctionRuntimeLibrary.evaluateFunctionAsync(ctx, undefined, 0, 'toUpperCase', [
@@ -525,7 +525,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
     it('should return false without invoking the implementation when a condition value is absent', async () => {
       // Arrange
       const evaluate = vi.fn()
-      const ctx = contextFor({ evaluate, functionType: FunctionCallType.CONDITION })
+      const ctx = contextFor({ evaluate, _forge: FunctionEntryType.CONDITION })
 
       // Act
       const result = await generatedFunctionRuntimeLibrary.evaluateFunctionAsync(ctx, undefined, 0, 'isNotEmpty', [

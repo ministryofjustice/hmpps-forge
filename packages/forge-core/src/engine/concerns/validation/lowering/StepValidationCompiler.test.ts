@@ -1054,7 +1054,7 @@ describe('StepValidationCompiler', () => {
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
           phase: 'validation',
           functionName: 'throwingCondition',
-          _forge: FunctionEntryType.CONDITION,
+          functionType: FunctionCallType.CONDITION,
         })
       }
     })
@@ -1101,7 +1101,7 @@ describe('StepValidationCompiler', () => {
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
           phase: 'validation',
           functionName: 'validateDate',
-          _forge: FunctionEntryType.GENERATOR,
+          functionType: FunctionCallType.GENERATOR,
         })
       }
     })
@@ -1157,7 +1157,7 @@ describe('StepValidationCompiler', () => {
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
           phase: 'validation',
           functionName: 'messageGenerator',
-          _forge: FunctionEntryType.GENERATOR,
+          functionType: FunctionCallType.GENERATOR,
         })
       }
     })
@@ -1592,7 +1592,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          _forge: ComponentCallType.FIELD,
+          blockType: ComponentCallType.FIELD,
           properties: {
             code: 'name',
             validWhen: [
@@ -1653,7 +1653,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          _forge: ComponentCallType.FIELD,
+          blockType: ComponentCallType.FIELD,
           properties: {
             code: 'name',
             validWhen: [
@@ -1708,7 +1708,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          _forge: ComponentCallType.FIELD,
+          blockType: ComponentCallType.FIELD,
           properties: {
             code: 'name',
             validWhen: [
@@ -1767,7 +1767,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          _forge: ComponentCallType.FIELD,
+          blockType: ComponentCallType.FIELD,
           properties: {
             code: ASTTestFactory.formatExpression('item_%1', [
               {
@@ -1848,7 +1848,7 @@ describe('StepValidationCompiler', () => {
                   {
                     type: ASTNodeType.BLOCK,
                     variant: 'text-input',
-                    _forge: ComponentCallType.FIELD,
+                    blockType: ComponentCallType.FIELD,
                     properties: {
                       code: ASTTestFactory.formatExpression('team_%1_member_%2', [
                         {
@@ -1935,7 +1935,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          _forge: ComponentCallType.FIELD,
+          blockType: ComponentCallType.FIELD,
           properties: {
             code: 'item',
             validWhen: [
@@ -1989,7 +1989,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          _forge: ComponentCallType.FIELD,
+          blockType: ComponentCallType.FIELD,
           properties: {
             code: ASTTestFactory.formatExpression('item_%1', [
               {
@@ -2053,7 +2053,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          _forge: ComponentCallType.FIELD,
+          blockType: ComponentCallType.FIELD,
           properties: {
             code: 'person',
             validWhen: [
@@ -2267,7 +2267,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          _forge: ComponentCallType.FIELD,
+          blockType: ComponentCallType.FIELD,
           properties: {
             code: 'field',
             validWhen: [
@@ -2320,7 +2320,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          _forge: ComponentCallType.FIELD,
+          blockType: ComponentCallType.FIELD,
           properties: {
             code: 'field',
             validWhen: [

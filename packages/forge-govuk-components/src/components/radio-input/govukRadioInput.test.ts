@@ -1,4 +1,4 @@
-import { ComponentCallType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { ComponentCallType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'

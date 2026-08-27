@@ -260,8 +260,8 @@ describe('DSL validation contracts', () => {
       // Assert
       expect(act).toThrow(ForgeRegistrationError)
       expect(act).toThrow('Schema validation failed')
-      expect(act).toThrow('expected "HookType.Access"')
-      expect(act).toThrow('Path: placement > first > onAccess[0] > type')
+      expect(act).toThrow('expected "hook.access"')
+      expect(act).toThrow('Path: placement > first > onAccess[0] > _forge')
     })
 
     it('should reject a non-block value at schema validation when placed in a blocks array', () => {

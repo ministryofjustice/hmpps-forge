@@ -1,7 +1,7 @@
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { TieBreaker, TieBreakerProps, ValidationExpr, ValidationProps } from '../types/structures.type'
 import { AccessHook, RedirectOutcome, SubmitHook, ThrowErrorOutcome } from '../types/expressions.type'
-import { ExpressionType, HookType, PolicyType } from '../types/enums'
+import { HookType, PolicyType } from '../types/enums'
 
 /**
  * Creates a submission hook for handling form submissions.

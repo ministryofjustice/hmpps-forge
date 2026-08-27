@@ -1,5 +1,5 @@
 import { CollectionBlock, EvaluatedCollectionBlock } from './collectionBlock'
-import { ComponentCallType, StructureType } from '../../authoring/types/enums'
+import { ComponentCallType } from '../../authoring/types/enums'
 import type { RenderedBlock } from '../../components/types/structures.type'
 
 describe('collectionBlock component', () => {

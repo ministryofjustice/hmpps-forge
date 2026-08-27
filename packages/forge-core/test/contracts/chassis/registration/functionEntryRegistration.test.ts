@@ -516,7 +516,7 @@ describe('function entry registration contracts', () => {
 
       // Assert
       expect(act).toThrow(ForgeRegistrationError)
-      expect(act).toThrow('Function "Equals" (FunctionType.Condition) is not registered')
+      expect(act).toThrow('Function "Equals" (function.call.condition) is not registered')
       // Control: the same package registers when built-ins stay enabled.
       expect(() => new ForgeTestHarness().registerPackage(buildPackage())).not.toThrow()
     })

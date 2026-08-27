@@ -31,7 +31,7 @@ export function getResolvedCodePanels(): ReadonlyMap<string, readonly PlainCodeP
   return resolvedPanelsByPattern
 }
 
-export type PatternStepProps = Omit<StepDefinition, 'type' | 'view'> & {
+export type PatternStepProps = Omit<StepDefinition, '_forge' | 'view'> & {
   sourceBase?: string
   codeFiles?: CodeFileSpec[]
   templateLocals?: Record<string, unknown>

@@ -1,6 +1,6 @@
 import type { ZodType } from 'zod'
 import { RENDER_BLOCK_BRAND } from '../../../concerns/render/contracts/renderBlock.brand'
-import { FunctionCallType, FunctionEntryType } from '../../../../authoring/types/enums'
+import { FunctionEntryType } from '../../../../authoring/types/enums'
 import type { IteratorBudgetContract } from '../../contracts/runtime/iteratorBudget.type'
 
 interface AnswerHistory {

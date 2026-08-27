@@ -1,4 +1,4 @@
-import { PolicyType, ExpressionType, ComponentCallType } from '../../../../authoring/types/enums'
+import { PolicyType, ComponentCallType } from '../../../../authoring/types/enums'
 import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'

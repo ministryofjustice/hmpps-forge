@@ -49,7 +49,7 @@ function createTemplateField(
   return {
     type: ASTNodeType.TEMPLATE,
     originalType: ASTNodeType.BLOCK,
-    _forge: ComponentCallType.FIELD,
+    blockType: ComponentCallType.FIELD,
     variant,
     id: ASTTestFactory.getId(),
     properties: { code, ...props },
@@ -245,7 +245,7 @@ describe('FieldModelBuilder', () => {
       const templateField = {
         type: ASTNodeType.TEMPLATE,
         originalType: ASTNodeType.BLOCK,
-        _forge: ComponentCallType.FIELD,
+        blockType: ComponentCallType.FIELD,
         id: ASTTestFactory.getId(),
         properties: { code: 'dynamic' },
       } as unknown as TemplateNode
