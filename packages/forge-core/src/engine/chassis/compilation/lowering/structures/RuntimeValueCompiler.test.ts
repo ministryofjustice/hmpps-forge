@@ -1,5 +1,4 @@
-import { ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../contracts/ast/enums'
+import { ComponentCallType, ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
 import type { AuthoredValue } from '../../../contracts/models/authoredValue.type'
 import AuthoredValueClassifier from '../../analysis/shared/AuthoredValueClassifier'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
@@ -85,8 +84,8 @@ describe('RuntimeValueCompiler', () => {
     it('should select conditional branches from the evaluated predicate', async () => {
       // Arrange
       const conditional = classifier.classify({
-        type: ASTNodeType.EXPRESSION,
-        expressionType: ExpressionType.CONDITIONAL,
+        kind: ExpressionType.CONDITIONAL,
+        isTemplate: false,
         id: ASTTestFactory.getId(),
         properties: { predicate: ASTTestFactory.reference(['data', 'flag']), thenValue: 'yes', elseValue: 'no' },
       })
@@ -100,8 +99,8 @@ describe('RuntimeValueCompiler', () => {
     it('should materialise MAP iterations and drop undefined yields', async () => {
       // Arrange
       const iterate = classifier.classify({
-        type: ASTNodeType.EXPRESSION,
-        expressionType: ExpressionType.ITERATE,
+        kind: ExpressionType.ITERATE,
+        isTemplate: false,
         id: ASTTestFactory.getId(),
         properties: {
           input: ASTTestFactory.reference(['data', 'members']),
@@ -123,9 +122,10 @@ describe('RuntimeValueCompiler', () => {
     it('should throw when a block value reaches a policy without a block compiler', () => {
       // Arrange
       const block = classifier.classify({
-        type: ASTNodeType.BLOCK,
+        kind: ComponentCallType.BASIC,
+        isTemplate: false,
+        id: ASTTestFactory.getId(),
         variant: 'content',
-        blockType: 'basic',
         properties: {},
       })
 
@@ -136,9 +136,10 @@ describe('RuntimeValueCompiler', () => {
     it('should delegate block values to the policy block compiler when supplied', async () => {
       // Arrange
       const block = classifier.classify({
-        type: ASTNodeType.BLOCK,
+        kind: ComponentCallType.BASIC,
+        isTemplate: false,
+        id: ASTTestFactory.getId(),
         variant: 'content',
-        blockType: 'basic',
         properties: {},
       })
       const run = compileValueFunction(block, {

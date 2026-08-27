@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AuthoredValueClassifier from '../../../chassis/compilation/analysis/shared/AuthoredValueClassifier'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import {
   PolicyType,
   ComponentCallType,
@@ -69,8 +68,8 @@ function createFieldBlock(code: unknown): FieldBlockASTNode {
 
 function createReference(path: string[]): ReferenceASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.REFERENCE,
+    kind: ExpressionType.REFERENCE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { path },
@@ -79,8 +78,8 @@ function createReference(path: string[]): ReferenceASTNode {
 
 function createConditionFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionCallType.CONDITION,
+    kind: FunctionCallType.CONDITION,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -89,8 +88,8 @@ function createConditionFunction(name: string, args: unknown[] = []): FunctionAS
 
 function createGeneratorFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionCallType.GENERATOR,
+    kind: FunctionCallType.GENERATOR,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -111,8 +110,8 @@ function createTestPredicate(
   negate = false,
 ): TestPredicateASTNode {
   return {
-    type: ASTNodeType.PREDICATE,
-    predicateType: PredicateType.TEST,
+    kind: PredicateType.TEST,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { subject, condition, negate },
@@ -130,8 +129,8 @@ function createValidation(
   options: { submissionOnly?: boolean; details?: Record<string, unknown>; groups?: string[] } = {},
 ): ValidationASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: PolicyType.VALIDATION_RULE,
+    kind: PolicyType.VALIDATION_RULE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: {
@@ -149,8 +148,8 @@ function createFunctionValidation(
   options: { submissionOnly?: boolean; groups?: string[] } = {},
 ): ValidationASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: PolicyType.VALIDATION_RULE,
+    kind: PolicyType.VALIDATION_RULE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: {
@@ -1112,8 +1111,8 @@ describe('StepValidationCompiler', () => {
       const block = createFieldBlock('name')
       const ref = createReference(['answers', 'name'])
       const messageGenerator: FunctionASTNode = {
-        type: ASTNodeType.EXPRESSION,
-        expressionType: FunctionCallType.GENERATOR,
+        kind: FunctionCallType.GENERATOR,
+        isTemplate: false,
         id: ASTTestFactory.getId(),
         diagnostics: ASTTestFactory.diagnostics(),
         properties: { name: 'messageGenerator', arguments: [] },
@@ -1171,8 +1170,8 @@ describe('StepValidationCompiler', () => {
       const ref1 = createReference(['answers', 'field'])
       const ref2 = createReference(['answers', 'field'])
       const andPred: AndPredicateASTNode = {
-        type: ASTNodeType.PREDICATE,
-        predicateType: PredicateType.AND,
+        kind: PredicateType.AND,
+        isTemplate: false,
         id: ASTTestFactory.getId(),
         diagnostics: ASTTestFactory.diagnostics(),
         properties: {
@@ -1203,8 +1202,8 @@ describe('StepValidationCompiler', () => {
       const ref1 = createReference(['answers', 'field'])
       const ref2 = createReference(['answers', 'field'])
       const orPred: OrPredicateASTNode = {
-        type: ASTNodeType.PREDICATE,
-        predicateType: PredicateType.OR,
+        kind: PredicateType.OR,
+        isTemplate: false,
         id: ASTTestFactory.getId(),
         diagnostics: ASTTestFactory.diagnostics(),
         properties: {
@@ -1239,8 +1238,8 @@ describe('StepValidationCompiler', () => {
       const block = createFieldBlock('field')
       const ref = createReference(['answers', 'field'])
       const notPred: NotPredicateASTNode = {
-        type: ASTNodeType.PREDICATE,
-        predicateType: PredicateType.NOT,
+        kind: PredicateType.NOT,
+        isTemplate: false,
         id: ASTTestFactory.getId(),
         diagnostics: ASTTestFactory.diagnostics(),
         properties: {
@@ -1267,8 +1266,8 @@ describe('StepValidationCompiler', () => {
       const ref1 = createReference(['answers', 'a'])
       const ref2 = createReference(['answers', 'b'])
       const xorPred: XorPredicateASTNode = {
-        type: ASTNodeType.PREDICATE,
-        predicateType: PredicateType.XOR,
+        kind: PredicateType.XOR,
+        isTemplate: false,
         id: ASTTestFactory.getId(),
         diagnostics: ASTTestFactory.diagnostics(),
         properties: {
@@ -1590,28 +1589,33 @@ describe('StepValidationCompiler', () => {
       const iterateNode = createIterateNode(
         createReference(['data', 'items']),
         createTemplateValue({
-          type: ASTNodeType.BLOCK,
+          kind: ComponentCallType.FIELD,
+          isTemplate: false,
+          id: ASTTestFactory.getId(),
           variant: 'text-input',
-          blockType: ComponentCallType.FIELD,
           properties: {
             code: 'name',
             validWhen: [
               {
-                type: ASTNodeType.EXPRESSION,
-                expressionType: PolicyType.VALIDATION_RULE,
+                kind: PolicyType.VALIDATION_RULE,
+                isTemplate: false,
+                id: ASTTestFactory.getId(),
                 properties: {
                   condition: {
-                    type: ASTNodeType.PREDICATE,
-                    predicateType: PredicateType.TEST,
+                    kind: PredicateType.TEST,
+                    isTemplate: false,
+                    id: ASTTestFactory.getId(),
                     properties: {
                       subject: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: ExpressionType.REFERENCE,
+                        kind: ExpressionType.REFERENCE,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { path: ['answers', '@self'] },
                       },
                       condition: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionCallType.CONDITION,
+                        kind: FunctionCallType.CONDITION,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,
@@ -1651,28 +1655,33 @@ describe('StepValidationCompiler', () => {
       const iterateNode = createIterateNode(
         createReference(['data', 'items']),
         createTemplateValue({
-          type: ASTNodeType.BLOCK,
+          kind: ComponentCallType.FIELD,
+          isTemplate: false,
+          id: ASTTestFactory.getId(),
           variant: 'text-input',
-          blockType: ComponentCallType.FIELD,
           properties: {
             code: 'name',
             validWhen: [
               {
-                type: ASTNodeType.EXPRESSION,
-                expressionType: PolicyType.VALIDATION_RULE,
+                kind: PolicyType.VALIDATION_RULE,
+                isTemplate: false,
+                id: ASTTestFactory.getId(),
                 properties: {
                   condition: {
-                    type: ASTNodeType.PREDICATE,
-                    predicateType: PredicateType.TEST,
+                    kind: PredicateType.TEST,
+                    isTemplate: false,
+                    id: ASTTestFactory.getId(),
                     properties: {
                       subject: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: ExpressionType.REFERENCE,
+                        kind: ExpressionType.REFERENCE,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { path: ['@self'] },
                       },
                       condition: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionCallType.CONDITION,
+                        kind: FunctionCallType.CONDITION,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,
@@ -1706,29 +1715,34 @@ describe('StepValidationCompiler', () => {
       const iterateNode = createIterateNode(
         createReference(['data', 'items']),
         createTemplateValue({
-          type: ASTNodeType.BLOCK,
+          kind: ComponentCallType.FIELD,
+          isTemplate: false,
+          id: ASTTestFactory.getId(),
           variant: 'text-input',
-          blockType: ComponentCallType.FIELD,
           properties: {
             code: 'name',
             validWhen: [
               {
-                type: ASTNodeType.EXPRESSION,
-                expressionType: PolicyType.VALIDATION_RULE,
+                kind: PolicyType.VALIDATION_RULE,
+                isTemplate: false,
+                id: ASTTestFactory.getId(),
                 properties: {
                   groups: ['items'],
                   condition: {
-                    type: ASTNodeType.PREDICATE,
-                    predicateType: PredicateType.TEST,
+                    kind: PredicateType.TEST,
+                    isTemplate: false,
+                    id: ASTTestFactory.getId(),
                     properties: {
                       subject: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: ExpressionType.REFERENCE,
+                        kind: ExpressionType.REFERENCE,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { path: ['answers', '@self'] },
                       },
                       condition: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionCallType.CONDITION,
+                        kind: FunctionCallType.CONDITION,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,
@@ -1765,34 +1779,40 @@ describe('StepValidationCompiler', () => {
       const iterateNode = createIterateNode(
         createReference(['data', 'items']),
         createTemplateValue({
-          type: ASTNodeType.BLOCK,
+          kind: ComponentCallType.FIELD,
+          isTemplate: false,
+          id: ASTTestFactory.getId(),
           variant: 'text-input',
-          blockType: ComponentCallType.FIELD,
           properties: {
             code: ASTTestFactory.formatExpression('item_%1', [
               {
-                type: ASTNodeType.EXPRESSION,
-                expressionType: ExpressionType.REFERENCE,
+                kind: ExpressionType.REFERENCE,
+                isTemplate: false,
+                id: ASTTestFactory.getId(),
                 properties: { path: ['@loop', '0', 'index0'] },
               },
             ]),
             validWhen: [
               {
-                type: ASTNodeType.EXPRESSION,
-                expressionType: PolicyType.VALIDATION_RULE,
+                kind: PolicyType.VALIDATION_RULE,
+                isTemplate: false,
+                id: ASTTestFactory.getId(),
                 properties: {
                   condition: {
-                    type: ASTNodeType.PREDICATE,
-                    predicateType: PredicateType.TEST,
+                    kind: PredicateType.TEST,
+                    isTemplate: false,
+                    id: ASTTestFactory.getId(),
                     properties: {
                       subject: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: ExpressionType.REFERENCE,
+                        kind: ExpressionType.REFERENCE,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { path: ['answers', '@self'] },
                       },
                       condition: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionCallType.CONDITION,
+                        kind: FunctionCallType.CONDITION,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,
@@ -1834,51 +1854,60 @@ describe('StepValidationCompiler', () => {
         createReference(['data', 'teams']),
         createTemplateValue([
           {
-            type: ASTNodeType.EXPRESSION,
-            expressionType: ExpressionType.ITERATE,
+            kind: ExpressionType.ITERATE,
+            isTemplate: false,
+            id: ASTTestFactory.getId(),
             properties: {
               input: {
-                type: ASTNodeType.EXPRESSION,
-                expressionType: ExpressionType.REFERENCE,
+                kind: ExpressionType.REFERENCE,
+                isTemplate: false,
+                id: ASTTestFactory.getId(),
                 properties: { path: ['@loop', 0, 'item', 'members'] },
               },
               iterator: {
                 type: IteratorType.MAP,
                 yieldTemplate: [
                   {
-                    type: ASTNodeType.BLOCK,
+                    kind: ComponentCallType.FIELD,
+                    isTemplate: false,
+                    id: ASTTestFactory.getId(),
                     variant: 'text-input',
-                    blockType: ComponentCallType.FIELD,
                     properties: {
                       code: ASTTestFactory.formatExpression('team_%1_member_%2', [
                         {
-                          type: ASTNodeType.EXPRESSION,
-                          expressionType: ExpressionType.REFERENCE,
+                          kind: ExpressionType.REFERENCE,
+                          isTemplate: false,
+                          id: ASTTestFactory.getId(),
                           properties: { path: ['@loop', '1', 'index0'] },
                         },
                         {
-                          type: ASTNodeType.EXPRESSION,
-                          expressionType: ExpressionType.REFERENCE,
+                          kind: ExpressionType.REFERENCE,
+                          isTemplate: false,
+                          id: ASTTestFactory.getId(),
                           properties: { path: ['@loop', '0', 'index0'] },
                         },
                       ]),
                       validWhen: [
                         {
-                          type: ASTNodeType.EXPRESSION,
-                          expressionType: PolicyType.VALIDATION_RULE,
+                          kind: PolicyType.VALIDATION_RULE,
+                          isTemplate: false,
+                          id: ASTTestFactory.getId(),
                           properties: {
                             condition: {
-                              type: ASTNodeType.PREDICATE,
-                              predicateType: PredicateType.TEST,
+                              kind: PredicateType.TEST,
+                              isTemplate: false,
+                              id: ASTTestFactory.getId(),
                               properties: {
                                 subject: {
-                                  type: ASTNodeType.EXPRESSION,
-                                  expressionType: ExpressionType.REFERENCE,
+                                  kind: ExpressionType.REFERENCE,
+                                  isTemplate: false,
+                                  id: ASTTestFactory.getId(),
                                   properties: { path: ['answers', '@self'] },
                                 },
                                 condition: {
-                                  type: ASTNodeType.EXPRESSION,
-                                  expressionType: FunctionCallType.CONDITION,
+                                  kind: FunctionCallType.CONDITION,
+                                  isTemplate: false,
+                                  id: ASTTestFactory.getId(),
                                   properties: { name: 'isRequired', arguments: [] },
                                 },
                                 negate: false,
@@ -1933,28 +1962,33 @@ describe('StepValidationCompiler', () => {
       const iterateNode = createIterateNode(
         createReference(['data', 'items']),
         createTemplateValue({
-          type: ASTNodeType.BLOCK,
+          kind: ComponentCallType.FIELD,
+          isTemplate: false,
+          id: ASTTestFactory.getId(),
           variant: 'text-input',
-          blockType: ComponentCallType.FIELD,
           properties: {
             code: 'item',
             validWhen: [
               {
-                type: ASTNodeType.EXPRESSION,
-                expressionType: PolicyType.VALIDATION_RULE,
+                kind: PolicyType.VALIDATION_RULE,
+                isTemplate: false,
+                id: ASTTestFactory.getId(),
                 properties: {
                   condition: {
-                    type: ASTNodeType.PREDICATE,
-                    predicateType: PredicateType.TEST,
+                    kind: PredicateType.TEST,
+                    isTemplate: false,
+                    id: ASTTestFactory.getId(),
                     properties: {
                       subject: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: ExpressionType.REFERENCE,
+                        kind: ExpressionType.REFERENCE,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { path: ['@loop', '0', 'item'] },
                       },
                       condition: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionCallType.CONDITION,
+                        kind: FunctionCallType.CONDITION,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,
@@ -1987,34 +2021,40 @@ describe('StepValidationCompiler', () => {
       const iterateNode = createIterateNode(
         createReference(['data', 'items']),
         createTemplateValue({
-          type: ASTNodeType.BLOCK,
+          kind: ComponentCallType.FIELD,
+          isTemplate: false,
+          id: ASTTestFactory.getId(),
           variant: 'text-input',
-          blockType: ComponentCallType.FIELD,
           properties: {
             code: ASTTestFactory.formatExpression('item_%1', [
               {
-                type: ASTNodeType.EXPRESSION,
-                expressionType: ExpressionType.REFERENCE,
+                kind: ExpressionType.REFERENCE,
+                isTemplate: false,
+                id: ASTTestFactory.getId(),
                 properties: { path: ['@loop', '0', 'item', '@key'] },
               },
             ]),
             validWhen: [
               {
-                type: ASTNodeType.EXPRESSION,
-                expressionType: PolicyType.VALIDATION_RULE,
+                kind: PolicyType.VALIDATION_RULE,
+                isTemplate: false,
+                id: ASTTestFactory.getId(),
                 properties: {
                   condition: {
-                    type: ASTNodeType.PREDICATE,
-                    predicateType: PredicateType.TEST,
+                    kind: PredicateType.TEST,
+                    isTemplate: false,
+                    id: ASTTestFactory.getId(),
                     properties: {
                       subject: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: ExpressionType.REFERENCE,
+                        kind: ExpressionType.REFERENCE,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { path: ['answers', '@self'] },
                       },
                       condition: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionCallType.CONDITION,
+                        kind: FunctionCallType.CONDITION,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,
@@ -2051,28 +2091,33 @@ describe('StepValidationCompiler', () => {
       const iterateNode = createIterateNode(
         createReference(['data', 'people']),
         createTemplateValue({
-          type: ASTNodeType.BLOCK,
+          kind: ComponentCallType.FIELD,
+          isTemplate: false,
+          id: ASTTestFactory.getId(),
           variant: 'text-input',
-          blockType: ComponentCallType.FIELD,
           properties: {
             code: 'person',
             validWhen: [
               {
-                type: ASTNodeType.EXPRESSION,
-                expressionType: PolicyType.VALIDATION_RULE,
+                kind: PolicyType.VALIDATION_RULE,
+                isTemplate: false,
+                id: ASTTestFactory.getId(),
                 properties: {
                   condition: {
-                    type: ASTNodeType.PREDICATE,
-                    predicateType: PredicateType.TEST,
+                    kind: PredicateType.TEST,
+                    isTemplate: false,
+                    id: ASTTestFactory.getId(),
                     properties: {
                       subject: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: ExpressionType.REFERENCE,
+                        kind: ExpressionType.REFERENCE,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { path: ['@loop', '0', 'item', 'name'] },
                       },
                       condition: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionCallType.CONDITION,
+                        kind: FunctionCallType.CONDITION,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,
@@ -2265,28 +2310,33 @@ describe('StepValidationCompiler', () => {
       const iterateNode = createIterateNode(
         createReference(['data', 'items']),
         createTemplateValue({
-          type: ASTNodeType.BLOCK,
+          kind: ComponentCallType.FIELD,
+          isTemplate: false,
+          id: ASTTestFactory.getId(),
           variant: 'text-input',
-          blockType: ComponentCallType.FIELD,
           properties: {
             code: 'field',
             validWhen: [
               {
-                type: ASTNodeType.EXPRESSION,
-                expressionType: PolicyType.VALIDATION_RULE,
+                kind: PolicyType.VALIDATION_RULE,
+                isTemplate: false,
+                id: ASTTestFactory.getId(),
                 properties: {
                   condition: {
-                    type: ASTNodeType.PREDICATE,
-                    predicateType: PredicateType.TEST,
+                    kind: PredicateType.TEST,
+                    isTemplate: false,
+                    id: ASTTestFactory.getId(),
                     properties: {
                       subject: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: ExpressionType.REFERENCE,
+                        kind: ExpressionType.REFERENCE,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { path: ['answers', '@self'] },
                       },
                       condition: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionCallType.CONDITION,
+                        kind: FunctionCallType.CONDITION,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,
@@ -2318,28 +2368,33 @@ describe('StepValidationCompiler', () => {
       const iterateNode = createIterateNode(
         createReference(['data', 'items']),
         createTemplateValue({
-          type: ASTNodeType.BLOCK,
+          kind: ComponentCallType.FIELD,
+          isTemplate: false,
+          id: ASTTestFactory.getId(),
           variant: 'text-input',
-          blockType: ComponentCallType.FIELD,
           properties: {
             code: 'field',
             validWhen: [
               {
-                type: ASTNodeType.EXPRESSION,
-                expressionType: PolicyType.VALIDATION_RULE,
+                kind: PolicyType.VALIDATION_RULE,
+                isTemplate: false,
+                id: ASTTestFactory.getId(),
                 properties: {
                   condition: {
-                    type: ASTNodeType.PREDICATE,
-                    predicateType: PredicateType.TEST,
+                    kind: PredicateType.TEST,
+                    isTemplate: false,
+                    id: ASTTestFactory.getId(),
                     properties: {
                       subject: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: ExpressionType.REFERENCE,
+                        kind: ExpressionType.REFERENCE,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { path: ['answers', '@self'] },
                       },
                       condition: {
-                        type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionCallType.CONDITION,
+                        kind: FunctionCallType.CONDITION,
+                        isTemplate: false,
+                        id: ASTTestFactory.getId(),
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,

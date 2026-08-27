@@ -1,5 +1,4 @@
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import { ComponentCallType, ExpressionType, FunctionCallType, IteratorType } from '../../../../authoring/types/enums'
 import { FieldBlockASTNode } from '../../../chassis/contracts/ast/structures.type'
 import { FunctionASTNode, IterateASTNode, ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
@@ -23,8 +22,8 @@ function createFieldBlock(code: string | FunctionASTNode): FieldBlockASTNode {
 
 function createReference(path: (string | number)[]): ReferenceASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.REFERENCE,
+    kind: ExpressionType.REFERENCE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     properties: { path },
   } as ReferenceASTNode
@@ -32,8 +31,8 @@ function createReference(path: (string | number)[]): ReferenceASTNode {
 
 function createGeneratorFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionCallType.GENERATOR,
+    kind: FunctionCallType.GENERATOR,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     properties: { name, arguments: args },
   } as FunctionASTNode
@@ -45,8 +44,8 @@ function createTemplate(value: unknown): TemplateValue {
 
 function createIterateNode(input: unknown, yieldTemplate: TemplateValue): IterateASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.ITERATE,
+    kind: ExpressionType.ITERATE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     properties: {
       input,

@@ -1,20 +1,18 @@
-import { ASTNode } from './engine.type'
-import { ASTNodeType } from './enums'
+import { ASTNode, MaterialisedASTNode } from './ast.type'
 import { PredicateType } from '../../../../authoring/types/enums'
 
 /**
  * Logic AST node - represents logic/predicate operations
  */
-export interface PredicateASTNode extends ASTNode {
-  type: ASTNodeType.PREDICATE
-  predicateType: PredicateType
+export interface PredicateASTNode extends MaterialisedASTNode {
+  kind: PredicateType
 }
 
 /**
  * Test Predicate Logic AST node
  */
 export interface TestPredicateASTNode extends PredicateASTNode {
-  predicateType: PredicateType.TEST
+  kind: PredicateType.TEST
   properties: {
     subject: ASTNode
     condition: ASTNode
@@ -26,7 +24,7 @@ export interface TestPredicateASTNode extends PredicateASTNode {
  * Not Predicate Logic AST node
  */
 export interface NotPredicateASTNode extends PredicateASTNode {
-  predicateType: PredicateType.NOT
+  kind: PredicateType.NOT
   properties: {
     operand: ASTNode
   }
@@ -36,7 +34,7 @@ export interface NotPredicateASTNode extends PredicateASTNode {
  * And Predicate Logic AST node
  */
 export interface AndPredicateASTNode extends PredicateASTNode {
-  predicateType: PredicateType.AND
+  kind: PredicateType.AND
   properties: {
     operands: PredicateASTNode[]
   }
@@ -46,7 +44,7 @@ export interface AndPredicateASTNode extends PredicateASTNode {
  * Or Predicate Logic AST node
  */
 export interface OrPredicateASTNode extends PredicateASTNode {
-  predicateType: PredicateType.OR
+  kind: PredicateType.OR
   properties: {
     operands: PredicateASTNode[]
   }
@@ -56,7 +54,7 @@ export interface OrPredicateASTNode extends PredicateASTNode {
  * Xor Predicate Logic AST node
  */
 export interface XorPredicateASTNode extends PredicateASTNode {
-  predicateType: PredicateType.XOR
+  kind: PredicateType.XOR
   properties: {
     operands: PredicateASTNode[]
   }

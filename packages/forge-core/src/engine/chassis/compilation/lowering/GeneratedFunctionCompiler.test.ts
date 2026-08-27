@@ -9,7 +9,6 @@ import { CodeFragment, code, positionedCode } from './codegen/fragments/CodeFrag
 import CodeGenerator from './codegen/CodeGenerator'
 import ExpressionDispatcher from './expressions/ExpressionDispatcher'
 import { CompilationPhase, compileGeneratedFunction, type GeneratedFunction } from './GeneratedFunctionCompiler'
-import { ASTNodeType } from '../../contracts/ast/enums'
 import type { FunctionASTNode } from '../../contracts/ast/expressions.type'
 import { FunctionCallType } from '../../../../authoring/types/enums'
 
@@ -137,8 +136,8 @@ describe('GeneratedFunctionCompiler', () => {
 
       const expr = new ExpressionDispatcher({ functionRegistry, componentRegistry: new ComponentRegistry() })
       const expression: FunctionASTNode = {
-        type: ASTNodeType.EXPRESSION,
-        expressionType: FunctionCallType.GENERATOR,
+        kind: FunctionCallType.GENERATOR,
+        isTemplate: false,
         id: 'compile_ast:1',
         diagnostics: {
           source: { path: ['journey'], formattedPath: 'myJourney > value' },

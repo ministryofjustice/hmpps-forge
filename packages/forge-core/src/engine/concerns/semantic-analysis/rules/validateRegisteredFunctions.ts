@@ -26,13 +26,13 @@ export const validateRegisteredFunctions: ASTValidationRule = (context: ASTValid
   const errors: Error[] = []
 
   FUNCTION_TYPES.forEach(functionType => {
-    nodeIndex.findByType<FunctionASTNode>(functionType).forEach(node => {
+    nodeIndex.findByKind<FunctionASTNode>(functionType).forEach(node => {
       if (!functionRegistry.has(node.properties.name)) {
         errors.push(buildError(node.properties.name, functionType, node.diagnostics))
       }
     })
 
-    templateNodeIndex.findByType(functionType).forEach(({ node }) => {
+    templateNodeIndex.findByKind(functionType).forEach(({ node }) => {
       const name = (node.properties?.name as string) ?? ''
 
       if (!functionRegistry.has(name)) {

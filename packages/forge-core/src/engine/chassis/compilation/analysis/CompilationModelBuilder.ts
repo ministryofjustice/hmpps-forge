@@ -1,5 +1,5 @@
 import type { ASTNode, NodeId } from '../../contracts/ast/ast.type'
-import { ASTNodeType } from '../../contracts/ast/enums'
+import { StructureType } from '../../../../authoring/types/enums'
 import type { JourneyASTNode, StepASTNode } from '../../contracts/ast/structures.type'
 import type { FieldModel } from '../../contracts/models/fieldModel.type'
 import type { CompilationModel, JourneyModel, StepModel } from '../../contracts/models/compilationModel.type'
@@ -176,6 +176,6 @@ export default class CompilationModelBuilder {
   }
 
   private isJourneyNode(node: ASTNode | undefined): node is JourneyASTNode {
-    return node?.type === ASTNodeType.JOURNEY
+    return node?.kind === StructureType.JOURNEY
   }
 }

@@ -1,9 +1,7 @@
 import { PolicyType, ComponentCallType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
-import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
+import type { MaterialisedASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { IterateASTNode, ValidationASTNode } from '../../../chassis/contracts/ast/expressions.type'
-import type { TemplateNode } from '../../../chassis/contracts/ast/template.type'
-import type { TemplateNodeId } from '../../../chassis/contracts/ast/ast.type'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import type { TemplateASTNode, TemplateNodeId } from '../../../chassis/contracts/ast/ast.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
@@ -13,8 +11,11 @@ import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTValidationContext } from './types'
 import { validateValidationScope } from './validateValidationScope'
 
-const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, NodeId]>): ASTValidationContext => {
-  const byId = new Map<NodeId, ASTNode>(nodes.map(node => [node.id, node]))
+const createContext = (
+  nodes: readonly MaterialisedASTNode[],
+  edges: ReadonlyArray<[NodeId, NodeId]>,
+): ASTValidationContext => {
+  const byId = new Map<NodeId, MaterialisedASTNode>(nodes.map(node => [node.id, node]))
 
   edges.forEach(([childId, parentId]) => {
     const child = byId.get(childId)
@@ -39,10 +40,9 @@ const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, 
 const errorMessages = (errors: readonly Error[]): string[] =>
   errors.map(error => (error as ForgeReferenceScopeError).message)
 
-const validationTemplate = (): TemplateNode => ({
-  type: ASTNodeType.TEMPLATE,
-  originalType: ASTNodeType.EXPRESSION,
-  expressionType: PolicyType.VALIDATION_RULE,
+const validationTemplate = (): TemplateASTNode => ({
+  kind: PolicyType.VALIDATION_RULE,
+  isTemplate: true,
   id: 'template:1' as TemplateNodeId,
   diagnostics: ASTTestFactory.diagnostics(['validWhen', 'template']),
   properties: {},

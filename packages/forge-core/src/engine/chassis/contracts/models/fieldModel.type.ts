@@ -1,6 +1,6 @@
 import type { IterateASTNode } from '../ast/expressions.type'
 import type { FieldBlockASTNode } from '../ast/structures.type'
-import type { TemplateNode } from '../ast/template.type'
+import type { TemplateASTNode } from '../ast/ast.type'
 import type { AuthoredValue, ExpressionValue } from './authoredValue.type'
 
 /**
@@ -11,7 +11,7 @@ import type { AuthoredValue, ExpressionValue } from './authoredValue.type'
  */
 export interface FieldModel {
   /** Diagnostics only — never queried structurally past analysis. */
-  readonly source: FieldBlockASTNode | TemplateNode
+  readonly source: FieldBlockASTNode | TemplateASTNode
   /** Iterator nesting this occurrence sits under; empty for registered fields. */
   readonly iteratorPath: readonly IterateRef[]
   readonly code?: StaticFieldCode | DynamicFieldCode
@@ -27,7 +27,7 @@ export interface FieldModel {
 
 /** One level of iterator nesting: the registered or template MAP iterate node. */
 export interface IterateRef {
-  readonly node: IterateASTNode | TemplateNode
+  readonly node: IterateASTNode | TemplateASTNode
 }
 
 export enum FieldCodeKind {

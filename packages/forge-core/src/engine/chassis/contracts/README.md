@@ -28,7 +28,7 @@ the pipeline speaks.
 
 | Folder | What it defines |
 |--------|-----------------|
-| [`ast/`](./ast) | AST node types (`ASTNode`, `JourneyASTNode`, `StepASTNode`, `ExpressionASTNode`, etc.), the `ASTNodeType` enum, and type guard functions (`isReferenceExprNode`, `isFieldBlockStructNode`, etc.) |
+| [`ast/`](./ast) | AST node types (`ASTNode`, `MaterialisedASTNode`, `TemplateASTNode`, and concrete semantic nodes), the `ASTNodeKind`/`ASTNodeFamily` taxonomy, and state/type guards |
 | [`compiled/`](./compiled) | Compiled function signatures (`CompiledResolveFunction`, `CompiledValidationFunction`, `CompiledReachabilityFactsFunction`, `CompiledRouteMetadataFunction`, etc.) and the phase context types each function receives (`CompiledValidationContext`, `CompiledResolveContext`, `CompiledAnswerPreparationContext`, `CompiledRouteMetadataContext`, all extending `CompiledBaseContext`) |
 | [`models/`](./models) | The semantic model analysis hands to lowering: `CompilationModel` / `JourneyModel` / `StepModel`, `FieldModel`, and the shared `AuthoredValue` types and guards |
 | [`plans/`](./plans) | `StepMountInfo` / `JourneyMountInfo` (the identity and route path that survive into runtime), and the compiled artefact wrappers (`CompiledStep`, `CompiledJourney`) |

@@ -1,6 +1,6 @@
 import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { BlockASTNode } from '../../../chassis/contracts/ast/structures.type'
-import type { TemplateNode } from '../../../chassis/contracts/ast/template.type'
+import type { TemplateASTNode } from '../../../chassis/contracts/ast/ast.type'
 import type { AuthoredValue } from '../../../chassis/contracts/models/authoredValue.type'
 
 /**
@@ -40,7 +40,7 @@ export interface ResolveAncestorModel {
 
 export interface ResolveBlockModel {
   /** The block node — diagnostics, and template instance-id emission. */
-  readonly source: BlockASTNode | TemplateNode
+  readonly source: BlockASTNode | TemplateASTNode
   /** Registered block id; template blocks derive an instance id at runtime. */
   readonly id?: string
   readonly variant: string

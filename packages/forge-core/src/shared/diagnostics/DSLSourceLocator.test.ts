@@ -9,10 +9,9 @@ import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import type { FunctionASTNode, IterateASTNode, MatchASTNode } from '../../engine/chassis/contracts/ast/expressions.type'
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../../engine/chassis/contracts/ast/structures.type'
 import type { TestPredicateASTNode } from '../../engine/chassis/contracts/ast/predicates.type'
-import type { TemplateNode } from '../../engine/chassis/contracts/ast/template.type'
+import type { TemplateASTNode } from '../../engine/chassis/contracts/ast/ast.type'
 import { NodeIDGenerator } from '../../engine/chassis/compilation/ast/ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../engine/chassis/compilation/ast/nodes/NodeFactory'
-import { ASTNodeType } from '../../engine/chassis/contracts/ast/enums'
 import { finaliseBuilders } from '../../authoring/builders/utils/finaliseBuilders'
 import DSLSourceLocator from './DSLSourceLocator'
 
@@ -135,10 +134,10 @@ describe('DSLSourceLocator', () => {
       const step = root.properties.steps![0] as StepASTNode
       const block = step.properties.blocks![0]
       const iterate = block.properties.items as IterateASTNode
-      const template = iterate.properties.iterator.yieldTemplate as TemplateNode
+      const template = iterate.properties.iterator.yieldTemplate as TemplateASTNode
 
       // Assert
-      expect(template.type).toBe(ASTNodeType.TEMPLATE)
+      expect(template.isTemplate).toBe(true)
       expect(template.diagnostics?.source.path).toEqual(['steps', 0, 'blocks', 0, 'items', 'iterator', 'yield'])
       expect(template.diagnostics?.source.formattedPath).toBe(
         'travel-declaration > personal-details > blocks[0] (collection-block) > items > source > iterator > template',

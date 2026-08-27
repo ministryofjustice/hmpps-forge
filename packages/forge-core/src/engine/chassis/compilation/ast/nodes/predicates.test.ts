@@ -1,4 +1,3 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
 import { ExpressionType, FunctionCallType, PredicateType } from '../../../../../authoring/types/enums'
 import type {
   PredicateAndExpr,
@@ -37,8 +36,8 @@ describe('predicates', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.PREDICATE)
-      expect(result.predicateType).toBe(PredicateType.TEST)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(PredicateType.TEST)
       expect(result.properties.subject).toBeDefined()
       expect(result.properties.condition).toBeDefined()
       expect(result.properties.negate).toBeDefined()
@@ -58,8 +57,8 @@ describe('predicates', () => {
       const subject = result.properties.subject as ExpressionASTNode
 
       // Assert
-      expect(subject.type).toBe(ASTNodeType.EXPRESSION)
-      expect(subject.expressionType).toBe(ExpressionType.REFERENCE)
+      expect(subject.isTemplate).toBe(false)
+      expect(subject.kind).toBe(ExpressionType.REFERENCE)
     })
 
     it('should transform condition using nodeFactory', () => {
@@ -76,8 +75,8 @@ describe('predicates', () => {
       const condition = result.properties.condition as ExpressionASTNode
 
       // Assert
-      expect(condition.type).toBe(ASTNodeType.EXPRESSION)
-      expect(condition.expressionType).toBe(FunctionCallType.CONDITION)
+      expect(condition.isTemplate).toBe(false)
+      expect(condition.kind).toBe(FunctionCallType.CONDITION)
     })
 
     it('should handle negate flag as true', () => {
@@ -247,8 +246,8 @@ describe('predicates', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.PREDICATE)
-      expect(result.predicateType).toBe(PredicateType.NOT)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(PredicateType.NOT)
       expect(result.properties.operand).toBeDefined()
     })
 
@@ -269,8 +268,8 @@ describe('predicates', () => {
       const operand = result.properties.operand as PredicateASTNode
 
       // Assert
-      expect(operand.type).toBe(ASTNodeType.PREDICATE)
-      expect(operand.predicateType).toBe(PredicateType.TEST)
+      expect(operand.isTemplate).toBe(false)
+      expect(operand.kind).toBe(PredicateType.TEST)
     })
 
     it('should handle nested Not predicates', () => {
@@ -294,8 +293,8 @@ describe('predicates', () => {
       const innerOperand = outerOperand.properties.operand as PredicateASTNode
 
       // Assert
-      expect(outerOperand.predicateType).toBe(PredicateType.NOT)
-      expect(innerOperand.predicateType).toBe(PredicateType.TEST)
+      expect(outerOperand.kind).toBe(PredicateType.NOT)
+      expect(innerOperand.kind).toBe(PredicateType.TEST)
     })
 
     it('should throw ForgeInvalidNodeError when operand is missing', () => {
@@ -341,8 +340,8 @@ describe('predicates', () => {
       // Assert
       results.forEach((result, index) => {
         expect(result.id).toBeDefined()
-        expect(result.type).toBe(ASTNodeType.PREDICATE)
-        expect(result.predicateType).toBe(naryPredicateTypes[index])
+        expect(result.isTemplate).toBe(false)
+        expect(result.kind).toBe(naryPredicateTypes[index])
         expect(result.properties.operands).toHaveLength(2)
       })
     })
@@ -356,8 +355,8 @@ describe('predicates', () => {
 
       // Assert
       result.properties.operands.forEach(operand => {
-        expect(operand.type).toBe(ASTNodeType.PREDICATE)
-        expect(operand.predicateType).toBe(PredicateType.TEST)
+        expect(operand.isTemplate).toBe(false)
+        expect(operand.kind).toBe(PredicateType.TEST)
       })
     })
 
@@ -372,7 +371,7 @@ describe('predicates', () => {
 
       // Assert
       const [nested] = result.properties.operands
-      expect(nested.predicateType).toBe(PredicateType.XOR)
+      expect(nested.kind).toBe(PredicateType.XOR)
       expect((nested as typeof result).properties.operands).toHaveLength(2)
     })
 

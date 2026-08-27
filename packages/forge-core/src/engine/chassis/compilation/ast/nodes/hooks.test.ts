@@ -1,4 +1,3 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
 import {
   ExpressionType,
   FunctionCallType,
@@ -53,10 +52,10 @@ describe('hooks', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.HOOK)
-      expect(result.hookType).toBe(HookType.ACCESS)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(HookType.ACCESS)
       expect(result.properties.when).toBeDefined()
-      expect(result.properties.when!.type).toBe(ASTNodeType.PREDICATE)
+      expect(result.properties.when!.isTemplate).toBe(false)
     })
 
     it('should create an Access hook with effects', () => {
@@ -80,8 +79,8 @@ describe('hooks', () => {
 
       effects.forEach(effect => {
         expect(effect).toHaveProperty('id')
-        expect(effect.type).toBe(ASTNodeType.EXPRESSION)
-        expect(effect.expressionType).toBe(FunctionCallType.EFFECT)
+        expect(effect.isTemplate).toBe(false)
+        expect(effect.kind).toBe(FunctionCallType.EFFECT)
       })
     })
 
@@ -110,12 +109,12 @@ describe('hooks', () => {
       const effects = result.properties.effects as FunctionASTNode[]
       expect(effects).toHaveLength(2)
 
-      expect(effects[0].type).toBe(ASTNodeType.EXPRESSION)
-      expect(effects[0].expressionType).toBe(FunctionCallType.EFFECT)
+      expect(effects[0].isTemplate).toBe(false)
+      expect(effects[0].kind).toBe(FunctionCallType.EFFECT)
       expect(effects[0].properties.name).toBe('effect1')
 
-      expect(effects[1].type).toBe(ASTNodeType.EXPRESSION)
-      expect(effects[1].expressionType).toBe(FunctionCallType.EFFECT)
+      expect(effects[1].isTemplate).toBe(false)
+      expect(effects[1].kind).toBe(FunctionCallType.EFFECT)
       expect(effects[1].properties.name).toBe('effect2')
     })
 
@@ -143,8 +142,8 @@ describe('hooks', () => {
       // Assert
       expect(result.properties.next).toBeDefined()
       expect(result.properties.next).toHaveLength(1)
-      expect(result.properties.next![0].type).toBe(ASTNodeType.OUTCOME)
-      expect((result.properties.next![0] as RedirectOutcomeASTNode).outcomeType).toBe(PolicyType.OUTCOME_REDIRECT)
+      expect(result.properties.next![0].isTemplate).toBe(false)
+      expect((result.properties.next![0] as RedirectOutcomeASTNode).kind).toBe(PolicyType.OUTCOME_REDIRECT)
     })
 
     it('should create an Access hook with throwError outcome', () => {
@@ -172,8 +171,8 @@ describe('hooks', () => {
       // Assert
       expect(result.properties.next).toBeDefined()
       expect(result.properties.next).toHaveLength(1)
-      expect(result.properties.next![0].type).toBe(ASTNodeType.OUTCOME)
-      expect((result.properties.next![0] as ThrowErrorOutcomeASTNode).outcomeType).toBe(PolicyType.OUTCOME_THROW_ERROR)
+      expect(result.properties.next![0].isTemplate).toBe(false)
+      expect((result.properties.next![0] as ThrowErrorOutcomeASTNode).kind).toBe(PolicyType.OUTCOME_THROW_ERROR)
     })
 
     it('should create an Access hook with multiple outcomes', () => {
@@ -205,8 +204,8 @@ describe('hooks', () => {
       // Assert
       expect(result.properties.next).toBeDefined()
       expect(result.properties.next).toHaveLength(2)
-      expect((result.properties.next![0] as ThrowErrorOutcomeASTNode).outcomeType).toBe(PolicyType.OUTCOME_THROW_ERROR)
-      expect((result.properties.next![1] as RedirectOutcomeASTNode).outcomeType).toBe(PolicyType.OUTCOME_REDIRECT)
+      expect((result.properties.next![0] as ThrowErrorOutcomeASTNode).kind).toBe(PolicyType.OUTCOME_THROW_ERROR)
+      expect((result.properties.next![1] as RedirectOutcomeASTNode).kind).toBe(PolicyType.OUTCOME_REDIRECT)
     })
 
     it('should create an Access hook with all properties', () => {
@@ -242,9 +241,9 @@ describe('hooks', () => {
       expect(result.properties.effects).toBeDefined()
       expect(result.properties.next).toBeDefined()
 
-      expect(result.properties.when!.type).toBe(ASTNodeType.PREDICATE)
-      expect(result.properties.effects![0].type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.properties.next![0].type).toBe(ASTNodeType.OUTCOME)
+      expect(result.properties.when!.isTemplate).toBe(false)
+      expect(result.properties.effects![0].isTemplate).toBe(false)
+      expect(result.properties.next![0].isTemplate).toBe(false)
     })
 
     it('should not set effects if not an array', () => {
@@ -319,12 +318,12 @@ describe('hooks', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.HOOK)
-      expect(result.hookType).toBe(HookType.SUBMIT)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(HookType.SUBMIT)
       expect(result.properties.when).toBeDefined()
 
       const whenNode = result.properties.when
-      expect(whenNode!.type).toBe(ASTNodeType.PREDICATE)
+      expect(whenNode!.isTemplate).toBe(false)
     })
 
     it('should create a Submit hook with guards', () => {
@@ -347,7 +346,7 @@ describe('hooks', () => {
       expect(result.properties.guards).toBeDefined()
 
       const guardsNode = result.properties.guards
-      expect(guardsNode!.type).toBe(ASTNodeType.PREDICATE)
+      expect(guardsNode!.isTemplate).toBe(false)
     })
 
     it('should set validate to true when explicitly true', () => {
@@ -452,8 +451,8 @@ describe('hooks', () => {
       expect(Array.isArray(onAlways.effects)).toBe(true)
       expect(Array.isArray(onAlways.next)).toBe(true)
 
-      expect(onAlways.effects![0].type).toBe(ASTNodeType.EXPRESSION)
-      expect(onAlways.next![0].type).toBe(ASTNodeType.OUTCOME)
+      expect(onAlways.effects![0].isTemplate).toBe(false)
+      expect(onAlways.next![0].isTemplate).toBe(false)
     })
 
     it('should create a Submit hook with onValid branch', () => {
@@ -476,8 +475,8 @@ describe('hooks', () => {
       expect(onValid).toHaveProperty('effects')
       expect(onValid).toHaveProperty('next')
 
-      expect(onValid.effects![0].type).toBe(ASTNodeType.EXPRESSION)
-      expect(onValid.next![0].type).toBe(ASTNodeType.OUTCOME)
+      expect(onValid.effects![0].isTemplate).toBe(false)
+      expect(onValid.next![0].isTemplate).toBe(false)
     })
 
     it('should create a Submit hook with onInvalid branch', () => {
@@ -500,8 +499,8 @@ describe('hooks', () => {
       expect(onInvalid).toHaveProperty('effects')
       expect(onInvalid).toHaveProperty('next')
 
-      expect(onInvalid.effects![0].type).toBe(ASTNodeType.EXPRESSION)
-      expect(onInvalid.next![0].type).toBe(ASTNodeType.OUTCOME)
+      expect(onInvalid.effects![0].isTemplate).toBe(false)
+      expect(onInvalid.next![0].isTemplate).toBe(false)
     })
 
     it('should create a Submit hook with all branches', () => {
@@ -529,10 +528,10 @@ describe('hooks', () => {
       expect(result.properties.onValid).toBeDefined()
       expect(result.properties.onInvalid).toBeDefined()
 
-      expect(result.properties.onAlways!.effects![0].type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.properties.onValid!.next![0].type).toBe(ASTNodeType.OUTCOME)
-      expect(result.properties.onInvalid!.effects![0].type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.properties.onInvalid!.next![0].type).toBe(ASTNodeType.OUTCOME)
+      expect(result.properties.onAlways!.effects![0].isTemplate).toBe(false)
+      expect(result.properties.onValid!.next![0].isTemplate).toBe(false)
+      expect(result.properties.onInvalid!.effects![0].isTemplate).toBe(false)
+      expect(result.properties.onInvalid!.next![0].isTemplate).toBe(false)
     })
 
     it('should handle branch with only effects', () => {

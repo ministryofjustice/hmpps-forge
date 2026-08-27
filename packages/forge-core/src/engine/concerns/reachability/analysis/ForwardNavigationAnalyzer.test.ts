@@ -1,5 +1,4 @@
 import { FunctionCallType, HookType, PolicyType, PredicateType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type { RedirectOutcomeASTNode, SubmitHookASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { TestPredicateASTNode } from '../../../chassis/contracts/ast/predicates.type'
 import type { StepASTNode } from '../../../chassis/contracts/ast/structures.type'
@@ -33,8 +32,8 @@ function createSubmitHookWithRedirect(
       next: [
         redirect,
         {
-          type: ASTNodeType.OUTCOME,
-          outcomeType: PolicyType.OUTCOME_THROW_ERROR,
+          kind: PolicyType.OUTCOME_THROW_ERROR,
+          isTemplate: false,
           id: ASTTestFactory.getId(),
           properties: { status: 400, message: 'Nope' },
         },

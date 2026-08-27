@@ -1,8 +1,7 @@
 import type { IteratorType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../ast/enums'
 import type { ASTNode } from '../ast/ast.type'
-import { isASTNode, isTemplateNode } from '../ast/nodes'
-import type { TemplateNode } from '../ast/template.type'
+import { ASTNodeFamily, astNodeFamily } from '../ast/enums'
+import { isASTNode } from '../ast/nodes'
 
 /**
  * The classified forms an authored value can take once analysis has finished
@@ -41,14 +40,14 @@ export interface StaticValue {
 /** An authored value that must be evaluated at request time. */
 export interface ExpressionValue {
   readonly kind: AuthoredValueKind.EXPRESSION
-  readonly node: ASTNode | TemplateNode
+  readonly node: ASTNode
 }
 
 /** A predicate choosing between two authored values. */
 export interface ConditionalValue {
   readonly kind: AuthoredValueKind.CONDITIONAL
   /** The conditional node itself — expression leaf and diagnostic token. */
-  readonly source: ASTNode | TemplateNode
+  readonly source: ASTNode
   readonly predicate: AuthoredValue
   readonly thenValue: AuthoredValue
   readonly elseValue: AuthoredValue
@@ -58,7 +57,7 @@ export interface ConditionalValue {
 export interface MatchValue {
   readonly kind: AuthoredValueKind.MATCH
   /** The match node itself — expression leaf and diagnostic token. */
-  readonly source: ASTNode | TemplateNode
+  readonly source: ASTNode
   readonly branches: readonly MatchBranchValue[]
   /** Present only when the author supplied an otherwise value. */
   readonly otherwise?: AuthoredValue
@@ -73,7 +72,7 @@ export interface MatchBranchValue {
 export interface IterationValue {
   readonly kind: AuthoredValueKind.ITERATION
   /** The iterate node itself — expression leaf and diagnostic token. */
-  readonly source: ASTNode | TemplateNode
+  readonly source: ASTNode
   /** `undefined` for unrecognised iterator kinds, which materialise as `undefined`. */
   readonly iterator?: IteratorType
   readonly input: AuthoredValue
@@ -109,7 +108,7 @@ export interface ListValue {
 export interface BlockValue {
   readonly kind: AuthoredValueKind.BLOCK
   /** The block node or block-shaped object — diagnostic and identity token. */
-  readonly source: TemplateNode | Record<string, unknown>
+  readonly source: ASTNode | Record<string, unknown>
   readonly variant: string
   readonly blockType: string
   /** Registered block id; template blocks derive an instance id at runtime. */
@@ -119,11 +118,11 @@ export interface BlockValue {
 }
 
 /** A node the expression dispatcher can compile — AST or template. */
-export function isExpressionLeaf(value: unknown): value is ASTNode | TemplateNode {
-  return isASTNode(value) || isTemplateNode(value)
+export function isExpressionLeaf(value: unknown): value is ASTNode {
+  return isASTNode(value)
 }
 
-export function expressionValue(node: ASTNode | TemplateNode): ExpressionValue {
+export function expressionValue(node: ASTNode): ExpressionValue {
   return { kind: AuthoredValueKind.EXPRESSION, node }
 }
 
@@ -154,8 +153,8 @@ export function isDeepStaticValue(value: unknown): boolean {
 
 /** A template block node or a block-shaped plain object. */
 export function isBlockShapedValue(value: unknown): boolean {
-  if (isTemplateNode(value)) {
-    return value.originalType === ASTNodeType.BLOCK
+  if (isASTNode(value)) {
+    return astNodeFamily(value.kind) === ASTNodeFamily.COMPONENT_CALL
   }
 
   if (value === null || value === undefined || typeof value !== 'object' || Array.isArray(value)) {
@@ -164,7 +163,7 @@ export function isBlockShapedValue(value: unknown): boolean {
 
   const record = value as Record<string, unknown>
 
-  return record.type === ASTNodeType.BLOCK && typeof record.variant === 'string' && typeof record.blockType === 'string'
+  return typeof record.variant === 'string' && typeof record.blockType === 'string'
 }
 
 /**

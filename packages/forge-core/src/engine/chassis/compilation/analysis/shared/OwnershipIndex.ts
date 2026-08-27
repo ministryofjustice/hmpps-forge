@@ -1,6 +1,5 @@
-import { ComponentCallType, ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
-import type { ASTNode, NodeId } from '../../../contracts/ast/ast.type'
-import { ASTNodeType } from '../../../contracts/ast/enums'
+import { ComponentCallType, ExpressionType, IteratorType, StructureType } from '../../../../../authoring/types/enums'
+import type { MaterialisedASTNode, NodeId } from '../../../contracts/ast/ast.type'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
 import type ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
@@ -35,10 +34,10 @@ export default class OwnershipIndex {
     nodeIndex: ASTNodeIndex,
     private readonly ancestry: Ancestry = new Ancestry(),
   ) {
-    nodeIndex.findByType<JourneyASTNode>(ASTNodeType.JOURNEY).forEach(journeyNode => {
+    nodeIndex.findByKind<JourneyASTNode>(StructureType.JOURNEY).forEach(journeyNode => {
       this.journeyBuckets.set(journeyNode.id, { journeyNode, stepNodes: [] })
     })
-    nodeIndex.findByType<StepASTNode>(ASTNodeType.STEP).forEach(stepNode => {
+    nodeIndex.findByKind<StepASTNode>(StructureType.STEP).forEach(stepNode => {
       this.stepBuckets.set(stepNode.id, {
         stepNode,
         fieldBlocks: [],
@@ -47,10 +46,10 @@ export default class OwnershipIndex {
       })
       this.journeyBucketFor(stepNode)?.stepNodes.push(stepNode)
     })
-    nodeIndex.findByType<FieldBlockASTNode>(ComponentCallType.FIELD).forEach(fieldBlock => {
+    nodeIndex.findByKind<FieldBlockASTNode>(ComponentCallType.FIELD).forEach(fieldBlock => {
       this.nearestStepBucket(fieldBlock)?.fieldBlocks.push(fieldBlock)
     })
-    nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE).forEach(iterateNode => {
+    nodeIndex.findByKind<IterateASTNode>(ExpressionType.ITERATE).forEach(iterateNode => {
       const stepBucket = this.nearestStepBucket(iterateNode)
 
       if (stepBucket === undefined) {
@@ -70,7 +69,7 @@ export default class OwnershipIndex {
     return [...this.journeyBuckets.values()]
   }
 
-  // Accessors return a copy of the bucket (like `ASTNodeIndex.findByType`) so
+  // Accessors return a copy of the bucket (like `ASTNodeIndex.findByKind`) so
   // callers can't mutate the index's internal lists.
   fieldBlocksOf(stepId: NodeId): FieldBlockASTNode[] {
     return [...(this.stepBuckets.get(stepId)?.fieldBlocks ?? [])]
@@ -94,7 +93,7 @@ export default class OwnershipIndex {
   }
 
   // Steps never nest, so the nearest step ancestor is the unique owning step.
-  private nearestStepBucket(node: ASTNode): StepOwnership | undefined {
+  private nearestStepBucket(node: MaterialisedASTNode): StepOwnership | undefined {
     const owningStep = this.ancestry.nearestAncestorSetting(node, ancestor =>
       this.isStepNode(ancestor) ? ancestor : undefined,
     )
@@ -102,11 +101,11 @@ export default class OwnershipIndex {
     return owningStep === undefined ? undefined : this.stepBuckets.get(owningStep.id)
   }
 
-  private isJourneyNode(node: ASTNode | undefined): node is JourneyASTNode {
-    return node?.type === ASTNodeType.JOURNEY
+  private isJourneyNode(node: MaterialisedASTNode | undefined): node is JourneyASTNode {
+    return node?.kind === StructureType.JOURNEY
   }
 
-  private isStepNode(node: ASTNode): node is StepASTNode {
-    return node.type === ASTNodeType.STEP
+  private isStepNode(node: MaterialisedASTNode): node is StepASTNode {
+    return node.kind === StructureType.STEP
   }
 }

@@ -1,6 +1,5 @@
 import { IteratorType } from '../../../../../authoring/types/enums'
-import type { ASTNode } from '../../../contracts/ast/ast.type'
-import type { TemplateNode } from '../../../contracts/ast/template.type'
+import type { ASTNode, TemplateASTNode } from '../../../contracts/ast/ast.type'
 import {
   AuthoredValueKind,
   toRawOperand,
@@ -156,7 +155,7 @@ export default class RuntimeValueCompiler {
   }
 
   private compileExpressionValue(
-    node: ASTNode | TemplateNode,
+    node: ASTNode | TemplateASTNode,
     generator: CodeGenerator,
     target: IdentifierName,
     options: RuntimeValueCompileOptions,
@@ -171,7 +170,7 @@ export default class RuntimeValueCompiler {
    * inside the try block, so hoisting stays off.
    */
   private compileExpressionInto(
-    node: ASTNode | TemplateNode,
+    node: ASTNode | TemplateASTNode,
     generator: CodeGenerator,
     target: SafeCode,
     options: RuntimeValueCompileOptions,
@@ -196,10 +195,8 @@ export default class RuntimeValueCompiler {
     )
   }
 
-  private compileNodeExpression(node: ASTNode | TemplateNode): CodeFragment {
-    return this.expr.isTemplateNode(node)
-      ? this.expr.compileTemplateExpressionCode(node)
-      : this.expr.compileExpressionCode(node)
+  private compileNodeExpression(node: ASTNode | TemplateASTNode): CodeFragment {
+    return this.expr.compileExpressionCode(node)
   }
 
   private compileExpressionWithCatch(
@@ -232,7 +229,7 @@ export default class RuntimeValueCompiler {
    * expressions always hoist, because the try/catch needs statements.
    */
   private compileExpressionOperand(
-    node: ASTNode | TemplateNode,
+    node: ASTNode | TemplateASTNode,
     generator: CodeGenerator,
     nameHint: string,
     options: RuntimeValueCompileOptions,

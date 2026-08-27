@@ -1,5 +1,4 @@
 import { ComponentCallType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
@@ -13,8 +12,8 @@ function setParent(child: ASTNode, parent: ASTNode): void {
 
 function createMapIterateNode(): IterateASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.ITERATE,
+    kind: ExpressionType.ITERATE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     properties: {
       input: ASTTestFactory.reference(['data', 'items']),

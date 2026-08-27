@@ -1,6 +1,5 @@
 import { ExpressionType, FunctionCallType, PredicateType } from '../../../../authoring/types/enums'
 import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import RequestTimeReferenceAnalyzer from './RequestTimeReferenceAnalyzer'
 
@@ -45,8 +44,8 @@ describe('RequestTimeReferenceAnalyzer', () => {
     it('should return true when a plain object property contains a request-time reference', () => {
       // Arrange
       const matchExpression = {
-        type: ASTNodeType.EXPRESSION,
-        expressionType: ExpressionType.MATCH,
+        kind: ExpressionType.MATCH,
+        isTemplate: false,
         id: ASTTestFactory.getId(),
         diagnostics: ASTTestFactory.diagnostics(),
         properties: {

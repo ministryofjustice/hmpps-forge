@@ -1,6 +1,6 @@
 import { ComponentCallType } from '../../../../authoring/types/enums'
-import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
-import type { TemplateNode } from '../../../chassis/contracts/ast/template.type'
+import { isTemplateASTNode } from '../../../chassis/contracts/ast/nodes'
+import type { TemplateASTNode } from '../../../chassis/contracts/ast/ast.type'
 import {
   AuthoredValueKind,
   toRawOperand,
@@ -232,7 +232,7 @@ export default class StepResolveCompiler {
       this.templates.compileMapIterator(iterateModel.node, generator, () => {
         iterateModel.templateBlocks.forEach(templateBlock => {
           const codeExpression = this.templates.compileTemplateCodeExpression(
-            templateBlock.source as TemplateNode,
+            templateBlock.source as TemplateASTNode,
             generator,
           )
 
@@ -251,7 +251,7 @@ export default class StepResolveCompiler {
   ): void {
     const blockId = generator.const(
       'resolveBlockId',
-      this.templates.compileTemplateInstanceIdExpression(block.source as TemplateNode),
+      this.templates.compileTemplateInstanceIdExpression(block.source as TemplateASTNode),
     )
     const props = this.compileBlockProperties(
       this.toBlockPropsCompilation(block, blockId, codeExpression, this.toBlockPropsName(block.variant)),
@@ -441,7 +441,7 @@ export default class StepResolveCompiler {
    * it by name. Children therefore always appear above their parent.
    */
   private compileNestedBlockValue(block: BlockValue, generator: CodeGenerator, nameHint: string): SafeCode {
-    if (isTemplateNode(block.source)) {
+    if (isTemplateASTNode(block.source)) {
       return this.compileTemplateNestedBlock(block, block.source, nameHint, generator)
     }
 
@@ -468,7 +468,7 @@ export default class StepResolveCompiler {
 
   private compileTemplateNestedBlock(
     block: BlockValue,
-    source: TemplateNode,
+    source: TemplateASTNode,
     nameHint: string,
     generator: CodeGenerator,
   ): IdentifierName {

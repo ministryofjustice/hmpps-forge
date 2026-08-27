@@ -1,5 +1,4 @@
 import { ComponentCallType, ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { ASTTestFactory } from '../testing-helpers/ASTTestFactory'
 import { compileTemplate } from '../nodes/template'
@@ -7,6 +6,7 @@ import ASTNodeIndex from './ASTNodeIndex'
 import TemplateNodeIndex from './TemplateNodeIndex'
 import { NodeIDGenerator } from './NodeIDGenerator'
 import NodeRegistrationWalker from './NodeRegistrationWalker'
+import type { MaterialisedASTNode } from '../../../contracts/ast/ast.type'
 
 describe('NodeRegistrationWalker', () => {
   describe('register()', () => {
@@ -62,11 +62,23 @@ describe('NodeRegistrationWalker', () => {
       walker.register(iterate)
 
       // Assert
-      const entries = templateNodeIndex.findByType(ASTNodeType.BLOCK)
+      const entries = templateNodeIndex.findByKind(ComponentCallType.FIELD)
 
-      expect(nodeIndex.findByType(ASTNodeType.BLOCK)).toHaveLength(0)
+      expect(nodeIndex.findByKind(ComponentCallType.FIELD)).toHaveLength(0)
       expect(entries).toHaveLength(1)
       expect(entries[0].owningNode).toBe(iterate)
+    })
+
+    it('should reject a template root without a materialised owner', () => {
+      // Arrange
+      const template = compileTemplate(ASTTestFactory.reference(['answers', 'name']), new NodeIDGenerator())
+      const walker = new NodeRegistrationWalker(new ASTNodeIndex(), new TemplateNodeIndex())
+
+      // Act
+      const registerTemplateRoot = () => walker.register(template as unknown as MaterialisedASTNode)
+
+      // Assert
+      expect(registerTemplateRoot).toThrow('Template node reached with no registered parent to own it')
     })
   })
 })

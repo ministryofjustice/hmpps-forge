@@ -1,5 +1,5 @@
 import { ComponentCallType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
-import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
+import type { MaterialisedASTNode } from '../../../chassis/contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { TemplateValue } from '../../../chassis/contracts/ast/template.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
@@ -14,7 +14,7 @@ import { buildComponent } from '../../../../components/utils/buildComponent'
 import { validateRegisteredComponents } from './validateRegisteredComponents'
 import type { ASTValidationContext } from './types'
 
-function buildContext(nodes: ASTNode[], registeredVariants: string[]): ASTValidationContext {
+function buildContext(nodes: MaterialisedASTNode[], registeredVariants: string[]): ASTValidationContext {
   const nodeIndex = new ASTNodeIndex()
   nodes.forEach(node => nodeIndex.register(node.id, node))
 

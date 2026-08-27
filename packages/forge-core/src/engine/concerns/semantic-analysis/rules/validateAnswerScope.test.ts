@@ -1,5 +1,5 @@
 import { HookType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
-import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
+import type { MaterialisedASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { TemplateValue } from '../../../chassis/contracts/ast/template.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
@@ -13,8 +13,11 @@ import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTValidationContext } from './types'
 import { validateAnswerScope } from './validateAnswerScope'
 
-const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, NodeId]>): ASTValidationContext => {
-  const byId = new Map<NodeId, ASTNode>(nodes.map(node => [node.id, node]))
+const createContext = (
+  nodes: readonly MaterialisedASTNode[],
+  edges: ReadonlyArray<[NodeId, NodeId]>,
+): ASTValidationContext => {
+  const byId = new Map<NodeId, MaterialisedASTNode>(nodes.map(node => [node.id, node]))
 
   edges.forEach(([childId, parentId]) => {
     const child = byId.get(childId)

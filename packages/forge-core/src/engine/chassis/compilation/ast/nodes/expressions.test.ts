@@ -1,4 +1,3 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
 import {
   PolicyType,
   ConditionCombinatorType,
@@ -40,8 +39,8 @@ import type {
   TestPredicateASTNode,
   XorPredicateASTNode,
 } from '../../../contracts/ast/predicates.type'
-import { isTemplateNode } from '../../../contracts/ast/nodes'
-import { TemplateNode } from '../../../contracts/ast/template.type'
+import { isTemplateASTNode } from '../../../contracts/ast/nodes'
+import type { TemplateASTNode } from '../../../contracts/ast/ast.type'
 import type { ValidationExpr } from '../../../../../authoring/types/structures.type'
 import {
   createConditionalNode,
@@ -75,8 +74,8 @@ describe('expressions', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.REFERENCE)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(ExpressionType.REFERENCE)
       expect(result.properties.path).toBeDefined()
 
       const path = result.properties.path
@@ -103,8 +102,8 @@ describe('expressions', () => {
 
       // Second segment should be transformed to an AST node
       expect(path[1]).toHaveProperty('id')
-      expect(path[1]).toHaveProperty('type')
-      expect((path[1] as ExpressionASTNode).type).toBe(ASTNodeType.EXPRESSION)
+      expect(path[1]).toHaveProperty('kind')
+      expect((path[1] as ExpressionASTNode).kind).toBe(ExpressionType.REFERENCE)
     })
 
     it('should throw error for non-array path values', () => {
@@ -219,8 +218,8 @@ describe('expressions', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.PIPELINE)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(ExpressionType.PIPELINE)
 
       expect(result.properties.input).toBeDefined()
       expect(result.properties.steps).toBeDefined()
@@ -241,8 +240,8 @@ describe('expressions', () => {
       const input = result.properties.input
 
       // Assert
-      expect(input.type).toBe(ASTNodeType.EXPRESSION)
-      expect(input.expressionType).toBe(ExpressionType.REFERENCE)
+      expect(input.isTemplate).toBe(false)
+      expect(input.kind).toBe(ExpressionType.REFERENCE)
     })
 
     it('should preserve step names and transform step arguments', () => {
@@ -300,8 +299,8 @@ describe('expressions', () => {
 
       // Second argument should be transformed to AST node
       expect(steps[0].properties.arguments[1]).toHaveProperty('id')
-      expect(steps[0].properties.arguments[1]).toHaveProperty('type')
-      expect(steps[0].properties.arguments[1].type).toBe(ASTNodeType.EXPRESSION)
+      expect(steps[0].properties.arguments[1]).toHaveProperty('kind')
+      expect(steps[0].properties.arguments[1].isTemplate).toBe(false)
     })
 
     it('should handle steps without arguments', () => {
@@ -402,8 +401,8 @@ describe('expressions', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.CONDITIONAL)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(ExpressionType.CONDITIONAL)
       expect(result.properties.predicate).toBeDefined()
       expect(result.properties.thenValue).toBeDefined()
       expect(result.properties.elseValue).toBeDefined()
@@ -430,8 +429,8 @@ describe('expressions', () => {
       const predicate = result.properties.predicate as TestPredicateASTNode
 
       // Assert
-      expect(predicate.type).toBe(ASTNodeType.PREDICATE)
-      expect(predicate.predicateType).toBe(PredicateType.TEST)
+      expect(predicate.isTemplate).toBe(false)
+      expect(predicate.kind).toBe(PredicateType.TEST)
     })
 
     it('should handle literal thenValue and elseValue', () => {
@@ -474,8 +473,8 @@ describe('expressions', () => {
       const result = createConditionalNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.properties.thenValue.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.properties.elseValue.type).toBe(ASTNodeType.EXPRESSION)
+      expect(result.properties.thenValue.isTemplate).toBe(false)
+      expect(result.properties.elseValue.isTemplate).toBe(false)
     })
 
     it('should default thenValue to true when omitted', () => {
@@ -584,8 +583,8 @@ describe('expressions', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(FunctionCallType.CONDITION)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(FunctionCallType.CONDITION)
 
       expect(result.properties.name).toBe('IsTrue')
       expect(result.properties.arguments).toBeDefined()
@@ -604,7 +603,7 @@ describe('expressions', () => {
       const result = createFunctionNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.expressionType).toBe(FunctionCallType.TRANSFORMER)
+      expect(result.kind).toBe(FunctionCallType.TRANSFORMER)
       expect(result.properties.name).toBe('Uppercase')
     })
 
@@ -620,7 +619,7 @@ describe('expressions', () => {
       const result = createFunctionNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.expressionType).toBe(FunctionCallType.EFFECT)
+      expect(result.kind).toBe(FunctionCallType.EFFECT)
       expect(result.properties.name).toBe('SaveData')
     })
 
@@ -636,7 +635,7 @@ describe('expressions', () => {
       const result = createFunctionNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.expressionType).toBe(FunctionCallType.GENERATOR)
+      expect(result.kind).toBe(FunctionCallType.GENERATOR)
       expect(result.properties.name).toBe('GenerateID')
     })
 
@@ -677,8 +676,8 @@ describe('expressions', () => {
 
       args.forEach((arg: any) => {
         expect(arg.id).toBeDefined()
-        expect(arg.type).toBe(ASTNodeType.EXPRESSION)
-        expect(arg.expressionType).toBe(ExpressionType.REFERENCE)
+        expect(arg.isTemplate).toBe(false)
+        expect(arg.kind).toBe(ExpressionType.REFERENCE)
       })
     })
 
@@ -702,7 +701,7 @@ describe('expressions', () => {
       expect(args).toHaveLength(3)
       expect(args[0]).toBe('searchString')
       expect(args[1]).toHaveProperty('id')
-      expect(args[1].type).toBe(ASTNodeType.EXPRESSION)
+      expect(args[1].isTemplate).toBe(false)
       expect(args[2]).toBe(true)
     })
 
@@ -735,8 +734,8 @@ describe('expressions', () => {
       // Nested functions should be transformed to AST nodes
       args.forEach((arg: any) => {
         expect(arg).toHaveProperty('id')
-        expect(arg).toHaveProperty('type')
-        expect(arg.type).toBe(ASTNodeType.EXPRESSION)
+        expect(arg).toHaveProperty('kind')
+        expect(arg.isTemplate).toBe(false)
         expect(arg.properties.name).toBeDefined()
         expect(arg.properties.arguments).toBeDefined()
       })
@@ -768,11 +767,11 @@ describe('expressions', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.ITERATE)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(ExpressionType.ITERATE)
       expect(result.properties.iterator.type).toBe(IteratorType.MAP)
       expect(result.properties.iterator.yieldTemplate).toBeDefined()
-      expect(isTemplateNode(result.properties.iterator.yieldTemplate)).toBe(true)
+      expect(isTemplateASTNode(result.properties.iterator.yieldTemplate)).toBe(true)
     })
 
     it('should create an Iterate expression with a compiled FILTER template', () => {
@@ -799,7 +798,7 @@ describe('expressions', () => {
       // Assert
       expect(result.properties.iterator.type).toBe(IteratorType.FILTER)
       expect(result.properties.iterator.predicateTemplate).toBeDefined()
-      expect(isTemplateNode(result.properties.iterator.predicateTemplate)).toBe(true)
+      expect(isTemplateASTNode(result.properties.iterator.predicateTemplate)).toBe(true)
     })
 
     it('should create an Iterate expression with a compiled FIND template', () => {
@@ -826,7 +825,7 @@ describe('expressions', () => {
       // Assert
       expect(result.properties.iterator.type).toBe(IteratorType.FIND)
       expect(result.properties.iterator.predicateTemplate).toBeDefined()
-      expect(isTemplateNode(result.properties.iterator.predicateTemplate)).toBe(true)
+      expect(isTemplateASTNode(result.properties.iterator.predicateTemplate)).toBe(true)
     })
 
     it('should transform the input expression', () => {
@@ -845,8 +844,8 @@ describe('expressions', () => {
 
       // Assert
       expect(result.properties.input).toHaveProperty('id')
-      expect(result.properties.input.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.properties.input.expressionType).toBe(ExpressionType.REFERENCE)
+      expect(result.properties.input.isTemplate).toBe(false)
+      expect(result.properties.input.kind).toBe(ExpressionType.REFERENCE)
     })
 
     it('should store compiled templates instead of raw iterator JSON', () => {
@@ -868,10 +867,10 @@ describe('expressions', () => {
       expect(result.properties.iterator.yieldTemplate).toBeDefined()
       expect(result.properties.iterator.yieldTemplate).not.toEqual(yieldTemplate)
 
-      const compiledTemplate = result.properties.iterator.yieldTemplate as TemplateNode
+      const compiledTemplate = result.properties.iterator.yieldTemplate as TemplateASTNode
 
-      expect(compiledTemplate.type).toBe(ASTNodeType.TEMPLATE)
-      expect(compiledTemplate.originalType).toBe(ASTNodeType.EXPRESSION)
+      expect(compiledTemplate.isTemplate).toBe(true)
+      expect(compiledTemplate.kind).toBe(ExpressionType.REFERENCE)
       expect(compiledTemplate.properties?.path).toEqual(['scope', 'item', 'value'])
     })
 
@@ -893,10 +892,10 @@ describe('expressions', () => {
 
       // Act
       const result = createIterateNode(json, nodeFactory.context)
-      const yieldTemplate = result.properties.iterator.yieldTemplate as TemplateNode
+      const yieldTemplate = result.properties.iterator.yieldTemplate as TemplateASTNode
 
       // Assert — the compiled field template carries no `value`; compiled iterator expansion adds @self at runtime
-      expect(yieldTemplate.originalType).toBe(ASTNodeType.BLOCK)
+      expect(yieldTemplate.kind).toBe(ComponentCallType.FIELD)
       expect(yieldTemplate.properties?.value).toBeUndefined()
     })
 
@@ -921,11 +920,11 @@ describe('expressions', () => {
 
       // Act
       const result = createIterateNode(json, nodeFactory.context)
-      const yieldTemplate = result.properties.iterator.yieldTemplate as TemplateNode
-      const labelTemplate = yieldTemplate.properties?.label as TemplateNode
+      const yieldTemplate = result.properties.iterator.yieldTemplate as TemplateASTNode
+      const labelTemplate = yieldTemplate.properties?.label as TemplateASTNode
 
       // Assert — @self is preserved in the compiled reference template; compiled iterator expansion resolves it at runtime
-      expect(isTemplateNode(labelTemplate)).toBe(true)
+      expect(isTemplateASTNode(labelTemplate)).toBe(true)
       expect(labelTemplate.properties?.path).toEqual(['answers', '@self'])
     })
 
@@ -978,8 +977,8 @@ describe('expressions', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(PolicyType.VALIDATION_RULE)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(PolicyType.VALIDATION_RULE)
 
       expect(result.properties.message !== undefined).toBe(true)
       expect(result.properties.message).toBe('Field is required')
@@ -1009,7 +1008,7 @@ describe('expressions', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.properties.condition?.type).toBe(ASTNodeType.PREDICATE)
+      expect(result.properties.condition?.isTemplate).toBe(false)
     })
 
     it('should create a Validation expression with a generator function', () => {
@@ -1027,8 +1026,8 @@ describe('expressions', () => {
       const result = createValidationNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.properties.function?.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.properties.function?.expressionType).toBe(FunctionCallType.GENERATOR)
+      expect(result.properties.function?.isTemplate).toBe(false)
+      expect(result.properties.function?.kind).toBe(FunctionCallType.GENERATOR)
       expect(result.properties.condition).toBeUndefined()
       expect(result.properties.message).toBeUndefined()
     })
@@ -1292,7 +1291,7 @@ describe('expressions', () => {
       const leaf = predicate as TestPredicateASTNode
 
       return {
-        predicateType: leaf.predicateType,
+        predicateType: leaf.kind,
         negate: leaf.properties.negate,
         subjectPath: (leaf.properties.subject as ReferenceASTNode).properties.path,
         conditionArguments: (leaf.properties.condition as FunctionASTNode).properties.arguments,
@@ -1327,8 +1326,8 @@ describe('expressions', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.MATCH)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(ExpressionType.MATCH)
       expect(result.properties.branches).toHaveLength(2)
       expect(result.properties.otherwise).toBe('Unknown')
     })
@@ -1352,8 +1351,8 @@ describe('expressions', () => {
       const predicate = result.properties.branches[0].predicate as TestPredicateASTNode
 
       // Assert
-      expect(predicate.type).toBe(ASTNodeType.PREDICATE)
-      expect(predicate.predicateType).toBe(PredicateType.TEST)
+      expect(predicate.isTemplate).toBe(false)
+      expect(predicate.kind).toBe(PredicateType.TEST)
     })
 
     it('should synthesise a TEST predicate carrying the subject when the branch is a single condition', () => {
@@ -1380,7 +1379,7 @@ describe('expressions', () => {
       const predicate = branchPredicate(json) as AndPredicateASTNode
 
       // Assert
-      expect(predicate.predicateType).toBe(PredicateType.AND)
+      expect(predicate.kind).toBe(PredicateType.AND)
       expect(predicate.properties.operands.map(testLeaf)).toEqual([
         {
           predicateType: PredicateType.TEST,
@@ -1405,7 +1404,7 @@ describe('expressions', () => {
       const predicate = branchPredicate(json) as OrPredicateASTNode
 
       // Assert
-      expect(predicate.predicateType).toBe(PredicateType.OR)
+      expect(predicate.kind).toBe(PredicateType.OR)
       expect(predicate.properties.operands.map(testLeaf)).toEqual([
         {
           predicateType: PredicateType.TEST,
@@ -1430,7 +1429,7 @@ describe('expressions', () => {
       const predicate = branchPredicate(json) as XorPredicateASTNode
 
       // Assert
-      expect(predicate.predicateType).toBe(PredicateType.XOR)
+      expect(predicate.kind).toBe(PredicateType.XOR)
       expect(predicate.properties.operands.map(testLeaf)).toEqual([
         {
           predicateType: PredicateType.TEST,
@@ -1455,7 +1454,7 @@ describe('expressions', () => {
       const predicate = branchPredicate(json) as NotPredicateASTNode
 
       // Assert
-      expect(predicate.predicateType).toBe(PredicateType.NOT)
+      expect(predicate.kind).toBe(PredicateType.NOT)
       expect(testLeaf(predicate.properties.operand as PredicateASTNode)).toEqual({
         predicateType: PredicateType.TEST,
         negate: false,
@@ -1479,10 +1478,10 @@ describe('expressions', () => {
       const [nestedAnd, nestedNot] = predicate.properties.operands as [AndPredicateASTNode, NotPredicateASTNode]
 
       // Assert
-      expect(predicate.predicateType).toBe(PredicateType.OR)
-      expect(nestedAnd.predicateType).toBe(PredicateType.AND)
+      expect(predicate.kind).toBe(PredicateType.OR)
+      expect(nestedAnd.kind).toBe(PredicateType.AND)
       expect(nestedAnd.properties.operands.map(operand => testLeaf(operand).conditionArguments)).toEqual([['A'], ['B']])
-      expect(nestedNot.predicateType).toBe(PredicateType.NOT)
+      expect(nestedNot.kind).toBe(PredicateType.NOT)
       expect(testLeaf(nestedNot.properties.operand as PredicateASTNode).conditionArguments).toEqual(['C'])
     })
 
@@ -1548,7 +1547,7 @@ describe('expressions', () => {
       const result = createMatchNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.properties.branches[0].value.type).toBe(ASTNodeType.EXPRESSION)
+      expect(result.properties.branches[0].value.isTemplate).toBe(false)
     })
 
     it('should handle otherwise when present', () => {
@@ -1610,7 +1609,7 @@ describe('expressions', () => {
       const result = createMatchNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.properties.otherwise.type).toBe(ASTNodeType.EXPRESSION)
+      expect(result.properties.otherwise.isTemplate).toBe(false)
     })
 
     it('should generate unique node IDs', () => {

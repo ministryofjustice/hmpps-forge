@@ -1,4 +1,3 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
 import { PolicyType } from '../../../../../authoring/types/enums'
 import { RedirectOutcomeASTNode, ThrowErrorOutcomeASTNode } from '../../../contracts/ast/expressions.type'
 import type { ASTNode } from '../../../contracts/ast/engine.type'
@@ -20,8 +19,8 @@ export function createRedirectOutcomeNode(json: RedirectOutcome, ctx: NodeBuildC
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.OUTCOME,
-    outcomeType: PolicyType.OUTCOME_REDIRECT,
+    kind: PolicyType.OUTCOME_REDIRECT,
+    isTemplate: false,
     properties,
   }
 }
@@ -42,8 +41,8 @@ export function createThrowErrorOutcomeNode(json: ThrowErrorOutcome, ctx: NodeBu
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.OUTCOME,
-    outcomeType: PolicyType.OUTCOME_THROW_ERROR,
+    kind: PolicyType.OUTCOME_THROW_ERROR,
+    isTemplate: false,
     properties,
   }
 }

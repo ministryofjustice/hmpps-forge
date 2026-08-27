@@ -1,4 +1,3 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
 import {
   PolicyType,
   ExpressionType,
@@ -56,7 +55,7 @@ describe('structures', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.JOURNEY)
+      expect(result.isTemplate).toBe(false)
       expect(result.properties.title).toBe('Test Journey')
       expect(result.properties.code).toBe('test-journey')
       expect(result.properties.path).toBe('test-journey')
@@ -93,7 +92,7 @@ describe('structures', () => {
       expect(Array.isArray(steps)).toBe(true)
       expect(steps).toHaveLength(2)
       steps.forEach((step: StepASTNode) => {
-        expect(step.type).toBe(ASTNodeType.STEP)
+        expect(step.isTemplate).toBe(false)
       })
     })
 
@@ -198,7 +197,7 @@ describe('structures', () => {
 
       // Assert
       expect(resumeWhen).not.toBe(true)
-      expect(resumeWhen).toMatchObject({ type: ASTNodeType.EXPRESSION, expressionType: ExpressionType.REFERENCE })
+      expect(resumeWhen).toMatchObject({ kind: ExpressionType.REFERENCE, isTemplate: false })
     })
   })
 
@@ -226,7 +225,7 @@ describe('structures', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.STEP)
+      expect(result.isTemplate).toBe(false)
       expect(result.properties.path).toBe('test-step')
       expect(result.properties.code).toBe('test-step')
     })
@@ -257,7 +256,7 @@ describe('structures', () => {
       expect(Array.isArray(blocks)).toBe(true)
       expect(blocks).toHaveLength(2)
       blocks.forEach((block: BlockASTNode) => {
-        expect(block.type).toBe(ASTNodeType.BLOCK)
+        expect(block.isTemplate).toBe(false)
       })
     })
 
@@ -360,7 +359,7 @@ describe('structures', () => {
       expect(result.properties.validateOnEntry).toHaveLength(2)
       expect(result.properties.validateOnEntry?.[0]).toEqual({ groups: ['contact'], when: true })
       expect(result.properties.validateOnEntry?.[1].groups).toEqual(['address'])
-      expect(result.properties.validateOnEntry?.[1].when).toMatchObject({ type: ASTNodeType.PREDICATE })
+      expect(result.properties.validateOnEntry?.[1].when).toMatchObject({ kind: PredicateType.TEST, isTemplate: false })
     })
 
     it('should omit cleardownFieldCodes when not specified', () => {
@@ -437,7 +436,7 @@ describe('structures', () => {
 
       // Assert
       expect(entryWhen).not.toBe(true)
-      expect(entryWhen).toMatchObject({ type: ASTNodeType.EXPRESSION, expressionType: ExpressionType.REFERENCE })
+      expect(entryWhen).toMatchObject({ kind: ExpressionType.REFERENCE, isTemplate: false })
     })
 
     it('should drop validateOnEntry rules whose when is false while keeping the others', () => {
@@ -485,7 +484,7 @@ describe('structures', () => {
 
       // Assert
       expect(when).not.toBe(true)
-      expect(when).toMatchObject({ type: ASTNodeType.EXPRESSION, expressionType: ExpressionType.REFERENCE })
+      expect(when).toMatchObject({ kind: ExpressionType.REFERENCE, isTemplate: false })
     })
   })
 
@@ -510,9 +509,9 @@ describe('structures', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.BLOCK)
+      expect(result.isTemplate).toBe(false)
       expect(result.variant).toBe('TestBlock')
-      expect(result.blockType).toBe(ComponentCallType.BASIC)
+      expect(result.kind).toBe(ComponentCallType.BASIC)
     })
 
     it('should exclude type and variant from properties', () => {
@@ -559,8 +558,8 @@ describe('structures', () => {
       expect(Array.isArray(blocks)).toBe(true)
       expect(blocks).toHaveLength(2)
       blocks.forEach((block: BlockASTNode) => {
-        expect(block.type).toBe(ASTNodeType.BLOCK)
-        expect(block.blockType).toBe(ComponentCallType.FIELD)
+        expect(block.isTemplate).toBe(false)
+        expect(block.kind).toBe(ComponentCallType.FIELD)
       })
     })
 
@@ -576,9 +575,9 @@ describe('structures', () => {
       const result = createBlockNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.type).toBe(ASTNodeType.BLOCK)
+      expect(result.isTemplate).toBe(false)
       expect(result.variant).toBe('TextInput')
-      expect(result.blockType).toBe(ComponentCallType.FIELD)
+      expect(result.kind).toBe(ComponentCallType.FIELD)
       expect(result.properties.code).toBe('email')
     })
 
@@ -609,7 +608,7 @@ describe('structures', () => {
       // Assert
       expect(Array.isArray(validWhen)).toBe(true)
       expect(validWhen).toHaveLength(1)
-      expect(validWhen[0].type).toBe(ASTNodeType.EXPRESSION)
+      expect(validWhen[0].isTemplate).toBe(false)
     })
 
     it('should handle field block with dependentWhen property', () => {
@@ -631,7 +630,7 @@ describe('structures', () => {
       const dependentWhen = result.properties.dependentWhen
 
       // Assert
-      expect(dependentWhen.type).toBe(ASTNodeType.PREDICATE)
+      expect(dependentWhen.isTemplate).toBe(false)
     })
 
     it('should handle field block with custom properties', () => {
@@ -682,7 +681,7 @@ describe('structures', () => {
       const result = createBlockNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.blockType).toBe(ComponentCallType.FIELD)
+      expect(result.kind).toBe(ComponentCallType.FIELD)
       expect('code' in result.properties).toBe(true)
       expect('dependentWhen' in result.properties).toBe(true)
       expect('validWhen' in result.properties).toBe(true)

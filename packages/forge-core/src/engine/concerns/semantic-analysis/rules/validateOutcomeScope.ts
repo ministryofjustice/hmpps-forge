@@ -1,4 +1,4 @@
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { ASTNodeFamily, astNodeFamily } from '../../../chassis/contracts/ast/enums'
 import type { NodeId, ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
@@ -18,11 +18,19 @@ function containsNode(container: unknown, nodeId: NodeId): boolean {
   return Array.isArray(container) && container.some(entry => entry?.id === nodeId)
 }
 
+function branchNext(branch: unknown): unknown {
+  if (typeof branch !== 'object' || branch === null || !('next' in branch)) {
+    return undefined
+  }
+
+  return branch.next
+}
+
 function hasHookAncestor(node: ASTNode): boolean {
   let current = node.parent
 
   while (current !== undefined) {
-    if (current.type === ASTNodeType.HOOK) {
+    if (astNodeFamily(current.kind) === ASTNodeFamily.HOOK) {
       return true
     }
 
@@ -36,10 +44,10 @@ export const validateOutcomeScope: ASTValidationRule = (context: ASTValidationCo
   const { nodeIndex, templateNodeIndex } = context
   const errors: Error[] = []
 
-  nodeIndex.findByType(ASTNodeType.OUTCOME).forEach(node => {
+  nodeIndex.findByFamily(ASTNodeFamily.POLICY_OUTCOME).forEach(node => {
     const parent = node.parent
 
-    if (!parent || parent.type !== ASTNodeType.HOOK) {
+    if (!parent || astNodeFamily(parent.kind) !== ASTNodeFamily.HOOK) {
       errors.push(buildError(node.diagnostics))
 
       return
@@ -50,16 +58,16 @@ export const validateOutcomeScope: ASTValidationRule = (context: ASTValidationCo
     // parent their outcomes to the hook itself.
     const inHookNext =
       containsNode(parent.properties?.next, node.id) ||
-      containsNode(parent.properties?.onAlways?.next, node.id) ||
-      containsNode(parent.properties?.onValid?.next, node.id) ||
-      containsNode(parent.properties?.onInvalid?.next, node.id)
+      containsNode(branchNext(parent.properties?.onAlways), node.id) ||
+      containsNode(branchNext(parent.properties?.onValid), node.id) ||
+      containsNode(branchNext(parent.properties?.onInvalid), node.id)
 
     if (!inHookNext) {
       errors.push(buildError(node.diagnostics))
     }
   })
 
-  templateNodeIndex.findByType(ASTNodeType.OUTCOME).forEach(({ node, owningNode }) => {
+  templateNodeIndex.findByFamily(ASTNodeFamily.POLICY_OUTCOME).forEach(({ node, owningNode }) => {
     if (hasHookAncestor(owningNode)) {
       return
     }

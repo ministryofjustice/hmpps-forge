@@ -1,5 +1,4 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import { PolicyType, ComponentCallType } from '../../../../../authoring/types/enums'
+import { PolicyType, ComponentCallType, StructureType } from '../../../../../authoring/types/enums'
 import {
   BasicBlockASTNode,
   FieldBlockASTNode,
@@ -121,7 +120,8 @@ export function createJourneyNode(json: JourneyDefinition, ctx: NodeBuildContext
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.JOURNEY,
+    kind: StructureType.JOURNEY,
+    isTemplate: false,
     properties,
   }
 }
@@ -241,7 +241,8 @@ export function createStepNode(json: StepDefinition, ctx: NodeBuildContext): Ste
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.STEP,
+    kind: StructureType.STEP,
+    isTemplate: false,
     properties,
   }
 }
@@ -265,9 +266,9 @@ export function createBasicBlock(json: BlockDefinition, ctx: NodeBuildContext): 
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.BLOCK,
+    kind: ComponentCallType.BASIC,
+    isTemplate: false,
     variant,
-    blockType: ComponentCallType.BASIC,
     properties,
   }
 }
@@ -301,9 +302,9 @@ export function createFieldBlock(json: FieldBlockDefinition, ctx: NodeBuildConte
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.BLOCK,
+    kind: ComponentCallType.FIELD,
+    isTemplate: false,
     variant,
-    blockType: ComponentCallType.FIELD,
     properties,
   }
 }

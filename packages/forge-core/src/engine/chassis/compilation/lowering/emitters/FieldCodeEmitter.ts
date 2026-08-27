@@ -1,5 +1,5 @@
-import { isTemplateNode } from '../../../contracts/ast/nodes'
-import { TemplateNode } from '../../../contracts/ast/template.type'
+import { isTemplateASTNode } from '../../../contracts/ast/nodes'
+import type { TemplateASTNode } from '../../../contracts/ast/ast.type'
 import { FieldCodeKind, type DynamicFieldCode, type StaticFieldCode } from '../../../contracts/models/fieldModel.type'
 import { CodeFragment, code, literal, propertyCode, SafeCode } from '../codegen/fragments/CodeFragment'
 import CodeGenerator from '../codegen/CodeGenerator'
@@ -34,7 +34,7 @@ export default class FieldCodeEmitter {
       return literal(fieldCode.value)
     }
 
-    const variableName = isTemplateNode(fieldCode.node.node) ? 'templateCode' : 'fieldCode'
+    const variableName = isTemplateASTNode(fieldCode.node.node) ? 'templateCode' : 'fieldCode'
 
     return generator.const(variableName, code`String(${this.expr.compileOperandCode(fieldCode.node.node)})`)
   }
@@ -68,7 +68,7 @@ export default class FieldCodeEmitter {
       return literal(fieldCode)
     }
 
-    if (this.expr.isCompilableNode(fieldCode) || this.expr.isTemplateNode(fieldCode)) {
+    if (this.expr.isCompilableNode(fieldCode)) {
       return code`String(${this.expr.compileOperandCode(fieldCode)})`
     }
 
@@ -79,7 +79,7 @@ export default class FieldCodeEmitter {
    * Emits a template field code under the current iterator/template scope.
    */
   compileTemplateExpression(
-    node: TemplateNode,
+    node: TemplateASTNode,
     generator: CodeGenerator,
     variableName = 'templateCode',
   ): CodeFragment | IdentifierName | undefined {
@@ -89,11 +89,11 @@ export default class FieldCodeEmitter {
       return literal(fieldCode)
     }
 
-    if (!this.expr.isTemplateNode(fieldCode)) {
+    if (!isTemplateASTNode(fieldCode)) {
       return undefined
     }
 
-    return generator.const(variableName, code`String(${this.expr.compileTemplateExpressionCode(fieldCode)})`)
+    return generator.const(variableName, code`String(${this.expr.compileExpressionCode(fieldCode)})`)
   }
 
   /**

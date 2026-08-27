@@ -1,4 +1,3 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
 import { PredicateType } from '../../../../../authoring/types/enums'
 import {
   PredicateAndExpr,
@@ -61,8 +60,8 @@ export function createTestPredicateNode(json: PredicateTestExpr, ctx: NodeBuildC
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.PREDICATE,
-    predicateType: PredicateType.TEST,
+    kind: PredicateType.TEST,
+    isTemplate: false,
     properties: {
       // Use transformValue to support both AST nodes and literals
       subject: ctx.transformValue(json.subject),
@@ -91,8 +90,8 @@ export function createNotPredicateNode(json: PredicateNotExpr, ctx: NodeBuildCon
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.PREDICATE,
-    predicateType: PredicateType.NOT,
+    kind: PredicateType.NOT,
+    isTemplate: false,
     properties: {
       operand: ctx.createNode(json.operand),
     },
@@ -105,14 +104,14 @@ export function createNotPredicateNode(json: PredicateNotExpr, ctx: NodeBuildCon
  * parameterised creator covers all of them.
  */
 export function naryPredicateCreator(
-  predicateType: PredicateType.AND | PredicateType.OR | PredicateType.XOR,
+  predicateKind: PredicateType.AND | PredicateType.OR | PredicateType.XOR,
 ): (json: PredicateNaryExpr, ctx: NodeBuildContext) => NaryPredicateASTNode {
   return (json, ctx) => {
     if (!json.operands || !Array.isArray(json.operands) || json.operands.length === 0) {
       const diagnostics = ctx.diagnosticsFor(json)
 
       throw new ForgeInvalidNodeError({
-        message: `${NARY_PREDICATE_NAMES[predicateType]} predicate requires a non-empty operands array`,
+        message: `${NARY_PREDICATE_NAMES[predicateKind]} predicate requires a non-empty operands array`,
         node: json,
         expected: 'operands array with at least one element',
         actual: json.operands ? `array with ${json.operands.length} elements` : 'undefined',
@@ -123,8 +122,8 @@ export function naryPredicateCreator(
 
     return {
       id: ctx.nextId(),
-      type: ASTNodeType.PREDICATE,
-      predicateType,
+      kind: predicateKind,
+      isTemplate: false,
       properties: {
         operands: json.operands.map((operand: unknown) => ctx.createNode(operand)) as PredicateASTNode[],
       },

@@ -2,7 +2,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z, type ZodType } from 'zod'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import {
   ComponentCallType,
   ExpressionType,
@@ -105,8 +104,8 @@ function createFieldBlock(
 
 function createTransformerFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionCallType.TRANSFORMER,
+    kind: FunctionCallType.TRANSFORMER,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -115,8 +114,8 @@ function createTransformerFunction(name: string, args: unknown[] = []): Function
 
 function createReference(path: (string | number)[]): ReferenceASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.REFERENCE,
+    kind: ExpressionType.REFERENCE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { path },
@@ -125,8 +124,8 @@ function createReference(path: (string | number)[]): ReferenceASTNode {
 
 function createConditionFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionCallType.CONDITION,
+    kind: FunctionCallType.CONDITION,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -135,8 +134,8 @@ function createConditionFunction(name: string, args: unknown[] = []): FunctionAS
 
 function createGeneratorFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionCallType.GENERATOR,
+    kind: FunctionCallType.GENERATOR,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -153,8 +152,8 @@ const formatGeneratorRows = (() => {
 
 function createTestPredicate(subject: ReferenceASTNode, condition: FunctionASTNode): TestPredicateASTNode {
   return {
-    type: ASTNodeType.PREDICATE,
-    predicateType: PredicateType.TEST,
+    kind: PredicateType.TEST,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { subject, condition, negate: false },
@@ -209,8 +208,8 @@ function createCtx(overrides: Partial<CompiledAnswerPreparationContext> = {}): C
 
 function createIterateNode(input: unknown, yieldTemplate: TemplateValue): IterateASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.ITERATE,
+    kind: ExpressionType.ITERATE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     properties: {
       input,
@@ -1190,9 +1189,10 @@ describe('StepAnswerPreparationCompiler', () => {
     it('should process fields with static codes inside iterator', async () => {
       // Arrange
       const template = createTemplateValue({
-        type: ASTNodeType.BLOCK,
+        kind: ComponentCallType.FIELD,
+        isTemplate: false,
+        id: ASTTestFactory.getId(),
         variant: 'text-input',
-        blockType: ComponentCallType.FIELD,
         properties: {
           code: 'staticField',
         },
@@ -1215,14 +1215,16 @@ describe('StepAnswerPreparationCompiler', () => {
     it('should resolve dynamic field codes from scope references', async () => {
       // Arrange
       const template = createTemplateValue({
-        type: ASTNodeType.BLOCK,
+        kind: ComponentCallType.FIELD,
+        isTemplate: false,
+        id: ASTTestFactory.getId(),
         variant: 'text-input',
-        blockType: ComponentCallType.FIELD,
         properties: {
           code: ASTTestFactory.formatExpression('person_%1', [
             {
-              type: ASTNodeType.EXPRESSION,
-              expressionType: ExpressionType.REFERENCE,
+              kind: ExpressionType.REFERENCE,
+              isTemplate: false,
+              id: ASTTestFactory.getId(),
               properties: { path: ['@loop', 0, 'index0'] },
             },
           ]),

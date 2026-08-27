@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import { ExpressionType, FunctionCallType, PredicateType } from '../../../../authoring/types/enums'
 import { StepEntryValidationAST } from '../../../chassis/contracts/ast/structures.type'
 import { ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
@@ -14,8 +13,8 @@ import { workTaskBuilders } from '../../../chassis/runtime/context/compiledEvalu
 
 function createReference(path: string[]): ReferenceASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.REFERENCE,
+    kind: ExpressionType.REFERENCE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { path },

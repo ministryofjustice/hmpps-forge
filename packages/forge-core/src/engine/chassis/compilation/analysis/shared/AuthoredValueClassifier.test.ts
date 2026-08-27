@@ -1,5 +1,4 @@
-import { ExpressionType, IteratorType, PredicateType } from '../../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../contracts/ast/enums'
+import { ComponentCallType, ExpressionType, IteratorType, PredicateType } from '../../../../../authoring/types/enums'
 import { AuthoredValueKind, toRawOperand } from '../../../contracts/models/authoredValue.type'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import AuthoredValueClassifier from './AuthoredValueClassifier'
@@ -39,8 +38,8 @@ describe('AuthoredValueClassifier', () => {
       // Arrange
       const predicate = ASTTestFactory.predicate(PredicateType.TEST)
       const conditional = {
-        type: ASTNodeType.EXPRESSION,
-        expressionType: ExpressionType.CONDITIONAL,
+        kind: ExpressionType.CONDITIONAL,
+        isTemplate: false,
         id: ASTTestFactory.getId(),
         properties: { predicate, thenValue: 'yes', elseValue: { deep: ASTTestFactory.reference(['data', 'no']) } },
       }
@@ -61,8 +60,8 @@ describe('AuthoredValueClassifier', () => {
     it('should classify match nodes with branch predicates and otherwise', () => {
       // Arrange
       const match = {
-        type: ASTNodeType.EXPRESSION,
-        expressionType: ExpressionType.MATCH,
+        kind: ExpressionType.MATCH,
+        isTemplate: false,
         id: ASTTestFactory.getId(),
         properties: {
           branches: [{ predicate: ASTTestFactory.predicate(PredicateType.TEST), value: 'first' }],
@@ -87,8 +86,8 @@ describe('AuthoredValueClassifier', () => {
       // Arrange
       const input = ASTTestFactory.reference(['data', 'members'])
       const iterate = {
-        type: ASTNodeType.EXPRESSION,
-        expressionType: ExpressionType.ITERATE,
+        kind: ExpressionType.ITERATE,
+        isTemplate: false,
         id: ASTTestFactory.getId(),
         properties: { input, iterator: { type: IteratorType.MAP, yieldTemplate: 'item' } },
       }
@@ -132,9 +131,10 @@ describe('AuthoredValueClassifier', () => {
     it('should classify block-shaped objects as block values with classified entries', () => {
       // Arrange
       const block = {
-        type: ASTNodeType.BLOCK,
+        kind: ComponentCallType.FIELD,
+        isTemplate: false,
+        id: ASTTestFactory.getId(),
         variant: 'text-input',
-        blockType: 'field',
         properties: { code: 'name', hint: ASTTestFactory.reference(['data', 'hint']) },
       }
 

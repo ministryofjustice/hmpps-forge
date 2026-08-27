@@ -1,4 +1,5 @@
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { ASTNodeFamily, astNodeFamily } from '../../../chassis/contracts/ast/enums'
+import { StructureType } from '../../../../authoring/types/enums'
 import type { NodeId } from '../../../chassis/contracts/ast/engine.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
@@ -22,17 +23,17 @@ export const validateBlockScope: ASTValidationRule = (context: ASTValidationCont
   const { nodeIndex } = context
   const errors: Error[] = []
 
-  nodeIndex.findByType(ASTNodeType.BLOCK).forEach(node => {
+  nodeIndex.findByFamily(ASTNodeFamily.COMPONENT_CALL).forEach(node => {
     const parent = node.parent
 
     // Composite component wrappers legitimately hold child blocks in arbitrary
     // properties (slots, content, rows, columns); those child blocks parent to
     // the wrapper block, so any block-parented block is in scope.
-    if (parent?.type === ASTNodeType.BLOCK) {
+    if (parent && astNodeFamily(parent.kind) === ASTNodeFamily.COMPONENT_CALL) {
       return
     }
 
-    if (parent?.type === ASTNodeType.STEP && containsNode(parent.properties?.blocks, node.id)) {
+    if (parent?.kind === StructureType.STEP && containsNode(parent.properties?.blocks, node.id)) {
       return
     }
 

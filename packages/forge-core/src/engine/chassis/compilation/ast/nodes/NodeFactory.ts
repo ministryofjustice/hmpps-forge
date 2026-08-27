@@ -1,6 +1,6 @@
 import ForgeUnknownNodeTypeError from '../../../../errors/ForgeUnknownNodeTypeError'
 import ForgeInvalidNodeError from '../../../../errors/ForgeInvalidNodeError'
-import type { ASTNode, AstNodeId } from '../../../contracts/ast/engine.type'
+import type { AstNodeId, MaterialisedASTNode } from '../../../contracts/ast/engine.type'
 import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
 import type { TemplateValue } from '../../../contracts/ast/template.type'
 import type { ASTNodeDiagnostics, DSLSourceLocation } from '../../../../../shared/diagnostics/sourceLocation.type'
@@ -40,7 +40,7 @@ import { createRedirectOutcomeNode, createThrowErrorOutcomeNode } from './outcom
  */
 export interface NodeBuildContext {
   nextId(): AstNodeId
-  createNode(json: unknown): ASTNode
+  createNode(json: unknown): MaterialisedASTNode
   transformValue<T = unknown>(value: unknown): T
   compileTemplate(value: unknown): TemplateValue
   diagnosticsFor(json: unknown): ASTNodeDiagnostics | undefined
@@ -48,11 +48,11 @@ export interface NodeBuildContext {
 
 /**
  * A node creator turns one authored definition into its AST node. Creators
- * are selected from the `creatorsByType` table below by the `_forge`
- * discriminant, so a creator can assume the input already carries its type.
+ * are selected from the `creatorsByForgeTag` table below by the `_forge`
+ * discriminant, so a creator can assume the input already carries its tag.
  */
 
-export type NodeCreator<TIn = any> = (json: TIn, ctx: NodeBuildContext) => ASTNode
+export type NodeCreator<TIn = any> = (json: TIn, ctx: NodeBuildContext) => MaterialisedASTNode
 
 const COMBINATOR_PLACEMENT = 'Condition combinators can only appear inside a match expression branch condition'
 const ITERATOR_PLACEMENT = 'Iterator configurations can only appear inside the iterator of an Iterate expression'
@@ -80,7 +80,7 @@ const isInlineOnly = (tag: string): boolean => tag.startsWith('combinator.') || 
  * `PolicyType.NAVIGATION_NEXT` is deliberately absent: nothing in the authoring
  * surface produces it and no factory ever created it.
  */
-export const creatorsByType: ReadonlyMap<string, NodeCreator> = new Map<string, NodeCreator>([
+export const creatorsByForgeTag: ReadonlyMap<string, NodeCreator> = new Map<string, NodeCreator>([
   // Structures
   [StructureType.JOURNEY, createJourneyNode],
   [StructureType.STEP, createStepNode],
@@ -122,7 +122,7 @@ export const creatorsByType: ReadonlyMap<string, NodeCreator> = new Map<string, 
  * NodeFactory: Main entry point for creating AST nodes
  *
  * A walker over authored definitions. Node creation dispatches through the
- * `creatorsByType` table keyed on the `type` discriminant; the creators call
+ * `creatorsByForgeTag` table keyed on the `_forge` discriminant; the creators call
  * back in through `NodeBuildContext` for IDs, recursion, and diagnostics.
  *
  * Source diagnostics are read off the non-enumerable `__source` (and
@@ -148,7 +148,7 @@ export class NodeFactory {
    * Main entry point for transformation
    * Looks up the node's creator by its `_forge` discriminant and runs it
    */
-  createNode(json: unknown): ASTNode {
+  createNode(json: unknown): MaterialisedASTNode {
     if (!json || typeof json !== 'object') {
       throw new ForgeInvalidNodeError({
         message: `Invalid node: expected object, got ${typeof json}`,
@@ -158,29 +158,29 @@ export class NodeFactory {
       })
     }
 
-    const nodeType = this.getNodeType(json)
+    const forgeTag = this.getForgeTag(json)
 
-    if (nodeType !== undefined && isInlineOnly(nodeType)) {
+    if (forgeTag !== undefined && isInlineOnly(forgeTag)) {
       const diagnostics = this.diagnosticsFor(json)
 
       throw new ForgeInvalidNodeError({
-        message: nodeType.startsWith('combinator.') ? COMBINATOR_PLACEMENT : ITERATOR_PLACEMENT,
+        message: forgeTag.startsWith('combinator.') ? COMBINATOR_PLACEMENT : ITERATOR_PLACEMENT,
         node: json,
-        actual: nodeType,
+        actual: forgeTag,
         formattedPath: diagnostics?.source.formattedPath,
         callsite: diagnostics?.callsite,
       })
     }
 
-    const create = nodeType === undefined ? undefined : creatorsByType.get(nodeType)
+    const create = forgeTag === undefined ? undefined : creatorsByForgeTag.get(forgeTag)
 
     if (!create) {
       const diagnostics = this.diagnosticsFor(json)
 
       throw new ForgeUnknownNodeTypeError({
-        nodeType,
+        nodeType: forgeTag,
         node: json,
-        validTypes: [...creatorsByType.keys()],
+        validTypes: [...creatorsByForgeTag.keys()],
         formattedPath: diagnostics?.source.formattedPath,
         callsite: diagnostics?.callsite,
       })
@@ -248,7 +248,7 @@ export class NodeFactory {
     }
   }
 
-  private withDiagnostics<TNode extends ASTNode>(node: TNode, json: unknown): TNode {
+  private withDiagnostics<TNode extends MaterialisedASTNode>(node: TNode, json: unknown): TNode {
     const diagnostics = this.diagnosticsFor(json)
 
     if (!diagnostics) {
@@ -261,7 +261,7 @@ export class NodeFactory {
     } as TNode
   }
 
-  private getNodeType(value: object): string | undefined {
+  private getForgeTag(value: object): string | undefined {
     if (!('_forge' in value) || typeof value._forge !== 'string') {
       return undefined
     }
@@ -276,8 +276,8 @@ export class NodeFactory {
    * data position surfaces its placement error rather than passing as data.
    */
   private isNode(value: object): boolean {
-    const nodeType = this.getNodeType(value)
+    const forgeTag = this.getForgeTag(value)
 
-    return nodeType !== undefined && (creatorsByType.has(nodeType) || isInlineOnly(nodeType))
+    return forgeTag !== undefined && (creatorsByForgeTag.has(forgeTag) || isInlineOnly(forgeTag))
   }
 }

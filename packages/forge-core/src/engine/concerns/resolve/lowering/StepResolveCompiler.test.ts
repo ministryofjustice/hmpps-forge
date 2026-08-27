@@ -13,7 +13,6 @@ import {
 } from '../../../../built-ins/functions/generators/formatGenerators'
 import { StringTransformers } from '../../../../built-ins/functions/transformers/stringTransformers'
 import { FunctionEntryRegistry } from '../../../../authoring/functions/FunctionEntryRegistry'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import { BlockASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
 import { IterateASTNode, ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import { TemplateValue } from '../../../chassis/contracts/ast/template.type'
@@ -92,8 +91,8 @@ function createIterateNode(
   input: ReferenceASTNode = createReference(['data', 'members']),
 ): IterateASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.ITERATE,
+    kind: ExpressionType.ITERATE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: {
@@ -843,8 +842,8 @@ describe('StepResolveCompiler', () => {
         { name: 'Beta', members: [{ name: 'Linus' }] },
       ]
       const innerIterateNode: IterateASTNode = {
-        type: ASTNodeType.EXPRESSION,
-        expressionType: ExpressionType.ITERATE,
+        kind: ExpressionType.ITERATE,
+        isTemplate: false,
         id: ASTTestFactory.getId(),
         diagnostics: ASTTestFactory.diagnostics(),
         properties: {
@@ -891,22 +890,25 @@ describe('StepResolveCompiler', () => {
         createIterateNode(
           createTemplate([
             {
-              type: ASTNodeType.BLOCK,
+              kind: ComponentCallType.FIELD,
+              isTemplate: false,
+              id: ASTTestFactory.getId(),
               variant: 'text-input',
-              blockType: ComponentCallType.FIELD,
               properties: {
                 code: ASTTestFactory.formatExpression('memberName_%1', [
                   {
-                    type: ASTNodeType.EXPRESSION,
-                    expressionType: ExpressionType.REFERENCE,
+                    kind: ExpressionType.REFERENCE,
+                    isTemplate: false,
+                    id: ASTTestFactory.getId(),
                     properties: {
                       path: ['@loop', 0, 'index0'],
                     },
                   },
                 ]),
                 defaultValue: {
-                  type: ASTNodeType.EXPRESSION,
-                  expressionType: ExpressionType.REFERENCE,
+                  kind: ExpressionType.REFERENCE,
+                  isTemplate: false,
+                  id: ASTTestFactory.getId(),
                   properties: {
                     path: ['@loop', 0, 'item', 'memberName'],
                   },
@@ -1462,13 +1464,15 @@ describe('StepResolveCompiler', () => {
       // Arrange
       const throwingCount = ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'throwingCount')
 
-      throwingCount.diagnostics = {
-        source: {
-          path: ['steps', 0, 'blocks', 0, 'items', 0, 'text'],
-          formattedPath: 'journey > step > blocks[0] (mojSubNavigation) > items[0] > text',
+      Object.defineProperty(throwingCount, 'diagnostics', {
+        value: {
+          source: {
+            path: ['steps', 0, 'blocks', 0, 'items', 0, 'text'],
+            formattedPath: 'journey > step > blocks[0] (mojSubNavigation) > items[0] > text',
+          },
+          callsite: { stack: 'Error\n    at journeyAuthor (/app/journeys/goals.journey.ts:12:5)' },
         },
-        callsite: { stack: 'Error\n    at journeyAuthor (/app/journeys/goals.journey.ts:12:5)' },
-      }
+      })
 
       const currentText = ASTTestFactory.formatExpression('Goals to work on now (%1)', [throwingCount])
       const block = ASTTestFactory.block('mojSubNavigation', ComponentCallType.BASIC)

@@ -1,8 +1,7 @@
 import { ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
 import type { ASTNode } from '../../../contracts/ast/ast.type'
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import { isASTNode, isTemplateNode } from '../../../contracts/ast/nodes'
-import type { TemplateNode } from '../../../contracts/ast/template.type'
+import { ASTNodeFamily, astNodeFamily } from '../../../contracts/ast/enums'
+import { isASTNode } from '../../../contracts/ast/nodes'
 import {
   AuthoredValueKind,
   expressionValue,
@@ -30,16 +29,12 @@ export default class AuthoredValueClassifier {
       return staticValue(value)
     }
 
-    if (isTemplateNode(value)) {
-      return this.classifyTemplateNode(value)
+    if (isASTNode(value)) {
+      return this.classifyNode(value)
     }
 
     if (isBlockShapedValue(value)) {
       return this.classifyBlockObject(value as Record<string, unknown>)
-    }
-
-    if (this.isCompilableNode(value)) {
-      return this.classifyExpressionNode(value)
     }
 
     if (Array.isArray(value)) {
@@ -49,29 +44,16 @@ export default class AuthoredValueClassifier {
     return { kind: AuthoredValueKind.RECORD, entries: this.classifyEntries(value as Record<string, unknown>) }
   }
 
-  private classifyTemplateNode(node: TemplateNode): AuthoredValue {
-    if (node.originalType === ASTNodeType.BLOCK) {
-      return this.classifyBlockTemplate(node)
+  private classifyNode(node: ASTNode): AuthoredValue {
+    if (astNodeFamily(node.kind) === ASTNodeFamily.COMPONENT_CALL) {
+      return this.classifyBlockNode(node)
     }
 
-    const expressionType =
-      node.originalType === ASTNodeType.EXPRESSION && typeof node.expressionType === 'string'
-        ? node.expressionType
-        : undefined
-
-    return this.classifyByExpressionType(node, expressionType)
+    return this.classifyByExpressionKind(node)
   }
 
-  private classifyExpressionNode(node: ASTNode): AuthoredValue {
-    const expressionType = (node as { expressionType?: unknown }).expressionType
-    const resolvedType =
-      node.type === ASTNodeType.EXPRESSION && typeof expressionType === 'string' ? expressionType : undefined
-
-    return this.classifyByExpressionType(node, resolvedType)
-  }
-
-  private classifyByExpressionType(node: ASTNode | TemplateNode, expressionType: string | undefined): AuthoredValue {
-    if (expressionType === ExpressionType.CONDITIONAL) {
+  private classifyByExpressionKind(node: ASTNode): AuthoredValue {
+    if (node.kind === ExpressionType.CONDITIONAL) {
       const properties = this.propertiesOf(node)
 
       return {
@@ -83,7 +65,7 @@ export default class AuthoredValueClassifier {
       }
     }
 
-    if (expressionType === ExpressionType.MATCH) {
+    if (node.kind === ExpressionType.MATCH) {
       const properties = this.propertiesOf(node)
 
       return {
@@ -94,14 +76,14 @@ export default class AuthoredValueClassifier {
       }
     }
 
-    if (expressionType === ExpressionType.ITERATE) {
+    if (node.kind === ExpressionType.ITERATE) {
       return this.classifyIteration(node)
     }
 
     return expressionValue(node)
   }
 
-  private classifyIteration(node: ASTNode | TemplateNode): AuthoredValue {
+  private classifyIteration(node: ASTNode): AuthoredValue {
     const properties = this.propertiesOf(node)
     const iterator = this.isRecord(properties.iterator) ? properties.iterator : undefined
     const iteratorType = this.resolveIteratorType(iterator?.type)
@@ -122,13 +104,13 @@ export default class AuthoredValueClassifier {
     }
   }
 
-  private classifyBlockTemplate(node: TemplateNode): BlockValue {
+  private classifyBlockNode(node: ASTNode): BlockValue {
     return {
       kind: AuthoredValueKind.BLOCK,
       source: node,
-      variant: String(node.variant),
-      blockType: String(node.blockType),
-      id: undefined,
+      variant: 'variant' in node ? String(node.variant) : '',
+      blockType: node.kind,
+      id: node.isTemplate ? undefined : node.id,
       entries: this.classifyEntries(this.propertiesOf(node)),
     }
   }
@@ -167,12 +149,8 @@ export default class AuthoredValueClassifier {
       : undefined
   }
 
-  private propertiesOf(node: ASTNode | TemplateNode): Record<string, unknown> {
-    return (node.properties ?? {}) as Record<string, unknown>
-  }
-
-  private isCompilableNode(value: unknown): value is ASTNode {
-    return isASTNode(value) && 'id' in value
+  private propertiesOf(node: ASTNode): Record<string, unknown> {
+    return node.properties ?? {}
   }
 
   private isRecord(value: unknown): value is Record<string, unknown> {

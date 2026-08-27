@@ -1,7 +1,7 @@
 import type { WorkContextContract, WorkHandler } from '../../../chassis/contracts/work/work.type'
 import { createWorkTask } from '../../../chassis/work/workTask'
 import type { JourneyASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { StructureType } from '../../../../authoring/types/enums'
 import type CompilationState from '../../../chassis/compilation/pipeline/CompilationState'
 import RouteIndexBuilder from './RouteIndexBuilder'
 
@@ -12,8 +12,8 @@ export const COMPILATION_ROUTES_WORK_HANDLER: WorkHandler<'compilation.routes', 
     const state = ctx.state
     const routeIndexBuilder = new RouteIndexBuilder()
 
-    const stepNodes = state.ast.nodeIndex.findByType<StepASTNode>(ASTNodeType.STEP)
-    const journeyNodes = state.ast.nodeIndex.findByType<JourneyASTNode>(ASTNodeType.JOURNEY)
+    const stepNodes = state.ast.nodeIndex.findByKind<StepASTNode>(StructureType.STEP)
+    const journeyNodes = state.ast.nodeIndex.findByKind<JourneyASTNode>(StructureType.JOURNEY)
 
     state.recordRouteIndexes({
       stepRouteIndex: routeIndexBuilder.buildStepRouteIndex(stepNodes),

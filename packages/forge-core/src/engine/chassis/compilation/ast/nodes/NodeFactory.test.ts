@@ -15,7 +15,7 @@ import type { ConditionFunctionExpr, ReferenceExpr } from '../../../../../author
 import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
 import ForgeInvalidNodeError from '../../../../errors/ForgeInvalidNodeError'
 import ForgeUnknownNodeTypeError from '../../../../errors/ForgeUnknownNodeTypeError'
-import { NodeFactory, creatorsByType } from './NodeFactory'
+import { NodeFactory, creatorsByForgeTag } from './NodeFactory'
 
 describe('NodeFactory', () => {
   // Every enum whose values name a constructible node. ConditionCombinatorType
@@ -35,7 +35,7 @@ describe('NodeFactory', () => {
   // expression and no creator ever existed for it.
   const excludedDiscriminants: string[] = [PolicyType.NAVIGATION_NEXT]
 
-  describe('creatorsByType', () => {
+  describe('creatorsByForgeTag', () => {
     it('should have a row for every discriminant enum value', () => {
       // Arrange
       const discriminantValues = discriminantEnums
@@ -43,7 +43,7 @@ describe('NodeFactory', () => {
         .filter(value => !excludedDiscriminants.includes(value))
 
       // Act
-      const missingRows = discriminantValues.filter(value => !creatorsByType.has(value))
+      const missingRows = discriminantValues.filter(value => !creatorsByForgeTag.has(value))
 
       // Assert
       expect(missingRows).toEqual([])
@@ -54,7 +54,7 @@ describe('NodeFactory', () => {
       const discriminantValues = new Set(discriminantEnums.flatMap(discriminantEnum => Object.values(discriminantEnum)))
 
       // Act
-      const unknownRows = [...creatorsByType.keys()].filter(key => !discriminantValues.has(key))
+      const unknownRows = [...creatorsByForgeTag.keys()].filter(key => !discriminantValues.has(key))
 
       // Assert
       expect(unknownRows).toEqual([])

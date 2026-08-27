@@ -16,8 +16,8 @@ export default class PredicateNodeCompiler {
   /**
    * Dispatches each predicate type (TEST, AND, OR, NOT, XOR) to its compiler.
    */
-  compile(predicateType: string, properties: Record<string, unknown>): CodeFragment {
-    switch (predicateType) {
+  compile(predicateKind: string, properties: Record<string, unknown>): CodeFragment {
+    switch (predicateKind) {
       case PredicateType.TEST:
         return this.compileTest(properties)
       case PredicateType.AND:

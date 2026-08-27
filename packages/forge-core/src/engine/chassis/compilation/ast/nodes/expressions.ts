@@ -1,4 +1,3 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
 import {
   ConditionCombinatorType,
   ExpressionType,
@@ -91,8 +90,8 @@ export function createReferenceNode(json: ReferenceExpr, ctx: NodeBuildContext):
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.REFERENCE,
+    kind: ExpressionType.REFERENCE,
+    isTemplate: false,
     properties: { path: referencePath, base },
   }
 }
@@ -154,8 +153,8 @@ export function createPipelineNode(json: PipelineExpr, ctx: NodeBuildContext): P
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.PIPELINE,
+    kind: ExpressionType.PIPELINE,
+    isTemplate: false,
     properties: {
       input,
       steps,
@@ -183,8 +182,8 @@ export function createConditionalNode(json: ConditionalExpr, ctx: NodeBuildConte
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.CONDITIONAL,
+    kind: ExpressionType.CONDITIONAL,
+    isTemplate: false,
     properties: {
       predicate: ctx.createNode(json.predicate),
       thenValue: json.thenValue !== undefined ? ctx.transformValue(json.thenValue) : true,
@@ -232,8 +231,8 @@ export function createIterateNode(json: IterateExpr, ctx: NodeBuildContext): Ite
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.ITERATE,
+    kind: ExpressionType.ITERATE,
+    isTemplate: false,
     properties,
   }
 }
@@ -259,8 +258,8 @@ export function createValidationNode(json: ValidationExpr, ctx: NodeBuildContext
   if ('function' in json && json.function !== undefined) {
     return {
       id: ctx.nextId(),
-      type: ASTNodeType.EXPRESSION,
-      expressionType: PolicyType.VALIDATION_RULE,
+      kind: PolicyType.VALIDATION_RULE,
+      isTemplate: false,
       properties: {
         ...executionProperties,
         function: ctx.createNode(json.function) as FunctionASTNode,
@@ -280,8 +279,8 @@ export function createValidationNode(json: ValidationExpr, ctx: NodeBuildContext
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.EXPRESSION,
-    expressionType: PolicyType.VALIDATION_RULE,
+    kind: PolicyType.VALIDATION_RULE,
+    isTemplate: false,
     properties,
   }
 }
@@ -300,8 +299,8 @@ export function createTieBreakerNode(json: TieBreaker, ctx: NodeBuildContext): T
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.EXPRESSION,
-    expressionType: PolicyType.NAVIGATION_TIE_BREAKER,
+    kind: PolicyType.NAVIGATION_TIE_BREAKER,
+    isTemplate: false,
     properties,
   }
 }
@@ -318,8 +317,8 @@ export function createFunctionNode(json: FunctionExpr<ResolvableValue[]>, ctx: N
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.EXPRESSION,
-    expressionType: funcType,
+    kind: funcType,
+    isTemplate: false,
     properties: {
       name: json.name,
       arguments: args,
@@ -384,8 +383,8 @@ export function createMatchNode(json: MatchExpr, ctx: NodeBuildContext): MatchAS
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.MATCH,
+    kind: ExpressionType.MATCH,
+    isTemplate: false,
     properties: {
       branches: compiledBranches,
       ...(json.otherwise !== undefined && {
@@ -424,8 +423,8 @@ function createTestPredicate(
 ): TestPredicateASTNode {
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.PREDICATE,
-    predicateType: PredicateType.TEST,
+    kind: PredicateType.TEST,
+    isTemplate: false,
     ...createBranchDiagnostics(context, ctx),
     properties: {
       subject: ctx.transformValue(context.subject),
@@ -442,8 +441,8 @@ function createNotPredicate(
 ): NotPredicateASTNode {
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.PREDICATE,
-    predicateType: PredicateType.NOT,
+    kind: PredicateType.NOT,
+    isTemplate: false,
     ...createBranchDiagnostics(context, ctx),
     properties: {
       operand: expandCondition(combinator.operand, context, ctx),
@@ -458,8 +457,8 @@ function createLogicalPredicate(
 ): AndPredicateASTNode | OrPredicateASTNode | XorPredicateASTNode {
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.PREDICATE,
-    predicateType: LOGICAL_PREDICATE_TYPES[combinator._forge],
+    kind: LOGICAL_PREDICATE_TYPES[combinator._forge],
+    isTemplate: false,
     ...createBranchDiagnostics(context, ctx),
     properties: {
       operands: combinator.operands.map(operand => expandCondition(operand, context, ctx)),

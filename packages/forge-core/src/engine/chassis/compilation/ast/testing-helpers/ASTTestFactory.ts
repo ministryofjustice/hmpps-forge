@@ -6,6 +6,7 @@ import {
   PolicyType,
   PredicateType,
   HookType,
+  StructureType,
 } from '../../../../../authoring/types/enums'
 import { AstNodeId } from '../../../contracts/ast/engine.type'
 import {
@@ -19,7 +20,6 @@ import {
   ThrowErrorOutcomeASTNode,
 } from '../../../contracts/ast/expressions.type'
 import { BlockASTNode, JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
-import { ASTNodeType } from '../../../contracts/ast/enums'
 import { PredicateASTNode } from '../../../contracts/ast/predicates.type'
 import { FORMAT_STRING_GENERATOR_NAME } from '../../../../../built-ins/functions/generators/formatGenerators'
 import type { ASTNodeDiagnostics, DSLPathSegment } from '../../../../../shared/diagnostics/sourceLocation.type'
@@ -100,8 +100,8 @@ export class ASTTestFactory {
   /**
    * Create a new BlockBuilder for fluent block construction
    */
-  static block(variant: string, blockType: ComponentCallType): BlockBuilder {
-    return new BlockBuilder(variant, blockType)
+  static block(variant: string, blockKind: ComponentCallType): BlockBuilder {
+    return new BlockBuilder(variant, blockKind)
   }
 
   /**
@@ -185,8 +185,8 @@ export class ASTTestFactory {
   }): RedirectOutcomeASTNode {
     return {
       id: ASTTestFactory.getId(),
-      type: ASTNodeType.OUTCOME,
-      outcomeType: PolicyType.OUTCOME_REDIRECT,
+      kind: PolicyType.OUTCOME_REDIRECT,
+      isTemplate: false,
       diagnostics: ASTTestFactory.diagnostics(),
       properties: {
         when: config.when,
@@ -205,8 +205,8 @@ export class ASTTestFactory {
   }): ThrowErrorOutcomeASTNode {
     return {
       id: ASTTestFactory.getId(),
-      type: ASTNodeType.OUTCOME,
-      outcomeType: PolicyType.OUTCOME_THROW_ERROR,
+      kind: PolicyType.OUTCOME_THROW_ERROR,
+      isTemplate: false,
       diagnostics: ASTTestFactory.diagnostics(),
       properties: {
         when: config.when,
@@ -267,7 +267,8 @@ export class JourneyBuilder {
     const nodeId = this.id ?? ASTTestFactory.getId()
 
     return {
-      type: ASTNodeType.JOURNEY,
+      kind: StructureType.JOURNEY,
+      isTemplate: false,
       id: nodeId,
       diagnostics: ASTTestFactory.diagnostics(),
       properties: this.properties,
@@ -303,8 +304,8 @@ export class StepBuilder {
     return this
   }
 
-  withBlock(variant: string, blockType: ComponentCallType, configFn?: (builder: BlockBuilder) => BlockBuilder): this {
-    const blockBuilder = new BlockBuilder(variant, blockType)
+  withBlock(variant: string, blockKind: ComponentCallType, configFn?: (builder: BlockBuilder) => BlockBuilder): this {
+    const blockBuilder = new BlockBuilder(variant, blockKind)
     const block = configFn ? configFn(blockBuilder).build() : blockBuilder.build()
 
     if (!this.properties.blocks) {
@@ -330,7 +331,8 @@ export class StepBuilder {
     const nodeId = this.id ?? ASTTestFactory.getId()
 
     return {
-      type: ASTNodeType.STEP,
+      kind: StructureType.STEP,
+      isTemplate: false,
       id: nodeId,
       diagnostics: ASTTestFactory.diagnostics(),
       properties: this.properties,
@@ -348,7 +350,7 @@ export class BlockBuilder {
 
   constructor(
     private variant: string,
-    private blockType: ComponentCallType,
+    private blockKind: ComponentCallType,
   ) {}
 
   withId(id: string): this {
@@ -385,10 +387,10 @@ export class BlockBuilder {
     const nodeId = this.id ?? ASTTestFactory.getId()
 
     return {
-      type: ASTNodeType.BLOCK,
+      kind: this.blockKind,
+      isTemplate: false,
       id: nodeId,
       variant: this.variant,
-      blockType: this.blockType,
       diagnostics: ASTTestFactory.diagnostics(),
       properties: this.properties,
     } as BlockASTNode
@@ -404,7 +406,7 @@ export class ExpressionBuilder<T = ExpressionASTNode> {
   private properties: any = {}
 
   constructor(
-    private expressionType:
+    private expressionKind:
       | ExpressionType
       | FunctionCallType
       | PredicateType
@@ -459,22 +461,10 @@ export class ExpressionBuilder<T = ExpressionASTNode> {
 
   build(): T {
     const nodeId = this.id ?? ASTTestFactory.getId()
-    const isPredicate = Object.values(PredicateType).includes(this.expressionType as PredicateType)
-
-    if (isPredicate) {
-      return {
-        type: ASTNodeType.PREDICATE,
-        id: nodeId,
-        predicateType: this.expressionType,
-        diagnostics: ASTTestFactory.diagnostics(),
-        properties: this.properties,
-      } as T
-    }
-
     return {
-      type: ASTNodeType.EXPRESSION,
+      kind: this.expressionKind,
+      isTemplate: false,
       id: nodeId,
-      expressionType: this.expressionType,
       diagnostics: ASTTestFactory.diagnostics(),
       properties: this.properties,
     } as T
@@ -489,7 +479,7 @@ export class HookBuilder {
 
   private properties: any = {}
 
-  constructor(private hookType: HookType) {}
+  constructor(private hookKind: HookType) {}
 
   withId(id: string): this {
     this.id = id
@@ -505,9 +495,9 @@ export class HookBuilder {
     const nodeId = this.id ?? ASTTestFactory.getId()
 
     return {
-      type: ASTNodeType.HOOK,
+      kind: this.hookKind,
+      isTemplate: false,
       id: nodeId,
-      hookType: this.hookType,
       diagnostics: ASTTestFactory.diagnostics(),
       properties: this.properties,
     } as AccessHookASTNode | SubmitHookASTNode

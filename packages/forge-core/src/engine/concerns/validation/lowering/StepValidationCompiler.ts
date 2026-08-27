@@ -1,4 +1,4 @@
-import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
+import { isTemplateASTNode } from '../../../chassis/contracts/ast/nodes'
 import { toRawOperand } from '../../../chassis/contracts/models/authoredValue.type'
 import {
   arrayCode,
@@ -405,7 +405,7 @@ export default class StepValidationCompiler {
   }
 
   private compileTemplateBlockId(field: FieldModel): string | CodeFragment {
-    if (!isTemplateNode(field.source)) {
+    if (!isTemplateASTNode(field.source)) {
       return field.source.id
     }
 

@@ -1,5 +1,4 @@
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import { ExpressionType, FunctionCallType, PolicyType, PredicateType } from '../../../../authoring/types/enums'
 import {
   FunctionASTNode,
@@ -24,8 +23,8 @@ import { workTaskBuilders } from '../../../chassis/runtime/context/compiledEvalu
 
 function createReference(path: string[]): ReferenceASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.REFERENCE,
+    kind: ExpressionType.REFERENCE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { path },
@@ -34,8 +33,8 @@ function createReference(path: string[]): ReferenceASTNode {
 
 function createConditionFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionCallType.CONDITION,
+    kind: FunctionCallType.CONDITION,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -44,8 +43,8 @@ function createConditionFunction(name: string, args: unknown[] = []): FunctionAS
 
 function createGeneratorFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionCallType.GENERATOR,
+    kind: FunctionCallType.GENERATOR,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -54,8 +53,8 @@ function createGeneratorFunction(name: string, args: unknown[] = []): FunctionAS
 
 function createTestPredicate(subject: ReferenceASTNode, condition: FunctionASTNode): TestPredicateASTNode {
   return {
-    type: ASTNodeType.PREDICATE,
-    predicateType: PredicateType.TEST,
+    kind: PredicateType.TEST,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { subject, condition, negate: false },
@@ -64,8 +63,8 @@ function createTestPredicate(subject: ReferenceASTNode, condition: FunctionASTNo
 
 function createRedirectOutcome(goto: string | FunctionASTNode, when?: TestPredicateASTNode): RedirectOutcomeASTNode {
   return {
-    type: ASTNodeType.OUTCOME,
-    outcomeType: PolicyType.OUTCOME_REDIRECT,
+    kind: PolicyType.OUTCOME_REDIRECT,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { goto, when },
@@ -536,8 +535,8 @@ describe('ReachabilityCompiler', () => {
         .withProperty('otherwise', '/step-no')
         .build()
       const outcome = {
-        type: ASTNodeType.OUTCOME,
-        outcomeType: PolicyType.OUTCOME_REDIRECT,
+        kind: PolicyType.OUTCOME_REDIRECT,
+        isTemplate: false,
         id: ASTTestFactory.getId(),
         diagnostics: ASTTestFactory.diagnostics(),
         properties: { goto: gotoMatch },

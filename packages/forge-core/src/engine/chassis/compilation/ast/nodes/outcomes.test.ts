@@ -1,4 +1,3 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
 import { ExpressionType, FunctionCallType, PolicyType, PredicateType } from '../../../../../authoring/types/enums'
 import type {
   ConditionFunctionExpr,
@@ -39,8 +38,8 @@ describe('outcomes', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.OUTCOME)
-      expect(result.outcomeType).toBe(PolicyType.OUTCOME_REDIRECT)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(PolicyType.OUTCOME_REDIRECT)
 
       expect(result.properties.goto).toBe('/next-step')
       expect(result.properties.when).toBeUndefined()
@@ -58,12 +57,12 @@ describe('outcomes', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.OUTCOME)
-      expect(result.outcomeType).toBe(PolicyType.OUTCOME_REDIRECT)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(PolicyType.OUTCOME_REDIRECT)
 
       expect(result.properties.goto).toHaveProperty('id')
-      expect((result.properties.goto as ASTNode).type).toBe(ASTNodeType.EXPRESSION)
-      expect((result.properties.goto as ExpressionASTNode).expressionType).toBe(ExpressionType.REFERENCE)
+      expect((result.properties.goto as ASTNode).kind).toBe(ExpressionType.REFERENCE)
+      expect((result.properties.goto as ExpressionASTNode).kind).toBe(ExpressionType.REFERENCE)
     })
 
     it('should create a Redirect outcome with when condition', () => {
@@ -90,8 +89,8 @@ describe('outcomes', () => {
       expect(result.id).toBeDefined()
       expect(result.properties.goto).toBe('/conditional-step')
       expect(result.properties.when).toBeDefined()
-      expect(result.properties.when!.type).toBe(ASTNodeType.PREDICATE)
-      expect((result.properties.when! as PredicateASTNode).predicateType).toBe(PredicateType.TEST)
+      expect(result.properties.when!.isTemplate).toBe(false)
+      expect((result.properties.when! as PredicateASTNode).kind).toBe(PredicateType.TEST)
     })
 
     it('should create a Redirect outcome with both dynamic goto and when condition', () => {
@@ -116,9 +115,9 @@ describe('outcomes', () => {
 
       // Assert
       expect(result.properties.goto).toHaveProperty('id')
-      expect((result.properties.goto as ASTNode).type).toBe(ASTNodeType.EXPRESSION)
+      expect((result.properties.goto as ASTNode).kind).toBe(ExpressionType.REFERENCE)
       expect(result.properties.when).toBeDefined()
-      expect(result.properties.when!.type).toBe(ASTNodeType.PREDICATE)
+      expect(result.properties.when!.isTemplate).toBe(false)
     })
 
     it('should generate unique node IDs', () => {
@@ -161,8 +160,8 @@ describe('outcomes', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.OUTCOME)
-      expect(result.outcomeType).toBe(PolicyType.OUTCOME_THROW_ERROR)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(PolicyType.OUTCOME_THROW_ERROR)
 
       expect(result.properties.status).toBe(404)
       expect(result.properties.message).toBe('Item not found')
@@ -189,13 +188,13 @@ describe('outcomes', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.OUTCOME)
-      expect(result.outcomeType).toBe(PolicyType.OUTCOME_THROW_ERROR)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(PolicyType.OUTCOME_THROW_ERROR)
 
       expect(result.properties.status).toBe(500)
       expect(result.properties.message).toHaveProperty('id')
-      expect((result.properties.message as ASTNode).type).toBe(ASTNodeType.EXPRESSION)
-      expect((result.properties.message as ExpressionASTNode).expressionType).toBe(FunctionCallType.GENERATOR)
+      expect((result.properties.message as ASTNode).kind).toBe(FunctionCallType.GENERATOR)
+      expect((result.properties.message as ExpressionASTNode).kind).toBe(FunctionCallType.GENERATOR)
       expect((result.properties.message as FunctionASTNode).properties.name).toBe(FORMAT_STRING_GENERATOR_NAME)
     })
 
@@ -225,8 +224,8 @@ describe('outcomes', () => {
       expect(result.properties.status).toBe(403)
       expect(result.properties.message).toBe('Access denied')
       expect(result.properties.when).toBeDefined()
-      expect(result.properties.when!.type).toBe(ASTNodeType.PREDICATE)
-      expect((result.properties.when! as PredicateASTNode).predicateType).toBe(PredicateType.TEST)
+      expect(result.properties.when!.isTemplate).toBe(false)
+      expect((result.properties.when! as PredicateASTNode).kind).toBe(PredicateType.TEST)
     })
 
     it('should create a ThrowError outcome with dynamic message and when condition', () => {
@@ -253,9 +252,9 @@ describe('outcomes', () => {
       // Assert
       expect(result.properties.status).toBe(409)
       expect(result.properties.message).toHaveProperty('id')
-      expect((result.properties.message as ASTNode).type).toBe(ASTNodeType.EXPRESSION)
+      expect((result.properties.message as ASTNode).kind).toBe(ExpressionType.REFERENCE)
       expect(result.properties.when).toBeDefined()
-      expect(result.properties.when!.type).toBe(ASTNodeType.PREDICATE)
+      expect(result.properties.when!.isTemplate).toBe(false)
     })
 
     it('should generate unique node IDs', () => {

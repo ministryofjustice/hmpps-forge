@@ -1,40 +1,34 @@
-import type { ASTNode } from '../../../contracts/ast/engine.type'
-import type { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
-import { isTemplateNode } from '../../../contracts/ast/nodes'
-import type { IndexableNodeType } from './ASTNodeIndex'
+import type { MaterialisedASTNode, TemplateASTNode } from '../../../contracts/ast/ast.type'
+import type { TemplateValue } from '../../../contracts/ast/template.type'
+import { isTemplateASTNode } from '../../../contracts/ast/nodes'
+import { ASTNodeFamily, astNodeFamily, type ASTNodeKind } from '../../../contracts/ast/enums'
 
 export interface TemplateNodeEntry {
-  readonly node: TemplateNode
-  /** The registered node whose property carries the template — the iterate expression node today. */
-  readonly owningNode: ASTNode
+  readonly node: TemplateASTNode
+  readonly owningNode: MaterialisedASTNode
 }
 
-/**
- * Groups template node contents by original type and sub-type — `ASTNodeIndex`'s
- * sibling for the unmaterialised side of the tree.
- *
- * Template contents never enter `ASTNodeIndex`: analysis and lowering must not
- * treat them as materialised nodes. Semantic analysis still has to check them,
- * so this index answers the same broad by-type questions over template contents
- * without each rule re-walking every iterator template.
- */
+/** Groups unmaterialised template nodes by exact semantic kind and taxonomy family. */
 export default class TemplateNodeIndex {
-  private readonly typeIndex: Map<string, TemplateNodeEntry[]> = new Map()
+  private readonly registeredNodes: WeakSet<TemplateASTNode> = new WeakSet()
 
-  /**
-   * Register every template node reachable from a template value, including
-   * the contents of nested iterator templates, against the registered node
-   * that owns the outermost template.
-   */
-  registerTree(template: TemplateValue, owningNode: ASTNode): void {
+  private readonly kindIndex: Map<ASTNodeKind, TemplateNodeEntry[]> = new Map()
+
+  private readonly familyIndex: Map<ASTNodeFamily, TemplateNodeEntry[]> = new Map()
+
+  registerTree(template: TemplateValue, owningNode: MaterialisedASTNode): void {
     this.collect(template, owningNode)
   }
 
-  findByType(type: IndexableNodeType): TemplateNodeEntry[] {
-    return [...(this.typeIndex.get(type) ?? [])]
+  findByKind(kind: ASTNodeKind): TemplateNodeEntry[] {
+    return [...(this.kindIndex.get(kind) ?? [])]
   }
 
-  private collect(value: TemplateValue, owningNode: ASTNode): void {
+  findByFamily(family: ASTNodeFamily): TemplateNodeEntry[] {
+    return [...(this.familyIndex.get(family) ?? [])]
+  }
+
+  private collect(value: TemplateValue, owningNode: MaterialisedASTNode): void {
     if (value === null || value === undefined || typeof value !== 'object') {
       return
     }
@@ -45,7 +39,12 @@ export default class TemplateNodeIndex {
       return
     }
 
-    if (isTemplateNode(value)) {
+    if (isTemplateASTNode(value)) {
+      if (this.registeredNodes.has(value)) {
+        return
+      }
+
+      this.registeredNodes.add(value)
       this.addEntry(value, owningNode)
       this.collectTemplateNodeChildren(value, owningNode)
 
@@ -55,9 +54,9 @@ export default class TemplateNodeIndex {
     Object.values(value).forEach(child => this.collect(child, owningNode))
   }
 
-  private collectTemplateNodeChildren(node: TemplateNode, owningNode: ASTNode): void {
+  private collectTemplateNodeChildren(node: TemplateASTNode, owningNode: MaterialisedASTNode): void {
     Object.entries(node).forEach(([key, child]) => {
-      if (key === 'type' || key === 'originalType' || key === 'id' || key === 'diagnostics') {
+      if (key === 'kind' || key === 'isTemplate' || key === 'id' || key === 'diagnostics') {
         return
       }
 
@@ -65,33 +64,21 @@ export default class TemplateNodeIndex {
     })
   }
 
-  private addEntry(node: TemplateNode, owningNode: ASTNode): void {
+  private addEntry(node: TemplateASTNode, owningNode: MaterialisedASTNode): void {
     const entry: TemplateNodeEntry = { node, owningNode }
 
-    this.addToTypeIndex(node.originalType, entry)
-
-    const subType = this.templateNodeSubType(node)
-
-    if (subType !== undefined) {
-      this.addToTypeIndex(subType, entry)
-    }
+    this.addToIndex(this.kindIndex, node.kind, entry)
+    this.addToIndex(this.familyIndex, astNodeFamily(node.kind), entry)
   }
 
-  private addToTypeIndex(type: string, entry: TemplateNodeEntry): void {
-    let entries = this.typeIndex.get(type)
+  private addToIndex<TKey>(index: Map<TKey, TemplateNodeEntry[]>, key: TKey, entry: TemplateNodeEntry): void {
+    let entries = index.get(key)
 
     if (!entries) {
       entries = []
-      this.typeIndex.set(type, entries)
+      index.set(key, entries)
     }
 
     entries.push(entry)
-  }
-
-  /** Template nodes keep their family sub-type fields, so the same sub-type indexing as `ASTNodeIndex` applies. */
-  private templateNodeSubType(node: TemplateNode): string | undefined {
-    const subType = node.expressionType ?? node.predicateType ?? node.hookType ?? node.outcomeType ?? node.blockType
-
-    return typeof subType === 'string' ? subType : undefined
   }
 }

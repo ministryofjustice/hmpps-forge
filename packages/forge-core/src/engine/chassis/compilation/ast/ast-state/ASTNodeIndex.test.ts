@@ -1,6 +1,12 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
 import { ASTTestFactory } from '../testing-helpers/ASTTestFactory'
-import { ComponentCallType, ExpressionType, PolicyType, PredicateType } from '../../../../../authoring/types/enums'
+import {
+  ComponentCallType,
+  ExpressionType,
+  PolicyType,
+  PredicateType,
+  StructureType,
+} from '../../../../../authoring/types/enums'
+import { ASTNodeFamily } from '../../../contracts/ast/enums'
 import ASTNodeIndex from './ASTNodeIndex'
 
 describe('ASTNodeIndex', () => {
@@ -11,7 +17,7 @@ describe('ASTNodeIndex', () => {
   })
 
   describe('register()', () => {
-    it('should register a node retrievable by type', () => {
+    it('should register a node retrievable by kind', () => {
       // Arrange
       const node = ASTTestFactory.block('TextField', ComponentCallType.FIELD).withId('compile_ast:1').build()
 
@@ -19,7 +25,7 @@ describe('ASTNodeIndex', () => {
       registry.register('compile_ast:1', node)
 
       // Assert
-      expect(registry.findByType(ASTNodeType.BLOCK)).toEqual([node])
+      expect(registry.findByKind(ComponentCallType.FIELD)).toEqual([node])
     })
 
     it('should throw when registering duplicate ID', () => {
@@ -36,8 +42,8 @@ describe('ASTNodeIndex', () => {
     })
   })
 
-  describe('findByType()', () => {
-    it('should find nodes by top-level AST type', () => {
+  describe('findByKind()', () => {
+    it('should find nodes by immediate family', () => {
       // Arrange
       const block1 = ASTTestFactory.block('TextField', ComponentCallType.FIELD).build()
       const block2 = ASTTestFactory.block('RadioInput', ComponentCallType.FIELD).build()
@@ -52,9 +58,9 @@ describe('ASTNodeIndex', () => {
       registry.register('compile_ast:5', expr)
 
       // Act
-      const blocks = registry.findByType(ASTNodeType.BLOCK)
-      const steps = registry.findByType(ASTNodeType.STEP)
-      const expressions = registry.findByType(ASTNodeType.EXPRESSION)
+      const blocks = registry.findByFamily(ASTNodeFamily.COMPONENT_CALL)
+      const steps = registry.findByKind(StructureType.STEP)
+      const expressions = registry.findByFamily(ASTNodeFamily.EXPRESSION)
 
       // Assert
       expect(blocks).toEqual([block1, block2])
@@ -68,7 +74,7 @@ describe('ASTNodeIndex', () => {
       registry.register('compile_ast:1', block)
 
       // Act
-      const journeys = registry.findByType(ASTNodeType.JOURNEY)
+      const journeys = registry.findByKind(StructureType.JOURNEY)
 
       // Assert
       expect(journeys).toEqual([])
@@ -85,8 +91,8 @@ describe('ASTNodeIndex', () => {
       registry.register('compile_ast:3', pipeExpr)
 
       // Act
-      const refNodes = registry.findByType(ExpressionType.REFERENCE)
-      const condNodes = registry.findByType(ExpressionType.CONDITIONAL)
+      const refNodes = registry.findByKind(ExpressionType.REFERENCE)
+      const condNodes = registry.findByKind(ExpressionType.CONDITIONAL)
 
       // Assert
       expect(refNodes).toEqual([refExpr])
@@ -102,8 +108,8 @@ describe('ASTNodeIndex', () => {
       registry.register(orPredicate.id, orPredicate)
 
       // Act
-      const andNodes = registry.findByType(PredicateType.AND)
-      const orNodes = registry.findByType(PredicateType.OR)
+      const andNodes = registry.findByKind(PredicateType.AND)
+      const orNodes = registry.findByKind(PredicateType.OR)
 
       // Assert
       expect(andNodes).toEqual([andPredicate])
@@ -119,8 +125,8 @@ describe('ASTNodeIndex', () => {
       registry.register('compile_ast:2', basicBlock)
 
       // Act
-      const fieldBlocks = registry.findByType(ComponentCallType.FIELD)
-      const basicBlocks = registry.findByType(ComponentCallType.BASIC)
+      const fieldBlocks = registry.findByKind(ComponentCallType.FIELD)
+      const basicBlocks = registry.findByKind(ComponentCallType.BASIC)
 
       // Assert
       expect(fieldBlocks).toEqual([fieldBlock])
@@ -136,8 +142,8 @@ describe('ASTNodeIndex', () => {
       registry.register(throwErrorOutcome.id, throwErrorOutcome)
 
       // Act
-      const redirectNodes = registry.findByType(PolicyType.OUTCOME_REDIRECT)
-      const throwErrorNodes = registry.findByType(PolicyType.OUTCOME_THROW_ERROR)
+      const redirectNodes = registry.findByKind(PolicyType.OUTCOME_REDIRECT)
+      const throwErrorNodes = registry.findByKind(PolicyType.OUTCOME_THROW_ERROR)
 
       // Assert
       expect(redirectNodes).toEqual([redirectOutcome])

@@ -75,7 +75,7 @@ export const validateFunctionArity: ASTValidationRule = (context: ASTValidationC
   const errors: Error[] = []
 
   FUNCTION_TYPES.forEach(functionType => {
-    nodeIndex.findByType<FunctionASTNode>(functionType).forEach(node => {
+    nodeIndex.findByKind<FunctionASTNode>(functionType).forEach(node => {
       const entry = functionRegistry.get(node.properties.name)
 
       if (!entry?.argumentsSchema) {
@@ -90,7 +90,7 @@ export const validateFunctionArity: ASTValidationRule = (context: ASTValidationC
       }
     })
 
-    templateNodeIndex.findByType(functionType).forEach(({ node }) => {
+    templateNodeIndex.findByKind(functionType).forEach(({ node }) => {
       const name = (node.properties?.name as string) ?? ''
       const entry = functionRegistry.get(name)
 

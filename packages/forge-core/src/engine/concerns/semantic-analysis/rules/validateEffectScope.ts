@@ -1,5 +1,5 @@
 import { FunctionCallType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { ASTNodeFamily, astNodeFamily } from '../../../chassis/contracts/ast/enums'
 import type { FunctionASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
@@ -20,7 +20,7 @@ function hasHookAncestor(node: ASTNode): boolean {
   let current = node.parent
 
   while (current !== undefined) {
-    if (current.type === ASTNodeType.HOOK) {
+    if (astNodeFamily(current.kind) === ASTNodeFamily.HOOK) {
       return true
     }
 
@@ -34,7 +34,7 @@ export const validateEffectScope: ASTValidationRule = (context: ASTValidationCon
   const { nodeIndex, templateNodeIndex } = context
   const errors: Error[] = []
 
-  const effectNodes = nodeIndex.findByType<FunctionASTNode>(FunctionCallType.EFFECT)
+  const effectNodes = nodeIndex.findByKind<FunctionASTNode>(FunctionCallType.EFFECT)
 
   effectNodes.forEach(node => {
     if (!hasHookAncestor(node)) {
@@ -42,7 +42,7 @@ export const validateEffectScope: ASTValidationRule = (context: ASTValidationCon
     }
   })
 
-  templateNodeIndex.findByType(FunctionCallType.EFFECT).forEach(({ node, owningNode }) => {
+  templateNodeIndex.findByKind(FunctionCallType.EFFECT).forEach(({ node, owningNode }) => {
     if (hasHookAncestor(owningNode)) {
       return
     }

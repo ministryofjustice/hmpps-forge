@@ -4,7 +4,15 @@ import type { Logger } from '../../../../framework/types/adapter.type'
 import type { RegisteredForgePackage } from '../../../../authoring/types/package.type'
 import type { FunctionRegistryBuilder } from '../../../../authoring/types/functions.type'
 
-export type { ASTNode, AstNodeId, NodeId, TemplateNodeId } from './ast.type'
+export type {
+  ASTNode,
+  AstNodeId,
+  BaseASTNode,
+  MaterialisedASTNode,
+  NodeId,
+  TemplateASTNode,
+  TemplateNodeId,
+} from './ast.type'
 
 export interface ForgeDependencies {
   logger: Logger | Console

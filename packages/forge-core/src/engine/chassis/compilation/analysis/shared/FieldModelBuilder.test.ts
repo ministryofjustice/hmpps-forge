@@ -7,10 +7,10 @@ import {
   FunctionCallType,
   IteratorType,
 } from '../../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import type { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
-import type { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
+import type { TemplateASTNode } from '../../../contracts/ast/ast.type'
+import type { TemplateValue } from '../../../contracts/ast/template.type'
 import { FieldCodeKind, ValidationRulesKind } from '../../../contracts/models/fieldModel.type'
 import ForgeInternalError from '../../../../errors/ForgeInternalError'
 import ComponentRegistry from '../../../registries/ComponentRegistry'
@@ -45,28 +45,26 @@ function createTemplateField(
   code: TemplateValue,
   props: Record<string, TemplateValue> = {},
   variant = 'text-input',
-): TemplateNode {
+): TemplateASTNode {
   return {
-    type: ASTNodeType.TEMPLATE,
-    originalType: ASTNodeType.BLOCK,
-    blockType: ComponentCallType.FIELD,
+    kind: ComponentCallType.FIELD,
+    isTemplate: true,
     variant,
-    id: ASTTestFactory.getId(),
+    id: 'template:1',
     properties: { code, ...props },
-  } as unknown as TemplateNode
+  } as unknown as TemplateASTNode
 }
 
-function createTemplateIterate(input: TemplateValue, yieldTemplate: TemplateValue): TemplateNode {
+function createTemplateIterate(input: TemplateValue, yieldTemplate: TemplateValue): TemplateASTNode {
   return {
-    type: ASTNodeType.TEMPLATE,
-    originalType: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.ITERATE,
-    id: ASTTestFactory.getId(),
+    kind: ExpressionType.ITERATE,
+    isTemplate: true,
+    id: 'template:2',
     properties: {
       input,
       iterator: { type: IteratorType.MAP, yieldTemplate },
     },
-  } as unknown as TemplateNode
+  } as unknown as TemplateASTNode
 }
 
 function createIterateNode(
@@ -74,8 +72,8 @@ function createIterateNode(
   iteratorType: IteratorType = IteratorType.MAP,
 ): IterateASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.ITERATE,
+    kind: ExpressionType.ITERATE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     properties: {
       input: ASTTestFactory.reference(['answers', 'items']),
@@ -86,8 +84,8 @@ function createIterateNode(
 
 function createTransformer(name: string, args: unknown[] = []): unknown {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionCallType.TRANSFORMER,
+    kind: FunctionCallType.TRANSFORMER,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -243,12 +241,11 @@ describe('FieldModelBuilder', () => {
     it('should resolve a lenient component when a template variant is not a string', () => {
       // Arrange
       const templateField = {
-        type: ASTNodeType.TEMPLATE,
-        originalType: ASTNodeType.BLOCK,
-        blockType: ComponentCallType.FIELD,
-        id: ASTTestFactory.getId(),
+        kind: ComponentCallType.FIELD,
+        isTemplate: true,
+        id: 'template:3',
         properties: { code: 'dynamic' },
-      } as unknown as TemplateNode
+      } as unknown as TemplateASTNode
       const iterateNode = createIterateNode(templateField)
       const builder = new FieldModelBuilder(new ComponentRegistry())
 

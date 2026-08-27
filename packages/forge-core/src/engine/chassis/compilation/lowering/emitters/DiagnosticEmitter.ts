@@ -216,14 +216,14 @@ export default class DiagnosticEmitter {
       return undefined
     }
 
-    const expressionType = source.expressionType
+    const functionKind = source.kind
 
-    switch (expressionType) {
+    switch (functionKind) {
       case FunctionCallType.CONDITION:
       case FunctionCallType.TRANSFORMER:
       case FunctionCallType.GENERATOR:
       case FunctionCallType.EFFECT:
-        return expressionType
+        return functionKind
       default:
         return undefined
     }

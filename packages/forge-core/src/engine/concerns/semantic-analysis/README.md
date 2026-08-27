@@ -63,7 +63,7 @@ An `ASTValidationRule` is a function that accepts `ASTValidationContext` and ret
 Rules do not throw directly.
 `ASTSemanticValidator.validate()` runs each rule, appends the returned errors, and throws one `AggregateError` when any errors exist.
 
-Most rules inspect registered nodes through `ASTNodeIndex.findByType()` and template contents through `TemplateNodeIndex.findByType()`.
+Most rules inspect registered nodes through `ASTNodeIndex.findByKind()` and template contents through `TemplateNodeIndex.findByKind()`.
 Templates are AST-shaped, but they are not registered in `ASTNodeIndex`.
 The registration walk indexes their contents in `TemplateNodeIndex` instead, so most template checks are bucket lookups.
 Only depth-sensitive and path-sensitive checks still walk templates by hand.
@@ -94,8 +94,8 @@ AST creation still turns that function into an expression node:
 ```jsonc
 {
   id: 'compile_ast:4',
-  type: 'AstNode.Expression',
-  expressionType: 'FunctionType.Effect',
+  kind: 'function.call.effect',
+  isTemplate: false,
   properties: {
     name: 'saveToApi',
     arguments: [],
@@ -110,7 +110,7 @@ AST creation still turns that function into an expression node:
 ```
 
 `validateEffectScope()` then walks the node's `parent` links to find its ancestors.
-If no ancestor has `ASTNodeType.HOOK`, it returns a `ForgeReferenceScopeError`.
+If no ancestor belongs to `ASTNodeFamily.HOOK`, it returns a `ForgeReferenceScopeError`.
 `ASTSemanticValidator.validate()` includes that error in the final `AggregateError`.
 
 *Note: Pretty sure the DSL Validation stage would catch this, but suspend disbelief for the example please!*
@@ -171,7 +171,7 @@ flowchart TD
   This lets one bad journey report multiple semantic problems in one `AggregateError`.
 - Iterator templates are checked separately from registered nodes.
   Template nodes are not in `ASTNodeIndex`, so a rule that only queries it will miss errors inside `yieldTemplate` and `predicateTemplate`.
-  A rule with a template case queries `templateNodeIndex.findByType()` next to its registered-node query.
+  A rule with a template case queries `templateNodeIndex.findByKind()` next to its registered-node query.
 - `validateReferenceScopes()` cannot use `TemplateNodeIndex` for its template case.
   The flat index erases iterator nesting, and `Item()` and `Loop` levels depend on that nesting, so the rule keeps a local depth-tracking walk.
 - `validateSelfScope()` cannot use `TemplateNodeIndex` for its template case either.
@@ -188,7 +188,7 @@ flowchart TD
 ## Constraints
 
 - Run semantic analysis after AST registration.
-  Rules depend on `ASTNodeIndex.findByType()` and the `parent` links wired during registration.
+  Rules depend on `ASTNodeIndex.findByKind()` and the `parent` links wired during registration.
 - Run semantic analysis before analysis and lowering.
   Later phases assume the AST has already been checked for legal placement and registered dependencies.
 - Keep validation rules side-effect free.
@@ -208,11 +208,11 @@ flowchart TD
 
 - To add a new semantic check, create a rule in `rules/` and add it to the `RULES` array in `ASTSemanticValidator.ts`.
   Match the existing rule shape: gather `Error[]`, return it, and leave orchestration to `ASTSemanticValidator`.
-- To validate a registered AST node family, start with `nodeIndex.findByType()`.
-  Use broad types such as `ASTNodeType.BLOCK` or indexed subtypes such as `FunctionType.EFFECT` when the index supports them.
+- To validate one exact AST kind, use `nodeIndex.findByKind()`.
+  To validate an immediate taxonomy family such as components, hooks, expressions, or function calls, use `nodeIndex.findByFamily()`.
 - To validate ancestor or parent placement, walk `node.parent` links.
   Do not infer ancestry from source paths.
-- To validate iterator templates, query `templateNodeIndex.findByType()` with the same broad type or subtype as the registered-node case.
+- To validate iterator templates, use the matching `findByKind()` or `findByFamily()` query on `templateNodeIndex`.
   Use the entry's `owningNode` when the verdict depends on where the template sits in the registered tree.
   Fall back to a local walk only when the check depends on template structure the flat index cannot express, as `validateReferenceScopes()` does for iterator depth.
 - To add a new function subtype, make sure `validateRegisteredFunctions()` sees it through `Object.values(FunctionType)`.

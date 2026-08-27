@@ -1,7 +1,7 @@
-import { ASTNode } from '../../../contracts/ast/engine.type'
+import { MaterialisedASTNode } from '../../../contracts/ast/engine.type'
 import ASTNodeIndex from './ASTNodeIndex'
 import TemplateNodeIndex from './TemplateNodeIndex'
-import { isASTNode, isTemplateNode } from '../../../contracts/ast/nodes'
+import { isMaterialisedASTNode, isTemplateASTNode } from '../../../contracts/ast/nodes'
 import ForgeInternalError from '../../../../errors/ForgeInternalError'
 
 /**
@@ -22,11 +22,11 @@ export default class NodeRegistrationWalker {
   /**
    * Register a root AST node and every non-template descendant.
    */
-  register(root: ASTNode): void {
+  register(root: MaterialisedASTNode): void {
     this.walk(root, undefined)
   }
 
-  private walk(value: unknown, parentNode: ASTNode | undefined): void {
+  private walk(value: unknown, parentNode: MaterialisedASTNode | undefined): void {
     if (value === null || value === undefined || typeof value !== 'object') {
       return
     }
@@ -39,7 +39,7 @@ export default class NodeRegistrationWalker {
 
     // Template contents stay out of the main registry but are indexed for
     // semantic analysis, keyed to the registered node that carries them.
-    if (isTemplateNode(value)) {
+    if (isTemplateASTNode(value)) {
       if (parentNode === undefined) {
         throw new ForgeInternalError('Template node reached with no registered parent to own it')
       }
@@ -49,7 +49,7 @@ export default class NodeRegistrationWalker {
       return
     }
 
-    if (!isASTNode(value)) {
+    if (!isMaterialisedASTNode(value)) {
       Object.values(value).forEach(v => this.walk(v, parentNode))
 
       return

@@ -1,9 +1,8 @@
-import { ComponentCallType, IteratorType } from '../../../../authoring/types/enums'
-import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
-import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
+import { ComponentCallType, IteratorType, StructureType } from '../../../../authoring/types/enums'
+import type { ASTNode, TemplateASTNode } from '../../../chassis/contracts/ast/ast.type'
+import { isTemplateASTNode } from '../../../chassis/contracts/ast/nodes'
 import type { BlockASTNode, JourneyASTNode } from '../../../chassis/contracts/ast/structures.type'
-import type { TemplateNode, TemplateValue } from '../../../chassis/contracts/ast/template.type'
+import type { TemplateValue } from '../../../chassis/contracts/ast/template.type'
 import { AuthoredValueKind, type AuthoredValue } from '../../../chassis/contracts/models/authoredValue.type'
 import type {
   StepAnalysisContext,
@@ -80,23 +79,25 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
       source: block,
       id: block.id,
       variant: block.variant,
-      blockType: block.blockType,
+      blockType: block.kind,
       label: this.deriveBlockLabel(block),
       properties: this.classifyProperties(context, rawProperties, ResolveAnalyzer.BLOCK_SKIP_PROPS),
-      resolvesFieldValue: block.blockType === ComponentCallType.FIELD && rawProperties.value === undefined,
+      resolvesFieldValue: block.kind === ComponentCallType.FIELD && rawProperties.value === undefined,
     }
   }
 
-  private buildTemplateBlock(context: StepAnalysisContext, block: TemplateNode): ResolveBlockModel {
+  private buildTemplateBlock(context: StepAnalysisContext, block: TemplateASTNode): ResolveBlockModel {
     const rawProperties = (block.properties ?? {}) as Record<string, unknown>
-    const blockType = String(block.blockType)
+    const blockData = block as unknown as Record<string, unknown>
+    const blockType = block.kind
+    const variant = String(blockData.variant)
 
     return {
       source: block,
       id: undefined,
-      variant: String(block.variant),
+      variant,
       blockType,
-      label: String(block.variant),
+      label: variant,
       properties: this.classifyProperties(context, rawProperties, ResolveAnalyzer.BLOCK_SKIP_PROPS),
       resolvesFieldValue: blockType === ComponentCallType.FIELD && rawProperties.value === undefined,
     }
@@ -264,21 +265,21 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
   }
 
   /** Finds block nodes inside a standalone iterator's yield template, collecting only the outermost matches. */
-  private findTemplateBlocks(template: TemplateValue): TemplateNode[] {
-    const results: TemplateNode[] = []
+  private findTemplateBlocks(template: TemplateValue): TemplateASTNode[] {
+    const results: TemplateASTNode[] = []
 
     this.walkTemplateForBlocks(template, results)
 
     return results
   }
 
-  private walkTemplateForBlocks(value: TemplateValue, results: TemplateNode[]): void {
+  private walkTemplateForBlocks(value: TemplateValue, results: TemplateASTNode[]): void {
     if (value === null || value === undefined || typeof value !== 'object') {
       return
     }
 
-    if (isTemplateNode(value)) {
-      if (value.originalType === ASTNodeType.BLOCK) {
+    if (isTemplateASTNode(value)) {
+      if (value.kind === ComponentCallType.BASIC || value.kind === ComponentCallType.FIELD) {
         results.push(value)
 
         return
@@ -312,7 +313,7 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
 }
 
 function isJourneyNode(node: ASTNode): node is JourneyASTNode {
-  return node.type === ASTNodeType.JOURNEY
+  return node.kind === StructureType.JOURNEY
 }
 
 function composePath(runningPath: string, ownPath: string): string {

@@ -1,5 +1,5 @@
 import { ExpressionType, HookType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { ASTNodeFamily, astNodeFamily } from '../../../chassis/contracts/ast/enums'
 import type { ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
@@ -29,8 +29,8 @@ function hasAccessHookAncestor(node: ASTNode): boolean {
   let current = node.parent
 
   while (current !== undefined) {
-    if (current.type === ASTNodeType.HOOK) {
-      return (current as { hookType?: HookType }).hookType === HookType.ACCESS
+    if (astNodeFamily(current.kind) === ASTNodeFamily.HOOK) {
+      return current.kind === HookType.ACCESS
     }
 
     current = current.parent
@@ -43,13 +43,13 @@ export const validateAnswerScope: ASTValidationRule = (context: ASTValidationCon
   const { nodeIndex, templateNodeIndex } = context
   const errors: Error[] = []
 
-  nodeIndex.findByType<ReferenceASTNode>(ExpressionType.REFERENCE).forEach(node => {
+  nodeIndex.findByKind<ReferenceASTNode>(ExpressionType.REFERENCE).forEach(node => {
     if (isAnswerReferencePath(node.properties?.path) && hasAccessHookAncestor(node)) {
       errors.push(buildError(node.diagnostics))
     }
   })
 
-  templateNodeIndex.findByType(ExpressionType.REFERENCE).forEach(({ node, owningNode }) => {
+  templateNodeIndex.findByKind(ExpressionType.REFERENCE).forEach(({ node, owningNode }) => {
     if (isAnswerReferencePath(node.properties?.path) && hasAccessHookAncestor(owningNode)) {
       errors.push(buildError(node.diagnostics))
     }

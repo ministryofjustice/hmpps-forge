@@ -1,10 +1,9 @@
-import { PolicyType, ExpressionType, ComponentCallType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { PolicyType, ExpressionType, ComponentCallType, StructureType } from '../../../../authoring/types/enums'
 import type { ValidationASTNode, IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { FieldBlockASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
-import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
+import { isTemplateASTNode } from '../../../chassis/contracts/ast/nodes'
 import type { TemplateValue } from '../../../chassis/contracts/ast/template.type'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
@@ -48,19 +47,12 @@ function walkTemplateForValidationScope(value: TemplateValue, insideValidWhen: b
     return
   }
 
-  if (isTemplateNode(value)) {
-    if (value.originalType === ASTNodeType.EXPRESSION) {
-      const expressionType = (value as Record<string, unknown>).expressionType as string | undefined
-
-      if (expressionType === PolicyType.VALIDATION_RULE && !insideValidWhen) {
-        errors.push(buildError(value.diagnostics))
-      }
+  if (isTemplateASTNode(value)) {
+    if (value.kind === PolicyType.VALIDATION_RULE && !insideValidWhen) {
+      errors.push(buildError(value.diagnostics))
     }
 
-    const canHaveValidWhen =
-      (value.originalType === ASTNodeType.BLOCK &&
-        (value as Record<string, unknown>).blockType === ComponentCallType.FIELD) ||
-      value.originalType === ASTNodeType.STEP
+    const canHaveValidWhen = value.kind === ComponentCallType.FIELD || value.kind === StructureType.STEP
 
     if (value.properties) {
       Object.entries(value.properties).forEach(([key, propValue]) => {
@@ -71,7 +63,7 @@ function walkTemplateForValidationScope(value: TemplateValue, insideValidWhen: b
     }
 
     Object.entries(value).forEach(([key, val]) => {
-      if (key === 'type' || key === 'originalType' || key === 'id' || key === 'properties') {
+      if (key === 'kind' || key === 'isTemplate' || key === 'id' || key === 'properties') {
         return
       }
 
@@ -106,25 +98,25 @@ export const validateValidationScope: ASTValidationRule = (context: ASTValidatio
 
   const validWhenEntryIds = new Set<string>()
 
-  nodeIndex.findByType<FieldBlockASTNode>(ComponentCallType.FIELD).forEach(block => {
+  nodeIndex.findByKind<FieldBlockASTNode>(ComponentCallType.FIELD).forEach(block => {
     collectNodeIdsFromValidWhen(block.properties.validWhen).forEach(id => {
       validWhenEntryIds.add(id)
     })
   })
 
-  nodeIndex.findByType<StepASTNode>(ASTNodeType.STEP).forEach(step => {
+  nodeIndex.findByKind<StepASTNode>(StructureType.STEP).forEach(step => {
     collectNodeIdsFromValidWhen(step.properties.validWhen).forEach(id => {
       validWhenEntryIds.add(id)
     })
   })
 
-  nodeIndex.findByType<ValidationASTNode>(PolicyType.VALIDATION_RULE).forEach(node => {
+  nodeIndex.findByKind<ValidationASTNode>(PolicyType.VALIDATION_RULE).forEach(node => {
     if (!validWhenEntryIds.has(node.id)) {
       errors.push(buildError(node.diagnostics))
     }
   })
 
-  const iterateNodes = nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE)
+  const iterateNodes = nodeIndex.findByKind<IterateASTNode>(ExpressionType.ITERATE)
 
   iterateNodes.forEach(iterateNode => {
     const insideValidWhen = hasValidWhenAncestor(iterateNode, validWhenEntryIds)

@@ -1,4 +1,5 @@
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { ASTNodeFamily } from '../../../chassis/contracts/ast/enums'
+import { StructureType } from '../../../../authoring/types/enums'
 import type { NodeId } from '../../../chassis/contracts/ast/engine.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
@@ -22,24 +23,24 @@ export const validateHookScope: ASTValidationRule = (context: ASTValidationConte
   const { nodeIndex, templateNodeIndex } = context
   const errors: Error[] = []
 
-  nodeIndex.findByType(ASTNodeType.HOOK).forEach(node => {
+  nodeIndex.findByFamily(ASTNodeFamily.HOOK).forEach(node => {
     const parent = node.parent
 
-    if (!parent || (parent.type !== ASTNodeType.JOURNEY && parent.type !== ASTNodeType.STEP)) {
+    if (!parent || (parent.kind !== StructureType.JOURNEY && parent.kind !== StructureType.STEP)) {
       errors.push(buildError(node.diagnostics))
 
       return
     }
 
     const inAccess = containsNode(parent.properties?.onAccess, node.id)
-    const inSubmission = parent.type === ASTNodeType.STEP && containsNode(parent.properties?.onSubmission, node.id)
+    const inSubmission = parent.kind === StructureType.STEP && containsNode(parent.properties?.onSubmission, node.id)
 
     if (!inAccess && !inSubmission) {
       errors.push(buildError(node.diagnostics))
     }
   })
 
-  templateNodeIndex.findByType(ASTNodeType.HOOK).forEach(({ node }) => {
+  templateNodeIndex.findByFamily(ASTNodeFamily.HOOK).forEach(({ node }) => {
     errors.push(buildError(node.diagnostics))
   })
 
