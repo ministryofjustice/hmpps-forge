@@ -1,14 +1,5 @@
 import { z } from 'zod'
-import {
-  ComponentCallType,
-  ExpressionType,
-  FunctionCallType,
-  HookType,
-  IteratorType,
-  PolicyType,
-  PredicateType,
-  StructureType,
-} from '../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, HookType, PolicyType, StructureType } from '../../../../authoring/types/enums'
 import { ReferenceExprSchema, PipelineExprSchema, IterateExprSchema, ResolvableValueSchema } from './expressions.schema'
 import { PredicateExprSchema, ConditionalExprSchema, MatchExprSchema, HookOutcomeSchema } from './predicates.schema'
 import {
@@ -26,15 +17,6 @@ const ViewConfigSchema = z.object({
   locals: z.record(z.string(), z.unknown()).optional(),
 })
 
-const staticDataDynamicMarkers = new Set<string>([
-  ...Object.values(ExpressionType),
-  ...Object.values(FunctionCallType),
-  ...Object.values(HookType),
-  ...Object.values(IteratorType),
-  ...Object.values(PolicyType),
-  ...Object.values(PredicateType),
-])
-
 const StaticDataValueSchema: z.ZodType<unknown> = z.lazy(() =>
   z
     .union([
@@ -50,9 +32,7 @@ const StaticDataValueSchema: z.ZodType<unknown> = z.lazy(() =>
         return
       }
 
-      const type = (value as { _forge?: unknown })._forge
-
-      if (typeof type !== 'string' || !staticDataDynamicMarkers.has(type)) {
+      if (!('_forge' in value)) {
         return
       }
 

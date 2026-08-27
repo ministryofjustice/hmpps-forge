@@ -2,7 +2,6 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import {
   ConditionCombinatorType,
   ExpressionType,
-  FunctionCallType,
   IteratorType,
   PolicyType,
   PredicateType,
@@ -49,41 +48,32 @@ import ForgeInvalidNodeError from '../../../../errors/ForgeInvalidNodeError'
 import type { NodeBuildContext } from './NodeFactory'
 
 /**
- * Every `_forge` discriminant that marks an authored expression, as opposed to
+ * The `_forge` categories that mark an authored expression, as opposed to
  * a structure (journey/step/block), a hook, or plain data.
  *
- * PolicyType.NAVIGATION_NEXT and IteratorType are deliberately absent: nothing in
+ * PolicyType.NAVIGATION_NEXT and iterators are deliberately absent: nothing in
  * the authoring surface produces a NEXT expression, and iterator configs are
  * inline configuration consumed by Iterate expressions, not expressions
  * themselves.
  */
-const EXPRESSION_TYPES: ReadonlySet<string> = new Set([
-  ExpressionType.REFERENCE,
-  ExpressionType.PIPELINE,
-  ExpressionType.CONDITIONAL,
-  ExpressionType.MATCH,
-  ExpressionType.ITERATE,
-  PolicyType.VALIDATION_RULE,
-  PolicyType.NAVIGATION_TIE_BREAKER,
-  ...Object.values(PredicateType),
-  ...Object.values(ConditionCombinatorType),
-  ...Object.values(FunctionCallType),
-  PolicyType.OUTCOME_REDIRECT,
-  PolicyType.OUTCOME_THROW_ERROR,
-])
+const EXPRESSION_PREFIXES = ['expression.', 'predicate.', 'combinator.', 'function.call.', 'policy.']
 
 function isExpression(node: any): boolean {
-  return node != null && EXPRESSION_TYPES.has(node._forge)
-}
+  const tag = node?._forge
 
-const CONDITION_COMBINATOR_TYPES: ReadonlySet<string> = new Set(Object.values(ConditionCombinatorType))
+  return (
+    typeof tag === 'string' &&
+    tag !== PolicyType.NAVIGATION_NEXT &&
+    EXPRESSION_PREFIXES.some(prefix => tag.startsWith(prefix))
+  )
+}
 
 function isConditionNotExpr(obj: any): obj is ConditionNotExpr {
   return obj != null && obj._forge === ConditionCombinatorType.NOT
 }
 
 function isConditionCombinatorExpr(obj: any): obj is ConditionCombinatorExpr {
-  return obj != null && CONDITION_COMBINATOR_TYPES.has(obj._forge)
+  return obj != null && typeof obj._forge === 'string' && obj._forge.startsWith('combinator.')
 }
 
 /**

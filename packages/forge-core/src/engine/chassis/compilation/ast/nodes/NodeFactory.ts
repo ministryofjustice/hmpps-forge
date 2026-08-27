@@ -7,11 +7,9 @@ import type { ASTNodeDiagnostics, DSLSourceLocation } from '../../../../../share
 import { compileTemplate } from './template'
 import {
   ComponentCallType,
-  ConditionCombinatorType,
   ExpressionType,
   FunctionCallType,
   HookType,
-  IteratorType,
   PolicyType,
   PredicateType,
   StructureType,
@@ -56,39 +54,17 @@ export interface NodeBuildContext {
 
 export type NodeCreator<TIn = any> = (json: TIn, ctx: NodeBuildContext) => ASTNode
 
-/**
- * Some authored objects carry a `_forge` discriminant but are not standalone AST
- * nodes - they're consumed inline by the creator of their parent node. A stray
- * one anywhere else is an authoring mistake, so its creator always throws,
- * saying where the object actually belongs.
- */
-const notConstructible =
-  (reason: string): NodeCreator =>
-  (json: unknown, ctx: NodeBuildContext) => {
-    const diagnostics = ctx.diagnosticsFor(json)
-
-    throw new ForgeInvalidNodeError({
-      message: reason,
-      node: json,
-      actual: (json as { _forge?: string })._forge,
-      formattedPath: diagnostics?.source.formattedPath,
-      callsite: diagnostics?.callsite,
-    })
-  }
-
 const COMBINATOR_PLACEMENT = 'Condition combinators can only appear inside a match expression branch condition'
 const ITERATOR_PLACEMENT = 'Iterator configurations can only appear inside the iterator of an Iterate expression'
 
 /**
- * The discriminants of the inline-only types. Anything carrying one of these
- * strings outside its one legal spot throws the placement error - even a
- * coincidental data object - but the valid-types list must not advertise them
- * as constructible.
+ * Combinators and iterator configs carry a `_forge` discriminant but are not
+ * standalone AST nodes - they're consumed inline by the creator of their parent
+ * node. A stray one anywhere else is an authoring mistake, so it throws the
+ * placement error - even a coincidental data object - but the valid-types list
+ * must not advertise them as constructible.
  */
-const INLINE_ONLY_TYPES: ReadonlySet<string> = new Set([
-  ...Object.values(ConditionCombinatorType),
-  ...Object.values(IteratorType),
-])
+const isInlineOnly = (tag: string): boolean => tag.startsWith('combinator.') || tag.startsWith('iterator.')
 
 /**
  * The complete registry of every `_forge` discriminant the DSL can emit - one
@@ -97,10 +73,9 @@ const INLINE_ONLY_TYPES: ReadonlySet<string> = new Set([
  * unique and one flat map covers every node family.
  *
  * This map is the single source for dispatch (`createNode`), node detection
- * (`isNode`), and the valid-types list in `ForgeUnknownNodeTypeError` - the list
- * minus the `INLINE_ONLY_TYPES` rows. Adding a node type means adding a
- * creator and a row here; the completeness test in `NodeFactory.test.ts`
- * fails if an enum value has no row.
+ * (`isNode`), and the valid-types list in `ForgeUnknownNodeTypeError`. Adding
+ * a node type means adding a creator and a row here; the completeness test in
+ * `NodeFactory.test.ts` fails if an enum value has no row.
  *
  * `PolicyType.NAVIGATION_NEXT` is deliberately absent: nothing in the authoring
  * surface produces it and no factory ever created it.
@@ -141,15 +116,6 @@ export const creatorsByType: ReadonlyMap<string, NodeCreator> = new Map<string, 
   // Hook outcomes
   [PolicyType.OUTCOME_REDIRECT, createRedirectOutcomeNode],
   [PolicyType.OUTCOME_THROW_ERROR, createThrowErrorOutcomeNode],
-
-  // Inline-only types - recognised, but never standalone AST nodes
-  [ConditionCombinatorType.AND, notConstructible(COMBINATOR_PLACEMENT)],
-  [ConditionCombinatorType.OR, notConstructible(COMBINATOR_PLACEMENT)],
-  [ConditionCombinatorType.XOR, notConstructible(COMBINATOR_PLACEMENT)],
-  [ConditionCombinatorType.NOT, notConstructible(COMBINATOR_PLACEMENT)],
-  [IteratorType.MAP, notConstructible(ITERATOR_PLACEMENT)],
-  [IteratorType.FILTER, notConstructible(ITERATOR_PLACEMENT)],
-  [IteratorType.FIND, notConstructible(ITERATOR_PLACEMENT)],
 ])
 
 /**
@@ -193,6 +159,19 @@ export class NodeFactory {
     }
 
     const nodeType = this.getNodeType(json)
+
+    if (nodeType !== undefined && isInlineOnly(nodeType)) {
+      const diagnostics = this.diagnosticsFor(json)
+
+      throw new ForgeInvalidNodeError({
+        message: nodeType.startsWith('combinator.') ? COMBINATOR_PLACEMENT : ITERATOR_PLACEMENT,
+        node: json,
+        actual: nodeType,
+        formattedPath: diagnostics?.source.formattedPath,
+        callsite: diagnostics?.callsite,
+      })
+    }
+
     const create = nodeType === undefined ? undefined : creatorsByType.get(nodeType)
 
     if (!create) {
@@ -201,7 +180,7 @@ export class NodeFactory {
       throw new ForgeUnknownNodeTypeError({
         nodeType,
         node: json,
-        validTypes: [...creatorsByType.keys()].filter(type => !INLINE_ONLY_TYPES.has(type)),
+        validTypes: [...creatorsByType.keys()],
         formattedPath: diagnostics?.source.formattedPath,
         callsite: diagnostics?.callsite,
       })
@@ -292,13 +271,13 @@ export class NodeFactory {
 
   /**
    * Node detection: Identifies objects that are AST nodes
-   * An object is a node when its `type` discriminant has a creator - the
-   * inline-only rows included, so a stray combinator or iterator config in a
+   * An object is a node when its `_forge` discriminant has a creator - the
+   * inline-only tags included, so a stray combinator or iterator config in a
    * data position surfaces its placement error rather than passing as data.
    */
   private isNode(value: object): boolean {
     const nodeType = this.getNodeType(value)
 
-    return nodeType !== undefined && creatorsByType.has(nodeType)
+    return nodeType !== undefined && (creatorsByType.has(nodeType) || isInlineOnly(nodeType))
   }
 }

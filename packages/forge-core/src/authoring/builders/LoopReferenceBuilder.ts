@@ -1,6 +1,7 @@
 import { BuilderType } from '../types/enums'
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { LoopItemReferenceBuilder } from './LoopItemReferenceBuilder'
+import ForgeAuthoringError from '../../engine/errors/ForgeAuthoringError'
 
 /**
  * Immutable builder for creating references to iterator loop metadata.
@@ -25,6 +26,12 @@ export class LoopReferenceBuilder {
    */
   static create(level: number): LoopReferenceBuilder {
     return new LoopReferenceBuilder(level)
+  }
+
+  build(): never {
+    throw new ForgeAuthoringError({
+      message: 'A bare Loop is not a value. Call Loop.Index(), Loop.Item(), or another Loop member.',
+    })
   }
 
   /**

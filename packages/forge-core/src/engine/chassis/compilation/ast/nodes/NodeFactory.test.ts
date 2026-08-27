@@ -18,14 +18,14 @@ import ForgeUnknownNodeTypeError from '../../../../errors/ForgeUnknownNodeTypeEr
 import { NodeFactory, creatorsByType } from './NodeFactory'
 
 describe('NodeFactory', () => {
-  // Every enum whose values appear in a `type` discriminant. ComponentCallType is
-  // absent by design: it discriminates the `blockType` field, never `type`.
+  // Every enum whose values name a constructible node. ConditionCombinatorType
+  // and IteratorType are absent by design: their tags are inline-only and the
+  // factory rejects them by prefix before map lookup.
   const discriminantEnums: Record<string, string>[] = [
     StructureType,
+    ComponentCallType,
     ExpressionType,
     PredicateType,
-    ConditionCombinatorType,
-    IteratorType,
     HookType,
     PolicyType,
     FunctionCallType,
@@ -70,7 +70,7 @@ describe('NodeFactory', () => {
 
     it('should throw a placement error when a condition combinator appears outside a match expression', () => {
       // Arrange
-      const strayCombinators = Object.values(ConditionCombinatorType).map(type => ({ type, operands: [] }))
+      const strayCombinators = Object.values(ConditionCombinatorType).map(tag => ({ _forge: tag, operands: [] }))
 
       // Act & Assert
       strayCombinators.forEach(combinator => {
@@ -83,7 +83,7 @@ describe('NodeFactory', () => {
 
     it('should throw a placement error when an iterator config appears outside an Iterate expression', () => {
       // Arrange
-      const strayIteratorConfigs = Object.values(IteratorType).map(type => ({ type }))
+      const strayIteratorConfigs = Object.values(IteratorType).map(tag => ({ _forge: tag }))
 
       // Act & Assert
       strayIteratorConfigs.forEach(iteratorConfig => {

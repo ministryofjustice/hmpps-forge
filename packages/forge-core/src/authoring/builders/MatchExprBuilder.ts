@@ -56,7 +56,7 @@ export class MatchExprBuilder implements ChainableMatch {
    * Note: This is private to hide its interface from the user, finaliseBuilders calls this
    */
 
-  private build(): MatchExpr {
+  build(): MatchExpr {
     return {
       _forge: ExpressionType.MATCH,
       subject: this.subject,

@@ -32,9 +32,7 @@ const isBuildable = (value: unknown): value is Buildable => {
   return value !== null &&
     typeof value === 'object' &&
     typeof (value as any)._forge === 'string' &&
-    (value as any)._forge.startsWith('builder.') &&
-    'build' in value &&
-    typeof (value as any).build === 'function'
+    (value as any)._forge.startsWith('builder.')
 }
 
 const describePath = (path: readonly DSLPathSegment[]): string => (path.length === 0 ? '<root>' : path.join('.'))

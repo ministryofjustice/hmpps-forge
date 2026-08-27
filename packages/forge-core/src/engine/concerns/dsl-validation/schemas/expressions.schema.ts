@@ -65,7 +65,11 @@ const FindIteratorConfigSchema = z.looseObject({
 /**
  * @see {@link IteratorConfig}
  */
-const IteratorConfigSchema = z.union([MapIteratorConfigSchema, FilterIteratorConfigSchema, FindIteratorConfigSchema])
+const IteratorConfigSchema = z.discriminatedUnion('_forge', [
+  MapIteratorConfigSchema,
+  FilterIteratorConfigSchema,
+  FindIteratorConfigSchema,
+])
 
 /**
  * @see {@link IterateExpr}

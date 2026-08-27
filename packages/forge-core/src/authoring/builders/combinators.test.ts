@@ -365,9 +365,9 @@ describe('Logic predicates', () => {
 
       expect(complex._forge).toBe(PredicateType.AND)
       expect(complex.operands).toHaveLength(3)
-      expect((complex.operands[0] as any).type).toBe(PredicateType.OR)
-      expect((complex.operands[1] as any).type).toBe(PredicateType.XOR)
-      expect((complex.operands[2] as any).type).toBe(PredicateType.TEST)
+      expect((complex.operands[0] as any)._forge).toBe(PredicateType.OR)
+      expect((complex.operands[1] as any)._forge).toBe(PredicateType.XOR)
+      expect((complex.operands[2] as any)._forge).toBe(PredicateType.TEST)
     })
 
     test('should handle nested condition combinators', () => {

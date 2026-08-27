@@ -30,14 +30,12 @@ type ClassifiedOperands =
   | { kind: OperandKind.CONDITION; operands: ConditionBranchExpr[] }
   | { kind: OperandKind.PREDICATE; operands: PredicateExpr[] }
 
-const conditionCombinatorTypes = new Set<string>(Object.values(ConditionCombinatorType))
-
 /**
  * Identifies a bare condition branch - a condition function call, or a nested
  * condition combinator over them - as opposed to a predicate, which carries its own subject.
  */
 function isConditionBranch(operand: CombinatorOperand): operand is ConditionBranchExpr {
-  return operand._forge === FunctionCallType.CONDITION || conditionCombinatorTypes.has(operand._forge)
+  return operand._forge === FunctionCallType.CONDITION || operand._forge.startsWith('combinator.')
 }
 
 /**

@@ -49,7 +49,7 @@ export class ConditionalExprBuilder implements ChainableConditional {
    * Note: This is private to hide its interface from the user, finaliseBuilders calls this
    */
 
-  private build(): ConditionalExpr {
+  build(): ConditionalExpr {
     return {
       _forge: ExpressionType.CONDITIONAL,
       predicate: this.predicate,

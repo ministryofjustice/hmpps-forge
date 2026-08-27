@@ -1,15 +1,7 @@
-import {
-  ComponentCallType,
-  ExpressionType,
-  FunctionCallType,
-  IteratorType,
-  PredicateType,
-} from '../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, IteratorType, PredicateType } from '../../authoring/types/enums'
 import type { DSLPathSegment } from './sourceLocation.type'
 
 type DSLRecord = Record<string, unknown>
-
-const FUNCTION_TYPE_VALUES: ReadonlySet<string> = new Set(Object.values(FunctionCallType))
 
 interface PathFormatState {
   readonly current: unknown
@@ -114,7 +106,7 @@ export default class DSLPathFormatter {
     const type = this.getStringProperty(value, '_forge')
     const name = this.getStringProperty(value, 'name')
 
-    if (!type || !name || !FUNCTION_TYPE_VALUES.has(type)) {
+    if (!type || !name || !type.startsWith('function.call.')) {
       return undefined
     }
 
