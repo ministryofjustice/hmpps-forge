@@ -5,7 +5,7 @@ import {
   PipelineExpr,
   PredicateTestExpr,
   TransformerFunctionExpr,
-  ResolvableValue, resolvesMarker } from '../types/expressions.type'
+  ResolvableValue } from '../types/expressions.type'
 import { ExpressionBuilder } from './ExpressionBuilder'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { ChainableGenerator, ChainableNegation } from './types'
@@ -34,9 +34,6 @@ import { ChainableGenerator, ChainableNegation } from './types'
  */
 export class GeneratorBuilder<A extends ResolvableValue[]> implements ChainableGenerator {
   readonly _forge = BuilderType.GENERATOR as const
-
-  // Type-only ChainableExpression brand - never set at runtime.
-  declare readonly [resolvesMarker]: any
 
   private readonly expression: GeneratorFunctionExpr<A>
 

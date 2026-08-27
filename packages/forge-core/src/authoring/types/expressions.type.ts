@@ -1,4 +1,5 @@
 import {
+  BuilderType,
   FunctionCallType,
   ExpressionType,
   PredicateType,
@@ -32,7 +33,7 @@ import {
  * // Reference to current loop metadata
  * { _forge: 'expression.reference', path: ['@loop', '0', 'index0'] }
  */
-export interface ReferenceExpr extends ResolvableExpression {
+export interface ReferenceExpr {
   _forge: ExpressionType.REFERENCE
 
   /**
@@ -87,7 +88,7 @@ export interface ReferenceExpr extends ResolvableExpression {
  *   ]
  * }
  */
-export interface PipelineExpr extends ResolvableExpression {
+export interface PipelineExpr {
   _forge: ExpressionType.PIPELINE
 
   /**
@@ -180,8 +181,7 @@ export type FunctionExpr<A extends ResolvableValue[]> = BaseFunctionExpr<A>
  *   arguments: ['^item-(.+)$', 1]
  * }
  */
-export interface TransformerFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]>
-  extends BaseFunctionExpr<A>, ResolvableExpression {
+export interface TransformerFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
   _forge: FunctionCallType.TRANSFORMER
 }
 
@@ -234,8 +234,7 @@ export interface EffectFunctionExpr<A extends ResolvableValue[] = ResolvableValu
  *   arguments: ['prefix-']
  * }
  */
-export interface GeneratorFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]>
-  extends BaseFunctionExpr<A>, ResolvableExpression {
+export interface GeneratorFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
   _forge: FunctionCallType.GENERATOR
 }
 
@@ -308,7 +307,7 @@ export type IteratorConfig = MapIteratorConfig | FilterIteratorConfig | FindIter
  *   .each(Iterator.Map(Item().path('name')))
  *   .pipe(Transformer.Array.Slice(0, 10))
  */
-export interface IterateExpr extends ResolvableExpression {
+export interface IterateExpr {
   _forge: ExpressionType.ITERATE
 
   /**
@@ -324,36 +323,17 @@ export interface IterateExpr extends ResolvableExpression {
 }
 
 /**
- * Keys the expression markers. A unique symbol rather than a string name so
- * the marker cannot collide with (or be forged by) an ordinary property, and
- * so IDE completions inside object literals do not offer it - a symbol-keyed
- * member is only writable with this constant in scope. The trade-off is
- * nominal typing: two copies of this package in one dependency tree are not
- * type-compatible, and mixing them fails loudly at compile time.
+ * Any Forge-tagged node or live builder that resolves to a value at runtime.
  */
-export const resolvesMarker: unique symbol = Symbol('forge.resolves')
-
-/**
- * The type-level marker shared by every authoring expression that resolves to
- * a value at runtime - references, pipelines, iterations, and
- * generator/transformer chains. An interface rather than a union so IDE
- * hovers show one name; the optional-only member makes it a weak type, so
- * only types declaring the marker are assignable. Never set at runtime.
- *
- * `T` is the value the expression resolves to. It defaults to `any` because
- * references are untyped at authoring time - the extending expression types
- * inherit that default and stay assignable to every `ResolvableExpression<T>`.
- * A builder that knows its resolved type can narrow it and be checked for real.
- */
-export interface ResolvableExpression<T = any> {
-  readonly [resolvesMarker]?: T
+export interface ResolvableNode {
+  readonly _forge: ExpressionType | FunctionCallType | PredicateType | ConditionCombinatorType | BuilderType
 }
 
 /**
  * Widens a declared argument type so a caller can pass either a literal of
  * that type or any authoring expression that resolves to one at runtime.
  */
-export type Resolvable<T> = T | ResolvableExpression<T>
+export type Resolvable<T> = T | ResolvableNode
 
 /**
  * Represents any expression that evaluates to a value.

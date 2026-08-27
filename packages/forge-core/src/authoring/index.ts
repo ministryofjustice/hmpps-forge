@@ -49,7 +49,7 @@ export type {
 export type {
   AccessHook,
   Resolvable,
-  ResolvableExpression,
+  ResolvableNode,
   SubmitHook,
   RedirectOutcome,
   ThrowErrorOutcome,

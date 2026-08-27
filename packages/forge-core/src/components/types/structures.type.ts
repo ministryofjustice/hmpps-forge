@@ -4,14 +4,7 @@ import {
   PredicateExpr,
   TransformerFunctionExpr,
 } from '../../authoring/types/expressions.type'
-import {
-  ChainableConditional,
-  ChainableExpr,
-  ChainableGenerator,
-  ChainableIterable,
-  ChainableMatch,
-  ChainableRef,
-} from '../../authoring/builders/types'
+import { ChainableExpression, ChainableIterable } from '../../authoring/builders/types'
 import { ComponentCallType } from '../../authoring/types/enums'
 import type { ValidationExpr } from '../../authoring/types/structures.type'
 
@@ -135,28 +128,23 @@ export interface FieldBlockDefinition extends BlockDefinition, FieldBlockProps {
   _forge: ComponentCallType.FIELD
 }
 
-/**
- * The fluent wrappers the authoring DSL returns.
- * Authors only ever see this side; the finalisation walk unwraps these into the
- * wire-format expressions (ReferenceExpr, PipelineExpr, ...) the engine consumes.
- */
-type ChainableValue = ChainableRef | ChainableExpr | ChainableConditional | ChainableMatch | ChainableGenerator
+export type ResolvableString = string | ChainableExpression
 
-export type ResolvableString = string | ChainableValue
+export type ResolvableBoolean = boolean | ChainableExpression | PredicateExpr
 
-export type ResolvableBoolean = boolean | ChainableValue | PredicateExpr
+export type ResolvableNumber = number | ChainableExpression
 
-export type ResolvableNumber = number | ChainableValue
+export type ResolvableArray<T> = T[] | ChainableExpression
 
-export type ResolvableArray<T> = T[] | ChainableValue | ChainableIterable
-
-export type ResolvableObject<T extends object> = T | ChainableValue
+export type ResolvableObject<T extends object> = T | ChainableExpression
 
 export type RenderedBlock<TOutput = string> = {
   block: BlockDefinition
 } & ([TOutput] extends [string] ? { html: string } : { output: TOutput })
 
-type Resolved<T> = Exclude<T, ChainableValue | ChainableIterable | IterateExpr | PredicateExpr>
+// Strips the authoring-only arms from a prop union. Must stay a plain Exclude:
+// a keyof-based conditional here poisons the variance of ComponentRegistryEntry.
+type Resolved<T> = Exclude<T, ChainableExpression | IterateExpr | PredicateExpr>
 
 export type EvaluatedBlock<T, IsRoot extends boolean = true, TRenderedBlock = RenderedBlock> =
   Resolved<T> extends infer R

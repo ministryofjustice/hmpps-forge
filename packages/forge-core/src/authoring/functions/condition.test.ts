@@ -11,7 +11,7 @@ import type {
   ConditionFunctionExpr,
   PredicateTestExpr,
   Resolvable,
-  ResolvableExpression,
+  ResolvableNode,
 } from '../types/expressions.type'
 
 const callsiteOf = (value: unknown): Callsite | undefined =>
@@ -153,13 +153,10 @@ describe('condition()', () => {
       IsValidCrn(Answer('minimumLength'))
 
       // An expression declaring the matching resolved type is accepted
-      IsValidCrn(null as unknown as ResolvableExpression<number>)
+      IsValidCrn(null as unknown as ResolvableNode)
 
       // @ts-expect-error - the evaluator declares a number, so a string is rejected
       IsValidCrn('5')
-
-      // @ts-expect-error - an expression declaring a string resolution cannot fill a number argument
-      IsValidCrn(null as unknown as ResolvableExpression<string>)
     })
 
     it('should build expressions accepted wherever registry-handle expressions are', () => {

@@ -5,23 +5,18 @@ import {
   FindIteratorConfig,
   MapIteratorConfig,
   PredicateTestExpr,
-  ResolvableExpression,
-  resolvesMarker,
   ResolvableValue,
   TransformerFunctionExpr,
 } from '../types/expressions.type'
+import { BuilderType } from '../types/enums'
 
 /**
- * The type-level brand every chainable authoring value carries. Narrows the
- * optional {@link ResolvableExpression} marker to a required member, so the
- * `Resolvable*` aliases' expression arm can be discriminated with a plain
- * `Exclude` - the optional marker is a weak type, which record types and the
- * wire-format expressions also match. A required member is immune to both:
- * neither an index signature nor a weak-type bypass satisfies it. Never set
- * at runtime; the builder classes carry it with a type-only `declare`.
+ * The tag every chainable authoring value carries. Required, so neither an
+ * index signature nor a weak-type bypass satisfies it, and the `Resolvable*`
+ * aliases' builder arm can be discriminated with a plain `Exclude`.
  */
-export interface ChainableExpression<T = any> extends ResolvableExpression<T> {
-  readonly [resolvesMarker]: T
+export interface ChainableExpression {
+  readonly _forge: BuilderType
 }
 
 /**
