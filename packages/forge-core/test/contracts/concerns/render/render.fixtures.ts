@@ -74,9 +74,7 @@ function ContractNestedFieldProbe(
   return blockBuilder<ContractNestedFieldProbe>({ ...props, variant: 'contractNestedFieldProbe' })
 }
 
-function ContractMultiFieldProbe(
-  props: Omit<ContractMultiFieldProbe, '_forge' | 'variant'>,
-): ContractMultiFieldProbe {
+function ContractMultiFieldProbe(props: Omit<ContractMultiFieldProbe, '_forge' | 'variant'>): ContractMultiFieldProbe {
   return blockBuilder<ContractMultiFieldProbe>({ ...props, variant: 'contractMultiFieldProbe' })
 }
 

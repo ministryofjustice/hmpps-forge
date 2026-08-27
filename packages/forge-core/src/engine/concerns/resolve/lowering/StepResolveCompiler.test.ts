@@ -1,6 +1,12 @@
 /* eslint-disable no-new-func */
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
-import { ComponentCallType, ExpressionType, FunctionCallType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
+import {
+  ComponentCallType,
+  ExpressionType,
+  FunctionCallType,
+  IteratorType,
+  PredicateType,
+} from '../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   FormatGenerators,

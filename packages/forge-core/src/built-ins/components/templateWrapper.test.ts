@@ -42,9 +42,7 @@ describe('templateWrapper component', () => {
               html: '<h1>Title</h1>',
             },
           ],
-          content: [
-            { block: { _forge: ComponentCallType.BASIC, variant: 'html' }, html: '<p>Body</p>' },
-          ],
+          content: [{ block: { _forge: ComponentCallType.BASIC, variant: 'html' }, html: '<p>Body</p>' }],
           footer: [
             {
               block: { _forge: ComponentCallType.BASIC, variant: 'html' },

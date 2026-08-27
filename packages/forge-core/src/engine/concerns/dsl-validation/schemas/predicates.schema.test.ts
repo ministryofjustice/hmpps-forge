@@ -1,5 +1,10 @@
 import { ConditionNotExprSchema, MatchBranchSchema, MatchExprSchema } from './predicates.schema'
-import { ConditionCombinatorType, ExpressionType, FunctionCallType, PredicateType } from '../../../../authoring/types/enums'
+import {
+  ConditionCombinatorType,
+  ExpressionType,
+  FunctionCallType,
+  PredicateType,
+} from '../../../../authoring/types/enums'
 
 describe('predicates.schema', () => {
   const condition = (value: string) => ({ _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: [value] })
@@ -43,7 +48,10 @@ describe('predicates.schema', () => {
   describe('MatchBranchSchema', () => {
     it('should reject a branch whose condition is a predicate', () => {
       // Arrange
-      const branch = { condition: { _forge: PredicateType.AND, operands: [condition('A'), condition('B')] }, value: 'A' }
+      const branch = {
+        condition: { _forge: PredicateType.AND, operands: [condition('A'), condition('B')] },
+        value: 'A',
+      }
 
       // Act
       const result = MatchBranchSchema.safeParse(branch)

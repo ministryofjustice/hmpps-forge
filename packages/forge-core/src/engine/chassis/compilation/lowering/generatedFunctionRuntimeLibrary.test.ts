@@ -400,7 +400,11 @@ describe('generatedFunctionRuntimeLibrary', () => {
     it('should throw TypeError when arguments fail the arguments schema', () => {
       // Arrange
       const evaluate = vi.fn()
-      const ctx = contextFor({ evaluate, functionType: FunctionCallType.CONDITION, argumentsSchema: z.tuple([z.string()]) })
+      const ctx = contextFor({
+        evaluate,
+        functionType: FunctionCallType.CONDITION,
+        argumentsSchema: z.tuple([z.string()]),
+      })
 
       // Act
       const call = () => generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'equals', ['field', 42])

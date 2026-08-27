@@ -58,7 +58,8 @@ function walkTemplateForValidationScope(value: TemplateValue, insideValidWhen: b
     }
 
     const canHaveValidWhen =
-      (value.originalType === ASTNodeType.BLOCK && (value as Record<string, unknown>).blockType === ComponentCallType.FIELD) ||
+      (value.originalType === ASTNodeType.BLOCK &&
+        (value as Record<string, unknown>).blockType === ComponentCallType.FIELD) ||
       value.originalType === ASTNodeType.STEP
 
     if (value.properties) {

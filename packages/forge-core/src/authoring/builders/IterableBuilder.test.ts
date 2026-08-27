@@ -1,4 +1,4 @@
-import { IterableBuilder } from './IterableBuilder'
+import { IterableBuilder } from './ExpressionBuilder'
 import { Iterator } from './iterators'
 import {
   ConditionFunctionExpr,

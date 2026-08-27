@@ -93,7 +93,8 @@ function walkTemplateForSelfScope(value: TemplateValue, scope: SelfScope, errors
     }
 
     const isFieldBlock =
-      value.originalType === ASTNodeType.BLOCK && (value as Record<string, unknown>).blockType === ComponentCallType.FIELD
+      value.originalType === ASTNodeType.BLOCK &&
+      (value as Record<string, unknown>).blockType === ComponentCallType.FIELD
 
     if (value.properties) {
       Object.entries(value.properties).forEach(([key, propValue]) => {

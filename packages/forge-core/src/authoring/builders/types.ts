@@ -43,34 +43,27 @@ export interface ChainableNegation {
 }
 
 /**
- * Public interface for chainable iterable expressions.
- * Created by .each(Iterator.Map/Filter) on references or expressions.
+ * The chain operations shared by every chainable value position.
  */
-export interface ChainableIterable extends ChainableExpression {
+export interface ChainableValue extends ChainableExpression {
   /**
-   * Chain a Find iterator.
+   * Transform the value through a pipeline of transformers.
+   */
+  pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
+
+  /**
+   * Enter per-item iteration mode with a Find iterator.
    * Returns a ChainableExpr since Find returns a single item, not an array.
    */
   each(iterator: FindIteratorConfig): ChainableExpr
 
   /**
-   * Chain a Map or Filter iterator.
+   * Enter per-item iteration mode with a Map or Filter iterator.
    */
   each(iterator: MapIteratorConfig | FilterIteratorConfig): ChainableIterable
 
   /**
-   * Navigate into a property of the iteration result.
-   * Useful after Iterator.Find() to extract a specific property from the found item.
-   */
-  path(key: string): ChainableExpr
-
-  /**
-   * Transform the output array through a pipeline.
-   */
-  pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
-
-  /**
-   * Test the output array against a condition.
+   * Test the value against a condition.
    */
   match(condition: ConditionFunctionExpr<any>): PredicateTestExpr
 
@@ -84,76 +77,32 @@ export interface ChainableIterable extends ChainableExpression {
  * Public interface for chainable value expressions.
  * Only exposes the fluent API methods - internal methods like build() are hidden.
  */
-export interface ChainableExpr extends ChainableExpression {
+export interface ChainableExpr extends ChainableValue {
   /**
    * Navigate into a property of the expression result.
    * Creates a reference with this expression as its base.
    */
   path(key: string): ChainableExpr
-
-  /**
-   * Transform the value through a pipeline of transformers.
-   */
-  pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
-
-  /**
-   * Enter per-item iteration mode with a Find iterator.
-   * Returns a ChainableExpr since Find returns a single item, not an array.
-   */
-  each(iterator: FindIteratorConfig): ChainableExpr
-
-  /**
-   * Enter per-item iteration mode with a Map or Filter iterator.
-   */
-  each(iterator: MapIteratorConfig | FilterIteratorConfig): ChainableIterable
-
-  /**
-   * Test the value against a condition.
-   */
-  match(condition: ConditionFunctionExpr<any>): PredicateTestExpr
-
-  /**
-   * Negate the next condition test.
-   */
-  readonly not: ChainableNegation
 }
 
 /**
- * Public interface for chainable reference expressions.
- * Extends ChainableExpr with path navigation.
+ * Public interface for chainable iterable expressions.
+ * Created by .each(Iterator.Map/Filter) on references or expressions.
+ * Surface-identical to ChainableExpr: iteration chains with .each(), exits
+ * via .pipe(), and navigates the result with .path().
  */
-export interface ChainableRef extends ChainableExpression {
+export type ChainableIterable = ChainableExpr
+
+/**
+ * Public interface for chainable reference expressions.
+ * Narrows path navigation to stay in reference position.
+ */
+export interface ChainableRef extends ChainableValue {
   /**
    * Navigate to a nested property.
    * Supports dot notation: .path('user.address.city')
    */
   path(key: string): ChainableRef
-
-  /**
-   * Transform the value through a pipeline of transformers.
-   */
-  pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
-
-  /**
-   * Enter per-item iteration mode with a Find iterator.
-   * Returns a ChainableExpr since Find returns a single item.
-   */
-  each(iterator: FindIteratorConfig): ChainableExpr
-
-  /**
-   * Enter per-item iteration mode with a Map or Filter iterator.
-   */
-  each(iterator: MapIteratorConfig | FilterIteratorConfig): ChainableIterable
-
-  /**
-   * Test the value against a condition.
-   */
-  match(condition: ConditionFunctionExpr<any>): PredicateTestExpr
-
-  /**
-   * Negate the next condition test.
-   */
-  readonly not: ChainableNegation
 }
 
 /**
@@ -212,22 +161,17 @@ export interface ChainableGenerator extends ChainableExpression {
 }
 
 /**
- * Public interface for scoped reference builders (Item()).
+ * Public interface for loop item references (Loop.Item()).
  */
-export interface ChainableScopedRef extends ChainableExpression {
+export interface ChainableLoopItemRef extends ChainableExpression {
   /**
-   * Navigate to the parent scope in nested collections.
-   */
-  readonly parent: ChainableScopedRef
-
-  /**
-   * Get a sub-property of the collection item.
+   * Get a sub-property of the item.
    * Supports dot notation: .path('user.address.city')
    */
   path(key: string): ChainableRef
 
   /**
-   * Get the full value of the collection item.
+   * Get the full value of the item.
    */
   value(): ChainableRef
 
@@ -239,25 +183,14 @@ export interface ChainableScopedRef extends ChainableExpression {
 }
 
 /**
- * Public interface for loop item references (Loop.Item()).
+ * Public interface for scoped reference builders (Item()): the loop item
+ * surface plus parent-scope navigation.
  */
-export interface ChainableLoopItemRef extends ChainableExpression {
+export interface ChainableScopedRef extends ChainableLoopItemRef {
   /**
-   * Get a sub-property of the loop item.
-   * Supports dot notation: .path('user.address.city')
+   * Navigate to the parent scope in nested collections.
    */
-  path(key: string): ChainableRef
-
-  /**
-   * Get the full value of the loop item.
-   */
-  value(): ChainableRef
-
-  /**
-   * Get the key when iterating over an object.
-   * Only available when iterating over object entries (not arrays).
-   */
-  key(): ChainableRef
+  readonly parent: ChainableScopedRef
 }
 
 /**

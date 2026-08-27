@@ -107,7 +107,14 @@ export class ASTTestFactory {
   /**
    * Create a new ExpressionBuilder for fluent expression construction
    */
-  static expression<T = ExpressionASTNode>(type: ExpressionType | FunctionCallType | PredicateType | PolicyType.VALIDATION_RULE | PolicyType.NAVIGATION_TIE_BREAKER): ExpressionBuilder<T> {
+  static expression<T = ExpressionASTNode>(
+    type:
+      | ExpressionType
+      | FunctionCallType
+      | PredicateType
+      | PolicyType.VALIDATION_RULE
+      | PolicyType.NAVIGATION_TIE_BREAKER,
+  ): ExpressionBuilder<T> {
     return new ExpressionBuilder<T>(type)
   }
 
@@ -130,7 +137,10 @@ export class ASTTestFactory {
   }
 
   static formatExpression(template: string, args: unknown[] = []): FunctionASTNode {
-    return ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, FORMAT_STRING_GENERATOR_NAME, [template, ...args])
+    return ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, FORMAT_STRING_GENERATOR_NAME, [
+      template,
+      ...args,
+    ])
   }
 
   static pipelineExpression(config: { input: unknown; steps: unknown[] }): PipelineASTNode {
@@ -393,7 +403,14 @@ export class ExpressionBuilder<T = ExpressionASTNode> {
 
   private properties: any = {}
 
-  constructor(private expressionType: ExpressionType | FunctionCallType | PredicateType | PolicyType.VALIDATION_RULE | PolicyType.NAVIGATION_TIE_BREAKER) {}
+  constructor(
+    private expressionType:
+      | ExpressionType
+      | FunctionCallType
+      | PredicateType
+      | PolicyType.VALIDATION_RULE
+      | PolicyType.NAVIGATION_TIE_BREAKER,
+  ) {}
 
   withId(id: string): this {
     this.id = id

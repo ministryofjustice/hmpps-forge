@@ -1,5 +1,6 @@
 import { ASTNodeType } from '../../../contracts/ast/enums'
-import { PolicyType,
+import {
+  PolicyType,
   ExpressionType,
   StructureType,
   ComponentCallType,
@@ -10,8 +11,8 @@ import { PolicyType,
 import type { JourneyDefinition, StepDefinition, ValidationExpr } from '../../../../../authoring/types/structures.type'
 import type {
   BlockDefinition,
-  ResolvableBoolean,
   FieldBlockDefinition,
+  ResolvableBoolean,
 } from '../../../../../components/types/structures.type'
 import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
 import { StepASTNode, BlockASTNode } from '../../../contracts/ast/structures.type'
@@ -423,7 +424,10 @@ describe('structures', () => {
         title: 'test-step',
         blocks: [] as BlockDefinition[],
         reachability: {
-          entryWhen: { _forge: ExpressionType.REFERENCE, path: ['data', 'entryActive'] } as unknown as ResolvableBoolean,
+          entryWhen: {
+            _forge: ExpressionType.REFERENCE,
+            path: ['data', 'entryActive'],
+          } as unknown as ResolvableBoolean,
         },
       } satisfies StepDefinition
 
@@ -467,7 +471,10 @@ describe('structures', () => {
         validateOnEntry: [
           {
             groups: ['conditional'],
-            when: { _forge: ExpressionType.REFERENCE, path: ['data', 'entryValidation'] } as unknown as ResolvableBoolean,
+            when: {
+              _forge: ExpressionType.REFERENCE,
+              path: ['data', 'entryValidation'],
+            } as unknown as ResolvableBoolean,
           },
         ],
       } satisfies StepDefinition

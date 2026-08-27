@@ -1,6 +1,12 @@
 import { z } from 'zod'
 import { staticValue } from '../../../contracts/models/authoredValue.type'
-import { PolicyType, ComponentCallType, ExpressionType, FunctionCallType, IteratorType } from '../../../../../authoring/types/enums'
+import {
+  PolicyType,
+  ComponentCallType,
+  ExpressionType,
+  FunctionCallType,
+  IteratorType,
+} from '../../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import type { FieldBlockASTNode } from '../../../contracts/ast/structures.type'

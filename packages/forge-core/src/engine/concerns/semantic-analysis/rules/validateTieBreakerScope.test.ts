@@ -62,7 +62,9 @@ describe('validateTieBreakerScope', () => {
     it('should return an error when the parent is not a step', () => {
       // Arrange
       const tieBreaker = createTieBreaker()
-      const block = ASTTestFactory.block('text', ComponentCallType.FIELD).withProperty('defaultValue', tieBreaker).build()
+      const block = ASTTestFactory.block('text', ComponentCallType.FIELD)
+        .withProperty('defaultValue', tieBreaker)
+        .build()
       const context = createContext([tieBreaker, block], [[tieBreaker.id, block.id]])
 
       // Act

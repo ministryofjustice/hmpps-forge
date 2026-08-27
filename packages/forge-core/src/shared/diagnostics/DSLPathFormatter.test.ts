@@ -1,4 +1,5 @@
-import { PolicyType,
+import {
+  PolicyType,
   ComponentCallType,
   ExpressionType,
   FunctionCallType,

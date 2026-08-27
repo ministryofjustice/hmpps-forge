@@ -3,7 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z, type ZodType } from 'zod'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
-import { ComponentCallType, ExpressionType, FunctionCallType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
+import {
+  ComponentCallType,
+  ExpressionType,
+  FunctionCallType,
+  IteratorType,
+  PredicateType,
+} from '../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   FormatGenerators,

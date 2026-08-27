@@ -1,7 +1,66 @@
+/* eslint-disable max-classes-per-file -- the shared ItemReferenceBuilder base lives with
+   its primary subclass. */
 import { BuilderType } from '../types/enums'
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { splitKey } from './utils/splitKey'
 import type { ReferenceExpr } from '../types/expressions.type'
+
+/**
+ * Shared behaviour for the item reference builders: navigation into the item
+ * a collection or loop is currently iterating. Subclasses supply the base
+ * reference path for their scope shape.
+ */
+export abstract class ItemReferenceBuilder {
+  protected constructor(protected readonly level: number) {}
+
+  /**
+   * Build the whole-item reference expression, so a bare item reference in a
+   * value position means the same as .value().
+   * Called automatically by finaliseBuilders().
+   */
+  build(): ReferenceExpr {
+    return this.value().build()
+  }
+
+  /**
+   * Get a sub-property of the item.
+   * Supports dot notation: .path('user.address.city')
+   *
+   * @example
+   * Item().path('name')
+   * Item().path('address.postcode')
+   */
+  path(key: string): ReferenceBuilder {
+    return ReferenceBuilder.create([...this.itemPath(), ...splitKey(key)])
+  }
+
+  /**
+   * Get the full value of the item.
+   *
+   * @example
+   * Item().value()  // Returns the entire item object
+   */
+  value(): ReferenceBuilder {
+    return ReferenceBuilder.create(this.itemPath())
+  }
+
+  /**
+   * Get the key when iterating over an object.
+   * Only available when iterating over object entries (not arrays).
+   *
+   * @example
+   * // Given: { accommodation: { score: 5 }, finances: { score: 3 } }
+   * Data('scores').each(Iterator.Map({
+   *   slug: Item().key(),     // 'accommodation', 'finances'
+   *   score: Item().path('score')  // 5, 3
+   * }))
+   */
+  key(): ReferenceBuilder {
+    return ReferenceBuilder.create([...this.itemPath(), '@key'])
+  }
+
+  protected abstract itemPath(): string[]
+}
 
 /**
  * Immutable builder for creating item references within iterator contexts.
@@ -14,24 +73,16 @@ import type { ReferenceExpr } from '../types/expressions.type'
  * // Access a property of the current item
  * Item().path('name')  // -> ['@scope', '0', 'name']
  *
- * // Access the full item value
- * Item().value()  // -> ['@scope', '0']
- *
  * // Navigate to the outer item in nested iterators
  * Item().parent.path('groupId')  // -> ['@scope', '1', 'groupId']
  *
- * // Chain with pipe and match
- * Item().path('price').pipe(Transformer.Number.Parse).match(Condition.Number.GreaterThan(0))
- *
  * @internal Exposed to authors via the ChainableScopedRef interface.
  */
-export class ScopedReferenceBuilder {
+export class ScopedReferenceBuilder extends ItemReferenceBuilder {
   readonly _forge = BuilderType.SCOPED_REFERENCE as const
 
-  private readonly level: number
-
   private constructor(level: number) {
-    this.level = level
+    super(level)
   }
 
   /**
@@ -54,49 +105,7 @@ export class ScopedReferenceBuilder {
     return new ScopedReferenceBuilder(this.level + 1)
   }
 
-  /**
-   * Build the whole-item reference expression, so a bare Item() in a value
-   * position means the same as Item().value().
-   * Called automatically by finaliseBuilders().
-   */
-  build(): ReferenceExpr {
-    return this.value().build()
-  }
-
-  /**
-   * Get a sub-property of the collection item.
-   * Supports dot notation: .path('user.address.city')
-   *
-   * @example
-   * Item().path('name')
-   * Item().path('address.postcode')
-   */
-  path(key: string): ReferenceBuilder {
-    return ReferenceBuilder.create(['@scope', this.level.toString(), ...splitKey(key)])
-  }
-
-  /**
-   * Get the full value of the collection item.
-   *
-   * @example
-   * Item().value()  // Returns the entire item object
-   */
-  value(): ReferenceBuilder {
-    return ReferenceBuilder.create(['@scope', this.level.toString()])
-  }
-
-  /**
-   * Get the key when iterating over an object.
-   * Only available when iterating over object entries (not arrays).
-   *
-   * @example
-   * // Given: { accommodation: { score: 5 }, finances: { score: 3 } }
-   * Data('scores').each(Iterator.Map({
-   *   slug: Item().key(),     // 'accommodation', 'finances'
-   *   score: Item().path('score')  // 5, 3
-   * }))
-   */
-  key(): ReferenceBuilder {
-    return ReferenceBuilder.create(['@scope', this.level.toString(), '@key'])
+  protected itemPath(): string[] {
+    return ['@scope', this.level.toString()]
   }
 }

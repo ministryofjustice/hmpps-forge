@@ -1,5 +1,6 @@
 import { ASTNodeType } from '../../../contracts/ast/enums'
-import { PolicyType,
+import {
+  PolicyType,
   ConditionCombinatorType,
   ExpressionType,
   FunctionCallType,

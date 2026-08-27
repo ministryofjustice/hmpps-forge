@@ -1,13 +1,6 @@
-import { FunctionCallType, PredicateType, BuilderType } from '../types/enums'
-import {
-  ConditionFunctionExpr,
-  GeneratorFunctionExpr,
-  PipelineExpr,
-  PredicateTestExpr,
-  TransformerFunctionExpr,
-  ResolvableValue } from '../types/expressions.type'
-import { ExpressionBuilder } from './ExpressionBuilder'
-import { captureCallsite, stampCallsite } from './utils/captureCallsite'
+import { FunctionCallType, BuilderType } from '../types/enums'
+import { GeneratorFunctionExpr, ResolvableValue } from '../types/expressions.type'
+import { ChainedValueBuilder } from './ExpressionBuilder'
 import { ChainableGenerator, ChainableNegation } from './types'
 
 /**
@@ -32,16 +25,14 @@ import { ChainableGenerator, ChainableNegation } from './types'
  *
  * @internal Exposed to authors via the ChainableGenerator interface.
  */
-export class GeneratorBuilder<A extends ResolvableValue[]> implements ChainableGenerator {
+export class GeneratorBuilder<A extends ResolvableValue[]>
+  extends ChainedValueBuilder<GeneratorFunctionExpr<A>>
+  implements ChainableGenerator
+{
   readonly _forge = BuilderType.GENERATOR as const
 
-  private readonly expression: GeneratorFunctionExpr<A>
-
-  private readonly negated: boolean
-
-  private constructor(expr: GeneratorFunctionExpr<A>, negate: boolean = false) {
-    this.expression = expr
-    this.negated = negate
+  private constructor(expr: GeneratorFunctionExpr<A>, negate: boolean) {
+    super(expr, negate)
   }
 
   /**
@@ -59,58 +50,6 @@ export class GeneratorBuilder<A extends ResolvableValue[]> implements ChainableG
       },
       false,
     )
-  }
-
-  /**
-   * Get the underlying generator expression.
-   */
-  get expr(): GeneratorFunctionExpr<A> {
-    return this.expression
-  }
-
-  /**
-   * Build the final generator function expression.
-   * Called automatically by finaliseBuilders().
-   */
-  build(): GeneratorFunctionExpr<A> {
-    return this.expression
-  }
-
-  /**
-   * Transform the generated value through a pipeline of transformers.
-   * Creates a PipelineExpr with this generator as the input.
-   *
-   * @param steps - Transformer functions to apply sequentially
-   * @returns An ExpressionBuilder wrapping the pipeline
-   *
-   * @example
-   * Generator.Date.Now().pipe(
-   *   Transformer.Date.AddDays(7),
-   *   Transformer.Date.Format('YYYY-MM-DD')
-   * )
-   */
-  pipe(...steps: TransformerFunctionExpr[]): ExpressionBuilder<PipelineExpr> {
-    return ExpressionBuilder.pipeline(this.expression, steps)
-  }
-
-  /**
-   * Test the generated value against a condition.
-   * Terminal operation - returns a plain PredicateTestExpr.
-   *
-   * @example
-   * Generator.Date.Now().match(Condition.Date.IsFutureDate())
-   */
-  match(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
-    const predicate: PredicateTestExpr = {
-      _forge: PredicateType.TEST,
-      subject: this.expression,
-      negate: this.negated,
-      condition,
-    }
-
-    stampCallsite(predicate, captureCallsite(this.match))
-
-    return predicate
   }
 
   /**

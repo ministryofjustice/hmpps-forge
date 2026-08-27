@@ -4,9 +4,9 @@ import { isRenderedBlock } from '../../components/typeguards'
 import { escapeHtmlEntities } from '../sanitize'
 import type {
   BlockDefinition,
+  RenderedBlock,
   ResolvableArray,
   ResolvableString,
-  RenderedBlock,
 } from '../../components/types/structures.type'
 
 /**

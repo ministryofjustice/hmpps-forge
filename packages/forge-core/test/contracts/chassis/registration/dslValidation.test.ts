@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { PolicyType,
+import {
+  PolicyType,
   access,
   ComponentCallType,
   condition,

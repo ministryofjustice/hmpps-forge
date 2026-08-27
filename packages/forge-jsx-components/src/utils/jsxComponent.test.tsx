@@ -1,11 +1,6 @@
 import { z } from 'zod'
 import { ComponentCallType } from '@ministryofjustice/hmpps-forge/core/authoring'
-import type {
-  BlockDefinition,
-  EvaluatedBlock,
-  FieldBlockDefinition,
-  ResolvableString,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import type { BlockDefinition, EvaluatedBlock, FieldBlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
 
 import { jsxComponent } from './jsxComponent'
 import { raw } from '../runtime/jsx-runtime'

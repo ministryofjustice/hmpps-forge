@@ -61,11 +61,9 @@ const EXPRESSION_PREFIXES = ['expression.', 'predicate.', 'combinator.', 'functi
 function isExpression(node: any): boolean {
   const tag = node?._forge
 
-  return (
-    typeof tag === 'string' &&
+  return typeof tag === 'string' &&
     tag !== PolicyType.NAVIGATION_NEXT &&
     EXPRESSION_PREFIXES.some(prefix => tag.startsWith(prefix))
-  )
 }
 
 function isConditionNotExpr(obj: any): obj is ConditionNotExpr {

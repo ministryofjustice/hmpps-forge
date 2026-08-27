@@ -57,7 +57,9 @@ describe('validateBlockScope', () => {
     it('should return no errors when a block is nested inside another block', () => {
       // Arrange
       const childBlock = ASTTestFactory.block('text', ComponentCallType.FIELD).build()
-      const wrapperBlock = ASTTestFactory.block('panel', ComponentCallType.BASIC).withProperty('content', [childBlock]).build()
+      const wrapperBlock = ASTTestFactory.block('panel', ComponentCallType.BASIC)
+        .withProperty('content', [childBlock])
+        .build()
       const step = ASTTestFactory.step().withProperty('blocks', [wrapperBlock]).build()
       const context = createContext(
         [childBlock, wrapperBlock, step],

@@ -2,7 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AuthoredValueClassifier from '../../../chassis/compilation/analysis/shared/AuthoredValueClassifier'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
-import { PolicyType, ComponentCallType, ExpressionType, FunctionCallType, FunctionEntryType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
+import {
+  PolicyType,
+  ComponentCallType,
+  ExpressionType,
+  FunctionCallType,
+  FunctionEntryType,
+  IteratorType,
+  PredicateType,
+} from '../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   FormatGenerators,
