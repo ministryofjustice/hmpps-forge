@@ -32,7 +32,7 @@ describe('NumberConditions', () => {
     test('should build correct expression object', () => {
       const expr = NumberConditions.IsNumber()
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Number.IsNumber',
         arguments: [],
       })
@@ -69,7 +69,7 @@ describe('NumberConditions', () => {
     test('should build correct expression object', () => {
       const expr = NumberConditions.IsInteger()
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Number.IsInteger',
         arguments: [],
       })
@@ -105,7 +105,7 @@ describe('NumberConditions', () => {
     test('should build correct expression object', () => {
       const expr = NumberConditions.GreaterThan(5)
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Number.GreaterThan',
         arguments: [5],
       })
@@ -132,7 +132,7 @@ describe('NumberConditions', () => {
     test('should build correct expression object', () => {
       const expr = NumberConditions.GreaterThanOrEqual(10)
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Number.GreaterThanOrEqual',
         arguments: [10],
       })
@@ -167,7 +167,7 @@ describe('NumberConditions', () => {
     test('should build correct expression object', () => {
       const expr = NumberConditions.LessThan(7)
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Number.LessThan',
         arguments: [7],
       })
@@ -194,7 +194,7 @@ describe('NumberConditions', () => {
     test('should build correct expression object', () => {
       const expr = NumberConditions.LessThanOrEqual(3)
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Number.LessThanOrEqual',
         arguments: [3],
       })
@@ -244,7 +244,7 @@ describe('NumberConditions', () => {
     test('should build correct expression object', () => {
       const expr = NumberConditions.Between(1, 10)
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Number.Between',
         arguments: [1, 10],
       })

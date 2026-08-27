@@ -1,10 +1,9 @@
 import {
-  BlockType,
+  ComponentCallType,
   ExpressionType,
   FunctionCallType,
   IteratorType,
   PredicateType,
-  StructureType,
 } from '../../authoring/types/enums'
 import type { DSLPathSegment } from './sourceLocation.type'
 
@@ -76,15 +75,15 @@ export default class DSLPathFormatter {
       return []
     }
 
-    if (this.isRecord(current) && current.type === ExpressionType.ITERATE && key === 'input') {
+    if (this.isRecord(current) && current._forge === ExpressionType.ITERATE && key === 'input') {
       return ['source']
     }
 
-    if (this.isRecord(current) && current.type === ExpressionType.ITERATE && key === 'iterator') {
+    if (this.isRecord(current) && current._forge === ExpressionType.ITERATE && key === 'iterator') {
       return ['source', 'iterator']
     }
 
-    if (this.isRecord(current) && current.type === IteratorType.MAP && key === 'yield') {
+    if (this.isRecord(current) && current._forge === IteratorType.MAP && key === 'yield') {
       return ['template']
     }
 
@@ -112,7 +111,7 @@ export default class DSLPathFormatter {
       return undefined
     }
 
-    const type = this.getStringProperty(value, 'type')
+    const type = this.getStringProperty(value, '_forge')
     const name = this.getStringProperty(value, 'name')
 
     if (!type || !name || !FUNCTION_TYPE_VALUES.has(type)) {
@@ -123,11 +122,11 @@ export default class DSLPathFormatter {
   }
 
   private isPredicateTest(value: unknown): boolean {
-    return this.isRecord(value) && value.type === PredicateType.TEST
+    return this.isRecord(value) && value._forge === PredicateType.TEST
   }
 
   private formatBlockContext(value: unknown): string | undefined {
-    if (!this.isRecord(value) || value.type !== StructureType.BLOCK) {
+    if (!this.isRecord(value) || typeof value._forge !== 'string' || !value._forge.startsWith('component.call.')) {
       return undefined
     }
 
@@ -137,7 +136,7 @@ export default class DSLPathFormatter {
       return undefined
     }
 
-    const code = value.blockType === BlockType.FIELD ? this.getStringProperty(value, 'code') : undefined
+    const code = value._forge === ComponentCallType.FIELD ? this.getStringProperty(value, 'code') : undefined
 
     return code ? `${variant} - ${code}` : variant
   }

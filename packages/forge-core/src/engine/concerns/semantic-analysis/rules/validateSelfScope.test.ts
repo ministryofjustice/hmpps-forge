@@ -1,4 +1,4 @@
-import { BlockType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
 import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { TemplateValue } from '../../../chassis/contracts/ast/template.type'
@@ -64,7 +64,7 @@ describe('validateSelfScope', () => {
     it('should return no errors when a Self reference sits in a field block property', () => {
       // Arrange
       const reference = ASTTestFactory.reference(['answers', '@self'])
-      const field = ASTTestFactory.block('text', BlockType.FIELD)
+      const field = ASTTestFactory.block('text', ComponentCallType.FIELD)
         .withCode('field')
         .withProperty('validWhen', [reference])
         .build()
@@ -80,7 +80,7 @@ describe('validateSelfScope', () => {
     it('should return no errors for the bare @self path spelling', () => {
       // Arrange
       const reference = ASTTestFactory.reference(['@self'])
-      const field = ASTTestFactory.block('text', BlockType.FIELD)
+      const field = ASTTestFactory.block('text', ComponentCallType.FIELD)
         .withCode('field')
         .withProperty('validWhen', [reference])
         .build()
@@ -124,7 +124,7 @@ describe('validateSelfScope', () => {
         .withProperty('steps', [ASTTestFactory.reference(['answers', '@self'])])
         .build()
       const selfReference = (codeExpression.properties?.steps as ASTNode[])[0]
-      const field = ASTTestFactory.block('text', BlockType.FIELD).withProperty('code', codeExpression).build()
+      const field = ASTTestFactory.block('text', ComponentCallType.FIELD).withProperty('code', codeExpression).build()
       const context = createContext(
         [selfReference, codeExpression, field],
         [
@@ -142,7 +142,7 @@ describe('validateSelfScope', () => {
 
     it('should return no errors when an iterator template holds a Self reference inside a template field block', () => {
       // Arrange
-      const templateField = ASTTestFactory.block('text', BlockType.FIELD)
+      const templateField = ASTTestFactory.block('text', ComponentCallType.FIELD)
         .withCode('field')
         .withProperty('validWhen', [ASTTestFactory.reference(['answers', '@self'])])
         .build()
@@ -159,7 +159,7 @@ describe('validateSelfScope', () => {
 
     it('should return an error when an iterator template holds a Self reference outside any field block', () => {
       // Arrange
-      const templateBlock = ASTTestFactory.block('inset-text', BlockType.BASIC)
+      const templateBlock = ASTTestFactory.block('inset-text', ComponentCallType.BASIC)
         .withProperty('content', ASTTestFactory.reference(['answers', '@self']))
         .build()
       const template = compileTemplate(templateBlock, new NodeIDGenerator())
@@ -175,12 +175,12 @@ describe('validateSelfScope', () => {
 
     it('should return no errors when the iterate node itself sits inside a field block', () => {
       // Arrange
-      const templateBlock = ASTTestFactory.block('inset-text', BlockType.BASIC)
+      const templateBlock = ASTTestFactory.block('inset-text', ComponentCallType.BASIC)
         .withProperty('content', ASTTestFactory.reference(['answers', '@self']))
         .build()
       const template = compileTemplate(templateBlock, new NodeIDGenerator())
       const iterate = iterateNodeWithYield(template)
-      const field = ASTTestFactory.block('text', BlockType.FIELD)
+      const field = ASTTestFactory.block('text', ComponentCallType.FIELD)
         .withCode('field')
         .withProperty('items', iterate)
         .build()
@@ -195,7 +195,7 @@ describe('validateSelfScope', () => {
 
     it("should return an error when an iterator template holds a Self reference inside a template field's code", () => {
       // Arrange
-      const templateField = ASTTestFactory.block('text', BlockType.FIELD)
+      const templateField = ASTTestFactory.block('text', ComponentCallType.FIELD)
         .withProperty(
           'code',
           ASTTestFactory.expression(ExpressionType.PIPELINE)

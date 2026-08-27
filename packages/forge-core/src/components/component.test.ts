@@ -2,7 +2,7 @@ import { expectTypeOf, vi } from 'vitest'
 import { z } from 'zod'
 import { Answer, block, field } from '../authoring/builders'
 import { getComponentStamp } from '../authoring/builders/utils/stampEntry'
-import { BlockType, StructureType } from '../authoring/types/enums'
+import { ComponentCallType, StructureType } from '../authoring/types/enums'
 import { component } from './component'
 import type {
   ComponentOptions,
@@ -44,9 +44,8 @@ const TestDivider = component<TestDivider>('testDivider', {
 })
 
 const evaluatedCard = {
-  type: StructureType.BLOCK,
+  _forge: ComponentCallType.BASIC,
   variant: 'testCard',
-  blockType: BlockType.BASIC,
   title: 'Card title',
 } as EvaluatedBlock<TestCard>
 
@@ -58,8 +57,7 @@ describe('component()', () => {
 
       // Assert
       expect(built).toEqual({
-        type: StructureType.BLOCK,
-        blockType: BlockType.BASIC,
+        _forge: ComponentCallType.BASIC,
         variant: 'testCard',
         title: 'Card title',
       })
@@ -71,8 +69,7 @@ describe('component()', () => {
 
       // Assert
       expect(built).toEqual({
-        type: StructureType.BLOCK,
-        blockType: BlockType.BASIC,
+        _forge: ComponentCallType.BASIC,
         variant: 'testDivider',
       })
     })
@@ -98,7 +95,7 @@ describe('component()', () => {
       const built = TestField({ code: 'first_name', label: 'First name' })
 
       // Assert
-      expect(built.blockType).toBe(BlockType.FIELD)
+      expect(built._forge).toBe(ComponentCallType.FIELD)
       expect(built.variant).toBe('testField')
     })
 
@@ -138,8 +135,7 @@ describe('component()', () => {
 
       // Assert
       expect(built).toEqual({
-        type: StructureType.BLOCK,
-        blockType: BlockType.BASIC,
+        _forge: ComponentCallType.BASIC,
         variant: 'testCard',
         title: 'CARD TITLE',
         hint: 'Prepared hint',
@@ -159,8 +155,7 @@ describe('component()', () => {
 
       // Assert
       expect(built).toEqual({
-        type: StructureType.BLOCK,
-        blockType: BlockType.FIELD,
+        _forge: ComponentCallType.FIELD,
         variant: 'testField',
         code: 'first_name',
         label: 'FIRST NAME',

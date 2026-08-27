@@ -39,12 +39,12 @@ describe('hooks', () => {
     it('should create an Access hook with when', () => {
       // Arrange
       const json = {
-        type: HookType.ACCESS,
+        _forge: HookType.ACCESS,
         when: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
           negate: false,
-          condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         },
       } satisfies AccessHook
 
@@ -62,10 +62,10 @@ describe('hooks', () => {
     it('should create an Access hook with effects', () => {
       // Arrange
       const json = {
-        type: HookType.ACCESS,
+        _forge: HookType.ACCESS,
         effects: [
-          { type: FunctionCallType.EFFECT, name: 'trackPageView', arguments: [] as ResolvableValue[] },
-          { type: FunctionCallType.EFFECT, name: 'logAccess', arguments: [] as ResolvableValue[] },
+          { _forge: FunctionCallType.EFFECT, name: 'trackPageView', arguments: [] as ResolvableValue[] },
+          { _forge: FunctionCallType.EFFECT, name: 'logAccess', arguments: [] as ResolvableValue[] },
         ],
       } satisfies AccessHook
 
@@ -88,18 +88,18 @@ describe('hooks', () => {
     it('should transform each effect using real nodeFactory', () => {
       // Arrange
       const effect1 = {
-        type: FunctionCallType.EFFECT,
+        _forge: FunctionCallType.EFFECT,
         name: 'effect1',
         arguments: [] as ResolvableValue[],
       } satisfies EffectFunctionExpr
       const effect2 = {
-        type: FunctionCallType.EFFECT,
+        _forge: FunctionCallType.EFFECT,
         name: 'effect2',
         arguments: [] as ResolvableValue[],
       } satisfies EffectFunctionExpr
 
       const json = {
-        type: HookType.ACCESS,
+        _forge: HookType.ACCESS,
         effects: [effect1, effect2],
       } satisfies AccessHook
 
@@ -122,15 +122,15 @@ describe('hooks', () => {
     it('should create an Access hook with redirect outcome', () => {
       // Arrange
       const json = {
-        type: HookType.ACCESS,
+        _forge: HookType.ACCESS,
         next: [
           {
-            type: PolicyType.OUTCOME_REDIRECT,
+            _forge: PolicyType.OUTCOME_REDIRECT,
             when: {
-              type: PredicateType.TEST,
-              subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
+              _forge: PredicateType.TEST,
+              subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
               negate: false,
-              condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+              condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
             },
             goto: '/step1',
           } satisfies RedirectOutcome,
@@ -150,15 +150,15 @@ describe('hooks', () => {
     it('should create an Access hook with throwError outcome', () => {
       // Arrange
       const json = {
-        type: HookType.ACCESS,
+        _forge: HookType.ACCESS,
         next: [
           {
-            type: PolicyType.OUTCOME_THROW_ERROR,
+            _forge: PolicyType.OUTCOME_THROW_ERROR,
             when: {
-              type: PredicateType.TEST,
-              subject: { type: ExpressionType.REFERENCE, path: ['data', 'notFound'] } satisfies ReferenceExpr,
+              _forge: PredicateType.TEST,
+              subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'notFound'] } satisfies ReferenceExpr,
               negate: false,
-              condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+              condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
             },
             status: 404,
             message: 'Item not found',
@@ -179,21 +179,21 @@ describe('hooks', () => {
     it('should create an Access hook with multiple outcomes', () => {
       // Arrange
       const json = {
-        type: HookType.ACCESS,
+        _forge: HookType.ACCESS,
         next: [
           {
-            type: PolicyType.OUTCOME_THROW_ERROR,
+            _forge: PolicyType.OUTCOME_THROW_ERROR,
             when: {
-              type: PredicateType.TEST,
-              subject: { type: ExpressionType.REFERENCE, path: ['data', 'notFound'] } satisfies ReferenceExpr,
+              _forge: PredicateType.TEST,
+              subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'notFound'] } satisfies ReferenceExpr,
               negate: false,
-              condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+              condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
             },
             status: 404,
             message: 'Not found',
           } satisfies ThrowErrorOutcome,
           {
-            type: PolicyType.OUTCOME_REDIRECT,
+            _forge: PolicyType.OUTCOME_REDIRECT,
             goto: '/overview',
           } satisfies RedirectOutcome,
         ],
@@ -212,22 +212,22 @@ describe('hooks', () => {
     it('should create an Access hook with all properties', () => {
       // Arrange
       const json = {
-        type: HookType.ACCESS,
+        _forge: HookType.ACCESS,
         when: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
-          condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
-        effects: [{ type: FunctionCallType.EFFECT, name: 'trackPageView', arguments: [] as ResolvableValue[] }],
+        effects: [{ _forge: FunctionCallType.EFFECT, name: 'trackPageView', arguments: [] as ResolvableValue[] }],
         next: [
           {
-            type: PolicyType.OUTCOME_REDIRECT,
+            _forge: PolicyType.OUTCOME_REDIRECT,
             when: {
-              type: PredicateType.TEST,
-              subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
+              _forge: PredicateType.TEST,
+              subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
               negate: false,
-              condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+              condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
             } satisfies PredicateTestExpr,
             goto: '/step1',
           } satisfies RedirectOutcome,
@@ -250,7 +250,7 @@ describe('hooks', () => {
     it('should not set effects if not an array', () => {
       // Arrange
       const json = {
-        type: HookType.ACCESS,
+        _forge: HookType.ACCESS,
         effects: 'not-an-array',
       } as any
 
@@ -264,7 +264,7 @@ describe('hooks', () => {
     it('should not set next if not an array', () => {
       // Arrange
       const json = {
-        type: HookType.ACCESS,
+        _forge: HookType.ACCESS,
         next: 'not-an-array',
       } as any
 
@@ -278,7 +278,7 @@ describe('hooks', () => {
     it('should generate unique node IDs', () => {
       // Arrange
       const json = {
-        type: HookType.ACCESS,
+        _forge: HookType.ACCESS,
       } as AccessHook
 
       // Act
@@ -304,13 +304,13 @@ describe('hooks', () => {
     it('should create a Submit hook with when condition', () => {
       // Arrange
       const json = {
-        type: HookType.SUBMIT,
+        _forge: HookType.SUBMIT,
         validate: true,
         when: {
-          type: PredicateType.TEST,
+          _forge: PredicateType.TEST,
           negate: false,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] },
-          condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'test'] },
+          condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         },
       } satisfies SubmitHook
 
@@ -330,13 +330,13 @@ describe('hooks', () => {
     it('should create a Submit hook with guards', () => {
       // Arrange
       const json = {
-        type: HookType.SUBMIT,
+        _forge: HookType.SUBMIT,
         validate: true,
         guards: {
-          type: PredicateType.TEST,
+          _forge: PredicateType.TEST,
           negate: false,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] },
-          condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'test'] },
+          condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         },
       } satisfies SubmitHook
 
@@ -353,7 +353,7 @@ describe('hooks', () => {
     it('should set validate to true when explicitly true', () => {
       // Arrange
       const json = {
-        type: HookType.SUBMIT,
+        _forge: HookType.SUBMIT,
         validate: true,
       } satisfies SubmitHook
 
@@ -368,7 +368,7 @@ describe('hooks', () => {
     it('should set validate to false when explicitly false', () => {
       // Arrange
       const json = {
-        type: HookType.SUBMIT,
+        _forge: HookType.SUBMIT,
         validate: false,
       } satisfies SubmitHook
 
@@ -383,7 +383,7 @@ describe('hooks', () => {
     it('should set validate and validationGroups when group validation is provided', () => {
       // Arrange
       const json = {
-        type: HookType.SUBMIT,
+        _forge: HookType.SUBMIT,
         validate: { groups: ['contact', 'address'] },
       } satisfies SubmitHook
 
@@ -399,13 +399,13 @@ describe('hooks', () => {
       // Act
       const result1 = createSubmitHookNode(
         {
-          type: HookType.SUBMIT,
+          _forge: HookType.SUBMIT,
           validate: true,
           onValid: {
-            next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/valid' } satisfies RedirectOutcome],
+            next: [{ _forge: PolicyType.OUTCOME_REDIRECT, goto: '/valid' } satisfies RedirectOutcome],
           },
           onInvalid: {
-            next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/invalid' } satisfies RedirectOutcome],
+            next: [{ _forge: PolicyType.OUTCOME_REDIRECT, goto: '/invalid' } satisfies RedirectOutcome],
           },
         } satisfies SubmitHook,
         nodeFactory.context,
@@ -417,10 +417,10 @@ describe('hooks', () => {
       // Act
       const result2 = createSubmitHookNode(
         {
-          type: HookType.SUBMIT,
+          _forge: HookType.SUBMIT,
           validate: false,
           onAlways: {
-            next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/next' } satisfies RedirectOutcome],
+            next: [{ _forge: PolicyType.OUTCOME_REDIRECT, goto: '/next' } satisfies RedirectOutcome],
           },
         } satisfies SubmitHook,
         nodeFactory.context,
@@ -433,11 +433,11 @@ describe('hooks', () => {
     it('should create a Submit hook with onAlways branch', () => {
       // Arrange
       const json = {
-        type: HookType.SUBMIT,
+        _forge: HookType.SUBMIT,
         validate: true,
         onAlways: {
-          effects: [{ type: FunctionCallType.EFFECT, name: 'saveData', arguments: [] as ResolvableValue[] }],
-          next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/next-step' } satisfies RedirectOutcome],
+          effects: [{ _forge: FunctionCallType.EFFECT, name: 'saveData', arguments: [] as ResolvableValue[] }],
+          next: [{ _forge: PolicyType.OUTCOME_REDIRECT, goto: '/next-step' } satisfies RedirectOutcome],
         },
       } satisfies SubmitHook
 
@@ -459,11 +459,11 @@ describe('hooks', () => {
     it('should create a Submit hook with onValid branch', () => {
       // Arrange
       const json = {
-        type: HookType.SUBMIT,
+        _forge: HookType.SUBMIT,
         validate: true,
         onValid: {
-          effects: [{ type: FunctionCallType.EFFECT, name: 'submitForm', arguments: [] as ResolvableValue[] }],
-          next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/success' } satisfies RedirectOutcome],
+          effects: [{ _forge: FunctionCallType.EFFECT, name: 'submitForm', arguments: [] as ResolvableValue[] }],
+          next: [{ _forge: PolicyType.OUTCOME_REDIRECT, goto: '/success' } satisfies RedirectOutcome],
         },
       } satisfies SubmitHook
 
@@ -483,11 +483,11 @@ describe('hooks', () => {
     it('should create a Submit hook with onInvalid branch', () => {
       // Arrange
       const json = {
-        type: HookType.SUBMIT,
+        _forge: HookType.SUBMIT,
         validate: true,
         onInvalid: {
-          effects: [{ type: FunctionCallType.EFFECT, name: 'logError', arguments: [] as ResolvableValue[] }],
-          next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/error' } satisfies RedirectOutcome],
+          effects: [{ _forge: FunctionCallType.EFFECT, name: 'logError', arguments: [] as ResolvableValue[] }],
+          next: [{ _forge: PolicyType.OUTCOME_REDIRECT, goto: '/error' } satisfies RedirectOutcome],
         },
       } satisfies SubmitHook
 
@@ -507,17 +507,17 @@ describe('hooks', () => {
     it('should create a Submit hook with all branches', () => {
       // Arrange
       const json = {
-        type: HookType.SUBMIT,
+        _forge: HookType.SUBMIT,
         validate: true,
         onAlways: {
-          effects: [{ type: FunctionCallType.EFFECT, name: 'always', arguments: [] as ResolvableValue[] }],
+          effects: [{ _forge: FunctionCallType.EFFECT, name: 'always', arguments: [] as ResolvableValue[] }],
         },
         onValid: {
-          next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/next' } satisfies RedirectOutcome],
+          next: [{ _forge: PolicyType.OUTCOME_REDIRECT, goto: '/next' } satisfies RedirectOutcome],
         },
         onInvalid: {
-          effects: [{ type: FunctionCallType.EFFECT, name: 'invalid', arguments: [] as ResolvableValue[] }],
-          next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/error' } satisfies RedirectOutcome],
+          effects: [{ _forge: FunctionCallType.EFFECT, name: 'invalid', arguments: [] as ResolvableValue[] }],
+          next: [{ _forge: PolicyType.OUTCOME_REDIRECT, goto: '/error' } satisfies RedirectOutcome],
         },
       } satisfies SubmitHook
 
@@ -538,10 +538,10 @@ describe('hooks', () => {
     it('should handle branch with only effects', () => {
       // Arrange
       const json = {
-        type: HookType.SUBMIT,
+        _forge: HookType.SUBMIT,
         validate: true,
         onAlways: {
-          effects: [{ type: FunctionCallType.EFFECT, name: 'saveData', arguments: [] as ResolvableValue[] }],
+          effects: [{ _forge: FunctionCallType.EFFECT, name: 'saveData', arguments: [] as ResolvableValue[] }],
         },
       } satisfies SubmitHook
 
@@ -557,10 +557,10 @@ describe('hooks', () => {
     it('should handle branch with only next', () => {
       // Arrange
       const json = {
-        type: HookType.SUBMIT,
+        _forge: HookType.SUBMIT,
         validate: true,
         onValid: {
-          next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/next' } satisfies RedirectOutcome],
+          next: [{ _forge: PolicyType.OUTCOME_REDIRECT, goto: '/next' } satisfies RedirectOutcome],
         },
       } satisfies SubmitHook
 
@@ -576,7 +576,7 @@ describe('hooks', () => {
     it('should return undefined for branch when branch is undefined', () => {
       // Arrange
       const json = {
-        type: HookType.SUBMIT,
+        _forge: HookType.SUBMIT,
         validate: true,
       } satisfies SubmitHook
 
@@ -592,7 +592,7 @@ describe('hooks', () => {
     it('should not set branch effects if not an array', () => {
       // Arrange
       const json = {
-        type: HookType.SUBMIT,
+        _forge: HookType.SUBMIT,
         validate: true,
         onAlways: {
           effects: 'not-an-array',
@@ -610,7 +610,7 @@ describe('hooks', () => {
     it('should not set branch next if not an array', () => {
       // Arrange
       const json = {
-        type: HookType.SUBMIT,
+        _forge: HookType.SUBMIT,
         validate: true,
         onValid: {
           next: 'not-an-array',
@@ -628,7 +628,7 @@ describe('hooks', () => {
     it('should generate unique node IDs', () => {
       // Arrange
       const json = {
-        type: HookType.SUBMIT,
+        _forge: HookType.SUBMIT,
         validate: true,
       } satisfies SubmitHook
 

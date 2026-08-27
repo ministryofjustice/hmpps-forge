@@ -2,7 +2,7 @@ import { expectTypeOf, vi } from 'vitest'
 import { z } from 'zod'
 import { Answer } from '../builders'
 import ConditionRegistry from '../registries/ConditionRegistry'
-import { FunctionCallType } from '../types/enums'
+import { FunctionCallType, FunctionEntryType } from '../types/enums'
 import { getEntryStamp } from '../builders/utils/stampEntry'
 import { condition } from './condition'
 import type { Callsite } from '../builders/utils/captureCallsite'
@@ -29,7 +29,7 @@ describe('condition()', () => {
   describe('entry creation', () => {
     it('should carry the given name, function type, schemas, and factory on a named entry', () => {
       expect(IsValidCrn.name).toBe('Caseload.IsValidCrn')
-      expect(IsValidCrn.functionType).toBe(FunctionCallType.CONDITION)
+      expect(IsValidCrn._forge).toBe(FunctionEntryType.CONDITION)
       expect(IsValidCrn.inputSchema?.safeParse('X123456').success).toBe(true)
       expect(IsValidCrn.argumentsSchema?.safeParse([5]).success).toBe(true)
       expect(IsValidCrn.outputSchema).toBeUndefined()
@@ -61,7 +61,7 @@ describe('condition()', () => {
 
       // Assert
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Caseload.IsValidCrn',
         arguments: [5],
       })

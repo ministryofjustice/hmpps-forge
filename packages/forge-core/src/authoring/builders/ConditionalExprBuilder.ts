@@ -1,5 +1,5 @@
 import { ConditionalExpr, PredicateExpr, PredicateTestExpr, resolvesMarker } from '../types/expressions.type'
-import { ExpressionType } from '../types/enums'
+import { ExpressionType, BuilderType } from '../types/enums'
 import { BranchValue, ChainableConditional } from './types'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 
@@ -15,7 +15,7 @@ export class ConditionalExprBuilder implements ChainableConditional {
   // Type-only ChainableExpression brand - never set at runtime.
   declare readonly [resolvesMarker]: any
 
-  readonly nodeKind = 'forge-builder' as const
+  readonly _forge = BuilderType.CONDITIONAL as const
 
   private readonly predicate: PredicateExpr
 
@@ -54,7 +54,7 @@ export class ConditionalExprBuilder implements ChainableConditional {
 
   private build(): ConditionalExpr {
     return {
-      type: ExpressionType.CONDITIONAL,
+      _forge: ExpressionType.CONDITIONAL,
       predicate: this.predicate,
       thenValue: this.thenValue,
       elseValue: this.elseValue,

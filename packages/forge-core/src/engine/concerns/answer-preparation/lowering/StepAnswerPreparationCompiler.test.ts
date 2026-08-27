@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z, type ZodType } from 'zod'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
-import { BlockType, ExpressionType, FunctionCallType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, FunctionCallType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   FormatGenerators,
@@ -87,7 +87,7 @@ function createFieldBlock(
   props: Record<string, unknown> = {},
   variant = 'text-input',
 ): FieldBlockASTNode {
-  const builder = ASTTestFactory.block(variant, BlockType.FIELD)
+  const builder = ASTTestFactory.block(variant, ComponentCallType.FIELD)
     .withProperty('code', code)
 
   Object.entries(props).forEach(([key, value]) => {
@@ -1186,7 +1186,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const template = createTemplateValue({
         type: ASTNodeType.BLOCK,
         variant: 'text-input',
-        blockType: BlockType.FIELD,
+        _forge: ComponentCallType.FIELD,
         properties: {
           code: 'staticField',
         },
@@ -1211,7 +1211,7 @@ describe('StepAnswerPreparationCompiler', () => {
       const template = createTemplateValue({
         type: ASTNodeType.BLOCK,
         variant: 'text-input',
-        blockType: BlockType.FIELD,
+        _forge: ComponentCallType.FIELD,
         properties: {
           code: ASTTestFactory.formatExpression('person_%1', [
             {

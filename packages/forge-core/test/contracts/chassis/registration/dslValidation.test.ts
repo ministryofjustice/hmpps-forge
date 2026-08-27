@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { PolicyType,
   access,
-  BlockType,
+  ComponentCallType,
   condition,
   Condition,
   Data,
@@ -35,7 +35,7 @@ describe('DSL validation contracts', () => {
   describe('schema validation', () => {
     it('should reject a journey when its code is missing', () => {
       // Arrange
-      const rawJourney = { type: StructureType.JOURNEY, path: '/broken', title: 'Broken', steps: [] }
+      const rawJourney = { _forge: StructureType.JOURNEY, path: '/broken', title: 'Broken', steps: [] }
 
       // Act
       const act = () => registerRawJourney(rawJourney)
@@ -50,10 +50,10 @@ describe('DSL validation contracts', () => {
     it('should report every schema issue when one registration has several', () => {
       // Arrange
       const rawJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/broken',
         title: 'Broken',
-        steps: [{ type: StructureType.STEP, path: '/one', blocks: [] }],
+        steps: [{ _forge: StructureType.STEP, path: '/one', blocks: [] }],
       }
 
       // Act
@@ -71,22 +71,21 @@ describe('DSL validation contracts', () => {
       // Arrange
       const IsYes = condition('Dsl.IsYes', { factory: () => (value: unknown) => value === 'yes' })
       const rawJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         code: 'broken',
         path: '/broken',
         title: 'Broken',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/one',
             title: 'One',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'test-input',
                 code: 'crn',
-                validWhen: [{ type: PolicyType.VALIDATION_RULE, condition: Self().match(IsYes()) }],
+                validWhen: [{ _forge: PolicyType.VALIDATION_RULE, condition: Self().match(IsYes()) }],
               },
             ],
           },
@@ -105,11 +104,11 @@ describe('DSL validation contracts', () => {
     it('should reject static data when it contains a forge expression', () => {
       // Arrange
       const rawJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         code: 'broken',
         path: '/broken',
         title: 'Broken',
-        data: { user: { type: ExpressionType.REFERENCE, path: ['answers', 'crn'] } },
+        data: { user: { _forge: ExpressionType.REFERENCE, path: ['answers', 'crn'] } },
         steps: [],
       }
 

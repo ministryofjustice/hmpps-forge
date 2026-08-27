@@ -1,4 +1,4 @@
-import { HookType, BlockType } from '../../../../authoring/types/enums'
+import { HookType, ComponentCallType } from '../../../../authoring/types/enums'
 import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'
@@ -83,7 +83,7 @@ describe('validateHookScope', () => {
     it('should return an error when the parent is neither a step nor a journey', () => {
       // Arrange
       const hook = ASTTestFactory.hook(HookType.ACCESS).build()
-      const block = ASTTestFactory.block('text', BlockType.FIELD).withProperty('defaultValue', hook).build()
+      const block = ASTTestFactory.block('text', ComponentCallType.FIELD).withProperty('defaultValue', hook).build()
       const context = createContext([hook, block], [[hook.id, block.id]])
 
       // Act

@@ -12,7 +12,7 @@ import {
   ChainableMatch,
   ChainableRef,
 } from '../../authoring/builders/types'
-import { BlockType, StructureType } from '../../authoring/types/enums'
+import { ComponentCallType } from '../../authoring/types/enums'
 import type { ValidationExpr } from '../../authoring/types/structures.type'
 
 /**
@@ -47,13 +47,10 @@ export interface BasicBlockProps {
  * Blocks are the fundamental building units of form UI.
  */
 export interface BlockDefinition extends BasicBlockProps {
-  type: StructureType.BLOCK
+  _forge: ComponentCallType
 
   /** The specific variant/type of block (e.g., 'text', 'number', 'radio', etc.) */
   variant: string
-
-  /** Discriminator to distinguish field blocks from regular blocks */
-  blockType: BlockType
 }
 
 /**
@@ -134,7 +131,9 @@ export interface FieldBlockProps extends BasicBlockProps {
  * Block definition for form field blocks.
  * Represents user input fields with validation and formatting.
  */
-export interface FieldBlockDefinition extends BlockDefinition, FieldBlockProps {}
+export interface FieldBlockDefinition extends BlockDefinition, FieldBlockProps {
+  _forge: ComponentCallType.FIELD
+}
 
 /**
  * The fluent wrappers the authoring DSL returns.
@@ -174,7 +173,13 @@ export type EvaluatedBlock<T, IsRoot extends boolean = true, TRenderedBlock = Re
               : R extends FieldBlockDefinition
                 ? IsRoot extends true
                   ? {
-                      [K in keyof R]: K extends 'type' | 'variant' ? R[K] : EvaluatedBlock<R[K], false, TRenderedBlock>
+                      [K in keyof R as K extends '_forge' | 'variant' ? never : K]: EvaluatedBlock<
+                        R[K],
+                        false,
+                        TRenderedBlock
+                      >
+                    } & {
+                      [K in Extract<keyof R, '_forge' | 'variant'>]?: R[K]
                     } & {
                       value?: unknown
                       errors?: { message: string; details?: Record<string, any> }[]
@@ -183,16 +188,20 @@ export type EvaluatedBlock<T, IsRoot extends boolean = true, TRenderedBlock = Re
                 : R extends BlockDefinition
                   ? IsRoot extends true
                     ? {
-                        [K in keyof R]: K extends 'type' | 'variant'
-                          ? R[K]
-                          : EvaluatedBlock<R[K], false, TRenderedBlock>
+                        [K in keyof R as K extends '_forge' | 'variant' ? never : K]: EvaluatedBlock<
+                          R[K],
+                          false,
+                          TRenderedBlock
+                        >
+                      } & {
+                        [K in Extract<keyof R, '_forge' | 'variant'>]?: R[K]
                       } & {
                         value?: unknown
                       }
                     : TRenderedBlock
                   : R extends object
                     ? {
-                        [K in keyof R]: K extends 'type' | 'variant'
+                        [K in keyof R]: K extends '_forge' | 'variant'
                           ? R[K]
                           : EvaluatedBlock<R[K], false, TRenderedBlock>
                       }

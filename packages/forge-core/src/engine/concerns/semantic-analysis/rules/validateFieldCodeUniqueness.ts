@@ -1,4 +1,4 @@
-import { BlockType } from '../../../../authoring/types/enums'
+import { ComponentCallType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { FieldBlockASTNode } from '../../../chassis/contracts/ast/structures.type'
@@ -43,7 +43,7 @@ export const validateFieldCodeUniqueness: ASTValidationRule = (context: ASTValid
   const errors: Error[] = []
   const fieldBlocksByStepAndCode = new Map<string, FieldBlockASTNode[]>()
 
-  nodeIndex.findByType<FieldBlockASTNode>(BlockType.FIELD).forEach(fieldBlock => {
+  nodeIndex.findByType<FieldBlockASTNode>(ComponentCallType.FIELD).forEach(fieldBlock => {
     const code = fieldBlock.properties.code
     const stepId = owningStepId(fieldBlock)
 

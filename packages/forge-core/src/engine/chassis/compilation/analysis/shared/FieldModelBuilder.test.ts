@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { staticValue } from '../../../contracts/models/authoredValue.type'
-import { PolicyType, BlockType, ExpressionType, FunctionCallType, IteratorType } from '../../../../../authoring/types/enums'
+import { PolicyType, ComponentCallType, ExpressionType, FunctionCallType, IteratorType } from '../../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import type { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
@@ -26,7 +26,7 @@ function createFieldBlock(
   props: Record<string, unknown> = {},
   variant = 'text-input',
 ): FieldBlockASTNode {
-  const builder = ASTTestFactory.block(variant, BlockType.FIELD).withProperty('code', code)
+  const builder = ASTTestFactory.block(variant, ComponentCallType.FIELD).withProperty('code', code)
 
   Object.entries(props).forEach(([key, value]) => {
     builder.withProperty(key, value)
@@ -43,7 +43,7 @@ function createTemplateField(
   return {
     type: ASTNodeType.TEMPLATE,
     originalType: ASTNodeType.BLOCK,
-    blockType: BlockType.FIELD,
+    _forge: ComponentCallType.FIELD,
     variant,
     id: ASTTestFactory.getId(),
     properties: { code, ...props },
@@ -239,7 +239,7 @@ describe('FieldModelBuilder', () => {
       const templateField = {
         type: ASTNodeType.TEMPLATE,
         originalType: ASTNodeType.BLOCK,
-        blockType: BlockType.FIELD,
+        _forge: ComponentCallType.FIELD,
         id: ASTTestFactory.getId(),
         properties: { code: 'dynamic' },
       } as unknown as TemplateNode

@@ -1,4 +1,4 @@
-import { BlockType, ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
 import type { ASTNode, NodeId } from '../../../contracts/ast/ast.type'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
@@ -47,7 +47,7 @@ export default class OwnershipIndex {
       })
       this.journeyBucketFor(stepNode)?.stepNodes.push(stepNode)
     })
-    nodeIndex.findByType<FieldBlockASTNode>(BlockType.FIELD).forEach(fieldBlock => {
+    nodeIndex.findByType<FieldBlockASTNode>(ComponentCallType.FIELD).forEach(fieldBlock => {
       this.nearestStepBucket(fieldBlock)?.fieldBlocks.push(fieldBlock)
     })
     nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE).forEach(iterateNode => {

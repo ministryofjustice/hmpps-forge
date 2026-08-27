@@ -50,7 +50,7 @@ describe('ObjectConditions', () => {
     test('should build correct expression object', () => {
       const expr = ObjectConditions.IsObject()
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Object.IsObject',
         arguments: [],
       })
@@ -95,7 +95,7 @@ describe('ObjectConditions', () => {
     test('should build correct expression object', () => {
       const expr = ObjectConditions.HasProperty('user.address')
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Object.HasProperty',
         arguments: ['user.address'],
       })
@@ -149,7 +149,7 @@ describe('ObjectConditions', () => {
     test('should build correct expression object', () => {
       const expr = ObjectConditions.PropertyIsEmpty('user.email')
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Object.PropertyIsEmpty',
         arguments: ['user.email'],
       })
@@ -205,7 +205,7 @@ describe('ObjectConditions', () => {
     test('should build correct expression object', () => {
       const expr = ObjectConditions.PropertyHasValue('user.address.city')
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Object.PropertyHasValue',
         arguments: ['user.address.city'],
       })

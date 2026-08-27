@@ -66,7 +66,7 @@ describe('ScopedReferenceBuilder', () => {
 
       // Assert
       expect(result.expr).toEqual({
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: ['@scope', '0', 'name'],
       })
     })
@@ -101,7 +101,7 @@ describe('ScopedReferenceBuilder', () => {
       const ref = builder.path('price')
 
       // Assert
-      expect(ref.expr.type).toBe(ExpressionType.REFERENCE)
+      expect(ref.expr._forge).toBe(ExpressionType.REFERENCE)
       expect(typeof ref.pipe).toBe('function')
       expect(typeof ref.match).toBe('function')
     })
@@ -117,7 +117,7 @@ describe('ScopedReferenceBuilder', () => {
 
       // Assert
       expect(built).toEqual({
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: ['@scope', '0'],
       })
     })
@@ -133,7 +133,7 @@ describe('ScopedReferenceBuilder', () => {
 
       // Assert
       expect(result.expr).toEqual({
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: ['@scope', '0'],
       })
     })
@@ -157,7 +157,7 @@ describe('ScopedReferenceBuilder', () => {
       const ref = builder.value()
 
       // Assert
-      expect(ref.expr.type).toBe(ExpressionType.REFERENCE)
+      expect(ref.expr._forge).toBe(ExpressionType.REFERENCE)
       expect(typeof ref.pipe).toBe('function')
       expect(typeof ref.match).toBe('function')
     })

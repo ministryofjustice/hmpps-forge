@@ -1,6 +1,6 @@
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
-import { BlockType, ExpressionType, FunctionCallType, IteratorType } from '../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, FunctionCallType, IteratorType } from '../../../../authoring/types/enums'
 import { FieldBlockASTNode } from '../../../chassis/contracts/ast/structures.type'
 import { FunctionASTNode, IterateASTNode, ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import { TemplateValue } from '../../../chassis/contracts/ast/template.type'
@@ -16,7 +16,7 @@ import type { CleardownModel } from '../contracts/cleardownModel.type'
 import StepFieldInventoryCompiler from './StepFieldInventoryCompiler'
 
 function createFieldBlock(code: string | FunctionASTNode): FieldBlockASTNode {
-  return ASTTestFactory.block('text-input', BlockType.FIELD)
+  return ASTTestFactory.block('text-input', ComponentCallType.FIELD)
     .withProperty('code', code)
     .build() as FieldBlockASTNode
 }

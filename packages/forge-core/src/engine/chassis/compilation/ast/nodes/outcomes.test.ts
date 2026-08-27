@@ -30,7 +30,7 @@ describe('outcomes', () => {
     it('should create a Redirect outcome with goto as string', () => {
       // Arrange
       const json = {
-        type: PolicyType.OUTCOME_REDIRECT,
+        _forge: PolicyType.OUTCOME_REDIRECT,
         goto: '/next-step',
       } satisfies RedirectOutcome
 
@@ -49,8 +49,8 @@ describe('outcomes', () => {
     it('should create a Redirect outcome with goto as expression', () => {
       // Arrange
       const json = {
-        type: PolicyType.OUTCOME_REDIRECT,
-        goto: { type: ExpressionType.REFERENCE, path: ['data', 'nextStep'] } satisfies ReferenceExpr,
+        _forge: PolicyType.OUTCOME_REDIRECT,
+        goto: { _forge: ExpressionType.REFERENCE, path: ['data', 'nextStep'] } satisfies ReferenceExpr,
       } satisfies RedirectOutcome
 
       // Act
@@ -69,14 +69,14 @@ describe('outcomes', () => {
     it('should create a Redirect outcome with when condition', () => {
       // Arrange
       const json = {
-        type: PolicyType.OUTCOME_REDIRECT,
+        _forge: PolicyType.OUTCOME_REDIRECT,
         goto: '/conditional-step',
         when: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['data', 'shouldRedirect'] } satisfies ReferenceExpr,
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'shouldRedirect'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionCallType.CONDITION,
+            _forge: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -97,14 +97,14 @@ describe('outcomes', () => {
     it('should create a Redirect outcome with both dynamic goto and when condition', () => {
       // Arrange
       const json = {
-        type: PolicyType.OUTCOME_REDIRECT,
-        goto: { type: ExpressionType.REFERENCE, path: ['data', 'dynamicStep'] } satisfies ReferenceExpr,
+        _forge: PolicyType.OUTCOME_REDIRECT,
+        goto: { _forge: ExpressionType.REFERENCE, path: ['data', 'dynamicStep'] } satisfies ReferenceExpr,
         when: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['data', 'condition'] } satisfies ReferenceExpr,
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'condition'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionCallType.CONDITION,
+            _forge: FunctionCallType.CONDITION,
             name: 'IsNotEmpty',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -124,7 +124,7 @@ describe('outcomes', () => {
     it('should generate unique node IDs', () => {
       // Arrange
       const json = {
-        type: PolicyType.OUTCOME_REDIRECT,
+        _forge: PolicyType.OUTCOME_REDIRECT,
         goto: '/step-1',
       } satisfies RedirectOutcome
 
@@ -151,7 +151,7 @@ describe('outcomes', () => {
     it('should create a ThrowError outcome with string message', () => {
       // Arrange
       const json = {
-        type: PolicyType.OUTCOME_THROW_ERROR,
+        _forge: PolicyType.OUTCOME_THROW_ERROR,
         status: 404,
         message: 'Item not found',
       } satisfies ThrowErrorOutcome
@@ -172,14 +172,14 @@ describe('outcomes', () => {
     it('should create a ThrowError outcome with dynamic message', () => {
       // Arrange
       const json = {
-        type: PolicyType.OUTCOME_THROW_ERROR,
+        _forge: PolicyType.OUTCOME_THROW_ERROR,
         status: 500,
         message: {
-          type: FunctionCallType.GENERATOR,
+          _forge: FunctionCallType.GENERATOR,
           name: FORMAT_STRING_GENERATOR_NAME,
           arguments: [
             'Failed to save: %1',
-            { type: ExpressionType.REFERENCE, path: ['data', 'errorMessage'] } satisfies ReferenceExpr,
+            { _forge: ExpressionType.REFERENCE, path: ['data', 'errorMessage'] } satisfies ReferenceExpr,
           ],
         } satisfies GeneratorFunctionExpr,
       } satisfies ThrowErrorOutcome
@@ -202,15 +202,15 @@ describe('outcomes', () => {
     it('should create a ThrowError outcome with when condition', () => {
       // Arrange
       const json = {
-        type: PolicyType.OUTCOME_THROW_ERROR,
+        _forge: PolicyType.OUTCOME_THROW_ERROR,
         status: 403,
         message: 'Access denied',
         when: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['data', 'noPermission'] } satisfies ReferenceExpr,
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'noPermission'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionCallType.CONDITION,
+            _forge: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -232,15 +232,15 @@ describe('outcomes', () => {
     it('should create a ThrowError outcome with dynamic message and when condition', () => {
       // Arrange
       const json = {
-        type: PolicyType.OUTCOME_THROW_ERROR,
+        _forge: PolicyType.OUTCOME_THROW_ERROR,
         status: 409,
-        message: { type: ExpressionType.REFERENCE, path: ['data', 'conflictMessage'] } satisfies ReferenceExpr,
+        message: { _forge: ExpressionType.REFERENCE, path: ['data', 'conflictMessage'] } satisfies ReferenceExpr,
         when: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['data', 'hasConflict'] } satisfies ReferenceExpr,
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'hasConflict'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionCallType.CONDITION,
+            _forge: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -261,7 +261,7 @@ describe('outcomes', () => {
     it('should generate unique node IDs', () => {
       // Arrange
       const json = {
-        type: PolicyType.OUTCOME_THROW_ERROR,
+        _forge: PolicyType.OUTCOME_THROW_ERROR,
         status: 500,
         message: 'Internal error',
       } satisfies ThrowErrorOutcome

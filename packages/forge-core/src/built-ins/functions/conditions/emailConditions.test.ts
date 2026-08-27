@@ -92,7 +92,7 @@ describe('EmailConditions', () => {
     test('should build correct expression object', () => {
       const expr = EmailConditions.IsValidEmail()
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Email.IsValidEmail',
         arguments: [],
       })

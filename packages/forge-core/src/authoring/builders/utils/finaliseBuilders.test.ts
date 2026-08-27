@@ -1,6 +1,6 @@
 import { Data, field } from '../index'
 import { finaliseBuilders } from './finaliseBuilders'
-import { BlockType, ExpressionType, StructureType } from '../../types/enums'
+import { ComponentCallType, ExpressionType, StructureType } from '../../types/enums'
 import { FormatGenerators } from '../../../built-ins/functions/generators/formatGenerators'
 import { Condition } from '../../../built-ins/functions/conditions'
 import { condition } from '../../functions/condition'
@@ -16,19 +16,18 @@ const callsiteOf = (value: unknown): Callsite | undefined =>
   Object.getOwnPropertyDescriptor(value, '__callsite')?.value as Callsite | undefined
 
 const journeyInput = () => ({
-  type: StructureType.JOURNEY,
+  _forge: StructureType.JOURNEY,
   code: 'travel-declaration',
   path: '/travel-declaration',
   title: 'Travel declaration',
   steps: [
     {
-      type: StructureType.STEP,
+      _forge: StructureType.STEP,
       path: '/personal-details',
       title: 'Personal details',
       blocks: [
         {
-          type: StructureType.BLOCK,
-          blockType: BlockType.FIELD,
+          _forge: ComponentCallType.FIELD,
           variant: 'GovUKInput',
           code: 'firstName',
           value: Data('firstName'),
@@ -128,7 +127,7 @@ describe('finaliseBuilders', () => {
     const result = finaliseBuilders(input) as Record<string, any>
 
     // Assert
-    expect(result.value).toEqual({ type: ExpressionType.REFERENCE, path: ['data', 'firstName'] })
+    expect(result.value).toEqual({ _forge: ExpressionType.REFERENCE, path: ['data', 'firstName'] })
   })
 
   it('should pass through an object with a build function but no builder marker untouched', () => {

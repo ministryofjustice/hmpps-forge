@@ -6,6 +6,7 @@ import type { TemplateValue } from '../../../contracts/ast/template.type'
 import type { ASTNodeDiagnostics, DSLSourceLocation } from '../../../../../shared/diagnostics/sourceLocation.type'
 import { compileTemplate } from './template'
 import {
+  ComponentCallType,
   ConditionCombinatorType,
   ExpressionType,
   FunctionCallType,
@@ -15,7 +16,7 @@ import {
   PredicateType,
   StructureType,
 } from '../../../../../authoring/types/enums'
-import { createBlockNode, createJourneyNode, createStepNode } from './structures'
+import { createBasicBlock, createFieldBlock, createJourneyNode, createStepNode } from './structures'
 import {
   createConditionalNode,
   createFunctionNode,
@@ -49,14 +50,14 @@ export interface NodeBuildContext {
 
 /**
  * A node creator turns one authored definition into its AST node. Creators
- * are selected from the `creatorsByType` table below by the `type`
+ * are selected from the `creatorsByType` table below by the `_forge`
  * discriminant, so a creator can assume the input already carries its type.
  */
 
 export type NodeCreator<TIn = any> = (json: TIn, ctx: NodeBuildContext) => ASTNode
 
 /**
- * Some authored objects carry a `type` discriminant but are not standalone AST
+ * Some authored objects carry a `_forge` discriminant but are not standalone AST
  * nodes - they're consumed inline by the creator of their parent node. A stray
  * one anywhere else is an authoring mistake, so its creator always throws,
  * saying where the object actually belongs.
@@ -69,7 +70,7 @@ const notConstructible =
     throw new ForgeInvalidNodeError({
       message: reason,
       node: json,
-      actual: (json as { type?: string }).type,
+      actual: (json as { _forge?: string })._forge,
       formattedPath: diagnostics?.source.formattedPath,
       callsite: diagnostics?.callsite,
     })
@@ -90,9 +91,9 @@ const INLINE_ONLY_TYPES: ReadonlySet<string> = new Set([
 ])
 
 /**
- * The complete registry of every `type` discriminant the DSL can emit - one
+ * The complete registry of every `_forge` discriminant the DSL can emit - one
  * row per enum value. Discriminant values are namespaced strings
- * ('StructureType.Journey', 'PredicateType.And', ...), so they are globally
+ * ('structure.journey', 'predicate.and', ...), so they are globally
  * unique and one flat map covers every node family.
  *
  * This map is the single source for dispatch (`createNode`), node detection
@@ -108,7 +109,8 @@ export const creatorsByType: ReadonlyMap<string, NodeCreator> = new Map<string, 
   // Structures
   [StructureType.JOURNEY, createJourneyNode],
   [StructureType.STEP, createStepNode],
-  [StructureType.BLOCK, createBlockNode],
+  [ComponentCallType.BASIC, createBasicBlock],
+  [ComponentCallType.FIELD, createFieldBlock],
 
   // Expressions
   [ExpressionType.REFERENCE, createReferenceNode],
@@ -178,7 +180,7 @@ export class NodeFactory {
 
   /**
    * Main entry point for transformation
-   * Looks up the node's creator by its `type` discriminant and runs it
+   * Looks up the node's creator by its `_forge` discriminant and runs it
    */
   createNode(json: unknown): ASTNode {
     if (!json || typeof json !== 'object') {
@@ -281,11 +283,11 @@ export class NodeFactory {
   }
 
   private getNodeType(value: object): string | undefined {
-    if (!('type' in value) || typeof value.type !== 'string') {
+    if (!('_forge' in value) || typeof value._forge !== 'string') {
       return undefined
     }
 
-    return value.type
+    return value._forge
   }
 
   /**

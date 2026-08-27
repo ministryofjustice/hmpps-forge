@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BlockType } from '../../../../src/authoring/types/enums'
+import { ComponentCallType } from '../../../../src/authoring/types/enums'
 import type { RenderBlock } from '../../../../src/framework/types/rendering.type'
 import { createClient, createTracedClient, answerOf, type ContractSession } from '../../contractHelpers'
 import type { RequestTraceEvent } from '../../../../src/testing'
@@ -56,7 +56,7 @@ describe('resolve contracts', () => {
         const textInputs = result.getBlocksByVariant('testTextField')
 
         expect(textInputs).toHaveLength(1)
-        expect(textInputs[0].blockType).toBe(BlockType.FIELD)
+        expect(textInputs[0].blockType).toBe(ComponentCallType.FIELD)
         expect(textInputs[0].properties.code).toBe('fullName')
         expect(textInputs[0].properties.label).toBe('Full name')
       }
@@ -76,7 +76,7 @@ describe('resolve contracts', () => {
         const buttons = result.getBlocksByVariant('testStaticText')
 
         expect(buttons).toHaveLength(1)
-        expect(buttons[0].blockType).toBe(BlockType.BASIC)
+        expect(buttons[0].blockType).toBe(ComponentCallType.BASIC)
         expect(buttons[0].properties.text).toBe('Continue')
       }
     })
@@ -92,7 +92,7 @@ describe('resolve contracts', () => {
       expect(result.type).toBe('render')
 
       if (result.type === 'render') {
-        const fieldBlocks = result.context.blocks.filter(b => b.blockType === BlockType.FIELD)
+        const fieldBlocks = result.context.blocks.filter(b => b.blockType === ComponentCallType.FIELD)
         const codes = fieldBlocks.map(b => b.properties.code)
 
         expect(codes).toEqual(['firstName', 'lastName', 'email'])

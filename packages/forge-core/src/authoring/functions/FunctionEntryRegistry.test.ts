@@ -1,7 +1,7 @@
 import { condition } from './condition'
 import { finaliseBuilders } from '../builders/utils/finaliseBuilders'
 import { CONDITION_OUTPUT_SCHEMA } from '../registries/BaseFunctionRegistry'
-import { FunctionCallType } from '../types/enums'
+import { FunctionCallType, FunctionEntryType } from '../types/enums'
 import ForgeFunctionEntryBuildError from '../../engine/errors/ForgeFunctionEntryBuildError'
 import { FunctionEntryRegistry } from './FunctionEntryRegistry'
 import type { ConditionFunctionExpr } from '../types/expressions.type'
@@ -24,7 +24,7 @@ describe('FunctionEntryRegistry', () => {
 
       expect(row).toBeDefined()
       expect(row.name).toBe('Test.MinLength')
-      expect(row.functionType).toBe(FunctionCallType.CONDITION)
+      expect(row._forge).toBe(FunctionEntryType.CONDITION)
       expect(row.isAsync).toBe(false)
       expect(row.outputSchema).toBe(CONDITION_OUTPUT_SCHEMA)
       expect(row.evaluate('abcd', 3)).toBe(true)
@@ -238,7 +238,7 @@ describe('FunctionEntryRegistry', () => {
         expect((error as AggregateError).errors).toHaveLength(1)
         expect(buildError).toBeInstanceOf(ForgeFunctionEntryBuildError)
         expect(buildError.functionName).toBe('Test.Broken')
-        expect(buildError.functionType).toBe(FunctionCallType.CONDITION)
+        expect(buildError.functionType).toBe(FunctionEntryType.CONDITION)
         expect(buildError.formattedPath).toContain('check')
         expect(buildError.cause).toBeInstanceOf(Error)
       }

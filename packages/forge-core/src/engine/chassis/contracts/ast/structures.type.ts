@@ -1,5 +1,5 @@
 import { ASTNodeType } from './enums'
-import { BlockType } from '../../../../authoring/types/enums'
+import { ComponentCallType } from '../../../../authoring/types/enums'
 import { ASTNode } from './ast.type'
 import { AccessHookASTNode, SubmitHookASTNode, TieBreakerASTNode } from './expressions.type'
 import type { RouteMetadata, UnreachableRedirectTarget, ViewConfig } from '../../../../authoring/types/structures.type'
@@ -66,7 +66,7 @@ export interface StepASTNode extends ASTNode {
 export interface BasicBlockASTNode extends ASTNode {
   type: ASTNodeType.BLOCK
   variant: string
-  blockType: BlockType.BASIC
+  blockType: ComponentCallType.BASIC
   properties: {
     visibleWhen?: ASTNode // Conditional visibility
     metadata?: Record<string, any>
@@ -81,7 +81,7 @@ export interface BasicBlockASTNode extends ASTNode {
 export interface FieldBlockASTNode extends ASTNode {
   type: ASTNodeType.BLOCK
   variant: string
-  blockType: BlockType.FIELD
+  blockType: ComponentCallType.FIELD
   properties: {
     // Known field properties
     code?: string | ASTNode // Optional because it might not be set initially

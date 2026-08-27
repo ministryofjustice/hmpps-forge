@@ -243,7 +243,7 @@ describe('FunctionRegistryTestHarness', () => {
       const harness = new FunctionRegistryTestHarness(conditions)
 
       // Act
-      const act = () => harness.evaluate({ type: FunctionCallType.CONDITION, name: 'missing', arguments: [] })
+      const act = () => harness.evaluate({ _forge: FunctionCallType.CONDITION, name: 'missing', arguments: [] })
 
       // Assert
       expect(act).toThrow('Function "missing" is not registered in this harness. Registered functions: alpha, beta')

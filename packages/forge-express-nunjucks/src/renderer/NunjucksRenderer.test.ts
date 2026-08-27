@@ -1,5 +1,5 @@
 import type { Environment } from 'nunjucks'
-import { BlockType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { ComponentCallType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import type { RenderBlock, RenderContext } from '@ministryofjustice/hmpps-forge/core/framework'
 import NunjucksRenderer from './NunjucksRenderer'
 
@@ -22,7 +22,7 @@ function createRenderBlock(id: string, properties: Record<string, unknown> = {})
   return {
     id: id as RenderBlock['id'],
     variant: 'html',
-    blockType: BlockType.BASIC,
+    blockType: ComponentCallType.BASIC,
     properties,
   }
 }

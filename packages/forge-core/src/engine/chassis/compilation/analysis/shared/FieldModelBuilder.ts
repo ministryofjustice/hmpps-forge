@@ -1,4 +1,4 @@
-import { BlockType, ExpressionType, FunctionCallType, IteratorType } from '../../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, FunctionCallType, IteratorType } from '../../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { isTemplateNode } from '../../../contracts/ast/nodes'
@@ -94,7 +94,7 @@ export default class FieldModelBuilder {
         return
       }
 
-      if (template.originalType === ASTNodeType.BLOCK && template.blockType === BlockType.FIELD) {
+      if (template.originalType === ASTNodeType.BLOCK && template.blockType === ComponentCallType.FIELD) {
         fields.push(this.buildTemplateField(template, iteratorPath))
       }
 

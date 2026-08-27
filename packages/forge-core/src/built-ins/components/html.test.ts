@@ -1,11 +1,11 @@
 import { HtmlBlock } from './html'
 import type { EvaluatedBlock } from '../../components/types/structures.type'
-import { StructureType } from '../../authoring/types/enums'
+import { StructureType, ComponentCallType } from '../../authoring/types/enums'
 
 describe('html component', () => {
   const mockBlock = (overrides?: Partial<HtmlBlock>): EvaluatedBlock<HtmlBlock> =>
     ({
-      type: StructureType.BLOCK,
+      _forge: ComponentCallType.BASIC,
       variant: 'html',
       content: '<p>Default content</p>',
       ...overrides,

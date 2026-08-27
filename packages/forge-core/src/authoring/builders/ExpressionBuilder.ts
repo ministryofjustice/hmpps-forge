@@ -9,7 +9,7 @@ import {
   ReferenceExpr,
   TransformerFunctionExpr,
   ResolvableValue, resolvesMarker } from '../types/expressions.type'
-import { ExpressionType, IteratorType, PredicateType } from '../types/enums'
+import { ExpressionType, IteratorType, PredicateType, BuilderType } from '../types/enums'
 import { IterableBuilder } from './IterableBuilder'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { splitKey } from './utils/splitKey'
@@ -33,7 +33,7 @@ export class ExpressionBuilder<T extends ResolvableValue> {
   // Type-only ChainableExpression brand - never set at runtime.
   declare readonly [resolvesMarker]: any
 
-  readonly nodeKind = 'forge-builder' as const
+  readonly _forge = BuilderType.CHAIN as const
 
   private readonly expression: T
 
@@ -57,7 +57,7 @@ export class ExpressionBuilder<T extends ResolvableValue> {
   static pipeline(input: ResolvableValue, steps: TransformerFunctionExpr[]): ExpressionBuilder<PipelineExpr> {
     return new ExpressionBuilder(
       {
-        type: ExpressionType.PIPELINE,
+        _forge: ExpressionType.PIPELINE,
         input,
         steps,
       },
@@ -107,7 +107,7 @@ export class ExpressionBuilder<T extends ResolvableValue> {
    */
   path(key: string): ExpressionBuilder<ReferenceExpr> {
     const referenceExpr: ReferenceExpr = {
-      type: ExpressionType.REFERENCE,
+      _forge: ExpressionType.REFERENCE,
       base: this.expression,
       path: splitKey(key),
     }
@@ -138,16 +138,16 @@ export class ExpressionBuilder<T extends ResolvableValue> {
    * Enter per-item iteration mode with an iterator.
    */
   each(iterator: IteratorConfig): IterableBuilder | ExpressionBuilder<ReferenceExpr> {
-    if (iterator.type === IteratorType.FIND) {
+    if (iterator._forge === IteratorType.FIND) {
       // Find returns a single item - wrap in a reference with empty path
       // so .path() works naturally
       const iterateExpr = {
-        type: ExpressionType.ITERATE as const,
+        _forge: ExpressionType.ITERATE as const,
         input: this.expression,
         iterator,
       }
       const referenceExpr: ReferenceExpr = {
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         base: iterateExpr,
         path: [],
       }
@@ -168,7 +168,7 @@ export class ExpressionBuilder<T extends ResolvableValue> {
    */
   match(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
     const predicate: PredicateTestExpr = {
-      type: PredicateType.TEST,
+      _forge: PredicateType.TEST,
       subject: this.expression,
       negate: this.negate,
       condition,

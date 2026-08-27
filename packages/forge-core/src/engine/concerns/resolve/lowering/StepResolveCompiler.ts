@@ -1,4 +1,4 @@
-import { BlockType } from '../../../../authoring/types/enums'
+import { ComponentCallType } from '../../../../authoring/types/enums'
 import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
 import type { TemplateNode } from '../../../chassis/contracts/ast/template.type'
 import {
@@ -327,7 +327,7 @@ export default class StepResolveCompiler {
    * never self-resolves.
    */
   private toSelfBoundPlan(plan: BlockPropsCompilation, generator: CodeGenerator): BlockPropsCompilation {
-    if (plan.blockType !== BlockType.FIELD || plan.codeExpression !== undefined) {
+    if (plan.blockType !== ComponentCallType.FIELD || plan.codeExpression !== undefined) {
       return plan
     }
 
@@ -345,7 +345,7 @@ export default class StepResolveCompiler {
 
   private compileBlockPropEntries(plan: BlockPropsCompilation, generator: CodeGenerator): ObjectCodeProperty[] {
     return plan.properties.flatMap(property => {
-      if (plan.blockType === BlockType.FIELD && property.key === 'code') {
+      if (plan.blockType === ComponentCallType.FIELD && property.key === 'code') {
         const codeExpression =
           plan.codeExpression ?? this.fieldCodes.compileRegisteredInlineExpression(toRawOperand(property.value))
 
@@ -375,7 +375,7 @@ export default class StepResolveCompiler {
 
       this.compilePropertyAssignment(visibleWhen.value, props, 'visibleWhen', generator)
 
-      if (boundPlan.blockType === BlockType.FIELD && codeProperty !== undefined) {
+      if (boundPlan.blockType === ComponentCallType.FIELD && codeProperty !== undefined) {
         this.fieldCodes.assignProperty(
           toRawOperand(codeProperty.value),
           generator,
@@ -403,7 +403,7 @@ export default class StepResolveCompiler {
     props: IdentifierName,
     generator: CodeGenerator,
   ): void {
-    if (plan.blockType === BlockType.FIELD && property.key === 'code') {
+    if (plan.blockType === ComponentCallType.FIELD && property.key === 'code') {
       this.fieldCodes.assignProperty(toRawOperand(property.value), generator, props, property.key, plan.codeExpression)
 
       return
@@ -413,7 +413,7 @@ export default class StepResolveCompiler {
   }
 
   private compileFieldResolution(plan: BlockPropsCompilation, props: IdentifierName, generator: CodeGenerator): void {
-    if (plan.blockType !== BlockType.FIELD) {
+    if (plan.blockType !== ComponentCallType.FIELD) {
       return
     }
 

@@ -1,4 +1,4 @@
-import { PolicyType, ExpressionType, BlockType } from '../../../../authoring/types/enums'
+import { PolicyType, ExpressionType, ComponentCallType } from '../../../../authoring/types/enums'
 import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'
@@ -62,7 +62,7 @@ describe('validateTieBreakerScope', () => {
     it('should return an error when the parent is not a step', () => {
       // Arrange
       const tieBreaker = createTieBreaker()
-      const block = ASTTestFactory.block('text', BlockType.FIELD).withProperty('defaultValue', tieBreaker).build()
+      const block = ASTTestFactory.block('text', ComponentCallType.FIELD).withProperty('defaultValue', tieBreaker).build()
       const context = createContext([tieBreaker, block], [[tieBreaker.id, block.id]])
 
       // Act

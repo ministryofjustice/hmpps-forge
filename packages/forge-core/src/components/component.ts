@@ -1,4 +1,5 @@
 import { block as buildBlock, field as buildField } from '../authoring/builders'
+import { ComponentEntryType } from '../authoring/types/enums'
 import { stampComponent } from '../authoring/builders/utils/stampEntry'
 import type {
   BaseComponentOptions,
@@ -55,7 +56,7 @@ export function component<TBlock extends BlockDefinition, TOutput = string, TRen
 
     // The field props are only present on a field component; the cast lets both builders
     // share one definition, and the declared `field` option picks the right one.
-    const definition = { ...prepared, variant } as unknown as Omit<TBlock & FieldBlockDefinition, 'type' | 'blockType'>
+    const definition = { ...prepared, variant } as unknown as Omit<TBlock & FieldBlockDefinition, '_forge'>
 
     const built = field
       ? buildField<TBlock & FieldBlockDefinition>(definition)
@@ -66,6 +67,7 @@ export function component<TBlock extends BlockDefinition, TOutput = string, TRen
   }
 
   const handle = Object.assign(buildDefinition, {
+    _forge: field ? ComponentEntryType.FIELD : ComponentEntryType.BASIC,
     variant,
     render: (block: EvaluatedBlock<TBlock>, renderer?: unknown) => render(block, renderer as TRenderer),
     ...(inputSchema !== undefined && { inputSchema }),
@@ -85,7 +87,7 @@ export function isForgeComponent(value: unknown): value is ForgeComponent<BlockD
     return false
   }
 
-  const candidate = value as Partial<ComponentRegistryEntry<BlockDefinition, unknown>>
+  const candidate = value as Partial<ComponentRegistryEntry<BlockDefinition, unknown>> & { _forge?: unknown }
 
-  return typeof candidate.variant === 'string' && typeof candidate.render === 'function'
+  return typeof candidate._forge === 'string' && candidate._forge.startsWith('component.entry.')
 }

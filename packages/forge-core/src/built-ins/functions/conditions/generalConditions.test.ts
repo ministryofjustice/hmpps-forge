@@ -59,7 +59,7 @@ describe('GeneralConditions', () => {
     test('should build correct expression object', () => {
       const expr = GeneralConditions.IsRequired()
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'IsRequired',
         arguments: [],
       })
@@ -138,7 +138,7 @@ describe('GeneralConditions', () => {
     test('should build correct expression object', () => {
       const expr = GeneralConditions.Equals('expectedValue')
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Equals',
         arguments: ['expectedValue'],
       })

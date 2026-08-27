@@ -1,4 +1,4 @@
-import { FunctionCallType, PredicateType } from '../types/enums'
+import { FunctionCallType, PredicateType, BuilderType } from '../types/enums'
 import {
   ConditionFunctionExpr,
   GeneratorFunctionExpr,
@@ -33,7 +33,7 @@ import { ChainableGenerator, ChainableNegation } from './types'
  * @internal Exposed to authors via the ChainableGenerator interface.
  */
 export class GeneratorBuilder<A extends ResolvableValue[]> implements ChainableGenerator {
-  readonly nodeKind = 'forge-builder' as const
+  readonly _forge = BuilderType.GENERATOR as const
 
   // Type-only ChainableExpression brand - never set at runtime.
   declare readonly [resolvesMarker]: any
@@ -56,7 +56,7 @@ export class GeneratorBuilder<A extends ResolvableValue[]> implements ChainableG
   static create<A extends ResolvableValue[]>(name: string, args: A): GeneratorBuilder<A> {
     return new GeneratorBuilder(
       {
-        type: FunctionCallType.GENERATOR,
+        _forge: FunctionCallType.GENERATOR,
         name,
         arguments: args,
       },
@@ -105,7 +105,7 @@ export class GeneratorBuilder<A extends ResolvableValue[]> implements ChainableG
    */
   match(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
     const predicate: PredicateTestExpr = {
-      type: PredicateType.TEST,
+      _forge: PredicateType.TEST,
       subject: this.expression,
       negate: this.negated,
       condition,

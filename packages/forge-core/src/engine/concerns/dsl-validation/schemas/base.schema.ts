@@ -20,7 +20,7 @@ const FunctionArgumentSchema: z.ZodType<any> = z.lazy(() =>
  * @see {@link ConditionFunctionExpr}
  */
 export const ConditionFunctionExprSchema = z.object({
-  type: z.literal(FunctionCallType.CONDITION),
+  _forge: z.literal(FunctionCallType.CONDITION),
   name: z.string().trim().min(1),
   arguments: z.array(FunctionArgumentSchema),
 })
@@ -29,7 +29,7 @@ export const ConditionFunctionExprSchema = z.object({
  * @see {@link TransformerFunctionExpr}
  */
 export const TransformerFunctionExprSchema = z.object({
-  type: z.literal(FunctionCallType.TRANSFORMER),
+  _forge: z.literal(FunctionCallType.TRANSFORMER),
   name: z.string().trim().min(1),
   arguments: z.array(FunctionArgumentSchema),
 })
@@ -38,7 +38,7 @@ export const TransformerFunctionExprSchema = z.object({
  * @see {@link EffectFunctionExpr}
  */
 export const EffectFunctionExprSchema = z.object({
-  type: z.literal(FunctionCallType.EFFECT),
+  _forge: z.literal(FunctionCallType.EFFECT),
   name: z.string().trim().min(1),
   arguments: z.array(FunctionArgumentSchema),
 })
@@ -47,7 +47,7 @@ export const EffectFunctionExprSchema = z.object({
  * @see {@link GeneratorFunctionExpr}
  */
 export const GeneratorFunctionExprSchema = z.object({
-  type: z.literal(FunctionCallType.GENERATOR),
+  _forge: z.literal(FunctionCallType.GENERATOR),
   name: z.string().trim().min(1),
   arguments: z.array(FunctionArgumentSchema),
 })

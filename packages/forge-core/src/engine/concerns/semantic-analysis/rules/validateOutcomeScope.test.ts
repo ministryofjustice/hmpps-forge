@@ -1,4 +1,4 @@
-import { HookType, BlockType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
+import { HookType, ComponentCallType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
 import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { TemplateValue } from '../../../chassis/contracts/ast/template.type'
@@ -109,7 +109,7 @@ describe('validateOutcomeScope', () => {
     it('should return an error when the parent is not a hook', () => {
       // Arrange
       const outcome = createOutcome()
-      const block = ASTTestFactory.block('text', BlockType.FIELD).withProperty('defaultValue', outcome).build()
+      const block = ASTTestFactory.block('text', ComponentCallType.FIELD).withProperty('defaultValue', outcome).build()
       const context = createContext([outcome, block], [[outcome.id, block.id]])
 
       // Act

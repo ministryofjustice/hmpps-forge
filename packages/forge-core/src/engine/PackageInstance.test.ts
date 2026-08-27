@@ -209,7 +209,7 @@ function mockCompilation(): void {
 
 function createJourneyDefinition(): JourneyDefinition {
   return {
-    type: StructureType.JOURNEY,
+    _forge: StructureType.JOURNEY,
     path: '/journey',
     code: 'journey',
     title: 'Journey',

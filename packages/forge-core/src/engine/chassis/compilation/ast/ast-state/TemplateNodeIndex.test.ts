@@ -1,4 +1,4 @@
-import { BlockType, ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import type { TemplateValue } from '../../../contracts/ast/template.type'
@@ -22,7 +22,7 @@ describe('TemplateNodeIndex', () => {
     it('should index a template node by its original type when the tree is registered', () => {
       // Arrange
       const template = compileTemplate(
-        ASTTestFactory.block('text', BlockType.FIELD).withCode('field').build(),
+        ASTTestFactory.block('text', ComponentCallType.FIELD).withCode('field').build(),
         new NodeIDGenerator(),
       )
       const iterate = iterateNodeWithYield(template)
@@ -54,7 +54,7 @@ describe('TemplateNodeIndex', () => {
 
     it('should carry the owning node on every entry when descendants are indexed', () => {
       // Arrange
-      const block = ASTTestFactory.block('text', BlockType.FIELD)
+      const block = ASTTestFactory.block('text', ComponentCallType.FIELD)
         .withCode('field')
         .withProperty('defaultValue', ASTTestFactory.reference(['answers', 'name']))
         .build()

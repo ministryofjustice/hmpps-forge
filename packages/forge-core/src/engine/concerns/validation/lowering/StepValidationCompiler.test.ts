@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AuthoredValueClassifier from '../../../chassis/compilation/analysis/shared/AuthoredValueClassifier'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
-import { PolicyType, BlockType, ExpressionType, FunctionCallType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
+import { PolicyType, ComponentCallType, ExpressionType, FunctionCallType, FunctionEntryType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   FormatGenerators,
@@ -54,7 +54,7 @@ function createStep(): StepASTNode {
 }
 
 function createFieldBlock(code: unknown): FieldBlockASTNode {
-  return ASTTestFactory.block('text-input', BlockType.FIELD)
+  return ASTTestFactory.block('text-input', ComponentCallType.FIELD)
     .withProperty('code', code)
     .build() as FieldBlockASTNode
 }
@@ -389,7 +389,7 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         validateDate: {
           name: 'validateDate',
-          functionType: FunctionCallType.GENERATOR,
+          _forge: FunctionEntryType.GENERATOR,
           isAsync: false,
           evaluate,
         },
@@ -433,7 +433,7 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         validateCrn: {
           name: 'validateCrn',
-          functionType: FunctionCallType.GENERATOR,
+          _forge: FunctionEntryType.GENERATOR,
           isAsync: false,
           evaluate,
         },
@@ -469,7 +469,7 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         validateCrn: {
           name: 'validateCrn',
-          functionType: FunctionCallType.GENERATOR,
+          _forge: FunctionEntryType.GENERATOR,
           isAsync: true,
           evaluate: async () => [{ message: 'CRN was not found' }],
         },
@@ -501,7 +501,7 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         validateStep: {
           name: 'validateStep',
-          functionType: FunctionCallType.GENERATOR,
+          _forge: FunctionEntryType.GENERATOR,
           isAsync: false,
           evaluate: () => [{ message: 'The step is incomplete', details: { section: 'identity' } }],
         },
@@ -539,13 +539,13 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         isRequired: {
           name: 'isRequired',
-          functionType: FunctionCallType.CONDITION,
+          _forge: FunctionEntryType.CONDITION,
           isAsync: false,
           evaluate: () => false,
         },
         validateName: {
           name: 'validateName',
-          functionType: FunctionCallType.GENERATOR,
+          _forge: FunctionEntryType.GENERATOR,
           isAsync: false,
           evaluate: () => [{ message: 'Use your full name' }, { message: 'Do not include a title' }],
         },
@@ -731,13 +731,13 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         equals: {
           name: 'equals',
-          functionType: FunctionCallType.CONDITION,
+          _forge: FunctionEntryType.CONDITION,
           isAsync: false,
           evaluate: (value: unknown, expected: unknown) => value === expected,
         },
         validateRequired: {
           name: 'validateRequired',
-          functionType: FunctionCallType.GENERATOR,
+          _forge: FunctionEntryType.GENERATOR,
           isAsync: false,
           evaluate,
         },
@@ -1046,7 +1046,7 @@ describe('StepValidationCompiler', () => {
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
           phase: 'validation',
           functionName: 'throwingCondition',
-          functionType: FunctionCallType.CONDITION,
+          _forge: FunctionEntryType.CONDITION,
         })
       }
     })
@@ -1061,7 +1061,7 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         validateDate: {
           name: 'validateDate',
-          functionType: FunctionCallType.GENERATOR,
+          _forge: FunctionEntryType.GENERATOR,
           isAsync: true,
           evaluate: async () => {
             throw new TypeError('Date service returned an invalid response')
@@ -1093,7 +1093,7 @@ describe('StepValidationCompiler', () => {
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
           phase: 'validation',
           functionName: 'validateDate',
-          functionType: FunctionCallType.GENERATOR,
+          _forge: FunctionEntryType.GENERATOR,
         })
       }
     })
@@ -1149,7 +1149,7 @@ describe('StepValidationCompiler', () => {
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
           phase: 'validation',
           functionName: 'messageGenerator',
-          functionType: FunctionCallType.GENERATOR,
+          _forge: FunctionEntryType.GENERATOR,
         })
       }
     })
@@ -1584,7 +1584,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          blockType: BlockType.FIELD,
+          _forge: ComponentCallType.FIELD,
           properties: {
             code: 'name',
             validWhen: [
@@ -1645,7 +1645,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          blockType: BlockType.FIELD,
+          _forge: ComponentCallType.FIELD,
           properties: {
             code: 'name',
             validWhen: [
@@ -1700,7 +1700,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          blockType: BlockType.FIELD,
+          _forge: ComponentCallType.FIELD,
           properties: {
             code: 'name',
             validWhen: [
@@ -1759,7 +1759,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          blockType: BlockType.FIELD,
+          _forge: ComponentCallType.FIELD,
           properties: {
             code: ASTTestFactory.formatExpression('item_%1', [
               {
@@ -1840,7 +1840,7 @@ describe('StepValidationCompiler', () => {
                   {
                     type: ASTNodeType.BLOCK,
                     variant: 'text-input',
-                    blockType: BlockType.FIELD,
+                    _forge: ComponentCallType.FIELD,
                     properties: {
                       code: ASTTestFactory.formatExpression('team_%1_member_%2', [
                         {
@@ -1927,7 +1927,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          blockType: BlockType.FIELD,
+          _forge: ComponentCallType.FIELD,
           properties: {
             code: 'item',
             validWhen: [
@@ -1981,7 +1981,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          blockType: BlockType.FIELD,
+          _forge: ComponentCallType.FIELD,
           properties: {
             code: ASTTestFactory.formatExpression('item_%1', [
               {
@@ -2045,7 +2045,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          blockType: BlockType.FIELD,
+          _forge: ComponentCallType.FIELD,
           properties: {
             code: 'person',
             validWhen: [
@@ -2139,7 +2139,7 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         validateName: {
           name: 'validateName',
-          functionType: FunctionCallType.GENERATOR,
+          _forge: FunctionEntryType.GENERATOR,
           isAsync: false,
           evaluate: () => [{ message: 'Enter a name' }],
         },
@@ -2259,7 +2259,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          blockType: BlockType.FIELD,
+          _forge: ComponentCallType.FIELD,
           properties: {
             code: 'field',
             validWhen: [
@@ -2312,7 +2312,7 @@ describe('StepValidationCompiler', () => {
         createTemplateValue({
           type: ASTNodeType.BLOCK,
           variant: 'text-input',
-          blockType: BlockType.FIELD,
+          _forge: ComponentCallType.FIELD,
           properties: {
             code: 'field',
             validWhen: [

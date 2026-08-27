@@ -10,7 +10,7 @@ import {
   ReferenceExpr,
   TransformerFunctionExpr,
   ResolvableValue, resolvesMarker } from '../types/expressions.type'
-import { ExpressionType, IteratorType, PredicateType } from '../types/enums'
+import { ExpressionType, IteratorType, PredicateType, BuilderType } from '../types/enums'
 import { ExpressionBuilder } from './ExpressionBuilder'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { splitKey } from './utils/splitKey'
@@ -37,7 +37,7 @@ export class IterableBuilder {
   // Type-only ChainableExpression brand - never set at runtime.
   declare readonly [resolvesMarker]: any
 
-  readonly nodeKind = 'forge-builder' as const
+  readonly _forge = BuilderType.ITERABLE as const
 
   private readonly expression: IterateExpr
 
@@ -54,7 +54,7 @@ export class IterableBuilder {
   static create(input: ResolvableValue, iterator: IteratorConfig): IterableBuilder {
     return new IterableBuilder(
       {
-        type: ExpressionType.ITERATE,
+        _forge: ExpressionType.ITERATE,
         input,
         iterator,
       },
@@ -104,16 +104,16 @@ export class IterableBuilder {
    * Chain another iterator operation.
    */
   each(iterator: IteratorConfig): IterableBuilder | ExpressionBuilder<ReferenceExpr> {
-    if (iterator.type === IteratorType.FIND) {
+    if (iterator._forge === IteratorType.FIND) {
       // Find returns a single item - wrap in a reference with empty path
       // so .path() works naturally
       const iterateExpr: IterateExpr = {
-        type: ExpressionType.ITERATE,
+        _forge: ExpressionType.ITERATE,
         input: this.expression,
         iterator,
       }
       const referenceExpr: ReferenceExpr = {
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         base: iterateExpr,
         path: [],
       }
@@ -161,7 +161,7 @@ export class IterableBuilder {
    */
   path(key: string): ExpressionBuilder<ReferenceExpr> {
     const referenceExpr: ReferenceExpr = {
-      type: ExpressionType.REFERENCE,
+      _forge: ExpressionType.REFERENCE,
       base: this.expression,
       path: splitKey(key),
     }
@@ -180,7 +180,7 @@ export class IterableBuilder {
    */
   match(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
     const predicate: PredicateTestExpr = {
-      type: PredicateType.TEST,
+      _forge: PredicateType.TEST,
       subject: this.expression,
       negate: this.negated,
       condition,

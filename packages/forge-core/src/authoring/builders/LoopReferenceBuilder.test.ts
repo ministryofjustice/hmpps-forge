@@ -65,7 +65,7 @@ describe('LoopReferenceBuilder', () => {
       const ref = builder.Item().path('name')
 
       // Assert
-      expect(ref.expr).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'item', 'name'] })
+      expect(ref.expr).toEqual({ _forge: ExpressionType.REFERENCE, path: ['@loop', '0', 'item', 'name'] })
     })
 
     it('should split dot notation in item property paths', () => {
@@ -109,7 +109,7 @@ describe('LoopReferenceBuilder', () => {
       const built = builder.Item().build()
 
       // Assert
-      expect(built).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'item'] })
+      expect(built).toEqual({ _forge: ExpressionType.REFERENCE, path: ['@loop', '0', 'item'] })
     })
 
     it('should follow the builder level when reached through Parent', () => {
@@ -139,13 +139,13 @@ describe('LoopReferenceBuilder', () => {
       const length = builder.Length()
 
       // Assert
-      expect(index.expr).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'index'] })
-      expect(index0.expr).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'index0'] })
-      expect(revIndex.expr).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'revindex'] })
-      expect(revIndex0.expr).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'revindex0'] })
-      expect(first.expr).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'first'] })
-      expect(last.expr).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'last'] })
-      expect(length.expr).toEqual({ type: ExpressionType.REFERENCE, path: ['@loop', '0', 'length'] })
+      expect(index.expr).toEqual({ _forge: ExpressionType.REFERENCE, path: ['@loop', '0', 'index'] })
+      expect(index0.expr).toEqual({ _forge: ExpressionType.REFERENCE, path: ['@loop', '0', 'index0'] })
+      expect(revIndex.expr).toEqual({ _forge: ExpressionType.REFERENCE, path: ['@loop', '0', 'revindex'] })
+      expect(revIndex0.expr).toEqual({ _forge: ExpressionType.REFERENCE, path: ['@loop', '0', 'revindex0'] })
+      expect(first.expr).toEqual({ _forge: ExpressionType.REFERENCE, path: ['@loop', '0', 'first'] })
+      expect(last.expr).toEqual({ _forge: ExpressionType.REFERENCE, path: ['@loop', '0', 'last'] })
+      expect(length.expr).toEqual({ _forge: ExpressionType.REFERENCE, path: ['@loop', '0', 'length'] })
     })
 
     it('should return ReferenceBuilder instances that support chaining', () => {
@@ -156,7 +156,7 @@ describe('LoopReferenceBuilder', () => {
       const ref = builder.Index0()
 
       // Assert
-      expect(ref.expr.type).toBe(ExpressionType.REFERENCE)
+      expect(ref.expr._forge).toBe(ExpressionType.REFERENCE)
       expect(typeof ref.pipe).toBe('function')
       expect(typeof ref.match).toBe('function')
     })

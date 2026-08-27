@@ -73,7 +73,7 @@ describe('FormatGenerators', () => {
 
       // Assert
       expect(builder.expr).toEqual({
-        type: FunctionCallType.GENERATOR,
+        _forge: FunctionCallType.GENERATOR,
         name: FORMAT_STRING_GENERATOR_NAME,
         arguments: ['Hello %1', 'Ada'],
       })

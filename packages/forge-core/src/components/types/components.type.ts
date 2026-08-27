@@ -76,11 +76,11 @@ export interface ComponentRegistryEntry<T extends BlockDefinition, TRenderOutput
  * The keys `component()` stamps onto every block it builds. Authors never supply
  * them, so they are stripped from the props a component accepts.
  */
-type ComponentDiscriminatorKey = 'type' | 'variant' | 'blockType'
+type ComponentDiscriminatorKey = '_forge' | 'variant'
 
 /**
  * The props an author writes for a block - everything on the block definition except
- * the `type`, `variant` and `blockType` keys that `component()` stamps automatically.
+ * the `_forge` and `variant` keys that `component()` stamps automatically.
  * Optionality and JSDoc carry through from the block interface.
  */
 export type PropsOf<TBlock> = {
@@ -155,7 +155,7 @@ export interface FieldComponentOptions<TBlock extends BlockDefinition, TOutput, 
 > {
   /**
    * Marks this as a field component, so the block it builds is stamped
-   * `blockType: BlockType.FIELD` and takes part in answer capture and validation.
+   * `_forge: ComponentCallType.FIELD` and takes part in answer capture and validation.
    *
    * Required when the block interface extends {@link FieldBlockDefinition} and rejected
    * when it does not - interfaces are erased at runtime, so field-ness has to be declared

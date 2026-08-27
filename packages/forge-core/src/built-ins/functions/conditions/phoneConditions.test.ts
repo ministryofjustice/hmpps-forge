@@ -38,7 +38,7 @@ describe('PhoneConditions', () => {
     test('should build correct expression object', () => {
       const expr = PhoneConditions.IsValidPhoneNumber()
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Phone.IsValidPhoneNumber',
         arguments: [],
       })
@@ -92,7 +92,7 @@ describe('PhoneConditions', () => {
     test('should build correct expression object', () => {
       const expr = PhoneConditions.IsValidUKMobile()
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Phone.IsValidUKMobile',
         arguments: [],
       })

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { ComponentCallType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import type {
   BlockDefinition,
   EvaluatedBlock,
@@ -36,9 +36,8 @@ const TestTextInput = jsxComponent<TestTextInput>('testTextInput', {
 })
 
 const evaluatedBadge = {
-  type: StructureType.BLOCK,
   variant: 'testBadge',
-  blockType: BlockType.BASIC,
+  _forge: ComponentCallType.BASIC,
   text: 'New',
 } as EvaluatedBlock<TestBadge>
 
@@ -50,8 +49,7 @@ describe('jsxComponent()', () => {
 
       // Assert
       expect(built).toEqual({
-        type: StructureType.BLOCK,
-        blockType: BlockType.BASIC,
+        _forge: ComponentCallType.BASIC,
         variant: 'testBadge',
         text: 'New',
       })
@@ -62,7 +60,7 @@ describe('jsxComponent()', () => {
       const built = TestTextInput({ code: 'first_name', label: 'First name' })
 
       // Assert
-      expect(built.blockType).toBe(BlockType.FIELD)
+      expect(built._forge).toBe(ComponentCallType.FIELD)
       expect(built.variant).toBe('testTextInput')
     })
   })
@@ -91,9 +89,8 @@ describe('jsxComponent()', () => {
     it('should render field props into the markup when rendering a field component', () => {
       // Arrange
       const evaluatedInput = {
-        type: StructureType.BLOCK,
         variant: 'testTextInput',
-        blockType: BlockType.FIELD,
+        _forge: ComponentCallType.FIELD,
         code: 'first_name',
         label: 'First name',
         value: 'Ada',
@@ -127,9 +124,8 @@ describe('jsxComponent()', () => {
       })
 
       const evaluatedCard = {
-        type: StructureType.BLOCK,
         variant: 'testCard',
-        blockType: BlockType.BASIC,
+        _forge: ComponentCallType.BASIC,
         childHtml: '<p>Rendered elsewhere</p>',
       } as EvaluatedBlock<TestCard>
 

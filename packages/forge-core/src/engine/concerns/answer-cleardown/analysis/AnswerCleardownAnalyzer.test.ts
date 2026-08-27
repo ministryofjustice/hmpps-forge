@@ -1,4 +1,4 @@
-import { BlockType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
@@ -39,7 +39,7 @@ describe('AnswerCleardownAnalyzer', () => {
         .withPath('/step')
         .withProperty('cleardownFieldCodes', ['fieldA'])
         .build()
-      const fieldBlock = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('fieldA').build()
+      const fieldBlock = ASTTestFactory.block('TextInput', ComponentCallType.FIELD).withCode('fieldA').build()
       const iterateNode = createMapIterateNode()
 
       setParent(stepNode, journeyNode)

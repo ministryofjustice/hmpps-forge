@@ -34,7 +34,7 @@ describe('DateGenerators', () => {
 
       // Assert
       expect(builder.expr).toEqual({
-        type: FunctionCallType.GENERATOR,
+        _forge: FunctionCallType.GENERATOR,
         name: 'Date.Now',
         arguments: [],
       })
@@ -69,7 +69,7 @@ describe('DateGenerators', () => {
 
       // Assert
       expect(builder.expr).toEqual({
-        type: FunctionCallType.GENERATOR,
+        _forge: FunctionCallType.GENERATOR,
         name: 'Date.Today',
         arguments: [],
       })

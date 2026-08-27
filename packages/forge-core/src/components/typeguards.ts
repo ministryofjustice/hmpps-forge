@@ -1,12 +1,12 @@
 import { BlockDefinition, FieldBlockDefinition, RenderedBlock } from './types/structures.type'
-import { BlockType, StructureType } from '../authoring/types/enums'
+import { ComponentCallType } from '../authoring/types/enums'
 
 function isBlockDefinition(obj: any): obj is BlockDefinition {
-  return obj != null && obj.type === StructureType.BLOCK
+  return obj != null && typeof obj._forge === 'string' && obj._forge.startsWith('component.call.')
 }
 
 export function isFieldBlockDefinition(obj: any): obj is FieldBlockDefinition {
-  return isBlockDefinition(obj) && obj.blockType === BlockType.FIELD
+  return obj != null && obj._forge === ComponentCallType.FIELD
 }
 
 export function isRenderedBlock(obj: unknown): obj is RenderedBlock {

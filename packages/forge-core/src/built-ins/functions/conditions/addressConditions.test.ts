@@ -66,7 +66,7 @@ describe('AddressConditions', () => {
     test('should build correct expression object', () => {
       const expr = AddressConditions.IsValidPostcode()
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Address.IsValidPostcode',
         arguments: [],
       })

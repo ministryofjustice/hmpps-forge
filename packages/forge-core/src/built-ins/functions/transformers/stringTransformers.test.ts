@@ -40,7 +40,7 @@ describe('String Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = StringTransformers.Trim()
       expect(expr).toEqual({
-        type: FunctionCallType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'String.Trim',
         arguments: [],
       })
@@ -205,7 +205,7 @@ describe('String Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = StringTransformers.Possessive()
       expect(expr).toEqual({
-        type: FunctionCallType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'String.Possessive',
         arguments: [],
       })
@@ -382,7 +382,7 @@ describe('String Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = StringTransformers.ToInt()
       expect(expr).toEqual({
-        type: FunctionCallType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'String.ToInt',
         arguments: [],
       })
@@ -456,7 +456,7 @@ describe('String Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = StringTransformers.ToFloat()
       expect(expr).toEqual({
-        type: FunctionCallType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'String.ToFloat',
         arguments: [],
       })
@@ -518,7 +518,7 @@ describe('String Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = StringTransformers.ToArray(',')
       expect(expr).toEqual({
-        type: FunctionCallType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'String.ToArray',
         arguments: [','],
       })
@@ -660,7 +660,7 @@ describe('String Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = StringTransformers.ToDate()
       expect(expr).toEqual({
-        type: FunctionCallType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'String.ToDate',
         arguments: [],
       })
@@ -765,7 +765,7 @@ describe('String Transformers', () => {
 
       // Assert
       expect(result).toEqual({
-        type: FunctionCallType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'String.FormatDate',
         arguments: [],
       })
@@ -780,7 +780,7 @@ describe('String Transformers', () => {
 
       // Assert
       expect(result).toEqual({
-        type: FunctionCallType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'String.FormatDate',
         arguments: [options],
       })
@@ -884,7 +884,7 @@ describe('String Transformers', () => {
 
       // Assert
       expect(result).toEqual({
-        type: FunctionCallType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'String.FormatDate',
         arguments: [],
       })
@@ -899,7 +899,7 @@ describe('String Transformers', () => {
 
       // Assert
       expect(result).toEqual({
-        type: FunctionCallType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'String.FormatDate',
         arguments: [options],
       })
@@ -990,7 +990,7 @@ describe('String Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = StringTransformers.ToISODate()
       expect(expr).toEqual({
-        type: FunctionCallType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'String.ToISODate',
         arguments: [],
       })
@@ -1099,7 +1099,7 @@ describe('String Transformers', () => {
 
       // Assert
       expect(expr).toEqual({
-        type: FunctionCallType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'String.EscapeHtml',
         arguments: [],
       })

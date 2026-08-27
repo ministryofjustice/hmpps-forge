@@ -1,7 +1,7 @@
 import { ASTNode, NodeId } from '../../../contracts/ast/engine.type'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import {
-  BlockType,
+  ComponentCallType,
   ExpressionType,
   FunctionCallType,
   HookType,
@@ -21,7 +21,7 @@ export type IndexableNodeType =
   | PredicateType
   | HookType
   | PolicyType
-  | BlockType
+  | ComponentCallType
 
 /**
  * Groups the shared compiled AST by node type.

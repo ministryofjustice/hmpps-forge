@@ -8,7 +8,7 @@ import {
   PredicateTestExpr,
   ReferenceExpr,
   TransformerFunctionExpr, resolvesMarker } from '../types/expressions.type'
-import { ExpressionType, IteratorType, PredicateType } from '../types/enums'
+import { ExpressionType, IteratorType, PredicateType, BuilderType } from '../types/enums'
 import { ExpressionBuilder } from './ExpressionBuilder'
 import { IterableBuilder } from './IterableBuilder'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
@@ -30,7 +30,7 @@ export class ReferenceBuilder {
   // Type-only ChainableExpression brand - never set at runtime.
   declare readonly [resolvesMarker]: any
 
-  readonly nodeKind = 'forge-builder' as const
+  readonly _forge = BuilderType.REFERENCE as const
 
   private readonly reference: ReferenceExpr
 
@@ -47,7 +47,7 @@ export class ReferenceBuilder {
   static create(path: string[]): ReferenceBuilder {
     return new ReferenceBuilder(
       {
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path,
       },
       false,
@@ -79,7 +79,7 @@ export class ReferenceBuilder {
    */
   path(key: string): ReferenceBuilder {
     const newRef: ReferenceExpr = {
-      type: ExpressionType.REFERENCE,
+      _forge: ExpressionType.REFERENCE,
       path: [...this.reference.path, ...splitKey(key)],
     }
 
@@ -121,16 +121,16 @@ export class ReferenceBuilder {
    * Enter per-item iteration mode with an iterator.
    */
   each(iterator: IteratorConfig): IterableBuilder | ExpressionBuilder<ReferenceExpr> {
-    if (iterator.type === IteratorType.FIND) {
+    if (iterator._forge === IteratorType.FIND) {
       // Find returns a single item - wrap in a reference with empty path
       // so .path() works naturally
       const iterateExpr = {
-        type: ExpressionType.ITERATE as const,
+        _forge: ExpressionType.ITERATE as const,
         input: this.reference,
         iterator,
       }
       const referenceExpr: ReferenceExpr = {
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         base: iterateExpr,
         path: [],
       }
@@ -151,7 +151,7 @@ export class ReferenceBuilder {
    */
   match(condition: ConditionFunctionExpr<any>): PredicateTestExpr {
     const predicate: PredicateTestExpr = {
-      type: PredicateType.TEST,
+      _forge: PredicateType.TEST,
       subject: this.reference,
       negate: this.negated,
       condition,

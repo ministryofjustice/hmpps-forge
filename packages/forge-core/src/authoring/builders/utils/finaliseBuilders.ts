@@ -31,7 +31,8 @@ interface Buildable {
 const isBuildable = (value: unknown): value is Buildable => {
   return value !== null &&
     typeof value === 'object' &&
-    (value as any).nodeKind === 'forge-builder' &&
+    typeof (value as any)._forge === 'string' &&
+    (value as any)._forge.startsWith('builder.') &&
     'build' in value &&
     typeof (value as any).build === 'function'
 }

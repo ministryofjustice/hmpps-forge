@@ -30,7 +30,7 @@ describe('Array Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = ArrayTransformers.Length()
       expect(expr).toEqual({
-        type: FunctionCallType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'Array.Length',
         arguments: [],
       })

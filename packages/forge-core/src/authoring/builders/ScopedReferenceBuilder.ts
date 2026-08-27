@@ -1,3 +1,4 @@
+import { BuilderType } from '../types/enums'
 import { resolvesMarker } from '../types/expressions.type'
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { splitKey } from './utils/splitKey'
@@ -29,7 +30,7 @@ export class ScopedReferenceBuilder {
   // Type-only ChainableExpression brand - never set at runtime.
   declare readonly [resolvesMarker]: any
 
-  readonly nodeKind = 'forge-builder' as const
+  readonly _forge = BuilderType.SCOPED_REFERENCE as const
 
   private readonly level: number
 

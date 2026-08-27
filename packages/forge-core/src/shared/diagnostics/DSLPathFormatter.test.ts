@@ -1,5 +1,5 @@
 import { PolicyType,
-  BlockType,
+  ComponentCallType,
   ExpressionType,
   FunctionCallType,
   HookType,
@@ -19,19 +19,18 @@ describe('DSLPathFormatter', () => {
   it('should format a field validation error path with block context', () => {
     // Arrange
     const journey = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       code: 'travel-declaration',
       path: '/travel-declaration',
       title: 'Travel declaration',
       steps: [
         {
-          type: StructureType.STEP,
+          _forge: StructureType.STEP,
           path: '/personal-details',
           title: 'Personal details',
           blocks: [
             {
-              type: StructureType.BLOCK,
-              blockType: BlockType.FIELD,
+              _forge: ComponentCallType.FIELD,
               variant: 'GovUKInput',
               code: 'firstName',
             },
@@ -52,19 +51,19 @@ describe('DSLPathFormatter', () => {
   it('should format a basic block path without a field code', () => {
     // Arrange
     const journey = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       code: 'travel-declaration',
       path: '/travel-declaration',
       title: 'Travel declaration',
       steps: [
         {
-          type: StructureType.STEP,
+          _forge: StructureType.STEP,
           path: '/personal-details',
           title: 'Personal details',
           blocks: [
-            { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'GovUKBody' },
-            { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'GovUKInsetText' },
-            { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'GovUKHtml' },
+            { _forge: ComponentCallType.BASIC, variant: 'GovUKBody' },
+            { _forge: ComponentCallType.BASIC, variant: 'GovUKInsetText' },
+            { _forge: ComponentCallType.BASIC, variant: 'GovUKHtml' },
           ],
         },
       ],
@@ -80,23 +79,23 @@ describe('DSLPathFormatter', () => {
   it('should format hook paths with function context', () => {
     // Arrange
     const journey = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       code: 'travel-declaration',
       path: '/travel-declaration',
       title: 'Travel declaration',
       steps: [
         {
-          type: StructureType.STEP,
+          _forge: StructureType.STEP,
           path: '/personal-details',
           title: 'Personal details',
           blocks: [],
           onSubmission: [
             {
-              type: HookType.SUBMIT,
+              _forge: HookType.SUBMIT,
               onValid: {
                 effects: [
                   {
-                    type: FunctionCallType.EFFECT,
+                    _forge: FunctionCallType.EFFECT,
                     name: 'saveAnswers',
                     arguments: ['one', 'two', 'three'],
                   },
@@ -120,25 +119,24 @@ describe('DSLPathFormatter', () => {
   it('should format nested journey paths', () => {
     // Arrange
     const journey = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       code: 'case-management',
       path: '/case-management',
       title: 'Case management',
       children: [
         {
-          type: StructureType.JOURNEY,
+          _forge: StructureType.JOURNEY,
           code: 'sentence-plan',
           path: '/sentence-plan',
           title: 'Sentence plan',
           steps: [
             {
-              type: StructureType.STEP,
+              _forge: StructureType.STEP,
               path: '/review-goals',
               title: 'Review goals',
               blocks: [
                 {
-                  type: StructureType.BLOCK,
-                  blockType: BlockType.FIELD,
+                  _forge: ComponentCallType.FIELD,
                   variant: 'GovUKRadios',
                   code: 'decision',
                 },
@@ -161,30 +159,28 @@ describe('DSLPathFormatter', () => {
   it('should format collection block iterator template paths', () => {
     // Arrange
     const journey = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       code: 'travel-declaration',
       path: '/travel-declaration',
       title: 'Travel declaration',
       steps: [
         {
-          type: StructureType.STEP,
+          _forge: StructureType.STEP,
           path: '/trips',
           title: 'Trips',
           blocks: [
             {
-              type: StructureType.BLOCK,
-              blockType: BlockType.BASIC,
+              _forge: ComponentCallType.BASIC,
               variant: 'collection-block',
               collection: {
-                type: ExpressionType.ITERATE,
-                input: { type: ExpressionType.REFERENCE, path: ['answers', 'trips'] },
+                _forge: ExpressionType.ITERATE,
+                input: { _forge: ExpressionType.REFERENCE, path: ['answers', 'trips'] },
                 iterator: {
-                  type: IteratorType.MAP,
+                  _forge: IteratorType.MAP,
                   yield: {
                     blocks: [
                       {
-                        type: StructureType.BLOCK,
-                        blockType: BlockType.FIELD,
+                        _forge: ComponentCallType.FIELD,
                         variant: 'GovUKInput',
                         code: 'country',
                       },
@@ -222,30 +218,29 @@ describe('DSLPathFormatter', () => {
   it('should format function argument errors inside field validation', () => {
     // Arrange
     const journey = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       code: 'travel-declaration',
       path: '/travel-declaration',
       title: 'Travel declaration',
       steps: [
         {
-          type: StructureType.STEP,
+          _forge: StructureType.STEP,
           path: '/trips',
           title: 'Trips',
           blocks: [
             {
-              type: StructureType.BLOCK,
-              blockType: BlockType.FIELD,
+              _forge: ComponentCallType.FIELD,
               variant: 'GovUKInput',
               code: 'departure',
               validWhen: [
                 {
-                  type: PolicyType.VALIDATION_RULE,
+                  _forge: PolicyType.VALIDATION_RULE,
                   message: 'Enter a departure date',
                   condition: {
-                    type: PredicateType.TEST,
-                    subject: { type: ExpressionType.REFERENCE, path: ['answers', 'departure'] },
+                    _forge: PredicateType.TEST,
+                    subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'departure'] },
                     condition: {
-                      type: FunctionCallType.CONDITION,
+                      _forge: FunctionCallType.CONDITION,
                       name: 'AfterDate',
                       arguments: ['today', 'tomorrow'],
                     },

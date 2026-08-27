@@ -1,15 +1,15 @@
 import { Fragment } from './fragment'
 import type { EvaluatedBlock } from '../../components/types/structures.type'
-import { StructureType } from '../../authoring/types/enums'
+import { StructureType, ComponentCallType } from '../../authoring/types/enums'
 
 const renderedBlock = (variant: string, html: string) => ({
-  block: { type: StructureType.BLOCK, variant },
+  block: { _forge: ComponentCallType.BASIC, variant },
   html,
 })
 
 const render = (blocks: unknown[]) =>
   Fragment.render({
-    type: StructureType.BLOCK,
+    _forge: ComponentCallType.BASIC,
     variant: 'fragment',
     blocks,
   } as unknown as EvaluatedBlock<Fragment>)

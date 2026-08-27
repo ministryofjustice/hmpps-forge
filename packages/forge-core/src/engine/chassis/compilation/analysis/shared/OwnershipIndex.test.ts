@@ -1,4 +1,4 @@
-import { BlockType, ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
 import type { ASTNode } from '../../../contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
@@ -77,9 +77,9 @@ describe('OwnershipIndex', () => {
       const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step().withPath('/first').build()
-      const fieldBlock = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('owned').build()
-      const nestedFieldBlock = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('nested').build()
-      const outsideFieldBlock = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('outside').build()
+      const fieldBlock = ASTTestFactory.block('TextInput', ComponentCallType.FIELD).withCode('owned').build()
+      const nestedFieldBlock = ASTTestFactory.block('TextInput', ComponentCallType.FIELD).withCode('nested').build()
+      const outsideFieldBlock = ASTTestFactory.block('TextInput', ComponentCallType.FIELD).withCode('outside').build()
       const mapIterate = iterateNode(IteratorType.MAP)
       const filterIterate = iterateNode(IteratorType.FILTER)
 

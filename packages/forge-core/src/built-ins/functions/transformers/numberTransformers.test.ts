@@ -35,7 +35,7 @@ describe('Number Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = NumberTransformers.Add(5)
       expect(expr).toEqual({
-        type: FunctionCallType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'Number.Add',
         arguments: [5],
       })

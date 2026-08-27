@@ -1,4 +1,4 @@
-import { BlockType, ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { ASTTestFactory } from '../testing-helpers/ASTTestFactory'
@@ -16,7 +16,7 @@ describe('NodeRegistrationWalker', () => {
 
     it('should wire each node to its direct parent down the journey tree', () => {
       // Arrange
-      const block = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('field').build()
+      const block = ASTTestFactory.block('TextInput', ComponentCallType.FIELD).withCode('field').build()
       const step = ASTTestFactory.step().withProperty('blocks', [block]).build()
       const journey = ASTTestFactory.journey().withProperty('steps', [step]).build()
       const walker = new NodeRegistrationWalker(new ASTNodeIndex())
@@ -47,7 +47,7 @@ describe('NodeRegistrationWalker', () => {
     it('should index template contents against their owning node instead of registering them', () => {
       // Arrange
       const template = compileTemplate(
-        ASTTestFactory.block('text', BlockType.FIELD).withCode('field').build(),
+        ASTTestFactory.block('text', ComponentCallType.FIELD).withCode('field').build(),
         new NodeIDGenerator(),
       )
       const iterate = ASTTestFactory.expression<IterateASTNode>(ExpressionType.ITERATE)

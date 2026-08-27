@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { BlockType, StructureType } from '../../../../authoring/types/enums'
+import { ComponentCallType, StructureType } from '../../../../authoring/types/enums'
 import { buildComponent } from '../../../../components/utils/buildComponent'
 import type { BlockDefinition, EvaluatedBlock } from '../../../../components/types/structures.type'
 import type { ForgeRenderer, RenderBlock, RenderContext } from '../../../../framework/types/rendering.type'
@@ -23,7 +23,7 @@ function createRenderBlock(
     [RENDER_BLOCK_BRAND]: true,
     id,
     variant,
-    blockType: BlockType.BASIC,
+    blockType: ComponentCallType.BASIC,
     properties,
   } as RenderBlock
 }
@@ -153,7 +153,7 @@ describe('Render work handlers', () => {
     expect(result.output).toEqual(['<parent><wrapped child><child></wrapped>'])
     expect(requestContext.renderedBlocks).toEqual(['<parent><wrapped child><child></wrapped>'])
     expect(renderer.wrapNestedBlock).toHaveBeenCalledWith(
-      { type: StructureType.BLOCK, variant: 'child', blockType: BlockType.BASIC },
+      { _forge: ComponentCallType.BASIC, variant: 'child' },
       '<child>',
     )
   })
@@ -165,7 +165,7 @@ describe('Render work handlers', () => {
     const componentRegistry = createComponentRegistry('parent', 'child')
     const child = {
       ...createRenderBlock('child', { code: 'goal_title' }, 'compile_ast:child'),
-      blockType: BlockType.FIELD,
+      blockType: ComponentCallType.FIELD,
     }
     const parent = createRenderBlock('parent', { content: child }, 'compile_ast:parent')
     const task = createRenderBlocksTask([parent], renderer, componentRegistry)
@@ -176,9 +176,8 @@ describe('Render work handlers', () => {
     // Assert
     expect(renderer.wrapNestedBlock).toHaveBeenCalledWith(
       {
-        type: StructureType.BLOCK,
+        _forge: ComponentCallType.FIELD,
         variant: 'child',
-        blockType: BlockType.FIELD,
         code: 'goal_title',
       },
       '<child>',

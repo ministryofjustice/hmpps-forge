@@ -60,22 +60,22 @@ export const contractScopedHtmlComponent = buildComponent<ContractScopedHtml>('h
   return `<scoped>${block.content}</scoped>`
 })
 
-function ContractField(props: Omit<ContractField, 'type' | 'blockType' | 'variant'>): ContractField {
+function ContractField(props: Omit<ContractField, '_forge' | 'variant'>): ContractField {
   return fieldBuilder<ContractField>({ ...props, variant: 'contractField' })
 }
 
-function ContractAsyncField(props: Omit<ContractAsyncField, 'type' | 'blockType' | 'variant'>): ContractAsyncField {
+function ContractAsyncField(props: Omit<ContractAsyncField, '_forge' | 'variant'>): ContractAsyncField {
   return fieldBuilder<ContractAsyncField>({ ...props, variant: 'contractAsyncField' })
 }
 
 function ContractNestedFieldProbe(
-  props: Omit<ContractNestedFieldProbe, 'type' | 'blockType' | 'variant'>,
+  props: Omit<ContractNestedFieldProbe, '_forge' | 'variant'>,
 ): ContractNestedFieldProbe {
   return blockBuilder<ContractNestedFieldProbe>({ ...props, variant: 'contractNestedFieldProbe' })
 }
 
 function ContractMultiFieldProbe(
-  props: Omit<ContractMultiFieldProbe, 'type' | 'blockType' | 'variant'>,
+  props: Omit<ContractMultiFieldProbe, '_forge' | 'variant'>,
 ): ContractMultiFieldProbe {
   return blockBuilder<ContractMultiFieldProbe>({ ...props, variant: 'contractMultiFieldProbe' })
 }

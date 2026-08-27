@@ -7,6 +7,7 @@ import {
   PolicyType,
   PredicateType,
   StructureType,
+  ComponentCallType,
 } from '../../../../../authoring/types/enums'
 import { ExpressionBuilder } from '../../../../../authoring/builders/ExpressionBuilder'
 import { finaliseBuilders } from '../../../../../authoring/builders/utils/finaliseBuilders'
@@ -17,7 +18,7 @@ import ForgeUnknownNodeTypeError from '../../../../errors/ForgeUnknownNodeTypeEr
 import { NodeFactory, creatorsByType } from './NodeFactory'
 
 describe('NodeFactory', () => {
-  // Every enum whose values appear in a `type` discriminant. BlockType is
+  // Every enum whose values appear in a `type` discriminant. ComponentCallType is
   // absent by design: it discriminates the `blockType` field, never `type`.
   const discriminantEnums: Record<string, string>[] = [
     StructureType,
@@ -96,9 +97,9 @@ describe('NodeFactory', () => {
     it('should throw a placement error when a stray combinator is nested inside an otherwise-valid node', () => {
       // Arrange
       const json = {
-        type: StructureType.BLOCK,
+        _forge: ComponentCallType.BASIC,
         variant: 'test-block',
-        someProperty: { type: ConditionCombinatorType.AND, operands: [] },
+        someProperty: { _forge: ConditionCombinatorType.AND, operands: [] },
       }
 
       // Act & Assert
@@ -110,9 +111,9 @@ describe('NodeFactory', () => {
     it('should throw a placement error when a stray iterator config is nested inside an otherwise-valid node', () => {
       // Arrange
       const json = {
-        type: StructureType.BLOCK,
+        _forge: ComponentCallType.BASIC,
         variant: 'test-block',
-        someProperty: { type: IteratorType.MAP },
+        someProperty: { _forge: IteratorType.MAP },
       }
 
       // Act & Assert
@@ -139,9 +140,9 @@ describe('NodeFactory', () => {
 
     it('should preserve the exact match invocation line through finalisation and node creation', () => {
       // Arrange
-      const reference = { type: ExpressionType.REFERENCE, path: ['answers', 'email'] } satisfies ReferenceExpr
+      const reference = { _forge: ExpressionType.REFERENCE, path: ['answers', 'email'] } satisfies ReferenceExpr
       const condition = {
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'IsRequired',
         arguments: [],
       } satisfies ConditionFunctionExpr

@@ -1,12 +1,11 @@
-import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { ComponentCallType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
 
 import { normaliseMojTextHtmlContent } from './mojParamNormalisers'
 
 const renderedBlock = (html: string): RenderedBlock => ({
   block: {
-    type: StructureType.BLOCK,
-    blockType: BlockType.BASIC,
+    _forge: ComponentCallType.BASIC,
     variant: 'html',
   },
   html,

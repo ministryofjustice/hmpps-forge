@@ -111,13 +111,13 @@ export class FunctionRegistryTestHarness<TDeps = Record<string, never>> {
     const stampedEntry = getEntryStamp(functionExpr) as FunctionEntry<TDeps> | undefined
     const entry = this.lookup((stampedEntry && this.entryNames.get(stampedEntry)) ?? functionExpr.name)
 
-    if (functionExpr.type === FunctionCallType.EFFECT) {
+    if (functionExpr._forge === FunctionCallType.EFFECT) {
       return {
         withContext: (context: EffectFunctionContext) => this.execute(entry, [context, ...functionExpr.arguments]),
       }
     }
 
-    if (functionExpr.type === FunctionCallType.GENERATOR) {
+    if (functionExpr._forge === FunctionCallType.GENERATOR) {
       return this.execute(entry, [...functionExpr.arguments])
     }
 

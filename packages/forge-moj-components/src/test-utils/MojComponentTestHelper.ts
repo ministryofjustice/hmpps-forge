@@ -4,7 +4,7 @@ import type nunjucks from 'nunjucks'
 import { vi } from 'vitest'
 import type { Mocked } from 'vitest'
 
-import { StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { ComponentCallType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { BlockDefinition, EvaluatedBlock, ComponentRegistryEntry } from '@ministryofjustice/hmpps-forge/core/components'
 
 import type { NunjucksComponentRenderer } from '../utils/nunjucksComponent'
@@ -53,7 +53,7 @@ export class MojComponentTestHelper<T extends BlockDefinition> {
    */
   executeComponent(props: Partial<EvaluatedBlock<T>> = {}) {
     const block: EvaluatedBlock<T> = {
-      type: StructureType.BLOCK,
+      _forge: ComponentCallType.BASIC,
       ...props,
     } as EvaluatedBlock<T>
 
@@ -79,7 +79,7 @@ export class MojComponentTestHelper<T extends BlockDefinition> {
     const realEnv = nunjucksReal.configure([govukPath, mojPath])
 
     const block: EvaluatedBlock<T> = {
-      type: StructureType.BLOCK,
+      _forge: ComponentCallType.BASIC,
       ...props,
     } as EvaluatedBlock<T>
 

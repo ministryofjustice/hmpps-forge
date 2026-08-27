@@ -1,4 +1,4 @@
-import { StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { ComponentCallType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { GovUKNotificationBanner } from './govukNotificationBanner'
@@ -39,11 +39,11 @@ describe('GOV.UK Notification Banner Component', () => {
       const params = await helper.getParams({
         content: [
           {
-            block: { type: StructureType.BLOCK, variant: 'html' },
+            block: { _forge: ComponentCallType.BASIC, variant: 'html' },
             html: '<p class="govuk-notification-banner__heading">Application submitted</p>',
           },
           {
-            block: { type: StructureType.BLOCK, variant: 'html' },
+            block: { _forge: ComponentCallType.BASIC, variant: 'html' },
             html: '<p class="govuk-body">Your reference number is HDJ2123F</p>',
           },
         ],
@@ -63,7 +63,7 @@ describe('GOV.UK Notification Banner Component', () => {
         html: '<p>This is also ignored</p>',
         content: [
           {
-            block: { type: StructureType.BLOCK, variant: 'html' },
+            block: { _forge: ComponentCallType.BASIC, variant: 'html' },
             html: '<p>Child block content</p>',
           },
         ],

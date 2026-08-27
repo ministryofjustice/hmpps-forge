@@ -49,7 +49,7 @@ import ForgeInvalidNodeError from '../../../../errors/ForgeInvalidNodeError'
 import type { NodeBuildContext } from './NodeFactory'
 
 /**
- * Every `type` discriminant that marks an authored expression, as opposed to
+ * Every `_forge` discriminant that marks an authored expression, as opposed to
  * a structure (journey/step/block), a hook, or plain data.
  *
  * PolicyType.NAVIGATION_NEXT and IteratorType are deliberately absent: nothing in
@@ -73,17 +73,17 @@ const EXPRESSION_TYPES: ReadonlySet<string> = new Set([
 ])
 
 function isExpression(node: any): boolean {
-  return node != null && EXPRESSION_TYPES.has(node.type)
+  return node != null && EXPRESSION_TYPES.has(node._forge)
 }
 
 const CONDITION_COMBINATOR_TYPES: ReadonlySet<string> = new Set(Object.values(ConditionCombinatorType))
 
 function isConditionNotExpr(obj: any): obj is ConditionNotExpr {
-  return obj != null && obj.type === ConditionCombinatorType.NOT
+  return obj != null && obj._forge === ConditionCombinatorType.NOT
 }
 
 function isConditionCombinatorExpr(obj: any): obj is ConditionCombinatorExpr {
-  return obj != null && CONDITION_COMBINATOR_TYPES.has(obj.type)
+  return obj != null && CONDITION_COMBINATOR_TYPES.has(obj._forge)
 }
 
 /**
@@ -222,11 +222,11 @@ export function createIterateNode(json: IterateExpr, ctx: NodeBuildContext): Ite
     // Transform the input data source (this IS an expression that needs evaluation)
     input: ctx.transformValue(json.input),
     iterator: {
-      type: json.iterator.type,
+      type: json.iterator._forge,
     },
   }
 
-  switch (json.iterator.type) {
+  switch (json.iterator._forge) {
     // For MAP: compile yield template once and instantiate per item at runtime
     case IteratorType.MAP:
       properties.iterator.yieldTemplate = compileIteratorTemplate(json.iterator.yield, ctx)
@@ -323,7 +323,7 @@ export function createTieBreakerNode(json: TieBreaker, ctx: NodeBuildContext): T
  * Types: Condition (boolean), Transformer (value), Effect (side-effect), Generator (value)
  */
 export function createFunctionNode(json: FunctionExpr<ResolvableValue[]>, ctx: NodeBuildContext): FunctionASTNode {
-  const funcType = json.type
+  const funcType = json._forge
 
   // Transform arguments recursively
   const args = json.arguments.map((arg: unknown) => ctx.transformValue(arg))
@@ -471,7 +471,7 @@ function createLogicalPredicate(
   return {
     id: ctx.nextId(),
     type: ASTNodeType.PREDICATE,
-    predicateType: LOGICAL_PREDICATE_TYPES[combinator.type],
+    predicateType: LOGICAL_PREDICATE_TYPES[combinator._forge],
     ...createBranchDiagnostics(context, ctx),
     properties: {
       operands: combinator.operands.map(operand => expandCondition(operand, context, ctx)),

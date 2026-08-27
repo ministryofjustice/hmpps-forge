@@ -1,4 +1,4 @@
-import { BlockType, ExpressionType } from '../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type { IterateASTNode, ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
@@ -93,7 +93,7 @@ function walkTemplateForSelfScope(value: TemplateValue, scope: SelfScope, errors
     }
 
     const isFieldBlock =
-      value.originalType === ASTNodeType.BLOCK && (value as Record<string, unknown>).blockType === BlockType.FIELD
+      value.originalType === ASTNodeType.BLOCK && (value as Record<string, unknown>).blockType === ComponentCallType.FIELD
 
     if (value.properties) {
       Object.entries(value.properties).forEach(([key, propValue]) => {

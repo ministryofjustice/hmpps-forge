@@ -25,7 +25,7 @@ export const ResolvableValueSchema: z.ZodType<any> = z.lazy(() =>
  * @see {@link ReferenceExpr}
  */
 export const ReferenceExprSchema = z.looseObject({
-  type: z.literal(ExpressionType.REFERENCE),
+  _forge: z.literal(ExpressionType.REFERENCE),
   path: z.array(z.string()),
 })
 
@@ -33,7 +33,7 @@ export const ReferenceExprSchema = z.looseObject({
  * @see {@link PipelineExpr}
  */
 export const PipelineExprSchema = z.looseObject({
-  type: z.literal(ExpressionType.PIPELINE),
+  _forge: z.literal(ExpressionType.PIPELINE),
   input: ResolvableValueSchema,
   steps: z.array(TransformerFunctionExprSchema),
 })
@@ -42,7 +42,7 @@ export const PipelineExprSchema = z.looseObject({
  * @see {@link MapIteratorConfig}
  */
 const MapIteratorConfigSchema = z.looseObject({
-  type: z.literal(IteratorType.MAP),
+  _forge: z.literal(IteratorType.MAP),
   yield: z.any(),
 })
 
@@ -50,7 +50,7 @@ const MapIteratorConfigSchema = z.looseObject({
  * @see {@link FilterIteratorConfig}
  */
 const FilterIteratorConfigSchema = z.looseObject({
-  type: z.literal(IteratorType.FILTER),
+  _forge: z.literal(IteratorType.FILTER),
   predicate: z.any(),
 })
 
@@ -58,7 +58,7 @@ const FilterIteratorConfigSchema = z.looseObject({
  * @see {@link FindIteratorConfig}
  */
 const FindIteratorConfigSchema = z.looseObject({
-  type: z.literal(IteratorType.FIND),
+  _forge: z.literal(IteratorType.FIND),
   predicate: z.any(),
 })
 
@@ -71,7 +71,7 @@ const IteratorConfigSchema = z.union([MapIteratorConfigSchema, FilterIteratorCon
  * @see {@link IterateExpr}
  */
 export const IterateExprSchema = z.looseObject({
-  type: z.literal(ExpressionType.ITERATE),
+  _forge: z.literal(ExpressionType.ITERATE),
   input: ResolvableValueSchema,
   iterator: IteratorConfigSchema,
 })

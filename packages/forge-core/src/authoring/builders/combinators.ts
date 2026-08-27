@@ -37,7 +37,7 @@ const conditionCombinatorTypes = new Set<string>(Object.values(ConditionCombinat
  * condition combinator over them - as opposed to a predicate, which carries its own subject.
  */
 function isConditionBranch(operand: CombinatorOperand): operand is ConditionBranchExpr {
-  return operand.type === FunctionCallType.CONDITION || conditionCombinatorTypes.has(operand.type)
+  return operand._forge === FunctionCallType.CONDITION || conditionCombinatorTypes.has(operand._forge)
 }
 
 /**
@@ -85,11 +85,11 @@ export function and(...args: CombinatorArgs): PredicateAndExpr | ConditionAndExp
   const expr: PredicateAndExpr | ConditionAndExpr =
     classified.kind === OperandKind.CONDITION
       ? {
-          type: ConditionCombinatorType.AND,
+          _forge: ConditionCombinatorType.AND,
           operands: classified.operands as [ConditionBranchExpr, ConditionBranchExpr, ...ConditionBranchExpr[]],
         }
       : {
-          type: PredicateType.AND,
+          _forge: PredicateType.AND,
           operands: classified.operands as [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
         }
   stampCallsite(expr, captureCallsite(and))
@@ -114,11 +114,11 @@ export function or(...args: CombinatorArgs): PredicateOrExpr | ConditionOrExpr {
   const expr: PredicateOrExpr | ConditionOrExpr =
     classified.kind === OperandKind.CONDITION
       ? {
-          type: ConditionCombinatorType.OR,
+          _forge: ConditionCombinatorType.OR,
           operands: classified.operands as [ConditionBranchExpr, ConditionBranchExpr, ...ConditionBranchExpr[]],
         }
       : {
-          type: PredicateType.OR,
+          _forge: PredicateType.OR,
           operands: classified.operands as [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
         }
   stampCallsite(expr, captureCallsite(or))
@@ -143,11 +143,11 @@ export function xor(...args: CombinatorArgs): PredicateXorExpr | ConditionXorExp
   const expr: PredicateXorExpr | ConditionXorExpr =
     classified.kind === OperandKind.CONDITION
       ? {
-          type: ConditionCombinatorType.XOR,
+          _forge: ConditionCombinatorType.XOR,
           operands: classified.operands as [ConditionBranchExpr, ConditionBranchExpr, ...ConditionBranchExpr[]],
         }
       : {
-          type: PredicateType.XOR,
+          _forge: PredicateType.XOR,
           operands: classified.operands as [PredicateExpr, PredicateExpr, ...PredicateExpr[]],
         }
   stampCallsite(expr, captureCallsite(xor))
@@ -167,11 +167,11 @@ export function not(c: ConditionBranchExpr): ConditionNotExpr
 export function not(operand: CombinatorOperand): PredicateNotExpr | ConditionNotExpr {
   const expr: PredicateNotExpr | ConditionNotExpr = isConditionBranch(operand)
     ? {
-        type: ConditionCombinatorType.NOT,
+        _forge: ConditionCombinatorType.NOT,
         operand,
       }
     : {
-        type: PredicateType.NOT,
+        _forge: PredicateType.NOT,
         operand,
       }
   stampCallsite(expr, captureCallsite(not))

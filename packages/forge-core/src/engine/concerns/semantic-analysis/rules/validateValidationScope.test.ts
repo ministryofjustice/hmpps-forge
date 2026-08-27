@@ -1,4 +1,4 @@
-import { PolicyType, BlockType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
+import { PolicyType, ComponentCallType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
 import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { IterateASTNode, ValidationASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { TemplateNode } from '../../../chassis/contracts/ast/template.type'
@@ -63,7 +63,7 @@ describe('validateValidationScope', () => {
     it('should return no errors when a bare Iterate is a field validWhen and its template holds a validation', () => {
       // Arrange
       const iterate = mapIterate()
-      const block = ASTTestFactory.block('text', BlockType.FIELD).withProperty('validWhen', iterate).build()
+      const block = ASTTestFactory.block('text', ComponentCallType.FIELD).withProperty('validWhen', iterate).build()
       const context = createContext([block, iterate], [[iterate.id, block.id]])
 
       // Act
@@ -89,7 +89,7 @@ describe('validateValidationScope', () => {
     it('should return no errors when an array-wrapped Iterate is a field validWhen and its template holds a validation', () => {
       // Arrange
       const iterate = mapIterate()
-      const block = ASTTestFactory.block('text', BlockType.FIELD).withProperty('validWhen', [iterate]).build()
+      const block = ASTTestFactory.block('text', ComponentCallType.FIELD).withProperty('validWhen', [iterate]).build()
       const context = createContext([block, iterate], [[iterate.id, block.id]])
 
       // Act

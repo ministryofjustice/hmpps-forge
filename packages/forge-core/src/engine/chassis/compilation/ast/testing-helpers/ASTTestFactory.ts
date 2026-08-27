@@ -1,6 +1,6 @@
 // eslint-disable-next-line max-classes-per-file
 import {
-  BlockType,
+  ComponentCallType,
   ExpressionType,
   FunctionCallType,
   PolicyType,
@@ -100,7 +100,7 @@ export class ASTTestFactory {
   /**
    * Create a new BlockBuilder for fluent block construction
    */
-  static block(variant: string, blockType: BlockType): BlockBuilder {
+  static block(variant: string, blockType: ComponentCallType): BlockBuilder {
     return new BlockBuilder(variant, blockType)
   }
 
@@ -293,7 +293,7 @@ export class StepBuilder {
     return this
   }
 
-  withBlock(variant: string, blockType: BlockType, configFn?: (builder: BlockBuilder) => BlockBuilder): this {
+  withBlock(variant: string, blockType: ComponentCallType, configFn?: (builder: BlockBuilder) => BlockBuilder): this {
     const blockBuilder = new BlockBuilder(variant, blockType)
     const block = configFn ? configFn(blockBuilder).build() : blockBuilder.build()
 
@@ -338,7 +338,7 @@ export class BlockBuilder {
 
   constructor(
     private variant: string,
-    private blockType: BlockType,
+    private blockType: ComponentCallType,
   ) {}
 
   withId(id: string): this {

@@ -1,6 +1,6 @@
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import { ASTTestFactory } from '../testing-helpers/ASTTestFactory'
-import { BlockType, ExpressionType, PolicyType, PredicateType } from '../../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, PolicyType, PredicateType } from '../../../../../authoring/types/enums'
 import ASTNodeIndex from './ASTNodeIndex'
 
 describe('ASTNodeIndex', () => {
@@ -13,7 +13,7 @@ describe('ASTNodeIndex', () => {
   describe('register()', () => {
     it('should register a node retrievable by type', () => {
       // Arrange
-      const node = ASTTestFactory.block('TextField', BlockType.FIELD).withId('compile_ast:1').build()
+      const node = ASTTestFactory.block('TextField', ComponentCallType.FIELD).withId('compile_ast:1').build()
 
       // Act
       registry.register('compile_ast:1', node)
@@ -24,8 +24,8 @@ describe('ASTNodeIndex', () => {
 
     it('should throw when registering duplicate ID', () => {
       // Arrange
-      const node1 = ASTTestFactory.block('TextField', BlockType.FIELD).build()
-      const node2 = ASTTestFactory.block('TextField', BlockType.FIELD).build()
+      const node1 = ASTTestFactory.block('TextField', ComponentCallType.FIELD).build()
+      const node2 = ASTTestFactory.block('TextField', ComponentCallType.FIELD).build()
       registry.register('compile_ast:1', node1)
 
       // Act
@@ -39,8 +39,8 @@ describe('ASTNodeIndex', () => {
   describe('findByType()', () => {
     it('should find nodes by top-level AST type', () => {
       // Arrange
-      const block1 = ASTTestFactory.block('TextField', BlockType.FIELD).build()
-      const block2 = ASTTestFactory.block('RadioInput', BlockType.FIELD).build()
+      const block1 = ASTTestFactory.block('TextField', ComponentCallType.FIELD).build()
+      const block2 = ASTTestFactory.block('RadioInput', ComponentCallType.FIELD).build()
       const step = ASTTestFactory.step().build()
       const journey = ASTTestFactory.journey().build()
       const expr = ASTTestFactory.expression(ExpressionType.REFERENCE).build()
@@ -64,7 +64,7 @@ describe('ASTNodeIndex', () => {
 
     it('should return empty array when no nodes of type exist', () => {
       // Arrange
-      const block = ASTTestFactory.block('TextField', BlockType.FIELD).build()
+      const block = ASTTestFactory.block('TextField', ComponentCallType.FIELD).build()
       registry.register('compile_ast:1', block)
 
       // Act
@@ -112,15 +112,15 @@ describe('ASTNodeIndex', () => {
 
     it('should find block nodes by block type', () => {
       // Arrange
-      const fieldBlock = ASTTestFactory.block('TextField', BlockType.FIELD).build()
-      const basicBlock = ASTTestFactory.block('Html', BlockType.BASIC).build()
+      const fieldBlock = ASTTestFactory.block('TextField', ComponentCallType.FIELD).build()
+      const basicBlock = ASTTestFactory.block('Html', ComponentCallType.BASIC).build()
 
       registry.register('compile_ast:1', fieldBlock)
       registry.register('compile_ast:2', basicBlock)
 
       // Act
-      const fieldBlocks = registry.findByType(BlockType.FIELD)
-      const basicBlocks = registry.findByType(BlockType.BASIC)
+      const fieldBlocks = registry.findByType(ComponentCallType.FIELD)
+      const basicBlocks = registry.findByType(ComponentCallType.BASIC)
 
       // Assert
       expect(fieldBlocks).toEqual([fieldBlock])

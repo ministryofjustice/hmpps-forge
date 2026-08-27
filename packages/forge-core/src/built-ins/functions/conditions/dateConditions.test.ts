@@ -34,7 +34,7 @@ describe('DateConditions', () => {
     test('should build correct expression object', () => {
       const expr = DateConditions.IsValid()
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Date.IsValid',
         arguments: [],
       })
@@ -63,7 +63,7 @@ describe('DateConditions', () => {
     test('should build correct expression object', () => {
       const expr = DateConditions.IsValidYear()
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Date.IsValidYear',
         arguments: [],
       })
@@ -90,7 +90,7 @@ describe('DateConditions', () => {
     test('should build correct expression object', () => {
       const expr = DateConditions.IsValidMonth()
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Date.IsValidMonth',
         arguments: [],
       })
@@ -136,7 +136,7 @@ describe('DateConditions', () => {
     test('should build correct expression object', () => {
       const expr = DateConditions.IsValidDay()
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Date.IsValidDay',
         arguments: [],
       })
@@ -183,7 +183,7 @@ describe('DateConditions', () => {
     test('should build correct expression object', () => {
       const expr = DateConditions.IsBefore('2024-12-31')
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Date.IsBefore',
         arguments: ['2024-12-31'],
       })
@@ -224,7 +224,7 @@ describe('DateConditions', () => {
     test('should build correct expression object', () => {
       const expr = DateConditions.IsAfter('2024-01-01')
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Date.IsAfter',
         arguments: ['2024-01-01'],
       })
@@ -273,7 +273,7 @@ describe('DateConditions', () => {
     test('should build correct expression object', () => {
       const expr = DateConditions.IsFutureDate()
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Date.IsFutureDate',
         arguments: [],
       })
@@ -322,7 +322,7 @@ describe('DateConditions', () => {
     test('should build correct expression object', () => {
       const expr = DateConditions.IsToday()
       expect(expr).toEqual({
-        type: FunctionCallType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Date.IsToday',
         arguments: [],
       })

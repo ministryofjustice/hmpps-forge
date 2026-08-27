@@ -1,4 +1,4 @@
-import { PolicyType, ExpressionType, BlockType } from '../../../../authoring/types/enums'
+import { PolicyType, ExpressionType, ComponentCallType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type { ValidationASTNode, IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { FieldBlockASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
@@ -58,7 +58,7 @@ function walkTemplateForValidationScope(value: TemplateValue, insideValidWhen: b
     }
 
     const canHaveValidWhen =
-      (value.originalType === ASTNodeType.BLOCK && (value as Record<string, unknown>).blockType === BlockType.FIELD) ||
+      (value.originalType === ASTNodeType.BLOCK && (value as Record<string, unknown>).blockType === ComponentCallType.FIELD) ||
       value.originalType === ASTNodeType.STEP
 
     if (value.properties) {
@@ -105,7 +105,7 @@ export const validateValidationScope: ASTValidationRule = (context: ASTValidatio
 
   const validWhenEntryIds = new Set<string>()
 
-  nodeIndex.findByType<FieldBlockASTNode>(BlockType.FIELD).forEach(block => {
+  nodeIndex.findByType<FieldBlockASTNode>(ComponentCallType.FIELD).forEach(block => {
     collectNodeIdsFromValidWhen(block.properties.validWhen).forEach(id => {
       validWhenEntryIds.add(id)
     })

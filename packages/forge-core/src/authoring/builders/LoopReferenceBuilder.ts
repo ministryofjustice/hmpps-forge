@@ -1,3 +1,4 @@
+import { BuilderType } from '../types/enums'
 import { resolvesMarker } from '../types/expressions.type'
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { LoopItemReferenceBuilder } from './LoopItemReferenceBuilder'
@@ -14,7 +15,7 @@ export class LoopReferenceBuilder {
   // Type-only ChainableExpression brand - never set at runtime.
   declare readonly [resolvesMarker]: any
 
-  readonly nodeKind = 'forge-builder' as const
+  readonly _forge = BuilderType.LOOP as const
 
   private readonly level: number
 

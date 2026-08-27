@@ -6,7 +6,7 @@ import type {
   CompiledValidationContext,
 } from './compiledContexts.type'
 import { NodeId } from '../ast/ast.type'
-import { BlockType } from '../../../../authoring/types/enums'
+import { ComponentCallType } from '../../../../authoring/types/enums'
 import type {
   ReachabilityEvaluationResult,
   ReachabilityStateInput,
@@ -49,7 +49,7 @@ export type CompiledEntryValidationFunction = (ctx: CompiledValidationContext) =
 export interface CompiledResolveBlockWorkProps {
   readonly id: NodeId
   readonly variant: string
-  readonly blockType: BlockType
+  readonly blockType: ComponentCallType
   readonly properties: Record<PropertyKey, unknown>
 }
 

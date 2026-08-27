@@ -26,18 +26,8 @@ export enum FunctionEntryType {
  * contain steps.
  */
 export enum StructureType {
-  BLOCK = 'StructureType.Block',
   JOURNEY = 'structure.journey',
   STEP = 'structure.step',
-}
-
-/**
- * Distinguishes field blocks, which collect answers, from basic blocks,
- * which only display content.
- */
-export enum BlockType {
-  FIELD = 'BlockType.field',
-  BASIC = 'BlockType.basic',
 }
 
 /**

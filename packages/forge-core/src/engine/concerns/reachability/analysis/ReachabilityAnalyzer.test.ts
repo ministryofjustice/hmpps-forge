@@ -1,4 +1,4 @@
-import { BlockType, FunctionCallType, PredicateType } from '../../../../authoring/types/enums'
+import { ComponentCallType, FunctionCallType, PredicateType } from '../../../../authoring/types/enums'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
@@ -198,7 +198,7 @@ describe('ReachabilityAnalyzer', () => {
         })
         .build()
       const secondStepNode = ASTTestFactory.step().withCode('second').build()
-      const validatingFieldBlock = ASTTestFactory.block('TextInput', BlockType.FIELD)
+      const validatingFieldBlock = ASTTestFactory.block('TextInput', ComponentCallType.FIELD)
         .withCode('fieldA')
         .withProperty('validWhen', [createPredicate(['answers', 'fieldA'])])
         .build()

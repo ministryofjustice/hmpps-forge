@@ -1,4 +1,4 @@
-import { BlockType, ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { isTemplateNode } from '../../../contracts/ast/nodes'
@@ -139,7 +139,7 @@ function collectTemplateVariants(template: TemplateValue | undefined, variants: 
   }
 
   if (isTemplateNode(template)) {
-    if (template.originalType === ASTNodeType.BLOCK && template.blockType === BlockType.FIELD) {
+    if (template.originalType === ASTNodeType.BLOCK && template.blockType === ComponentCallType.FIELD) {
       if (typeof template.variant === 'string') {
         variants.add(template.variant)
       }

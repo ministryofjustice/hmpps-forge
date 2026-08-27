@@ -35,11 +35,11 @@ describe('package registration contracts', () => {
 
   describe('non-strict registration', () => {
     const invalidStepJourney = JSON.stringify({
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       code: 'bad',
       path: '/bad',
       title: 'Bad',
-      steps: [{ type: StructureType.STEP, path: '/start' }],
+      steps: [{ _forge: StructureType.STEP, path: '/start' }],
     })
 
     it('should log the registration failure and continue when strictRegistration is false', () => {

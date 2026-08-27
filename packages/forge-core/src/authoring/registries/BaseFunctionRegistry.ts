@@ -1,5 +1,5 @@
 import { z, type ZodType } from 'zod'
-import { FunctionCallType } from '../types/enums'
+import { FunctionCallType, FunctionEntryType } from '../types/enums'
 import ForgeAuthoringError from '../../engine/errors/ForgeAuthoringError'
 import ForgeRegistryDuplicateError from '../../engine/errors/ForgeRegistryDuplicateError'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
@@ -27,6 +27,13 @@ interface StoredRegistration {
 }
 
 export const CONDITION_OUTPUT_SCHEMA = z.boolean()
+
+const ENTRY_TAGS: Record<FunctionCallType, FunctionEntryType> = {
+  [FunctionCallType.CONDITION]: FunctionEntryType.CONDITION,
+  [FunctionCallType.TRANSFORMER]: FunctionEntryType.TRANSFORMER,
+  [FunctionCallType.GENERATOR]: FunctionEntryType.GENERATOR,
+  [FunctionCallType.EFFECT]: FunctionEntryType.EFFECT,
+}
 
 export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> implements FunctionRegistryBuilder<TDeps> {
   private readonly registrations = new Map<string, StoredRegistration>()
@@ -114,7 +121,7 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> implem
 
     const expressionHandle = (...args: any[]) => {
       const prepared = prepare ? prepare(...args) : args
-      const expr = { type, name, arguments: prepared }
+      const expr = { _forge: type, name, arguments: prepared }
 
       stampCallsite(expr, captureCallsite(expressionHandle))
       return expr
@@ -137,7 +144,7 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> implem
         inputSchema: registration.inputSchema,
         argumentsSchema: registration.argumentsSchema,
         outputSchema: registration.outputSchema,
-        functionType: this.functionType,
+        _forge: ENTRY_TAGS[this.functionType],
       }
     })
 

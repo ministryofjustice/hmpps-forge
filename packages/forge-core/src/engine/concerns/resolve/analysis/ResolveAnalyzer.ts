@@ -1,4 +1,4 @@
-import { BlockType, IteratorType } from '../../../../authoring/types/enums'
+import { ComponentCallType, IteratorType } from '../../../../authoring/types/enums'
 import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
@@ -83,7 +83,7 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
       blockType: block.blockType,
       label: this.deriveBlockLabel(block),
       properties: this.classifyProperties(context, rawProperties, ResolveAnalyzer.BLOCK_SKIP_PROPS),
-      resolvesFieldValue: block.blockType === BlockType.FIELD && rawProperties.value === undefined,
+      resolvesFieldValue: block.blockType === ComponentCallType.FIELD && rawProperties.value === undefined,
     }
   }
 
@@ -98,7 +98,7 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
       blockType,
       label: String(block.variant),
       properties: this.classifyProperties(context, rawProperties, ResolveAnalyzer.BLOCK_SKIP_PROPS),
-      resolvesFieldValue: blockType === BlockType.FIELD && rawProperties.value === undefined,
+      resolvesFieldValue: blockType === ComponentCallType.FIELD && rawProperties.value === undefined,
     }
   }
 

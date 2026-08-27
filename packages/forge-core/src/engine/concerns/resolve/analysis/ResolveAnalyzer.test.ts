@@ -1,4 +1,4 @@
-import { BlockType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
@@ -34,7 +34,7 @@ function blockTemplate(): unknown {
   return {
     type: ASTNodeType.BLOCK,
     variant: 'content',
-    blockType: BlockType.BASIC,
+    _forge: ComponentCallType.BASIC,
     content: 'Hello',
   }
 }
@@ -95,7 +95,7 @@ describe('ResolveAnalyzer', () => {
       const inlineIterate = createIterateNode({ label: 'inline value' })
       const standaloneIterate = createIterateNode(blockTemplate())
       const skipPropIterate = createIterateNode(blockTemplate())
-      const block = ASTTestFactory.block('collection-block', BlockType.BASIC)
+      const block = ASTTestFactory.block('collection-block', ComponentCallType.BASIC)
         .withProperty('collection', inlineIterate)
         .withProperty('formatters', [skipPropIterate])
         .build()
@@ -128,7 +128,7 @@ describe('ResolveAnalyzer', () => {
       const nestedBlock = {
         type: ASTNodeType.BLOCK,
         variant: 'text-input',
-        blockType: BlockType.FIELD,
+        _forge: ComponentCallType.FIELD,
         properties: { code: 'nested', formatters: ['trim'], hint: 'Keep me' },
       }
       const stepNode = ASTTestFactory.step().withPath('/step').withProperty('summaryBlock', nestedBlock).build()

@@ -12,28 +12,28 @@ import { ExpressionType, FunctionCallType, IteratorType, PredicateType } from '.
 describe('IterableBuilder', () => {
   // Helper to create a mock reference (data source)
   const mockRef = (): ReferenceExpr => ({
-    type: ExpressionType.REFERENCE,
+    _forge: ExpressionType.REFERENCE,
     path: ['data', 'items'],
   })
 
   // Helper to create a mock condition
   const mockCondition = (name: string): ConditionFunctionExpr<any> => ({
-    type: FunctionCallType.CONDITION,
+    _forge: FunctionCallType.CONDITION,
     name,
     arguments: [],
   })
 
   // Helper to create a mock transformer
   const mockTransformer = (name: string): TransformerFunctionExpr<any> => ({
-    type: FunctionCallType.TRANSFORMER,
+    _forge: FunctionCallType.TRANSFORMER,
     name,
     arguments: [],
   })
 
   // Helper to create a mock predicate for filter
   const mockPredicate = () => ({
-    type: PredicateType.TEST as const,
-    subject: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'active'] },
+    _forge: PredicateType.TEST as const,
+    subject: { _forge: ExpressionType.REFERENCE, path: ['@scope', '0', 'active'] },
     negate: false,
     condition: mockCondition('isTrue'),
   })
@@ -48,9 +48,9 @@ describe('IterableBuilder', () => {
       const builder = IterableBuilder.create(input, iterator)
 
       // Assert
-      expect(builder.expr.type).toBe(ExpressionType.ITERATE)
+      expect(builder.expr._forge).toBe(ExpressionType.ITERATE)
       expect(builder.expr.input).toBe(input)
-      expect(builder.expr.iterator.type).toBe(IteratorType.MAP)
+      expect(builder.expr.iterator._forge).toBe(IteratorType.MAP)
     })
 
     it('should create IterableBuilder with Filter iterator', () => {
@@ -62,9 +62,9 @@ describe('IterableBuilder', () => {
       const builder = IterableBuilder.create(input, iterator)
 
       // Assert
-      expect(builder.expr.type).toBe(ExpressionType.ITERATE)
+      expect(builder.expr._forge).toBe(ExpressionType.ITERATE)
       expect(builder.expr.input).toBe(input)
-      expect(builder.expr.iterator.type).toBe(IteratorType.FILTER)
+      expect(builder.expr.iterator._forge).toBe(IteratorType.FILTER)
     })
   })
 
@@ -79,7 +79,7 @@ describe('IterableBuilder', () => {
       const result = builder.build()
 
       // Assert
-      expect(result.type).toBe(ExpressionType.ITERATE)
+      expect(result._forge).toBe(ExpressionType.ITERATE)
       expect(result.input).toBe(input)
       expect(result.iterator).toBe(iterator)
     })
@@ -97,12 +97,12 @@ describe('IterableBuilder', () => {
       const chained = builder.each(mapIterator)
 
       // Assert
-      expect(chained.expr.type).toBe(ExpressionType.ITERATE)
-      expect(chained.expr.iterator.type).toBe(IteratorType.MAP)
+      expect(chained.expr._forge).toBe(ExpressionType.ITERATE)
+      expect(chained.expr.iterator._forge).toBe(IteratorType.MAP)
       // Input should be the previous iterate expression
       const chainedInput = chained.expr.input as IterateExpr
-      expect(chainedInput.type).toBe(ExpressionType.ITERATE)
-      expect(chainedInput.iterator.type).toBe(IteratorType.FILTER)
+      expect(chainedInput._forge).toBe(ExpressionType.ITERATE)
+      expect(chainedInput.iterator._forge).toBe(IteratorType.FILTER)
     })
 
     it('should support multiple chained each() calls', () => {
@@ -116,18 +116,18 @@ describe('IterableBuilder', () => {
       const result = IterableBuilder.create(input, filter1).each(filter2).each(map)
 
       // Assert
-      expect(result.expr.type).toBe(ExpressionType.ITERATE)
-      expect(result.expr.iterator.type).toBe(IteratorType.MAP)
+      expect(result.expr._forge).toBe(ExpressionType.ITERATE)
+      expect(result.expr.iterator._forge).toBe(IteratorType.MAP)
 
       // Second level should be filter2
       const level2 = result.expr.input as IterateExpr
-      expect(level2.type).toBe(ExpressionType.ITERATE)
-      expect(level2.iterator.type).toBe(IteratorType.FILTER)
+      expect(level2._forge).toBe(ExpressionType.ITERATE)
+      expect(level2.iterator._forge).toBe(IteratorType.FILTER)
 
       // Third level should be filter1
       const level3 = level2.input as IterateExpr
-      expect(level3.type).toBe(ExpressionType.ITERATE)
-      expect(level3.iterator.type).toBe(IteratorType.FILTER)
+      expect(level3._forge).toBe(ExpressionType.ITERATE)
+      expect(level3.iterator._forge).toBe(IteratorType.FILTER)
 
       // Bottom level should be the original reference
       expect(level3.input).toBe(input)
@@ -144,8 +144,8 @@ describe('IterableBuilder', () => {
       const chained = original.each(map)
 
       // Assert
-      expect(original.expr.iterator.type).toBe(IteratorType.FILTER)
-      expect(chained.expr.iterator.type).toBe(IteratorType.MAP)
+      expect(original.expr.iterator._forge).toBe(IteratorType.FILTER)
+      expect(chained.expr.iterator._forge).toBe(IteratorType.MAP)
     })
   })
 
@@ -160,11 +160,11 @@ describe('IterableBuilder', () => {
       const result = IterableBuilder.create(input, iterator).pipe(transformer)
 
       // Assert
-      expect(result.expr.type).toBe(ExpressionType.PIPELINE)
+      expect(result.expr._forge).toBe(ExpressionType.PIPELINE)
       const pipeline = result.expr as PipelineExpr
       expect(pipeline.steps).toEqual([transformer])
       // Input should be the iterate expression
-      expect((pipeline.input as IterateExpr).type).toBe(ExpressionType.ITERATE)
+      expect((pipeline.input as IterateExpr)._forge).toBe(ExpressionType.ITERATE)
     })
 
     it('should support multiple transformers in pipe()', () => {
@@ -193,7 +193,7 @@ describe('IterableBuilder', () => {
       const result = IterableBuilder.create(input, iterator).pipe(transformer).match(condition)
 
       // Assert
-      expect(result.type).toBe(PredicateType.TEST)
+      expect(result._forge).toBe(PredicateType.TEST)
       expect(result.condition).toEqual(condition)
     })
   })
@@ -209,10 +209,10 @@ describe('IterableBuilder', () => {
       const result = IterableBuilder.create(input, iterator).match(condition)
 
       // Assert
-      expect(result.type).toBe(PredicateType.TEST)
+      expect(result._forge).toBe(PredicateType.TEST)
       expect(result.negate).toBe(false)
       expect(result.condition).toEqual(condition)
-      expect((result.subject as IterateExpr).type).toBe(ExpressionType.ITERATE)
+      expect((result.subject as IterateExpr)._forge).toBe(ExpressionType.ITERATE)
     })
 
     it('should stamp the predicate with the match callsite', () => {
@@ -285,7 +285,7 @@ describe('IterableBuilder', () => {
       original.each(map)
 
       // Assert
-      expect(original.expr.iterator.type).toBe(IteratorType.FILTER)
+      expect(original.expr.iterator._forge).toBe(IteratorType.FILTER)
     })
 
     it('should not mutate original builder when calling pipe()', () => {
@@ -299,7 +299,7 @@ describe('IterableBuilder', () => {
       original.pipe(transformer)
 
       // Assert
-      expect(original.expr.type).toBe(ExpressionType.ITERATE)
+      expect(original.expr._forge).toBe(ExpressionType.ITERATE)
     })
 
     it('should not mutate original builder when calling not', () => {
@@ -331,10 +331,10 @@ describe('IterableBuilder', () => {
 
       // Assert
       const refExpr = result.expr as ReferenceExpr
-      expect(refExpr.type).toBe(ExpressionType.REFERENCE)
+      expect(refExpr._forge).toBe(ExpressionType.REFERENCE)
       expect(refExpr.path).toEqual(['goals'])
       expect(refExpr.base).toBeDefined()
-      expect((refExpr.base as IterateExpr).type).toBe(ExpressionType.ITERATE)
+      expect((refExpr.base as IterateExpr)._forge).toBe(ExpressionType.ITERATE)
     })
 
     it('should split dot-notation path into segments', () => {
@@ -352,7 +352,7 @@ describe('IterableBuilder', () => {
 
     it('should preserve the iterate expression in base', () => {
       // Arrange - simulates: Data('areas').each(Iterator.Find(...)).path('goals')
-      const dataRef: ReferenceExpr = { type: ExpressionType.REFERENCE, path: ['data', 'areas'] }
+      const dataRef: ReferenceExpr = { _forge: ExpressionType.REFERENCE, path: ['data', 'areas'] }
       const findIterator = Iterator.Find(mockPredicate())
 
       // Act
@@ -361,8 +361,8 @@ describe('IterableBuilder', () => {
       // Assert
       const refExpr = result.expr as ReferenceExpr
       const baseExpr = refExpr.base as IterateExpr
-      expect(baseExpr.type).toBe(ExpressionType.ITERATE)
-      expect(baseExpr.iterator.type).toBe(IteratorType.FIND)
+      expect(baseExpr._forge).toBe(ExpressionType.ITERATE)
+      expect(baseExpr.iterator._forge).toBe(IteratorType.FIND)
       expect(baseExpr.input).toEqual(dataRef)
     })
 
@@ -377,11 +377,11 @@ describe('IterableBuilder', () => {
 
       // Assert
       const pipelineExpr = result.expr as PipelineExpr
-      expect(pipelineExpr.type).toBe(ExpressionType.PIPELINE)
+      expect(pipelineExpr._forge).toBe(ExpressionType.PIPELINE)
       expect(pipelineExpr.steps).toEqual([transformer])
       // Input to pipeline should be the reference with base
       const inputRef = pipelineExpr.input as ReferenceExpr
-      expect(inputRef.type).toBe(ExpressionType.REFERENCE)
+      expect(inputRef._forge).toBe(ExpressionType.REFERENCE)
       expect(inputRef.base).toBeDefined()
     })
 
@@ -395,12 +395,12 @@ describe('IterableBuilder', () => {
       const result = IterableBuilder.create(input, iterator).path('goals').match(condition)
 
       // Assert
-      expect(result.type).toBe(PredicateType.TEST)
+      expect(result._forge).toBe(PredicateType.TEST)
       expect(result.negate).toBe(false)
       expect(result.condition).toEqual(condition)
       // Subject should be the reference with base
       const subject = result.subject as ReferenceExpr
-      expect(subject.type).toBe(ExpressionType.REFERENCE)
+      expect(subject._forge).toBe(ExpressionType.REFERENCE)
       expect(subject.base).toBeDefined()
     })
 
@@ -417,21 +417,21 @@ describe('IterableBuilder', () => {
 
       // Assert
       const refExpr = result.expr as ReferenceExpr
-      expect(refExpr.type).toBe(ExpressionType.REFERENCE)
+      expect(refExpr._forge).toBe(ExpressionType.REFERENCE)
       expect(refExpr.path).toEqual(['value'])
 
       // Base is the reference wrapper from .each(Find)
       const wrapperRef = refExpr.base as ReferenceExpr
-      expect(wrapperRef.type).toBe(ExpressionType.REFERENCE)
+      expect(wrapperRef._forge).toBe(ExpressionType.REFERENCE)
       expect(wrapperRef.path).toEqual([])
 
       // Which wraps the Find iterate
       const findExpr = wrapperRef.base as IterateExpr
-      expect(findExpr.iterator.type).toBe(IteratorType.FIND)
+      expect(findExpr.iterator._forge).toBe(IteratorType.FIND)
 
       // Which has the filter as its input
       const filterExpr = findExpr.input as IterateExpr
-      expect(filterExpr.iterator.type).toBe(IteratorType.FILTER)
+      expect(filterExpr.iterator._forge).toBe(IteratorType.FILTER)
     })
 
     it('should not mutate original builder', () => {
@@ -444,7 +444,7 @@ describe('IterableBuilder', () => {
       original.path('goals')
 
       // Assert
-      expect(original.expr.type).toBe(ExpressionType.ITERATE)
+      expect(original.expr._forge).toBe(ExpressionType.ITERATE)
     })
   })
 
@@ -453,22 +453,22 @@ describe('IterableBuilder', () => {
       // This simulates: Data('items').each(Iterator.Filter(...)).each(Iterator.Map(...))
 
       // Arrange
-      const dataRef: ReferenceExpr = { type: ExpressionType.REFERENCE, path: ['data', 'items'] }
+      const dataRef: ReferenceExpr = { _forge: ExpressionType.REFERENCE, path: ['data', 'items'] }
       const filter = Iterator.Filter(mockPredicate())
       const map = Iterator.Map({
-        label: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'name'] },
+        label: { _forge: ExpressionType.REFERENCE, path: ['@scope', '0', 'name'] },
       })
 
       // Act
       const result = IterableBuilder.create(dataRef, filter).each(map).build()
 
       // Assert
-      expect(result.type).toBe(ExpressionType.ITERATE)
-      expect(result.iterator.type).toBe(IteratorType.MAP)
+      expect(result._forge).toBe(ExpressionType.ITERATE)
+      expect(result.iterator._forge).toBe(IteratorType.MAP)
 
       const filterStep = result.input as IterateExpr
-      expect(filterStep.type).toBe(ExpressionType.ITERATE)
-      expect(filterStep.iterator.type).toBe(IteratorType.FILTER)
+      expect(filterStep._forge).toBe(ExpressionType.ITERATE)
+      expect(filterStep.iterator._forge).toBe(IteratorType.FILTER)
 
       expect(filterStep.input).toEqual(dataRef)
     })

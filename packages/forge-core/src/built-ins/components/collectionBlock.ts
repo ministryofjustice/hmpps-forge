@@ -1,5 +1,5 @@
 import { component } from '../../components/component'
-import { StructureType } from '../../authoring/types/enums'
+import { ComponentCallType } from '../../authoring/types/enums'
 import { isRenderedBlock } from '../../components/typeguards'
 import { escapeHtmlEntities } from '../sanitize'
 import type {
@@ -77,7 +77,7 @@ export interface CollectionBlock<T = BlockDefinition, F = T> extends BlockDefini
  * during evaluation - a transformation the generic type can't express.
  */
 export interface EvaluatedCollectionBlock {
-  type: typeof StructureType.BLOCK
+  _forge: ComponentCallType
   variant: 'collection-block'
 
   /** The rendered blocks from applying the template to each collection item */
