@@ -2,9 +2,9 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import {
   ConditionCombinatorType,
   ExpressionType,
-  FunctionType,
+  FunctionCallType,
   IteratorType,
-  OutcomeType,
+  PolicyType,
   PredicateType,
 } from '../../../../../authoring/types/enums'
 import {
@@ -52,7 +52,7 @@ import type { NodeBuildContext } from './NodeFactory'
  * Every `type` discriminant that marks an authored expression, as opposed to
  * a structure (journey/step/block), a hook, or plain data.
  *
- * ExpressionType.NEXT and IteratorType are deliberately absent: nothing in
+ * PolicyType.NAVIGATION_NEXT and IteratorType are deliberately absent: nothing in
  * the authoring surface produces a NEXT expression, and iterator configs are
  * inline configuration consumed by Iterate expressions, not expressions
  * themselves.
@@ -63,12 +63,13 @@ const EXPRESSION_TYPES: ReadonlySet<string> = new Set([
   ExpressionType.CONDITIONAL,
   ExpressionType.MATCH,
   ExpressionType.ITERATE,
-  ExpressionType.VALIDATION,
-  ExpressionType.TIE_BREAKER,
+  PolicyType.VALIDATION_RULE,
+  PolicyType.NAVIGATION_TIE_BREAKER,
   ...Object.values(PredicateType),
   ...Object.values(ConditionCombinatorType),
-  ...Object.values(FunctionType),
-  ...Object.values(OutcomeType),
+  ...Object.values(FunctionCallType),
+  PolicyType.OUTCOME_REDIRECT,
+  PolicyType.OUTCOME_THROW_ERROR,
 ])
 
 function isExpression(node: any): boolean {
@@ -271,7 +272,7 @@ export function createValidationNode(json: ValidationExpr, ctx: NodeBuildContext
     return {
       id: ctx.nextId(),
       type: ASTNodeType.EXPRESSION,
-      expressionType: ExpressionType.VALIDATION,
+      expressionType: PolicyType.VALIDATION_RULE,
       properties: {
         ...executionProperties,
         function: ctx.createNode(json.function) as FunctionASTNode,
@@ -292,7 +293,7 @@ export function createValidationNode(json: ValidationExpr, ctx: NodeBuildContext
   return {
     id: ctx.nextId(),
     type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.VALIDATION,
+    expressionType: PolicyType.VALIDATION_RULE,
     properties,
   }
 }
@@ -312,7 +313,7 @@ export function createTieBreakerNode(json: TieBreaker, ctx: NodeBuildContext): T
   return {
     id: ctx.nextId(),
     type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.TIE_BREAKER,
+    expressionType: PolicyType.NAVIGATION_TIE_BREAKER,
     properties,
   }
 }

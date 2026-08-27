@@ -1,6 +1,6 @@
 import { and, or, xor, not } from './combinators'
 import { ConditionFunctionExpr, PredicateTestExpr } from '../types/expressions.type'
-import { ConditionCombinatorType, FunctionType, PredicateType } from '../types/enums'
+import { ConditionCombinatorType, FunctionCallType, PredicateType } from '../types/enums'
 
 describe('Logic predicates', () => {
   // Helper to create a test predicate
@@ -8,12 +8,12 @@ describe('Logic predicates', () => {
     type: PredicateType.TEST,
     subject: 'value',
     negate,
-    condition: { type: FunctionType.CONDITION, name, arguments: [] as any },
+    condition: { type: FunctionCallType.CONDITION, name, arguments: [] as any },
   })
 
   // Helper to create a bare condition, which takes its subject from the surrounding match
   const testCondition = (name: string): ConditionFunctionExpr => ({
-    type: FunctionType.CONDITION,
+    type: FunctionCallType.CONDITION,
     name,
     arguments: [],
   })

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AuthoredValueClassifier from '../../../chassis/compilation/analysis/shared/AuthoredValueClassifier'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
-import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
+import { PolicyType, BlockType, ExpressionType, FunctionCallType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   FormatGenerators,
@@ -72,7 +72,7 @@ function createReference(path: string[]): ReferenceASTNode {
 function createConditionFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
     type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionType.CONDITION,
+    expressionType: FunctionCallType.CONDITION,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -82,7 +82,7 @@ function createConditionFunction(name: string, args: unknown[] = []): FunctionAS
 function createGeneratorFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
     type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionType.GENERATOR,
+    expressionType: FunctionCallType.GENERATOR,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -123,7 +123,7 @@ function createValidation(
 ): ValidationASTNode {
   return {
     type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.VALIDATION,
+    expressionType: PolicyType.VALIDATION_RULE,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: {
@@ -142,7 +142,7 @@ function createFunctionValidation(
 ): ValidationASTNode {
   return {
     type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.VALIDATION,
+    expressionType: PolicyType.VALIDATION_RULE,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: {
@@ -389,7 +389,7 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         validateDate: {
           name: 'validateDate',
-          functionType: FunctionType.GENERATOR,
+          functionType: FunctionCallType.GENERATOR,
           isAsync: false,
           evaluate,
         },
@@ -433,7 +433,7 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         validateCrn: {
           name: 'validateCrn',
-          functionType: FunctionType.GENERATOR,
+          functionType: FunctionCallType.GENERATOR,
           isAsync: false,
           evaluate,
         },
@@ -469,7 +469,7 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         validateCrn: {
           name: 'validateCrn',
-          functionType: FunctionType.GENERATOR,
+          functionType: FunctionCallType.GENERATOR,
           isAsync: true,
           evaluate: async () => [{ message: 'CRN was not found' }],
         },
@@ -501,7 +501,7 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         validateStep: {
           name: 'validateStep',
-          functionType: FunctionType.GENERATOR,
+          functionType: FunctionCallType.GENERATOR,
           isAsync: false,
           evaluate: () => [{ message: 'The step is incomplete', details: { section: 'identity' } }],
         },
@@ -539,13 +539,13 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         isRequired: {
           name: 'isRequired',
-          functionType: FunctionType.CONDITION,
+          functionType: FunctionCallType.CONDITION,
           isAsync: false,
           evaluate: () => false,
         },
         validateName: {
           name: 'validateName',
-          functionType: FunctionType.GENERATOR,
+          functionType: FunctionCallType.GENERATOR,
           isAsync: false,
           evaluate: () => [{ message: 'Use your full name' }, { message: 'Do not include a title' }],
         },
@@ -731,13 +731,13 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         equals: {
           name: 'equals',
-          functionType: FunctionType.CONDITION,
+          functionType: FunctionCallType.CONDITION,
           isAsync: false,
           evaluate: (value: unknown, expected: unknown) => value === expected,
         },
         validateRequired: {
           name: 'validateRequired',
-          functionType: FunctionType.GENERATOR,
+          functionType: FunctionCallType.GENERATOR,
           isAsync: false,
           evaluate,
         },
@@ -1046,7 +1046,7 @@ describe('StepValidationCompiler', () => {
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
           phase: 'validation',
           functionName: 'throwingCondition',
-          functionType: FunctionType.CONDITION,
+          functionType: FunctionCallType.CONDITION,
         })
       }
     })
@@ -1061,7 +1061,7 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         validateDate: {
           name: 'validateDate',
-          functionType: FunctionType.GENERATOR,
+          functionType: FunctionCallType.GENERATOR,
           isAsync: true,
           evaluate: async () => {
             throw new TypeError('Date service returned an invalid response')
@@ -1093,7 +1093,7 @@ describe('StepValidationCompiler', () => {
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
           phase: 'validation',
           functionName: 'validateDate',
-          functionType: FunctionType.GENERATOR,
+          functionType: FunctionCallType.GENERATOR,
         })
       }
     })
@@ -1105,7 +1105,7 @@ describe('StepValidationCompiler', () => {
       const ref = createReference(['answers', 'name'])
       const messageGenerator: FunctionASTNode = {
         type: ASTNodeType.EXPRESSION,
-        expressionType: FunctionType.GENERATOR,
+        expressionType: FunctionCallType.GENERATOR,
         id: ASTTestFactory.getId(),
         diagnostics: ASTTestFactory.diagnostics(),
         properties: { name: 'messageGenerator', arguments: [] },
@@ -1149,7 +1149,7 @@ describe('StepValidationCompiler', () => {
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
           phase: 'validation',
           functionName: 'messageGenerator',
-          functionType: FunctionType.GENERATOR,
+          functionType: FunctionCallType.GENERATOR,
         })
       }
     })
@@ -1590,7 +1590,7 @@ describe('StepValidationCompiler', () => {
             validWhen: [
               {
                 type: ASTNodeType.EXPRESSION,
-                expressionType: ExpressionType.VALIDATION,
+                expressionType: PolicyType.VALIDATION_RULE,
                 properties: {
                   condition: {
                     type: ASTNodeType.PREDICATE,
@@ -1603,7 +1603,7 @@ describe('StepValidationCompiler', () => {
                       },
                       condition: {
                         type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionType.CONDITION,
+                        expressionType: FunctionCallType.CONDITION,
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,
@@ -1651,7 +1651,7 @@ describe('StepValidationCompiler', () => {
             validWhen: [
               {
                 type: ASTNodeType.EXPRESSION,
-                expressionType: ExpressionType.VALIDATION,
+                expressionType: PolicyType.VALIDATION_RULE,
                 properties: {
                   condition: {
                     type: ASTNodeType.PREDICATE,
@@ -1664,7 +1664,7 @@ describe('StepValidationCompiler', () => {
                       },
                       condition: {
                         type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionType.CONDITION,
+                        expressionType: FunctionCallType.CONDITION,
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,
@@ -1706,7 +1706,7 @@ describe('StepValidationCompiler', () => {
             validWhen: [
               {
                 type: ASTNodeType.EXPRESSION,
-                expressionType: ExpressionType.VALIDATION,
+                expressionType: PolicyType.VALIDATION_RULE,
                 properties: {
                   groups: ['items'],
                   condition: {
@@ -1720,7 +1720,7 @@ describe('StepValidationCompiler', () => {
                       },
                       condition: {
                         type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionType.CONDITION,
+                        expressionType: FunctionCallType.CONDITION,
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,
@@ -1771,7 +1771,7 @@ describe('StepValidationCompiler', () => {
             validWhen: [
               {
                 type: ASTNodeType.EXPRESSION,
-                expressionType: ExpressionType.VALIDATION,
+                expressionType: PolicyType.VALIDATION_RULE,
                 properties: {
                   condition: {
                     type: ASTNodeType.PREDICATE,
@@ -1784,7 +1784,7 @@ describe('StepValidationCompiler', () => {
                       },
                       condition: {
                         type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionType.CONDITION,
+                        expressionType: FunctionCallType.CONDITION,
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,
@@ -1857,7 +1857,7 @@ describe('StepValidationCompiler', () => {
                       validWhen: [
                         {
                           type: ASTNodeType.EXPRESSION,
-                          expressionType: ExpressionType.VALIDATION,
+                          expressionType: PolicyType.VALIDATION_RULE,
                           properties: {
                             condition: {
                               type: ASTNodeType.PREDICATE,
@@ -1870,7 +1870,7 @@ describe('StepValidationCompiler', () => {
                                 },
                                 condition: {
                                   type: ASTNodeType.EXPRESSION,
-                                  expressionType: FunctionType.CONDITION,
+                                  expressionType: FunctionCallType.CONDITION,
                                   properties: { name: 'isRequired', arguments: [] },
                                 },
                                 negate: false,
@@ -1933,7 +1933,7 @@ describe('StepValidationCompiler', () => {
             validWhen: [
               {
                 type: ASTNodeType.EXPRESSION,
-                expressionType: ExpressionType.VALIDATION,
+                expressionType: PolicyType.VALIDATION_RULE,
                 properties: {
                   condition: {
                     type: ASTNodeType.PREDICATE,
@@ -1946,7 +1946,7 @@ describe('StepValidationCompiler', () => {
                       },
                       condition: {
                         type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionType.CONDITION,
+                        expressionType: FunctionCallType.CONDITION,
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,
@@ -1993,7 +1993,7 @@ describe('StepValidationCompiler', () => {
             validWhen: [
               {
                 type: ASTNodeType.EXPRESSION,
-                expressionType: ExpressionType.VALIDATION,
+                expressionType: PolicyType.VALIDATION_RULE,
                 properties: {
                   condition: {
                     type: ASTNodeType.PREDICATE,
@@ -2006,7 +2006,7 @@ describe('StepValidationCompiler', () => {
                       },
                       condition: {
                         type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionType.CONDITION,
+                        expressionType: FunctionCallType.CONDITION,
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,
@@ -2051,7 +2051,7 @@ describe('StepValidationCompiler', () => {
             validWhen: [
               {
                 type: ASTNodeType.EXPRESSION,
-                expressionType: ExpressionType.VALIDATION,
+                expressionType: PolicyType.VALIDATION_RULE,
                 properties: {
                   condition: {
                     type: ASTNodeType.PREDICATE,
@@ -2064,7 +2064,7 @@ describe('StepValidationCompiler', () => {
                       },
                       condition: {
                         type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionType.CONDITION,
+                        expressionType: FunctionCallType.CONDITION,
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,
@@ -2139,7 +2139,7 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         validateName: {
           name: 'validateName',
-          functionType: FunctionType.GENERATOR,
+          functionType: FunctionCallType.GENERATOR,
           isAsync: false,
           evaluate: () => [{ message: 'Enter a name' }],
         },
@@ -2265,7 +2265,7 @@ describe('StepValidationCompiler', () => {
             validWhen: [
               {
                 type: ASTNodeType.EXPRESSION,
-                expressionType: ExpressionType.VALIDATION,
+                expressionType: PolicyType.VALIDATION_RULE,
                 properties: {
                   condition: {
                     type: ASTNodeType.PREDICATE,
@@ -2278,7 +2278,7 @@ describe('StepValidationCompiler', () => {
                       },
                       condition: {
                         type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionType.CONDITION,
+                        expressionType: FunctionCallType.CONDITION,
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,
@@ -2318,7 +2318,7 @@ describe('StepValidationCompiler', () => {
             validWhen: [
               {
                 type: ASTNodeType.EXPRESSION,
-                expressionType: ExpressionType.VALIDATION,
+                expressionType: PolicyType.VALIDATION_RULE,
                 properties: {
                   condition: {
                     type: ASTNodeType.PREDICATE,
@@ -2331,7 +2331,7 @@ describe('StepValidationCompiler', () => {
                       },
                       condition: {
                         type: ASTNodeType.EXPRESSION,
-                        expressionType: FunctionType.CONDITION,
+                        expressionType: FunctionCallType.CONDITION,
                         properties: { name: 'isRequired', arguments: [] },
                       },
                       negate: false,

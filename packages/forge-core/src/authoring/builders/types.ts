@@ -6,9 +6,23 @@ import {
   MapIteratorConfig,
   PredicateTestExpr,
   ResolvableExpression,
+  resolvesMarker,
   ResolvableValue,
   TransformerFunctionExpr,
 } from '../types/expressions.type'
+
+/**
+ * The type-level brand every chainable authoring value carries. Narrows the
+ * optional {@link ResolvableExpression} marker to a required member, so the
+ * `Resolvable*` aliases' expression arm can be discriminated with a plain
+ * `Exclude` - the optional marker is a weak type, which record types and the
+ * wire-format expressions also match. A required member is immune to both:
+ * neither an index signature nor a weak-type bypass satisfies it. Never set
+ * at runtime; the builder classes carry it with a type-only `declare`.
+ */
+export interface ChainableExpression<T = any> extends ResolvableExpression<T> {
+  readonly [resolvesMarker]: T
+}
 
 /**
  * A value that can be returned from a conditional or match branch.
@@ -37,7 +51,7 @@ export interface ChainableNegation {
  * Public interface for chainable iterable expressions.
  * Created by .each(Iterator.Map/Filter) on references or expressions.
  */
-export interface ChainableIterable extends ResolvableExpression {
+export interface ChainableIterable extends ChainableExpression {
   /**
    * Chain a Find iterator.
    * Returns a ChainableExpr since Find returns a single item, not an array.
@@ -75,7 +89,7 @@ export interface ChainableIterable extends ResolvableExpression {
  * Public interface for chainable value expressions.
  * Only exposes the fluent API methods - internal methods like build() are hidden.
  */
-export interface ChainableExpr extends ResolvableExpression {
+export interface ChainableExpr extends ChainableExpression {
   /**
    * Navigate into a property of the expression result.
    * Creates a reference with this expression as its base.
@@ -113,7 +127,7 @@ export interface ChainableExpr extends ResolvableExpression {
  * Public interface for chainable reference expressions.
  * Extends ChainableExpr with path navigation.
  */
-export interface ChainableRef extends ResolvableExpression {
+export interface ChainableRef extends ChainableExpression {
   /**
    * Navigate to a nested property.
    * Supports dot notation: .path('user.address.city')
@@ -152,7 +166,7 @@ export interface ChainableRef extends ResolvableExpression {
  * The chain continues with .then() and .else(); the finished conditional is
  * assignable anywhere a Resolvable* value is accepted.
  */
-export interface ChainableConditional {
+export interface ChainableConditional extends ChainableExpression {
   /**
    * Sets the value to return when the predicate evaluates to true.
    */
@@ -169,7 +183,7 @@ export interface ChainableConditional {
  * The chain continues with .branch() and .otherwise(); the finished match is
  * assignable anywhere a Resolvable* value is accepted.
  */
-export interface ChainableMatch {
+export interface ChainableMatch extends ChainableExpression {
   /**
    * Adds a branch: when the condition matches the subject, the value is returned.
    */
@@ -185,7 +199,7 @@ export interface ChainableMatch {
  * Public interface for generator expressions, returned by registered
  * generator functions (e.g. Generator.Date.Now()).
  */
-export interface ChainableGenerator extends ResolvableExpression {
+export interface ChainableGenerator extends ChainableExpression {
   /**
    * Transform the generated value through a pipeline of transformers.
    */
@@ -205,7 +219,7 @@ export interface ChainableGenerator extends ResolvableExpression {
 /**
  * Public interface for scoped reference builders (Item()).
  */
-export interface ChainableScopedRef extends ResolvableExpression {
+export interface ChainableScopedRef extends ChainableExpression {
   /**
    * Navigate to the parent scope in nested collections.
    */
@@ -232,7 +246,7 @@ export interface ChainableScopedRef extends ResolvableExpression {
 /**
  * Public interface for loop item references (Loop.Item()).
  */
-export interface ChainableLoopItemRef extends ResolvableExpression {
+export interface ChainableLoopItemRef extends ChainableExpression {
   /**
    * Get a sub-property of the loop item.
    * Supports dot notation: .path('user.address.city')
@@ -254,7 +268,7 @@ export interface ChainableLoopItemRef extends ResolvableExpression {
 /**
  * Public interface for loop metadata references (Loop).
  */
-export interface ChainableLoopRef extends ResolvableExpression {
+export interface ChainableLoopRef extends ChainableExpression {
   /**
    * Navigate to the parent loop in nested collections.
    */

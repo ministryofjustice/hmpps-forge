@@ -1,5 +1,5 @@
 import type { ZodType } from 'zod'
-import { FunctionType } from '../types/enums'
+import { FunctionCallType } from '../types/enums'
 import { captureCallsite, stampCallsite } from '../builders/utils/captureCallsite'
 import { stampEntry } from '../builders/utils/stampEntry'
 import type { FunctionEntry } from '../types/functions.type'
@@ -47,7 +47,7 @@ type EntryHandle = ((...args: any[]) => unknown) & FunctionEntry
 export type CallResultBuilder = (name: string, prepared: any[], handle: EntryHandle) => unknown
 
 export const createEntry = (
-  functionType: FunctionType,
+  functionType: FunctionCallType,
   helperName: string,
   first: string | AnyEntryOptions,
   second: AnyEntryOptions | undefined,
@@ -84,7 +84,7 @@ export const createEntry = (
 }
 
 export const buildExpression =
-  (type: FunctionType): CallResultBuilder =>
+  (type: FunctionCallType): CallResultBuilder =>
   (name, prepared, entry) => {
     const expr = { type, name, arguments: prepared }
 

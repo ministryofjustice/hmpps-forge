@@ -1,5 +1,5 @@
 import { AddressConditions } from './addressConditions'
-import { FunctionType } from '../../../authoring/types/enums'
+import { FunctionCallType } from '../../../authoring/types/enums'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('AddressConditions', () => {
@@ -66,7 +66,7 @@ describe('AddressConditions', () => {
     test('should build correct expression object', () => {
       const expr = AddressConditions.IsValidPostcode()
       expect(expr).toEqual({
-        type: FunctionType.CONDITION,
+        type: FunctionCallType.CONDITION,
         name: 'Address.IsValidPostcode',
         arguments: [],
       })

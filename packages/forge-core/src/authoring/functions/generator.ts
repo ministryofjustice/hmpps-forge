@@ -1,4 +1,4 @@
-import { FunctionType } from '../types/enums'
+import { FunctionCallType } from '../types/enums'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
 import { captureCallsite, stampCallsite } from '../builders/utils/captureCallsite'
 import { stampEntry } from '../builders/utils/stampEntry'
@@ -96,5 +96,5 @@ export function generator(
   first: string | GeneratorOptions<any, any, any>,
   second?: GeneratorOptions<any, any, any>,
 ): GeneratorEntry<any, any> {
-  return createEntry(FunctionType.GENERATOR, 'generator', first, second, buildGeneratorHandle)
+  return createEntry(FunctionCallType.GENERATOR, 'generator', first, second, buildGeneratorHandle)
 }

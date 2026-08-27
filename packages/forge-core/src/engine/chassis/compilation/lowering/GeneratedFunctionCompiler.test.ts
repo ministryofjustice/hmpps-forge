@@ -11,7 +11,7 @@ import ExpressionDispatcher from './expressions/ExpressionDispatcher'
 import { CompilationPhase, compileGeneratedFunction, type GeneratedFunction } from './GeneratedFunctionCompiler'
 import { ASTNodeType } from '../../contracts/ast/enums'
 import type { FunctionASTNode } from '../../contracts/ast/expressions.type'
-import { FunctionType } from '../../../../authoring/types/enums'
+import { FunctionCallType } from '../../../../authoring/types/enums'
 
 const dependencies: CompilationDependencies = {
   functionRegistry: new FunctionRegistry(),
@@ -138,7 +138,7 @@ describe('GeneratedFunctionCompiler', () => {
       const expr = new ExpressionDispatcher({ functionRegistry, componentRegistry: new ComponentRegistry() })
       const expression: FunctionASTNode = {
         type: ASTNodeType.EXPRESSION,
-        expressionType: FunctionType.GENERATOR,
+        expressionType: FunctionCallType.GENERATOR,
         id: 'compile_ast:1',
         diagnostics: {
           source: { path: ['journey'], formattedPath: 'myJourney > value' },
@@ -177,7 +177,7 @@ describe('GeneratedFunctionCompiler', () => {
           nodeId: 'compile_ast:1',
           formattedPath: 'myJourney > value',
           functionName: 'throwingFunction',
-          functionType: FunctionType.GENERATOR,
+          functionType: FunctionCallType.GENERATOR,
           definedAt: 'myJourney (/app/journeys/goals.journey.ts:12:5)',
         })
         expect(error.stack).toContain('at [defined] myJourney (/app/journeys/goals.journey.ts:12:5)')

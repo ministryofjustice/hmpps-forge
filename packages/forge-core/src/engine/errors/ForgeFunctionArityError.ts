@@ -3,7 +3,7 @@ import ForgeBaseError from './ForgeBaseError'
 interface ForgeFunctionArityErrorOptions {
   /** Name of the function whose arity is wrong */
   functionName: string
-  /** Type of the function (e.g. FunctionType.Condition) */
+  /** Type of the function (e.g. FunctionCallType.Condition) */
   functionType: string
   /** Human-readable description of the expected arity (e.g. "2", "at least 2", "between 1 and 3") */
   expected: string

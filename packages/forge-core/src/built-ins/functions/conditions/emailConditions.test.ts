@@ -1,5 +1,5 @@
 import { EmailConditions } from './emailConditions'
-import { FunctionType } from '../../../authoring/types/enums'
+import { FunctionCallType } from '../../../authoring/types/enums'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('EmailConditions', () => {
@@ -92,7 +92,7 @@ describe('EmailConditions', () => {
     test('should build correct expression object', () => {
       const expr = EmailConditions.IsValidEmail()
       expect(expr).toEqual({
-        type: FunctionType.CONDITION,
+        type: FunctionCallType.CONDITION,
         name: 'Email.IsValidEmail',
         arguments: [],
       })

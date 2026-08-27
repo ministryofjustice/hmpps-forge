@@ -1,9 +1,9 @@
 import { ASTNodeType } from '../../../contracts/ast/enums'
-import {
+import { PolicyType,
   ExpressionType,
   StructureType,
   BlockType,
-  FunctionType,
+  FunctionCallType,
   HookType,
   PredicateType,
 } from '../../../../../authoring/types/enums'
@@ -343,7 +343,7 @@ describe('structures', () => {
               type: PredicateType.TEST,
               negate: false,
               subject: { type: ExpressionType.REFERENCE, path: ['data', 'addressLoaded'] },
-              condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: [true] as ResolvableValue[] },
+              condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: [true] as ResolvableValue[] },
             },
           },
         ],
@@ -587,12 +587,12 @@ describe('structures', () => {
         code: 'email',
         validWhen: [
           {
-            type: ExpressionType.VALIDATION,
+            type: PolicyType.VALIDATION_RULE,
             condition: {
               type: PredicateType.TEST,
               subject: { type: ExpressionType.REFERENCE, path: ['@self'] },
               negate: true,
-              condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] as ResolvableValue[] },
+              condition: { type: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] as ResolvableValue[] },
             },
             message: 'Email is required',
           },
@@ -620,7 +620,7 @@ describe('structures', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'showDetails'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
       } satisfies FieldBlockDefinition
 
@@ -662,16 +662,16 @@ describe('structures', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'requireEmail'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         validWhen: [
           {
-            type: ExpressionType.VALIDATION,
+            type: PolicyType.VALIDATION_RULE,
             condition: {
               type: PredicateType.TEST,
               subject: { type: ExpressionType.REFERENCE, path: ['@self'] },
               negate: true,
-              condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] as ResolvableValue[] },
+              condition: { type: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] as ResolvableValue[] },
             },
             message: 'Required',
           },

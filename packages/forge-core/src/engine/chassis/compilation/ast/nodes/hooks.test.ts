@@ -1,8 +1,8 @@
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import {
   ExpressionType,
-  FunctionType,
-  OutcomeType,
+  FunctionCallType,
+  PolicyType,
   PredicateType,
   HookType,
 } from '../../../../../authoring/types/enums'
@@ -44,7 +44,7 @@ describe('hooks', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         },
       } satisfies AccessHook
 
@@ -64,8 +64,8 @@ describe('hooks', () => {
       const json = {
         type: HookType.ACCESS,
         effects: [
-          { type: FunctionType.EFFECT, name: 'trackPageView', arguments: [] as ResolvableValue[] },
-          { type: FunctionType.EFFECT, name: 'logAccess', arguments: [] as ResolvableValue[] },
+          { type: FunctionCallType.EFFECT, name: 'trackPageView', arguments: [] as ResolvableValue[] },
+          { type: FunctionCallType.EFFECT, name: 'logAccess', arguments: [] as ResolvableValue[] },
         ],
       } satisfies AccessHook
 
@@ -81,19 +81,19 @@ describe('hooks', () => {
       effects.forEach(effect => {
         expect(effect).toHaveProperty('id')
         expect(effect.type).toBe(ASTNodeType.EXPRESSION)
-        expect(effect.expressionType).toBe(FunctionType.EFFECT)
+        expect(effect.expressionType).toBe(FunctionCallType.EFFECT)
       })
     })
 
     it('should transform each effect using real nodeFactory', () => {
       // Arrange
       const effect1 = {
-        type: FunctionType.EFFECT,
+        type: FunctionCallType.EFFECT,
         name: 'effect1',
         arguments: [] as ResolvableValue[],
       } satisfies EffectFunctionExpr
       const effect2 = {
-        type: FunctionType.EFFECT,
+        type: FunctionCallType.EFFECT,
         name: 'effect2',
         arguments: [] as ResolvableValue[],
       } satisfies EffectFunctionExpr
@@ -111,11 +111,11 @@ describe('hooks', () => {
       expect(effects).toHaveLength(2)
 
       expect(effects[0].type).toBe(ASTNodeType.EXPRESSION)
-      expect(effects[0].expressionType).toBe(FunctionType.EFFECT)
+      expect(effects[0].expressionType).toBe(FunctionCallType.EFFECT)
       expect(effects[0].properties.name).toBe('effect1')
 
       expect(effects[1].type).toBe(ASTNodeType.EXPRESSION)
-      expect(effects[1].expressionType).toBe(FunctionType.EFFECT)
+      expect(effects[1].expressionType).toBe(FunctionCallType.EFFECT)
       expect(effects[1].properties.name).toBe('effect2')
     })
 
@@ -125,12 +125,12 @@ describe('hooks', () => {
         type: HookType.ACCESS,
         next: [
           {
-            type: OutcomeType.REDIRECT,
+            type: PolicyType.OUTCOME_REDIRECT,
             when: {
               type: PredicateType.TEST,
               subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
               negate: false,
-              condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+              condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
             },
             goto: '/step1',
           } satisfies RedirectOutcome,
@@ -144,7 +144,7 @@ describe('hooks', () => {
       expect(result.properties.next).toBeDefined()
       expect(result.properties.next).toHaveLength(1)
       expect(result.properties.next![0].type).toBe(ASTNodeType.OUTCOME)
-      expect((result.properties.next![0] as RedirectOutcomeASTNode).outcomeType).toBe(OutcomeType.REDIRECT)
+      expect((result.properties.next![0] as RedirectOutcomeASTNode).outcomeType).toBe(PolicyType.OUTCOME_REDIRECT)
     })
 
     it('should create an Access hook with throwError outcome', () => {
@@ -153,12 +153,12 @@ describe('hooks', () => {
         type: HookType.ACCESS,
         next: [
           {
-            type: OutcomeType.THROW_ERROR,
+            type: PolicyType.OUTCOME_THROW_ERROR,
             when: {
               type: PredicateType.TEST,
               subject: { type: ExpressionType.REFERENCE, path: ['data', 'notFound'] } satisfies ReferenceExpr,
               negate: false,
-              condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+              condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
             },
             status: 404,
             message: 'Item not found',
@@ -173,7 +173,7 @@ describe('hooks', () => {
       expect(result.properties.next).toBeDefined()
       expect(result.properties.next).toHaveLength(1)
       expect(result.properties.next![0].type).toBe(ASTNodeType.OUTCOME)
-      expect((result.properties.next![0] as ThrowErrorOutcomeASTNode).outcomeType).toBe(OutcomeType.THROW_ERROR)
+      expect((result.properties.next![0] as ThrowErrorOutcomeASTNode).outcomeType).toBe(PolicyType.OUTCOME_THROW_ERROR)
     })
 
     it('should create an Access hook with multiple outcomes', () => {
@@ -182,18 +182,18 @@ describe('hooks', () => {
         type: HookType.ACCESS,
         next: [
           {
-            type: OutcomeType.THROW_ERROR,
+            type: PolicyType.OUTCOME_THROW_ERROR,
             when: {
               type: PredicateType.TEST,
               subject: { type: ExpressionType.REFERENCE, path: ['data', 'notFound'] } satisfies ReferenceExpr,
               negate: false,
-              condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+              condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
             },
             status: 404,
             message: 'Not found',
           } satisfies ThrowErrorOutcome,
           {
-            type: OutcomeType.REDIRECT,
+            type: PolicyType.OUTCOME_REDIRECT,
             goto: '/overview',
           } satisfies RedirectOutcome,
         ],
@@ -205,8 +205,8 @@ describe('hooks', () => {
       // Assert
       expect(result.properties.next).toBeDefined()
       expect(result.properties.next).toHaveLength(2)
-      expect((result.properties.next![0] as ThrowErrorOutcomeASTNode).outcomeType).toBe(OutcomeType.THROW_ERROR)
-      expect((result.properties.next![1] as RedirectOutcomeASTNode).outcomeType).toBe(OutcomeType.REDIRECT)
+      expect((result.properties.next![0] as ThrowErrorOutcomeASTNode).outcomeType).toBe(PolicyType.OUTCOME_THROW_ERROR)
+      expect((result.properties.next![1] as RedirectOutcomeASTNode).outcomeType).toBe(PolicyType.OUTCOME_REDIRECT)
     })
 
     it('should create an Access hook with all properties', () => {
@@ -217,17 +217,17 @@ describe('hooks', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
-        effects: [{ type: FunctionType.EFFECT, name: 'trackPageView', arguments: [] as ResolvableValue[] }],
+        effects: [{ type: FunctionCallType.EFFECT, name: 'trackPageView', arguments: [] as ResolvableValue[] }],
         next: [
           {
-            type: OutcomeType.REDIRECT,
+            type: PolicyType.OUTCOME_REDIRECT,
             when: {
               type: PredicateType.TEST,
               subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
               negate: false,
-              condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+              condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
             } satisfies PredicateTestExpr,
             goto: '/step1',
           } satisfies RedirectOutcome,
@@ -310,7 +310,7 @@ describe('hooks', () => {
           type: PredicateType.TEST,
           negate: false,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] },
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         },
       } satisfies SubmitHook
 
@@ -336,7 +336,7 @@ describe('hooks', () => {
           type: PredicateType.TEST,
           negate: false,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] },
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         },
       } satisfies SubmitHook
 
@@ -402,10 +402,10 @@ describe('hooks', () => {
           type: HookType.SUBMIT,
           validate: true,
           onValid: {
-            next: [{ type: OutcomeType.REDIRECT, goto: '/valid' } satisfies RedirectOutcome],
+            next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/valid' } satisfies RedirectOutcome],
           },
           onInvalid: {
-            next: [{ type: OutcomeType.REDIRECT, goto: '/invalid' } satisfies RedirectOutcome],
+            next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/invalid' } satisfies RedirectOutcome],
           },
         } satisfies SubmitHook,
         nodeFactory.context,
@@ -420,7 +420,7 @@ describe('hooks', () => {
           type: HookType.SUBMIT,
           validate: false,
           onAlways: {
-            next: [{ type: OutcomeType.REDIRECT, goto: '/next' } satisfies RedirectOutcome],
+            next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/next' } satisfies RedirectOutcome],
           },
         } satisfies SubmitHook,
         nodeFactory.context,
@@ -436,8 +436,8 @@ describe('hooks', () => {
         type: HookType.SUBMIT,
         validate: true,
         onAlways: {
-          effects: [{ type: FunctionType.EFFECT, name: 'saveData', arguments: [] as ResolvableValue[] }],
-          next: [{ type: OutcomeType.REDIRECT, goto: '/next-step' } satisfies RedirectOutcome],
+          effects: [{ type: FunctionCallType.EFFECT, name: 'saveData', arguments: [] as ResolvableValue[] }],
+          next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/next-step' } satisfies RedirectOutcome],
         },
       } satisfies SubmitHook
 
@@ -462,8 +462,8 @@ describe('hooks', () => {
         type: HookType.SUBMIT,
         validate: true,
         onValid: {
-          effects: [{ type: FunctionType.EFFECT, name: 'submitForm', arguments: [] as ResolvableValue[] }],
-          next: [{ type: OutcomeType.REDIRECT, goto: '/success' } satisfies RedirectOutcome],
+          effects: [{ type: FunctionCallType.EFFECT, name: 'submitForm', arguments: [] as ResolvableValue[] }],
+          next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/success' } satisfies RedirectOutcome],
         },
       } satisfies SubmitHook
 
@@ -486,8 +486,8 @@ describe('hooks', () => {
         type: HookType.SUBMIT,
         validate: true,
         onInvalid: {
-          effects: [{ type: FunctionType.EFFECT, name: 'logError', arguments: [] as ResolvableValue[] }],
-          next: [{ type: OutcomeType.REDIRECT, goto: '/error' } satisfies RedirectOutcome],
+          effects: [{ type: FunctionCallType.EFFECT, name: 'logError', arguments: [] as ResolvableValue[] }],
+          next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/error' } satisfies RedirectOutcome],
         },
       } satisfies SubmitHook
 
@@ -510,14 +510,14 @@ describe('hooks', () => {
         type: HookType.SUBMIT,
         validate: true,
         onAlways: {
-          effects: [{ type: FunctionType.EFFECT, name: 'always', arguments: [] as ResolvableValue[] }],
+          effects: [{ type: FunctionCallType.EFFECT, name: 'always', arguments: [] as ResolvableValue[] }],
         },
         onValid: {
-          next: [{ type: OutcomeType.REDIRECT, goto: '/next' } satisfies RedirectOutcome],
+          next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/next' } satisfies RedirectOutcome],
         },
         onInvalid: {
-          effects: [{ type: FunctionType.EFFECT, name: 'invalid', arguments: [] as ResolvableValue[] }],
-          next: [{ type: OutcomeType.REDIRECT, goto: '/error' } satisfies RedirectOutcome],
+          effects: [{ type: FunctionCallType.EFFECT, name: 'invalid', arguments: [] as ResolvableValue[] }],
+          next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/error' } satisfies RedirectOutcome],
         },
       } satisfies SubmitHook
 
@@ -541,7 +541,7 @@ describe('hooks', () => {
         type: HookType.SUBMIT,
         validate: true,
         onAlways: {
-          effects: [{ type: FunctionType.EFFECT, name: 'saveData', arguments: [] as ResolvableValue[] }],
+          effects: [{ type: FunctionCallType.EFFECT, name: 'saveData', arguments: [] as ResolvableValue[] }],
         },
       } satisfies SubmitHook
 
@@ -560,7 +560,7 @@ describe('hooks', () => {
         type: HookType.SUBMIT,
         validate: true,
         onValid: {
-          next: [{ type: OutcomeType.REDIRECT, goto: '/next' } satisfies RedirectOutcome],
+          next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/next' } satisfies RedirectOutcome],
         },
       } satisfies SubmitHook
 

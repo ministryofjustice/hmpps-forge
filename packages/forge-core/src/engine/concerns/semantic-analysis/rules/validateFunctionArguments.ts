@@ -1,4 +1,4 @@
-import { FunctionType, ExpressionType } from '../../../../authoring/types/enums'
+import { FunctionCallType, ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
@@ -8,7 +8,7 @@ import type { TemplateNode, TemplateValue } from '../../../chassis/contracts/ast
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 
-const FUNCTION_TYPES: readonly string[] = Object.values(FunctionType)
+const FUNCTION_TYPES: readonly string[] = Object.values(FunctionCallType)
 
 function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeReferenceScopeError {
   const source = diagnostics?.source

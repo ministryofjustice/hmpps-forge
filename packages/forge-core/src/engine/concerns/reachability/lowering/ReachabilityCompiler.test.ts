@@ -1,6 +1,6 @@
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
-import { ExpressionType, FunctionType, OutcomeType, PredicateType } from '../../../../authoring/types/enums'
+import { ExpressionType, FunctionCallType, PolicyType, PredicateType } from '../../../../authoring/types/enums'
 import {
   FunctionASTNode,
   ReferenceASTNode,
@@ -35,7 +35,7 @@ function createReference(path: string[]): ReferenceASTNode {
 function createConditionFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
     type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionType.CONDITION,
+    expressionType: FunctionCallType.CONDITION,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -45,7 +45,7 @@ function createConditionFunction(name: string, args: unknown[] = []): FunctionAS
 function createGeneratorFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
     type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionType.GENERATOR,
+    expressionType: FunctionCallType.GENERATOR,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -65,7 +65,7 @@ function createTestPredicate(subject: ReferenceASTNode, condition: FunctionASTNo
 function createRedirectOutcome(goto: string | FunctionASTNode, when?: TestPredicateASTNode): RedirectOutcomeASTNode {
   return {
     type: ASTNodeType.OUTCOME,
-    outcomeType: OutcomeType.REDIRECT,
+    outcomeType: PolicyType.OUTCOME_REDIRECT,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { goto, when },
@@ -537,7 +537,7 @@ describe('ReachabilityCompiler', () => {
         .build()
       const outcome = {
         type: ASTNodeType.OUTCOME,
-        outcomeType: OutcomeType.REDIRECT,
+        outcomeType: PolicyType.OUTCOME_REDIRECT,
         id: ASTTestFactory.getId(),
         diagnostics: ASTTestFactory.diagnostics(),
         properties: { goto: gotoMatch },
@@ -824,7 +824,7 @@ describe('ReachabilityCompiler', () => {
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
           phase: 'reachability',
           functionName: 'throwingCondition',
-          functionType: FunctionType.CONDITION,
+          functionType: FunctionCallType.CONDITION,
         })
       }
     })

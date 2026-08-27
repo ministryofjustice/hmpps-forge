@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { staticValue } from '../../../contracts/models/authoredValue.type'
-import { BlockType, ExpressionType, FunctionType, IteratorType } from '../../../../../authoring/types/enums'
+import { PolicyType, BlockType, ExpressionType, FunctionCallType, IteratorType } from '../../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import type { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
@@ -81,7 +81,7 @@ function createIterateNode(
 function createTransformer(name: string, args: unknown[] = []): unknown {
   return {
     type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionType.TRANSFORMER,
+    expressionType: FunctionCallType.TRANSFORMER,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -164,7 +164,7 @@ describe('FieldModelBuilder', () => {
     it('should classify direct rules when validWhen is an array of validation expressions', () => {
       // Arrange
       const registry = createComponentRegistry({ variant: 'text-input' })
-      const rule = ASTTestFactory.expression(ExpressionType.VALIDATION).build()
+      const rule = ASTTestFactory.expression(PolicyType.VALIDATION_RULE).build()
       const block = createFieldBlock('name', { validWhen: [rule] })
       const builder = new FieldModelBuilder(registry)
 

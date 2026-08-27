@@ -1,6 +1,6 @@
 /* eslint-disable no-new-func */
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
-import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
+import { BlockType, ExpressionType, FunctionCallType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   FormatGenerators,
@@ -247,7 +247,7 @@ describe('StepResolveCompiler', () => {
 
     it('should keep compiled render synchronous when registry functions are sync', () => {
       // Arrange
-      const title = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'renderTitle', ['Ada'])
+      const title = ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'renderTitle', ['Ada'])
       const block = ASTTestFactory.block('content', BlockType.BASIC)
         .withProperty('content', title)
         .build()
@@ -281,7 +281,7 @@ describe('StepResolveCompiler', () => {
 
     it('should await async generator expressions when registry functions are async', async () => {
       // Arrange
-      const title = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'renderTitle', ['Ada'])
+      const title = ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'renderTitle', ['Ada'])
       const block = ASTTestFactory.block('content', BlockType.BASIC)
         .withProperty('content', title)
         .build()
@@ -392,7 +392,7 @@ describe('StepResolveCompiler', () => {
 
     it('should evaluate generator expressions when rendering block properties', async () => {
       // Arrange
-      const addressDisplay = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'renderAddress', [
+      const addressDisplay = ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'renderAddress', [
         {
           template: '{{ line1 }}<br>{{ town }}',
           data: {
@@ -458,7 +458,7 @@ describe('StepResolveCompiler', () => {
 
     it('should stringify dynamic answer reference field codes', async () => {
       // Arrange
-      const dynamicAnswerCode = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'answerCode')
+      const dynamicAnswerCode = ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'answerCode')
       const answerReference = ASTTestFactory.expression<ReferenceASTNode>(ExpressionType.REFERENCE)
         .withProperty('path', ['answers', dynamicAnswerCode])
         .build()
@@ -616,7 +616,7 @@ describe('StepResolveCompiler', () => {
 
     it('should resolve dynamic registered field codes as strings', async () => {
       // Arrange
-      const dynamicCode = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'fieldCode')
+      const dynamicCode = ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'fieldCode')
       const block = ASTTestFactory.block('text-input', BlockType.FIELD)
         .withProperty('code', dynamicCode)
         .build()
@@ -722,7 +722,7 @@ describe('StepResolveCompiler', () => {
       const templateBlock = ASTTestFactory.block('summary-row', BlockType.BASIC)
         .withProperty(
           'html',
-          ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'renderMember', [
+          ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'renderMember', [
             {
               template: '{{ memberName }}<br>Member',
               data: {
@@ -959,8 +959,8 @@ describe('StepResolveCompiler', () => {
 
       const localCompiler = new StepResolveCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
       const visitType = createReference(['answers', 'visitType'])
-      const equalsPhone = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', ['phone'])
-      const equalsVideo = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', ['video'])
+      const equalsPhone = ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'Equals', ['phone'])
+      const equalsVideo = ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'Equals', ['video'])
       const phoneVisibleWhen = ASTTestFactory.predicate(PredicateType.TEST, {
         subject: visitType,
         condition: equalsPhone,
@@ -1012,7 +1012,7 @@ describe('StepResolveCompiler', () => {
             .withPredicate(
               ASTTestFactory.predicate(PredicateType.TEST, {
                 subject: createReference(['answers', 'visitType']),
-                condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', ['phone']),
+                condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'Equals', ['phone']),
               }),
             )
             .withThenValue('Phone call')
@@ -1052,14 +1052,14 @@ describe('StepResolveCompiler', () => {
             number: '1',
             current: ASTTestFactory.predicate(PredicateType.TEST, {
               subject: createReference(['data', 'currentPage']),
-              condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', [1]),
+              condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'Equals', [1]),
             }),
           },
           {
             number: '2',
             current: ASTTestFactory.predicate(PredicateType.TEST, {
               subject: createReference(['data', 'currentPage']),
-              condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', [2]),
+              condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'Equals', [2]),
             }),
           },
         ])
@@ -1149,14 +1149,14 @@ describe('StepResolveCompiler', () => {
           predicateTemplate: createTemplate(
             ASTTestFactory.predicate(PredicateType.TEST, {
               subject: createReference(['@loop', '0', 'item', 'status']),
-              condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', ['ACTIVE']),
+              condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'Equals', ['ACTIVE']),
             }),
           ),
         })
         .build()
       const activeGoalsCount = ASTTestFactory.pipelineExpression({
         input: activeGoals,
-        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'Length')],
+        steps: [ASTTestFactory.functionExpression(FunctionCallType.TRANSFORMER, 'Length')],
       })
       const currentText = ASTTestFactory.formatExpression('Goals to work on now (%1)', [activeGoalsCount])
       const block = ASTTestFactory.block('mojSubNavigation', BlockType.BASIC)
@@ -1224,7 +1224,7 @@ describe('StepResolveCompiler', () => {
           predicateTemplate: createTemplate(
             ASTTestFactory.predicate(PredicateType.TEST, {
               subject: createReference(['@loop', '0', 'item', 'slug']),
-              condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', [
+              condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'Equals', [
                 createReference(['params', 'area']),
               ]),
             }),
@@ -1237,7 +1237,7 @@ describe('StepResolveCompiler', () => {
         .build()
       const goalCount = ASTTestFactory.pipelineExpression({
         input: goalsInArea,
-        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'Length')],
+        steps: [ASTTestFactory.functionExpression(FunctionCallType.TRANSFORMER, 'Length')],
       })
       const text = ASTTestFactory.formatExpression('Goals in area (%1)', [goalCount])
       const block = ASTTestFactory.block('mojSubNavigation', BlockType.BASIC)
@@ -1337,7 +1337,7 @@ describe('StepResolveCompiler', () => {
       // Arrange
       const missingDate = ASTTestFactory.pipelineExpression({
         input: createReference(['data', 'missingDate']),
-        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'String.FormatDate')],
+        steps: [ASTTestFactory.functionExpression(FunctionCallType.TRANSFORMER, 'String.FormatDate')],
       })
       const content = ASTTestFactory.formatExpression('Date: %1', [missingDate])
       const block = ASTTestFactory.block('content', BlockType.BASIC)
@@ -1368,7 +1368,7 @@ describe('StepResolveCompiler', () => {
       // Arrange
       const missingDate = ASTTestFactory.pipelineExpression({
         input: createReference(['data', 'missingDate']),
-        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'AsyncFormatDate')],
+        steps: [ASTTestFactory.functionExpression(FunctionCallType.TRANSFORMER, 'AsyncFormatDate')],
       })
       const content = ASTTestFactory.formatExpression('Date: %1', [missingDate])
       const block = ASTTestFactory.block('content', BlockType.BASIC)
@@ -1407,7 +1407,7 @@ describe('StepResolveCompiler', () => {
       // Arrange
       const date = ASTTestFactory.pipelineExpression({
         input: createReference(['data', 'date']),
-        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'String.FormatDate')],
+        steps: [ASTTestFactory.functionExpression(FunctionCallType.TRANSFORMER, 'String.FormatDate')],
       })
       const content = ASTTestFactory.formatExpression('Date: %1', [date])
       const block = ASTTestFactory.block('content', BlockType.BASIC)
@@ -1448,13 +1448,13 @@ describe('StepResolveCompiler', () => {
       expect(getForgeRuntimeEvaluationDiagnostics(thrown)).toMatchObject({
         phase: 'resolve',
         functionName: 'String.FormatDate',
-        functionType: FunctionType.TRANSFORMER,
+        functionType: FunctionCallType.TRANSFORMER,
       })
     })
 
     it('should throw runtime errors when nested array item text evaluation throws', async () => {
       // Arrange
-      const throwingCount = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'throwingCount')
+      const throwingCount = ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'throwingCount')
 
       throwingCount.diagnostics = {
         source: {
@@ -1511,7 +1511,7 @@ describe('StepResolveCompiler', () => {
       expect(getForgeRuntimeEvaluationDiagnostics(thrown)).toMatchObject({
         phase: 'resolve',
         functionName: 'throwingCount',
-        functionType: FunctionType.GENERATOR,
+        functionType: FunctionCallType.GENERATOR,
         formattedPath: 'journey > step > blocks[0] (mojSubNavigation) > items[0] > text',
         definedAt: 'journeyAuthor (/app/journeys/goals.journey.ts:12:5)',
       })

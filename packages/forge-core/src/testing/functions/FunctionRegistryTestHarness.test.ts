@@ -3,7 +3,7 @@ import ConditionRegistry from '../../authoring/registries/ConditionRegistry'
 import TransformerRegistry from '../../authoring/registries/TransformerRegistry'
 import EffectRegistry from '../../authoring/registries/EffectRegistry'
 import GeneratorRegistry from '../../authoring/registries/GeneratorRegistry'
-import { FunctionType } from '../../authoring/types/enums'
+import { FunctionCallType } from '../../authoring/types/enums'
 import { createTestEffectContext } from './createTestEffectContext'
 import { FunctionRegistryTestHarness } from './FunctionRegistryTestHarness'
 
@@ -243,7 +243,7 @@ describe('FunctionRegistryTestHarness', () => {
       const harness = new FunctionRegistryTestHarness(conditions)
 
       // Act
-      const act = () => harness.evaluate({ type: FunctionType.CONDITION, name: 'missing', arguments: [] })
+      const act = () => harness.evaluate({ type: FunctionCallType.CONDITION, name: 'missing', arguments: [] })
 
       // Assert
       expect(act).toThrow('Function "missing" is not registered in this harness. Registered functions: alpha, beta')

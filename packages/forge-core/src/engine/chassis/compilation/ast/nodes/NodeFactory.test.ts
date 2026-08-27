@@ -1,10 +1,10 @@
 import {
   ConditionCombinatorType,
   ExpressionType,
-  FunctionType,
+  FunctionCallType,
   HookType,
   IteratorType,
-  OutcomeType,
+  PolicyType,
   PredicateType,
   StructureType,
 } from '../../../../../authoring/types/enums'
@@ -26,13 +26,13 @@ describe('NodeFactory', () => {
     ConditionCombinatorType,
     IteratorType,
     HookType,
-    OutcomeType,
-    FunctionType,
+    PolicyType,
+    FunctionCallType,
   ]
 
   // Dead enum member: nothing in the authoring surface produces a NEXT
   // expression and no creator ever existed for it.
-  const excludedDiscriminants: string[] = [ExpressionType.NEXT]
+  const excludedDiscriminants: string[] = [PolicyType.NAVIGATION_NEXT]
 
   describe('creatorsByType', () => {
     it('should have a row for every discriminant enum value', () => {
@@ -141,7 +141,7 @@ describe('NodeFactory', () => {
       // Arrange
       const reference = { type: ExpressionType.REFERENCE, path: ['answers', 'email'] } satisfies ReferenceExpr
       const condition = {
-        type: FunctionType.CONDITION,
+        type: FunctionCallType.CONDITION,
         name: 'IsRequired',
         arguments: [],
       } satisfies ConditionFunctionExpr

@@ -1,4 +1,4 @@
-import { BlockType, ExpressionType, FunctionType, IteratorType, StructureType } from '../../authoring/types/enums'
+import { BlockType, ExpressionType, FunctionCallType, IteratorType, StructureType } from '../../authoring/types/enums'
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import type { FunctionASTNode, IterateASTNode, MatchASTNode } from '../../engine/chassis/contracts/ast/expressions.type'
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../../engine/chassis/contracts/ast/structures.type'
@@ -66,7 +66,7 @@ describe('DSLSourceLocator', () => {
                 variant: 'GovUKInput',
                 code: 'firstName',
                 defaultValue: {
-                  type: FunctionType.GENERATOR,
+                  type: FunctionCallType.GENERATOR,
                   name: 'defaultFirstName',
                   arguments: [],
                 },
@@ -166,7 +166,7 @@ describe('DSLSourceLocator', () => {
                   branches: [
                     {
                       condition: {
-                        type: FunctionType.CONDITION,
+                        type: FunctionCallType.CONDITION,
                         name: 'Equals',
                         arguments: ['admin'],
                       },

@@ -1,8 +1,8 @@
 import { ASTNodeType } from '../../../contracts/ast/enums'
-import {
+import { PolicyType,
   ConditionCombinatorType,
   ExpressionType,
-  FunctionType,
+  FunctionCallType,
   PredicateType,
   BlockType,
   IteratorType,
@@ -209,8 +209,8 @@ describe('expressions', () => {
         type: ExpressionType.PIPELINE,
         input: { type: ExpressionType.REFERENCE, path: ['answers', 'value'] } satisfies ReferenceExpr,
         steps: [
-          { type: FunctionType.TRANSFORMER, name: 'trim', arguments: [] as any },
-          { type: FunctionType.TRANSFORMER, name: 'uppercase', arguments: [] as any },
+          { type: FunctionCallType.TRANSFORMER, name: 'trim', arguments: [] as any },
+          { type: FunctionCallType.TRANSFORMER, name: 'uppercase', arguments: [] as any },
         ],
       } satisfies PipelineExpr
 
@@ -233,7 +233,7 @@ describe('expressions', () => {
       const json = {
         type: ExpressionType.PIPELINE,
         input: inputJson,
-        steps: [{ type: FunctionType.TRANSFORMER, name: 'trim', arguments: [] as any }],
+        steps: [{ type: FunctionCallType.TRANSFORMER, name: 'trim', arguments: [] as any }],
       } satisfies PipelineExpr
 
       // Act
@@ -251,8 +251,8 @@ describe('expressions', () => {
         type: ExpressionType.PIPELINE,
         input: { type: ExpressionType.REFERENCE, path: ['answers', 'value'] } satisfies ReferenceExpr,
         steps: [
-          { type: FunctionType.TRANSFORMER, name: 'pad', arguments: [10, '0'] },
-          { type: FunctionType.TRANSFORMER, name: 'substring', arguments: [0, 5] },
+          { type: FunctionCallType.TRANSFORMER, name: 'pad', arguments: [10, '0'] },
+          { type: FunctionCallType.TRANSFORMER, name: 'substring', arguments: [0, 5] },
         ],
       } satisfies PipelineExpr
 
@@ -278,7 +278,7 @@ describe('expressions', () => {
         input: { type: ExpressionType.REFERENCE, path: ['answers', 'value'] } satisfies ReferenceExpr,
         steps: [
           {
-            type: FunctionType.TRANSFORMER,
+            type: FunctionCallType.TRANSFORMER,
             name: 'replace',
             arguments: [
               'old',
@@ -310,8 +310,8 @@ describe('expressions', () => {
         type: ExpressionType.PIPELINE,
         input: { type: ExpressionType.REFERENCE, path: ['answers', 'value'] } satisfies ReferenceExpr,
         steps: [
-          { type: FunctionType.TRANSFORMER, name: 'trim', arguments: [] as any },
-          { type: FunctionType.TRANSFORMER, name: 'uppercase', arguments: [] as any },
+          { type: FunctionCallType.TRANSFORMER, name: 'trim', arguments: [] as any },
+          { type: FunctionCallType.TRANSFORMER, name: 'uppercase', arguments: [] as any },
         ],
       } satisfies PipelineExpr
 
@@ -332,7 +332,7 @@ describe('expressions', () => {
       const json = {
         type: ExpressionType.PIPELINE,
         input: literalArray as any,
-        steps: [{ type: FunctionType.TRANSFORMER, name: 'filter', arguments: [] as any }],
+        steps: [{ type: FunctionCallType.TRANSFORMER, name: 'filter', arguments: [] as any }],
       } satisfies PipelineExpr
 
       // Act
@@ -347,7 +347,7 @@ describe('expressions', () => {
       const json = {
         type: ExpressionType.PIPELINE,
         input: 'hello' as any,
-        steps: [{ type: FunctionType.TRANSFORMER, name: 'uppercase', arguments: [] as any }],
+        steps: [{ type: FunctionCallType.TRANSFORMER, name: 'uppercase', arguments: [] as any }],
       } satisfies PipelineExpr
 
       // Act
@@ -363,7 +363,7 @@ describe('expressions', () => {
       const json = {
         type: ExpressionType.PIPELINE,
         input: literalObj as any,
-        steps: [{ type: FunctionType.TRANSFORMER, name: 'transform', arguments: [] as any }],
+        steps: [{ type: FunctionCallType.TRANSFORMER, name: 'transform', arguments: [] as any }],
       } satisfies PipelineExpr
 
       // Act
@@ -391,7 +391,7 @@ describe('expressions', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         thenValue: 'yes',
         elseValue: 'no',
@@ -415,7 +415,7 @@ describe('expressions', () => {
         type: PredicateType.TEST,
         subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+        condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       const json = {
@@ -442,7 +442,7 @@ describe('expressions', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         thenValue: 'literalThen',
         elseValue: 'literalElse',
@@ -464,7 +464,7 @@ describe('expressions', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         thenValue: { type: ExpressionType.REFERENCE, path: ['answers', 'thenField'] },
         elseValue: { type: ExpressionType.REFERENCE, path: ['answers', 'elseField'] },
@@ -486,7 +486,7 @@ describe('expressions', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         elseValue: 'no',
       }
@@ -508,7 +508,7 @@ describe('expressions', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         thenValue: 'yes',
       }
@@ -530,7 +530,7 @@ describe('expressions', () => {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         thenValue: 'yes',
         elseValue: 'no',
@@ -574,7 +574,7 @@ describe('expressions', () => {
     it('should create a Function expression with Condition type', () => {
       // Arrange
       const json = {
-        type: FunctionType.CONDITION,
+        type: FunctionCallType.CONDITION,
         name: 'IsTrue',
         arguments: [] as ResolvableValue[],
       }
@@ -585,7 +585,7 @@ describe('expressions', () => {
       // Assert
       expect(result.id).toBeDefined()
       expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(FunctionType.CONDITION)
+      expect(result.expressionType).toBe(FunctionCallType.CONDITION)
 
       expect(result.properties.name).toBe('IsTrue')
       expect(result.properties.arguments).toBeDefined()
@@ -595,7 +595,7 @@ describe('expressions', () => {
     it('should create a Function expression with Transformer type', () => {
       // Arrange
       const json = {
-        type: FunctionType.TRANSFORMER,
+        type: FunctionCallType.TRANSFORMER,
         name: 'Uppercase',
         arguments: [] as ResolvableValue[],
       } satisfies TransformerFunctionExpr
@@ -604,14 +604,14 @@ describe('expressions', () => {
       const result = createFunctionNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.expressionType).toBe(FunctionType.TRANSFORMER)
+      expect(result.expressionType).toBe(FunctionCallType.TRANSFORMER)
       expect(result.properties.name).toBe('Uppercase')
     })
 
     it('should create a Function expression with Effect type', () => {
       // Arrange
       const json = {
-        type: FunctionType.EFFECT,
+        type: FunctionCallType.EFFECT,
         name: 'SaveData',
         arguments: [] as ResolvableValue[],
       } satisfies EffectFunctionExpr
@@ -620,14 +620,14 @@ describe('expressions', () => {
       const result = createFunctionNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.expressionType).toBe(FunctionType.EFFECT)
+      expect(result.expressionType).toBe(FunctionCallType.EFFECT)
       expect(result.properties.name).toBe('SaveData')
     })
 
     it('should create a Function expression with Generator type', () => {
       // Arrange
       const json = {
-        type: FunctionType.GENERATOR,
+        type: FunctionCallType.GENERATOR,
         name: 'GenerateID',
         arguments: [] as ResolvableValue[],
       }
@@ -636,14 +636,14 @@ describe('expressions', () => {
       const result = createFunctionNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.expressionType).toBe(FunctionType.GENERATOR)
+      expect(result.expressionType).toBe(FunctionCallType.GENERATOR)
       expect(result.properties.name).toBe('GenerateID')
     })
 
     it('should transform literal arguments', () => {
       // Arrange
       const json = {
-        type: FunctionType.CONDITION,
+        type: FunctionCallType.CONDITION,
         name: 'IsEqual',
         arguments: ['value1', 42, true],
       } satisfies ConditionFunctionExpr
@@ -660,7 +660,7 @@ describe('expressions', () => {
     it('should transform expression arguments', () => {
       // Arrange
       const json = {
-        type: FunctionType.CONDITION,
+        type: FunctionCallType.CONDITION,
         name: 'IsEqual',
         arguments: [
           { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] } satisfies ReferenceExpr,
@@ -685,7 +685,7 @@ describe('expressions', () => {
     it('should transform mixed literal and expression arguments', () => {
       // Arrange
       const json = {
-        type: FunctionType.TRANSFORMER,
+        type: FunctionCallType.TRANSFORMER,
         name: 'Replace',
         arguments: [
           'searchString',
@@ -709,16 +709,16 @@ describe('expressions', () => {
     it('should handle nested function arguments', () => {
       // Arrange
       const json = {
-        type: FunctionType.CONDITION,
+        type: FunctionCallType.CONDITION,
         name: 'And',
         arguments: [
           {
-            type: FunctionType.CONDITION,
+            type: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [{ type: ExpressionType.REFERENCE, path: ['answers', 'field1'] } satisfies ReferenceExpr],
           } satisfies ConditionFunctionExpr,
           {
-            type: FunctionType.CONDITION,
+            type: FunctionCallType.CONDITION,
             name: 'IsNotEmpty',
             arguments: [{ type: ExpressionType.REFERENCE, path: ['answers', 'field2'] } satisfies ReferenceExpr],
           } satisfies ConditionFunctionExpr,
@@ -781,7 +781,7 @@ describe('expressions', () => {
         type: PredicateType.TEST,
         subject: { type: ExpressionType.REFERENCE, path: ['scope', 'item', 'active'] },
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: [true] },
+        condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: [true] },
       }
 
       const json = {
@@ -808,7 +808,7 @@ describe('expressions', () => {
         type: PredicateType.TEST,
         subject: { type: ExpressionType.REFERENCE, path: ['scope', 'item', 'id'] },
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+        condition: { type: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
       }
 
       const json = {
@@ -965,13 +965,13 @@ describe('expressions', () => {
     it('should create a Validation expression with message', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        type: PolicyType.VALIDATION_RULE,
         message: 'Field is required',
         condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { type: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
       } satisfies ValidationExpr
 
@@ -981,7 +981,7 @@ describe('expressions', () => {
       // Assert
       expect(result.id).toBeDefined()
       expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.VALIDATION)
+      expect(result.expressionType).toBe(PolicyType.VALIDATION_RULE)
 
       expect(result.properties.message !== undefined).toBe(true)
       expect(result.properties.message).toBe('Field is required')
@@ -994,14 +994,14 @@ describe('expressions', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
         negate: false,
         condition: {
-          type: FunctionType.CONDITION,
+          type: FunctionCallType.CONDITION,
           name: 'IsNotEmpty',
           arguments: [] as ResolvableValue[],
         } satisfies ConditionFunctionExpr,
       } satisfies PredicateTestExpr
 
       const json = {
-        type: ExpressionType.VALIDATION,
+        type: PolicyType.VALIDATION_RULE,
         condition: conditionPredicate,
         message: 'Invalid value',
       } satisfies ValidationExpr
@@ -1017,9 +1017,9 @@ describe('expressions', () => {
     it('should create a Validation expression with a generator function', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        type: PolicyType.VALIDATION_RULE,
         function: {
-          type: FunctionType.GENERATOR,
+          type: FunctionCallType.GENERATOR,
           name: 'ValidateDate',
           arguments: [{ type: ExpressionType.REFERENCE, path: ['@self'] } satisfies ReferenceExpr],
         } satisfies GeneratorFunctionExpr,
@@ -1030,7 +1030,7 @@ describe('expressions', () => {
 
       // Assert
       expect(result.properties.function?.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.properties.function?.expressionType).toBe(FunctionType.GENERATOR)
+      expect(result.properties.function?.expressionType).toBe(FunctionCallType.GENERATOR)
       expect(result.properties.condition).toBeUndefined()
       expect(result.properties.message).toBeUndefined()
     })
@@ -1038,14 +1038,14 @@ describe('expressions', () => {
     it('should set submissionOnly flag when provided', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        type: PolicyType.VALIDATION_RULE,
         message: 'Error',
         condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            type: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1064,14 +1064,14 @@ describe('expressions', () => {
     it('should set submissionOnly to false when explicitly false', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        type: PolicyType.VALIDATION_RULE,
         message: 'Error',
         condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            type: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1090,14 +1090,14 @@ describe('expressions', () => {
     it('should default submissionOnly to false when undefined', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        type: PolicyType.VALIDATION_RULE,
         message: 'Error',
         condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            type: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1114,14 +1114,14 @@ describe('expressions', () => {
     it('should default groups to default when omitted', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        type: PolicyType.VALIDATION_RULE,
         message: 'Error',
         condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            type: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1138,14 +1138,14 @@ describe('expressions', () => {
     it('should set groups when provided', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        type: PolicyType.VALIDATION_RULE,
         message: 'Error',
         condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            type: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1163,14 +1163,14 @@ describe('expressions', () => {
     it('should set details when provided', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        type: PolicyType.VALIDATION_RULE,
         message: 'Error',
         condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            type: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1192,14 +1192,14 @@ describe('expressions', () => {
     it('should not set details when not provided', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        type: PolicyType.VALIDATION_RULE,
         message: 'Error',
         condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            type: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1216,14 +1216,14 @@ describe('expressions', () => {
     it('should default message to empty string when not provided', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        type: PolicyType.VALIDATION_RULE,
         message: '',
         condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            type: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1240,13 +1240,13 @@ describe('expressions', () => {
     it('should create a Validation expression with all properties', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        type: PolicyType.VALIDATION_RULE,
         condition: {
           type: PredicateType.TEST,
           subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            type: FunctionCallType.CONDITION,
             name: 'IsNotEmpty',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1276,7 +1276,7 @@ describe('expressions', () => {
     let nodeFactory: NodeFactory
     // Helpers for the combinator branch cases, which need larger condition trees than a single condition
     const equals = (value: string): ConditionFunctionExpr => ({
-      type: FunctionType.CONDITION,
+      type: FunctionCallType.CONDITION,
       name: 'Equals',
       arguments: [value],
     })
@@ -1313,11 +1313,11 @@ describe('expressions', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['data', 'status'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['ACTIVE' as ResolvableValue] },
+            condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['ACTIVE' as ResolvableValue] },
             value: 'Active',
           },
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['CLOSED' as ResolvableValue] },
+            condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['CLOSED' as ResolvableValue] },
             value: 'Closed',
           },
         ],
@@ -1342,7 +1342,7 @@ describe('expressions', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['data', 'status'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
+            condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'Result A',
           },
         ],
@@ -1520,7 +1520,7 @@ describe('expressions', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
+            condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'literalValue',
           },
         ],
@@ -1540,7 +1540,7 @@ describe('expressions', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
+            condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: { type: ExpressionType.REFERENCE, path: ['answers', 'fieldA'] },
           },
         ],
@@ -1560,7 +1560,7 @@ describe('expressions', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
+            condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'A',
           },
         ],
@@ -1581,7 +1581,7 @@ describe('expressions', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
+            condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'A',
           },
         ],
@@ -1601,7 +1601,7 @@ describe('expressions', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
+            condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'A',
           },
         ],
@@ -1622,7 +1622,7 @@ describe('expressions', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
+            condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'A',
           },
         ],
@@ -1644,7 +1644,7 @@ describe('expressions', () => {
         type: ExpressionType.MATCH,
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A'] },
+            condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A'] },
             value: 'A',
           },
         ],
@@ -1667,7 +1667,7 @@ describe('expressions', () => {
             subject,
             branches: [
               {
-                condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A'] },
+                condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A'] },
                 value: 'A',
               },
             ],

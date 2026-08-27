@@ -1,4 +1,4 @@
-import { ExpressionType } from '../../../../authoring/types/enums'
+import { PolicyType, ExpressionType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type { NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { TieBreakerASTNode } from '../../../chassis/contracts/ast/expressions.type'
@@ -24,7 +24,7 @@ export const validateTieBreakerScope: ASTValidationRule = (context: ASTValidatio
   const { nodeIndex, templateNodeIndex } = context
   const errors: Error[] = []
 
-  nodeIndex.findByType<TieBreakerASTNode>(ExpressionType.TIE_BREAKER).forEach(node => {
+  nodeIndex.findByType<TieBreakerASTNode>(PolicyType.NAVIGATION_TIE_BREAKER).forEach(node => {
     const parent = node.parent
 
     if (!parent || parent.type !== ASTNodeType.STEP) {
@@ -38,7 +38,7 @@ export const validateTieBreakerScope: ASTValidationRule = (context: ASTValidatio
     }
   })
 
-  templateNodeIndex.findByType(ExpressionType.TIE_BREAKER).forEach(({ node }) => {
+  templateNodeIndex.findByType(PolicyType.NAVIGATION_TIE_BREAKER).forEach(({ node }) => {
     errors.push(buildError(node.diagnostics))
   })
 

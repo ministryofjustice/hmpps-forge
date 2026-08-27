@@ -1,7 +1,7 @@
 /* eslint-disable no-new-func */
 import AuthoredValueClassifier from '../../../chassis/compilation/analysis/shared/AuthoredValueClassifier'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
-import { FunctionType } from '../../../../authoring/types/enums'
+import { FunctionCallType } from '../../../../authoring/types/enums'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
 import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
@@ -95,7 +95,7 @@ describe('RouteMetadataCompiler', () => {
 
     it('should throw a route-tree phase error when a title expression fails', () => {
       // Arrange
-      const boomTitle = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'boom')
+      const boomTitle = ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'boom')
       const stepNode = ASTTestFactory.step().withProperty('title', boomTitle).build()
       const functionRegistry = new FunctionRegistry()
 

@@ -1,4 +1,4 @@
-import { FunctionType, HookType } from '../../../../authoring/types/enums'
+import { FunctionCallType, HookType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type { AccessHookASTNode, SubmitHookASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { StepASTNode, JourneyASTNode } from '../../../chassis/contracts/ast/structures.type'
@@ -79,7 +79,7 @@ function isBlock(value: unknown): boolean {
 }
 
 function isEffect(value: unknown): boolean {
-  return isObject(value) && value.expressionType === FunctionType.EFFECT
+  return isObject(value) && value.expressionType === FunctionCallType.EFFECT
 }
 
 function isOutcome(value: unknown): boolean {

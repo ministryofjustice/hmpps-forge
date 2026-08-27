@@ -1,10 +1,10 @@
 import type { ConditionFunctionExpr, Resolvable } from '../types/expressions.type'
-import { FunctionType } from '../types/enums'
+import { FunctionCallType } from '../types/enums'
 import { BaseFunctionRegistry, CONDITION_OUTPUT_SCHEMA, type RegistrationOptions } from './BaseFunctionRegistry'
 
 export default class ConditionRegistry<TDeps = Record<string, never>> extends BaseFunctionRegistry<TDeps> {
   constructor() {
-    super(FunctionType.CONDITION, CONDITION_OUTPUT_SCHEMA)
+    super(FunctionCallType.CONDITION, CONDITION_OUTPUT_SCHEMA)
   }
 
   register<TArgs extends any[]>(

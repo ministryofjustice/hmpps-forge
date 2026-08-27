@@ -1,4 +1,4 @@
-import { FunctionType } from '../../../../authoring/types/enums'
+import { FunctionCallType } from '../../../../authoring/types/enums'
 import type {
   JourneyAnalysisContext,
   JourneyModelAnalyzer,
@@ -197,7 +197,7 @@ export default class HookAnalyzer implements StepModelAnalyzer<StepHookModel>, J
 
   private isEffectNode(node: ASTNode): node is FunctionASTNode {
     return node.type === ASTNodeType.EXPRESSION &&
-      (node as { expressionType?: unknown }).expressionType === FunctionType.EFFECT
+      (node as { expressionType?: unknown }).expressionType === FunctionCallType.EFFECT
   }
 
   private isOutcomeNode(node: ASTNode): node is RedirectOutcomeASTNode | ThrowErrorOutcomeASTNode {

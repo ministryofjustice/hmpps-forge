@@ -3,7 +3,7 @@ import ForgeBaseError from './ForgeBaseError'
 interface ForgeFunctionEntryBuildErrorOptions {
   /** Author-facing name of the function - its assigned registry name */
   functionName: string
-  /** Type of the function (e.g. FunctionType.Condition) */
+  /** Type of the function (e.g. FunctionCallType.Condition) */
   functionType: string
   /** What the factory threw */
   cause: unknown

@@ -1,7 +1,7 @@
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { TieBreaker, TieBreakerProps, ValidationExpr, ValidationProps } from '../types/structures.type'
 import { AccessHook, RedirectOutcome, SubmitHook, ThrowErrorOutcome } from '../types/expressions.type'
-import { ExpressionType, HookType, OutcomeType } from '../types/enums'
+import { ExpressionType, HookType, PolicyType } from '../types/enums'
 
 /**
  * Creates a submission hook for handling form submissions.
@@ -30,7 +30,7 @@ export function access(definition: Omit<AccessHook, 'type'>): AccessHook {
 export function validation(definition: ValidationProps): ValidationExpr {
   const result = {
     ...definition,
-    type: ExpressionType.VALIDATION,
+    type: PolicyType.VALIDATION_RULE,
   } as ValidationExpr
   stampCallsite(result, captureCallsite(validation))
   return result
@@ -47,7 +47,7 @@ export function validation(definition: ValidationProps): ValidationExpr {
 export function tieBreaker(definition: TieBreakerProps): TieBreaker {
   const result = {
     ...definition,
-    type: ExpressionType.TIE_BREAKER,
+    type: PolicyType.NAVIGATION_TIE_BREAKER,
   } as TieBreaker
   stampCallsite(result, captureCallsite(tieBreaker))
   return result
@@ -71,7 +71,7 @@ export function tieBreaker(definition: TieBreakerProps): TieBreaker {
 export function redirect(definition: Omit<RedirectOutcome, 'type'>): RedirectOutcome {
   const result = {
     ...definition,
-    type: OutcomeType.REDIRECT,
+    type: PolicyType.OUTCOME_REDIRECT,
   } as RedirectOutcome
   stampCallsite(result, captureCallsite(redirect))
   return result
@@ -100,7 +100,7 @@ export function redirect(definition: Omit<RedirectOutcome, 'type'>): RedirectOut
 export function throwError(definition: Omit<ThrowErrorOutcome, 'type'>): ThrowErrorOutcome {
   const result = {
     ...definition,
-    type: OutcomeType.THROW_ERROR,
+    type: PolicyType.OUTCOME_THROW_ERROR,
   } as ThrowErrorOutcome
   stampCallsite(result, captureCallsite(throwError))
   return result

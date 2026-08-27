@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
-import { FunctionType, HookType, PredicateType } from '../../../../authoring/types/enums'
+import { FunctionCallType, HookType, PredicateType } from '../../../../authoring/types/enums'
 import { FormatGenerators } from '../../../../built-ins/functions/generators/formatGenerators'
 import { FunctionEntryRegistry } from '../../../../authoring/functions/FunctionEntryRegistry'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
@@ -45,7 +45,7 @@ function submitModel(hooks: SubmitHookASTNode[]): SubmitHooksModel {
 function createPredicate(answerCode: string, functionName = 'isRequired'): TestPredicateASTNode {
   return ASTTestFactory.predicate(PredicateType.TEST, {
     subject: ASTTestFactory.reference(['answers', answerCode]),
-    condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, functionName),
+    condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, functionName),
   }) as TestPredicateASTNode
 }
 
@@ -234,7 +234,7 @@ describe('HookLifecycleCompiler', () => {
 
     it('should execute access effects and return continue when no outcome matches', async () => {
       // Arrange
-      const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'loadProfile')
+      const effect = ASTTestFactory.functionExpression(FunctionCallType.EFFECT, 'loadProfile')
       const hook = ASTTestFactory.hook(HookType.ACCESS)
         .withProperty('when', createPredicate('allowed'))
         .withProperty('effects', [effect])
@@ -255,7 +255,7 @@ describe('HookLifecycleCompiler', () => {
 
     it('should run outer access hooks before step hooks and halt on redirect', async () => {
       // Arrange
-      const outerEffect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'markAction')
+      const outerEffect = ASTTestFactory.functionExpression(FunctionCallType.EFFECT, 'markAction')
       const outerHook = ASTTestFactory.hook(HookType.ACCESS)
         .withProperty('effects', [outerEffect])
         .build() as AccessHookASTNode
@@ -276,8 +276,8 @@ describe('HookLifecycleCompiler', () => {
 
     it('should compile access effects before a redirect using loaded data', async () => {
       // Arrange
-      const syncEffect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'markAction')
-      const asyncEffect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'loadProfile')
+      const syncEffect = ASTTestFactory.functionExpression(FunctionCallType.EFFECT, 'markAction')
+      const asyncEffect = ASTTestFactory.functionExpression(FunctionCallType.EFFECT, 'loadProfile')
       const redirect = ASTTestFactory.redirectOutcome({ goto: ASTTestFactory.reference(['data', 'redirectPath']) })
       const hook = ASTTestFactory.hook(HookType.ACCESS)
         .withProperty('effects', [syncEffect, asyncEffect])
@@ -299,7 +299,7 @@ describe('HookLifecycleCompiler', () => {
 
     it('should compile formatted redirects after async access effects', async () => {
       // Arrange
-      const asyncEffect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'loadProfile')
+      const asyncEffect = ASTTestFactory.functionExpression(FunctionCallType.EFFECT, 'loadProfile')
       const loadHook = ASTTestFactory.hook(HookType.ACCESS)
         .withProperty('effects', [asyncEffect])
         .build() as AccessHookASTNode
@@ -324,7 +324,7 @@ describe('HookLifecycleCompiler', () => {
 
     it('should throw runtime errors when access effects fail', async () => {
       // Arrange
-      const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'throwingEffect')
+      const effect = ASTTestFactory.functionExpression(FunctionCallType.EFFECT, 'throwingEffect')
       const hook = ASTTestFactory.hook(HookType.ACCESS)
         .withProperty('effects', [effect])
         .build() as AccessHookASTNode
@@ -349,7 +349,7 @@ describe('HookLifecycleCompiler', () => {
       expect(getForgeRuntimeEvaluationDiagnostics(thrown)).toMatchObject({
         phase: 'hooks',
         functionName: 'throwingEffect',
-        functionType: FunctionType.EFFECT,
+        functionType: FunctionCallType.EFFECT,
       })
     })
   })
@@ -375,7 +375,7 @@ describe('HookLifecycleCompiler', () => {
         .withProperty('validate', true)
         .withProperty('validationGroups', ['default'])
         .withProperty('onAlways', {
-          effects: [ASTTestFactory.functionExpression(FunctionType.EFFECT, 'submitEffect')],
+          effects: [ASTTestFactory.functionExpression(FunctionCallType.EFFECT, 'submitEffect')],
           next: [alwaysRedirect],
         })
         .withProperty('onValid', {
@@ -467,7 +467,7 @@ describe('HookLifecycleCompiler', () => {
         .withProperty('validate', true)
         .withProperty('validationGroups', ['default'])
         .withProperty('onAlways', {
-          effects: [ASTTestFactory.functionExpression(FunctionType.EFFECT, 'submitEffect')],
+          effects: [ASTTestFactory.functionExpression(FunctionCallType.EFFECT, 'submitEffect')],
         })
         .build() as SubmitHookASTNode
       const buildStepValidation = vi.fn(() => stubValidation({ fieldFailures: [], domainFailures: [] }))
@@ -488,7 +488,7 @@ describe('HookLifecycleCompiler', () => {
     it('should compile async-aware hook source with effect context construction', () => {
       // Arrange
       const hook = ASTTestFactory.hook(HookType.ACCESS)
-        .withProperty('effects', [ASTTestFactory.functionExpression(FunctionType.EFFECT, 'loadProfile')])
+        .withProperty('effects', [ASTTestFactory.functionExpression(FunctionCallType.EFFECT, 'loadProfile')])
         .build() as AccessHookASTNode
 
       // Act
@@ -504,8 +504,8 @@ describe('HookLifecycleCompiler', () => {
       // Arrange
       const hook = ASTTestFactory.hook(HookType.ACCESS)
         .withProperty('effects', [
-          ASTTestFactory.functionExpression(FunctionType.EFFECT, 'markAction'),
-          ASTTestFactory.functionExpression(FunctionType.EFFECT, 'loadProfile'),
+          ASTTestFactory.functionExpression(FunctionCallType.EFFECT, 'markAction'),
+          ASTTestFactory.functionExpression(FunctionCallType.EFFECT, 'loadProfile'),
         ])
         .build() as AccessHookASTNode
 

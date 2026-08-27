@@ -7,7 +7,7 @@ import {
   ReferenceExpr,
   TransformerFunctionExpr,
 } from '../types/expressions.type'
-import { ExpressionType, FunctionType, IteratorType, PredicateType } from '../types/enums'
+import { ExpressionType, FunctionCallType, IteratorType, PredicateType } from '../types/enums'
 
 describe('IterableBuilder', () => {
   // Helper to create a mock reference (data source)
@@ -18,14 +18,14 @@ describe('IterableBuilder', () => {
 
   // Helper to create a mock condition
   const mockCondition = (name: string): ConditionFunctionExpr<any> => ({
-    type: FunctionType.CONDITION,
+    type: FunctionCallType.CONDITION,
     name,
     arguments: [],
   })
 
   // Helper to create a mock transformer
   const mockTransformer = (name: string): TransformerFunctionExpr<any> => ({
-    type: FunctionType.TRANSFORMER,
+    type: FunctionCallType.TRANSFORMER,
     name,
     arguments: [],
   })

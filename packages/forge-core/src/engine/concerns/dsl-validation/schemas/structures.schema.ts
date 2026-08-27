@@ -2,10 +2,10 @@ import { z } from 'zod'
 import {
   BlockType,
   ExpressionType,
-  FunctionType,
+  FunctionCallType,
   HookType,
   IteratorType,
-  OutcomeType,
+  PolicyType,
   PredicateType,
   StructureType,
 } from '../../../../authoring/types/enums'
@@ -28,10 +28,10 @@ const ViewConfigSchema = z.object({
 
 const staticDataDynamicMarkers = new Set<string>([
   ...Object.values(ExpressionType),
-  ...Object.values(FunctionType),
+  ...Object.values(FunctionCallType),
   ...Object.values(HookType),
   ...Object.values(IteratorType),
-  ...Object.values(OutcomeType),
+  ...Object.values(PolicyType),
   ...Object.values(PredicateType),
 ])
 
@@ -100,7 +100,7 @@ const RouteMetadataSchema = z.record(z.string(), ResolvableValueSchema.optional(
  * @see {@link ValidationExpr}
  */
 const ValidationExecutionSchema = {
-  type: z.literal(ExpressionType.VALIDATION),
+  type: z.literal(PolicyType.VALIDATION_RULE),
   submissionOnly: z.boolean().optional(),
   groups: z.array(z.string().trim().min(1)).optional(),
 }
@@ -245,7 +245,7 @@ const SubmitHookSchema = z.object({
 })
 
 const TieBreakerSchema = z.looseObject({
-  type: z.literal(ExpressionType.TIE_BREAKER),
+  type: z.literal(PolicyType.NAVIGATION_TIE_BREAKER),
   priority: z.number(),
   when: PredicateExprSchema.optional(),
 })

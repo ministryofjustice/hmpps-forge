@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
+import { PolicyType,
   access,
   BlockType,
   condition,
@@ -86,7 +86,7 @@ describe('DSL validation contracts', () => {
                 blockType: BlockType.FIELD,
                 variant: 'test-input',
                 code: 'crn',
-                validWhen: [{ type: ExpressionType.VALIDATION, condition: Self().match(IsYes()) }],
+                validWhen: [{ type: PolicyType.VALIDATION_RULE, condition: Self().match(IsYes()) }],
               },
             ],
           },

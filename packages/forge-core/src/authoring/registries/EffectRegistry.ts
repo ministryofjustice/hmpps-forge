@@ -1,10 +1,10 @@
 import type { EffectFunctionExpr, Resolvable } from '../types/expressions.type'
-import { FunctionType } from '../types/enums'
+import { FunctionCallType } from '../types/enums'
 import { BaseFunctionRegistry, type RegistrationOptions } from './BaseFunctionRegistry'
 
 export default class EffectRegistry<TDeps = Record<string, never>> extends BaseFunctionRegistry<TDeps> {
   constructor() {
-    super(FunctionType.EFFECT)
+    super(FunctionCallType.EFFECT)
   }
 
   register<TArgs extends any[]>(

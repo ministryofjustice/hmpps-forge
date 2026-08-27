@@ -1,3 +1,4 @@
+import { resolvesMarker } from '../types/expressions.type'
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { LoopItemReferenceBuilder } from './LoopItemReferenceBuilder'
 
@@ -10,6 +11,9 @@ import { LoopItemReferenceBuilder } from './LoopItemReferenceBuilder'
  * @internal Exposed to authors via the ChainableLoopRef interface.
  */
 export class LoopReferenceBuilder {
+  // Type-only ChainableExpression brand - never set at runtime.
+  declare readonly [resolvesMarker]: any
+
   readonly nodeKind = 'forge-builder' as const
 
   private readonly level: number

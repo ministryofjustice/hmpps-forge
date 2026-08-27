@@ -8,8 +8,7 @@ import {
   PredicateTestExpr,
   ReferenceExpr,
   TransformerFunctionExpr,
-  ResolvableValue,
-} from '../types/expressions.type'
+  ResolvableValue, resolvesMarker } from '../types/expressions.type'
 import { ExpressionType, IteratorType, PredicateType } from '../types/enums'
 import { IterableBuilder } from './IterableBuilder'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
@@ -31,6 +30,9 @@ import { splitKey } from './utils/splitKey'
  * @internal Exposed to authors via the ChainableExpr interface.
  */
 export class ExpressionBuilder<T extends ResolvableValue> {
+  // Type-only ChainableExpression brand - never set at runtime.
+  declare readonly [resolvesMarker]: any
+
   readonly nodeKind = 'forge-builder' as const
 
   private readonly expression: T

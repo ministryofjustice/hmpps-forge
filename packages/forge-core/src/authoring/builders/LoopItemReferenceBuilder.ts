@@ -1,3 +1,4 @@
+import { resolvesMarker } from '../types/expressions.type'
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { splitKey } from './utils/splitKey'
 import type { ReferenceExpr } from '../types/expressions.type'
@@ -13,6 +14,9 @@ import type { ReferenceExpr } from '../types/expressions.type'
  * @internal Exposed to authors via the ChainableLoopItemRef interface.
  */
 export class LoopItemReferenceBuilder {
+  // Type-only ChainableExpression brand - never set at runtime.
+  declare readonly [resolvesMarker]: any
+
   readonly nodeKind = 'forge-builder' as const
 
   private readonly level: number

@@ -9,7 +9,7 @@ import {
   step,
   submit,
   transformer,
-  FunctionType,
+  FunctionCallType,
   Self,
 } from '../../../../src/authoring'
 import type { EffectContext, ValidationFunctionResult } from '../../../../src/authoring'
@@ -210,7 +210,7 @@ describe('function entry registration contracts', () => {
 
   describe('listed entries', () => {
     const nameOnlyReference = (name: string): ConditionFunctionExpr =>
-      ({ type: FunctionType.CONDITION, name, arguments: [] }) as ConditionFunctionExpr
+      ({ type: FunctionCallType.CONDITION, name, arguments: [] }) as ConditionFunctionExpr
 
     it('should resolve a name-only reference through a listed entry', async () => {
       // Arrange
@@ -421,7 +421,7 @@ describe('function entry registration contracts', () => {
 
   describe('registry scoping', () => {
     const nameOnlyReference = (name: string): ConditionFunctionExpr =>
-      ({ type: FunctionType.CONDITION, name, arguments: [] }) as ConditionFunctionExpr
+      ({ type: FunctionCallType.CONDITION, name, arguments: [] }) as ConditionFunctionExpr
 
     it('should prefer a journey function entry when it shares a name with a built-in', async () => {
       // Arrange

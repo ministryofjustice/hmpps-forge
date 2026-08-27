@@ -1,4 +1,4 @@
-import { BlockType, FunctionType, PredicateType } from '../../../../authoring/types/enums'
+import { BlockType, FunctionCallType, PredicateType } from '../../../../authoring/types/enums'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
@@ -17,7 +17,7 @@ function registerAll(nodeIndex: ASTNodeIndex, nodes: readonly ASTNode[]): void {
 function createPredicate(path: string[]): TestPredicateASTNode {
   return ASTTestFactory.predicate(PredicateType.TEST, {
     subject: ASTTestFactory.reference(path),
-    condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'equals', ['yes']),
+    condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'equals', ['yes']),
   }) as TestPredicateASTNode
 }
 

@@ -1,5 +1,5 @@
 import { z, type ZodType } from 'zod'
-import { FunctionType } from '../types/enums'
+import { FunctionCallType } from '../types/enums'
 import ForgeAuthoringError from '../../engine/errors/ForgeAuthoringError'
 import ForgeRegistryDuplicateError from '../../engine/errors/ForgeRegistryDuplicateError'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
@@ -34,7 +34,7 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> implem
   private anonymousCounter = 0
 
   constructor(
-    private readonly functionType: FunctionType,
+    private readonly functionType: FunctionCallType,
     private readonly defaultOutputSchema?: ZodType,
   ) {}
 
@@ -100,7 +100,7 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> implem
   protected buildExpressionHandle(name: string, prepare?: (...args: any[]) => any[]): (...args: any[]) => any {
     const type = this.functionType
 
-    if (type === FunctionType.GENERATOR) {
+    if (type === FunctionCallType.GENERATOR) {
       const generatorHandle = (...args: any[]) => {
         const prepared = prepare ? prepare(...args) : args
         const builder = GeneratorBuilder.create(name, prepared)

@@ -1,5 +1,5 @@
 import type { ZodType } from 'zod'
-import type { FunctionType } from './enums'
+import type { FunctionCallType } from './enums'
 
 /**
  * The callable implementation of a registered function, with its dependencies
@@ -52,7 +52,7 @@ export interface FunctionRegistryEntry {
    * Which kind of function this is. Decides whether a value is injected as
    * the first argument and how schema failures short-circuit.
    */
-  functionType?: FunctionType
+  functionType?: FunctionCallType
 }
 
 /**
@@ -81,7 +81,7 @@ export interface FunctionEntry<TDeps = any> {
   readonly name: string | undefined
 
   /** Which function table the entry belongs to. */
-  readonly functionType: FunctionType
+  readonly functionType: FunctionCallType
 
   /** Validates the injected value, where declared. */
   readonly inputSchema?: ZodType

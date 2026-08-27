@@ -1,6 +1,6 @@
 import { ASTNode } from '../../../contracts/ast/ast.type'
 import { ASTNodeType } from '../../../contracts/ast/enums'
-import { ExpressionType, FunctionType, IteratorType } from '../../../../../authoring/types/enums'
+import { PolicyType, ExpressionType, FunctionCallType, IteratorType } from '../../../../../authoring/types/enums'
 import { TemplateNode } from '../../../contracts/ast/template.type'
 import ForgeUnregisteredFunctionError from '../../../../errors/ForgeUnregisteredFunctionError'
 import {
@@ -319,10 +319,10 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     // Function calls carry their own diagnostic metadata through evaluateFunction.
     // Validation rules contain tracked operands and function calls, so wrapping
     // the rule object itself only adds an unrelated callback around construction.
-    return expressionType === FunctionType.CONDITION ||
-      expressionType === FunctionType.TRANSFORMER ||
-      expressionType === FunctionType.GENERATOR ||
-      expressionType === ExpressionType.VALIDATION
+    return expressionType === FunctionCallType.CONDITION ||
+      expressionType === FunctionCallType.TRANSFORMER ||
+      expressionType === FunctionCallType.GENERATOR ||
+      expressionType === PolicyType.VALIDATION_RULE
   }
 
   private isValidationPredicate(nodeType: unknown): boolean {
@@ -344,11 +344,11 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
         return this.pipelines.compilePipeline(properties)
       case ExpressionType.ITERATE:
         return this.compileIterate(properties)
-      case ExpressionType.VALIDATION:
+      case PolicyType.VALIDATION_RULE:
         return this.compileValidation(properties)
-      case FunctionType.CONDITION:
-      case FunctionType.TRANSFORMER:
-      case FunctionType.GENERATOR:
+      case FunctionCallType.CONDITION:
+      case FunctionCallType.TRANSFORMER:
+      case FunctionCallType.GENERATOR:
         return this.pipelines.compileFunction(properties, source)
       case ExpressionType.CONDITIONAL:
         return this.conditionals.compile(properties)

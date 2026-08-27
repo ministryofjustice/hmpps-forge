@@ -1,6 +1,6 @@
 import type { ZodType } from 'zod'
 import { RENDER_BLOCK_BRAND } from '../../../concerns/render/contracts/renderBlock.brand'
-import { FunctionType } from '../../../../authoring/types/enums'
+import { FunctionCallType } from '../../../../authoring/types/enums'
 import type { IteratorBudgetContract } from '../../contracts/runtime/iteratorBudget.type'
 
 interface AnswerHistory {
@@ -34,7 +34,7 @@ export interface FunctionRegistryLookupEntry {
   inputSchema?: ZodType
   argumentsSchema?: ZodType
   outputSchema?: ZodType
-  functionType?: FunctionType
+  functionType?: FunctionCallType
 }
 
 interface FunctionEvaluationContext {
@@ -785,7 +785,7 @@ export function precheckShortCircuit(
   functionName: string,
   args: unknown[],
 ): ShortCircuitOutcome | undefined {
-  const hasInjectedValue = entry.functionType !== FunctionType.GENERATOR
+  const hasInjectedValue = entry.functionType !== FunctionCallType.GENERATOR
   const configArgs = hasInjectedValue ? args.slice(1) : args
 
   if (entry.argumentsSchema !== undefined) {
@@ -801,11 +801,11 @@ export function precheckShortCircuit(
   }
 
   if (args[0] === undefined || args[0] === null) {
-    if (entry.functionType === FunctionType.CONDITION) {
+    if (entry.functionType === FunctionCallType.CONDITION) {
       return { value: false }
     }
 
-    if (entry.functionType === FunctionType.TRANSFORMER) {
+    if (entry.functionType === FunctionCallType.TRANSFORMER) {
       return { value: undefined }
     }
   }
@@ -820,7 +820,7 @@ export function precheckShortCircuit(
     return undefined
   }
 
-  if (entry.functionType === FunctionType.CONDITION) {
+  if (entry.functionType === FunctionCallType.CONDITION) {
     return { value: false }
   }
 

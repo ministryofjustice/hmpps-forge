@@ -1,4 +1,4 @@
-import { BlockType, ExpressionType, FunctionType, IteratorType } from '../../../../../authoring/types/enums'
+import { BlockType, ExpressionType, FunctionCallType, IteratorType } from '../../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { isTemplateNode } from '../../../contracts/ast/nodes'
@@ -255,7 +255,7 @@ export default class FieldModelBuilder {
 }
 
 function readTransformerName(value: object): string | undefined {
-  if (readExpressionType(value) !== FunctionType.TRANSFORMER) {
+  if (readExpressionType(value) !== FunctionCallType.TRANSFORMER) {
     return undefined
   }
 

@@ -20,7 +20,7 @@ export { default as EffectRegistry } from './registries/EffectRegistry'
 
 export { EffectFunctionContext } from '../engine/chassis/runtime/context/EffectFunctionContext'
 
-export { StructureType, BlockType, FunctionType, ExpressionType, ConditionCombinatorType } from './types/enums'
+export { StructureType, BlockType, FunctionCallType, ExpressionType, PolicyType, ConditionCombinatorType } from './types/enums'
 
 export type { ForgePackage, RegisteredForgePackage } from './types/package.type'
 export type {

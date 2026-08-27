@@ -1,4 +1,4 @@
-import { FunctionType } from '../types/enums'
+import { FunctionCallType } from '../types/enums'
 import { CONDITION_OUTPUT_SCHEMA } from '../registries/BaseFunctionRegistry'
 import { getEntryStamp } from '../builders/utils/stampEntry'
 import { isFunctionEntry } from './createEntry'
@@ -10,11 +10,11 @@ import type { FunctionEntry, FunctionRegistryBuilder, FunctionRegistryObject } f
 
 // Anonymous entries have no author name, so their registry name falls back to
 // the helper that created them.
-const ANONYMOUS_LABELS: Record<FunctionType, string> = {
-  [FunctionType.CONDITION]: 'condition',
-  [FunctionType.TRANSFORMER]: 'transformer',
-  [FunctionType.GENERATOR]: 'generator',
-  [FunctionType.EFFECT]: 'effect',
+const ANONYMOUS_LABELS: Record<FunctionCallType, string> = {
+  [FunctionCallType.CONDITION]: 'condition',
+  [FunctionCallType.TRANSFORMER]: 'transformer',
+  [FunctionCallType.GENERATOR]: 'generator',
+  [FunctionCallType.EFFECT]: 'effect',
 }
 
 /**
@@ -124,7 +124,7 @@ export class FunctionEntryRegistry<TDeps = any> implements FunctionRegistryBuild
           inputSchema: entry.inputSchema,
           argumentsSchema: entry.argumentsSchema,
           outputSchema:
-            entry.outputSchema ?? (entry.functionType === FunctionType.CONDITION ? CONDITION_OUTPUT_SCHEMA : undefined),
+            entry.outputSchema ?? (entry.functionType === FunctionCallType.CONDITION ? CONDITION_OUTPUT_SCHEMA : undefined),
           functionType: entry.functionType,
         }
       } catch (cause) {

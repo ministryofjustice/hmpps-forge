@@ -1,12 +1,11 @@
-import { FunctionType, PredicateType } from '../types/enums'
+import { FunctionCallType, PredicateType } from '../types/enums'
 import {
   ConditionFunctionExpr,
   GeneratorFunctionExpr,
   PipelineExpr,
   PredicateTestExpr,
   TransformerFunctionExpr,
-  ResolvableValue,
-} from '../types/expressions.type'
+  ResolvableValue, resolvesMarker } from '../types/expressions.type'
 import { ExpressionBuilder } from './ExpressionBuilder'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { ChainableGenerator, ChainableNegation } from './types'
@@ -36,9 +35,8 @@ import { ChainableGenerator, ChainableNegation } from './types'
 export class GeneratorBuilder<A extends ResolvableValue[]> implements ChainableGenerator {
   readonly nodeKind = 'forge-builder' as const
 
-  // The marker must exist on the class type so builders pass the weak-type
-  // check on Resolvable<T> argument slots; it is type-only and never set.
-  declare readonly __resolves?: any
+  // Type-only ChainableExpression brand - never set at runtime.
+  declare readonly [resolvesMarker]: any
 
   private readonly expression: GeneratorFunctionExpr<A>
 
@@ -58,7 +56,7 @@ export class GeneratorBuilder<A extends ResolvableValue[]> implements ChainableG
   static create<A extends ResolvableValue[]>(name: string, args: A): GeneratorBuilder<A> {
     return new GeneratorBuilder(
       {
-        type: FunctionType.GENERATOR,
+        type: FunctionCallType.GENERATOR,
         name,
         arguments: args,
       },

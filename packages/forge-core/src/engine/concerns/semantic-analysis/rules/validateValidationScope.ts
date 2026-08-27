@@ -1,4 +1,4 @@
-import { ExpressionType, BlockType } from '../../../../authoring/types/enums'
+import { PolicyType, ExpressionType, BlockType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type { ValidationASTNode, IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { FieldBlockASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
@@ -52,7 +52,7 @@ function walkTemplateForValidationScope(value: TemplateValue, insideValidWhen: b
     if (value.originalType === ASTNodeType.EXPRESSION) {
       const expressionType = (value as Record<string, unknown>).expressionType as string | undefined
 
-      if (expressionType === ExpressionType.VALIDATION && !insideValidWhen) {
+      if (expressionType === PolicyType.VALIDATION_RULE && !insideValidWhen) {
         errors.push(buildError(value.diagnostics))
       }
     }
@@ -117,7 +117,7 @@ export const validateValidationScope: ASTValidationRule = (context: ASTValidatio
     })
   })
 
-  nodeIndex.findByType<ValidationASTNode>(ExpressionType.VALIDATION).forEach(node => {
+  nodeIndex.findByType<ValidationASTNode>(PolicyType.VALIDATION_RULE).forEach(node => {
     if (!validWhenEntryIds.has(node.id)) {
       errors.push(buildError(node.diagnostics))
     }

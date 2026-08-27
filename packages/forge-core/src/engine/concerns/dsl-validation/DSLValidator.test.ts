@@ -1,8 +1,8 @@
 import {
   StructureType,
   HookType,
-  OutcomeType,
-  FunctionType,
+  PolicyType,
+  FunctionCallType,
   PredicateType,
   ExpressionType,
   BlockType,
@@ -119,7 +119,7 @@ describe('FormValidator', () => {
             type: PredicateType.TEST,
             negate: false,
             subject: { type: ExpressionType.REFERENCE, path: ['query', 'resume'] },
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['true'] },
+            condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['true'] },
           },
         },
         steps: [
@@ -305,7 +305,7 @@ describe('FormValidator', () => {
                 type: PredicateType.TEST,
                 negate: false,
                 subject: { type: ExpressionType.REFERENCE, path: ['session', 'submitted'] },
-                condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['true'] },
+                condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['true'] },
               },
             },
           } as StepDefinition,
@@ -431,7 +431,7 @@ describe('FormValidator', () => {
                   type: PredicateType.TEST,
                   negate: false,
                   subject: { type: ExpressionType.REFERENCE, path: ['session', 'submitted'] },
-                  condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['true'] },
+                  condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['true'] },
                 },
               },
             ],
@@ -536,7 +536,7 @@ describe('FormValidator', () => {
         metadata: {
           hiddenFromNav: { type: ExpressionType.REFERENCE, path: ['data', 'hideJourney'] },
           navGroup: {
-            type: FunctionType.GENERATOR,
+            type: FunctionCallType.GENERATOR,
             name: 'Format',
             arguments: ['Group %1', { type: ExpressionType.REFERENCE, path: ['params', 'groupId'] }],
           },
@@ -633,13 +633,13 @@ describe('FormValidator', () => {
         code: 'postcode',
         validWhen: [
           {
-            type: ExpressionType.VALIDATION,
+            type: PolicyType.VALIDATION_RULE,
             groups: ['address'],
             condition: {
               type: PredicateType.TEST,
               negate: false,
               subject: { type: ExpressionType.REFERENCE, path: ['answers', 'postcode'] },
-              condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+              condition: { type: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
             },
             message: 'Enter your postcode',
           },
@@ -664,7 +664,7 @@ describe('FormValidator', () => {
                   type: PredicateType.TEST,
                   negate: false,
                   subject: { type: ExpressionType.REFERENCE, path: ['data', 'addressLoaded'] },
-                  condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: [true] },
+                  condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: [true] },
                 },
               },
             ],
@@ -685,19 +685,19 @@ describe('FormValidator', () => {
     it('should validate generator-backed field and step validation', () => {
       // Arrange
       const fieldValidation = {
-        type: ExpressionType.VALIDATION,
+        type: PolicyType.VALIDATION_RULE,
         function: {
-          type: FunctionType.GENERATOR,
+          type: FunctionCallType.GENERATOR,
           name: 'ValidateField',
           arguments: [{ type: ExpressionType.REFERENCE, path: ['@self'] }],
         },
       }
       const stepValidation = {
-        type: ExpressionType.VALIDATION,
+        type: PolicyType.VALIDATION_RULE,
         groups: ['review'],
         submissionOnly: true,
         function: {
-          type: FunctionType.GENERATOR,
+          type: FunctionCallType.GENERATOR,
           name: 'ValidateStep',
           arguments: [{ type: ExpressionType.REFERENCE, path: ['answers', 'postcode'] }],
         },
@@ -737,30 +737,30 @@ describe('FormValidator', () => {
       {
         name: 'both condition and function',
         rule: {
-          type: ExpressionType.VALIDATION,
+          type: PolicyType.VALIDATION_RULE,
           condition: {
             type: PredicateType.TEST,
             negate: false,
             subject: { type: ExpressionType.REFERENCE, path: ['answers', 'postcode'] },
-            condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+            condition: { type: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
           },
           message: 'Enter a postcode',
-          function: { type: FunctionType.GENERATOR, name: 'ValidatePostcode', arguments: [] },
+          function: { type: FunctionCallType.GENERATOR, name: 'ValidatePostcode', arguments: [] },
         },
       },
-      { name: 'neither condition nor function', rule: { type: ExpressionType.VALIDATION } },
+      { name: 'neither condition nor function', rule: { type: PolicyType.VALIDATION_RULE } },
       {
         name: 'a condition function in the function property',
         rule: {
-          type: ExpressionType.VALIDATION,
-          function: { type: FunctionType.CONDITION, name: 'ValidatePostcode', arguments: [] },
+          type: PolicyType.VALIDATION_RULE,
+          function: { type: FunctionCallType.CONDITION, name: 'ValidatePostcode', arguments: [] },
         },
       },
       {
         name: 'a transformer in the function property',
         rule: {
-          type: ExpressionType.VALIDATION,
-          function: { type: FunctionType.TRANSFORMER, name: 'ValidatePostcode', arguments: [] },
+          type: PolicyType.VALIDATION_RULE,
+          function: { type: FunctionCallType.TRANSFORMER, name: 'ValidatePostcode', arguments: [] },
         },
       },
     ])('should reject validation with $name', ({ rule }) => {
@@ -807,12 +807,12 @@ describe('FormValidator', () => {
           iterator: {
             type: IteratorType.MAP,
             yield: {
-              type: ExpressionType.VALIDATION,
+              type: PolicyType.VALIDATION_RULE,
               condition: {
                 type: PredicateType.TEST,
                 negate: false,
                 subject: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'enabled'] },
-                condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: [true] },
+                condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: [true] },
               },
               message: 'Check must be enabled',
             },
@@ -884,13 +884,13 @@ describe('FormValidator', () => {
                 code: 'firstName',
                 validWhen: [
                   {
-                    type: ExpressionType.VALIDATION,
+                    type: PolicyType.VALIDATION_RULE,
                     message: null,
                     condition: {
                       type: PredicateType.TEST,
                       negate: false,
                       subject: { type: ExpressionType.REFERENCE, path: ['answers', 'firstName'] },
-                      condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                      condition: { type: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                     },
                   },
                 ],
@@ -995,7 +995,7 @@ describe('FormValidator', () => {
                 type: HookType.ACCESS,
                 next: [
                   {
-                    type: OutcomeType.REDIRECT,
+                    type: PolicyType.OUTCOME_REDIRECT,
                     goto: '/unauthorized',
                   },
                 ],
@@ -1014,7 +1014,7 @@ describe('FormValidator', () => {
                     onValid: {
                       next: [
                         {
-                          type: OutcomeType.REDIRECT,
+                          type: PolicyType.OUTCOME_REDIRECT,
                           goto: '/next',
                         },
                       ],
@@ -1022,7 +1022,7 @@ describe('FormValidator', () => {
                     onInvalid: {
                       next: [
                         {
-                          type: OutcomeType.REDIRECT,
+                          type: PolicyType.OUTCOME_REDIRECT,
                           goto: '@self',
                         },
                       ],

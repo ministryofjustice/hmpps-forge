@@ -10,7 +10,7 @@ import {
   PredicateXorExpr,
   PredicateNotExpr,
 } from '../types/expressions.type'
-import { ConditionCombinatorType, FunctionType, PredicateType } from '../types/enums'
+import { ConditionCombinatorType, FunctionCallType, PredicateType } from '../types/enums'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import ForgeAuthoringError from '../../engine/errors/ForgeAuthoringError'
 
@@ -37,7 +37,7 @@ const conditionCombinatorTypes = new Set<string>(Object.values(ConditionCombinat
  * condition combinator over them - as opposed to a predicate, which carries its own subject.
  */
 function isConditionBranch(operand: CombinatorOperand): operand is ConditionBranchExpr {
-  return operand.type === FunctionType.CONDITION || conditionCombinatorTypes.has(operand.type)
+  return operand.type === FunctionCallType.CONDITION || conditionCombinatorTypes.has(operand.type)
 }
 
 /**

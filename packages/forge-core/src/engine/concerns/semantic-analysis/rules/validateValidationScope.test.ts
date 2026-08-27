@@ -1,4 +1,4 @@
-import { BlockType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
+import { PolicyType, BlockType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
 import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { IterateASTNode, ValidationASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { TemplateNode } from '../../../chassis/contracts/ast/template.type'
@@ -42,7 +42,7 @@ const errorMessages = (errors: readonly Error[]): string[] =>
 const validationTemplate = (): TemplateNode => ({
   type: ASTNodeType.TEMPLATE,
   originalType: ASTNodeType.EXPRESSION,
-  expressionType: ExpressionType.VALIDATION,
+  expressionType: PolicyType.VALIDATION_RULE,
   id: 'template:1' as TemplateNodeId,
   diagnostics: ASTTestFactory.diagnostics(['validWhen', 'template']),
   properties: {},
@@ -101,7 +101,7 @@ describe('validateValidationScope', () => {
 
     it('should return an error when a validation node is not inside any validWhen', () => {
       // Arrange
-      const validation = ASTTestFactory.expression<ValidationASTNode>(ExpressionType.VALIDATION).build()
+      const validation = ASTTestFactory.expression<ValidationASTNode>(PolicyType.VALIDATION_RULE).build()
       const context = createContext([validation], [])
 
       // Act

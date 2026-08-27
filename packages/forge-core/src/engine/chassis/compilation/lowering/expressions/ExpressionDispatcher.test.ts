@@ -1,4 +1,4 @@
-import { ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../../authoring/types/enums'
+import { ExpressionType, FunctionCallType, IteratorType, PredicateType } from '../../../../../authoring/types/enums'
 import { ASTNode } from '../../../contracts/ast/ast.type'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
@@ -52,7 +52,7 @@ describe('ExpressionDispatcher', () => {
   describe('compileExpressionCode()', () => {
     it('should avoid wrapping direct function expressions twice when diagnostics are already on the function call', () => {
       // Arrange
-      const expression = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'buildCode')
+      const expression = ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'buildCode')
 
       // Act
       const source = new SourceRenderer().renderCode(compiler.compileExpressionCode(expression)).source
@@ -63,7 +63,7 @@ describe('ExpressionDispatcher', () => {
       expect(source).not.toContain('"functionName"')
       expect(source).not.toContain('_forgeHelpers.evaluateTracked')
       expect(compiler.diagnosticCatalogue).toMatchObject([
-        { functionName: 'buildCode', functionType: FunctionType.GENERATOR },
+        { functionName: 'buildCode', functionType: FunctionCallType.GENERATOR },
       ])
     })
 
@@ -71,7 +71,7 @@ describe('ExpressionDispatcher', () => {
       // Arrange
       const predicate = ASTTestFactory.predicate(PredicateType.TEST, {
         subject: ASTTestFactory.reference(['data', 'enabled']),
-        condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'isRequired'),
+        condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'isRequired'),
       })
 
       // Act
@@ -105,7 +105,7 @@ describe('ExpressionDispatcher', () => {
       const item = ASTTestFactory.reference(['@loop', '0', 'item'])
       const predicate = ASTTestFactory.predicate(PredicateType.TEST, {
         subject: item,
-        condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'GreaterThan', [10]),
+        condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'GreaterThan', [10]),
       })
       const mapExpression = ASTTestFactory.expression(ExpressionType.ITERATE)
         .withProperty('input', input)
@@ -168,7 +168,7 @@ describe('ExpressionDispatcher', () => {
       const item = ASTTestFactory.reference(['@loop', '0', 'item'])
       const predicate = ASTTestFactory.predicate(PredicateType.TEST, {
         subject: item,
-        condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'GreaterThan', [10]),
+        condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'GreaterThan', [10]),
       })
       const filteredEntries = ASTTestFactory.expression(ExpressionType.ITERATE)
         .withProperty('input', ASTTestFactory.reference(['data', 'values']))

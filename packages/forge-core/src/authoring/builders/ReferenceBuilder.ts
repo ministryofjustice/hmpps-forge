@@ -7,8 +7,7 @@ import {
   PipelineExpr,
   PredicateTestExpr,
   ReferenceExpr,
-  TransformerFunctionExpr,
-} from '../types/expressions.type'
+  TransformerFunctionExpr, resolvesMarker } from '../types/expressions.type'
 import { ExpressionType, IteratorType, PredicateType } from '../types/enums'
 import { ExpressionBuilder } from './ExpressionBuilder'
 import { IterableBuilder } from './IterableBuilder'
@@ -28,6 +27,9 @@ import { splitKey } from './utils/splitKey'
  * @internal Exposed to authors via the ChainableRef interface.
  */
 export class ReferenceBuilder {
+  // Type-only ChainableExpression brand - never set at runtime.
+  declare readonly [resolvesMarker]: any
+
   readonly nodeKind = 'forge-builder' as const
 
   private readonly reference: ReferenceExpr

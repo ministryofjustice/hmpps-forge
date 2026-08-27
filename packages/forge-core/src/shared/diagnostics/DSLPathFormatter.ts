@@ -1,7 +1,7 @@
 import {
   BlockType,
   ExpressionType,
-  FunctionType,
+  FunctionCallType,
   IteratorType,
   PredicateType,
   StructureType,
@@ -10,7 +10,7 @@ import type { DSLPathSegment } from './sourceLocation.type'
 
 type DSLRecord = Record<string, unknown>
 
-const FUNCTION_TYPE_VALUES: ReadonlySet<string> = new Set(Object.values(FunctionType))
+const FUNCTION_TYPE_VALUES: ReadonlySet<string> = new Set(Object.values(FunctionCallType))
 
 interface PathFormatState {
   readonly current: unknown

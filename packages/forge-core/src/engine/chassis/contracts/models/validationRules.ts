@@ -1,4 +1,4 @@
-import { ExpressionType } from '../../../../authoring/types/enums'
+import { PolicyType, ExpressionType } from '../../../../authoring/types/enums'
 import type { ASTNode } from '../ast/ast.type'
 import { ASTNodeType } from '../ast/enums'
 import { isASTNode, isTemplateNode } from '../ast/nodes'
@@ -49,12 +49,12 @@ export function classifyValidationRules(
 
 function isDirectValidationRule(value: unknown): value is ASTNode | TemplateNode {
   if (isTemplateNode(value)) {
-    return value.originalType === ASTNodeType.EXPRESSION && value.expressionType === ExpressionType.VALIDATION
+    return value.originalType === ASTNodeType.EXPRESSION && value.expressionType === PolicyType.VALIDATION_RULE
   }
 
   if (!isASTNode(value) || !('id' in value) || value.type !== ASTNodeType.EXPRESSION) {
     return false
   }
 
-  return 'expressionType' in value && value.expressionType === ExpressionType.VALIDATION
+  return 'expressionType' in value && value.expressionType === PolicyType.VALIDATION_RULE
 }

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
-import { ExpressionType, FunctionType, PredicateType } from '../../../../authoring/types/enums'
+import { ExpressionType, FunctionCallType, PredicateType } from '../../../../authoring/types/enums'
 import { StepEntryValidationAST } from '../../../chassis/contracts/ast/structures.type'
 import { ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
@@ -95,7 +95,7 @@ describe('EntryValidationCompiler', () => {
             subject: ASTTestFactory.expression(ExpressionType.REFERENCE)
               .withProperty('path', ['data', 'addressLoaded'])
               .build(),
-            condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'equals', [true]),
+            condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'equals', [true]),
           }),
         },
       ]
@@ -131,7 +131,7 @@ describe('EntryValidationCompiler', () => {
             subject: ASTTestFactory.expression(ExpressionType.REFERENCE)
               .withProperty('path', ['data', 'addressLoaded'])
               .build(),
-            condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'equals', [true]),
+            condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'equals', [true]),
           }),
         },
       ]

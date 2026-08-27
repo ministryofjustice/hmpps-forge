@@ -1,5 +1,5 @@
 import { DateGenerators } from './dateGenerators'
-import { FunctionType } from '../../../authoring/types/enums'
+import { FunctionCallType } from '../../../authoring/types/enums'
 import { GeneratorBuilder } from '../../../authoring/builders/GeneratorBuilder'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 import { FunctionEntryRegistry } from '../../../authoring/functions/FunctionEntryRegistry'
@@ -34,7 +34,7 @@ describe('DateGenerators', () => {
 
       // Assert
       expect(builder.expr).toEqual({
-        type: FunctionType.GENERATOR,
+        type: FunctionCallType.GENERATOR,
         name: 'Date.Now',
         arguments: [],
       })
@@ -69,7 +69,7 @@ describe('DateGenerators', () => {
 
       // Assert
       expect(builder.expr).toEqual({
-        type: FunctionType.GENERATOR,
+        type: FunctionCallType.GENERATOR,
         name: 'Date.Today',
         arguments: [],
       })

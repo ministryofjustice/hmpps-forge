@@ -1,23 +1,34 @@
 /**
- * Discriminates the four kinds of registered function a call expression can
- * target: conditions test values, transformers reshape them, generators
- * produce them, and effects perform side effects in hooks.
+ * Discriminates the four kinds of stored function invocation: conditions test
+ * values, transformers reshape them, generators produce them, and effects
+ * perform side effects in hooks.
  */
-export enum FunctionType {
-  CONDITION = 'FunctionType.Condition',
-  TRANSFORMER = 'FunctionType.Transformer',
-  GENERATOR = 'FunctionType.Generator',
-  EFFECT = 'FunctionType.Effect',
+export enum FunctionCallType {
+  CONDITION = 'function.call.condition',
+  TRANSFORMER = 'function.call.transformer',
+  GENERATOR = 'function.call.generator',
+  EFFECT = 'function.call.effect',
 }
 
 /**
- * Discriminates the structural nodes a form is built from: journeys contain
- * steps, steps contain blocks.
+ * Discriminates the four kinds of registered function entry a call can
+ * target. Pairs with FunctionCallType by leaf name.
+ */
+export enum FunctionEntryType {
+  CONDITION = 'function.entry.condition',
+  TRANSFORMER = 'function.entry.transformer',
+  GENERATOR = 'function.entry.generator',
+  EFFECT = 'function.entry.effect',
+}
+
+/**
+ * Discriminates the structural containers a form is built from: journeys
+ * contain steps.
  */
 export enum StructureType {
   BLOCK = 'StructureType.Block',
-  JOURNEY = 'StructureType.Journey',
-  STEP = 'StructureType.Step',
+  JOURNEY = 'structure.journey',
+  STEP = 'structure.step',
 }
 
 /**
@@ -30,19 +41,45 @@ export enum BlockType {
 }
 
 /**
- * Discriminates expression nodes: value expressions such as references,
- * pipelines, conditionals, and iterations, plus rule nodes such as
- * validations and tie-breakers.
+ * Discriminates stored component calls: field blocks collect answers, basic
+ * blocks only display content.
+ */
+export enum ComponentCallType {
+  BASIC = 'component.call.basic',
+  FIELD = 'component.call.field',
+}
+
+/**
+ * Discriminates registered component entries, the handles component()
+ * returns. Pairs with ComponentCallType by leaf name.
+ */
+export enum ComponentEntryType {
+  BASIC = 'component.entry.basic',
+  FIELD = 'component.entry.field',
+}
+
+/**
+ * Discriminates value expression nodes: nodes the engine can evaluate, on
+ * their own, to a value.
  */
 export enum ExpressionType {
-  REFERENCE = 'ExpressionType.Reference',
-  PIPELINE = 'ExpressionType.Pipeline',
-  NEXT = 'ExpressionType.Next',
-  VALIDATION = 'ExpressionType.Validation',
-  ITERATE = 'ExpressionType.Iterate',
-  CONDITIONAL = 'ExpressionType.Conditional',
-  MATCH = 'ExpressionType.Match',
-  TIE_BREAKER = 'ExpressionType.TieBreaker',
+  REFERENCE = 'expression.reference',
+  PIPELINE = 'expression.pipeline',
+  CONDITIONAL = 'expression.conditional',
+  MATCH = 'expression.match',
+  ITERATE = 'expression.iterate',
+}
+
+/**
+ * Discriminates policy nodes: rules that decide what may happen — validation,
+ * navigation, and hook halt outcomes.
+ */
+export enum PolicyType {
+  VALIDATION_RULE = 'policy.validation.rule',
+  NAVIGATION_NEXT = 'policy.navigation.next',
+  NAVIGATION_TIE_BREAKER = 'policy.navigation.tie-breaker',
+  OUTCOME_REDIRECT = 'policy.outcome.redirect',
+  OUTCOME_THROW_ERROR = 'policy.outcome.throw-error',
 }
 
 /**
@@ -50,9 +87,9 @@ export enum ExpressionType {
  * a collection.
  */
 export enum IteratorType {
-  MAP = 'IteratorType.Map',
-  FILTER = 'IteratorType.Filter',
-  FIND = 'IteratorType.Find',
+  MAP = 'iterator.map',
+  FILTER = 'iterator.filter',
+  FIND = 'iterator.find',
 }
 
 /**
@@ -60,11 +97,11 @@ export enum IteratorType {
  * combination of other predicates.
  */
 export enum PredicateType {
-  TEST = 'PredicateType.Test',
-  AND = 'PredicateType.And',
-  OR = 'PredicateType.Or',
-  XOR = 'PredicateType.Xor',
-  NOT = 'PredicateType.Not',
+  TEST = 'predicate.test',
+  AND = 'predicate.and',
+  OR = 'predicate.or',
+  XOR = 'predicate.xor',
+  NOT = 'predicate.not',
 }
 
 /**
@@ -74,10 +111,10 @@ export enum PredicateType {
  * and take their subject from the surrounding match expression.
  */
 export enum ConditionCombinatorType {
-  AND = 'ConditionCombinatorType.And',
-  OR = 'ConditionCombinatorType.Or',
-  XOR = 'ConditionCombinatorType.Xor',
-  NOT = 'ConditionCombinatorType.Not',
+  AND = 'combinator.and',
+  OR = 'combinator.or',
+  XOR = 'combinator.xor',
+  NOT = 'combinator.not',
 }
 
 /**
@@ -85,15 +122,22 @@ export enum ConditionCombinatorType {
  * hooks run on form submission.
  */
 export enum HookType {
-  ACCESS = 'HookType.Access',
-  SUBMIT = 'HookType.Submit',
+  ACCESS = 'hook.access',
+  SUBMIT = 'hook.submit',
 }
 
 /**
- * Discriminates the outcomes a hook can halt with: a redirect or a thrown
- * error.
+ * Discriminates the live authoring builder objects, turned into stored nodes
+ * at finalisation.
  */
-export enum OutcomeType {
-  REDIRECT = 'Outcome.Redirect',
-  THROW_ERROR = 'Outcome.ThrowError',
+export enum BuilderType {
+  REFERENCE = 'builder.reference',
+  CHAIN = 'builder.chain',
+  CONDITIONAL = 'builder.conditional',
+  MATCH = 'builder.match',
+  GENERATOR = 'builder.generator',
+  ITERABLE = 'builder.iterable',
+  SCOPED_REFERENCE = 'builder.scoped-reference',
+  LOOP_ITEM = 'builder.loop-item',
+  LOOP = 'builder.loop',
 }

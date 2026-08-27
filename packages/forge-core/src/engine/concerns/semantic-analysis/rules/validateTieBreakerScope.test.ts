@@ -1,4 +1,4 @@
-import { ExpressionType, BlockType } from '../../../../authoring/types/enums'
+import { PolicyType, ExpressionType, BlockType } from '../../../../authoring/types/enums'
 import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'
@@ -36,7 +36,7 @@ const errorMessages = (errors: readonly Error[]): string[] =>
   errors.map(error => (error as ForgeReferenceScopeError).message)
 
 const createTieBreaker = (): ASTNode =>
-  ASTTestFactory.expression<ASTNode>(ExpressionType.TIE_BREAKER).withProperty('priority', 1).build()
+  ASTTestFactory.expression<ASTNode>(PolicyType.NAVIGATION_TIE_BREAKER).withProperty('priority', 1).build()
 
 describe('validateTieBreakerScope', () => {
   describe('validateTieBreakerScope()', () => {

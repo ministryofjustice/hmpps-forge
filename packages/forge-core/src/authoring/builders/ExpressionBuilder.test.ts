@@ -1,18 +1,18 @@
 import { ExpressionBuilder } from './ExpressionBuilder'
 import { ConditionFunctionExpr, PipelineExpr, ReferenceExpr, TransformerFunctionExpr } from '../types/expressions.type'
-import { ExpressionType, FunctionType, PredicateType } from '../types/enums'
+import { ExpressionType, FunctionCallType, PredicateType } from '../types/enums'
 
 describe('ExpressionBuilder', () => {
   // Helper to create a mock condition
   const mockCondition = (name: string): ConditionFunctionExpr<any> => ({
-    type: FunctionType.CONDITION,
+    type: FunctionCallType.CONDITION,
     name,
     arguments: [],
   })
 
   // Helper to create a mock transformer
   const mockTransformer = (name: string): TransformerFunctionExpr<any> => ({
-    type: FunctionType.TRANSFORMER,
+    type: FunctionCallType.TRANSFORMER,
     name,
     arguments: [],
   })

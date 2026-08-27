@@ -1,6 +1,6 @@
 import { ASTNodeType } from '../../../contracts/ast/enums'
 import { ASTTestFactory } from '../testing-helpers/ASTTestFactory'
-import { BlockType, ExpressionType, OutcomeType, PredicateType } from '../../../../../authoring/types/enums'
+import { BlockType, ExpressionType, PolicyType, PredicateType } from '../../../../../authoring/types/enums'
 import ASTNodeIndex from './ASTNodeIndex'
 
 describe('ASTNodeIndex', () => {
@@ -136,8 +136,8 @@ describe('ASTNodeIndex', () => {
       registry.register(throwErrorOutcome.id, throwErrorOutcome)
 
       // Act
-      const redirectNodes = registry.findByType(OutcomeType.REDIRECT)
-      const throwErrorNodes = registry.findByType(OutcomeType.THROW_ERROR)
+      const redirectNodes = registry.findByType(PolicyType.OUTCOME_REDIRECT)
+      const throwErrorNodes = registry.findByType(PolicyType.OUTCOME_THROW_ERROR)
 
       // Assert
       expect(redirectNodes).toEqual([redirectOutcome])

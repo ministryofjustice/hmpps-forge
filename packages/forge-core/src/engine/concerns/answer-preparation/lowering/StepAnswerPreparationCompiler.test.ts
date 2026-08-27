@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z, type ZodType } from 'zod'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
-import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
+import { BlockType, ExpressionType, FunctionCallType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   FormatGenerators,
@@ -100,7 +100,7 @@ function createFieldBlock(
 function createTransformerFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
     type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionType.TRANSFORMER,
+    expressionType: FunctionCallType.TRANSFORMER,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -120,7 +120,7 @@ function createReference(path: (string | number)[]): ReferenceASTNode {
 function createConditionFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
     type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionType.CONDITION,
+    expressionType: FunctionCallType.CONDITION,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -130,7 +130,7 @@ function createConditionFunction(name: string, args: unknown[] = []): FunctionAS
 function createGeneratorFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
     type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionType.GENERATOR,
+    expressionType: FunctionCallType.GENERATOR,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -788,7 +788,7 @@ describe('StepAnswerPreparationCompiler', () => {
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
           phase: 'answer-preparation',
           functionName: 'explode',
-          functionType: FunctionType.TRANSFORMER,
+          functionType: FunctionCallType.TRANSFORMER,
         })
       }
     })
@@ -907,7 +907,7 @@ describe('StepAnswerPreparationCompiler', () => {
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
           phase: 'answer-preparation',
           functionName: 'willThrow',
-          functionType: FunctionType.CONDITION,
+          functionType: FunctionCallType.CONDITION,
         })
       }
     })

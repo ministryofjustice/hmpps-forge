@@ -3,9 +3,9 @@ import { ASTNodeType } from '../../../contracts/ast/enums'
 import {
   BlockType,
   ExpressionType,
-  FunctionType,
+  FunctionCallType,
   HookType,
-  OutcomeType,
+  PolicyType,
   PredicateType,
 } from '../../../../../authoring/types/enums'
 import { ExpressionASTNode, OutcomeASTNode } from '../../../contracts/ast/expressions.type'
@@ -17,10 +17,10 @@ import ForgeInternalError from '../../../../errors/ForgeInternalError'
 export type IndexableNodeType =
   | ASTNodeType
   | ExpressionType
-  | FunctionType
+  | FunctionCallType
   | PredicateType
   | HookType
-  | OutcomeType
+  | PolicyType
   | BlockType
 
 /**

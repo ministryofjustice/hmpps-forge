@@ -8,10 +8,10 @@ import { compileTemplate } from './template'
 import {
   ConditionCombinatorType,
   ExpressionType,
-  FunctionType,
+  FunctionCallType,
   HookType,
   IteratorType,
-  OutcomeType,
+  PolicyType,
   PredicateType,
   StructureType,
 } from '../../../../../authoring/types/enums'
@@ -101,7 +101,7 @@ const INLINE_ONLY_TYPES: ReadonlySet<string> = new Set([
  * creator and a row here; the completeness test in `NodeFactory.test.ts`
  * fails if an enum value has no row.
  *
- * `ExpressionType.NEXT` is deliberately absent: nothing in the authoring
+ * `PolicyType.NAVIGATION_NEXT` is deliberately absent: nothing in the authoring
  * surface produces it and no factory ever created it.
  */
 export const creatorsByType: ReadonlyMap<string, NodeCreator> = new Map<string, NodeCreator>([
@@ -116,8 +116,8 @@ export const creatorsByType: ReadonlyMap<string, NodeCreator> = new Map<string, 
   [ExpressionType.CONDITIONAL, createConditionalNode],
   [ExpressionType.MATCH, createMatchNode],
   [ExpressionType.ITERATE, createIterateNode],
-  [ExpressionType.VALIDATION, createValidationNode],
-  [ExpressionType.TIE_BREAKER, createTieBreakerNode],
+  [PolicyType.VALIDATION_RULE, createValidationNode],
+  [PolicyType.NAVIGATION_TIE_BREAKER, createTieBreakerNode],
 
   // Predicates
   [PredicateType.TEST, createTestPredicateNode],
@@ -127,18 +127,18 @@ export const creatorsByType: ReadonlyMap<string, NodeCreator> = new Map<string, 
   [PredicateType.XOR, naryPredicateCreator(PredicateType.XOR)],
 
   // Registered function calls
-  [FunctionType.CONDITION, createFunctionNode],
-  [FunctionType.TRANSFORMER, createFunctionNode],
-  [FunctionType.GENERATOR, createFunctionNode],
-  [FunctionType.EFFECT, createFunctionNode],
+  [FunctionCallType.CONDITION, createFunctionNode],
+  [FunctionCallType.TRANSFORMER, createFunctionNode],
+  [FunctionCallType.GENERATOR, createFunctionNode],
+  [FunctionCallType.EFFECT, createFunctionNode],
 
   // Hooks
   [HookType.ACCESS, createAccessHookNode],
   [HookType.SUBMIT, createSubmitHookNode],
 
   // Hook outcomes
-  [OutcomeType.REDIRECT, createRedirectOutcomeNode],
-  [OutcomeType.THROW_ERROR, createThrowErrorOutcomeNode],
+  [PolicyType.OUTCOME_REDIRECT, createRedirectOutcomeNode],
+  [PolicyType.OUTCOME_THROW_ERROR, createThrowErrorOutcomeNode],
 
   // Inline-only types - recognised, but never standalone AST nodes
   [ConditionCombinatorType.AND, notConstructible(COMBINATOR_PLACEMENT)],

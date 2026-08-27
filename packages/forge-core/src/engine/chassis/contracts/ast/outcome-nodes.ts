@@ -1,4 +1,4 @@
-import { OutcomeType } from '../../../../authoring/types/enums'
+import { PolicyType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from './enums'
 import { OutcomeASTNode, RedirectOutcomeASTNode, ThrowErrorOutcomeASTNode } from './expressions.type'
 
@@ -13,12 +13,12 @@ function isOutcomeNode(obj: any): obj is OutcomeASTNode {
  * Check if an AST node is a Redirect Outcome node
  */
 export function isRedirectOutcomeNode(obj: any): obj is RedirectOutcomeASTNode {
-  return isOutcomeNode(obj) && obj.outcomeType === OutcomeType.REDIRECT
+  return isOutcomeNode(obj) && obj.outcomeType === PolicyType.OUTCOME_REDIRECT
 }
 
 /**
  * Check if an AST node is a ThrowError Outcome node
  */
 export function isThrowErrorOutcomeNode(obj: any): obj is ThrowErrorOutcomeASTNode {
-  return isOutcomeNode(obj) && obj.outcomeType === OutcomeType.THROW_ERROR
+  return isOutcomeNode(obj) && obj.outcomeType === PolicyType.OUTCOME_THROW_ERROR
 }

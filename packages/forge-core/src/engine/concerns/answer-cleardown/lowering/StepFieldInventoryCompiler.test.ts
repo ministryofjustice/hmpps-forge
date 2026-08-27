@@ -1,6 +1,6 @@
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
-import { BlockType, ExpressionType, FunctionType, IteratorType } from '../../../../authoring/types/enums'
+import { BlockType, ExpressionType, FunctionCallType, IteratorType } from '../../../../authoring/types/enums'
 import { FieldBlockASTNode } from '../../../chassis/contracts/ast/structures.type'
 import { FunctionASTNode, IterateASTNode, ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import { TemplateValue } from '../../../chassis/contracts/ast/template.type'
@@ -33,7 +33,7 @@ function createReference(path: (string | number)[]): ReferenceASTNode {
 function createGeneratorFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
     type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionType.GENERATOR,
+    expressionType: FunctionCallType.GENERATOR,
     id: ASTTestFactory.getId(),
     properties: { name, arguments: args },
   } as FunctionASTNode

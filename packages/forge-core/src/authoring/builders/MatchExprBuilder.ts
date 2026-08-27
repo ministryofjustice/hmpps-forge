@@ -1,4 +1,4 @@
-import { ConditionBranchExpr, MatchExpr, ResolvableValue } from '../types/expressions.type'
+import { ConditionBranchExpr, MatchExpr, ResolvableValue, resolvesMarker } from '../types/expressions.type'
 import { ExpressionType } from '../types/enums'
 import { BranchValue, ChainableMatch } from './types'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
@@ -14,6 +14,9 @@ import { captureCallsite, stampCallsite } from './utils/captureCallsite'
  * @internal Exposed to authors via the ChainableMatch interface.
  */
 export class MatchExprBuilder implements ChainableMatch {
+  // Type-only ChainableExpression brand - never set at runtime.
+  declare readonly [resolvesMarker]: any
+
   readonly nodeKind = 'forge-builder' as const
 
   private readonly subject: ResolvableValue

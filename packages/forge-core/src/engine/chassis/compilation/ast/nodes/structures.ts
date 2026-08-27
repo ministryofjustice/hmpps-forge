@@ -1,6 +1,6 @@
 import { isFieldBlockDefinition } from '../../../../../components/typeguards'
 import { ASTNodeType } from '../../../contracts/ast/enums'
-import { ExpressionType, BlockType } from '../../../../../authoring/types/enums'
+import { PolicyType, ExpressionType, BlockType } from '../../../../../authoring/types/enums'
 import {
   BasicBlockASTNode,
   BlockASTNode,
@@ -16,7 +16,7 @@ import type { BlockDefinition, FieldBlockDefinition } from '../../../../../compo
 import type { NodeBuildContext } from './NodeFactory'
 
 function isTieBreaker(obj: unknown): obj is TieBreaker {
-  return obj != null && (obj as { type?: string }).type === ExpressionType.TIE_BREAKER
+  return obj != null && (obj as { type?: string }).type === PolicyType.NAVIGATION_TIE_BREAKER
 }
 
 /**

@@ -1,11 +1,11 @@
 import { z, type ZodType } from 'zod'
-import { FunctionType } from '../../../../authoring/types/enums'
+import { FunctionCallType } from '../../../../authoring/types/enums'
 import type { FunctionASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ForgeFunctionArityError from '../../../errors/ForgeFunctionArityError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 
-const FUNCTION_TYPES = Object.values(FunctionType)
+const FUNCTION_TYPES = Object.values(FunctionCallType)
 
 interface TupleArity {
   min: number

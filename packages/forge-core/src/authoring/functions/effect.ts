@@ -1,4 +1,4 @@
-import { FunctionType } from '../types/enums'
+import { FunctionCallType } from '../types/enums'
 import { buildExpression, createEntry } from './createEntry'
 import type { BaseEntryOptions } from './createEntry'
 import type { EffectFunctionExpr, Resolvable, ResolvableValue } from '../types/expressions.type'
@@ -42,7 +42,7 @@ export type EffectEntry<
   TAuthoredArguments extends readonly unknown[] = ResolvableValue[],
 > = ((...args: TAuthoredArguments) => EffectFunctionExpr) & FunctionEntry<TDeps>
 
-const buildEffectExpr = buildExpression(FunctionType.EFFECT)
+const buildEffectExpr = buildExpression(FunctionCallType.EFFECT)
 
 /**
  * Defines an effect function as a standalone entry. Use the result in a journey
@@ -89,5 +89,5 @@ export function effect(
   first: string | EffectOptions<any, any, any>,
   second?: EffectOptions<any, any, any>,
 ): EffectEntry<any, any> {
-  return createEntry(FunctionType.EFFECT, 'effect', first, second, buildEffectExpr)
+  return createEntry(FunctionCallType.EFFECT, 'effect', first, second, buildEffectExpr)
 }

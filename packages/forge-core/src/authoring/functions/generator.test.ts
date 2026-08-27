@@ -2,7 +2,7 @@ import { expectTypeOf, vi } from 'vitest'
 import { z } from 'zod'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
 import GeneratorRegistry from '../registries/GeneratorRegistry'
-import { FunctionType, PredicateType } from '../types/enums'
+import { FunctionCallType, PredicateType } from '../types/enums'
 import { finaliseBuilders } from '../builders/utils/finaliseBuilders'
 import { getEntryStamp } from '../builders/utils/stampEntry'
 import { condition } from './condition'
@@ -32,7 +32,7 @@ describe('generator()', () => {
   describe('entry creation', () => {
     it('should carry the given name, function type, schemas, and factory on a named entry', () => {
       expect(Tomorrow.name).toBe('Date.Tomorrow')
-      expect(Tomorrow.functionType).toBe(FunctionType.GENERATOR)
+      expect(Tomorrow.functionType).toBe(FunctionCallType.GENERATOR)
       expect(Tomorrow.inputSchema).toBeUndefined()
       expect(Tomorrow.argumentsSchema?.safeParse([1]).success).toBe(true)
       expect(Tomorrow.outputSchema).toBeUndefined()
@@ -57,7 +57,7 @@ describe('generator()', () => {
       // Assert
       expect(builder).toBeInstanceOf(GeneratorBuilder)
       expect(asBuilder(builder).build()).toEqual({
-        type: FunctionType.GENERATOR,
+        type: FunctionCallType.GENERATOR,
         name: 'Date.Tomorrow',
         arguments: [1],
       })
@@ -106,7 +106,7 @@ describe('generator()', () => {
     it('should compose like a registry generator handle', () => {
       // Arrange
       const isFuture = condition({ factory: () => () => true })
-      const step: TransformerFunctionExpr = { type: FunctionType.TRANSFORMER, name: 'AddDays', arguments: [7] }
+      const step: TransformerFunctionExpr = { type: FunctionCallType.TRANSFORMER, name: 'AddDays', arguments: [7] }
 
       // Act
       const matched = Tomorrow(1).match(isFuture())

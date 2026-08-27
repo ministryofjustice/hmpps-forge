@@ -1,4 +1,4 @@
-import { FunctionType } from '../../../../../authoring/types/enums'
+import { FunctionCallType } from '../../../../../authoring/types/enums'
 import { formatCallsiteChain, resolveCallsitePositionChain } from '../../../../../shared/diagnostics/formatCallsite'
 import {
   CodeFragment,
@@ -219,10 +219,10 @@ export default class DiagnosticEmitter {
     const expressionType = source.expressionType
 
     switch (expressionType) {
-      case FunctionType.CONDITION:
-      case FunctionType.TRANSFORMER:
-      case FunctionType.GENERATOR:
-      case FunctionType.EFFECT:
+      case FunctionCallType.CONDITION:
+      case FunctionCallType.TRANSFORMER:
+      case FunctionCallType.GENERATOR:
+      case FunctionCallType.EFFECT:
         return expressionType
       default:
         return undefined

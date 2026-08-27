@@ -2,8 +2,8 @@ import { z } from 'zod'
 import {
   StructureType,
   HookType,
-  OutcomeType,
-  FunctionType,
+  PolicyType,
+  FunctionCallType,
   PredicateType,
   ExpressionType,
   BlockType,
@@ -358,8 +358,8 @@ describe('ASTSemanticValidator', () => {
                 type: HookType.SUBMIT,
                 validate: true,
                 onValid: {
-                  effects: [{ type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] }],
-                  next: [{ type: OutcomeType.REDIRECT, goto: '/next' }],
+                  effects: [{ type: FunctionCallType.EFFECT, name: 'saveToApi', arguments: [] }],
+                  next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/next' }],
                 },
               },
             ],
@@ -387,7 +387,7 @@ describe('ASTSemanticValidator', () => {
               {
                 type: HookType.SUBMIT,
                 onValid: {
-                  effects: [{ type: FunctionType.EFFECT, name: 'nonExistentEffect', arguments: [] }],
+                  effects: [{ type: FunctionCallType.EFFECT, name: 'nonExistentEffect', arguments: [] }],
                 },
               },
             ],
@@ -407,7 +407,7 @@ describe('ASTSemanticValidator', () => {
 
           expect(fnErrors).toHaveLength(1)
           expect(fnErrors[0].functionName).toBe('nonExistentEffect')
-          expect(fnErrors[0].functionType).toBe(FunctionType.EFFECT)
+          expect(fnErrors[0].functionType).toBe(FunctionCallType.EFFECT)
         }
       }
     })
@@ -431,13 +431,13 @@ describe('ASTSemanticValidator', () => {
                 code: 'field1',
                 validWhen: [
                   {
-                    type: ExpressionType.VALIDATION,
+                    type: PolicyType.VALIDATION_RULE,
                     message: 'Required',
                     condition: {
                       type: PredicateType.TEST,
                       subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
                       negate: false,
-                      condition: { type: FunctionType.CONDITION, name: 'missingCondition', arguments: [] },
+                      condition: { type: FunctionCallType.CONDITION, name: 'missingCondition', arguments: [] },
                     },
                   },
                 ],
@@ -458,7 +458,7 @@ describe('ASTSemanticValidator', () => {
 
           expect(fnErrors).toHaveLength(1)
           expect(fnErrors[0].functionName).toBe('missingCondition')
-          expect(fnErrors[0].functionType).toBe(FunctionType.CONDITION)
+          expect(fnErrors[0].functionType).toBe(FunctionCallType.CONDITION)
         }
       }
     })
@@ -479,8 +479,8 @@ describe('ASTSemanticValidator', () => {
               {
                 type: HookType.ACCESS,
                 effects: [
-                  { type: FunctionType.EFFECT, name: 'registeredEffect', arguments: [] },
-                  { type: FunctionType.EFFECT, name: 'missingEffect1', arguments: [] },
+                  { type: FunctionCallType.EFFECT, name: 'registeredEffect', arguments: [] },
+                  { type: FunctionCallType.EFFECT, name: 'missingEffect1', arguments: [] },
                 ],
               },
             ],
@@ -488,7 +488,7 @@ describe('ASTSemanticValidator', () => {
               {
                 type: HookType.SUBMIT,
                 onValid: {
-                  effects: [{ type: FunctionType.EFFECT, name: 'missingEffect2', arguments: [] }],
+                  effects: [{ type: FunctionCallType.EFFECT, name: 'missingEffect2', arguments: [] }],
                 },
               },
             ],
@@ -535,7 +535,7 @@ describe('ASTSemanticValidator', () => {
                 onAccess: [
                   {
                     type: HookType.ACCESS,
-                    effects: [{ type: FunctionType.EFFECT, name: 'deeplyNestedEffect', arguments: [] }],
+                    effects: [{ type: FunctionCallType.EFFECT, name: 'deeplyNestedEffect', arguments: [] }],
                   },
                 ],
               } as StepDefinition,
@@ -576,8 +576,8 @@ describe('ASTSemanticValidator', () => {
                 blockType: BlockType.FIELD,
                 variant: 'text',
                 code: 'field1',
-                defaultValue: { type: FunctionType.GENERATOR, name: 'missingGenerator', arguments: [] },
-                formatters: [{ type: FunctionType.TRANSFORMER, name: 'missingTransformer', arguments: [] }],
+                defaultValue: { type: FunctionCallType.GENERATOR, name: 'missingGenerator', arguments: [] },
+                formatters: [{ type: FunctionCallType.TRANSFORMER, name: 'missingTransformer', arguments: [] }],
               } as FieldBlockDefinition,
             ],
           } as StepDefinition,
@@ -596,8 +596,8 @@ describe('ASTSemanticValidator', () => {
           expect(fnErrors).toHaveLength(2)
 
           const types = fnErrors.map((e: ForgeUnregisteredFunctionError) => e.functionType)
-          expect(types).toContain(FunctionType.GENERATOR)
-          expect(types).toContain(FunctionType.TRANSFORMER)
+          expect(types).toContain(FunctionCallType.GENERATOR)
+          expect(types).toContain(FunctionCallType.TRANSFORMER)
         }
       }
     })
@@ -829,7 +829,7 @@ describe('ASTSemanticValidator', () => {
             onAccess: [
               {
                 type: HookType.ACCESS,
-                effects: [{ type: FunctionType.EFFECT, name: 'loadData', arguments: [] }],
+                effects: [{ type: FunctionCallType.EFFECT, name: 'loadData', arguments: [] }],
               },
             ],
           } as StepDefinition,
@@ -854,7 +854,7 @@ describe('ASTSemanticValidator', () => {
               {
                 type: HookType.SUBMIT,
                 onValid: {
-                  effects: [{ type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] }],
+                  effects: [{ type: FunctionCallType.EFFECT, name: 'saveToApi', arguments: [] }],
                 },
               },
             ],
@@ -883,13 +883,13 @@ describe('ASTSemanticValidator', () => {
                 code: 'field1',
                 validWhen: [
                   {
-                    type: ExpressionType.VALIDATION,
+                    type: PolicyType.VALIDATION_RULE,
                     message: 'Required',
                     condition: {
                       type: PredicateType.TEST,
                       subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
                       negate: false,
-                      condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                      condition: { type: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                     },
                   },
                 ],
@@ -918,7 +918,7 @@ describe('ASTSemanticValidator', () => {
                 blockType: BlockType.FIELD,
                 variant: 'text',
                 code: 'field1',
-                defaultValue: { type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] },
+                defaultValue: { type: FunctionCallType.EFFECT, name: 'saveToApi', arguments: [] },
               } as unknown as FieldBlockDefinition,
             ],
           } as StepDefinition,
@@ -980,7 +980,7 @@ describe('ASTSemanticValidator', () => {
                 variant: 'text',
                 code: 'field1',
                 defaultValue: {
-                  type: FunctionType.TRANSFORMER,
+                  type: FunctionCallType.TRANSFORMER,
                   name: 'someTransformer',
                   arguments: [
                     {
@@ -1029,17 +1029,17 @@ describe('ASTSemanticValidator', () => {
                 variant: 'text',
                 code: 'field1',
                 defaultValue: {
-                  type: FunctionType.TRANSFORMER,
+                  type: FunctionCallType.TRANSFORMER,
                   name: 'someTransformer',
                   arguments: [
                     {
-                      type: ExpressionType.VALIDATION,
+                      type: PolicyType.VALIDATION_RULE,
                       message: 'Required',
                       condition: {
                         type: PredicateType.TEST,
                         subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
                         negate: false,
-                        condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                        condition: { type: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                       },
                     },
                   ],
@@ -1084,19 +1084,19 @@ describe('ASTSemanticValidator', () => {
                 variant: 'text',
                 code: 'field1',
                 defaultValue: {
-                  type: FunctionType.TRANSFORMER,
+                  type: FunctionCallType.TRANSFORMER,
                   name: 'someTransformer',
                   arguments: [{ type: ExpressionType.REFERENCE, path: ['answers', 'name'] }],
                 },
                 validWhen: [
                   {
-                    type: ExpressionType.VALIDATION,
+                    type: PolicyType.VALIDATION_RULE,
                     message: 'Required',
                     condition: {
                       type: PredicateType.TEST,
                       subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
                       negate: false,
-                      condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                      condition: { type: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                     },
                   },
                 ],
@@ -1126,7 +1126,7 @@ describe('ASTSemanticValidator', () => {
                 variant: 'text',
                 code: 'field1',
                 defaultValue: {
-                  type: FunctionType.TRANSFORMER,
+                  type: FunctionCallType.TRANSFORMER,
                   name: 'someTransformer',
                   arguments: [
                     {
@@ -1135,13 +1135,13 @@ describe('ASTSemanticValidator', () => {
                       variant: 'text',
                     },
                     {
-                      type: ExpressionType.VALIDATION,
+                      type: PolicyType.VALIDATION_RULE,
                       message: 'Required',
                       condition: {
                         type: PredicateType.TEST,
                         subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
                         negate: false,
-                        condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                        condition: { type: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                       },
                     },
                   ],
@@ -1197,7 +1197,7 @@ describe('ASTSemanticValidator', () => {
                           variant: 'text',
                           code: 'item',
                           defaultValue: {
-                            type: FunctionType.TRANSFORMER,
+                            type: FunctionCallType.TRANSFORMER,
                             name: 'someTransformer',
                             arguments: [
                               {
@@ -1274,13 +1274,13 @@ describe('ASTSemanticValidator', () => {
                 code: 'field1',
                 validWhen: [
                   {
-                    type: ExpressionType.VALIDATION,
+                    type: PolicyType.VALIDATION_RULE,
                     message: 'Required',
                     condition: {
                       type: PredicateType.TEST,
                       subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
                       negate: false,
-                      condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                      condition: { type: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                     },
                   },
                 ],
@@ -1306,13 +1306,13 @@ describe('ASTSemanticValidator', () => {
             blocks: [],
             validWhen: [
               {
-                type: ExpressionType.VALIDATION,
+                type: PolicyType.VALIDATION_RULE,
                 message: 'Step is not valid',
                 condition: {
                   type: PredicateType.TEST,
                   subject: { type: ExpressionType.REFERENCE, path: ['answers', 'name'] },
                   negate: false,
-                  condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                  condition: { type: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                 },
               },
             ],
@@ -1339,13 +1339,13 @@ describe('ASTSemanticValidator', () => {
                 blockType: BlockType.BASIC,
                 variant: 'text',
                 content: {
-                  type: ExpressionType.VALIDATION,
+                  type: PolicyType.VALIDATION_RULE,
                   message: 'Misplaced',
                   condition: {
                     type: PredicateType.TEST,
                     subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
                     negate: false,
-                    condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                    condition: { type: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                   },
                 },
               } as BlockDefinition & Record<string, unknown>,
@@ -1388,7 +1388,7 @@ describe('ASTSemanticValidator', () => {
                 variant: 'text',
                 code: 'field1',
                 defaultValue: {
-                  type: FunctionType.TRANSFORMER,
+                  type: FunctionCallType.TRANSFORMER,
                   name: 'someTransformer',
                   arguments: [{ type: ExpressionType.REFERENCE, path: ['answers', 'name'] }],
                 },
@@ -1429,20 +1429,20 @@ describe('ASTSemanticValidator', () => {
                           type: PredicateType.TEST,
                           subject: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'status'] },
                           negate: false,
-                          condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                          condition: { type: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                         },
                       },
                     },
                     iterator: {
                       type: IteratorType.MAP,
                       yield: {
-                        type: ExpressionType.VALIDATION,
+                        type: PolicyType.VALIDATION_RULE,
                         message: 'Must have steps',
                         condition: {
                           type: PredicateType.TEST,
                           subject: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'steps'] },
                           negate: false,
-                          condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                          condition: { type: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                         },
                       },
                     },
@@ -1490,8 +1490,8 @@ describe('ASTSemanticValidator', () => {
               {
                 type: HookType.SUBMIT,
                 onValid: {
-                  effects: [{ type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] }],
-                  next: [{ type: OutcomeType.REDIRECT, goto: '/next' }],
+                  effects: [{ type: FunctionCallType.EFFECT, name: 'saveToApi', arguments: [] }],
+                  next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/next' }],
                 },
               },
             ],
@@ -1522,7 +1522,7 @@ describe('ASTSemanticValidator', () => {
       // Arrange
       const journey: JourneyDefinition = {
         ...baseJourney,
-        onAccess: [{ type: HookType.ACCESS, next: [{ type: OutcomeType.REDIRECT, goto: '/login' }] }],
+        onAccess: [{ type: HookType.ACCESS, next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/login' }] }],
         steps: [
           {
             type: StructureType.STEP,
@@ -1531,7 +1531,7 @@ describe('ASTSemanticValidator', () => {
             blocks: [],
             onAccess: [{ type: HookType.ACCESS }],
             onSubmission: [
-              { type: HookType.SUBMIT, onValid: { next: [{ type: OutcomeType.REDIRECT, goto: '/done' }] } },
+              { type: HookType.SUBMIT, onValid: { next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/done' }] } },
             ],
           } as StepDefinition,
         ],
@@ -1567,7 +1567,7 @@ describe('ASTSemanticValidator', () => {
             title: 'Step 1',
             blocks: [],
             reachability: {
-              tieBreakers: [{ type: ExpressionType.TIE_BREAKER, priority: 1 }],
+              tieBreakers: [{ type: PolicyType.NAVIGATION_TIE_BREAKER, priority: 1 }],
             },
           } as StepDefinition,
         ],
@@ -1801,8 +1801,8 @@ describe('ASTSemanticValidator', () => {
               {
                 type: HookType.SUBMIT,
                 onValid: {
-                  effects: [{ type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] }],
-                  next: [{ type: OutcomeType.REDIRECT, goto: '/done' }],
+                  effects: [{ type: FunctionCallType.EFFECT, name: 'saveToApi', arguments: [] }],
+                  next: [{ type: PolicyType.OUTCOME_REDIRECT, goto: '/done' }],
                 },
               },
             ],
@@ -1868,13 +1868,13 @@ describe('ASTSemanticValidator', () => {
         code,
         validWhen: [
           {
-            type: ExpressionType.VALIDATION,
+            type: PolicyType.VALIDATION_RULE,
             message: 'Invalid',
             condition: {
               type: PredicateType.TEST,
               subject: { type: ExpressionType.REFERENCE, path: [code] },
               negate: false,
-              condition: { type: FunctionType.CONDITION, name: conditionName, arguments: args },
+              condition: { type: FunctionCallType.CONDITION, name: conditionName, arguments: args },
             },
           },
         ],
@@ -2048,7 +2048,7 @@ describe('ASTSemanticValidator', () => {
                           variant: 'text',
                           code: 'item',
                           defaultValue: {
-                            type: FunctionType.TRANSFORMER,
+                            type: FunctionCallType.TRANSFORMER,
                             name: 'exactOneTransformer',
                             arguments: [],
                           },
@@ -2132,7 +2132,7 @@ describe('ASTSemanticValidator', () => {
           ) as ForgeFunctionArityError
 
           expect(arityError.functionName).toBe('exactOne')
-          expect(arityError.functionType).toBe(FunctionType.CONDITION)
+          expect(arityError.functionType).toBe(FunctionCallType.CONDITION)
           expect(arityError.expected).toBe('1')
           expect(arityError.received).toBe(0)
           expect(arityError.formattedPath).toBeDefined()

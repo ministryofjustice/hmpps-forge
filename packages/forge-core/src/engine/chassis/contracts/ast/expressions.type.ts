@@ -1,4 +1,4 @@
-import { ExpressionType, FunctionType, IteratorType, HookType, OutcomeType } from '../../../../authoring/types/enums'
+import { ExpressionType, FunctionCallType, IteratorType, HookType, PolicyType } from '../../../../authoring/types/enums'
 import { ASTNodeType } from './enums'
 import { ASTNode } from './ast.type'
 import { TemplateValue } from './template.type'
@@ -8,7 +8,7 @@ import { TemplateValue } from './template.type'
  */
 export interface ExpressionASTNode extends ASTNode {
   type: ASTNodeType.EXPRESSION
-  expressionType: ExpressionType | FunctionType
+  expressionType: ExpressionType | FunctionCallType | PolicyType.VALIDATION_RULE | PolicyType.NAVIGATION_TIE_BREAKER
 }
 
 /**
@@ -31,14 +31,14 @@ export interface ReferenceASTNode extends ExpressionASTNode {
  */
 export interface OutcomeASTNode extends ASTNode {
   type: ASTNodeType.OUTCOME
-  outcomeType: OutcomeType
+  outcomeType: PolicyType.OUTCOME_REDIRECT | PolicyType.OUTCOME_THROW_ERROR
 }
 
 /**
  * Redirect Outcome AST node
  */
 export interface RedirectOutcomeASTNode extends OutcomeASTNode {
-  outcomeType: OutcomeType.REDIRECT
+  outcomeType: PolicyType.OUTCOME_REDIRECT
   properties: {
     when?: ASTNode
     goto: ASTNode | string
@@ -49,7 +49,7 @@ export interface RedirectOutcomeASTNode extends OutcomeASTNode {
  * Throw Error Outcome AST node
  */
 export interface ThrowErrorOutcomeASTNode extends OutcomeASTNode {
-  outcomeType: OutcomeType.THROW_ERROR
+  outcomeType: PolicyType.OUTCOME_THROW_ERROR
   properties: {
     when?: ASTNode
     status: number
@@ -120,7 +120,7 @@ export interface MatchASTNode extends ExpressionASTNode {
  * Function Expression AST node
  */
 export interface FunctionASTNode extends ExpressionASTNode {
-  expressionType: FunctionType
+  expressionType: FunctionCallType
   properties: {
     name: string
     arguments: (ASTNode | any)[]
@@ -131,7 +131,7 @@ export interface FunctionASTNode extends ExpressionASTNode {
  * Validation Expression AST node
  */
 export interface ValidationASTNode extends ExpressionASTNode {
-  expressionType: ExpressionType.VALIDATION
+  expressionType: PolicyType.VALIDATION_RULE
   properties:
     | {
         condition: ASTNode // Required: the predicate — truthy means validation passes
@@ -157,7 +157,7 @@ export interface ValidationASTNode extends ExpressionASTNode {
  * whether this priority applies to the owning step.
  */
 export interface TieBreakerASTNode extends ExpressionASTNode {
-  expressionType: ExpressionType.TIE_BREAKER
+  expressionType: PolicyType.NAVIGATION_TIE_BREAKER
   properties: {
     priority: number
     when?: ASTNode

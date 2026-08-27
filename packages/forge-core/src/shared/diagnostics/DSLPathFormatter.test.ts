@@ -1,7 +1,7 @@
-import {
+import { PolicyType,
   BlockType,
   ExpressionType,
-  FunctionType,
+  FunctionCallType,
   HookType,
   IteratorType,
   PredicateType,
@@ -96,7 +96,7 @@ describe('DSLPathFormatter', () => {
               onValid: {
                 effects: [
                   {
-                    type: FunctionType.EFFECT,
+                    type: FunctionCallType.EFFECT,
                     name: 'saveAnswers',
                     arguments: ['one', 'two', 'three'],
                   },
@@ -239,13 +239,13 @@ describe('DSLPathFormatter', () => {
               code: 'departure',
               validWhen: [
                 {
-                  type: ExpressionType.VALIDATION,
+                  type: PolicyType.VALIDATION_RULE,
                   message: 'Enter a departure date',
                   condition: {
                     type: PredicateType.TEST,
                     subject: { type: ExpressionType.REFERENCE, path: ['answers', 'departure'] },
                     condition: {
-                      type: FunctionType.CONDITION,
+                      type: FunctionCallType.CONDITION,
                       name: 'AfterDate',
                       arguments: ['today', 'tomorrow'],
                     },

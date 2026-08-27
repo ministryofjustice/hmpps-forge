@@ -1,7 +1,7 @@
 import { expectTypeOf, vi } from 'vitest'
 import { z } from 'zod'
 import EffectRegistry from '../registries/EffectRegistry'
-import { FunctionType } from '../types/enums'
+import { FunctionCallType } from '../types/enums'
 import { getEntryStamp } from '../builders/utils/stampEntry'
 import { effect } from './effect'
 import type { Callsite } from '../builders/utils/captureCallsite'
@@ -24,7 +24,7 @@ describe('effect()', () => {
   describe('entry creation', () => {
     it('should carry the given name, function type, schemas, and factory on a named entry', () => {
       expect(SaveDraft.name).toBe('Draft.Save')
-      expect(SaveDraft.functionType).toBe(FunctionType.EFFECT)
+      expect(SaveDraft.functionType).toBe(FunctionCallType.EFFECT)
       expect(SaveDraft.inputSchema).toBeUndefined()
       expect(SaveDraft.argumentsSchema?.safeParse(['draft']).success).toBe(true)
       expect(SaveDraft.outputSchema).toBeUndefined()
@@ -48,7 +48,7 @@ describe('effect()', () => {
 
       // Assert
       expect(expr).toEqual({
-        type: FunctionType.EFFECT,
+        type: FunctionCallType.EFFECT,
         name: 'Draft.Save',
         arguments: ['draft'],
       })

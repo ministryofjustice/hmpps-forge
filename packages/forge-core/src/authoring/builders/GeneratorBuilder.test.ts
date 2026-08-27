@@ -1,18 +1,18 @@
 import { GeneratorBuilder } from './GeneratorBuilder'
 import { ConditionFunctionExpr, PipelineExpr, TransformerFunctionExpr } from '../types/expressions.type'
-import { ExpressionType, FunctionType, PredicateType } from '../types/enums'
+import { ExpressionType, FunctionCallType, PredicateType } from '../types/enums'
 
 describe('GeneratorBuilder', () => {
   // Helper to create a mock condition
   const mockCondition = (name: string): ConditionFunctionExpr<any> => ({
-    type: FunctionType.CONDITION,
+    type: FunctionCallType.CONDITION,
     name,
     arguments: [],
   })
 
   // Helper to create a mock transformer
   const mockTransformer = (name: string, args: any[] = []): TransformerFunctionExpr<any> => ({
-    type: FunctionType.TRANSFORMER,
+    type: FunctionCallType.TRANSFORMER,
     name,
     arguments: args,
   })
@@ -27,7 +27,7 @@ describe('GeneratorBuilder', () => {
 
       // Assert
       expect(builder.expr).toEqual({
-        type: FunctionType.GENERATOR,
+        type: FunctionCallType.GENERATOR,
         name: 'Now',
         arguments: [],
       })
@@ -43,7 +43,7 @@ describe('GeneratorBuilder', () => {
 
       // Assert
       expect(builder.expr).toEqual({
-        type: FunctionType.GENERATOR,
+        type: FunctionCallType.GENERATOR,
         name: 'WithPrefix',
         arguments: ['prefix-', 123],
       })
@@ -60,7 +60,7 @@ describe('GeneratorBuilder', () => {
 
       // Assert
       expect(result).toEqual({
-        type: FunctionType.GENERATOR,
+        type: FunctionCallType.GENERATOR,
         name: 'Now',
         arguments: [],
       })
@@ -79,7 +79,7 @@ describe('GeneratorBuilder', () => {
       // Assert
       expect(result.expr.type).toBe(ExpressionType.PIPELINE)
       expect((result.expr as PipelineExpr).input).toEqual({
-        type: FunctionType.GENERATOR,
+        type: FunctionCallType.GENERATOR,
         name: 'Now',
         arguments: [],
       })
@@ -161,7 +161,7 @@ describe('GeneratorBuilder', () => {
       expect(result).toEqual({
         type: PredicateType.TEST,
         subject: {
-          type: FunctionType.GENERATOR,
+          type: FunctionCallType.GENERATOR,
           name: 'Now',
           arguments: [],
         },
@@ -244,7 +244,7 @@ describe('GeneratorBuilder', () => {
       const piped = original.pipe(transformer)
 
       // Assert
-      expect(original.expr.type).toBe(FunctionType.GENERATOR)
+      expect(original.expr.type).toBe(FunctionCallType.GENERATOR)
       expect(piped.expr.type).toBe(ExpressionType.PIPELINE)
     })
 

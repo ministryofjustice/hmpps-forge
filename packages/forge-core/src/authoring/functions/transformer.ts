@@ -1,5 +1,5 @@
 import type { ZodType } from 'zod'
-import { FunctionType } from '../types/enums'
+import { FunctionCallType } from '../types/enums'
 import { buildExpression, createEntry } from './createEntry'
 import type { BaseEntryOptions } from './createEntry'
 import type { Resolvable, ResolvableValue, TransformerFunctionExpr } from '../types/expressions.type'
@@ -41,7 +41,7 @@ export type TransformerEntry<
   TAuthoredArguments extends readonly unknown[] = ResolvableValue[],
 > = ((...args: TAuthoredArguments) => TransformerFunctionExpr) & FunctionEntry<TDeps>
 
-const buildTransformerExpr = buildExpression(FunctionType.TRANSFORMER)
+const buildTransformerExpr = buildExpression(FunctionCallType.TRANSFORMER)
 
 /**
  * Defines a transformer function as a standalone entry. Use the result in a journey
@@ -88,5 +88,5 @@ export function transformer(
   first: string | TransformerOptions<any, any, any>,
   second?: TransformerOptions<any, any, any>,
 ): TransformerEntry<any, any> {
-  return createEntry(FunctionType.TRANSFORMER, 'transformer', first, second, buildTransformerExpr)
+  return createEntry(FunctionCallType.TRANSFORMER, 'transformer', first, second, buildTransformerExpr)
 }

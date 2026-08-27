@@ -1,5 +1,5 @@
 import type { ZodType } from 'zod'
-import { FunctionType } from '../types/enums'
+import { FunctionCallType } from '../types/enums'
 import { buildExpression, createEntry } from './createEntry'
 import type { BaseEntryOptions } from './createEntry'
 import type { ConditionFunctionExpr, Resolvable, ResolvableValue } from '../types/expressions.type'
@@ -44,7 +44,7 @@ export type ConditionEntry<
   TAuthoredArguments extends readonly unknown[] = ResolvableValue[],
 > = ((...args: TAuthoredArguments) => ConditionFunctionExpr) & FunctionEntry<TDeps>
 
-const buildConditionExpr = buildExpression(FunctionType.CONDITION)
+const buildConditionExpr = buildExpression(FunctionCallType.CONDITION)
 
 /**
  * Defines a condition function as a standalone entry. Use the result in a journey
@@ -91,5 +91,5 @@ export function condition(
   first: string | ConditionOptions<any, any, any>,
   second?: ConditionOptions<any, any, any>,
 ): ConditionEntry<any, any> {
-  return createEntry(FunctionType.CONDITION, 'condition', first, second, buildConditionExpr)
+  return createEntry(FunctionCallType.CONDITION, 'condition', first, second, buildConditionExpr)
 }

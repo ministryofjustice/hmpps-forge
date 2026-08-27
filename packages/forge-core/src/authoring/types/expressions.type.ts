@@ -1,11 +1,11 @@
 import {
-  FunctionType,
+  FunctionCallType,
   ExpressionType,
   PredicateType,
   ConditionCombinatorType,
   HookType,
   IteratorType,
-  OutcomeType,
+  PolicyType,
 } from './enums'
 
 /**
@@ -108,7 +108,7 @@ export interface PipelineExpr extends ResolvableExpression {
  * This serves as the foundation for specific function types like conditions and transformers.
  */
 interface BaseFunctionExpr<A extends ResolvableValue[]> {
-  type: FunctionType
+  type: FunctionCallType
   /**
    * Name of the registered function.
    * Must match a function in the appropriate registry. Built-in functions
@@ -151,7 +151,7 @@ interface BaseFunctionExpr<A extends ResolvableValue[]> {
  * }
  */
 export interface ConditionFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
-  type: FunctionType.CONDITION
+  type: FunctionCallType.CONDITION
 }
 
 /**
@@ -182,7 +182,7 @@ export type FunctionExpr<A extends ResolvableValue[]> = BaseFunctionExpr<A>
  */
 export interface TransformerFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]>
   extends BaseFunctionExpr<A>, ResolvableExpression {
-  type: FunctionType.TRANSFORMER
+  type: FunctionCallType.TRANSFORMER
 }
 
 /**
@@ -210,7 +210,7 @@ export interface TransformerFunctionExpr<A extends ResolvableValue[] = Resolvabl
  * }
  */
 export interface EffectFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
-  type: FunctionType.EFFECT
+  type: FunctionCallType.EFFECT
 }
 
 /**
@@ -236,7 +236,7 @@ export interface EffectFunctionExpr<A extends ResolvableValue[] = ResolvableValu
  */
 export interface GeneratorFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]>
   extends BaseFunctionExpr<A>, ResolvableExpression {
-  type: FunctionType.GENERATOR
+  type: FunctionCallType.GENERATOR
 }
 
 /**
@@ -324,6 +324,16 @@ export interface IterateExpr extends ResolvableExpression {
 }
 
 /**
+ * Keys the expression markers. A unique symbol rather than a string name so
+ * the marker cannot collide with (or be forged by) an ordinary property, and
+ * so IDE completions inside object literals do not offer it - a symbol-keyed
+ * member is only writable with this constant in scope. The trade-off is
+ * nominal typing: two copies of this package in one dependency tree are not
+ * type-compatible, and mixing them fails loudly at compile time.
+ */
+export const resolvesMarker: unique symbol = Symbol('forge.resolves')
+
+/**
  * The type-level marker shared by every authoring expression that resolves to
  * a value at runtime - references, pipelines, iterations, and
  * generator/transformer chains. An interface rather than a union so IDE
@@ -336,7 +346,7 @@ export interface IterateExpr extends ResolvableExpression {
  * A builder that knows its resolved type can narrow it and be checked for real.
  */
 export interface ResolvableExpression<T = any> {
-  readonly __resolves?: T
+  readonly [resolvesMarker]?: T
 }
 
 /**
@@ -733,7 +743,7 @@ export interface MatchExpr {
  * })
  */
 export interface RedirectOutcome {
-  type: OutcomeType.REDIRECT
+  type: PolicyType.OUTCOME_REDIRECT
   /** Optional condition that must be true for this redirect to occur. */
   when?: PredicateExpr
   /** The path to redirect to. */
@@ -761,7 +771,7 @@ export interface RedirectOutcome {
  * })
  */
 export interface ThrowErrorOutcome {
-  type: OutcomeType.THROW_ERROR
+  type: PolicyType.OUTCOME_THROW_ERROR
   /** Optional condition that must be true for this error to be thrown. */
   when?: PredicateExpr
   /** HTTP status code to return. */

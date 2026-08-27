@@ -1,10 +1,10 @@
-import { FunctionType } from '../../../../authoring/types/enums'
+import { FunctionCallType } from '../../../../authoring/types/enums'
 import type { FunctionASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ForgeUnregisteredFunctionError from '../../../errors/ForgeUnregisteredFunctionError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 
-const FUNCTION_TYPES = Object.values(FunctionType)
+const FUNCTION_TYPES = Object.values(FunctionCallType)
 
 function buildError(
   name: string,

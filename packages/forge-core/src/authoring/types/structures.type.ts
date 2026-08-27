@@ -6,7 +6,7 @@ import {
   PredicateExpr,
   GeneratorFunctionExpr,
 } from './expressions.type'
-import { ExpressionType, StructureType } from './enums'
+import { PolicyType, ExpressionType, StructureType } from './enums'
 import type { ChainableGenerator, ChainableIterable } from '../builders/types'
 import type { BlockDefinition, ResolvableString, ResolvableBoolean } from '../../components/types/structures.type'
 
@@ -24,7 +24,7 @@ export interface ViewConfig {
 }
 
 interface BaseValidationExpr {
-  type: ExpressionType.VALIDATION
+  type: PolicyType.VALIDATION_RULE
   /** When `true`, the rule only runs on form submission, not during navigation/traversal checks. Useful for expensive or time-sensitive validations. */
   submissionOnly?: boolean
   /** Validation groups this rule belongs to. Defaults to `['default']` when omitted or empty. */
@@ -74,7 +74,7 @@ type ValidWhenInput = ValidationExpr | IterateExpr | ChainableIterable
  * as the final tiebreaker.
  */
 export interface TieBreaker {
-  type: ExpressionType.TIE_BREAKER
+  type: PolicyType.NAVIGATION_TIE_BREAKER
   /** Priority value — higher beats lower. */
   priority: number
   /** Predicate that must hold for this priority to apply. Omit for a catch-all. */

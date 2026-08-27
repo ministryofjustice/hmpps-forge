@@ -1,5 +1,5 @@
 import { ArrayConditions } from './arrayConditions'
-import { FunctionType } from '../../../authoring/types/enums'
+import { FunctionCallType } from '../../../authoring/types/enums'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('ArrayConditions', () => {
@@ -58,7 +58,7 @@ describe('ArrayConditions', () => {
     test('should build correct expression object', () => {
       const expr = ArrayConditions.IsIn(['option1', 'option2'])
       expect(expr).toEqual({
-        type: FunctionType.CONDITION,
+        type: FunctionCallType.CONDITION,
         name: 'Array.IsIn',
         arguments: [['option1', 'option2']],
       })
@@ -101,7 +101,7 @@ describe('ArrayConditions', () => {
     test('should build correct expression object', () => {
       const expr = ArrayConditions.Contains('searchValue')
       expect(expr).toEqual({
-        type: FunctionType.CONDITION,
+        type: FunctionCallType.CONDITION,
         name: 'Array.Contains',
         arguments: ['searchValue'],
       })
@@ -154,7 +154,7 @@ describe('ArrayConditions', () => {
     test('should build correct expression object', () => {
       const expr = ArrayConditions.ContainsAny(['value1', 'value2'])
       expect(expr).toEqual({
-        type: FunctionType.CONDITION,
+        type: FunctionCallType.CONDITION,
         name: 'Array.ContainsAny',
         arguments: [['value1', 'value2']],
       })
@@ -225,7 +225,7 @@ describe('ArrayConditions', () => {
     test('should build correct expression object', () => {
       const expr = ArrayConditions.ContainsAll([1, 2, 3])
       expect(expr).toEqual({
-        type: FunctionType.CONDITION,
+        type: FunctionCallType.CONDITION,
         name: 'Array.ContainsAll',
         arguments: [[1, 2, 3]],
       })

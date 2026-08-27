@@ -1,4 +1,4 @@
-import { ExpressionType, FunctionType, PredicateType } from '../../../../authoring/types/enums'
+import { ExpressionType, FunctionCallType, PredicateType } from '../../../../authoring/types/enums'
 import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
 import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
@@ -32,7 +32,7 @@ describe('RequestTimeReferenceAnalyzer', () => {
       const queryReference = ASTTestFactory.reference(['query', 'mode'])
       const predicate = ASTTestFactory.predicate(PredicateType.TEST, {
         subject: ASTTestFactory.reference(['answers', 'choice']),
-        condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'equals', [queryReference]),
+        condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'equals', [queryReference]),
       }) as ASTNode
 
       // Act
@@ -70,7 +70,7 @@ describe('RequestTimeReferenceAnalyzer', () => {
       // Arrange
       const predicate = ASTTestFactory.predicate(PredicateType.TEST, {
         subject: ASTTestFactory.reference(['answers', 'choice']),
-        condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'equals', [
+        condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'equals', [
           ASTTestFactory.reference(['data', 'expectedChoice']),
         ]),
       }) as ASTNode

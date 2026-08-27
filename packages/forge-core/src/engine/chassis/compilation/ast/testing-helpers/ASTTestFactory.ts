@@ -2,8 +2,8 @@
 import {
   BlockType,
   ExpressionType,
-  FunctionType,
-  OutcomeType,
+  FunctionCallType,
+  PolicyType,
   PredicateType,
   HookType,
 } from '../../../../../authoring/types/enums'
@@ -107,7 +107,7 @@ export class ASTTestFactory {
   /**
    * Create a new ExpressionBuilder for fluent expression construction
    */
-  static expression<T = ExpressionASTNode>(type: ExpressionType | FunctionType | PredicateType): ExpressionBuilder<T> {
+  static expression<T = ExpressionASTNode>(type: ExpressionType | FunctionCallType | PredicateType | PolicyType.VALIDATION_RULE | PolicyType.NAVIGATION_TIE_BREAKER): ExpressionBuilder<T> {
     return new ExpressionBuilder<T>(type)
   }
 
@@ -122,7 +122,7 @@ export class ASTTestFactory {
     return ASTTestFactory.expression(ExpressionType.REFERENCE).withPath(path).build() as ReferenceASTNode
   }
 
-  static functionExpression(type: FunctionType, name: string, args: unknown[] = []): FunctionASTNode {
+  static functionExpression(type: FunctionCallType, name: string, args: unknown[] = []): FunctionASTNode {
     return ASTTestFactory.expression<FunctionASTNode>(type)
       .withProperty('name', name)
       .withProperty('arguments', args)
@@ -130,7 +130,7 @@ export class ASTTestFactory {
   }
 
   static formatExpression(template: string, args: unknown[] = []): FunctionASTNode {
-    return ASTTestFactory.functionExpression(FunctionType.GENERATOR, FORMAT_STRING_GENERATOR_NAME, [template, ...args])
+    return ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, FORMAT_STRING_GENERATOR_NAME, [template, ...args])
   }
 
   static pipelineExpression(config: { input: unknown; steps: unknown[] }): PipelineASTNode {
@@ -176,7 +176,7 @@ export class ASTTestFactory {
     return {
       id: ASTTestFactory.getId(),
       type: ASTNodeType.OUTCOME,
-      outcomeType: OutcomeType.REDIRECT,
+      outcomeType: PolicyType.OUTCOME_REDIRECT,
       diagnostics: ASTTestFactory.diagnostics(),
       properties: {
         when: config.when,
@@ -196,7 +196,7 @@ export class ASTTestFactory {
     return {
       id: ASTTestFactory.getId(),
       type: ASTNodeType.OUTCOME,
-      outcomeType: OutcomeType.THROW_ERROR,
+      outcomeType: PolicyType.OUTCOME_THROW_ERROR,
       diagnostics: ASTTestFactory.diagnostics(),
       properties: {
         when: config.when,
@@ -393,7 +393,7 @@ export class ExpressionBuilder<T = ExpressionASTNode> {
 
   private properties: any = {}
 
-  constructor(private expressionType: ExpressionType | FunctionType | PredicateType) {}
+  constructor(private expressionType: ExpressionType | FunctionCallType | PredicateType | PolicyType.VALIDATION_RULE | PolicyType.NAVIGATION_TIE_BREAKER) {}
 
   withId(id: string): this {
     this.id = id

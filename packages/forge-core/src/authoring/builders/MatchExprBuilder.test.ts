@@ -4,7 +4,7 @@ import { and, not, or } from './combinators'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import { MatchExpr } from '../types/expressions.type'
 import { Condition } from '../../built-ins/functions/conditions'
-import { ConditionCombinatorType, ExpressionType, FunctionType } from '../types/enums'
+import { ConditionCombinatorType, ExpressionType, FunctionCallType } from '../types/enums'
 
 describe('MatchExprBuilder', () => {
   describe('match()', () => {
@@ -142,15 +142,15 @@ describe('MatchExprBuilder', () => {
         subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A'] },
+            condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A'] },
             value: 'Result A',
           },
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['B'] },
+            condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['B'] },
             value: 'Result B',
           },
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['C'] },
+            condition: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['C'] },
             value: 'Result C',
           },
         ],
@@ -193,13 +193,13 @@ describe('MatchExprBuilder', () => {
           {
             type: ConditionCombinatorType.AND,
             operands: [
-              { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A'] },
-              { type: FunctionType.CONDITION, name: 'Equals', arguments: ['B'] },
+              { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A'] },
+              { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['B'] },
             ],
           },
           {
             type: ConditionCombinatorType.NOT,
-            operand: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['C'] },
+            operand: { type: FunctionCallType.CONDITION, name: 'Equals', arguments: ['C'] },
           },
         ],
       })
