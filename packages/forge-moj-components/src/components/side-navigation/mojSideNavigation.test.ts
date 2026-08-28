@@ -1,6 +1,7 @@
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { MOJSideNavigation } from './mojSideNavigation'
+import type { MOJSideNavigationSection } from './mojSideNavigation'
 
 vi.mock('nunjucks')
 
@@ -110,7 +111,7 @@ describe('mojSideNavigation', () => {
   describe('Sections transformation (sectioned mode)', () => {
     it('should pass through sections array unchanged', async () => {
       // Arrange
-      const sections = [
+      const sections: MOJSideNavigationSection[] = [
         {
           heading: { text: 'Section 1' },
           items: [
@@ -133,7 +134,7 @@ describe('mojSideNavigation', () => {
 
     it('should pass through heading with custom level', async () => {
       // Arrange
-      const sections = [
+      const sections: MOJSideNavigationSection[] = [
         {
           heading: { text: 'Section 1', headingLevel: 3 },
           items: [{ text: 'Item 1', href: '#1' }],
@@ -149,7 +150,7 @@ describe('mojSideNavigation', () => {
 
     it('should pass through heading with HTML content', async () => {
       // Arrange
-      const sections = [
+      const sections: MOJSideNavigationSection[] = [
         {
           heading: { html: '<span>Section</span> 1' },
           items: [{ text: 'Item 1', href: '#1' }],
@@ -165,7 +166,7 @@ describe('mojSideNavigation', () => {
 
     it('should pass through heading classes', async () => {
       // Arrange
-      const sections = [
+      const sections: MOJSideNavigationSection[] = [
         {
           heading: { text: 'Section 1', classes: 'custom-heading-class' },
           items: [{ text: 'Item 1', href: '#1' }],
@@ -181,7 +182,7 @@ describe('mojSideNavigation', () => {
 
     it('should pass through heading attributes', async () => {
       // Arrange
-      const sections = [
+      const sections: MOJSideNavigationSection[] = [
         {
           heading: {
             text: 'Section 1',
@@ -202,7 +203,7 @@ describe('mojSideNavigation', () => {
 
     it('should omit sections and section items when visibleWhen evaluates to false', async () => {
       // Arrange
-      const sections = [
+      const sections: MOJSideNavigationSection[] = [
         {
           heading: { text: 'Visible section' },
           items: [

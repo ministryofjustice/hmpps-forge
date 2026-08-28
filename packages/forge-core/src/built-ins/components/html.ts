@@ -1,7 +1,7 @@
 import { component } from '../../components/component'
 import { escapeHtmlEntities } from '../sanitize'
 import { isRenderedBlock } from '../../components/typeguards'
-import type { BlockDefinition, ResolvableString } from '../../components/types/structures.type'
+import type { BlockDefinition } from '../../components/types/structures.type'
 
 /**
  * HTML Block component.
@@ -44,7 +44,7 @@ import type { BlockDefinition, ResolvableString } from '../../components/types/s
  * })
  * ```
  */
-export interface HtmlBlock extends BlockDefinition {
+export interface HtmlBlock {
   /**
    * HTML tag to render content within. When set, `classes` and `attributes`
    * are applied directly to this element instead of a wrapper `<div>`.
@@ -57,10 +57,10 @@ export interface HtmlBlock extends BlockDefinition {
    *
    * **WARNING: Not sanitized.** Escape any untrusted data with `Transformer.String.EscapeHtml()`.
    */
-  content?: ResolvableString | BlockDefinition | BlockDefinition[]
+  content?: string | BlockDefinition | BlockDefinition[]
 
   /** Additional CSS classes to apply to the element (optional) */
-  classes?: ResolvableString
+  classes?: string
 
   /** Custom HTML attributes for the element (optional) */
   attributes?: Record<string, any>

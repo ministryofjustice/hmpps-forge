@@ -70,14 +70,16 @@ enough.
   `functions` listing needed ([#269])
 - Components declared with `component()` register themselves the same way - building
   a block with one in a journey is enough, no `components` listing needed. The listing
-  stays for journeys that reference a variant by string, and for entries with no
-  builder attached (the deprecated `buildComponent` kind) ([#270])
-- `ResolvableProps`, `ResolvableBlockProps`, and `ResolvableFieldProps` - describe a
-  component once with plain property types and Forge makes its properties, nested
-  objects, and array items expression-aware. The GOV.UK and MOJ component packages now
-  use these types instead of wrapping each property with `ResolvableString`,
-  `ResolvableBoolean`, and the other per-value helpers ([#281])
+  stays for journeys that reference a variant by string ([#270])
+- Plain component props - pass an ordinary props interface to `component()` and Forge
+  derives an expression-aware block or field builder while `render()` receives the
+  original plain types. `ResolvableProps` powers the authoring surface internally,
+  so GOV.UK and MOJ components no longer wrap either whole interfaces or individual
+  values themselves ([#281])
 - `FunctionRegistryTestHarness` accepts entries alongside registries ([#269])
+- `ComponentRegistryTestHarness` renders author-facing component calls through
+  Forge's recursive component rendering boundary, with `.withValue()` for field
+  runtime values and errors
 - `Loop.Item()` - the current loop's item under the `Loop` namespace, with the same
   `.path()`, `.value()` and `.key()` accessors as `Item()`. Nested loops read as
   `Loop.Parent.Item()` instead of `Item().parent`, so all loop access now lives in one
@@ -161,14 +163,15 @@ enough.
   phase produced, so a submit-hook redirect traced the authored `goto` code while a
   reachability redirect traced a path ([#278])
 
-### Deprecated
-
-- `buildComponent` and `buildNunjucksComponent` - declare the component with
-  `component()` or `nunjucksComponent()` instead, which also gets self-registration
-  ([#270])
-
 ### Removed
 
+- `buildComponent`, `buildNunjucksComponent`, and their renderer aliases - component
+  declarations now use `component()` or `nunjucksComponent()` directly ([#270])
+- `EvaluatedBlock`, `ResolvedPropsOf`, `PropsOf`, `ResolvableBlockProps`, and
+  `ResolvableFieldProps`, plus the component-only `ResolvableArray`,
+  `ResolvableNumber`, and `ResolvableObject` aliases - components retain their plain
+  props and derive authoring and render types forward instead of reconstructing them
+  at the registry boundary ([#281])
 - Global registration - `registerGlobalComponent`, `registerGlobalComponents`, and
   `registerGlobalFunctions` on `Forge`, and the matching `ForgeTestHarness` methods.
   Self-registration and the package `components`/`functions` listings cover everything

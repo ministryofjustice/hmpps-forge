@@ -1,10 +1,10 @@
-import { buildComponent } from '../../../components/utils/buildComponent'
+import { component } from '../../../components/component'
 import ComponentRegistry from './ComponentRegistry'
 import ScopedComponentRegistry from './ScopedComponentRegistry'
 
 describe('ScopedComponentRegistry', () => {
   function comp(variant: string, html = `<${variant} />`) {
-    return buildComponent(variant, () => html)
+    return component<object>(variant, { render: () => html })
   }
 
   describe('get()', () => {

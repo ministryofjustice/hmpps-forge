@@ -1,10 +1,10 @@
 import { access, createForgePackage, field, journey, step, submit, validation } from '../../../../src/authoring'
-import { buildComponent } from '../../../../src/components'
+import { component } from '../../../../src/components'
 import { ForgeTestHarness } from '../../../../src/testing'
 import type { PredicateExpr } from '../../../../src/authoring/types/expressions.type'
 import type { ChainableGenerator } from '../../../../src/authoring/builders/types'
 
-export const testInput = buildComponent('test-input', () => '<input />')
+export const testInput = component<object>('test-input', { render: () => '<input />' })
 
 export function fieldWithRule(code: string, rule: PredicateExpr, message: string) {
   return field({

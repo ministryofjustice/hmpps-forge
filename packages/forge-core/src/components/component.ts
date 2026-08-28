@@ -2,17 +2,32 @@ import { block as buildBlock, field as buildField } from '../authoring/builders'
 import { ComponentEntryType } from '../shared/taxonomy'
 import { stampComponent } from '../authoring/builders/utils/stampEntry'
 import type {
-  BaseComponentOptions,
+  ComponentRenderProps,
   ComponentOptions,
   ComponentRegistryEntry,
+  FieldComponentRenderProps,
   FieldComponentOptions,
   ForgeComponent,
-  PropsOf,
+  ForgeFieldComponent,
 } from './types/components.type'
-import type { BlockDefinition, EvaluatedBlock, FieldBlockDefinition } from './types/structures.type'
+import type {
+  BasicBlockProps,
+  BlockDefinition,
+  FieldBlockDefinition,
+  FieldBlockProps,
+  ResolvableProps,
+} from './types/structures.type'
+
+type AuthorProps<TProps> = BasicBlockProps & ResolvableProps<TProps>
+
+type FieldAuthorProps<TProps> = FieldBlockProps & ResolvableProps<TProps>
+
+type ComponentBlock<TProps> = BlockDefinition & ResolvableProps<TProps>
+
+type FieldComponentBlock<TProps> = FieldBlockDefinition & ResolvableProps<TProps>
 
 /**
- * Defines a component from a single block interface.
+ * Defines a component from the plain props its implementation consumes.
  *
  * The returned value is both the authoring builder and the registry entry, so one
  * declaration covers both roles. Building a block with it in a journey definition
@@ -20,8 +35,8 @@ import type { BlockDefinition, EvaluatedBlock, FieldBlockDefinition } from './ty
  * journey refers to the variant by name alone (a JSON journey, for example):
  *
  * ```typescript
- * export interface MyCard extends BlockDefinition { title: string }
- * export const MyCard = component<MyCard>('myCard', {
+ * export interface MyCardProps { title: string }
+ * export const MyCard = component<MyCardProps>('myCard', {
  *   render: (props, renderer) => {
  *     const nunjucksEnv = renderer as nunjucks.Environment
  *
@@ -37,57 +52,87 @@ import type { BlockDefinition, EvaluatedBlock, FieldBlockDefinition } from './ty
  * @param options - How the component renders, plus the field options where it is one
  * @returns A callable block builder that doubles as the component registry entry
  */
-export function component<TBlock extends BlockDefinition, TOutput = string, TRenderer = unknown>(
+export function component<TProps extends object, TOutput = string, TRenderer = unknown>(
   variant: string,
-  options: ComponentOptions<TBlock, TOutput, TRenderer>,
-): ForgeComponent<TBlock, TOutput> {
-  // TBlock is still generic here, so the conditional options type is unresolved - read it
-  // through a shape carrying every member either arm can contribute.
-  const { render, prepare, field, inputSchema, multiple, errorAnchor } = options as BaseComponentOptions<
-    TBlock,
-    TOutput,
-    TRenderer
-  > &
-    Partial<FieldComponentOptions<TBlock, TOutput, TRenderer>>
-
-  const buildDefinition = (props?: PropsOf<TBlock>): TBlock => {
-    const authored = props ?? ({} as PropsOf<TBlock>)
-    const prepared = prepare ? prepare(authored) : authored
-
-    // The field props are only present on a field component; the cast lets both builders
-    // share one definition, and the declared `field` option picks the right one.
-    const definition = { ...prepared, variant } as unknown as Omit<TBlock & FieldBlockDefinition, '_forge'>
-
-    const built = field
-      ? buildField<TBlock & FieldBlockDefinition>(definition)
-      : buildBlock<TBlock & FieldBlockDefinition>(definition)
-    stampComponent(built, handle)
-
-    return built
+  options: FieldComponentOptions<TProps, TOutput, TRenderer>,
+): ForgeFieldComponent<TProps, TOutput>
+export function component<TProps extends object, TOutput = string, TRenderer = unknown>(
+  variant: string,
+  options: ComponentOptions<TProps, TOutput, TRenderer>,
+): ForgeComponent<TProps, TOutput>
+export function component<TProps extends object, TOutput = string, TRenderer = unknown>(
+  variant: string,
+  options: ComponentOptions<TProps, TOutput, TRenderer> | FieldComponentOptions<TProps, TOutput, TRenderer>,
+): ForgeComponent<TProps, TOutput> | ForgeFieldComponent<TProps, TOutput> {
+  if ('field' in options) {
+    return createFieldComponent(variant, options)
   }
 
-  const handle = Object.assign(buildDefinition, {
-    _forge: field ? ComponentEntryType.FIELD : ComponentEntryType.BASIC,
-    variant,
-    render: (block: EvaluatedBlock<TBlock>, renderer?: unknown) => render(block, renderer as TRenderer),
-    ...(inputSchema !== undefined && { inputSchema }),
-    ...(multiple !== undefined && { multiple }),
-    ...(errorAnchor !== undefined && { errorAnchor }),
-  })
-
-  return handle
+  return createComponent(variant, options)
 }
 
 /**
  * Whether a value is a component built by {@link component}: a callable block
  * builder carrying the registry entry surface.
  */
-export function isForgeComponent(value: unknown): value is ForgeComponent<BlockDefinition, unknown> {
+export function isForgeComponent(
+  value: unknown,
+): value is ComponentRegistryEntry<object, unknown> & { _forge: ComponentEntryType } {
   if (typeof value !== 'function') {
     return false
   }
 
-  const candidate = value as Partial<ComponentRegistryEntry<BlockDefinition, unknown>> & { _forge?: unknown }
+  const candidate = value as Partial<ComponentRegistryEntry<object, unknown>> & { _forge?: unknown }
 
   return typeof candidate._forge === 'string' && candidate._forge.startsWith('component.entry.')
+}
+
+function createComponent<TProps extends object, TOutput, TRenderer>(
+  variant: string,
+  options: ComponentOptions<TProps, TOutput, TRenderer>,
+): ForgeComponent<TProps, TOutput> {
+  const buildDefinition = (props?: AuthorProps<TProps>): ComponentBlock<TProps> => {
+    const authored = props ?? ({} as AuthorProps<TProps>)
+    const prepared = options.prepare?.(authored) ?? authored
+    const definition = { ...prepared, variant } as Omit<ComponentBlock<TProps>, '_forge'>
+    const built = buildBlock<ComponentBlock<TProps>>(definition)
+    stampComponent(built, handle)
+
+    return built
+  }
+
+  const handle = Object.assign(buildDefinition, {
+    _forge: ComponentEntryType.BASIC,
+    variant,
+    render: (props: ComponentRenderProps<TProps>, renderer?: unknown) => options.render(props, renderer as TRenderer),
+  })
+
+  return handle
+}
+
+function createFieldComponent<TProps extends object, TOutput, TRenderer>(
+  variant: string,
+  options: FieldComponentOptions<TProps, TOutput, TRenderer>,
+): ForgeFieldComponent<TProps, TOutput> {
+  const buildDefinition = (props?: FieldAuthorProps<TProps>): FieldComponentBlock<TProps> => {
+    const authored = props ?? ({} as FieldAuthorProps<TProps>)
+    const prepared = options.prepare?.(authored) ?? authored
+    const definition = { ...prepared, variant } as Omit<FieldComponentBlock<TProps>, '_forge'>
+    const built = buildField<FieldComponentBlock<TProps>>(definition)
+    stampComponent(built, handle)
+
+    return built
+  }
+
+  const handle = Object.assign(buildDefinition, {
+    _forge: ComponentEntryType.FIELD,
+    variant,
+    render: (props: FieldComponentRenderProps<TProps>, renderer?: unknown) =>
+      options.render(props, renderer as TRenderer),
+    ...(options.inputSchema !== undefined && { inputSchema: options.inputSchema }),
+    ...(options.multiple !== undefined && { multiple: options.multiple }),
+    ...(options.errorAnchor !== undefined && { errorAnchor: options.errorAnchor }),
+  })
+
+  return handle
 }

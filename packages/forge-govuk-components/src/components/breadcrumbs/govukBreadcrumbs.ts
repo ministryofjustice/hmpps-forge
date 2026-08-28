@@ -1,4 +1,3 @@
-import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -42,7 +41,7 @@ export interface BreadcrumbItem {
  * })
  * ```
  */
-export type GovUKBreadcrumbs = ResolvableBlockProps<{
+export interface GovUKBreadcrumbs {
   /** The breadcrumb items to display. Required. */
   items: BreadcrumbItem[]
 
@@ -57,7 +56,7 @@ export type GovUKBreadcrumbs = ResolvableBlockProps<{
 
   /** Custom HTML attributes for the breadcrumbs container. */
   attributes?: Record<string, any>
-}>
+}
 
 /**
  * GOV.UK Breadcrumbs component.

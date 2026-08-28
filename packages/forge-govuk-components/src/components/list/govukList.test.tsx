@@ -1,12 +1,17 @@
-import type { EvaluatedBlock } from '@ministryofjustice/hmpps-forge/core/components'
 
+import { component } from '@ministryofjustice/hmpps-forge/core/components'
+import { ComponentRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 import { GovUKList } from './govukList'
 
-const render = (props: Record<string, unknown>) => GovUKList.render(props as EvaluatedBlock<GovUKList>)
+const TestBlock = component<{ html: string }>('testBlock', { render: props => props.html })
+
+const harness = new ComponentRegistryTestHarness([GovUKList, TestBlock])
+
+const render = (props: GovUKList) => harness.render(GovUKList(props))
 
 describe('GovUKList', () => {
   describe('block building', () => {
-    it('should stamp the govukList variant when called as a builder', () => {
+    it('should stamp the govukList variant when called as a builder', async () => {
       // Arrange & Act
       const built = GovUKList({ items: ['one', 'two'] })
 
@@ -16,56 +21,56 @@ describe('GovUKList', () => {
   })
 
   describe('rendering', () => {
-    it('should render a plain ul by default', () => {
+    it('should render a plain ul by default', async () => {
       // Arrange & Act
-      const output = render({ items: ['First', 'Second'] })
+      const output = await render({ items: ['First', 'Second'] })
 
       // Assert
       expect(output).toBe('<ul class="govuk-list"><li>First</li><li>Second</li></ul>')
     })
 
-    it('should render a bullet list', () => {
+    it('should render a bullet list', async () => {
       // Arrange & Act
-      const output = render({ items: ['First'], style: 'bullet' })
+      const output = await render({ items: ['First'], style: 'bullet' })
 
       // Assert
       expect(output).toBe('<ul class="govuk-list govuk-list--bullet"><li>First</li></ul>')
     })
 
-    it('should render a numbered list with an ol tag', () => {
+    it('should render a numbered list with an ol tag', async () => {
       // Arrange & Act
-      const output = render({ items: ['First'], style: 'number' })
+      const output = await render({ items: ['First'], style: 'number' })
 
       // Assert
       expect(output).toBe('<ol class="govuk-list govuk-list--number"><li>First</li></ol>')
     })
 
-    it('should apply the spaced modifier', () => {
+    it('should apply the spaced modifier', async () => {
       // Arrange & Act
-      const output = render({ items: ['First'], style: 'bullet', spaced: true })
+      const output = await render({ items: ['First'], style: 'bullet', spaced: true })
 
       // Assert
       expect(output).toBe('<ul class="govuk-list govuk-list--bullet govuk-list--spaced"><li>First</li></ul>')
     })
 
-    it('should append additional classes and attributes', () => {
+    it('should append additional classes and attributes', async () => {
       // Arrange & Act
-      const output = render({ items: [], classes: 'app-list', attributes: { 'data-qa': 'suggestions' } })
+      const output = await render({ items: [], classes: 'app-list', attributes: { 'data-qa': 'suggestions' } })
 
       // Assert
       expect(output).toBe('<ul class="govuk-list app-list" data-qa="suggestions"></ul>')
     })
 
-    it('should embed rendered child blocks verbatim as items', () => {
+    it('should embed rendered child blocks verbatim as items', async () => {
       // Arrange
       const items = [
         'A plain string',
-        { block: { variant: 'govukBody' }, html: '<p class="govuk-body">A block item</p>' },
-        { block: { variant: 'html' }, html: '<a href="/help">A link item</a>' },
+        TestBlock({ html: '<p class="govuk-body">A block item</p>' }),
+        TestBlock({ html: '<a href="/help">A link item</a>' }),
       ]
 
       // Act
-      const output = render({ items })
+      const output = await render({ items })
 
       // Assert
       expect(output).toBe(
@@ -77,9 +82,9 @@ describe('GovUKList', () => {
       )
     })
 
-    it('should render HTML in string items unescaped', () => {
+    it('should render HTML in string items unescaped', async () => {
       // Arrange & Act
-      const output = render({ items: ['<a href="/help">Get help</a>'] })
+      const output = await render({ items: ['<a href="/help">Get help</a>'] })
 
       // Assert
       expect(output).toBe('<ul class="govuk-list"><li><a href="/help">Get help</a></li></ul>')

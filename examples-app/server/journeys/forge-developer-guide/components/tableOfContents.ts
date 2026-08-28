@@ -1,17 +1,8 @@
 import { component } from '@ministryofjustice/hmpps-forge/core/components'
-import type {
-  BasicBlockProps,
-  BlockDefinition,
-  ResolvableArray,
-} from '@ministryofjustice/hmpps-forge/core/components'
 import type { HeadingEntry } from '../../../data/guideContentStore'
 
-export interface TableOfContentsProps extends BasicBlockProps {
-  headings: ResolvableArray<HeadingEntry>
-}
-
-export interface TableOfContents extends BlockDefinition, TableOfContentsProps {
-  variant: 'tableOfContents'
+export interface TableOfContents {
+  headings: HeadingEntry[]
 }
 
 export const TableOfContents = component<TableOfContents>('tableOfContents', {

@@ -1,4 +1,3 @@
-import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -49,7 +48,7 @@ export type MOJBadgeColour =
  * })
  * ```
  */
-export type MOJBadge = ResolvableBlockProps<{
+export interface MOJBadge {
   /**
    * Plain text content for the badge.
    * Use either text or html, not both.
@@ -90,7 +89,7 @@ export type MOJBadge = ResolvableBlockProps<{
    * @example { 'data-status': 'complete' }
    */
   attributes?: Record<string, string>
-}>
+}
 
 /**
  * MOJ Badge component.

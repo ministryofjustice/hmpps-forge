@@ -1,4 +1,4 @@
-import { BlockDefinition, EvaluatedBlock, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ComponentRenderProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
@@ -141,7 +141,7 @@ export interface MOJTimelineItem {
  * })
  * ```
  */
-export type MOJTimeline = ResolvableBlockProps<{
+export interface MOJTimeline {
   /**
    * Array of timeline items to display.
    * Items are displayed in the order provided (typically most recent first).
@@ -166,11 +166,11 @@ export type MOJTimeline = ResolvableBlockProps<{
    * @example { 'data-module': 'app-timeline' }
    */
   attributes?: Record<string, string>
-}>
+}
 
-type EvaluatedMOJTimelineItem = EvaluatedBlock<MOJTimeline>['items'][number]
+type RuntimeMOJTimelineItem = ComponentRenderProps<MOJTimeline>['items'][number]
 
-function normaliseTimelineItem(item: EvaluatedMOJTimelineItem) {
+function normaliseTimelineItem(item: RuntimeMOJTimelineItem) {
   const { blocks, ...itemParams } = item
   const content = normaliseMojTextHtmlContent({
     text: item.text,

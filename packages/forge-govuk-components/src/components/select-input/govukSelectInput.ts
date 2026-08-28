@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { ResolvableFieldProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
@@ -38,7 +37,7 @@ export interface SelectItem {
  * })
  * ```
  */
-export type GovUKSelectInput = ResolvableFieldProps<{
+export interface GovUKSelectInput {
   /**
    * The ID of the select. Defaults to the value of `code` if not provided.
    * @example 'country-select'
@@ -148,7 +147,7 @@ export type GovUKSelectInput = ResolvableFieldProps<{
    * @example { 'data-module': 'accessible-autocomplete' }
    */
   attributes?: Record<string, any>
-}>
+}
 
 /**
  * GOV.UK Select Input component.

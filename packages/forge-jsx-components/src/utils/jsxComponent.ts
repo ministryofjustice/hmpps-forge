@@ -1,9 +1,9 @@
 import { component } from '@ministryofjustice/hmpps-forge/core/components'
 import type {
-  BlockDefinition,
   ComponentOptions,
+  FieldComponentOptions,
   ForgeComponent,
-  ResolvedPropsOf,
+  ForgeFieldComponent,
 } from '@ministryofjustice/hmpps-forge/core/components'
 
 import type { RawHtml } from '../runtime/jsx-runtime'
@@ -21,27 +21,38 @@ import type { RawHtml } from '../runtime/jsx-runtime'
  *
  * @example
  * ```tsx
- * export interface MyBadge extends BlockDefinition {
- *   text: ResolvableString
- * }
+ * export interface MyBadgeProps { text: string }
  *
- * export const MyBadge = jsxComponent<MyBadge>('myBadge', {
+ * export const MyBadge = jsxComponent<MyBadgeProps>('myBadge', {
  *   render: props => <strong class="moj-badge">{props.text}</strong>,
  * })
  * ```
  */
-export function jsxComponent<TBlock extends BlockDefinition>(
+export function jsxComponent<TProps extends object>(
   variant: string,
-  options: ComponentOptions<TBlock, RawHtml, undefined>,
-): ForgeComponent<TBlock, string> {
-  // TBlock is still generic here, so the conditional options type is unresolved - read
-  // the render through a minimal shape, as component() itself does with its options.
-  const { render } = options as { render: (props: ResolvedPropsOf<TBlock>, renderer: undefined) => RawHtml }
+  options: FieldComponentOptions<TProps, RawHtml, undefined>,
+): ForgeFieldComponent<TProps, string>
+export function jsxComponent<TProps extends object>(
+  variant: string,
+  options: ComponentOptions<TProps, RawHtml, undefined>,
+): ForgeComponent<TProps, string>
+export function jsxComponent<TProps extends object>(
+  variant: string,
+  options: ComponentOptions<TProps, RawHtml, undefined> | FieldComponentOptions<TProps, RawHtml, undefined>,
+): ForgeComponent<TProps, string> | ForgeFieldComponent<TProps, string> {
+  if ('field' in options) {
+    const { render } = options
 
-  const stringOptions = {
+    return component<TProps, string, undefined>(variant, {
+      ...options,
+      render: props => String(render(props, undefined)),
+    })
+  }
+
+  const { render } = options
+
+  return component<TProps, string, undefined>(variant, {
     ...options,
-    render: (props: ResolvedPropsOf<TBlock>) => String(render(props, undefined)),
-  } as unknown as ComponentOptions<TBlock, string, undefined>
-
-  return component<TBlock, string, undefined>(variant, stringOptions)
+    render: props => String(render(props, undefined)),
+  })
 }

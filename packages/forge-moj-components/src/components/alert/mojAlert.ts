@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
@@ -29,7 +29,7 @@ export type MOJAlertHeadingTag = 'h2' | 'h3' | 'h4'
  * })
  * ```
  */
-export type MOJAlert = ResolvableBlockProps<{
+export interface MOJAlert {
   /**
    * The type of alert which determines styling and icon.
    * Options: 'information' (default), 'success', 'warning', 'error'
@@ -141,7 +141,7 @@ export type MOJAlert = ResolvableBlockProps<{
    * @example { 'data-module': 'custom-alert' }
    */
   attributes?: Record<string, string>
-}>
+}
 
 /**
  * MOJ Alert component.

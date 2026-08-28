@@ -11,12 +11,7 @@ import bash from 'highlight.js/lib/languages/bash'
 import yaml from 'highlight.js/lib/languages/yaml'
 import django from 'highlight.js/lib/languages/django'
 import { component } from '@ministryofjustice/hmpps-forge/core/components'
-import type {
-  BasicBlockProps,
-  BlockDefinition,
-  ResolvableString,
-  RenderedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import type { BlockDefinition, RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
 
 hljs.registerLanguage('typescript', typescript)
 hljs.registerLanguage('javascript', javascript)
@@ -221,13 +216,9 @@ function renderGovUKMarkdown(markdown: string): string {
 
 // Component definition
 
-export interface GovUKMarkdownBlockProps extends BasicBlockProps {
-  content: ResolvableString
+export interface GovUKMarkdownBlock {
+  content: string
   slots?: Record<string, BlockDefinition[]>
-}
-
-export interface GovUKMarkdownBlock extends BlockDefinition, GovUKMarkdownBlockProps {
-  variant: 'govukMarkdown'
 }
 
 const slotMarkerPattern = /\{\{slot:([^}]+)\}\}/g

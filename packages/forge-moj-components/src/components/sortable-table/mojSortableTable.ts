@@ -1,4 +1,3 @@
-import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -84,7 +83,7 @@ export type SortableTableRow = SortableTableCell[]
  * })
  * ```
  */
-export type MOJSortableTable = ResolvableBlockProps<{
+export interface MOJSortableTable {
   /** The rows within the table. Each row is an array of cells. Required. */
   rows: SortableTableRow[]
 
@@ -105,7 +104,7 @@ export type MOJSortableTable = ResolvableBlockProps<{
 
   /** Custom HTML attributes for the table element. */
   attributes?: Record<string, any>
-}>
+}
 
 /**
  * MOJ Sortable Table component.

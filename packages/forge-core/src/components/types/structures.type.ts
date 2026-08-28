@@ -9,8 +9,8 @@ import { ComponentCallType } from '../../shared/taxonomy'
 import type { ValidationExpr } from '../../authoring/types/structures.type'
 
 /**
- * Props for basic (non-field) block components.
- * Use this as the base for component Props interfaces.
+ * Authoring props Forge adds to every basic (non-field) component.
+ * Component prop interfaces stay plain; {@link component} adds these automatically.
  */
 export interface BasicBlockProps {
   /**
@@ -48,8 +48,8 @@ export interface BlockDefinition extends BasicBlockProps {
 }
 
 /**
- * Props for field block components.
- * Use this as the base for field component Props interfaces.
+ * Authoring props Forge adds to every field component.
+ * Field component prop interfaces stay plain; {@link component} adds these automatically.
  */
 export interface FieldBlockProps extends BasicBlockProps {
   /**
@@ -134,12 +134,6 @@ export type ResolvableString = string | ChainableExpression
 
 export type ResolvableBoolean = boolean | ChainableExpression | PredicateExpr
 
-export type ResolvableNumber = number | ChainableExpression
-
-export type ResolvableArray<T> = T[] | ChainableExpression
-
-export type ResolvableObject<T extends object> = T | ChainableExpression
-
 /**
  * What {@link ResolvableValueOf} passes through untouched: expression machinery
  * that is already resolvable, child blocks, and functions.
@@ -165,9 +159,9 @@ type ResolvableValueOf<T> =
         : T extends string | number
           ? T | ChainableExpression
           : T extends readonly (infer U)[]
-            ? ResolvableArray<ResolvableValueOf<U>>
+            ? ResolvableValueOf<U>[] | ChainableExpression
             : T extends object
-              ? ResolvableObject<{ [K in keyof T]: ResolvableValueOf<T[K]> }>
+              ? { [K in keyof T]: ResolvableValueOf<T[K]> } | ChainableExpression
               : T
 
 /**
@@ -176,92 +170,14 @@ type ResolvableValueOf<T> =
  * types once, and every prop also accepts an expression that resolves to it.
  *
  * Homomorphic, so optionality and JSDoc carry through from the plain interface.
- * Render code keeps using `ResolvedPropsOf`, which unwraps back to the plain
- * types.
  *
- * Component definitions normally reach this through {@link ResolvableBlockProps}
- * or {@link ResolvableFieldProps}, which add the block base.
+ * {@link component} applies this automatically to the plain props its
+ * implementation declares.
  */
 export type ResolvableProps<TProps> = {
   [K in keyof TProps]: ResolvableValueOf<TProps[K]>
 }
 
-/**
- * A complete block definition from plain-typed props: the block base plus
- * {@link ResolvableProps}, so every prop also accepts an expression.
- *
- * ```typescript
- * export type MyCard = ResolvableBlockProps<{ title?: string }>
- * // title now accepts 'Details' or Answer('cardTitle')
- * ```
- */
-export type ResolvableBlockProps<TProps> = BlockDefinition & ResolvableProps<TProps>
-
-/**
- * A complete field block definition from plain-typed props: the field base
- * (`code`, `validWhen`, `defaultValue`, ...) plus {@link ResolvableProps}, so
- * every prop also accepts an expression.
- *
- * ```typescript
- * export type MyInput = ResolvableFieldProps<{ hint?: string }>
- * ```
- */
-export type ResolvableFieldProps<TProps> = FieldBlockDefinition & ResolvableProps<TProps>
-
 export type RenderedBlock<TOutput = string> = {
   block: BlockDefinition
 } & ([TOutput] extends [string] ? { html: string } : { output: TOutput })
-
-// Strips the authoring-only arms from a prop union. Must stay a plain Exclude:
-// a keyof-based conditional here poisons the variance of ComponentRegistryEntry.
-type Resolved<T> = Exclude<T, ChainableExpression | IterateExpr | PredicateExpr>
-
-export type EvaluatedBlock<T, IsRoot extends boolean = true, TRenderedBlock = RenderedBlock> =
-  Resolved<T> extends infer R
-    ? [R] extends [never]
-      ? never
-      : R extends string
-        ? string
-        : R extends boolean
-          ? boolean
-          : R extends number
-            ? number
-            : R extends (infer U)[]
-              ? EvaluatedBlock<U, false, TRenderedBlock>[]
-              : R extends FieldBlockDefinition
-                ? IsRoot extends true
-                  ? {
-                      [K in keyof R as K extends '_forge' | 'variant' ? never : K]: EvaluatedBlock<
-                        R[K],
-                        false,
-                        TRenderedBlock
-                      >
-                    } & {
-                      [K in Extract<keyof R, '_forge' | 'variant'>]?: R[K]
-                    } & {
-                      value?: unknown
-                      errors?: { message: string; details?: Record<string, any> }[]
-                    }
-                  : TRenderedBlock
-                : R extends BlockDefinition
-                  ? IsRoot extends true
-                    ? {
-                        [K in keyof R as K extends '_forge' | 'variant' ? never : K]: EvaluatedBlock<
-                          R[K],
-                          false,
-                          TRenderedBlock
-                        >
-                      } & {
-                        [K in Extract<keyof R, '_forge' | 'variant'>]?: R[K]
-                      } & {
-                        value?: unknown
-                      }
-                    : TRenderedBlock
-                  : R extends object
-                    ? {
-                        [K in keyof R]: K extends '_forge' | 'variant'
-                          ? R[K]
-                          : EvaluatedBlock<R[K], false, TRenderedBlock>
-                      }
-                    : R
-    : never

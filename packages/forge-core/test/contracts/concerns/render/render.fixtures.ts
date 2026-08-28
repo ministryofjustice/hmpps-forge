@@ -1,88 +1,60 @@
-import { block as blockBuilder, field as fieldBuilder, journey, step } from '../../../../src/authoring'
-import {
-  buildComponent,
-  type BlockDefinition,
-  type FieldBlockDefinition,
-  type RenderedBlock,
-} from '../../../../src/components'
+import { block, journey, step } from '../../../../src/authoring'
+import { component, type BlockDefinition, type FieldBlockDefinition } from '../../../../src/components'
 
-interface ContractField extends FieldBlockDefinition {
-  variant: 'contractField'
+interface ContractField {
   label: string
 }
 
-interface ContractAsyncField extends FieldBlockDefinition {
-  variant: 'contractAsyncField'
-}
+type ContractAsyncField = object
 
-interface ContractNestedFieldProbe extends BlockDefinition {
-  variant: 'contractNestedFieldProbe'
+interface ContractNestedFieldProbe {
   field: FieldBlockDefinition
 }
 
-interface ContractMultiFieldProbe extends BlockDefinition {
-  variant: 'contractMultiFieldProbe'
+interface ContractMultiFieldProbe {
   fields: FieldBlockDefinition[]
 }
 
-interface ContractScopedHtml extends BlockDefinition {
-  variant: 'html'
+interface ContractScopedHtml {
   content: string
 }
 
-const contractFieldComponent = buildComponent<ContractField>('contractField', block => {
-  return `<input id="${block.code}" name="${block.code}" aria-label="${block.label}">`
+const ContractField = component<ContractField>('contractField', {
+  field: true,
+  render: props => `<input id="${props.code}" name="${props.code}" aria-label="${props.label}">`,
 })
 
-const contractAsyncFieldComponent = buildComponent<ContractAsyncField>('contractAsyncField', block => {
-  return Promise.resolve(`<async id="${block.code}">`)
+const ContractAsyncField = component<ContractAsyncField, Promise<string>>('contractAsyncField', {
+  field: true,
+  render: props => Promise.resolve(`<async id="${props.code}">`),
 })
 
-const contractNestedFieldProbeComponent = buildComponent<ContractNestedFieldProbe>(
-  'contractNestedFieldProbe',
-  block => {
-    const nestedField = block.field as RenderedBlock
-    const nestedFieldBlock = nestedField.block as FieldBlockDefinition
+const ContractNestedFieldProbe = component<ContractNestedFieldProbe>('contractNestedFieldProbe', {
+  render: props => {
+    const nestedFieldBlock = props.field.block as FieldBlockDefinition
 
-    return `<div data-nested-field-code="${nestedFieldBlock.code}">${nestedField.html}</div>`
+    return `<div data-nested-field-code="${nestedFieldBlock.code}">${props.field.html}</div>`
   },
-)
+})
 
-const contractMultiFieldProbeComponent = buildComponent<ContractMultiFieldProbe>('contractMultiFieldProbe', block => {
-  const nestedFields = block.fields as unknown as RenderedBlock[]
-  const inner = nestedFields.map(nested => nested.html).join('')
+const ContractMultiFieldProbe = component<ContractMultiFieldProbe>('contractMultiFieldProbe', {
+  render: props => {
+    const inner = props.fields.map(nested => nested.html).join('')
 
-  return `<section>${inner}</section>`
+    return `<section>${inner}</section>`
+  },
 })
 
 /** Package-scope entry claiming the built-in `html` variant - the scoped entry must win for its own journey. */
-export const contractScopedHtmlComponent = buildComponent<ContractScopedHtml>('html', block => {
-  return `<scoped>${block.content}</scoped>`
+export const contractScopedHtmlComponent = component<ContractScopedHtml>('html', {
+  render: props => `<scoped>${props.content}</scoped>`,
 })
 
-function ContractField(props: Omit<ContractField, '_forge' | 'variant'>): ContractField {
-  return fieldBuilder<ContractField>({ ...props, variant: 'contractField' })
-}
-
-function ContractAsyncField(props: Omit<ContractAsyncField, '_forge' | 'variant'>): ContractAsyncField {
-  return fieldBuilder<ContractAsyncField>({ ...props, variant: 'contractAsyncField' })
-}
-
-function ContractNestedFieldProbe(
-  props: Omit<ContractNestedFieldProbe, '_forge' | 'variant'>,
-): ContractNestedFieldProbe {
-  return blockBuilder<ContractNestedFieldProbe>({ ...props, variant: 'contractNestedFieldProbe' })
-}
-
-function ContractMultiFieldProbe(props: Omit<ContractMultiFieldProbe, '_forge' | 'variant'>): ContractMultiFieldProbe {
-  return blockBuilder<ContractMultiFieldProbe>({ ...props, variant: 'contractMultiFieldProbe' })
-}
-
 export const renderContractComponents = [
-  contractFieldComponent,
-  contractAsyncFieldComponent,
-  contractNestedFieldProbeComponent,
-  contractMultiFieldProbeComponent,
+  ContractField,
+  ContractAsyncField,
+  ContractNestedFieldProbe,
+  ContractMultiFieldProbe,
 ]
 
 export const basicRenderJourney = journey({
@@ -197,7 +169,7 @@ export const scopedOverrideRenderJourney = journey({
       path: '/form',
       title: 'Form',
       reachability: { entryWhen: true },
-      blocks: [blockBuilder<ContractScopedHtml>({ variant: 'html', content: 'shadowed' })],
+      blocks: [block<BlockDefinition & ContractScopedHtml>({ variant: 'html', content: 'shadowed' })],
     }),
   ],
 })

@@ -1,4 +1,3 @@
-import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -174,7 +173,7 @@ export interface TaskListItem {
  * })
  * ```
  */
-export type GovUKTaskList = ResolvableBlockProps<{
+export interface GovUKTaskList {
   /** The items within the task list. Each item represents a single task. Required. */
   items: TaskListItem[]
 
@@ -190,7 +189,7 @@ export type GovUKTaskList = ResolvableBlockProps<{
    * Defaults to "task-list".
    */
   idPrefix?: string
-}>
+}
 
 /**
  * GOV.UK Task List component.

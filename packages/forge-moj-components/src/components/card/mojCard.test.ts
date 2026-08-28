@@ -1,6 +1,7 @@
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { MOJCard } from './mojCard'
+import type { MOJCardHeading } from './mojCard'
 
 vi.mock('nunjucks')
 
@@ -23,7 +24,7 @@ describe('mojCard', () => {
 
     it('should pass through object heading unchanged', async () => {
       // Arrange
-      const headingObj = {
+      const headingObj: MOJCardHeading = {
         text: 'Search cases',
         level: 3,
         classes: 'custom-heading',

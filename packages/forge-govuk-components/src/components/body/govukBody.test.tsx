@@ -1,11 +1,13 @@
-import type { EvaluatedBlock } from '@ministryofjustice/hmpps-forge/core/components'
+import { ComponentRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 import { GovUKBody } from './govukBody'
 
-const render = (props: Record<string, unknown>) => GovUKBody.render(props as EvaluatedBlock<GovUKBody>)
+const harness = new ComponentRegistryTestHarness(GovUKBody)
+
+const render = (props: GovUKBody) => harness.render(GovUKBody(props))
 
 describe('GovUKBody', () => {
   describe('block building', () => {
-    it('should stamp the govukBody variant when called as a builder', () => {
+    it('should stamp the govukBody variant when called as a builder', async () => {
       // Arrange & Act
       const built = GovUKBody({ text: 'Hello world' })
 
@@ -14,7 +16,7 @@ describe('GovUKBody', () => {
       expect(built.text).toBe('Hello world')
     })
 
-    it('should pass through visibleWhen', () => {
+    it('should pass through visibleWhen', async () => {
       // Arrange & Act
       const built = GovUKBody({ text: 'Text', visibleWhen: false })
 
@@ -24,49 +26,49 @@ describe('GovUKBody', () => {
   })
 
   describe('rendering', () => {
-    it('should render a p tag with the default body class', () => {
+    it('should render a p tag with the default body class', async () => {
       // Arrange & Act
-      const output = render({ text: 'Hello world' })
+      const output = await render({ text: 'Hello world' })
 
       // Assert
       expect(output).toBe('<p class="govuk-body">Hello world</p>')
     })
 
-    it('should use the lead paragraph class with size l', () => {
+    it('should use the lead paragraph class with size l', async () => {
       // Arrange & Act
-      const output = render({ text: 'Introduction', size: 'l' })
+      const output = await render({ text: 'Introduction', size: 'l' })
 
       // Assert
       expect(output).toBe('<p class="govuk-body-l">Introduction</p>')
     })
 
-    it('should use the small paragraph class with size s', () => {
+    it('should use the small paragraph class with size s', async () => {
       // Arrange & Act
-      const output = render({ text: 'Fine print', size: 's' })
+      const output = await render({ text: 'Fine print', size: 's' })
 
       // Assert
       expect(output).toBe('<p class="govuk-body-s">Fine print</p>')
     })
 
-    it('should append additional classes', () => {
+    it('should append additional classes', async () => {
       // Arrange & Act
-      const output = render({ text: 'Text', classes: 'app-intro' })
+      const output = await render({ text: 'Text', classes: 'app-intro' })
 
       // Assert
       expect(output).toBe('<p class="govuk-body app-intro">Text</p>')
     })
 
-    it('should render extra attributes onto the paragraph', () => {
+    it('should render extra attributes onto the paragraph', async () => {
       // Arrange & Act
-      const output = render({ text: 'Text', attributes: { 'data-qa': 'intro' } })
+      const output = await render({ text: 'Text', attributes: { 'data-qa': 'intro' } })
 
       // Assert
       expect(output).toBe('<p class="govuk-body" data-qa="intro">Text</p>')
     })
 
-    it('should render HTML in the text unescaped', () => {
+    it('should render HTML in the text unescaped', async () => {
       // Arrange & Act
-      const output = render({ text: 'Area of need: <strong>drug use</strong>' })
+      const output = await render({ text: 'Area of need: <strong>drug use</strong>' })
 
       // Assert
       expect(output).toBe('<p class="govuk-body">Area of need: <strong>drug use</strong></p>')

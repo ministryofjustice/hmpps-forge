@@ -1,23 +1,19 @@
-import { ComponentCallType } from '@ministryofjustice/hmpps-forge/core/authoring'
-import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
+import { component } from '@ministryofjustice/hmpps-forge/core/components'
+import { ComponentRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { MOJTimeline } from './mojTimeline'
+import type { MOJTimelineItem } from './mojTimeline'
 
 vi.mock('nunjucks')
+
+const TestBlock = component<{ html: string }>('testBlock', { render: props => props.html })
 
 describe('mojTimeline', () => {
   setupComponentTest()
 
   const helper = new MojComponentTestHelper(MOJTimeline)
-  const renderedBlock = (html: string): RenderedBlock => ({
-    block: {
-      _forge: ComponentCallType.BASIC,
-      variant: 'html',
-    },
-    html,
-  })
 
   describe('Item data transformation', () => {
     it('should pass through single item with label text', async () => {
@@ -26,7 +22,7 @@ describe('mojTimeline', () => {
         {
           label: { text: 'Application submitted' },
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -42,7 +38,7 @@ describe('mojTimeline', () => {
         {
           label: { html: '<strong>Application</strong> submitted' },
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -67,7 +63,7 @@ describe('mojTimeline', () => {
           label: { text: 'Application started' },
           text: 'You began your application.',
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -86,7 +82,7 @@ describe('mojTimeline', () => {
           label: { text: 'Event' },
           text: 'This is plain text content',
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -102,7 +98,7 @@ describe('mojTimeline', () => {
           label: { text: 'Event' },
           html: '<p>This is <strong>HTML</strong> content</p>',
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -118,7 +114,7 @@ describe('mojTimeline', () => {
           label: { text: 'Event' },
           html: '<p>HTML only</p>',
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -129,17 +125,20 @@ describe('mojTimeline', () => {
 
     it('should use blocks over text and html when provided', async () => {
       // Arrange
+      const render = vi.fn().mockReturnValue('<div>Mocked HTML</div>')
+      const harness = new ComponentRegistryTestHarness([MOJTimeline, TestBlock], { render })
       const items = [
         {
           label: { text: 'Event' },
           text: 'This is ignored',
           html: '<p>This is also ignored</p>',
-          blocks: [renderedBlock('<p>First block</p>'), renderedBlock('<p>Second block</p>')],
+          blocks: [TestBlock({ html: '<p>First block</p>' }), TestBlock({ html: '<p>Second block</p>' })],
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
-      const params = await helper.getParams({ items })
+      await harness.render(MOJTimeline({ items }))
+      const params = render.mock.lastCall?.[1].params
 
       // Assert
       expect(params.items?.[0].text).toBeUndefined()
@@ -154,7 +153,7 @@ describe('mojTimeline', () => {
           label: { text: 'Event' },
           text: 'Text only',
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -175,7 +174,7 @@ describe('mojTimeline', () => {
             type: 'datetime',
           },
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -195,7 +194,7 @@ describe('mojTimeline', () => {
             type: 'shortdatetime',
           },
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -214,7 +213,7 @@ describe('mojTimeline', () => {
             type: 'date',
           },
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -233,7 +232,7 @@ describe('mojTimeline', () => {
             type: 'shortdate',
           },
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -252,7 +251,7 @@ describe('mojTimeline', () => {
             type: 'time',
           },
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -271,7 +270,7 @@ describe('mojTimeline', () => {
             format: 'DD/MM/YYYY',
           },
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -288,7 +287,7 @@ describe('mojTimeline', () => {
           label: { text: 'Event' },
           text: 'Event without datetime',
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -306,7 +305,7 @@ describe('mojTimeline', () => {
           label: { text: 'Event' },
           byline: { text: 'Joe Bloggs' },
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -322,7 +321,7 @@ describe('mojTimeline', () => {
           label: { text: 'Event' },
           byline: { html: '<strong>Joe Bloggs</strong>' },
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -338,7 +337,7 @@ describe('mojTimeline', () => {
           label: { text: 'Event' },
           text: 'Event without byline',
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -401,7 +400,7 @@ describe('mojTimeline', () => {
           label: { text: 'Event' },
           classes: 'custom-timeline-item-class',
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -420,7 +419,7 @@ describe('mojTimeline', () => {
             'data-event-id': '12345',
           },
         },
-      ]
+      ] satisfies MOJTimelineItem[]
 
       // Act
       const params = await helper.getParams({ items })

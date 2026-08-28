@@ -18,6 +18,10 @@ export default defineConfig({
         replacement: resolve(import.meta.dirname, './forge-core/src/framework/index.ts'),
       },
       {
+        find: /^@ministryofjustice\/hmpps-forge\/core\/testing$/,
+        replacement: resolve(import.meta.dirname, './forge-core/src/testing/index.ts'),
+      },
+      {
         find: /^@ministryofjustice\/hmpps-forge\/core$/,
         replacement: resolve(import.meta.dirname, './forge-core/src/index.ts'),
       },

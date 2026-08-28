@@ -21,7 +21,7 @@ import { CollectionBlock } from '../../../../src/components'
 import type { StepContractCase } from '../../contractRunner'
 import { CheckboxField, DateField, TextField } from '../../testComponents'
 
-function memberNameCollection(props: Partial<TextField> = {}) {
+function memberNameCollection(props: Partial<Parameters<typeof TextField>[0]> = {}) {
   return CollectionBlock({
     collection: Data('members').each(
       Iterator.Map([

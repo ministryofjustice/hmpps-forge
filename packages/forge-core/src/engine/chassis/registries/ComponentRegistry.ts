@@ -1,4 +1,3 @@
-import type { BlockDefinition } from '../../../components/types/structures.type'
 import ForgeRegistryDuplicateError from '../../errors/ForgeRegistryDuplicateError'
 import ForgeRegistryValidationError from '../../errors/ForgeRegistryValidationError'
 import { ComponentRegistryEntry } from '../../../components/types/components.type'
@@ -8,7 +7,7 @@ import { ComponentRegistryEntry } from '../../../components/types/components.typ
  * Components are stored by their variant name and can be retrieved during form rendering.
  */
 export default class ComponentRegistry {
-  private readonly components = new Map<string, ComponentRegistryEntry<BlockDefinition, unknown>>()
+  private readonly components = new Map<string, ComponentRegistryEntry<object, unknown>>()
 
   /**
    * Register multiple components at once
@@ -17,7 +16,7 @@ export default class ComponentRegistry {
    * @throws ForgeRegistryValidationError if a component is invalid
    * @throws AggregateError if multiple validation errors occur
    */
-  registerMany(components: ComponentRegistryEntry<BlockDefinition, unknown>[]): void {
+  registerMany(components: ComponentRegistryEntry<object, unknown>[]): void {
     if (!components || components.length === 0) {
       return
     }
@@ -66,10 +65,8 @@ export default class ComponentRegistry {
    * @param variant - The variant of the component to retrieve
    * @returns The component or undefined if not found
    */
-  get<T extends BlockDefinition, TRenderOutput = unknown>(
-    variant: string,
-  ): ComponentRegistryEntry<T, TRenderOutput> | undefined {
-    return this.components.get(variant) as ComponentRegistryEntry<T, TRenderOutput> | undefined
+  get(variant: string): ComponentRegistryEntry<object, unknown> | undefined {
+    return this.components.get(variant)
   }
 
   /**
@@ -85,7 +82,7 @@ export default class ComponentRegistry {
    * Get all registered components
    * @returns Map of all registered components
    */
-  getAll(): Map<string, ComponentRegistryEntry<BlockDefinition, unknown>> {
+  getAll(): Map<string, ComponentRegistryEntry<object, unknown>> {
     return new Map(this.components)
   }
 

@@ -1,8 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ComponentCallType } from '../../../../shared/taxonomy'
-import { buildComponent } from '../../../../components/utils/buildComponent'
-import type { BlockDefinition, EvaluatedBlock } from '../../../../components/types/structures.type'
-import type { ForgeRenderer, RenderBlock, RenderContext } from '../../../../framework/types/rendering.type'
+import { component } from '../../../../components/component'
+import type { BlockDefinition } from '../../../../components/types/structures.type'
+import type {
+  ForgeRenderer,
+  RenderBlock,
+  RenderContext,
+  ResolvedBlock,
+} from '../../../../framework/types/rendering.type'
 import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import { coreComponents } from '../../../../built-ins/components'
 import { RENDER_BLOCK_BRAND } from '../contracts/renderBlock.brand'
@@ -31,14 +36,14 @@ function createRenderBlock(
 function createComponentRegistry(...variants: string[]): ComponentRegistry {
   const registry = new ComponentRegistry()
 
-  registry.registerMany(variants.map(variant => buildComponent(variant, block => `<${block.variant} />`)))
+  registry.registerMany(variants.map(variant => component<object>(variant, { render: () => `<${variant} />` })))
 
   return registry
 }
 
 function createRenderer(): ForgeRenderer<string> {
   return {
-    renderBlock: vi.fn((_entry, block: EvaluatedBlock<BlockDefinition>) => {
+    renderBlock: vi.fn((_entry, block: ResolvedBlock) => {
       const content = 'content' in block ? block.content : ''
 
       return `<${block.variant}>${content ?? ''}`
@@ -256,7 +261,7 @@ describe('Render work handlers', () => {
     }
     const componentRegistry = new ComponentRegistry()
     componentRegistry.registerMany([...coreComponents])
-    componentRegistry.registerMany([buildComponent('child', block => `<p>${(block as { text?: string }).text}</p>`)])
+    componentRegistry.registerMany([component<{ text?: string }>('child', { render: props => `<p>${props.text}</p>` })])
     const fragment = createRenderBlock('fragment', {
       blocks: [
         createRenderBlock('child', { text: 'one' }, 'compile_ast:child1'),

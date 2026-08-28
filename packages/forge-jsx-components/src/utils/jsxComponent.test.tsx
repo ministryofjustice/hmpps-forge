@@ -1,25 +1,25 @@
 import { z } from 'zod'
 import { ComponentCallType } from '@ministryofjustice/hmpps-forge/core/authoring'
-import type { BlockDefinition, EvaluatedBlock, FieldBlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { ComponentRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 
 import { jsxComponent } from './jsxComponent'
 import { raw } from '../runtime/jsx-runtime'
 
-interface TestBadge extends BlockDefinition {
+interface TestBadgeProps {
   /** Text shown inside the badge */
-  text: ResolvableString
+  text: string
 }
 
-const TestBadge = jsxComponent<TestBadge>('testBadge', {
+const TestBadge = jsxComponent<TestBadgeProps>('testBadge', {
   render: props => <strong class="badge">{props.text}</strong>,
 })
 
-interface TestTextInput extends FieldBlockDefinition {
+interface TestTextInputProps {
   /** Label shown above the input */
-  label: ResolvableString
+  label: string
 }
 
-const TestTextInput = jsxComponent<TestTextInput>('testTextInput', {
+const TestTextInput = jsxComponent<TestTextInputProps>('testTextInput', {
   field: true,
   render: props => (
     <div class="form-group">
@@ -30,11 +30,8 @@ const TestTextInput = jsxComponent<TestTextInput>('testTextInput', {
   inputSchema: z.string(),
 })
 
-const evaluatedBadge = {
-  variant: 'testBadge',
-  _forge: ComponentCallType.BASIC,
-  text: 'New',
-} as EvaluatedBlock<TestBadge>
+const badgeHarness = new ComponentRegistryTestHarness(TestBadge)
+const textInputHarness = new ComponentRegistryTestHarness(TestTextInput)
 
 describe('jsxComponent()', () => {
   describe('block building', () => {
@@ -61,38 +58,28 @@ describe('jsxComponent()', () => {
   })
 
   describe('registry entry', () => {
-    it('should render to a plain string when the registry render is invoked', () => {
+    it('should render to a plain string when the registry render is invoked', async () => {
       // Arrange & Act
-      const output = TestBadge.render(evaluatedBadge)
+      const output = await badgeHarness.render(TestBadge({ text: 'New' }))
 
       // Assert
       expect(typeof output).toBe('string')
       expect(output).toBe('<strong class="badge">New</strong>')
     })
 
-    it('should escape evaluated prop values when they contain HTML', () => {
-      // Arrange
-      const evaluatedWithHtml = { ...evaluatedBadge, text: '<script>alert(1)</script>' } as EvaluatedBlock<TestBadge>
-
-      // Act
-      const output = TestBadge.render(evaluatedWithHtml)
+    it('should escape evaluated prop values when they contain HTML', async () => {
+      // Arrange & Act
+      const output = await badgeHarness.render(TestBadge({ text: '<script>alert(1)</script>' }))
 
       // Assert
       expect(output).toBe('<strong class="badge">&lt;script&gt;alert(1)&lt;/script&gt;</strong>')
     })
 
-    it('should render field props into the markup when rendering a field component', () => {
-      // Arrange
-      const evaluatedInput = {
-        variant: 'testTextInput',
-        _forge: ComponentCallType.FIELD,
-        code: 'first_name',
-        label: 'First name',
-        value: 'Ada',
-      } as unknown as EvaluatedBlock<TestTextInput>
-
-      // Act
-      const output = TestTextInput.render(evaluatedInput)
+    it('should render field props into the markup when rendering a field component', async () => {
+      // Arrange & Act
+      const output = await textInputHarness
+        .render(TestTextInput({ code: 'first_name', label: 'First name' }))
+        .withValue('Ada')
 
       // Assert
       expect(output).toBe(
@@ -108,24 +95,20 @@ describe('jsxComponent()', () => {
       expect(TestBadge.inputSchema).toBeUndefined()
     })
 
-    it('should embed pre-rendered child HTML verbatim when the render uses raw()', () => {
+    it('should embed pre-rendered child HTML verbatim when the render uses raw()', async () => {
       // Arrange
-      interface TestCard extends BlockDefinition {
+      interface TestCardProps {
         childHtml: string
       }
 
-      const TestCard = jsxComponent<TestCard>('testCard', {
+      const TestCard = jsxComponent<TestCardProps>('testCard', {
         render: props => <div class="card">{raw(props.childHtml)}</div>,
       })
 
-      const evaluatedCard = {
-        variant: 'testCard',
-        _forge: ComponentCallType.BASIC,
-        childHtml: '<p>Rendered elsewhere</p>',
-      } as EvaluatedBlock<TestCard>
+      const harness = new ComponentRegistryTestHarness(TestCard)
 
       // Act
-      const output = TestCard.render(evaluatedCard)
+      const output = await harness.render(TestCard({ childHtml: '<p>Rendered elsewhere</p>' }))
 
       // Assert
       expect(output).toBe('<div class="card"><p>Rendered elsewhere</p></div>')

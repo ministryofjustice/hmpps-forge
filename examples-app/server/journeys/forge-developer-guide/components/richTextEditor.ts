@@ -1,10 +1,4 @@
 import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import type {
-  ResolvableBoolean,
-  ResolvableString,
-  FieldBlockDefinition,
-  FieldBlockProps,
-} from '@ministryofjustice/hmpps-forge/core/components'
 
 export interface RichTextEditorToolbar {
   bold?: boolean
@@ -14,30 +8,26 @@ export interface RichTextEditorToolbar {
   numbers?: boolean
 }
 
-export interface RichTextEditorProps extends FieldBlockProps {
-  id?: ResolvableString
-  rows?: ResolvableString
+export interface RichTextEditor {
+  id?: string
+  rows?: string
   toolbar?: RichTextEditorToolbar
   label?:
-    | ResolvableString
+    | string
     | {
-        text?: ResolvableString
-        html?: ResolvableString
-        classes?: ResolvableString
-        isPageHeading?: ResolvableBoolean
+        text?: string
+        html?: string
+        classes?: string
+        isPageHeading?: boolean
       }
   hint?:
-    | ResolvableString
+    | string
     | {
-        text?: ResolvableString
-        html?: ResolvableString
-        classes?: ResolvableString
+        text?: string
+        html?: string
+        classes?: string
       }
-  classes?: ResolvableString
-}
-
-export interface RichTextEditor extends FieldBlockDefinition, RichTextEditorProps {
-  variant: 'richTextEditor'
+  classes?: string
 }
 
 export const RichTextEditor = nunjucksComponent<RichTextEditor>('richTextEditor', {

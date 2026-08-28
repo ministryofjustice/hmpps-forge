@@ -365,7 +365,6 @@ describe('govukPasswordInput', () => {
       // Act
       const html = await helper.renderWithNunjucks({
         code: 'user-password',
-        variant: 'govukPasswordInput',
         label: 'Password',
         hint: 'Your password must be at least 8 characters',
         value: 'test-password-value',

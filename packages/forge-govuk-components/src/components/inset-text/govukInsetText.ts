@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
@@ -16,7 +16,7 @@ import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers
  * })
  * ```
  */
-export type GovUKInsetText = ResolvableBlockProps<{
+export interface GovUKInsetText {
   /**
    * Plain text content for the inset text.
    * Required unless `html` is provided.
@@ -54,7 +54,7 @@ export type GovUKInsetText = ResolvableBlockProps<{
    * Useful for adding custom data attributes or ARIA attributes.
    */
   attributes?: Record<string, any>
-}>
+}
 
 /**
  * GOV.UK Inset Text component.

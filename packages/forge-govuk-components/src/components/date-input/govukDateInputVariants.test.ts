@@ -297,7 +297,6 @@ describe('govukDateInputVariants', () => {
       it('renders a valid full date input component', async () => {
         const html = await helper.renderWithNunjucks({
           code: 'birth-date',
-          variant: 'govukDateInputFull',
           label: 'Date of birth',
           hint: 'For example, 31 3 1980',
           value: { day: '31', month: '03', year: '1980' },
@@ -379,7 +378,6 @@ describe('govukDateInputVariants', () => {
       it('renders a valid year-month input component', async () => {
         const html = await helper.renderWithNunjucks({
           code: 'card-expiry',
-          variant: 'govukDateInputYearMonth',
           label: 'Card expiry date',
           hint: 'For example, 03 2025',
           value: { month: '03', year: '2025' },
@@ -460,7 +458,6 @@ describe('govukDateInputVariants', () => {
       it('renders a valid month-day input component', async () => {
         const html = await helper.renderWithNunjucks({
           code: 'birthday',
-          variant: 'govukDateInputMonthDay',
           label: 'Birthday',
           hint: 'For example, 25 12 for Christmas',
           value: { day: '25', month: '12' },

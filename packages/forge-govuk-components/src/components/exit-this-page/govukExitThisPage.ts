@@ -1,4 +1,3 @@
-import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -27,7 +26,7 @@ import { nunjucksComponent } from '../../utils/nunjucksComponent'
  * })
  * ```
  */
-export type GovUKExitThisPage = ResolvableBlockProps<{
+export interface GovUKExitThisPage {
   /**
    * Plain text content for the button.
    * If `html` is provided, this option will be ignored.
@@ -90,7 +89,7 @@ export type GovUKExitThisPage = ResolvableBlockProps<{
    * Defaults to "Shift, press 1 more time to exit.".
    */
   pressOneMoreTimeText?: string
-}>
+}
 
 /**
  * GOV.UK Exit This Page component.

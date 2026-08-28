@@ -1,4 +1,4 @@
-import { BlockDefinition, EvaluatedBlock, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ComponentRenderProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
@@ -85,7 +85,7 @@ export interface MOJTicketPanelItem {
  * })
  * ```
  */
-export type MOJTicketPanel = ResolvableBlockProps<{
+export interface MOJTicketPanel {
   /**
    * Array of sections to display in the ticket panel.
    * Each item represents a content section with optional styling.
@@ -111,11 +111,11 @@ export type MOJTicketPanel = ResolvableBlockProps<{
    * @example { 'aria-label': 'Application summary' }
    */
   attributes?: Record<string, string>
-}>
+}
 
-type EvaluatedMOJTicketPanelItem = EvaluatedBlock<MOJTicketPanel>['items'][number]
+type RuntimeMOJTicketPanelItem = ComponentRenderProps<MOJTicketPanel>['items'][number]
 
-function normaliseTicketPanelItem(item: EvaluatedMOJTicketPanelItem) {
+function normaliseTicketPanelItem(item: RuntimeMOJTicketPanelItem) {
   const { blocks, ...itemParams } = item
   const content = normaliseMojTextHtmlContent({
     text: item.text,

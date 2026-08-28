@@ -1,23 +1,19 @@
-import { ComponentCallType } from '@ministryofjustice/hmpps-forge/core/authoring'
-import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
+import { component } from '@ministryofjustice/hmpps-forge/core/components'
+import { ComponentRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { MOJMessages } from './mojMessages'
+import type { MOJMessageItem } from './mojMessages'
 
 vi.mock('nunjucks')
+
+const TestBlock = component<{ html: string }>('testBlock', { render: props => props.html })
 
 describe('mojMessages', () => {
   setupComponentTest()
 
   const helper = new MojComponentTestHelper(MOJMessages)
-  const renderedBlock = (html: string): RenderedBlock => ({
-    block: {
-      _forge: ComponentCallType.BASIC,
-      variant: 'html',
-    },
-    html,
-  })
 
   describe('Item data transformation', () => {
     it('should pass through single message', async () => {
@@ -30,7 +26,7 @@ describe('mojMessages', () => {
           sender: 'Support Agent',
           timestamp: '2019-06-14T10:00:00.000Z',
         },
-      ]
+      ] satisfies MOJMessageItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -64,7 +60,7 @@ describe('mojMessages', () => {
           sender: 'Support Agent',
           timestamp: '2019-06-14T10:10:00.000Z',
         },
-      ]
+      ] satisfies MOJMessageItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -100,7 +96,7 @@ describe('mojMessages', () => {
           timestamp: '2019-06-14T10:10:00.000Z',
           visibleWhen: true,
         },
-      ]
+      ] satisfies MOJMessageItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -120,7 +116,7 @@ describe('mojMessages', () => {
           sender: 'User',
           timestamp: '2019-06-14T10:00:00.000Z',
         },
-      ]
+      ] satisfies MOJMessageItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -138,7 +134,7 @@ describe('mojMessages', () => {
           sender: 'User',
           timestamp: '2019-06-14T10:00:00.000Z',
         },
-      ]
+      ] satisfies MOJMessageItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -156,7 +152,7 @@ describe('mojMessages', () => {
           sender: 'User',
           timestamp: '2019-06-14T10:00:00.000Z',
         },
-      ]
+      ] satisfies MOJMessageItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -167,19 +163,22 @@ describe('mojMessages', () => {
 
     it('should use blocks over text and html when provided', async () => {
       // Arrange
+      const render = vi.fn().mockReturnValue('<div>Mocked HTML</div>')
+      const harness = new ComponentRegistryTestHarness([MOJMessages, TestBlock], { render })
       const items = [
         {
           text: 'This is ignored',
           html: '<p>This is also ignored</p>',
-          blocks: [renderedBlock('<p>First block</p>'), renderedBlock('<p>Second block</p>')],
+          blocks: [TestBlock({ html: '<p>First block</p>' }), TestBlock({ html: '<p>Second block</p>' })],
           type: 'sent',
           sender: 'User',
           timestamp: '2019-06-14T10:00:00.000Z',
         },
-      ]
+      ] satisfies MOJMessageItem[]
 
       // Act
-      const params = await helper.getParams({ items })
+      await harness.render(MOJMessages({ items }))
+      const params = render.mock.lastCall?.[1].params
 
       // Assert
       expect(params.items?.[0].text).toBeUndefined()
@@ -196,7 +195,7 @@ describe('mojMessages', () => {
           sender: 'User',
           timestamp: '2019-06-14T10:00:00.000Z',
         },
-      ]
+      ] satisfies MOJMessageItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -216,7 +215,7 @@ describe('mojMessages', () => {
           sender: 'User',
           timestamp: '2019-06-14T10:00:00.000Z',
         },
-      ]
+      ] satisfies MOJMessageItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -234,7 +233,7 @@ describe('mojMessages', () => {
           sender: 'Support Agent',
           timestamp: '2019-06-14T10:00:00.000Z',
         },
-      ]
+      ] satisfies MOJMessageItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -254,7 +253,7 @@ describe('mojMessages', () => {
           sender: 'John Smith',
           timestamp: '2019-06-14T10:00:00.000Z',
         },
-      ]
+      ] satisfies MOJMessageItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -272,7 +271,7 @@ describe('mojMessages', () => {
           sender: 'User',
           timestamp: '2019-06-14T14:01:00.000Z',
         },
-      ]
+      ] satisfies MOJMessageItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -291,7 +290,7 @@ describe('mojMessages', () => {
           sender: 'User',
           timestamp: '2019-06-14T10:00:00.000Z',
         },
-      ]
+      ] satisfies MOJMessageItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -310,7 +309,7 @@ describe('mojMessages', () => {
           sender: 'User',
           timestamp: '2019-06-14T10:00:00.000Z',
         },
-      ]
+      ] satisfies MOJMessageItem[]
 
       // Act
       const params = await helper.getParams({ items })
@@ -328,7 +327,7 @@ describe('mojMessages', () => {
           sender: 'User',
           timestamp: '2019-06-14T10:00:00.000Z',
         },
-      ]
+      ] satisfies MOJMessageItem[]
 
       // Act
       const params = await helper.getParams({ items })

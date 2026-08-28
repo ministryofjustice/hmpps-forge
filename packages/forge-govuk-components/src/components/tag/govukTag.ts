@@ -1,4 +1,3 @@
-import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -35,7 +34,7 @@ import { nunjucksComponent } from '../../utils/nunjucksComponent'
  * })
  * ```
  */
-export type GovUKTag = ResolvableBlockProps<{
+export interface GovUKTag {
   /**
    * Plain text content for the tag.
    * Required unless `html` is provided.
@@ -70,7 +69,7 @@ export type GovUKTag = ResolvableBlockProps<{
    * Useful for adding custom data attributes or ARIA attributes.
    */
   attributes?: Record<string, any>
-}>
+}
 
 /**
  * GOV.UK Tag component.

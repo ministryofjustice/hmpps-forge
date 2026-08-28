@@ -340,7 +340,6 @@ describe('govukCheckboxInput', () => {
   describe('DOM rendering smoke test', () => {
     it('renders a valid checkbox component', async () => {
       const html = await helper.renderWithNunjucks({
-        variant: 'govukCheckboxInput',
         code: 'contact-methods',
         label: 'How would you like to be contacted?',
         hint: 'Select all that apply',

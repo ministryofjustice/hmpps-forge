@@ -16,13 +16,17 @@ import FunctionRegistry from '../../chassis/registries/FunctionRegistry'
 import ComponentRegistry from '../../chassis/registries/ComponentRegistry'
 import ConditionRegistry from '../../../authoring/registries/ConditionRegistry'
 import TransformerRegistry from '../../../authoring/registries/TransformerRegistry'
-import { buildComponent } from '../../../components/utils/buildComponent'
+import { component } from '../../../components/component'
 import ForgeReferenceScopeError from '../../errors/ForgeReferenceScopeError'
 import ForgeUnregisteredFunctionError from '../../errors/ForgeUnregisteredFunctionError'
 import ForgeUnregisteredComponentError from '../../errors/ForgeUnregisteredComponentError'
 import ForgeFunctionArityError from '../../errors/ForgeFunctionArityError'
 import CompilationPipeline from '../../chassis/compilation/pipeline/CompilationPipeline'
 import { finaliseBuilders } from '../../../authoring/builders/utils/finaliseBuilders'
+
+function createTestComponent(variant: string, render: () => string) {
+  return component<object>(variant, { render })
+}
 
 function compileJourney(
   journey: JourneyDefinition,
@@ -43,8 +47,8 @@ describe('ASTSemanticValidator', () => {
 
     const componentRegistry = new ComponentRegistry()
     componentRegistry.registerMany([
-      buildComponent('GovUKInput', () => '<input />'),
-      buildComponent('collection-block', () => '<div />'),
+      createTestComponent('GovUKInput', () => '<input />'),
+      createTestComponent('collection-block', () => '<div />'),
     ])
 
     const createBaseJourney = (overrides: Partial<JourneyDefinition> = {}): JourneyDefinition => ({
@@ -318,7 +322,10 @@ describe('ASTSemanticValidator', () => {
     }
 
     const compRegistry = new ComponentRegistry()
-    compRegistry.registerMany([buildComponent('text', () => '<input />'), buildComponent('radio', () => '<radio />')])
+    compRegistry.registerMany([
+      createTestComponent('text', () => '<input />'),
+      createTestComponent('radio', () => '<radio />'),
+    ])
 
     const baseJourney: JourneyDefinition = {
       _forge: StructureType.JOURNEY,
@@ -601,7 +608,7 @@ describe('ASTSemanticValidator', () => {
       const registry = new ComponentRegistry()
 
       if (variants.length > 0) {
-        registry.registerMany(variants.map(variant => buildComponent(variant, () => `<${variant} />`)))
+        registry.registerMany(variants.map(variant => createTestComponent(variant, () => `<${variant} />`)))
       }
 
       return registry
@@ -792,7 +799,7 @@ describe('ASTSemanticValidator', () => {
     })
 
     const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([buildComponent('text', () => '<input />')])
+    componentRegistry.registerMany([createTestComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
       _forge: StructureType.JOURNEY,
@@ -936,8 +943,8 @@ describe('ASTSemanticValidator', () => {
 
     const componentRegistry = new ComponentRegistry()
     componentRegistry.registerMany([
-      buildComponent('text', () => '<input />'),
-      buildComponent('collection-block', () => '<div />'),
+      createTestComponent('text', () => '<input />'),
+      createTestComponent('collection-block', () => '<div />'),
     ])
 
     const baseJourney: JourneyDefinition = {
@@ -1220,8 +1227,8 @@ describe('ASTSemanticValidator', () => {
 
     const componentRegistry = new ComponentRegistry()
     componentRegistry.registerMany([
-      buildComponent('text', () => '<input />'),
-      buildComponent('collection-block', () => '<div />'),
+      createTestComponent('text', () => '<input />'),
+      createTestComponent('collection-block', () => '<div />'),
     ])
 
     const baseJourney: JourneyDefinition = {
@@ -1437,7 +1444,7 @@ describe('ASTSemanticValidator', () => {
     })
 
     const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([buildComponent('text', () => '<input />')])
+    componentRegistry.registerMany([createTestComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
       _forge: StructureType.JOURNEY,
@@ -1479,7 +1486,7 @@ describe('ASTSemanticValidator', () => {
   describe('hook scope', () => {
     const functionRegistry = new FunctionRegistry()
     const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([buildComponent('text', () => '<input />')])
+    componentRegistry.registerMany([createTestComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
       _forge: StructureType.JOURNEY,
@@ -1517,7 +1524,7 @@ describe('ASTSemanticValidator', () => {
   describe('tie-breaker scope', () => {
     const functionRegistry = new FunctionRegistry()
     const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([buildComponent('text', () => '<input />')])
+    componentRegistry.registerMany([createTestComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
       _forge: StructureType.JOURNEY,
@@ -1553,7 +1560,7 @@ describe('ASTSemanticValidator', () => {
   describe('structure scope', () => {
     const functionRegistry = new FunctionRegistry()
     const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([buildComponent('text', () => '<input />')])
+    componentRegistry.registerMany([createTestComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
       _forge: StructureType.JOURNEY,
@@ -1665,8 +1672,8 @@ describe('ASTSemanticValidator', () => {
     const functionRegistry = new FunctionRegistry()
     const componentRegistry = new ComponentRegistry()
     componentRegistry.registerMany([
-      buildComponent('text', () => '<input />'),
-      buildComponent('wrapper', () => '<div />'),
+      createTestComponent('text', () => '<input />'),
+      createTestComponent('wrapper', () => '<div />'),
     ])
 
     const baseJourney: JourneyDefinition = {
@@ -1737,7 +1744,7 @@ describe('ASTSemanticValidator', () => {
     })
 
     const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([buildComponent('text', () => '<input />')])
+    componentRegistry.registerMany([createTestComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
       _forge: StructureType.JOURNEY,
@@ -1813,8 +1820,8 @@ describe('ASTSemanticValidator', () => {
 
     const componentRegistry = new ComponentRegistry()
     componentRegistry.registerMany([
-      buildComponent('text', () => '<input />'),
-      buildComponent('collection-block', () => '<div />'),
+      createTestComponent('text', () => '<input />'),
+      createTestComponent('collection-block', () => '<div />'),
     ])
 
     const baseJourney: JourneyDefinition = {

@@ -1,9 +1,9 @@
 import { access, createForgePackage, field, journey, step } from '../../../../src/authoring'
 import type { StepDefinition, ValidationExpr } from '../../../../src/authoring'
-import { buildComponent, type FieldBlockDefinition } from '../../../../src/components'
+import { component, type FieldBlockDefinition } from '../../../../src/components'
 import { ForgeTestHarness } from '../../../../src/testing'
 
-export const testInput = buildComponent('test-input', () => '<input />')
+export const testInput = component<object>('test-input', { render: () => '<input />' })
 
 /** A field variant with a spare display prop, for misplacing expressions outside validWhen. */
 export interface TestInputBlock extends FieldBlockDefinition {

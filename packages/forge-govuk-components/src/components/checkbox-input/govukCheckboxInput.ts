@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BlockDefinition, EvaluatedBlock, ResolvableFieldProps } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ComponentRenderProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import {
   normaliseGovukErrorMessage,
@@ -28,7 +28,7 @@ import {
  * })
  * ```
  */
-export type GovUKCheckboxInput = ResolvableFieldProps<{
+export interface GovUKCheckboxInput {
   /**
    * The label for the checkbox group.
    * When using fieldset, this becomes the legend text if no fieldset legend is specified.
@@ -174,7 +174,7 @@ export type GovUKCheckboxInput = ResolvableFieldProps<{
    * Data('areas').each(Iterator.Map({ value: Item().path('value'), text: Item().path('text') }))
    */
   items: (GovUKCheckboxInputItem | GovUKCheckboxInputDivider)[]
-}>
+}
 
 /**
  * Individual checkbox option within a checkbox group.
@@ -330,9 +330,7 @@ export const GovUKCheckboxInput = nunjucksComponent<GovUKCheckboxInput>('govukCh
   // The first rendered checkbox's id is the idPrefix, so error summary links land there.
   errorAnchor: props => props.idPrefix || props.code,
   render: (props, nunjucksEnv) => {
-    // At render time, items has been evaluated (Collection expressions resolved to arrays)
-    const evaluatedItems = props.items as EvaluatedBlock<GovUKCheckboxInputItem | GovUKCheckboxInputDivider>[]
-    const items = evaluatedItems
+    const items = props.items
       .filter(option => option.visibleWhen !== false)
       .map(option => makeOption(option, props.value))
 
@@ -355,6 +353,9 @@ export const GovUKCheckboxInput = nunjucksComponent<GovUKCheckboxInput>('govukCh
   },
 })
 
+type RenderedCheckboxInputItem = ComponentRenderProps<GovUKCheckboxInput>['items'][number]
+type RenderedCheckboxInputDivider = Extract<RenderedCheckboxInputItem, { divider: string }>
+
 const getConditionalContent = (block: GovukRenderedBlockContent) => {
   const html = renderGovukBlocksToHtml(block)
 
@@ -365,7 +366,7 @@ const getConditionalContent = (block: GovukRenderedBlockContent) => {
   return { html }
 }
 
-const makeOption = (option: EvaluatedBlock<GovUKCheckboxInputItem | GovUKCheckboxInputDivider>, blockValue?: any) => {
+const makeOption = (option: RenderedCheckboxInputItem, blockValue?: any) => {
   if (isCheckboxDivider(option)) {
     return {
       divider: option.divider,
@@ -396,9 +397,7 @@ const makeOption = (option: EvaluatedBlock<GovUKCheckboxInputItem | GovUKCheckbo
 }
 
 // Narrow to Divider
-function isCheckboxDivider(
-  option: EvaluatedBlock<GovUKCheckboxInputItem | GovUKCheckboxInputDivider>,
-): option is EvaluatedBlock<GovUKCheckboxInputDivider>
+function isCheckboxDivider(option: RenderedCheckboxInputItem): option is RenderedCheckboxInputDivider
 function isCheckboxDivider(option: any): option is GovUKCheckboxInputDivider {
   return option != null && typeof option === 'object' && 'divider' in option && !('value' in option) // prefer Divider if both accidentally exist
 }

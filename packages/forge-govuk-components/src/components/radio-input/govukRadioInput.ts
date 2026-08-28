@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BlockDefinition, EvaluatedBlock, ResolvableFieldProps } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ComponentRenderProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import {
   normaliseGovukErrorMessage,
@@ -27,7 +27,7 @@ import {
  * })
  * ```
  */
-export type GovUKRadioInput = ResolvableFieldProps<{
+export interface GovUKRadioInput {
   /**
    * The label for the radio group.
    * When using fieldset, this becomes the legend text if no fieldset legend is specified.
@@ -153,7 +153,7 @@ export type GovUKRadioInput = ResolvableFieldProps<{
    * ]
    */
   items: (GovUKRadioInputItem | GovUKRadioInputDivider)[]
-}>
+}
 
 /**
  * Individual radio option within a radio group.
@@ -301,6 +301,9 @@ export const GovUKRadioInput = nunjucksComponent<GovUKRadioInput>('govukRadioInp
   },
 })
 
+type RenderedRadioInputItem = ComponentRenderProps<GovUKRadioInput>['items'][number]
+type RenderedRadioInputDivider = Extract<RenderedRadioInputItem, { divider: string }>
+
 const getConditionalContent = (block: GovukRenderedBlockContent) => {
   const html = renderGovukBlocksToHtml(block)
 
@@ -311,7 +314,7 @@ const getConditionalContent = (block: GovukRenderedBlockContent) => {
   return { html }
 }
 
-const makeOption = (option: EvaluatedBlock<GovUKRadioInputItem | GovUKRadioInputDivider>, checkedValue: string) => {
+const makeOption = (option: RenderedRadioInputItem, checkedValue: string) => {
   if (isRadioDivider(option)) {
     return {
       divider: option.divider,
@@ -332,9 +335,7 @@ const makeOption = (option: EvaluatedBlock<GovUKRadioInputItem | GovUKRadioInput
 }
 
 // Narrow to Divider
-function isRadioDivider(
-  option: EvaluatedBlock<GovUKRadioInputItem | GovUKRadioInputDivider>,
-): option is EvaluatedBlock<GovUKRadioInputDivider>
+function isRadioDivider(option: RenderedRadioInputItem): option is RenderedRadioInputDivider
 function isRadioDivider(option: any): option is GovUKRadioInputDivider {
   return option != null && typeof option === 'object' && 'divider' in option && !('value' in option) // prefer Divider if both accidentally exist
 }

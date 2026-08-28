@@ -371,7 +371,6 @@ describe('govukRadioInput', () => {
   describe('DOM rendering smoke test', () => {
     it('renders a valid radio component', async () => {
       const html = await helper.renderWithNunjucks({
-        variant: 'govukRadioInput',
         code: 'contact-preference',
         label: 'How would you prefer to be contacted?',
         hint: 'Select one option',

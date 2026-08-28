@@ -1,5 +1,4 @@
 import type nunjucks from 'nunjucks'
-import { ResolvableBlockProps, ResolvedPropsOf } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -19,7 +18,7 @@ import { nunjucksComponent } from '../../utils/nunjucksComponent'
  * })
  * ```
  */
-export type GovUKButton = ResolvableBlockProps<{
+export interface GovUKButton {
   /** Text content for the button */
   text?: string
 
@@ -52,7 +51,7 @@ export type GovUKButton = ResolvableBlockProps<{
 
   /** Prevent double-click submission */
   preventDoubleClick?: boolean
-}>
+}
 
 /**
  * GOV.UK Link Button component.
@@ -69,7 +68,7 @@ export type GovUKButton = ResolvableBlockProps<{
  * })
  * ```
  */
-export type GovUKLinkButton = ResolvableBlockProps<{
+export interface GovUKLinkButton {
   /** Text content for the button */
   text?: string
 
@@ -90,11 +89,9 @@ export type GovUKLinkButton = ResolvableBlockProps<{
 
   /** URL for the link */
   href: string
-}>
+}
 
-function isLinkButton(
-  props: ResolvedPropsOf<GovUKButton> | ResolvedPropsOf<GovUKLinkButton>,
-): props is ResolvedPropsOf<GovUKLinkButton> {
+function isLinkButton(props: GovUKButton | GovUKLinkButton): props is GovUKLinkButton {
   return 'href' in props && props.href !== undefined
 }
 
@@ -102,10 +99,7 @@ function isLinkButton(
  * Shared renderer function for both button types.
  * Determines the appropriate element type and parameters based on the variant.
  */
-function buttonRenderer(
-  props: ResolvedPropsOf<GovUKButton> | ResolvedPropsOf<GovUKLinkButton>,
-  nunjucksEnv: nunjucks.Environment,
-): string {
+function buttonRenderer(props: GovUKButton | GovUKLinkButton, nunjucksEnv: nunjucks.Environment): string {
   let params: Record<string, any> = {
     id: props.id,
     text: props.html ? undefined : props.text,

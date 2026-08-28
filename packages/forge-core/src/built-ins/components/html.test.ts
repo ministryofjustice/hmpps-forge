@@ -1,22 +1,21 @@
 import { HtmlBlock } from './html'
-import type { EvaluatedBlock } from '../../components/types/structures.type'
-import { ComponentCallType } from '../../shared/taxonomy'
+import { ComponentRegistryTestHarness } from '../../testing/components/ComponentRegistryTestHarness'
 
 describe('html component', () => {
-  const mockBlock = (overrides?: Partial<HtmlBlock>): EvaluatedBlock<HtmlBlock> =>
-    ({
-      _forge: ComponentCallType.BASIC,
-      variant: 'html',
+  const harness = new ComponentRegistryTestHarness(HtmlBlock)
+
+  const mockBlock = (overrides?: Partial<HtmlBlock>) =>
+    HtmlBlock({
       content: '<p>Default content</p>',
       ...overrides,
-    }) as EvaluatedBlock<HtmlBlock>
+    })
 
   it('should render HTML content without wrapper', async () => {
     const block = mockBlock({
       content: '<div><p>Test content</p></div>',
     })
 
-    const result = await HtmlBlock.render(block)
+    const result = await harness.render(block)
 
     expect(result).toBe('<div><p>Test content</p></div>')
   })
@@ -27,7 +26,7 @@ describe('html component', () => {
       classes: 'custom-class',
     })
 
-    const result = await HtmlBlock.render(block)
+    const result = await harness.render(block)
 
     expect(result).toBe('<div class="custom-class"><p>Test content</p></div>')
   })
@@ -41,7 +40,7 @@ describe('html component', () => {
       },
     })
 
-    const result = await HtmlBlock.render(block)
+    const result = await harness.render(block)
 
     expect(result).toBe('<div data-test="value" id="test-id"><p>Test content</p></div>')
   })
@@ -55,7 +54,7 @@ describe('html component', () => {
       },
     })
 
-    const result = await HtmlBlock.render(block)
+    const result = await harness.render(block)
 
     expect(result).toBe('<div class="custom-class" data-test="value"><p>Test content</p></div>')
   })
@@ -71,7 +70,7 @@ describe('html component', () => {
       `,
     })
 
-    const result = await HtmlBlock.render(block)
+    const result = await harness.render(block)
 
     expect(result).toBe(`
         <div>
@@ -92,7 +91,7 @@ describe('html component', () => {
       const block = mockBlock({ tag: 'p', content: 'Hello world' })
 
       // Act
-      const result = await HtmlBlock.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<p>Hello world</p>')
@@ -103,7 +102,7 @@ describe('html component', () => {
       const block = mockBlock({ tag: 'h1', content: 'Title', classes: 'govuk-heading-l' })
 
       // Act
-      const result = await HtmlBlock.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<h1 class="govuk-heading-l">Title</h1>')
@@ -114,7 +113,7 @@ describe('html component', () => {
       const block = mockBlock({ tag: 'p', content: 'Text', attributes: { id: 'intro' } })
 
       // Act
-      const result = await HtmlBlock.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<p id="intro">Text</p>')
@@ -130,7 +129,7 @@ describe('html component', () => {
       })
 
       // Act
-      const result = await HtmlBlock.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<p class="govuk-body" data-test="value">Text</p>')
@@ -141,7 +140,7 @@ describe('html component', () => {
       const block = mockBlock({ tag: 'hr', classes: 'govuk-section-break' })
 
       // Act
-      const result = await HtmlBlock.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<hr class="govuk-section-break">')
@@ -152,7 +151,7 @@ describe('html component', () => {
       const block = mockBlock({ tag: 'hr', content: 'should be ignored', classes: 'govuk-section-break' })
 
       // Act
-      const result = await HtmlBlock.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<hr class="govuk-section-break">')

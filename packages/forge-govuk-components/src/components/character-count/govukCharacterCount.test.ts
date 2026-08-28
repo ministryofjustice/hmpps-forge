@@ -297,7 +297,6 @@ describe('govukCharacterCount', () => {
     it('renders a valid character count component', async () => {
       const html = await helper.renderWithNunjucks({
         code: 'feedback-text',
-        variant: 'govukCharacterCount',
         label: 'Provide feedback',
         hint: 'Do not include personal information',
         value: 'This is some initial text',

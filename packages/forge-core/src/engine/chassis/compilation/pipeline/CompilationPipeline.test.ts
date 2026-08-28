@@ -1,7 +1,7 @@
 import { field, journey, step } from '../../../../authoring'
 import type { JourneyDefinition } from '../../../../authoring/types/structures.type'
 import type { FieldBlockDefinition } from '../../../../components/types/structures.type'
-import { buildComponent } from '../../../../components/utils/buildComponent'
+import { component } from '../../../../components/component'
 import ComponentRegistry from '../../registries/ComponentRegistry'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import ForgeTraceSinkDispatcher from '../../tracing/ForgeTraceSinkDispatcher'
@@ -110,7 +110,7 @@ describe('CompilationPipeline', () => {
 function createComponentRegistry(): ComponentRegistry {
   const componentRegistry = new ComponentRegistry()
 
-  componentRegistry.registerMany([buildComponent('PipelineInput', () => '<input />')])
+  componentRegistry.registerMany([component<object>('PipelineInput', { render: () => '<input />' })])
 
   return componentRegistry
 }

@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
@@ -17,7 +17,7 @@ import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers
  * })
  * ```
  */
-export type GovUKPanel = ResolvableBlockProps<{
+export interface GovUKPanel {
   /**
    * Plain text to use within the panel title.
    * Required unless `titleHtml` is provided.
@@ -67,7 +67,7 @@ export type GovUKPanel = ResolvableBlockProps<{
    * Custom HTML attributes (for example data attributes) to add to the panel container.
    */
   attributes?: Record<string, any>
-}>
+}
 
 /**
  * GOV.UK Panel component.
