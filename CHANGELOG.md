@@ -79,7 +79,7 @@ enough.
 - `FunctionRegistryTestHarness` accepts entries alongside registries ([#269])
 - `ComponentRegistryTestHarness` renders author-facing component calls through
   Forge's recursive component rendering boundary, with `.withValue()` for field
-  runtime values and errors
+  runtime values and errors ([#282])
 - `Loop.Item()` - the current loop's item under the `Loop` namespace, with the same
   `.path()`, `.value()` and `.key()` accessors as `Item()`. Nested loops read as
   `Loop.Parent.Item()` instead of `Item().parent`, so all loop access now lives in one
@@ -166,12 +166,12 @@ enough.
 ### Removed
 
 - `buildComponent`, `buildNunjucksComponent`, and their renderer aliases - component
-  declarations now use `component()` or `nunjucksComponent()` directly ([#270])
+  declarations now use `component()` or `nunjucksComponent()` directly ([#270], [#282])
 - `EvaluatedBlock`, `ResolvedPropsOf`, `PropsOf`, `ResolvableBlockProps`, and
   `ResolvableFieldProps`, plus the component-only `ResolvableArray`,
   `ResolvableNumber`, and `ResolvableObject` aliases - components retain their plain
   props and derive authoring and render types forward instead of reconstructing them
-  at the registry boundary ([#281])
+  at the registry boundary ([#282])
 - Global registration - `registerGlobalComponent`, `registerGlobalComponents`, and
   `registerGlobalFunctions` on `Forge`, and the matching `ForgeTestHarness` methods.
   Self-registration and the package `components`/`functions` listings cover everything
@@ -265,6 +265,7 @@ use returned error items for expected invalid input. ([#274])
 [#278]: https://github.com/ministryofjustice/hmpps-forge/pull/278
 [#280]: https://github.com/ministryofjustice/hmpps-forge/pull/280
 [#281]: https://github.com/ministryofjustice/hmpps-forge/pull/281
+[#282]: https://github.com/ministryofjustice/hmpps-forge/pull/282
 
 ---
 
