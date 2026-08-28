@@ -1,4 +1,5 @@
 import { component } from '../../components/component'
+import { isRenderedBlock } from '../../components/typeguards'
 import { escapeHtmlEntities } from '../sanitize'
 import type { ComponentRenderProps } from '../../components/types/components.type'
 import type { BlockDefinition } from '../../components/types/structures.type'
@@ -62,12 +63,24 @@ export interface CollectionBlock<T = BlockDefinition, F = T> {
   attributes?: Record<string, any>
 }
 
+const renderCollectionItem = (item: unknown): string => {
+  if (Array.isArray(item)) {
+    return item.map(renderCollectionItem).join('')
+  }
+
+  if (isRenderedBlock(item)) {
+    return item.html
+  }
+
+  return typeof item === 'string' ? item : ''
+}
+
 /**
  * Render function for collection-block.
  */
 const renderCollectionBlock = (block: ComponentRenderProps<CollectionBlock>): string => {
-  const renderedBlocks = block.collection.length > 0 ? block.collection : (block.fallback ?? [])
-  const content = renderedBlocks.map(item => item.html).join('')
+  const renderedBlocks = block.collection?.length ? block.collection : block.fallback
+  const content = renderedBlocks?.map(renderCollectionItem).join('') ?? ''
 
   const hasWrapper = block.tag || block.classes || block.attributes
 

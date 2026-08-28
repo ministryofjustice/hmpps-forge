@@ -1,4 +1,5 @@
 import { component } from '../../components/component'
+import { isRenderedBlock } from '../../components/typeguards'
 import type { BlockDefinition } from '../../components/types/structures.type'
 
 /**
@@ -31,6 +32,18 @@ export interface Fragment {
   blocks: BlockDefinition[]
 }
 
+const renderChild = (child: unknown): string => {
+  if (Array.isArray(child)) {
+    return child.map(renderChild).join('')
+  }
+
+  if (isRenderedBlock(child)) {
+    return child.html
+  }
+
+  return ''
+}
+
 /**
  * Fragment component.
  *
@@ -48,5 +61,5 @@ export interface Fragment {
  * ```
  */
 export const Fragment = component<Fragment>('fragment', {
-  render: props => props.blocks.map(child => child.html).join(''),
+  render: props => props.blocks.map(renderChild).join(''),
 })
