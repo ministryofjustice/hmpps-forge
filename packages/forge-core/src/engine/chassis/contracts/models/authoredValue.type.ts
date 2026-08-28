@@ -1,4 +1,4 @@
-import type { IteratorType } from '../../../../authoring/types/enums'
+import type { IteratorType } from '../../../../shared/taxonomy'
 import type { ASTNode } from '../ast/ast.type'
 import { ASTNodeFamily, astNodeFamily } from '../ast/enums'
 import { isASTNode } from '../ast/nodes'

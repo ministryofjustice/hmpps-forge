@@ -1,5 +1,5 @@
 import { DateGenerators } from './dateGenerators'
-import { FunctionCallType } from '../../../authoring/types/enums'
+import { FunctionCallType } from '../../../shared/taxonomy'
 import { GeneratorBuilder } from '../../../authoring/builders/GeneratorBuilder'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 import { FunctionEntryRegistry } from '../../../authoring/functions/FunctionEntryRegistry'

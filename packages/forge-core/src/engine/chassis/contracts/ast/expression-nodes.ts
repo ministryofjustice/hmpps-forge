@@ -1,4 +1,4 @@
-import { ExpressionType } from '../../../../authoring/types/enums'
+import { ExpressionType } from '../../../../shared/taxonomy'
 import { ExpressionASTNode, ReferenceASTNode } from './expressions.type'
 
 function isExpressionNode(obj: unknown): obj is ExpressionASTNode {

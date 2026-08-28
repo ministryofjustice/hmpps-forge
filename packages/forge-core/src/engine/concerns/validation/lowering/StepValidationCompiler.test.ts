@@ -9,7 +9,7 @@ import {
   FunctionEntryType,
   IteratorType,
   PredicateType,
-} from '../../../../authoring/types/enums'
+} from '../../../../shared/taxonomy'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   FormatGenerators,

@@ -1,6 +1,6 @@
 import type { Resolvable } from '../types/expressions.type'
 import type { ChainableGenerator } from '../builders/types'
-import { FunctionCallType } from '../types/enums'
+import { FunctionCallType } from '../../shared/taxonomy'
 import { BaseFunctionRegistry, type RegistrationOptions } from './BaseFunctionRegistry'
 
 export default class GeneratorRegistry<TDeps = Record<string, never>> extends BaseFunctionRegistry<TDeps> {

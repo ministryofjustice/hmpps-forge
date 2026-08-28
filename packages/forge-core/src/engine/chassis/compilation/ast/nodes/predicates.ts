@@ -1,4 +1,4 @@
-import { PredicateType } from '../../../../../authoring/types/enums'
+import { PredicateType } from '../../../../../shared/taxonomy'
 import {
   PredicateAndExpr,
   PredicateNotExpr,

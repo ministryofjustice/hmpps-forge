@@ -1,6 +1,6 @@
 import { ExpressionBuilder } from './ExpressionBuilder'
 import { ConditionFunctionExpr, PipelineExpr, ReferenceExpr, TransformerFunctionExpr } from '../types/expressions.type'
-import { ExpressionType, FunctionCallType, PredicateType } from '../types/enums'
+import { ExpressionType, FunctionCallType, PredicateType } from '../../shared/taxonomy'
 
 describe('ExpressionBuilder', () => {
   // Helper to create a mock condition

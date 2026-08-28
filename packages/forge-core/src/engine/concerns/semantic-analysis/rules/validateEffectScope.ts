@@ -1,4 +1,4 @@
-import { FunctionCallType } from '../../../../authoring/types/enums'
+import { FunctionCallType } from '../../../../shared/taxonomy'
 import { ASTNodeFamily, astNodeFamily } from '../../../chassis/contracts/ast/enums'
 import type { FunctionASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'

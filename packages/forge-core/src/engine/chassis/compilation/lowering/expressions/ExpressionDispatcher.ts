@@ -6,7 +6,7 @@ import {
   FunctionCallType,
   IteratorType,
   PredicateType,
-} from '../../../../../authoring/types/enums'
+} from '../../../../../shared/taxonomy'
 import ForgeUnregisteredFunctionError from '../../../../errors/ForgeUnregisteredFunctionError'
 import {
   CodeFragment,

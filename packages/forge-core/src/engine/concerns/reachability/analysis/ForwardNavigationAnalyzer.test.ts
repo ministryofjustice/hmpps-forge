@@ -1,4 +1,4 @@
-import { FunctionCallType, HookType, PolicyType, PredicateType } from '../../../../authoring/types/enums'
+import { FunctionCallType, HookType, PolicyType, PredicateType } from '../../../../shared/taxonomy'
 import type { RedirectOutcomeASTNode, SubmitHookASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { TestPredicateASTNode } from '../../../chassis/contracts/ast/predicates.type'
 import type { StepASTNode } from '../../../chassis/contracts/ast/structures.type'

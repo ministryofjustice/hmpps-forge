@@ -1,4 +1,4 @@
-import { ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
+import { ExpressionType, IteratorType } from '../../../../../shared/taxonomy'
 import type { ASTNode } from '../../../contracts/ast/ast.type'
 import { ASTNodeFamily, astNodeFamily } from '../../../contracts/ast/enums'
 import { isASTNode } from '../../../contracts/ast/nodes'

@@ -1,4 +1,4 @@
-import { ComponentCallType } from '../../../../authoring/types/enums'
+import { ComponentCallType } from '../../../../shared/taxonomy'
 import type { CompiledResolveContext } from '../../../chassis/contracts/compiled/compiledContexts.type'
 import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import WorkContext from '../../../chassis/work/WorkContext'

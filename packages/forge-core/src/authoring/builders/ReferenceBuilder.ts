@@ -1,5 +1,5 @@
 import { ReferenceExpr } from '../types/expressions.type'
-import { ExpressionType, BuilderType } from '../types/enums'
+import { ExpressionType, BuilderType } from '../../shared/taxonomy'
 import { ChainedValueBuilder } from './ExpressionBuilder'
 import { splitKey } from './utils/splitKey'
 

@@ -1,5 +1,5 @@
 import { ConditionBranchExpr, MatchExpr, ResolvableValue } from '../types/expressions.type'
-import { ExpressionType, BuilderType } from '../types/enums'
+import { ExpressionType, BuilderType } from '../../shared/taxonomy'
 import { BranchValue, ChainableMatch } from './types'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 

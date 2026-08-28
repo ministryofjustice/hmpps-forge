@@ -1,4 +1,4 @@
-import { ExpressionType, FunctionCallType, PredicateType } from '../../../../authoring/types/enums'
+import { ExpressionType, FunctionCallType, PredicateType } from '../../../../shared/taxonomy'
 import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import RequestTimeReferenceAnalyzer from './RequestTimeReferenceAnalyzer'

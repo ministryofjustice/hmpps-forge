@@ -1,6 +1,6 @@
 import { StringConditions } from './stringConditions'
 import { Data } from '../../../authoring/builders/references'
-import { FunctionCallType } from '../../../authoring/types/enums'
+import { FunctionCallType } from '../../../shared/taxonomy'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('StringConditions', () => {

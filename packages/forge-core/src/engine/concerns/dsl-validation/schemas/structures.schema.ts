@@ -1,11 +1,5 @@
 import { z } from 'zod'
-import {
-  ComponentCallType,
-  ExpressionType,
-  HookType,
-  PolicyType,
-  StructureType,
-} from '../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, HookType, PolicyType, StructureType } from '../../../../shared/taxonomy'
 import { ReferenceExprSchema, PipelineExprSchema, IterateExprSchema, ResolvableValueSchema } from './expressions.schema'
 import { PredicateExprSchema, ConditionalExprSchema, MatchExprSchema, HookOutcomeSchema } from './predicates.schema'
 import {

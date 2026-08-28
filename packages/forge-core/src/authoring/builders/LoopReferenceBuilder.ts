@@ -1,4 +1,4 @@
-import { BuilderType } from '../types/enums'
+import { BuilderType } from '../../shared/taxonomy'
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { LoopItemReferenceBuilder } from './LoopItemReferenceBuilder'
 import ForgeAuthoringError from '../../engine/errors/ForgeAuthoringError'

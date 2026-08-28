@@ -1,6 +1,6 @@
 import { and, or, xor, not } from './combinators'
 import { ConditionFunctionExpr, PredicateTestExpr } from '../types/expressions.type'
-import { ConditionCombinatorType, FunctionCallType, PredicateType } from '../types/enums'
+import { ConditionCombinatorType, FunctionCallType, PredicateType } from '../../shared/taxonomy'
 
 describe('Logic predicates', () => {
   // Helper to create a test predicate

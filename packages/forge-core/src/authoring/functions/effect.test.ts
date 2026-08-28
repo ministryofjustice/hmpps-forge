@@ -1,7 +1,7 @@
 import { expectTypeOf, vi } from 'vitest'
 import { z } from 'zod'
 import EffectRegistry from '../registries/EffectRegistry'
-import { FunctionCallType, FunctionEntryType } from '../types/enums'
+import { FunctionCallType, FunctionEntryType } from '../../shared/taxonomy'
 import { getEntryStamp } from '../builders/utils/stampEntry'
 import { effect } from './effect'
 import type { Callsite } from '../builders/utils/captureCallsite'

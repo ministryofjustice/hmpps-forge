@@ -1,5 +1,5 @@
 import { Iterator } from './iterators'
-import { IteratorType, PredicateType } from '../types/enums'
+import { IteratorType, PredicateType } from '../../shared/taxonomy'
 import { PredicateTestExpr } from '../types/expressions.type'
 
 describe('Iterator', () => {

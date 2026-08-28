@@ -1,7 +1,7 @@
 import type { WorkContextContract, WorkHandler } from '../../contracts/work/work.type'
 import { createWorkTask } from '../../work/workTask'
 import type { StepASTNode } from '../../contracts/ast/structures.type'
-import { StructureType } from '../../../../authoring/types/enums'
+import { StructureType } from '../../../../shared/taxonomy'
 import type CompilationState from '../pipeline/CompilationState'
 import CompilationModelBuilder from './CompilationModelBuilder'
 

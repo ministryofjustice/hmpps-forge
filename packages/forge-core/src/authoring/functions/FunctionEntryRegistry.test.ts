@@ -1,7 +1,7 @@
 import { condition } from './condition'
 import { finaliseBuilders } from '../builders/utils/finaliseBuilders'
 import { CONDITION_OUTPUT_SCHEMA } from '../registries/BaseFunctionRegistry'
-import { FunctionEntryType } from '../types/enums'
+import { FunctionEntryType } from '../../shared/taxonomy'
 import ForgeFunctionEntryBuildError from '../../engine/errors/ForgeFunctionEntryBuildError'
 import { FunctionEntryRegistry } from './FunctionEntryRegistry'
 import type { ConditionFunctionExpr } from '../types/expressions.type'

@@ -3,7 +3,7 @@ import { ConditionalExprBuilder, when } from './ConditionalExprBuilder'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import { ConditionalExpr, PredicateTestExpr } from '../types/expressions.type'
 import { Condition } from '../../built-ins/functions/conditions'
-import { FunctionCallType, ExpressionType, PredicateType } from '../types/enums'
+import { FunctionCallType, ExpressionType, PredicateType } from '../../shared/taxonomy'
 
 describe('ConditionalExprBuilder', () => {
   const simplePredicate = () => Self().match(Condition.IsRequired())

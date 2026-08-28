@@ -1,4 +1,4 @@
-import { ComponentCallType, ExpressionType, IteratorType, PredicateType } from '../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, IteratorType, PredicateType } from '../taxonomy'
 import type { DSLPathSegment } from './sourceLocation.type'
 
 type DSLRecord = Record<string, unknown>

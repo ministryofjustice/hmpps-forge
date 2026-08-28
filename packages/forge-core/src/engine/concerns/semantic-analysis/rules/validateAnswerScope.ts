@@ -1,4 +1,4 @@
-import { ExpressionType, HookType } from '../../../../authoring/types/enums'
+import { ExpressionType, HookType } from '../../../../shared/taxonomy'
 import { ASTNodeFamily, astNodeFamily } from '../../../chassis/contracts/ast/enums'
 import type { ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'

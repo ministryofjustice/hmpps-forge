@@ -1,4 +1,4 @@
-import { ExpressionType } from '../../../../authoring/types/enums'
+import { ExpressionType } from '../../../../shared/taxonomy'
 import { isASTNode, isMaterialisedASTNode, isTemplateASTNode } from './nodes'
 
 describe('AST node guards', () => {

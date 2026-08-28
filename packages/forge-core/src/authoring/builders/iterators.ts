@@ -1,5 +1,5 @@
 import { MapIteratorConfig, FilterIteratorConfig, FindIteratorConfig, PredicateExpr } from '../types/expressions.type'
-import { IteratorType } from '../types/enums'
+import { IteratorType } from '../../shared/taxonomy'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 
 /**

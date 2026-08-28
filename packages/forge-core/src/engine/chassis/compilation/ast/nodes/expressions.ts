@@ -4,7 +4,7 @@ import {
   IteratorType,
   PolicyType,
   PredicateType,
-} from '../../../../../authoring/types/enums'
+} from '../../../../../shared/taxonomy'
 import {
   ConditionalASTNode,
   FunctionASTNode,

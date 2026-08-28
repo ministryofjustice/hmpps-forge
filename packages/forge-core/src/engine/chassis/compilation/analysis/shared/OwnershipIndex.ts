@@ -1,4 +1,4 @@
-import { ComponentCallType, ExpressionType, IteratorType, StructureType } from '../../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, IteratorType, StructureType } from '../../../../../shared/taxonomy'
 import type { MaterialisedASTNode, NodeId } from '../../../contracts/ast/ast.type'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'

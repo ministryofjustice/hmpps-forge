@@ -1,5 +1,5 @@
 import { ASTNode, MaterialisedASTNode } from './ast.type'
-import { PredicateType } from '../../../../authoring/types/enums'
+import { PredicateType } from '../../../../shared/taxonomy'
 
 /**
  * Logic AST node - represents logic/predicate operations

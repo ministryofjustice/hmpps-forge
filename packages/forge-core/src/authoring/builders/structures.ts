@@ -8,7 +8,7 @@ import { BlockDefinition, FieldBlockDefinition } from '../../components/types/st
 import { JourneyDefinition, StepDefinition } from '../types/structures.type'
 import { ForgePackage, RegisteredForgePackage } from '../types/package.type'
 import { FunctionRegistryBuilder } from '../types/functions.type'
-import { ComponentCallType, StructureType } from '../types/enums'
+import { ComponentCallType, StructureType } from '../../shared/taxonomy'
 
 /**
  * Creates a presentational (non-field) block for a step.

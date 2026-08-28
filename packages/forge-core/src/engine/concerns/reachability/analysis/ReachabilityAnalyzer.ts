@@ -1,5 +1,5 @@
 import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
-import { StructureType } from '../../../../authoring/types/enums'
+import { StructureType } from '../../../../shared/taxonomy'
 import type { JourneyASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
 import type {
   ReachabilityStateTable,

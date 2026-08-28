@@ -6,7 +6,7 @@ import {
   PolicyType,
   PredicateType,
   StructureType,
-} from '../../../../authoring/types/enums'
+} from '../../../../shared/taxonomy'
 
 export type ASTPolicyNodeKind = Exclude<PolicyType, PolicyType.NAVIGATION_NEXT>
 

@@ -1,4 +1,4 @@
-import { IteratorType } from '../../../../../authoring/types/enums'
+import { IteratorType } from '../../../../../shared/taxonomy'
 import type { ASTNode, TemplateASTNode } from '../../../contracts/ast/ast.type'
 import {
   AuthoredValueKind,

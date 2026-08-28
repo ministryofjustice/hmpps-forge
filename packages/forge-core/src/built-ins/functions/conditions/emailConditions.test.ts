@@ -1,5 +1,5 @@
 import { EmailConditions } from './emailConditions'
-import { FunctionCallType } from '../../../authoring/types/enums'
+import { FunctionCallType } from '../../../shared/taxonomy'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('EmailConditions', () => {

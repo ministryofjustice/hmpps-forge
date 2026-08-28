@@ -5,7 +5,7 @@ import {
   PolicyType,
   PredicateType,
   StructureType,
-} from '../../../../../authoring/types/enums'
+} from '../../../../../shared/taxonomy'
 import { ASTNodeFamily } from '../../../contracts/ast/enums'
 import ASTNodeIndex from './ASTNodeIndex'
 

@@ -1,4 +1,4 @@
-import { FunctionCallType, HookType, StructureType } from '../../../../authoring/types/enums'
+import { FunctionCallType, HookType, StructureType } from '../../../../shared/taxonomy'
 import { ASTNodeFamily, astNodeFamily } from '../../../chassis/contracts/ast/enums'
 import type { AccessHookASTNode, SubmitHookASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { StepASTNode, JourneyASTNode } from '../../../chassis/contracts/ast/structures.type'

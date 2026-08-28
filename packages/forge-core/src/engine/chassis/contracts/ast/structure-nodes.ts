@@ -1,5 +1,5 @@
 import { FieldBlockASTNode } from './structures.type'
-import { ComponentCallType } from '../../../../authoring/types/enums'
+import { ComponentCallType } from '../../../../shared/taxonomy'
 
 export function isFieldBlockStructNode(obj: unknown): obj is FieldBlockASTNode {
   return obj !== null &&

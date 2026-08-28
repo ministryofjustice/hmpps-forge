@@ -10,7 +10,7 @@ import CodeGenerator from './codegen/CodeGenerator'
 import ExpressionDispatcher from './expressions/ExpressionDispatcher'
 import { CompilationPhase, compileGeneratedFunction, type GeneratedFunction } from './GeneratedFunctionCompiler'
 import type { FunctionASTNode } from '../../contracts/ast/expressions.type'
-import { FunctionCallType } from '../../../../authoring/types/enums'
+import { FunctionCallType } from '../../../../shared/taxonomy'
 
 const dependencies: CompilationDependencies = {
   functionRegistry: new FunctionRegistry(),

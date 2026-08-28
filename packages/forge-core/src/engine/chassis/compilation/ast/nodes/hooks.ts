@@ -1,4 +1,4 @@
-import { HookType } from '../../../../../authoring/types/enums'
+import { HookType } from '../../../../../shared/taxonomy'
 import { AccessHookASTNode, SubmitHookASTNode } from '../../../contracts/ast/expressions.type'
 import { AccessHook, SubmitHook } from '../../../../../authoring/types/expressions.type'
 import type { ASTNode } from '../../../contracts/ast/engine.type'

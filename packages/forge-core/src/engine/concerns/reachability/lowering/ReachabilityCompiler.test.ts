@@ -1,5 +1,5 @@
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
-import { ExpressionType, FunctionCallType, PolicyType, PredicateType } from '../../../../authoring/types/enums'
+import { ExpressionType, FunctionCallType, PolicyType, PredicateType } from '../../../../shared/taxonomy'
 import {
   FunctionASTNode,
   ReferenceASTNode,

@@ -1,4 +1,4 @@
-import { ComponentCallType, ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, IteratorType } from '../../../../../shared/taxonomy'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import type { TemplateValue } from '../../../contracts/ast/template.type'
 import { ASTNodeFamily } from '../../../contracts/ast/enums'

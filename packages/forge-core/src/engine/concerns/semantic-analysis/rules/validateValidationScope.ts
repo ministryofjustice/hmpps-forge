@@ -1,4 +1,4 @@
-import { PolicyType, ExpressionType, ComponentCallType, StructureType } from '../../../../authoring/types/enums'
+import { PolicyType, ExpressionType, ComponentCallType, StructureType } from '../../../../shared/taxonomy'
 import type { ValidationASTNode, IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { FieldBlockASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'

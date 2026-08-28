@@ -1,4 +1,4 @@
-import { ComponentCallType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, IteratorType } from '../../../../shared/taxonomy'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import { AuthoredValueKind } from '../../../chassis/contracts/models/authoredValue.type'

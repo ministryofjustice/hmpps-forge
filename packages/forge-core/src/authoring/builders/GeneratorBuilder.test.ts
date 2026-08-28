@@ -1,6 +1,6 @@
 import { GeneratorBuilder } from './GeneratorBuilder'
 import { ConditionFunctionExpr, PipelineExpr, TransformerFunctionExpr } from '../types/expressions.type'
-import { ExpressionType, FunctionCallType, PredicateType } from '../types/enums'
+import { ExpressionType, FunctionCallType, PredicateType } from '../../shared/taxonomy'
 
 describe('GeneratorBuilder', () => {
   // Helper to create a mock condition

@@ -1,5 +1,5 @@
 import { ConditionalExpr, PredicateExpr, PredicateTestExpr } from '../types/expressions.type'
-import { ExpressionType, BuilderType } from '../types/enums'
+import { ExpressionType, BuilderType } from '../../shared/taxonomy'
 import { BranchValue, ChainableConditional } from './types'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 

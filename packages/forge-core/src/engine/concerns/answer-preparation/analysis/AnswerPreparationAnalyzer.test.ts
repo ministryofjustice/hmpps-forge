@@ -1,4 +1,4 @@
-import { ComponentCallType } from '../../../../authoring/types/enums'
+import { ComponentCallType } from '../../../../shared/taxonomy'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'

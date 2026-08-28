@@ -1,4 +1,4 @@
-import { FunctionCallType, BuilderType } from '../types/enums'
+import { FunctionCallType, BuilderType } from '../../shared/taxonomy'
 import { GeneratorFunctionExpr, ResolvableValue } from '../types/expressions.type'
 import { ChainedValueBuilder } from './ExpressionBuilder'
 import { ChainableGenerator, ChainableNegation } from './types'

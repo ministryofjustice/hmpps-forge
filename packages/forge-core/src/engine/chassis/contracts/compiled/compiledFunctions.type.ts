@@ -6,7 +6,7 @@ import type {
   CompiledValidationContext,
 } from './compiledContexts.type'
 import { NodeId } from '../ast/ast.type'
-import { ComponentCallType } from '../../../../authoring/types/enums'
+import { ComponentCallType } from '../../../../shared/taxonomy'
 import type {
   ReachabilityEvaluationResult,
   ReachabilityStateInput,

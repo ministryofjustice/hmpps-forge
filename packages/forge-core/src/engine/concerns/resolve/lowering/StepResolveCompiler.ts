@@ -1,4 +1,4 @@
-import { ComponentCallType } from '../../../../authoring/types/enums'
+import { ComponentCallType } from '../../../../shared/taxonomy'
 import { isTemplateASTNode } from '../../../chassis/contracts/ast/nodes'
 import type { TemplateASTNode } from '../../../chassis/contracts/ast/ast.type'
 import {

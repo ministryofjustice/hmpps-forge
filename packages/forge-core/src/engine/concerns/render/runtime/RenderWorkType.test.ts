@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ComponentCallType } from '../../../../authoring/types/enums'
+import { ComponentCallType } from '../../../../shared/taxonomy'
 import { buildComponent } from '../../../../components/utils/buildComponent'
 import type { BlockDefinition, EvaluatedBlock } from '../../../../components/types/structures.type'
 import type { ForgeRenderer, RenderBlock, RenderContext } from '../../../../framework/types/rendering.type'

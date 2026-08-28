@@ -4,7 +4,7 @@ import { and, not, or } from './combinators'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import { MatchExpr } from '../types/expressions.type'
 import { Condition } from '../../built-ins/functions/conditions'
-import { ConditionCombinatorType, ExpressionType, FunctionCallType } from '../types/enums'
+import { ConditionCombinatorType, ExpressionType, FunctionCallType } from '../../shared/taxonomy'
 
 describe('MatchExprBuilder', () => {
   describe('match()', () => {

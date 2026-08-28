@@ -8,7 +8,7 @@ import {
   ExpressionType,
   ComponentCallType,
   IteratorType,
-} from '../../../authoring/types/enums'
+} from '../../../shared/taxonomy'
 import type { ReferenceExpr } from '../../../authoring/types/expressions.type'
 import type { JourneyDefinition, StepDefinition } from '../../../authoring/types/structures.type'
 import type { FieldBlockDefinition, BlockDefinition, ResolvableString } from '../../../components/types/structures.type'

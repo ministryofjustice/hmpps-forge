@@ -1,4 +1,4 @@
-import { ComponentCallType } from '../../../../authoring/types/enums'
+import { ComponentCallType } from '../../../../shared/taxonomy'
 import { ASTTestFactory } from '../ast/testing-helpers/ASTTestFactory'
 import type { CompilationModel, JourneyModel, StepModel } from '../../contracts/models/compilationModel.type'
 import type { ReachabilityModel } from '../../../concerns/reachability/contracts/reachabilityModel.type'

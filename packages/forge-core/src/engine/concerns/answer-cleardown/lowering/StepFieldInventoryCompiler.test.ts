@@ -1,5 +1,5 @@
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
-import { ComponentCallType, ExpressionType, FunctionCallType, IteratorType } from '../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, FunctionCallType, IteratorType } from '../../../../shared/taxonomy'
 import { FieldBlockASTNode } from '../../../chassis/contracts/ast/structures.type'
 import { FunctionASTNode, IterateASTNode, ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import { TemplateValue } from '../../../chassis/contracts/ast/template.type'

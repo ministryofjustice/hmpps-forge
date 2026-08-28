@@ -1,5 +1,5 @@
 import { NodeId } from '../../engine/chassis/contracts/ast/ast.type'
-import { ComponentCallType } from '../../authoring/types/enums'
+import { ComponentCallType } from '../../shared/taxonomy'
 import { ValidationResult } from '../../engine/concerns/validation/contracts/validationResult.type'
 import type { ViewConfig } from '../../authoring/types/structures.type'
 import type { ComponentRegistryEntry } from '../../components/types/components.type'

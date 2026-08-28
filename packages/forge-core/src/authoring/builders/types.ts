@@ -8,7 +8,7 @@ import {
   ResolvableValue,
   TransformerFunctionExpr,
 } from '../types/expressions.type'
-import { BuilderType } from '../types/enums'
+import { BuilderType } from '../../shared/taxonomy'
 
 /**
  * The tag every chainable authoring value carries. Required, so neither an

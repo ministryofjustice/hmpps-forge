@@ -7,7 +7,7 @@ import {
   PredicateType,
   HookType,
   StructureType,
-} from '../../../../../authoring/types/enums'
+} from '../../../../../shared/taxonomy'
 import { AstNodeId } from '../../../contracts/ast/engine.type'
 import {
   ExpressionASTNode,

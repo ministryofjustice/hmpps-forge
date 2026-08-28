@@ -1,5 +1,5 @@
 import type { ZodType } from 'zod'
-import type { FunctionEntryType } from './enums'
+import type { FunctionEntryType } from '../../shared/taxonomy'
 
 /**
  * The callable implementation of a registered function, with its dependencies

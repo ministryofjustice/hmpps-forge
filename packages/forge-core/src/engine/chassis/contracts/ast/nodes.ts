@@ -6,7 +6,7 @@ import {
   PolicyType,
   PredicateType,
   StructureType,
-} from '../../../../authoring/types/enums'
+} from '../../../../shared/taxonomy'
 import type { ASTNode, MaterialisedASTNode, TemplateASTNode } from './ast.type'
 import type { ASTNodeKind } from './enums'
 

@@ -1,6 +1,6 @@
 /* eslint-disable max-classes-per-file -- the shared ItemReferenceBuilder base lives with
    its primary subclass. */
-import { BuilderType } from '../types/enums'
+import { BuilderType } from '../../shared/taxonomy'
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { splitKey } from './utils/splitKey'
 import type { ReferenceExpr } from '../types/expressions.type'

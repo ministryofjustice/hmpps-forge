@@ -7,7 +7,7 @@ import {
   ExpressionType,
   ComponentCallType,
   IteratorType,
-} from '../../../authoring/types/enums'
+} from '../../../shared/taxonomy'
 import type { JourneyDefinition, StepDefinition } from '../../../authoring/types/structures.type'
 import type { FieldBlockDefinition, ResolvableBoolean } from '../../../components/types/structures.type'
 import ForgeSerialisationError from '../../errors/ForgeSerialisationError'

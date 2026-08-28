@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
-import { ExpressionType, FunctionCallType, PredicateType } from '../../../../authoring/types/enums'
+import { ExpressionType, FunctionCallType, PredicateType } from '../../../../shared/taxonomy'
 import { StepEntryValidationAST } from '../../../chassis/contracts/ast/structures.type'
 import { ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'

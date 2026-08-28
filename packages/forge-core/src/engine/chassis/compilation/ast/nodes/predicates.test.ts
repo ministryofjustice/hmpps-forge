@@ -1,4 +1,4 @@
-import { ExpressionType, FunctionCallType, PredicateType } from '../../../../../authoring/types/enums'
+import { ExpressionType, FunctionCallType, PredicateType } from '../../../../../shared/taxonomy'
 import type {
   PredicateAndExpr,
   PredicateNotExpr,

@@ -1,5 +1,5 @@
 import { z, type ZodType } from 'zod'
-import { FunctionCallType } from '../../../../authoring/types/enums'
+import { FunctionCallType } from '../../../../shared/taxonomy'
 import type { FunctionASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ForgeFunctionArityError from '../../../errors/ForgeFunctionArityError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'

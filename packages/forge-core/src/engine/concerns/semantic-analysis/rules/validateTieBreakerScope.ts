@@ -1,4 +1,4 @@
-import { PolicyType, StructureType } from '../../../../authoring/types/enums'
+import { PolicyType, StructureType } from '../../../../shared/taxonomy'
 import type { NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { TieBreakerASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { StepASTNode } from '../../../chassis/contracts/ast/structures.type'

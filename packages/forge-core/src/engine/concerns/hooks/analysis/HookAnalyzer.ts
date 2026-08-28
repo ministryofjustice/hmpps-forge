@@ -1,4 +1,4 @@
-import { FunctionCallType, StructureType } from '../../../../authoring/types/enums'
+import { FunctionCallType, StructureType } from '../../../../shared/taxonomy'
 import type {
   JourneyAnalysisContext,
   JourneyModelAnalyzer,

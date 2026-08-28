@@ -1,4 +1,4 @@
-import { ExpressionType, FunctionCallType, PolicyType, PredicateType } from '../../../../../authoring/types/enums'
+import { ExpressionType, FunctionCallType, PolicyType, PredicateType } from '../../../../../shared/taxonomy'
 import type {
   ConditionFunctionExpr,
   PredicateTestExpr,

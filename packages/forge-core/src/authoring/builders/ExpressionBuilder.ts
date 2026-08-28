@@ -14,7 +14,7 @@ import {
   TransformerFunctionExpr,
   ResolvableValue,
 } from '../types/expressions.type'
-import { ExpressionType, IteratorType, PredicateType, BuilderType } from '../types/enums'
+import { ExpressionType, IteratorType, PredicateType, BuilderType } from '../../shared/taxonomy'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { splitKey } from './utils/splitKey'
 

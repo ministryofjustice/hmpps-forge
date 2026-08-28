@@ -1,5 +1,5 @@
 import { ScopedReferenceBuilder } from './ScopedReferenceBuilder'
-import { ExpressionType } from '../types/enums'
+import { ExpressionType } from '../../shared/taxonomy'
 
 describe('ScopedReferenceBuilder', () => {
   describe('create()', () => {

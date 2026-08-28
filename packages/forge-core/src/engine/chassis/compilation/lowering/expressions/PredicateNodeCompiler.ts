@@ -1,4 +1,4 @@
-import { PredicateType } from '../../../../../authoring/types/enums'
+import { PredicateType } from '../../../../../shared/taxonomy'
 import { CodeFragment, arrayCode, code, joinCode, literal } from '../codegen/fragments/CodeFragment'
 import { NodeCompilationContext } from './types'
 

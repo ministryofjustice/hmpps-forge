@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { FunctionCallType } from '../../../../authoring/types/enums'
+import { FunctionCallType } from '../../../../shared/taxonomy'
 
 /**
  * Simple ResolvableValue for function arguments

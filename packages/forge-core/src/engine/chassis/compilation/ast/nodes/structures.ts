@@ -1,4 +1,4 @@
-import { PolicyType, ComponentCallType, StructureType } from '../../../../../authoring/types/enums'
+import { PolicyType, ComponentCallType, StructureType } from '../../../../../shared/taxonomy'
 import {
   BasicBlockASTNode,
   FieldBlockASTNode,

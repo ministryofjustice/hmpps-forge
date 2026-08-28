@@ -1,5 +1,5 @@
 import type { ConditionFunctionExpr, Resolvable } from '../types/expressions.type'
-import { FunctionCallType } from '../types/enums'
+import { FunctionCallType } from '../../shared/taxonomy'
 import { BaseFunctionRegistry, CONDITION_OUTPUT_SCHEMA, type RegistrationOptions } from './BaseFunctionRegistry'
 
 export default class ConditionRegistry<TDeps = Record<string, never>> extends BaseFunctionRegistry<TDeps> {

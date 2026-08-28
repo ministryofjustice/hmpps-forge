@@ -1,5 +1,5 @@
 import { block as buildBlock, field as buildField } from '../authoring/builders'
-import { ComponentEntryType } from '../authoring/types/enums'
+import { ComponentEntryType } from '../shared/taxonomy'
 import { stampComponent } from '../authoring/builders/utils/stampEntry'
 import type {
   BaseComponentOptions,

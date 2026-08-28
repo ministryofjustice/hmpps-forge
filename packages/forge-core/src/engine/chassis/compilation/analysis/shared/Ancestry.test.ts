@@ -1,5 +1,5 @@
 import type { MaterialisedASTNode } from '../../../contracts/ast/engine.type'
-import { StructureType } from '../../../../../authoring/types/enums'
+import { StructureType } from '../../../../../shared/taxonomy'
 import type { JourneyASTNode } from '../../../contracts/ast/structures.type'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import Ancestry from './Ancestry'

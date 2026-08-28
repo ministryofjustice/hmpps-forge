@@ -1,4 +1,4 @@
-import { FunctionCallType, HookType } from '../../../../authoring/types/enums'
+import { FunctionCallType, HookType } from '../../../../shared/taxonomy'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import {
   createJourneyAnalysisContext,

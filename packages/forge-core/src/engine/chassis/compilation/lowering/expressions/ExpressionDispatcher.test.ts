@@ -4,7 +4,7 @@ import {
   IteratorType,
   PolicyType,
   PredicateType,
-} from '../../../../../authoring/types/enums'
+} from '../../../../../shared/taxonomy'
 import { ASTNode } from '../../../contracts/ast/ast.type'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../registries/FunctionRegistry'

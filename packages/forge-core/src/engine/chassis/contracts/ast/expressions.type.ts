@@ -1,4 +1,4 @@
-import { ExpressionType, FunctionCallType, IteratorType, HookType, PolicyType } from '../../../../authoring/types/enums'
+import { ExpressionType, FunctionCallType, IteratorType, HookType, PolicyType } from '../../../../shared/taxonomy'
 import { ASTNode, MaterialisedASTNode } from './ast.type'
 import { TemplateValue } from './template.type'
 

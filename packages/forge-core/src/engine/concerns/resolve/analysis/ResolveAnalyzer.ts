@@ -1,4 +1,4 @@
-import { ComponentCallType, IteratorType, StructureType } from '../../../../authoring/types/enums'
+import { ComponentCallType, IteratorType, StructureType } from '../../../../shared/taxonomy'
 import type { ASTNode, TemplateASTNode } from '../../../chassis/contracts/ast/ast.type'
 import { isTemplateASTNode } from '../../../chassis/contracts/ast/nodes'
 import type { BlockASTNode, JourneyASTNode } from '../../../chassis/contracts/ast/structures.type'

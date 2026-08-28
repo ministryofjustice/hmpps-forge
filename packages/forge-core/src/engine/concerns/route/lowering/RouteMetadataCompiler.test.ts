@@ -1,7 +1,7 @@
 /* eslint-disable no-new-func */
 import AuthoredValueClassifier from '../../../chassis/compilation/analysis/shared/AuthoredValueClassifier'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
-import { FunctionCallType } from '../../../../authoring/types/enums'
+import { FunctionCallType } from '../../../../shared/taxonomy'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
 import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'

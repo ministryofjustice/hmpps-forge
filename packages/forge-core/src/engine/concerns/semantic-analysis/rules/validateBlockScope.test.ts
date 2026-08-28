@@ -1,4 +1,4 @@
-import { HookType, ComponentCallType } from '../../../../authoring/types/enums'
+import { HookType, ComponentCallType } from '../../../../shared/taxonomy'
 import type { MaterialisedASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'

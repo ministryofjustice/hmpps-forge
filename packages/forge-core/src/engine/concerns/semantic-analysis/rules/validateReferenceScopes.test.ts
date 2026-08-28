@@ -1,4 +1,4 @@
-import { ExpressionType, IteratorType } from '../../../../authoring/types/enums'
+import { ExpressionType, IteratorType } from '../../../../shared/taxonomy'
 import type { MaterialisedASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'

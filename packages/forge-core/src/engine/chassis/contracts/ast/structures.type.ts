@@ -1,4 +1,4 @@
-import { ComponentCallType, StructureType } from '../../../../authoring/types/enums'
+import { ComponentCallType, StructureType } from '../../../../shared/taxonomy'
 import { ASTNode, MaterialisedASTNode } from './ast.type'
 import { AccessHookASTNode, SubmitHookASTNode, TieBreakerASTNode } from './expressions.type'
 import type { RouteMetadata, UnreachableRedirectTarget, ViewConfig } from '../../../../authoring/types/structures.type'

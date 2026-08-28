@@ -1,4 +1,4 @@
-import { FunctionCallType } from '../types/enums'
+import { FunctionCallType } from '../../shared/taxonomy'
 import { buildExpression, createEntry } from './createEntry'
 import type { BaseEntryOptions } from './createEntry'
 import type { EffectFunctionExpr, Resolvable, ResolvableValue } from '../types/expressions.type'

@@ -1,4 +1,4 @@
-import { BuilderType } from '../types/enums'
+import { BuilderType } from '../../shared/taxonomy'
 import { ItemReferenceBuilder } from './ScopedReferenceBuilder'
 
 /**

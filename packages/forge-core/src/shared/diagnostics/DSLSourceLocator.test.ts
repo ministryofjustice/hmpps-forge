@@ -1,10 +1,4 @@
-import {
-  ComponentCallType,
-  ExpressionType,
-  FunctionCallType,
-  IteratorType,
-  StructureType,
-} from '../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, FunctionCallType, IteratorType, StructureType } from '../taxonomy'
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import type { FunctionASTNode, IterateASTNode, MatchASTNode } from '../../engine/chassis/contracts/ast/expressions.type'
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../../engine/chassis/contracts/ast/structures.type'

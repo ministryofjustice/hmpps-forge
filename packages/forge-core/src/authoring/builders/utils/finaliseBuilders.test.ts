@@ -1,6 +1,6 @@
 import { Data, field } from '../index'
 import { finaliseBuilders } from './finaliseBuilders'
-import { ComponentCallType, ExpressionType, StructureType } from '../../types/enums'
+import { ComponentCallType, ExpressionType, StructureType } from '../../../shared/taxonomy'
 import { FormatGenerators } from '../../../built-ins/functions/generators/formatGenerators'
 import { Condition } from '../../../built-ins/functions/conditions'
 import { condition } from '../../functions/condition'

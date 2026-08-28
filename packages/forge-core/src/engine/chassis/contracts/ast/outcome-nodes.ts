@@ -1,4 +1,4 @@
-import { PolicyType } from '../../../../authoring/types/enums'
+import { PolicyType } from '../../../../shared/taxonomy'
 import { OutcomeASTNode, RedirectOutcomeASTNode, ThrowErrorOutcomeASTNode } from './expressions.type'
 
 /**

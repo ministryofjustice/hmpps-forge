@@ -1,4 +1,4 @@
-import { ExpressionType } from '../../../../authoring/types/enums'
+import { ExpressionType } from '../../../../shared/taxonomy'
 import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
 import type { ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import { isASTNode } from '../../../chassis/contracts/ast/nodes'

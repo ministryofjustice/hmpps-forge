@@ -1,4 +1,4 @@
-import { FunctionCallType } from '../../../../../authoring/types/enums'
+import { FunctionCallType } from '../../../../../shared/taxonomy'
 import { formatCallsiteChain, resolveCallsitePositionChain } from '../../../../../shared/diagnostics/formatCallsite'
 import {
   CodeFragment,

@@ -1,5 +1,5 @@
 import { ObjectTransformers, type DateParts } from './objectTransformers'
-import { FunctionCallType } from '../../../authoring/types/enums'
+import { FunctionCallType } from '../../../shared/taxonomy'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('Object Transformers', () => {

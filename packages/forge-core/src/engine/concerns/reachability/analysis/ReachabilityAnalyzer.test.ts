@@ -1,4 +1,4 @@
-import { ComponentCallType, FunctionCallType, PredicateType } from '../../../../authoring/types/enums'
+import { ComponentCallType, FunctionCallType, PredicateType } from '../../../../shared/taxonomy'
 import type { MaterialisedASTNode } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'

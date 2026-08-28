@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ExpressionType, IteratorType } from '../../../../authoring/types/enums'
+import { ExpressionType, IteratorType } from '../../../../shared/taxonomy'
 import { TransformerFunctionExprSchema, GeneratorFunctionExprSchema } from './base.schema'
 
 /**

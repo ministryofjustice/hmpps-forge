@@ -10,7 +10,7 @@ import {
   PredicateXorExpr,
   PredicateNotExpr,
 } from '../types/expressions.type'
-import { ConditionCombinatorType, FunctionCallType, PredicateType } from '../types/enums'
+import { ConditionCombinatorType, FunctionCallType, PredicateType } from '../../shared/taxonomy'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import ForgeAuthoringError from '../../engine/errors/ForgeAuthoringError'
 

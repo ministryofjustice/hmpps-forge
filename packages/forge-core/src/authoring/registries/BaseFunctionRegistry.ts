@@ -1,5 +1,5 @@
 import { z, type ZodType } from 'zod'
-import { FunctionCallType, FunctionEntryType } from '../types/enums'
+import { FunctionCallType, FunctionEntryType } from '../../shared/taxonomy'
 import ForgeAuthoringError from '../../engine/errors/ForgeAuthoringError'
 import ForgeRegistryDuplicateError from '../../engine/errors/ForgeRegistryDuplicateError'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'

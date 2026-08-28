@@ -3,7 +3,7 @@ import ConditionRegistry from '../../authoring/registries/ConditionRegistry'
 import TransformerRegistry from '../../authoring/registries/TransformerRegistry'
 import EffectRegistry from '../../authoring/registries/EffectRegistry'
 import GeneratorRegistry from '../../authoring/registries/GeneratorRegistry'
-import { FunctionCallType } from '../../authoring/types/enums'
+import { FunctionCallType } from '../../shared/taxonomy'
 import { createTestEffectContext } from './createTestEffectContext'
 import { FunctionRegistryTestHarness } from './FunctionRegistryTestHarness'
 

@@ -1,6 +1,6 @@
 import { Fragment } from './fragment'
 import type { EvaluatedBlock } from '../../components/types/structures.type'
-import { ComponentCallType } from '../../authoring/types/enums'
+import { ComponentCallType } from '../../shared/taxonomy'
 
 const renderedBlock = (variant: string, html: string) => ({
   block: { _forge: ComponentCallType.BASIC, variant },

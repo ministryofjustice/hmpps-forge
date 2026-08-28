@@ -1,4 +1,4 @@
-import { ComponentCallType, StructureType } from '../../../../authoring/types/enums'
+import { ComponentCallType, StructureType } from '../../../../shared/taxonomy'
 import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { FieldBlockASTNode } from '../../../chassis/contracts/ast/structures.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'

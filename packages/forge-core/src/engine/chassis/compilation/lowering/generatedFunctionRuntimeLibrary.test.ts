@@ -1,6 +1,6 @@
 import type { ZodType } from 'zod'
 import { z } from 'zod'
-import { FunctionEntryType } from '../../../../authoring/types/enums'
+import { FunctionEntryType } from '../../../../shared/taxonomy'
 import { generatedFunctionRuntimeLibrary } from './generatedFunctionRuntimeLibrary'
 
 interface StubRegistryEntry {

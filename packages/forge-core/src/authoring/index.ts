@@ -27,7 +27,7 @@ export {
   ExpressionType,
   PolicyType,
   ConditionCombinatorType,
-} from './types/enums'
+} from '../shared/taxonomy'
 
 export type { ForgePackage, RegisteredForgePackage } from './types/package.type'
 export type {

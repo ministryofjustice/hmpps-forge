@@ -1,4 +1,4 @@
-import { FunctionCallType } from '../../../../authoring/types/enums'
+import { FunctionCallType } from '../../../../shared/taxonomy'
 import type { FunctionASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ForgeUnregisteredFunctionError from '../../../errors/ForgeUnregisteredFunctionError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'

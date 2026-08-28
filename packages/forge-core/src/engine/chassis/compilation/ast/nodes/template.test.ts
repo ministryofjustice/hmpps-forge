@@ -1,7 +1,7 @@
 import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
 import { isTemplateASTNode } from '../../../contracts/ast/nodes'
 import { compileTemplate } from './template'
-import { ComponentCallType, FunctionCallType } from '../../../../../authoring/types/enums'
+import { ComponentCallType, FunctionCallType } from '../../../../../shared/taxonomy'
 import { ASTTestFactory } from '../testing-helpers/ASTTestFactory'
 import type { TemplateASTNode } from '../../../contracts/ast/ast.type'
 

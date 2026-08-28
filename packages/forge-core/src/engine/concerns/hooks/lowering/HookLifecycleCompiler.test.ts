@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
-import { FunctionCallType, HookType, PredicateType } from '../../../../authoring/types/enums'
+import { FunctionCallType, HookType, PredicateType } from '../../../../shared/taxonomy'
 import { FormatGenerators } from '../../../../built-ins/functions/generators/formatGenerators'
 import { FunctionEntryRegistry } from '../../../../authoring/functions/FunctionEntryRegistry'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'

@@ -1,5 +1,5 @@
 import { component } from '../../components/component'
-import { ComponentCallType } from '../../authoring/types/enums'
+import { ComponentCallType } from '../../shared/taxonomy'
 import { isRenderedBlock } from '../../components/typeguards'
 import { escapeHtmlEntities } from '../sanitize'
 import type {

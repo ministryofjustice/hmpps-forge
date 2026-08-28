@@ -6,7 +6,7 @@ import {
   ExpressionType,
   FunctionCallType,
   IteratorType,
-} from '../../../../../authoring/types/enums'
+} from '../../../../../shared/taxonomy'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import type { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
 import type { TemplateASTNode } from '../../../contracts/ast/ast.type'

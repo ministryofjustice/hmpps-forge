@@ -1,6 +1,6 @@
 import type { EvaluatedBlock } from '../../components/types/structures.type'
 import { TemplateWrapper } from './templateWrapper'
-import { ComponentCallType } from '../../authoring/types/enums'
+import { ComponentCallType } from '../../shared/taxonomy'
 
 describe('templateWrapper component', () => {
   const mockBlock = (overrides?: Partial<EvaluatedBlock<TemplateWrapper>>): EvaluatedBlock<TemplateWrapper> =>

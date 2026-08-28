@@ -6,7 +6,7 @@ import {
   PredicateExpr,
   GeneratorFunctionExpr,
 } from './expressions.type'
-import { PolicyType, StructureType } from './enums'
+import { PolicyType, StructureType } from '../../shared/taxonomy'
 import type { ChainableGenerator, ChainableIterable } from '../builders/types'
 import type { BlockDefinition, ResolvableBoolean, ResolvableString } from '../../components/types/structures.type'
 

@@ -1,5 +1,5 @@
 import type { ZodType } from 'zod'
-import { FunctionCallType } from '../types/enums'
+import { FunctionCallType } from '../../shared/taxonomy'
 import { buildExpression, createEntry } from './createEntry'
 import type { BaseEntryOptions } from './createEntry'
 import type { Resolvable, ResolvableValue, TransformerFunctionExpr } from '../types/expressions.type'

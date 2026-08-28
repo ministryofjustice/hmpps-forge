@@ -1,4 +1,4 @@
-import { ComponentCallType, ExpressionType } from '../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType } from '../../../../shared/taxonomy'
 import type { IterateASTNode, ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import { isFieldBlockStructNode } from '../../../chassis/contracts/ast/structure-nodes'

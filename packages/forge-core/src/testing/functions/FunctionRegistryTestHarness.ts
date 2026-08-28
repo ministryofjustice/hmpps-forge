@@ -4,7 +4,7 @@ import { getEntryStamp } from '../../authoring/builders/utils/stampEntry'
 import { FunctionEntryRegistry } from '../../authoring/functions/FunctionEntryRegistry'
 import { GeneratorBuilder } from '../../authoring/builders/GeneratorBuilder'
 import type { ChainableGenerator } from '../../authoring/builders/types'
-import { FunctionCallType } from '../../authoring/types/enums'
+import { FunctionCallType } from '../../shared/taxonomy'
 import type {
   ConditionFunctionExpr,
   EffectFunctionExpr,

@@ -1,4 +1,4 @@
-import { ComponentCallType, ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, IteratorType } from '../../../../../shared/taxonomy'
 import type { AuthoredValue } from '../../../contracts/models/authoredValue.type'
 import AuthoredValueClassifier from '../../analysis/shared/AuthoredValueClassifier'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'

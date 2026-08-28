@@ -1,5 +1,5 @@
 import { ASTNodeFamily, astNodeFamily } from '../../../chassis/contracts/ast/enums'
-import { StructureType } from '../../../../authoring/types/enums'
+import { StructureType } from '../../../../shared/taxonomy'
 import type { NodeId } from '../../../chassis/contracts/ast/engine.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'

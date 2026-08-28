@@ -1,5 +1,5 @@
 import type { ZodType } from 'zod'
-import { FunctionCallType, FunctionEntryType } from '../types/enums'
+import { FunctionCallType, FunctionEntryType } from '../../shared/taxonomy'
 import { captureCallsite, stampCallsite } from '../builders/utils/captureCallsite'
 import { stampEntry } from '../builders/utils/stampEntry'
 import type { FunctionEntry } from '../types/functions.type'

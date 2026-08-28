@@ -6,7 +6,7 @@ import {
   FunctionCallType,
   HookType,
   PredicateType,
-} from '../../../../../authoring/types/enums'
+} from '../../../../../shared/taxonomy'
 import type { JourneyDefinition, StepDefinition, ValidationExpr } from '../../../../../authoring/types/structures.type'
 import type {
   BlockDefinition,

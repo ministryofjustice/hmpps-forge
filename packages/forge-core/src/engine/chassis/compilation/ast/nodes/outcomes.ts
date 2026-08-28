@@ -1,4 +1,4 @@
-import { PolicyType } from '../../../../../authoring/types/enums'
+import { PolicyType } from '../../../../../shared/taxonomy'
 import { RedirectOutcomeASTNode, ThrowErrorOutcomeASTNode } from '../../../contracts/ast/expressions.type'
 import type { ASTNode } from '../../../contracts/ast/engine.type'
 import { RedirectOutcome, ThrowErrorOutcome } from '../../../../../authoring/types/expressions.type'

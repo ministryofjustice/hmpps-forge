@@ -1,4 +1,4 @@
-import { ExpressionType } from '../../../../authoring/types/enums'
+import { ExpressionType } from '../../../../shared/taxonomy'
 import { ASTNodeFamily, astNodeFamily } from '../../../chassis/contracts/ast/enums'
 import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'

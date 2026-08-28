@@ -1,7 +1,7 @@
 import type { WorkContextContract, WorkHandler } from '../../../chassis/contracts/work/work.type'
 import { createWorkTask } from '../../../chassis/work/workTask'
 import type { JourneyASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
-import { StructureType } from '../../../../authoring/types/enums'
+import { StructureType } from '../../../../shared/taxonomy'
 import type CompilationState from '../../../chassis/compilation/pipeline/CompilationState'
 import RouteIndexBuilder from './RouteIndexBuilder'
 

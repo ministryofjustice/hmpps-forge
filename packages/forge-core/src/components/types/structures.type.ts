@@ -5,7 +5,7 @@ import {
   TransformerFunctionExpr,
 } from '../../authoring/types/expressions.type'
 import { ChainableExpression, ChainableIterable } from '../../authoring/builders/types'
-import { ComponentCallType } from '../../authoring/types/enums'
+import { ComponentCallType } from '../../shared/taxonomy'
 import type { ValidationExpr } from '../../authoring/types/structures.type'
 
 /**

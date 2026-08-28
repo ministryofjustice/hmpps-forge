@@ -1,5 +1,5 @@
 import type { ASTNode, NodeId } from '../../contracts/ast/ast.type'
-import { StructureType } from '../../../../authoring/types/enums'
+import { StructureType } from '../../../../shared/taxonomy'
 import type { JourneyASTNode, StepASTNode } from '../../contracts/ast/structures.type'
 import type { FieldModel } from '../../contracts/models/fieldModel.type'
 import type { CompilationModel, JourneyModel, StepModel } from '../../contracts/models/compilationModel.type'

@@ -7,7 +7,7 @@ import {
   ReferenceExpr,
   TransformerFunctionExpr,
 } from '../types/expressions.type'
-import { ExpressionType, FunctionCallType, IteratorType, PredicateType } from '../types/enums'
+import { ExpressionType, FunctionCallType, IteratorType, PredicateType } from '../../shared/taxonomy'
 
 describe('IterableBuilder', () => {
   // Helper to create a mock reference (data source)

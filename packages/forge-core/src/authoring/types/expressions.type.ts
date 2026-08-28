@@ -7,7 +7,7 @@ import {
   HookType,
   IteratorType,
   PolicyType,
-} from './enums'
+} from '../../shared/taxonomy'
 
 /**
  * Represents a reference to a value in the form context.

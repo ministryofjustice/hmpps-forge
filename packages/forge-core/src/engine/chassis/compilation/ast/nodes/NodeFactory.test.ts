@@ -8,7 +8,7 @@ import {
   PredicateType,
   StructureType,
   ComponentCallType,
-} from '../../../../../authoring/types/enums'
+} from '../../../../../shared/taxonomy'
 import { ExpressionBuilder } from '../../../../../authoring/builders/ExpressionBuilder'
 import { finaliseBuilders } from '../../../../../authoring/builders/utils/finaliseBuilders'
 import type { ConditionFunctionExpr, ReferenceExpr } from '../../../../../authoring/types/expressions.type'

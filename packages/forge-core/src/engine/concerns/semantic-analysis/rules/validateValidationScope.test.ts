@@ -1,4 +1,4 @@
-import { PolicyType, ComponentCallType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
+import { PolicyType, ComponentCallType, ExpressionType, IteratorType } from '../../../../shared/taxonomy'
 import type { MaterialisedASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { IterateASTNode, ValidationASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { TemplateASTNode, TemplateNodeId } from '../../../chassis/contracts/ast/ast.type'

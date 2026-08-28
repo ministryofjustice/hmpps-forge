@@ -7,7 +7,7 @@ import {
   IteratorType,
   PredicateType,
   StructureType,
-} from '../../authoring/types/enums'
+} from '../taxonomy'
 import DSLPathFormatter from './DSLPathFormatter'
 
 describe('DSLPathFormatter', () => {

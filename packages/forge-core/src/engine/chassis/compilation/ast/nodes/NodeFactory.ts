@@ -13,7 +13,7 @@ import {
   PolicyType,
   PredicateType,
   StructureType,
-} from '../../../../../authoring/types/enums'
+} from '../../../../../shared/taxonomy'
 import { createBasicBlock, createFieldBlock, createJourneyNode, createStepNode } from './structures'
 import {
   createConditionalNode,

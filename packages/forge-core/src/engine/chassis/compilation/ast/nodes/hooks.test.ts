@@ -1,10 +1,4 @@
-import {
-  ExpressionType,
-  FunctionCallType,
-  PolicyType,
-  PredicateType,
-  HookType,
-} from '../../../../../authoring/types/enums'
+import { ExpressionType, FunctionCallType, PolicyType, PredicateType, HookType } from '../../../../../shared/taxonomy'
 import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
 import {
   AccessHookASTNode,

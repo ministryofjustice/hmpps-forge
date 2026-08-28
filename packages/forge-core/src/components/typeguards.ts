@@ -1,5 +1,5 @@
 import { BlockDefinition, FieldBlockDefinition, RenderedBlock } from './types/structures.type'
-import { ComponentCallType } from '../authoring/types/enums'
+import { ComponentCallType } from '../shared/taxonomy'
 
 function isBlockDefinition(obj: any): obj is BlockDefinition {
   return obj != null && typeof obj._forge === 'string' && obj._forge.startsWith('component.call.')

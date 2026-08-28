@@ -1,4 +1,4 @@
-import { FunctionCallType } from '../../../authoring/types/enums'
+import { FunctionCallType } from '../../../shared/taxonomy'
 import { ResolvableValue } from '../../../authoring/types/expressions.type'
 import { FORMAT_STRING_GENERATOR_NAME, FormatGenerators } from './formatGenerators'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ComponentCallType } from '../../../../src/authoring/types/enums'
+import { ComponentCallType } from '../../../../src/shared/taxonomy'
 import type { RenderBlock } from '../../../../src/framework/types/rendering.type'
 import { createClient, createTracedClient, answerOf, type ContractSession } from '../../contractHelpers'
 import type { RequestTraceEvent } from '../../../../src/testing'

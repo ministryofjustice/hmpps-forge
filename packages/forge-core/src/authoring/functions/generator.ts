@@ -1,4 +1,4 @@
-import { FunctionCallType } from '../types/enums'
+import { FunctionCallType } from '../../shared/taxonomy'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
 import { captureCallsite, stampCallsite } from '../builders/utils/captureCallsite'
 import { stampEntry } from '../builders/utils/stampEntry'

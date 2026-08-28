@@ -1,4 +1,4 @@
-import { FunctionEntryType } from '../types/enums'
+import { FunctionEntryType } from '../../shared/taxonomy'
 import { CONDITION_OUTPUT_SCHEMA } from '../registries/BaseFunctionRegistry'
 import { getEntryStamp } from '../builders/utils/stampEntry'
 import { isFunctionEntry } from './createEntry'

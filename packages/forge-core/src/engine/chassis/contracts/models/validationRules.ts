@@ -1,4 +1,4 @@
-import { PolicyType } from '../../../../authoring/types/enums'
+import { PolicyType } from '../../../../shared/taxonomy'
 import type { ASTNode } from '../ast/ast.type'
 import { isASTNode } from '../ast/nodes'
 import { AuthoredValueKind, type AuthoredValue, type ExpressionValue } from './authoredValue.type'
