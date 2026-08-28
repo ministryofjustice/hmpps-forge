@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { jsxComponent, raw } from '@ministryofjustice/hmpps-forge/jsx-components'
 
 type BodySize = 'l' | 's'
@@ -15,14 +15,14 @@ type BodySize = 'l' | 's'
  * GovUKBody({ text: 'Small print text', size: 's' })
  * ```
  */
-export interface GovUKBody extends BlockDefinition {
+export type GovUKBody = ResolvableBlockProps<{
   /**
    * Text content for the paragraph. Supports dynamic expressions.
    *
    * **Rendered as raw HTML without sanitization** - escape untrusted data with
    * `Transformer.String.EscapeHtml()` before interpolating it.
    */
-  text: ResolvableString
+  text: string
 
   /** Paragraph size variant. 'l' for lead paragraph (24px), 's' for small (16px). Omit for default (19px). */
   size?: BodySize
@@ -32,7 +32,7 @@ export interface GovUKBody extends BlockDefinition {
 
   /** HTML attributes to add to the paragraph element. */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * GOV.UK styled paragraph.

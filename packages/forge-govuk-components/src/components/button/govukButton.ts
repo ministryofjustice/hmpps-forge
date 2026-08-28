@@ -1,10 +1,5 @@
 import type nunjucks from 'nunjucks'
-import {
-  BlockDefinition,
-  ResolvableBoolean,
-  ResolvableString,
-  ResolvedPropsOf,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableBlockProps, ResolvedPropsOf } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -24,40 +19,40 @@ import { nunjucksComponent } from '../../utils/nunjucksComponent'
  * })
  * ```
  */
-export interface GovUKButton extends BlockDefinition {
+export type GovUKButton = ResolvableBlockProps<{
   /** Text content for the button */
-  text?: ResolvableString
+  text?: string
 
   /** HTML content for the button */
-  html?: ResolvableString
+  html?: string
 
   /** Additional CSS classes */
-  classes?: ResolvableString
+  classes?: string
 
   /** Custom HTML attributes */
   attributes?: Record<string, any>
 
   /** Style as start/call-to-action button */
-  isStartButton?: ResolvableBoolean
+  isStartButton?: boolean
 
   /** Button ID */
-  id?: ResolvableString
+  id?: string
 
   /** Name attribute for form submission, defaults to 'action' */
-  name?: ResolvableString
+  name?: string
 
   /** Type attribute for button/input elements - defaults to 'submit' */
   buttonType?: 'button' | 'submit' | 'reset'
 
   /** Value attribute for button elements */
-  value?: ResolvableString
+  value?: string
 
   /** Whether the button is disabled */
-  disabled?: ResolvableBoolean
+  disabled?: boolean
 
   /** Prevent double-click submission */
-  preventDoubleClick?: ResolvableBoolean
-}
+  preventDoubleClick?: boolean
+}>
 
 /**
  * GOV.UK Link Button component.
@@ -74,28 +69,28 @@ export interface GovUKButton extends BlockDefinition {
  * })
  * ```
  */
-export interface GovUKLinkButton extends BlockDefinition {
+export type GovUKLinkButton = ResolvableBlockProps<{
   /** Text content for the button */
-  text?: ResolvableString
+  text?: string
 
   /** HTML content for the button */
-  html?: ResolvableString
+  html?: string
 
   /** Additional CSS classes */
-  classes?: ResolvableString
+  classes?: string
 
   /** Custom HTML attributes */
   attributes?: Record<string, any>
 
   /** Style as start/call-to-action button */
-  isStartButton?: ResolvableBoolean
+  isStartButton?: boolean
 
   /** Button ID */
-  id?: ResolvableString
+  id?: string
 
   /** URL for the link */
-  href: ResolvableString
-}
+  href: string
+}>
 
 function isLinkButton(
   props: ResolvedPropsOf<GovUKButton> | ResolvedPropsOf<GovUKLinkButton>,

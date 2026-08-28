@@ -1,9 +1,4 @@
-import {
-  BlockDefinition,
-  ResolvableArray,
-  ResolvableBoolean,
-  ResolvableString,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -11,16 +6,16 @@ import { nunjucksComponent } from '../../utils/nunjucksComponent'
  */
 export interface PaginationLink {
   /** The link's URL. Required. */
-  href: ResolvableString
+  href: string
 
   /** Text content of the link. Defaults to "Previous page" or "Next page". */
-  text?: ResolvableString
+  text?: string
 
   /** HTML content of the link. Takes precedence over text. */
-  html?: ResolvableString
+  html?: string
 
   /** Label underneath the link providing context (e.g., "Introduction"). */
-  labelText?: ResolvableString
+  labelText?: string
 
   /** Custom HTML attributes for the anchor element. */
   attributes?: Record<string, any>
@@ -29,7 +24,7 @@ export interface PaginationLink {
    * Conditional visibility for this link. When the evaluated value is `false`,
    * the link is omitted from rendering. Defaults to showing the link.
    */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 }
 
 /**
@@ -37,19 +32,19 @@ export interface PaginationLink {
  */
 export interface PaginationItem {
   /** The page number text. Required unless ellipsis is true. */
-  number?: ResolvableString
+  number?: string
 
   /** Visually hidden label for screen readers (e.g., "Page 1"). */
-  visuallyHiddenText?: ResolvableString
+  visuallyHiddenText?: string
 
   /** The link's URL. Required unless ellipsis is true. */
-  href?: ResolvableString
+  href?: string
 
   /** Set to true to indicate the current page. */
-  current?: ResolvableBoolean
+  current?: boolean
 
   /** Set to true to render an ellipsis instead of a page number. */
-  ellipsis?: ResolvableBoolean
+  ellipsis?: boolean
 
   /** Custom HTML attributes for the anchor element. */
   attributes?: Record<string, any>
@@ -58,7 +53,7 @@ export interface PaginationItem {
    * Conditional visibility for this item. When the evaluated value is `false`,
    * the item is omitted from rendering. Defaults to showing the item.
    */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 }
 
 /**
@@ -82,7 +77,7 @@ export interface PaginationItem {
  * })
  * ```
  */
-export interface GovUKPagination extends BlockDefinition {
+export type GovUKPagination = ResolvableBlockProps<{
   /** Link to the previous page. */
   previous?: PaginationLink
 
@@ -90,17 +85,17 @@ export interface GovUKPagination extends BlockDefinition {
   next?: PaginationLink
 
   /** Numbered page items for multi-page navigation. */
-  items?: ResolvableArray<PaginationItem>
+  items?: PaginationItem[]
 
   /** Accessibility label for the navigation landmark. Defaults to "Pagination". */
-  landmarkLabel?: ResolvableString
+  landmarkLabel?: string
 
   /** Additional CSS classes for the pagination nav element. */
-  classes?: ResolvableString
+  classes?: string
 
   /** Custom HTML attributes for the pagination nav element. */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * GOV.UK Pagination component.

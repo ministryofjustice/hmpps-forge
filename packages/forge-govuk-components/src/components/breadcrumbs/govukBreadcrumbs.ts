@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableBoolean, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -6,13 +6,13 @@ import { nunjucksComponent } from '../../utils/nunjucksComponent'
  */
 export interface BreadcrumbItem {
   /** Plain text content for the breadcrumb. Required unless html is provided. */
-  text?: ResolvableString
+  text?: string
 
   /** HTML content for the breadcrumb. Takes precedence over text. */
-  html?: ResolvableString
+  html?: string
 
   /** Link URL for the breadcrumb. If not specified, renders as plain text. */
-  href?: ResolvableString
+  href?: string
 
   /** Custom HTML attributes for the breadcrumb item. */
   attributes?: Record<string, any>
@@ -21,7 +21,7 @@ export interface BreadcrumbItem {
    * Conditional visibility for this breadcrumb. When the evaluated value is `false`,
    * the item is omitted from rendering. Defaults to showing the item.
    */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 }
 
 /**
@@ -42,7 +42,7 @@ export interface BreadcrumbItem {
  * })
  * ```
  */
-export interface GovUKBreadcrumbs extends BlockDefinition {
+export type GovUKBreadcrumbs = ResolvableBlockProps<{
   /** The breadcrumb items to display. Required. */
   items: BreadcrumbItem[]
 
@@ -50,14 +50,14 @@ export interface GovUKBreadcrumbs extends BlockDefinition {
   collapseOnMobile?: boolean
 
   /** Accessibility label for the navigation landmark. Defaults to "Breadcrumb". */
-  labelText?: ResolvableString
+  labelText?: string
 
   /** Additional CSS classes for the breadcrumbs container. */
-  classes?: ResolvableString
+  classes?: string
 
   /** Custom HTML attributes for the breadcrumbs container. */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * GOV.UK Breadcrumbs component.

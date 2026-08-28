@@ -1,11 +1,5 @@
 import { z } from 'zod'
-import {
-  BlockDefinition,
-  ResolvableBoolean,
-  ResolvableString,
-  EvaluatedBlock,
-  FieldBlockDefinition,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, EvaluatedBlock, ResolvableFieldProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import {
   normaliseGovukErrorMessage,
@@ -33,13 +27,13 @@ import {
  * })
  * ```
  */
-export interface GovUKRadioInput extends FieldBlockDefinition {
+export type GovUKRadioInput = ResolvableFieldProps<{
   /**
    * The label for the radio group.
    * When using fieldset, this becomes the legend text if no fieldset legend is specified.
    * @example 'How would you like to be contacted?'
    */
-  label?: ResolvableString
+  label?: string
 
   /**
    * Can be used to add a fieldset to the radios component.
@@ -52,20 +46,20 @@ export interface GovUKRadioInput extends FieldBlockDefinition {
      */
     legend?: {
       /** Text content of the legend */
-      text?: ResolvableString
+      text?: string
       /** HTML content of the legend (takes precedence over text) */
-      html?: ResolvableString
+      html?: string
       /** Additional CSS classes for the legend */
-      classes?: ResolvableString
+      classes?: string
       /** Whether to render the legend as a page heading (wrapped in h1) */
-      isPageHeading?: ResolvableBoolean
+      isPageHeading?: boolean
     }
     /** Additional CSS classes for the fieldset wrapper */
-    classes?: ResolvableString
+    classes?: string
     /** HTML attributes to add to the fieldset */
     attributes?: Record<string, any>
     /** Element IDs to add to the fieldset's aria-describedby attribute */
-    describedBy?: ResolvableString
+    describedBy?: string
   }
 
   /**
@@ -76,16 +70,16 @@ export interface GovUKRadioInput extends FieldBlockDefinition {
    * @example { html: 'Choose the <strong>most appropriate</strong> option' } // Rich HTML hint
    */
   hint?:
-    | ResolvableString
+    | string
     | {
         /** Unique ID for the hint (auto-generated if not provided) */
-        id?: ResolvableString
+        id?: string
         /** Text content of the hint */
-        text?: ResolvableString
+        text?: string
         /** HTML content of the hint (takes precedence over text) */
-        html?: ResolvableString
+        html?: string
         /** Additional CSS classes for the hint */
-        classes?: ResolvableString
+        classes?: string
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
       }
@@ -99,7 +93,7 @@ export interface GovUKRadioInput extends FieldBlockDefinition {
      * Classes to add to the form group wrapper.
      * Useful for custom styling or indicating error states.
      */
-    classes?: ResolvableString
+    classes?: string
     /** HTML attributes to add to the form group wrapper */
     attributes?: Record<string, any>
     /**
@@ -108,11 +102,11 @@ export interface GovUKRadioInput extends FieldBlockDefinition {
      */
     beforeInputs?: {
       /** Text content to add before all radio items */
-      text?: ResolvableString
+      text?: string
       /** HTML content to add before all radio items (takes precedence over text) */
-      html?: ResolvableString
+      html?: string
       /** Additional CSS classes for the before inputs content */
-      classes?: ResolvableString
+      classes?: string
     }
     /**
      * Content to add after all radio items within the radios component.
@@ -120,11 +114,11 @@ export interface GovUKRadioInput extends FieldBlockDefinition {
      */
     afterInputs?: {
       /** Text content to add after all radio items */
-      text?: ResolvableString
+      text?: string
       /** HTML content to add after all radio items (takes precedence over text) */
-      html?: ResolvableString
+      html?: string
       /** Additional CSS classes for the after inputs content */
-      classes?: ResolvableString
+      classes?: string
     }
   }
 
@@ -133,14 +127,14 @@ export interface GovUKRadioInput extends FieldBlockDefinition {
    * hint and error message, separated by `-`. Defaults to the `code` value.
    * @example 'contact-method' // Creates IDs like 'contact-method-email', 'contact-method-phone'
    */
-  idPrefix?: ResolvableString
+  idPrefix?: string
 
   /**
    * Additional CSS classes to add to the radio container.
    * @example 'govuk-radios--inline' // Display radios horizontally
    * @example 'govuk-radios--small' // Smaller radio buttons
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * Additional HTML attributes (such as data attributes) to add to the radio input tag.
@@ -159,7 +153,7 @@ export interface GovUKRadioInput extends FieldBlockDefinition {
    * ]
    */
   items: (GovUKRadioInputItem | GovUKRadioInputDivider)[]
-}
+}>
 
 /**
  * Individual radio option within a radio group.
@@ -171,28 +165,28 @@ interface GovUKRadioInputItem {
    * @example 'email'
    * @example 'phone'
    */
-  value: ResolvableString
+  value: string
 
   /**
    * Text to use within the radio item label.
    * If `html` is provided, this will be ignored.
    * @example 'Email'
    */
-  text?: ResolvableString
+  text?: string
 
   /**
    * HTML to use within the radio item label.
    * Takes precedence over `text` if both are provided.
    * @example 'Email <span class="govuk-caption-m">Fastest response</span>'
    */
-  html?: ResolvableString
+  html?: string
 
   /**
    * Specific ID attribute for the radio item.
    * If omitted, then `idPrefix` string will be applied with the value.
    * @example 'contact-email'
    */
-  id?: ResolvableString
+  id?: string
 
   /**
    * Can be used to add a hint to each radio item within the radios component.
@@ -200,16 +194,16 @@ interface GovUKRadioInputItem {
    * @example 'We'll send updates to this email address'
    */
   hint?:
-    | ResolvableString
+    | string
     | {
         /** Unique ID for the hint (auto-generated if not provided) */
-        id?: ResolvableString
+        id?: string
         /** Text content of the hint */
-        text?: ResolvableString
+        text?: string
         /** HTML content of the hint (takes precedence over text) */
-        html?: ResolvableString
+        html?: string
         /** Additional CSS classes for the hint */
-        classes?: ResolvableString
+        classes?: string
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
       }
@@ -219,13 +213,13 @@ interface GovUKRadioInputItem {
    * Takes precedence over the top-level `value` option.
    * @example true // Pre-select this option
    */
-  checked?: ResolvableBoolean
+  checked?: boolean
 
   /**
    * If `true`, radio will be disabled and cannot be selected.
    * @example true // Disable this option
    */
-  disabled?: ResolvableBoolean
+  disabled?: boolean
 
   /**
    * Additional HTML attributes (such as data attributes) to add to the radio input tag.
@@ -241,7 +235,7 @@ interface GovUKRadioInputItem {
   block?: BlockDefinition | BlockDefinition[]
 
   /** Conditional visibility for this radio item */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 }
 
 /**
@@ -254,10 +248,10 @@ interface GovUKRadioInputDivider {
    * @example 'or'
    * @example 'Alternative options'
    */
-  divider: ResolvableString
+  divider: string
 
   /** Conditional visibility for this divider */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 }
 
 /**

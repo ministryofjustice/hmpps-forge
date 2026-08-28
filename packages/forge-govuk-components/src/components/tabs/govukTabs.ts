@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableBoolean, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
@@ -8,10 +8,10 @@ import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers
  */
 export interface TabPanel {
   /** Plain text content for the panel. Required unless html or blocks is provided. */
-  text?: ResolvableString
+  text?: string
 
   /** HTML content for the panel. Takes precedence over text. */
-  html?: ResolvableString
+  html?: string
 
   /** Child blocks to render in the panel. Takes precedence over text/html. */
   blocks?: BlockDefinition[]
@@ -28,10 +28,10 @@ export interface TabItem {
    * Specific ID attribute for the tab item.
    * This is used as the panel's ID and for the tab link's href.
    */
-  id: ResolvableString
+  id: string
 
   /** The text label displayed on the tab. Required. */
-  label: ResolvableString
+  label: string
 
   /** The content of the tab panel. Required. */
   panel: TabPanel
@@ -43,7 +43,7 @@ export interface TabItem {
    * Conditional visibility for this tab. When the evaluated value is `false`,
    * the tab is omitted from rendering.
    */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 }
 
 /**
@@ -92,29 +92,29 @@ export interface TabItem {
  * })
  * ```
  */
-export interface GovUKTabs extends BlockDefinition {
+export type GovUKTabs = ResolvableBlockProps<{
   /**
    * Unique ID for the tabs component.
    * This is used for the main component and to compose the ID attribute for each item.
    */
-  id: ResolvableString
+  id: string
 
   /**
    * Title for the tabs table of contents.
    * Displayed on mobile where tabs become a table of contents.
    * Defaults to "Contents".
    */
-  title?: ResolvableString
+  title?: string
 
   /** The individual tabs within the tabs component. Required. */
   items: TabItem[]
 
   /** Additional CSS classes for the tabs element. */
-  classes?: ResolvableString
+  classes?: string
 
   /** Custom HTML attributes for the tabs element. */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * GOV.UK Tabs component.

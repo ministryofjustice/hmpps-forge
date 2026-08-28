@@ -1,9 +1,5 @@
 import { z } from 'zod'
-import {
-  FieldBlockDefinition,
-  ResolvableBoolean,
-  ResolvableString,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableFieldProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
@@ -22,12 +18,12 @@ import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils
  * })
  * ```
  */
-export interface GovUKTextInput extends FieldBlockDefinition {
+export type GovUKTextInput = ResolvableFieldProps<{
   /**
    * The ID of the input. Defaults to the value of `code` if not provided.
    * @example 'user-email'
    */
-  id?: ResolvableString
+  id?: string
 
   /**
    * The label used by the text input component.
@@ -37,18 +33,18 @@ export interface GovUKTextInput extends FieldBlockDefinition {
    * @example { text: 'Email address', classes: 'govuk-label--l' } // Object with styling
    */
   label:
-    | ResolvableString
+    | string
     | {
         /** Text content of the label */
-        text?: ResolvableString
+        text?: string
         /** HTML content of the label (takes precedence over text) */
-        html?: ResolvableString
+        html?: string
         /** Additional CSS classes for the label */
-        classes?: ResolvableString
+        classes?: string
         /** For attribute - automatically set if not provided */
-        for?: ResolvableString
+        for?: string
         /** Whether to render the label as a page heading (wrapped in h1) */
-        isPageHeading?: ResolvableBoolean
+        isPageHeading?: boolean
         /** Additional HTML attributes for the label */
         attributes?: Record<string, any>
       }
@@ -61,16 +57,16 @@ export interface GovUKTextInput extends FieldBlockDefinition {
    * @example { html: 'We'll only use this to send you <strong>important updates</strong>' } // Rich HTML hint
    */
   hint?:
-    | ResolvableString
+    | string
     | {
         /** Text content of the hint */
-        text?: ResolvableString
+        text?: string
         /** HTML content of the hint (takes precedence over text) */
-        html?: ResolvableString
+        html?: string
         /** Additional CSS classes for the hint */
-        classes?: ResolvableString
+        classes?: string
         /** Unique ID for the hint (auto-generated if not provided) */
-        id?: ResolvableString
+        id?: string
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
       }
@@ -100,7 +96,7 @@ export interface GovUKTextInput extends FieldBlockDefinition {
    * If `true`, input will be disabled and cannot be edited by the user.
    * @example true // Disable the input
    */
-  disabled?: ResolvableBoolean
+  disabled?: boolean
 
   /**
    * Attribute to meet WCAG success criterion 1.3.5: Identify input purpose.
@@ -112,7 +108,7 @@ export interface GovUKTextInput extends FieldBlockDefinition {
    * @example 'given-name' // For first name fields
    * @example 'off' // Disable autocomplete
    */
-  autocomplete?: ResolvableString
+  autocomplete?: string
 
   /**
    * One or more element IDs to add to the `aria-describedby` attribute.
@@ -120,7 +116,7 @@ export interface GovUKTextInput extends FieldBlockDefinition {
    *
    * @example 'email-requirements'
    */
-  describedBy?: ResolvableString
+  describedBy?: string
 
   /**
    * Attribute to provide a regular expression pattern for input validation.
@@ -130,7 +126,7 @@ export interface GovUKTextInput extends FieldBlockDefinition {
    * @example '[0-9]*' // Only allow digits
    * @example '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}' // Basic email pattern
    */
-  pattern?: ResolvableString
+  pattern?: string
 
   /**
    * Optional field to enable or disable the spellcheck attribute on the input.
@@ -138,7 +134,7 @@ export interface GovUKTextInput extends FieldBlockDefinition {
    * @example true // Enable spellcheck
    * @example false // Disable spellcheck (useful for usernames, codes, etc.)
    */
-  spellcheck?: ResolvableBoolean
+  spellcheck?: boolean
 
   /**
    * Optional field to enable or disable autocapitalisation of user input.
@@ -159,11 +155,11 @@ export interface GovUKTextInput extends FieldBlockDefinition {
    */
   prefix?: {
     /** Text content of the prefix (takes precedence over html if both provided) */
-    text?: ResolvableString
+    text?: string
     /** HTML content of the prefix */
-    html?: ResolvableString
+    html?: string
     /** Additional CSS classes for the prefix */
-    classes?: ResolvableString
+    classes?: string
     /** Additional HTML attributes for the prefix element */
     attributes?: Record<string, any>
   }
@@ -177,11 +173,11 @@ export interface GovUKTextInput extends FieldBlockDefinition {
    */
   suffix?: {
     /** Text content of the suffix */
-    text?: ResolvableString
+    text?: string
     /** HTML content of the suffix (takes precedence over text) */
-    html?: ResolvableString
+    html?: string
     /** Additional CSS classes for the suffix element */
-    classes?: ResolvableString
+    classes?: string
     /** Additional HTML attributes for the suffix element */
     attributes?: Record<string, any>
   }
@@ -195,7 +191,7 @@ export interface GovUKTextInput extends FieldBlockDefinition {
      * Classes to add to the form group wrapper.
      * Useful for custom styling or indicating error states.
      */
-    classes?: ResolvableString
+    classes?: string
     /** HTML attributes to add to the form group wrapper */
     attributes?: Record<string, any>
     /**
@@ -204,9 +200,9 @@ export interface GovUKTextInput extends FieldBlockDefinition {
      */
     beforeInput?: {
       /** Text content to add before the input */
-      text?: ResolvableString
+      text?: string
       /** HTML content to add before the input (takes precedence over text) */
-      html?: ResolvableString
+      html?: string
     }
     /**
      * Content to add after the input element.
@@ -214,9 +210,9 @@ export interface GovUKTextInput extends FieldBlockDefinition {
      */
     afterInput?: {
       /** Text content to add after the input */
-      text?: ResolvableString
+      text?: string
       /** HTML content to add after the input (takes precedence over text) */
-      html?: ResolvableString
+      html?: string
     }
   }
 
@@ -227,7 +223,7 @@ export interface GovUKTextInput extends FieldBlockDefinition {
    */
   inputWrapper?: {
     /** Additional CSS classes for the input wrapper element */
-    classes?: ResolvableString
+    classes?: string
     /** Additional HTML attributes for the input wrapper element */
     attributes?: Record<string, any>
   }
@@ -237,7 +233,7 @@ export interface GovUKTextInput extends FieldBlockDefinition {
    * @example 'govuk-input--width-20' // Fixed width input
    * @example 'js-character-count' // For character counting functionality
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * Additional HTML attributes (such as data attributes) to add to the input element.
@@ -245,7 +241,7 @@ export interface GovUKTextInput extends FieldBlockDefinition {
    * @example { 'aria-describedby': 'additional-help-text' }
    */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * GOV.UK Text Input component.

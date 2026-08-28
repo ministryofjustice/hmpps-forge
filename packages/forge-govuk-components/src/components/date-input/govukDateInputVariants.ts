@@ -1,10 +1,5 @@
 import { z } from 'zod'
-import {
-  ResolvableBoolean,
-  ResolvableString,
-  FieldBlockDefinition,
-  ResolvedPropsOf,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableFieldProps, ResolvedPropsOf } from '@ministryofjustice/hmpps-forge/core/components'
 import { Transformer } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import {
@@ -23,7 +18,7 @@ export interface GovUKDateInputBase {
    * @example 'Date of birth'
    * @example 'When did this happen?'
    */
-  label?: ResolvableString
+  label?: string
 
   /** Fieldset wrapper for the date input component. */
   fieldset?: {
@@ -33,26 +28,26 @@ export interface GovUKDateInputBase {
      */
     legend?: {
       /** Text content of the legend */
-      text?: ResolvableString
+      text?: string
 
       /** HTML content of the legend (takes precedence over text) */
-      html?: ResolvableString
+      html?: string
 
       /** Additional CSS classes for the legend */
-      classes?: ResolvableString
+      classes?: string
 
       /** Whether to render the legend as a page heading (wrapped in h1) */
-      isPageHeading?: ResolvableBoolean
+      isPageHeading?: boolean
     }
 
     /** Additional CSS classes for the fieldset wrapper */
-    classes?: ResolvableString
+    classes?: string
 
     /** HTML attributes to add to the fieldset */
     attributes?: Record<string, any>
 
     /** Element IDs to add to the fieldsets aria-describedby attribute */
-    describedBy?: ResolvableString
+    describedBy?: string
   }
 
   /**
@@ -62,19 +57,19 @@ export interface GovUKDateInputBase {
    * @example { html: 'Enter the date as shown on your <strong>passport</strong>' } // Rich hint
    */
   hint?:
-    | ResolvableString
+    | string
     | {
         /** Unique ID for the hint (auto-generated if not provided) */
-        id?: ResolvableString
+        id?: string
 
         /** Text content of the hint */
-        text?: ResolvableString
+        text?: string
 
         /** HTML content of the hint (takes precedence over text) */
-        html?: ResolvableString
+        html?: string
 
         /** Additional CSS classes for the hint */
-        classes?: ResolvableString
+        classes?: string
 
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
@@ -83,7 +78,7 @@ export interface GovUKDateInputBase {
   /** Additional options for the form group containing the date input component. */
   formGroup?: {
     /** Classes to add to the form group wrapper. */
-    classes?: ResolvableString
+    classes?: string
 
     /** HTML attributes to add to the form group wrapper */
     attributes?: Record<string, any>
@@ -91,19 +86,19 @@ export interface GovUKDateInputBase {
     /** Content to add before the date inputs. */
     beforeInputs?: {
       /** Text content to add before the inputs */
-      text?: ResolvableString
+      text?: string
 
       /** HTML content to add before the inputs (takes precedence over text) */
-      html?: ResolvableString
+      html?: string
     }
 
     /** Content to add after the date inputs */
     afterInputs?: {
       /** Text content to add after the inputs */
-      text?: ResolvableString
+      text?: string
 
       /** HTML content to add after the inputs (takes precedence over text) */
-      html?: ResolvableString
+      html?: string
     }
   }
 
@@ -113,7 +108,7 @@ export interface GovUKDateInputBase {
    *
    * @example 'birthday' // Creates IDs like 'birthday-day', 'birthday-month', etc.
    */
-  id?: ResolvableString
+  id?: string
 
   /**
    * Optional prefix for the name attributes of individual date inputs.
@@ -121,23 +116,23 @@ export interface GovUKDateInputBase {
    *
    * @example 'start-date' // Creates names like 'start-date[day]', 'start-date[month]', etc.
    */
-  namePrefix?: ResolvableString
+  namePrefix?: string
 
   /** Additional CSS classes to add to the date-input container. */
-  classes?: ResolvableString
+  classes?: string
 
   /** Additional HTML attributes (such as data attributes) to add to the date-input container. */
   attributes?: Record<string, any>
 }
 
 /** GOV.UK Date Input capturing a full date - day, month and year. */
-export interface GovUKDateInputFull extends FieldBlockDefinition, GovUKDateInputBase {}
+export type GovUKDateInputFull = ResolvableFieldProps<GovUKDateInputBase>
 
 /** GOV.UK Date Input capturing a month and year only. */
-export interface GovUKDateInputYearMonth extends FieldBlockDefinition, GovUKDateInputBase {}
+export type GovUKDateInputYearMonth = ResolvableFieldProps<GovUKDateInputBase>
 
 /** GOV.UK Date Input capturing a day and month only. */
-export interface GovUKDateInputMonthDay extends FieldBlockDefinition, GovUKDateInputBase {}
+export type GovUKDateInputMonthDay = ResolvableFieldProps<GovUKDateInputBase>
 
 /**
  * Supports field-specific error targeting through validation `details.field` property.

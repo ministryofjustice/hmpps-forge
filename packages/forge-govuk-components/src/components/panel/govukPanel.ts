@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
@@ -17,20 +17,20 @@ import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers
  * })
  * ```
  */
-export interface GovUKPanel extends BlockDefinition {
+export type GovUKPanel = ResolvableBlockProps<{
   /**
    * Plain text to use within the panel title.
    * Required unless `titleHtml` is provided.
    * If `titleHtml` is provided, this option will be ignored.
    */
-  titleText?: ResolvableString
+  titleText?: string
 
   /**
    * HTML to use within the panel title.
    * Takes precedence over `titleText`.
    * If `titleHtml` is provided, the `titleText` option will be ignored.
    */
-  titleHtml?: ResolvableString
+  titleHtml?: string
 
   /**
    * Heading level for the panel title, from 1 to 6.
@@ -43,14 +43,14 @@ export interface GovUKPanel extends BlockDefinition {
    * Required unless `html` is provided.
    * If `html` is provided, this option will be ignored.
    */
-  text?: ResolvableString
+  text?: string
 
   /**
    * HTML content for the panel body.
    * Takes precedence over `text`.
    * If `html` is provided, the `text` option will be ignored.
    */
-  html?: ResolvableString
+  html?: string
 
   /**
    * Child blocks to render in the panel body.
@@ -61,13 +61,13 @@ export interface GovUKPanel extends BlockDefinition {
   /**
    * Additional CSS classes for the panel container.
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * Custom HTML attributes (for example data attributes) to add to the panel container.
    */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * GOV.UK Panel component.

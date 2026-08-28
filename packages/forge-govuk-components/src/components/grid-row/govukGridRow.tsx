@@ -1,4 +1,4 @@
-import { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { jsxComponent, raw } from '@ministryofjustice/hmpps-forge/jsx-components'
 
 type GridColumnWidth = 'full' | 'one-half' | 'one-third' | 'two-thirds' | 'one-quarter' | 'three-quarters' | 'one-sixth'
@@ -23,7 +23,7 @@ export interface GovUKGridColumn {
  * })
  * ```
  */
-export interface GovUKGridRow extends BlockDefinition {
+export type GovUKGridRow = ResolvableBlockProps<{
   /** Column definitions with width and child blocks. */
   columns: GovUKGridColumn[]
 
@@ -32,7 +32,7 @@ export interface GovUKGridRow extends BlockDefinition {
 
   /** HTML attributes to add to the row element. */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * Wraps child blocks in a GOV.UK grid row with responsive column widths.

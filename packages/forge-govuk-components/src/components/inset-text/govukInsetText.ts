@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
@@ -16,20 +16,20 @@ import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers
  * })
  * ```
  */
-export interface GovUKInsetText extends BlockDefinition {
+export type GovUKInsetText = ResolvableBlockProps<{
   /**
    * Plain text content for the inset text.
    * Required unless `html` is provided.
    * If `html` is provided, this option will be ignored.
    */
-  text?: ResolvableString
+  text?: string
 
   /**
    * HTML content for the inset text.
    * Takes precedence over `text` if both are provided.
    * Use this when you need to include links or other HTML elements.
    */
-  html?: ResolvableString
+  html?: string
 
   /**
    * Child blocks to render in the inset text.
@@ -41,20 +41,20 @@ export interface GovUKInsetText extends BlockDefinition {
    * ID attribute to add to the inset text container.
    * Useful for linking to this specific section or for testing.
    */
-  id?: ResolvableString
+  id?: string
 
   /**
    * Additional CSS classes to add to the inset text container.
    * Use this to apply custom styling or spacing classes.
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * HTML attributes (for example data attributes) to add to the inset text container.
    * Useful for adding custom data attributes or ARIA attributes.
    */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * GOV.UK Inset Text component.
