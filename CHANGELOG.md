@@ -72,6 +72,11 @@ enough.
   a block with one in a journey is enough, no `components` listing needed. The listing
   stays for journeys that reference a variant by string, and for entries with no
   builder attached (the deprecated `buildComponent` kind) ([#270])
+- `ResolvableProps`, `ResolvableBlockProps`, and `ResolvableFieldProps` - describe a
+  component once with plain property types and Forge makes its properties, nested
+  objects, and array items expression-aware. The GOV.UK and MOJ component packages now
+  use these types instead of wrapping each property with `ResolvableString`,
+  `ResolvableBoolean`, and the other per-value helpers ([#281])
 - `FunctionRegistryTestHarness` accepts entries alongside registries ([#269])
 - `Loop.Item()` - the current loop's item under the `Loop` namespace, with the same
   `.path()`, `.value()` and `.key()` accessors as `Item()`. Nested loops read as
@@ -256,6 +261,7 @@ use returned error items for expected invalid input. ([#274])
 [#277]: https://github.com/ministryofjustice/hmpps-forge/pull/277
 [#278]: https://github.com/ministryofjustice/hmpps-forge/pull/278
 [#280]: https://github.com/ministryofjustice/hmpps-forge/pull/280
+[#281]: https://github.com/ministryofjustice/hmpps-forge/pull/281
 
 ---
 
