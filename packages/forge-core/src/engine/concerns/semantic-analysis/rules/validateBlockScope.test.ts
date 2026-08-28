@@ -1,5 +1,5 @@
-import { HookType, BlockType } from '../../../../authoring/types/enums'
-import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
+import { HookType, ComponentCallType } from '../../../../shared/taxonomy'
+import type { MaterialisedASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
@@ -9,8 +9,11 @@ import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTValidationContext } from './types'
 import { validateBlockScope } from './validateBlockScope'
 
-const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, NodeId]>): ASTValidationContext => {
-  const byId = new Map<NodeId, ASTNode>(nodes.map(node => [node.id, node]))
+const createContext = (
+  nodes: readonly MaterialisedASTNode[],
+  edges: ReadonlyArray<[NodeId, NodeId]>,
+): ASTValidationContext => {
+  const byId = new Map<NodeId, MaterialisedASTNode>(nodes.map(node => [node.id, node]))
 
   edges.forEach(([childId, parentId]) => {
     const child = byId.get(childId)
@@ -43,7 +46,7 @@ describe('validateBlockScope', () => {
 
     it('should return no errors when a block is in a step blocks array', () => {
       // Arrange
-      const block = ASTTestFactory.block('text', BlockType.FIELD).build()
+      const block = ASTTestFactory.block('text', ComponentCallType.FIELD).build()
       const step = ASTTestFactory.step().withProperty('blocks', [block]).build()
       const context = createContext([block, step], [[block.id, step.id]])
 
@@ -56,8 +59,10 @@ describe('validateBlockScope', () => {
 
     it('should return no errors when a block is nested inside another block', () => {
       // Arrange
-      const childBlock = ASTTestFactory.block('text', BlockType.FIELD).build()
-      const wrapperBlock = ASTTestFactory.block('panel', BlockType.BASIC).withProperty('content', [childBlock]).build()
+      const childBlock = ASTTestFactory.block('text', ComponentCallType.FIELD).build()
+      const wrapperBlock = ASTTestFactory.block('panel', ComponentCallType.BASIC)
+        .withProperty('content', [childBlock])
+        .build()
       const step = ASTTestFactory.step().withProperty('blocks', [wrapperBlock]).build()
       const context = createContext(
         [childBlock, wrapperBlock, step],
@@ -76,7 +81,7 @@ describe('validateBlockScope', () => {
 
     it('should return an error when the parent is neither a step nor a block', () => {
       // Arrange
-      const block = ASTTestFactory.block('text', BlockType.FIELD).build()
+      const block = ASTTestFactory.block('text', ComponentCallType.FIELD).build()
       const journey = ASTTestFactory.journey().withProperty('data', { block }).build()
       const context = createContext([block, journey], [[block.id, journey.id]])
 
@@ -91,7 +96,7 @@ describe('validateBlockScope', () => {
 
     it('should return an error when the parent is a hook property', () => {
       // Arrange
-      const block = ASTTestFactory.block('text', BlockType.FIELD).build()
+      const block = ASTTestFactory.block('text', ComponentCallType.FIELD).build()
       const hook = ASTTestFactory.hook(HookType.ACCESS).withProperty('effects', [block]).build()
       const context = createContext([block, hook], [[block.id, hook.id]])
 
@@ -106,7 +111,7 @@ describe('validateBlockScope', () => {
 
     it('should return an error when the parent is a step but the block is absent from blocks', () => {
       // Arrange
-      const block = ASTTestFactory.block('text', BlockType.FIELD).build()
+      const block = ASTTestFactory.block('text', ComponentCallType.FIELD).build()
       const step = ASTTestFactory.step().withProperty('blocks', []).build()
       const context = createContext([block, step], [[block.id, step.id]])
 
@@ -123,7 +128,7 @@ describe('validateBlockScope', () => {
       // Arrange
       const callsite = { stack: 'Error\n    at author (/repo/journeys/steps.ts:10:5)' }
       const block = {
-        ...ASTTestFactory.block('text', BlockType.FIELD).build(),
+        ...ASTTestFactory.block('text', ComponentCallType.FIELD).build(),
         diagnostics: { ...ASTTestFactory.diagnostics(), callsite },
       }
       const step = ASTTestFactory.step().withProperty('blocks', []).build()

@@ -1,4 +1,4 @@
-import { BlockType } from '../../../../authoring/types/enums'
+import { ComponentCallType } from '../../../../shared/taxonomy'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'
@@ -78,7 +78,7 @@ describe('validateStructureScope', () => {
   it('should reject a step whose parent is a block', () => {
     // Arrange
     const nodeIndex = new ASTNodeIndex()
-    const blockNode = ASTTestFactory.block('text', BlockType.BASIC).build()
+    const blockNode = ASTTestFactory.block('text', ComponentCallType.BASIC).build()
     const stepNode = ASTTestFactory.step().withCode('step').build()
 
     setParent(stepNode, blockNode)

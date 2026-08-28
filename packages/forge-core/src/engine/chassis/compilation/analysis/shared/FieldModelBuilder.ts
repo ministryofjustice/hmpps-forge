@@ -1,9 +1,9 @@
-import { BlockType, ExpressionType, FunctionType, IteratorType } from '../../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../contracts/ast/enums'
+import { ComponentCallType, ExpressionType, FunctionCallType, IteratorType } from '../../../../../shared/taxonomy'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
-import { isTemplateNode } from '../../../contracts/ast/nodes'
+import { isTemplateASTNode } from '../../../contracts/ast/nodes'
 import type { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
-import type { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
+import type { TemplateASTNode } from '../../../contracts/ast/ast.type'
+import type { TemplateValue } from '../../../contracts/ast/template.type'
 import { expressionValue, isExpressionLeaf, type AuthoredValue } from '../../../contracts/models/authoredValue.type'
 import {
   FieldCodeKind,
@@ -87,14 +87,14 @@ export default class FieldModelBuilder {
       return
     }
 
-    if (isTemplateNode(template)) {
-      if (template.originalType === ASTNodeType.EXPRESSION && template.expressionType === ExpressionType.ITERATE) {
+    if (isTemplateASTNode(template)) {
+      if (template.kind === ExpressionType.ITERATE) {
         this.collectNestedIterateFields(template, iteratorPath, fields)
 
         return
       }
 
-      if (template.originalType === ASTNodeType.BLOCK && template.blockType === BlockType.FIELD) {
+      if (template.kind === ComponentCallType.FIELD) {
         fields.push(this.buildTemplateField(template, iteratorPath))
       }
 
@@ -118,7 +118,11 @@ export default class FieldModelBuilder {
     })
   }
 
-  private collectNestedIterateFields(template: TemplateNode, iteratorPath: IterateRef[], fields: FieldModel[]): void {
+  private collectNestedIterateFields(
+    template: TemplateASTNode,
+    iteratorPath: IterateRef[],
+    fields: FieldModel[],
+  ): void {
     const properties = (template.properties ?? {}) as TemplateMapIteratorProperties
     const iterator = properties.iterator
 
@@ -129,9 +133,10 @@ export default class FieldModelBuilder {
     this.collectTemplateFields(iterator.yieldTemplate, [...iteratorPath, { node: template }], fields)
   }
 
-  private buildTemplateField(template: TemplateNode, iteratorPath: IterateRef[]): FieldModel {
+  private buildTemplateField(template: TemplateASTNode, iteratorPath: IterateRef[]): FieldModel {
     const properties = template.properties ?? {}
-    const variant = typeof template.variant === 'string' ? template.variant : ''
+    const templateData = template as unknown as Record<string, unknown>
+    const variant = typeof templateData.variant === 'string' ? templateData.variant : ''
     const fieldCode = this.classifyTemplateFieldCode(properties.code)
     const component = this.resolveComponent(variant)
 
@@ -167,7 +172,7 @@ export default class FieldModelBuilder {
       return { kind: FieldCodeKind.STATIC, value: fieldCode }
     }
 
-    if (isTemplateNode(fieldCode)) {
+    if (isTemplateASTNode(fieldCode)) {
       return { kind: FieldCodeKind.DYNAMIC, node: expressionValue(fieldCode) }
     }
 
@@ -255,7 +260,7 @@ export default class FieldModelBuilder {
 }
 
 function readTransformerName(value: object): string | undefined {
-  if (readExpressionType(value) !== FunctionType.TRANSFORMER) {
+  if (readExpressionKind(value) !== FunctionCallType.TRANSFORMER) {
     return undefined
   }
 
@@ -276,10 +281,10 @@ function readTransformerProperties(value: object): Record<string, unknown> {
   return readProperties(value) ?? (value as Record<string, unknown>)
 }
 
-function readExpressionType(value: object): unknown {
+function readExpressionKind(value: object): unknown {
   const record = value as Record<string, unknown>
 
-  return record.expressionType ?? record.type
+  return record.kind
 }
 
 function readProperties(value: object): Record<string, unknown> | undefined {

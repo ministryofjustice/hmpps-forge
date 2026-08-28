@@ -1,5 +1,5 @@
 import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { StructureType } from '../../../../shared/taxonomy'
 import type { JourneyASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
 import type {
   ReachabilityStateTable,
@@ -89,6 +89,6 @@ export default class ReachabilityAnalyzer implements JourneyModelAnalyzer<Reacha
   }
 
   private isJourneyNode(node: ASTNode): node is JourneyASTNode {
-    return node.type === ASTNodeType.JOURNEY
+    return node.kind === StructureType.JOURNEY
   }
 }

@@ -31,9 +31,8 @@ interface Buildable {
 const isBuildable = (value: unknown): value is Buildable => {
   return value !== null &&
     typeof value === 'object' &&
-    (value as any).nodeKind === 'forge-builder' &&
-    'build' in value &&
-    typeof (value as any).build === 'function'
+    typeof (value as any)._forge === 'string' &&
+    (value as any)._forge.startsWith('builder.')
 }
 
 const describePath = (path: readonly DSLPathSegment[]): string => (path.length === 0 ? '<root>' : path.join('.'))

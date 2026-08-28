@@ -4,15 +4,8 @@ import {
   PredicateExpr,
   TransformerFunctionExpr,
 } from '../../authoring/types/expressions.type'
-import {
-  ChainableConditional,
-  ChainableExpr,
-  ChainableGenerator,
-  ChainableIterable,
-  ChainableMatch,
-  ChainableRef,
-} from '../../authoring/builders/types'
-import { BlockType, StructureType } from '../../authoring/types/enums'
+import { ChainableExpression, ChainableIterable } from '../../authoring/builders/types'
+import { ComponentCallType } from '../../shared/taxonomy'
 import type { ValidationExpr } from '../../authoring/types/structures.type'
 
 /**
@@ -47,13 +40,11 @@ export interface BasicBlockProps {
  * Blocks are the fundamental building units of form UI.
  */
 export interface BlockDefinition extends BasicBlockProps {
-  type: StructureType.BLOCK
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: ComponentCallType
 
   /** The specific variant/type of block (e.g., 'text', 'number', 'radio', etc.) */
   variant: string
-
-  /** Discriminator to distinguish field blocks from regular blocks */
-  blockType: BlockType
 }
 
 /**
@@ -134,30 +125,28 @@ export interface FieldBlockProps extends BasicBlockProps {
  * Block definition for form field blocks.
  * Represents user input fields with validation and formatting.
  */
-export interface FieldBlockDefinition extends BlockDefinition, FieldBlockProps {}
+export interface FieldBlockDefinition extends BlockDefinition, FieldBlockProps {
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: ComponentCallType.FIELD
+}
 
-/**
- * The fluent wrappers the authoring DSL returns.
- * Authors only ever see this side; the finalisation walk unwraps these into the
- * wire-format expressions (ReferenceExpr, PipelineExpr, ...) the engine consumes.
- */
-type ChainableValue = ChainableRef | ChainableExpr | ChainableConditional | ChainableMatch | ChainableGenerator
+export type ResolvableString = string | ChainableExpression
 
-export type ResolvableString = string | ChainableValue
+export type ResolvableBoolean = boolean | ChainableExpression | PredicateExpr
 
-export type ResolvableBoolean = boolean | ChainableValue | PredicateExpr
+export type ResolvableNumber = number | ChainableExpression
 
-export type ResolvableNumber = number | ChainableValue
+export type ResolvableArray<T> = T[] | ChainableExpression
 
-export type ResolvableArray<T> = T[] | ChainableValue | ChainableIterable
-
-export type ResolvableObject<T extends object> = T | ChainableValue
+export type ResolvableObject<T extends object> = T | ChainableExpression
 
 export type RenderedBlock<TOutput = string> = {
   block: BlockDefinition
 } & ([TOutput] extends [string] ? { html: string } : { output: TOutput })
 
-type Resolved<T> = Exclude<T, ChainableValue | ChainableIterable | IterateExpr | PredicateExpr>
+// Strips the authoring-only arms from a prop union. Must stay a plain Exclude:
+// a keyof-based conditional here poisons the variance of ComponentRegistryEntry.
+type Resolved<T> = Exclude<T, ChainableExpression | IterateExpr | PredicateExpr>
 
 export type EvaluatedBlock<T, IsRoot extends boolean = true, TRenderedBlock = RenderedBlock> =
   Resolved<T> extends infer R
@@ -174,7 +163,13 @@ export type EvaluatedBlock<T, IsRoot extends boolean = true, TRenderedBlock = Re
               : R extends FieldBlockDefinition
                 ? IsRoot extends true
                   ? {
-                      [K in keyof R]: K extends 'type' | 'variant' ? R[K] : EvaluatedBlock<R[K], false, TRenderedBlock>
+                      [K in keyof R as K extends '_forge' | 'variant' ? never : K]: EvaluatedBlock<
+                        R[K],
+                        false,
+                        TRenderedBlock
+                      >
+                    } & {
+                      [K in Extract<keyof R, '_forge' | 'variant'>]?: R[K]
                     } & {
                       value?: unknown
                       errors?: { message: string; details?: Record<string, any> }[]
@@ -183,16 +178,20 @@ export type EvaluatedBlock<T, IsRoot extends boolean = true, TRenderedBlock = Re
                 : R extends BlockDefinition
                   ? IsRoot extends true
                     ? {
-                        [K in keyof R]: K extends 'type' | 'variant'
-                          ? R[K]
-                          : EvaluatedBlock<R[K], false, TRenderedBlock>
+                        [K in keyof R as K extends '_forge' | 'variant' ? never : K]: EvaluatedBlock<
+                          R[K],
+                          false,
+                          TRenderedBlock
+                        >
+                      } & {
+                        [K in Extract<keyof R, '_forge' | 'variant'>]?: R[K]
                       } & {
                         value?: unknown
                       }
                     : TRenderedBlock
                   : R extends object
                     ? {
-                        [K in keyof R]: K extends 'type' | 'variant'
+                        [K in keyof R]: K extends '_forge' | 'variant'
                           ? R[K]
                           : EvaluatedBlock<R[K], false, TRenderedBlock>
                       }

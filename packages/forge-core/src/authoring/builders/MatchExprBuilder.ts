@@ -1,5 +1,5 @@
 import { ConditionBranchExpr, MatchExpr, ResolvableValue } from '../types/expressions.type'
-import { ExpressionType } from '../types/enums'
+import { ExpressionType, BuilderType } from '../../shared/taxonomy'
 import { BranchValue, ChainableMatch } from './types'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 
@@ -14,7 +14,7 @@ import { captureCallsite, stampCallsite } from './utils/captureCallsite'
  * @internal Exposed to authors via the ChainableMatch interface.
  */
 export class MatchExprBuilder implements ChainableMatch {
-  readonly nodeKind = 'forge-builder' as const
+  readonly _forge = BuilderType.MATCH as const
 
   private readonly subject: ResolvableValue
 
@@ -56,9 +56,9 @@ export class MatchExprBuilder implements ChainableMatch {
    * Note: This is private to hide its interface from the user, finaliseBuilders calls this
    */
 
-  private build(): MatchExpr {
+  build(): MatchExpr {
     return {
-      type: ExpressionType.MATCH,
+      _forge: ExpressionType.MATCH,
       subject: this.subject,
       branches: this.branches.map(b => ({
         condition: b.condition,

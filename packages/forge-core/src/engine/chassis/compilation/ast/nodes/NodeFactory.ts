@@ -1,21 +1,20 @@
 import ForgeUnknownNodeTypeError from '../../../../errors/ForgeUnknownNodeTypeError'
 import ForgeInvalidNodeError from '../../../../errors/ForgeInvalidNodeError'
-import type { ASTNode, AstNodeId } from '../../../contracts/ast/engine.type'
+import type { AstNodeId, MaterialisedASTNode } from '../../../contracts/ast/engine.type'
 import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
 import type { TemplateValue } from '../../../contracts/ast/template.type'
 import type { ASTNodeDiagnostics, DSLSourceLocation } from '../../../../../shared/diagnostics/sourceLocation.type'
 import { compileTemplate } from './template'
 import {
-  ConditionCombinatorType,
+  ComponentCallType,
   ExpressionType,
-  FunctionType,
+  FunctionCallType,
   HookType,
-  IteratorType,
-  OutcomeType,
+  PolicyType,
   PredicateType,
   StructureType,
-} from '../../../../../authoring/types/enums'
-import { createBlockNode, createJourneyNode, createStepNode } from './structures'
+} from '../../../../../shared/taxonomy'
+import { createBasicBlock, createFieldBlock, createJourneyNode, createStepNode } from './structures'
 import {
   createConditionalNode,
   createFunctionNode,
@@ -41,7 +40,7 @@ import { createRedirectOutcomeNode, createThrowErrorOutcomeNode } from './outcom
  */
 export interface NodeBuildContext {
   nextId(): AstNodeId
-  createNode(json: unknown): ASTNode
+  createNode(json: unknown): MaterialisedASTNode
   transformValue<T = unknown>(value: unknown): T
   compileTemplate(value: unknown): TemplateValue
   diagnosticsFor(json: unknown): ASTNodeDiagnostics | undefined
@@ -49,66 +48,44 @@ export interface NodeBuildContext {
 
 /**
  * A node creator turns one authored definition into its AST node. Creators
- * are selected from the `creatorsByType` table below by the `type`
- * discriminant, so a creator can assume the input already carries its type.
+ * are selected from the `creatorsByForgeTag` table below by the `_forge`
+ * discriminant, so a creator can assume the input already carries its tag.
  */
 
-export type NodeCreator<TIn = any> = (json: TIn, ctx: NodeBuildContext) => ASTNode
-
-/**
- * Some authored objects carry a `type` discriminant but are not standalone AST
- * nodes - they're consumed inline by the creator of their parent node. A stray
- * one anywhere else is an authoring mistake, so its creator always throws,
- * saying where the object actually belongs.
- */
-const notConstructible =
-  (reason: string): NodeCreator =>
-  (json: unknown, ctx: NodeBuildContext) => {
-    const diagnostics = ctx.diagnosticsFor(json)
-
-    throw new ForgeInvalidNodeError({
-      message: reason,
-      node: json,
-      actual: (json as { type?: string }).type,
-      formattedPath: diagnostics?.source.formattedPath,
-      callsite: diagnostics?.callsite,
-    })
-  }
+export type NodeCreator<TIn = any> = (json: TIn, ctx: NodeBuildContext) => MaterialisedASTNode
 
 const COMBINATOR_PLACEMENT = 'Condition combinators can only appear inside a match expression branch condition'
 const ITERATOR_PLACEMENT = 'Iterator configurations can only appear inside the iterator of an Iterate expression'
 
 /**
- * The discriminants of the inline-only types. Anything carrying one of these
- * strings outside its one legal spot throws the placement error - even a
- * coincidental data object - but the valid-types list must not advertise them
- * as constructible.
+ * Combinators and iterator configs carry a `_forge` discriminant but are not
+ * standalone AST nodes - they're consumed inline by the creator of their parent
+ * node. A stray one anywhere else is an authoring mistake, so it throws the
+ * placement error - even a coincidental data object - but the valid-types list
+ * must not advertise them as constructible.
  */
-const INLINE_ONLY_TYPES: ReadonlySet<string> = new Set([
-  ...Object.values(ConditionCombinatorType),
-  ...Object.values(IteratorType),
-])
+const isInlineOnly = (tag: string): boolean => tag.startsWith('combinator.') || tag.startsWith('iterator.')
 
 /**
- * The complete registry of every `type` discriminant the DSL can emit - one
+ * The complete registry of every `_forge` discriminant the DSL can emit - one
  * row per enum value. Discriminant values are namespaced strings
- * ('StructureType.Journey', 'PredicateType.And', ...), so they are globally
+ * ('structure.journey', 'predicate.and', ...), so they are globally
  * unique and one flat map covers every node family.
  *
  * This map is the single source for dispatch (`createNode`), node detection
- * (`isNode`), and the valid-types list in `ForgeUnknownNodeTypeError` - the list
- * minus the `INLINE_ONLY_TYPES` rows. Adding a node type means adding a
- * creator and a row here; the completeness test in `NodeFactory.test.ts`
- * fails if an enum value has no row.
+ * (`isNode`), and the valid-types list in `ForgeUnknownNodeTypeError`. Adding
+ * a node type means adding a creator and a row here; the completeness test in
+ * `NodeFactory.test.ts` fails if an enum value has no row.
  *
- * `ExpressionType.NEXT` is deliberately absent: nothing in the authoring
+ * `PolicyType.NAVIGATION_NEXT` is deliberately absent: nothing in the authoring
  * surface produces it and no factory ever created it.
  */
-export const creatorsByType: ReadonlyMap<string, NodeCreator> = new Map<string, NodeCreator>([
+export const creatorsByForgeTag: ReadonlyMap<string, NodeCreator> = new Map<string, NodeCreator>([
   // Structures
   [StructureType.JOURNEY, createJourneyNode],
   [StructureType.STEP, createStepNode],
-  [StructureType.BLOCK, createBlockNode],
+  [ComponentCallType.BASIC, createBasicBlock],
+  [ComponentCallType.FIELD, createFieldBlock],
 
   // Expressions
   [ExpressionType.REFERENCE, createReferenceNode],
@@ -116,8 +93,8 @@ export const creatorsByType: ReadonlyMap<string, NodeCreator> = new Map<string, 
   [ExpressionType.CONDITIONAL, createConditionalNode],
   [ExpressionType.MATCH, createMatchNode],
   [ExpressionType.ITERATE, createIterateNode],
-  [ExpressionType.VALIDATION, createValidationNode],
-  [ExpressionType.TIE_BREAKER, createTieBreakerNode],
+  [PolicyType.VALIDATION_RULE, createValidationNode],
+  [PolicyType.NAVIGATION_TIE_BREAKER, createTieBreakerNode],
 
   // Predicates
   [PredicateType.TEST, createTestPredicateNode],
@@ -127,34 +104,25 @@ export const creatorsByType: ReadonlyMap<string, NodeCreator> = new Map<string, 
   [PredicateType.XOR, naryPredicateCreator(PredicateType.XOR)],
 
   // Registered function calls
-  [FunctionType.CONDITION, createFunctionNode],
-  [FunctionType.TRANSFORMER, createFunctionNode],
-  [FunctionType.GENERATOR, createFunctionNode],
-  [FunctionType.EFFECT, createFunctionNode],
+  [FunctionCallType.CONDITION, createFunctionNode],
+  [FunctionCallType.TRANSFORMER, createFunctionNode],
+  [FunctionCallType.GENERATOR, createFunctionNode],
+  [FunctionCallType.EFFECT, createFunctionNode],
 
   // Hooks
   [HookType.ACCESS, createAccessHookNode],
   [HookType.SUBMIT, createSubmitHookNode],
 
   // Hook outcomes
-  [OutcomeType.REDIRECT, createRedirectOutcomeNode],
-  [OutcomeType.THROW_ERROR, createThrowErrorOutcomeNode],
-
-  // Inline-only types - recognised, but never standalone AST nodes
-  [ConditionCombinatorType.AND, notConstructible(COMBINATOR_PLACEMENT)],
-  [ConditionCombinatorType.OR, notConstructible(COMBINATOR_PLACEMENT)],
-  [ConditionCombinatorType.XOR, notConstructible(COMBINATOR_PLACEMENT)],
-  [ConditionCombinatorType.NOT, notConstructible(COMBINATOR_PLACEMENT)],
-  [IteratorType.MAP, notConstructible(ITERATOR_PLACEMENT)],
-  [IteratorType.FILTER, notConstructible(ITERATOR_PLACEMENT)],
-  [IteratorType.FIND, notConstructible(ITERATOR_PLACEMENT)],
+  [PolicyType.OUTCOME_REDIRECT, createRedirectOutcomeNode],
+  [PolicyType.OUTCOME_THROW_ERROR, createThrowErrorOutcomeNode],
 ])
 
 /**
  * NodeFactory: Main entry point for creating AST nodes
  *
  * A walker over authored definitions. Node creation dispatches through the
- * `creatorsByType` table keyed on the `type` discriminant; the creators call
+ * `creatorsByForgeTag` table keyed on the `_forge` discriminant; the creators call
  * back in through `NodeBuildContext` for IDs, recursion, and diagnostics.
  *
  * Source diagnostics are read off the non-enumerable `__source` (and
@@ -178,9 +146,9 @@ export class NodeFactory {
 
   /**
    * Main entry point for transformation
-   * Looks up the node's creator by its `type` discriminant and runs it
+   * Looks up the node's creator by its `_forge` discriminant and runs it
    */
-  createNode(json: unknown): ASTNode {
+  createNode(json: unknown): MaterialisedASTNode {
     if (!json || typeof json !== 'object') {
       throw new ForgeInvalidNodeError({
         message: `Invalid node: expected object, got ${typeof json}`,
@@ -190,16 +158,29 @@ export class NodeFactory {
       })
     }
 
-    const nodeType = this.getNodeType(json)
-    const create = nodeType === undefined ? undefined : creatorsByType.get(nodeType)
+    const forgeTag = this.getForgeTag(json)
+
+    if (forgeTag !== undefined && isInlineOnly(forgeTag)) {
+      const diagnostics = this.diagnosticsFor(json)
+
+      throw new ForgeInvalidNodeError({
+        message: forgeTag.startsWith('combinator.') ? COMBINATOR_PLACEMENT : ITERATOR_PLACEMENT,
+        node: json,
+        actual: forgeTag,
+        formattedPath: diagnostics?.source.formattedPath,
+        callsite: diagnostics?.callsite,
+      })
+    }
+
+    const create = forgeTag === undefined ? undefined : creatorsByForgeTag.get(forgeTag)
 
     if (!create) {
       const diagnostics = this.diagnosticsFor(json)
 
       throw new ForgeUnknownNodeTypeError({
-        nodeType,
+        nodeType: forgeTag,
         node: json,
-        validTypes: [...creatorsByType.keys()].filter(type => !INLINE_ONLY_TYPES.has(type)),
+        validTypes: [...creatorsByForgeTag.keys()],
         formattedPath: diagnostics?.source.formattedPath,
         callsite: diagnostics?.callsite,
       })
@@ -267,7 +248,7 @@ export class NodeFactory {
     }
   }
 
-  private withDiagnostics<TNode extends ASTNode>(node: TNode, json: unknown): TNode {
+  private withDiagnostics<TNode extends MaterialisedASTNode>(node: TNode, json: unknown): TNode {
     const diagnostics = this.diagnosticsFor(json)
 
     if (!diagnostics) {
@@ -280,23 +261,23 @@ export class NodeFactory {
     } as TNode
   }
 
-  private getNodeType(value: object): string | undefined {
-    if (!('type' in value) || typeof value.type !== 'string') {
+  private getForgeTag(value: object): string | undefined {
+    if (!('_forge' in value) || typeof value._forge !== 'string') {
       return undefined
     }
 
-    return value.type
+    return value._forge
   }
 
   /**
    * Node detection: Identifies objects that are AST nodes
-   * An object is a node when its `type` discriminant has a creator - the
-   * inline-only rows included, so a stray combinator or iterator config in a
+   * An object is a node when its `_forge` discriminant has a creator - the
+   * inline-only tags included, so a stray combinator or iterator config in a
    * data position surfaces its placement error rather than passing as data.
    */
   private isNode(value: object): boolean {
-    const nodeType = this.getNodeType(value)
+    const forgeTag = this.getForgeTag(value)
 
-    return nodeType !== undefined && creatorsByType.has(nodeType)
+    return forgeTag !== undefined && (creatorsByForgeTag.has(forgeTag) || isInlineOnly(forgeTag))
   }
 }

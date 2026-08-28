@@ -1,5 +1,5 @@
 import { ArrayTransformers } from './arrayTransformers'
-import { FunctionType } from '../../../authoring/types/enums'
+import { FunctionCallType } from '../../../shared/taxonomy'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('Array Transformers', () => {
@@ -30,7 +30,7 @@ describe('Array Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = ArrayTransformers.Length()
       expect(expr).toEqual({
-        type: FunctionType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'Array.Length',
         arguments: [],
       })

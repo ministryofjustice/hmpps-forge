@@ -1,7 +1,12 @@
 import { ASTNode } from '../../../contracts/ast/ast.type'
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import { ExpressionType, FunctionType, IteratorType } from '../../../../../authoring/types/enums'
-import { TemplateNode } from '../../../contracts/ast/template.type'
+import { ASTNodeFamily, astNodeFamily, type ASTNodeKind } from '../../../contracts/ast/enums'
+import {
+  PolicyType,
+  ExpressionType,
+  FunctionCallType,
+  IteratorType,
+  PredicateType,
+} from '../../../../../shared/taxonomy'
 import ForgeUnregisteredFunctionError from '../../../../errors/ForgeUnregisteredFunctionError'
 import {
   CodeFragment,
@@ -25,6 +30,15 @@ import { isASTNode } from '../../../contracts/ast/nodes'
 import { isDeepStaticValue } from '../../../contracts/models/authoredValue.type'
 import type { CompilationDependencies } from '../compilationDependencies.type'
 import { compileIifeExpression } from './IifeExpressionCompiler'
+
+const COMPILABLE_NODE_KINDS: ReadonlySet<ASTNodeKind> = new Set([
+  ...Object.values(ExpressionType),
+  ...Object.values(PredicateType),
+  FunctionCallType.CONDITION,
+  FunctionCallType.TRANSFORMER,
+  FunctionCallType.GENERATOR,
+  PolicyType.VALIDATION_RULE,
+])
 
 export type { IteratorScopeFrame } from './types'
 
@@ -243,62 +257,26 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Registered AST nodes and iterator template nodes (expression nodes
-   * embedded inside authored templates) share the same expression compilers.
-   * Keeping the dispatch split here lets render, validation, answer prep,
-   * reachability, and hooks all use one scope and async model.
+   * Materialised and template nodes share the same semantic kind and expression
+   * compilers, so every caller uses one scope and async model.
    */
   compileExpressionCode(node: ASTNode): CodeFragment {
     if (!this.isCompilableNode(node)) {
       return literal(node)
     }
 
-    const properties = (node as unknown as { properties: Record<string, unknown> }).properties ?? {}
-    let expressionType: string | undefined
-    let expression = literal(undefined)
+    const properties = node.properties ?? {}
+    const isPredicate = astNodeFamily(node.kind) === ASTNodeFamily.PREDICATE
+    const expressionKind = isPredicate ? undefined : node.kind
+    const expression = isPredicate
+      ? this.predicates.compile(node.kind, properties)
+      : this.dispatchExpression(node.kind, properties, node)
 
-    if (node.type === ASTNodeType.PREDICATE) {
-      const predicateType = (node as unknown as { predicateType: string }).predicateType
-
-      expression = this.predicates.compile(predicateType, properties)
-    } else if (node.type === ASTNodeType.EXPRESSION) {
-      expressionType = (node as unknown as { expressionType: string }).expressionType
-
-      expression = this.dispatchExpression(expressionType, properties, node)
-    }
-
-    if (this.hasOwnDiagnosticBoundary(expressionType) || this.isValidationPredicate(node.type)) {
+    if (this.hasOwnDiagnosticBoundary(expressionKind) || this.isValidationPredicate(node.kind)) {
       return expression
     }
 
-    if (this.isThrowFreeReference(expressionType, expression)) {
-      return this.diagnostics.attachPositions(expression, node)
-    }
-
-    return this.diagnostics.wrapExpression(expression, node, this.usedAwait, this.generator)
-  }
-
-  /**
-   * Compiles expression nodes found inside templates, using the same scope
-   * and dispatch logic as top-level AST nodes.
-   */
-  compileTemplateExpressionCode(node: TemplateNode): CodeFragment {
-    const properties = (node.properties ?? {}) as Record<string, unknown>
-    let expressionType: string | undefined
-    let expression = literal(undefined)
-
-    if (node.originalType === ASTNodeType.PREDICATE) {
-      expression = this.predicates.compile(node.predicateType as string, properties)
-    } else if (node.originalType === ASTNodeType.EXPRESSION) {
-      expressionType = node.expressionType as string
-      expression = this.dispatchExpression(expressionType, properties, node)
-    }
-
-    if (this.hasOwnDiagnosticBoundary(expressionType) || this.isValidationPredicate(node.originalType)) {
-      return expression
-    }
-
-    if (this.isThrowFreeReference(expressionType, expression)) {
+    if (this.isThrowFreeReference(expressionKind, expression)) {
       return this.diagnostics.attachPositions(expression, node)
     }
 
@@ -311,44 +289,40 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
    * `evaluateTracked` would allocate a callback purely to attribute an error
    * that can never happen.
    */
-  private isThrowFreeReference(expressionType: string | undefined, expression: CodeFragment): boolean {
-    return expressionType === ExpressionType.REFERENCE && !expression.containsInvocation
+  private isThrowFreeReference(nodeKind: string | undefined, expression: CodeFragment): boolean {
+    return nodeKind === ExpressionType.REFERENCE && !expression.containsInvocation
   }
 
-  private hasOwnDiagnosticBoundary(expressionType: string | undefined): boolean {
+  private hasOwnDiagnosticBoundary(nodeKind: string | undefined): boolean {
     // Function calls carry their own diagnostic metadata through evaluateFunction.
     // Validation rules contain tracked operands and function calls, so wrapping
     // the rule object itself only adds an unrelated callback around construction.
-    return expressionType === FunctionType.CONDITION ||
-      expressionType === FunctionType.TRANSFORMER ||
-      expressionType === FunctionType.GENERATOR ||
-      expressionType === ExpressionType.VALIDATION
+    return nodeKind === FunctionCallType.CONDITION ||
+      nodeKind === FunctionCallType.TRANSFORMER ||
+      nodeKind === FunctionCallType.GENERATOR ||
+      nodeKind === PolicyType.VALIDATION_RULE
   }
 
-  private isValidationPredicate(nodeType: unknown): boolean {
+  private isValidationPredicate(kind: ASTNodeKind): boolean {
     // Predicate leaves already carry diagnostics through their references and
     // registered function calls. Keep their boolean composition visible inside
     // the named validation condition instead of wrapping the whole predicate.
-    return this.validationFunctionPrefixes.length > 0 && nodeType === ASTNodeType.PREDICATE
+    return this.validationFunctionPrefixes.length > 0 && astNodeFamily(kind) === ASTNodeFamily.PREDICATE
   }
 
-  private dispatchExpression(
-    expressionType: string,
-    properties: Record<string, unknown>,
-    source?: unknown,
-  ): CodeFragment {
-    switch (expressionType) {
+  private dispatchExpression(nodeKind: string, properties: Record<string, unknown>, source?: unknown): CodeFragment {
+    switch (nodeKind) {
       case ExpressionType.REFERENCE:
         return this.references.compile(properties)
       case ExpressionType.PIPELINE:
         return this.pipelines.compilePipeline(properties)
       case ExpressionType.ITERATE:
         return this.compileIterate(properties)
-      case ExpressionType.VALIDATION:
+      case PolicyType.VALIDATION_RULE:
         return this.compileValidation(properties)
-      case FunctionType.CONDITION:
-      case FunctionType.TRANSFORMER:
-      case FunctionType.GENERATOR:
+      case FunctionCallType.CONDITION:
+      case FunctionCallType.TRANSFORMER:
+      case FunctionCallType.GENERATOR:
         return this.pipelines.compileFunction(properties, source)
       case ExpressionType.CONDITIONAL:
         return this.conditionals.compile(properties)
@@ -365,12 +339,8 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
    * function arguments and block properties on the same rules.
    */
   compileOperandCode(value: unknown): CodeFragment {
-    if (this.isTemplateNode(value)) {
-      return this.compileTemplateExpressionCode(value)
-    }
-
     if (this.isCompilableNode(value)) {
-      return this.compileExpressionCode(value as ASTNode)
+      return this.compileExpressionCode(value)
     }
 
     if (Array.isArray(value)) {
@@ -700,7 +670,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     if (!registeredFunction) {
       throw new ForgeUnregisteredFunctionError({
         functionName: funcName,
-        functionType: (source as { expressionType?: string } | undefined)?.expressionType ?? 'unknown',
+        functionType: (source as { kind?: string } | undefined)?.kind ?? 'unknown',
       })
     }
 
@@ -862,21 +832,10 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   }
 
   /**
-   * Checks whether a value is an AST node that has been registered in the node
-   * index and can be compiled into a JavaScript expression.
+   * Checks whether a value is a materialised or template AST node that can be
+   * compiled into a JavaScript expression.
    */
   isCompilableNode(value: unknown): value is ASTNode {
-    return isASTNode(value) && 'id' in value
-  }
-
-  /**
-   * Checks whether a value is a template node (an expression node embedded
-   * inside an authored value such as a block property or hook argument).
-   */
-  isTemplateNode(value: unknown): value is TemplateNode {
-    return value !== null &&
-      value !== undefined &&
-      typeof value === 'object' &&
-      (value as Record<string, unknown>).type === ASTNodeType.TEMPLATE
+    return isASTNode(value) && COMPILABLE_NODE_KINDS.has(value.kind)
   }
 }

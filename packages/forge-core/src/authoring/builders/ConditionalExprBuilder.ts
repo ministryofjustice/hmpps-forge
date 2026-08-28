@@ -1,5 +1,5 @@
 import { ConditionalExpr, PredicateExpr, PredicateTestExpr } from '../types/expressions.type'
-import { ExpressionType } from '../types/enums'
+import { ExpressionType, BuilderType } from '../../shared/taxonomy'
 import { BranchValue, ChainableConditional } from './types'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 
@@ -12,7 +12,7 @@ import { captureCallsite, stampCallsite } from './utils/captureCallsite'
  * @internal Exposed to authors via the ChainableConditional interface.
  */
 export class ConditionalExprBuilder implements ChainableConditional {
-  readonly nodeKind = 'forge-builder' as const
+  readonly _forge = BuilderType.CONDITIONAL as const
 
   private readonly predicate: PredicateExpr
 
@@ -49,9 +49,9 @@ export class ConditionalExprBuilder implements ChainableConditional {
    * Note: This is private to hide its interface from the user, finaliseBuilders calls this
    */
 
-  private build(): ConditionalExpr {
+  build(): ConditionalExpr {
     return {
-      type: ExpressionType.CONDITIONAL,
+      _forge: ExpressionType.CONDITIONAL,
       predicate: this.predicate,
       thenValue: this.thenValue,
       elseValue: this.elseValue,

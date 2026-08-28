@@ -1,15 +1,15 @@
-import type { ASTNode } from '../../../contracts/ast/engine.type'
-import { ASTNodeType } from '../../../contracts/ast/enums'
+import type { MaterialisedASTNode } from '../../../contracts/ast/engine.type'
+import { StructureType } from '../../../../../shared/taxonomy'
 import type { JourneyASTNode } from '../../../contracts/ast/structures.type'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import Ancestry from './Ancestry'
 
-function setParent(child: ASTNode, parent: ASTNode): void {
+function setParent(child: MaterialisedASTNode, parent: MaterialisedASTNode): void {
   Object.defineProperty(child, 'parent', { value: parent, enumerable: false })
 }
 
-function isJourneyNode(node: ASTNode): node is JourneyASTNode {
-  return node.type === ASTNodeType.JOURNEY
+function isJourneyNode(node: MaterialisedASTNode): node is JourneyASTNode {
+  return node.kind === StructureType.JOURNEY
 }
 
 describe('Ancestry', () => {
@@ -30,7 +30,7 @@ describe('Ancestry', () => {
       // Act
       const values = new Ancestry().valuesRootFirst<Record<string, unknown>>(
         stepNode,
-        ancestor => ancestor.properties?.data,
+        ancestor => ancestor.properties?.data as Record<string, unknown> | undefined,
       )
 
       // Assert
@@ -49,7 +49,7 @@ describe('Ancestry', () => {
       // Act
       const setting = new Ancestry().nearestAncestorSetting<boolean>(
         innerJourney,
-        ancestor => ancestor.properties?.flag,
+        ancestor => ancestor.properties?.flag as boolean | undefined,
       )
 
       // Assert
@@ -68,7 +68,7 @@ describe('Ancestry', () => {
       // Act
       const setting = new Ancestry().nearestAncestorSetting<boolean>(
         innerJourney,
-        ancestor => ancestor.properties?.flag,
+        ancestor => ancestor.properties?.flag as boolean | undefined,
       )
 
       // Assert
@@ -85,7 +85,7 @@ describe('Ancestry', () => {
       // Act
       const setting = new Ancestry().nearestAncestorSetting<boolean>(
         innerJourney,
-        ancestor => ancestor.properties?.flag,
+        ancestor => ancestor.properties?.flag as boolean | undefined,
       )
 
       // Assert

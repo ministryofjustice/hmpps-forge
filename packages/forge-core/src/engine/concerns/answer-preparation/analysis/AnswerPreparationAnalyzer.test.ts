@@ -1,4 +1,4 @@
-import { BlockType } from '../../../../authoring/types/enums'
+import { ComponentCallType } from '../../../../shared/taxonomy'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
@@ -23,7 +23,7 @@ describe('AnswerPreparationAnalyzer', () => {
       const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step().withPath('/step').build()
-      const fieldBlock = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('fieldA').build()
+      const fieldBlock = ASTTestFactory.block('TextInput', ComponentCallType.FIELD).withCode('fieldA').build()
 
       setParent(stepNode, journeyNode)
       setParent(fieldBlock, stepNode)
@@ -52,8 +52,8 @@ describe('AnswerPreparationAnalyzer', () => {
       const journeyNode = ASTTestFactory.journey().build()
       const firstStep = ASTTestFactory.step().withPath('/first').build()
       const secondStep = ASTTestFactory.step().withPath('/second').build()
-      const firstField = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('first').build()
-      const secondField = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('second').build()
+      const firstField = ASTTestFactory.block('TextInput', ComponentCallType.FIELD).withCode('first').build()
+      const secondField = ASTTestFactory.block('TextInput', ComponentCallType.FIELD).withCode('second').build()
 
       setParent(firstStep, journeyNode)
       setParent(secondStep, journeyNode)

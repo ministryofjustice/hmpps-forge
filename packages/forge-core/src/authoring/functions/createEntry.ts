@@ -1,5 +1,5 @@
 import type { ZodType } from 'zod'
-import { FunctionType } from '../types/enums'
+import { FunctionCallType, FunctionEntryType } from '../../shared/taxonomy'
 import { captureCallsite, stampCallsite } from '../builders/utils/captureCallsite'
 import { stampEntry } from '../builders/utils/stampEntry'
 import type { FunctionEntry } from '../types/functions.type'
@@ -31,7 +31,7 @@ export function isFunctionEntry(value: unknown): value is FunctionEntry {
 
   const candidate = value as Partial<FunctionEntry>
 
-  return typeof candidate.functionType === 'string' && typeof candidate.factory === 'function'
+  return typeof candidate._forge === 'string' && typeof candidate.factory === 'function'
 }
 
 interface AnyEntryOptions {
@@ -46,8 +46,15 @@ type EntryHandle = ((...args: any[]) => unknown) & FunctionEntry
 
 export type CallResultBuilder = (name: string, prepared: any[], handle: EntryHandle) => unknown
 
+const ENTRY_TAGS: Record<FunctionCallType, FunctionEntryType> = {
+  [FunctionCallType.CONDITION]: FunctionEntryType.CONDITION,
+  [FunctionCallType.TRANSFORMER]: FunctionEntryType.TRANSFORMER,
+  [FunctionCallType.GENERATOR]: FunctionEntryType.GENERATOR,
+  [FunctionCallType.EFFECT]: FunctionEntryType.EFFECT,
+}
+
 export const createEntry = (
-  functionType: FunctionType,
+  functionType: FunctionCallType,
   helperName: string,
   first: string | AnyEntryOptions,
   second: AnyEntryOptions | undefined,
@@ -73,7 +80,7 @@ export const createEntry = (
   Object.defineProperty(handle, 'name', { value: name, configurable: true })
 
   const entry = Object.assign(handle, {
-    functionType,
+    _forge: ENTRY_TAGS[functionType],
     inputSchema,
     argumentsSchema,
     outputSchema,
@@ -84,9 +91,9 @@ export const createEntry = (
 }
 
 export const buildExpression =
-  (type: FunctionType): CallResultBuilder =>
+  (type: FunctionCallType): CallResultBuilder =>
   (name, prepared, entry) => {
-    const expr = { type, name, arguments: prepared }
+    const expr = { _forge: type, name, arguments: prepared }
 
     stampCallsite(expr, captureCallsite(entry))
     stampEntry(expr, entry)

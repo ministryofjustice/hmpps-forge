@@ -2,8 +2,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z, type ZodType } from 'zod'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
-import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
+import {
+  ComponentCallType,
+  ExpressionType,
+  FunctionCallType,
+  IteratorType,
+  PredicateType,
+} from '../../../../shared/taxonomy'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   FormatGenerators,
@@ -87,7 +92,7 @@ function createFieldBlock(
   props: Record<string, unknown> = {},
   variant = 'text-input',
 ): FieldBlockASTNode {
-  const builder = ASTTestFactory.block(variant, BlockType.FIELD)
+  const builder = ASTTestFactory.block(variant, ComponentCallType.FIELD)
     .withProperty('code', code)
 
   Object.entries(props).forEach(([key, value]) => {
@@ -99,8 +104,8 @@ function createFieldBlock(
 
 function createTransformerFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionType.TRANSFORMER,
+    kind: FunctionCallType.TRANSFORMER,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -109,8 +114,8 @@ function createTransformerFunction(name: string, args: unknown[] = []): Function
 
 function createReference(path: (string | number)[]): ReferenceASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.REFERENCE,
+    kind: ExpressionType.REFERENCE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { path },
@@ -119,8 +124,8 @@ function createReference(path: (string | number)[]): ReferenceASTNode {
 
 function createConditionFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionType.CONDITION,
+    kind: FunctionCallType.CONDITION,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -129,8 +134,8 @@ function createConditionFunction(name: string, args: unknown[] = []): FunctionAS
 
 function createGeneratorFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionType.GENERATOR,
+    kind: FunctionCallType.GENERATOR,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { name, arguments: args },
@@ -147,8 +152,8 @@ const formatGeneratorRows = (() => {
 
 function createTestPredicate(subject: ReferenceASTNode, condition: FunctionASTNode): TestPredicateASTNode {
   return {
-    type: ASTNodeType.PREDICATE,
-    predicateType: PredicateType.TEST,
+    kind: PredicateType.TEST,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: { subject, condition, negate: false },
@@ -203,8 +208,8 @@ function createCtx(overrides: Partial<CompiledAnswerPreparationContext> = {}): C
 
 function createIterateNode(input: unknown, yieldTemplate: TemplateValue): IterateASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.ITERATE,
+    kind: ExpressionType.ITERATE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     properties: {
       input,
@@ -788,7 +793,7 @@ describe('StepAnswerPreparationCompiler', () => {
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
           phase: 'answer-preparation',
           functionName: 'explode',
-          functionType: FunctionType.TRANSFORMER,
+          functionType: FunctionCallType.TRANSFORMER,
         })
       }
     })
@@ -907,7 +912,7 @@ describe('StepAnswerPreparationCompiler', () => {
         expect(getForgeRuntimeEvaluationDiagnostics(error)).toMatchObject({
           phase: 'answer-preparation',
           functionName: 'willThrow',
-          functionType: FunctionType.CONDITION,
+          functionType: FunctionCallType.CONDITION,
         })
       }
     })
@@ -1184,9 +1189,10 @@ describe('StepAnswerPreparationCompiler', () => {
     it('should process fields with static codes inside iterator', async () => {
       // Arrange
       const template = createTemplateValue({
-        type: ASTNodeType.BLOCK,
+        kind: ComponentCallType.FIELD,
+        isTemplate: false,
+        id: ASTTestFactory.getId(),
         variant: 'text-input',
-        blockType: BlockType.FIELD,
         properties: {
           code: 'staticField',
         },
@@ -1209,14 +1215,16 @@ describe('StepAnswerPreparationCompiler', () => {
     it('should resolve dynamic field codes from scope references', async () => {
       // Arrange
       const template = createTemplateValue({
-        type: ASTNodeType.BLOCK,
+        kind: ComponentCallType.FIELD,
+        isTemplate: false,
+        id: ASTTestFactory.getId(),
         variant: 'text-input',
-        blockType: BlockType.FIELD,
         properties: {
           code: ASTTestFactory.formatExpression('person_%1', [
             {
-              type: ASTNodeType.EXPRESSION,
-              expressionType: ExpressionType.REFERENCE,
+              kind: ExpressionType.REFERENCE,
+              isTemplate: false,
+              id: ASTTestFactory.getId(),
               properties: { path: ['@loop', 0, 'index0'] },
             },
           ]),

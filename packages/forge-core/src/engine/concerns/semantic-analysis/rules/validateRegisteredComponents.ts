@@ -1,4 +1,4 @@
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { ASTNodeFamily } from '../../../chassis/contracts/ast/enums'
 import type { BlockASTNode } from '../../../chassis/contracts/ast/structures.type'
 import ForgeUnregisteredComponentError from '../../../errors/ForgeUnregisteredComponentError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
@@ -18,7 +18,7 @@ export const validateRegisteredComponents: ASTValidationRule = (context: ASTVali
   const { nodeIndex, templateNodeIndex, componentRegistry } = context
   const errors: Error[] = []
 
-  nodeIndex.findByType<BlockASTNode>(ASTNodeType.BLOCK).forEach(node => {
+  nodeIndex.findByFamily<BlockASTNode>(ASTNodeFamily.COMPONENT_CALL).forEach(node => {
     if (componentRegistry.has(node.variant)) {
       return
     }
@@ -26,8 +26,8 @@ export const validateRegisteredComponents: ASTValidationRule = (context: ASTVali
     errors.push(buildError(node.variant, node.diagnostics))
   })
 
-  templateNodeIndex.findByType(ASTNodeType.BLOCK).forEach(({ node }) => {
-    const variant = node.variant
+  templateNodeIndex.findByFamily(ASTNodeFamily.COMPONENT_CALL).forEach(({ node }) => {
+    const variant = (node as unknown as Record<string, unknown>).variant
 
     if (typeof variant !== 'string') {
       return

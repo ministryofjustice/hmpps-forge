@@ -1,4 +1,4 @@
-import { FunctionType } from '../types/enums'
+import { FunctionEntryType } from '../../shared/taxonomy'
 import { CONDITION_OUTPUT_SCHEMA } from '../registries/BaseFunctionRegistry'
 import { getEntryStamp } from '../builders/utils/stampEntry'
 import { isFunctionEntry } from './createEntry'
@@ -10,11 +10,11 @@ import type { FunctionEntry, FunctionRegistryBuilder, FunctionRegistryObject } f
 
 // Anonymous entries have no author name, so their registry name falls back to
 // the helper that created them.
-const ANONYMOUS_LABELS: Record<FunctionType, string> = {
-  [FunctionType.CONDITION]: 'condition',
-  [FunctionType.TRANSFORMER]: 'transformer',
-  [FunctionType.GENERATOR]: 'generator',
-  [FunctionType.EFFECT]: 'effect',
+const ANONYMOUS_LABELS: Record<FunctionEntryType, string> = {
+  [FunctionEntryType.CONDITION]: 'condition',
+  [FunctionEntryType.TRANSFORMER]: 'transformer',
+  [FunctionEntryType.GENERATOR]: 'generator',
+  [FunctionEntryType.EFFECT]: 'effect',
 }
 
 /**
@@ -55,7 +55,7 @@ export class FunctionEntryRegistry<TDeps = any> implements FunctionRegistryBuild
     if (!entry.name) {
       throw new ForgeAuthoringError({
         message:
-          `An anonymous ${entry.functionType} entry cannot be listed in "functions" - ` +
+          `An anonymous ${entry._forge} entry cannot be listed in "functions" - ` +
           `give it a name, e.g. condition('MyCondition', { ... })`,
       })
     }
@@ -124,8 +124,8 @@ export class FunctionEntryRegistry<TDeps = any> implements FunctionRegistryBuild
           inputSchema: entry.inputSchema,
           argumentsSchema: entry.argumentsSchema,
           outputSchema:
-            entry.outputSchema ?? (entry.functionType === FunctionType.CONDITION ? CONDITION_OUTPUT_SCHEMA : undefined),
-          functionType: entry.functionType,
+            entry.outputSchema ?? (entry._forge === FunctionEntryType.CONDITION ? CONDITION_OUTPUT_SCHEMA : undefined),
+          _forge: entry._forge,
         }
       } catch (cause) {
         errors.push(this.buildError(name, entry, cause))
@@ -174,7 +174,7 @@ export class FunctionEntryRegistry<TDeps = any> implements FunctionRegistryBuild
       return assigned
     }
 
-    const base = entry.name ?? ANONYMOUS_LABELS[entry.functionType]
+    const base = entry.name ?? ANONYMOUS_LABELS[entry._forge]
     let candidate = base
     let suffix = 1
 
@@ -200,7 +200,7 @@ export class FunctionEntryRegistry<TDeps = any> implements FunctionRegistryBuild
 
     return new ForgeFunctionEntryBuildError({
       functionName: name,
-      functionType: entry.functionType,
+      functionType: entry._forge,
       formattedPath: source?.formattedPath,
       callsite,
       cause,

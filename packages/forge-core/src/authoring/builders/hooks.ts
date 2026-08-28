@@ -1,14 +1,14 @@
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { TieBreaker, TieBreakerProps, ValidationExpr, ValidationProps } from '../types/structures.type'
 import { AccessHook, RedirectOutcome, SubmitHook, ThrowErrorOutcome } from '../types/expressions.type'
-import { ExpressionType, HookType, OutcomeType } from '../types/enums'
+import { HookType, PolicyType } from '../../shared/taxonomy'
 
 /**
  * Creates a submission hook for handling form submissions.
  * Use this in the onSubmission array of steps.
  */
-export function submit(definition: Omit<SubmitHook, 'type'>): SubmitHook {
-  const result = { ...definition, type: HookType.SUBMIT } as SubmitHook
+export function submit(definition: Omit<SubmitHook, '_forge'>): SubmitHook {
+  const result = { ...definition, _forge: HookType.SUBMIT } as SubmitHook
   stampCallsite(result, captureCallsite(submit))
   return result
 }
@@ -17,8 +17,8 @@ export function submit(definition: Omit<SubmitHook, 'type'>): SubmitHook {
  * Creates an access hook for access control, data loading, and analytics.
  * Use this in the onAccess array of journeys or steps.
  */
-export function access(definition: Omit<AccessHook, 'type'>): AccessHook {
-  const result = { ...definition, type: HookType.ACCESS } as AccessHook
+export function access(definition: Omit<AccessHook, '_forge'>): AccessHook {
+  const result = { ...definition, _forge: HookType.ACCESS } as AccessHook
   stampCallsite(result, captureCallsite(access))
   return result
 }
@@ -30,7 +30,7 @@ export function access(definition: Omit<AccessHook, 'type'>): AccessHook {
 export function validation(definition: ValidationProps): ValidationExpr {
   const result = {
     ...definition,
-    type: ExpressionType.VALIDATION,
+    _forge: PolicyType.VALIDATION_RULE,
   } as ValidationExpr
   stampCallsite(result, captureCallsite(validation))
   return result
@@ -47,7 +47,7 @@ export function validation(definition: ValidationProps): ValidationExpr {
 export function tieBreaker(definition: TieBreakerProps): TieBreaker {
   const result = {
     ...definition,
-    type: ExpressionType.TIE_BREAKER,
+    _forge: PolicyType.NAVIGATION_TIE_BREAKER,
   } as TieBreaker
   stampCallsite(result, captureCallsite(tieBreaker))
   return result
@@ -68,10 +68,10 @@ export function tieBreaker(definition: TieBreakerProps): TieBreaker {
  *   goto: '/setup',
  * })
  */
-export function redirect(definition: Omit<RedirectOutcome, 'type'>): RedirectOutcome {
+export function redirect(definition: Omit<RedirectOutcome, '_forge'>): RedirectOutcome {
   const result = {
     ...definition,
-    type: OutcomeType.REDIRECT,
+    _forge: PolicyType.OUTCOME_REDIRECT,
   } as RedirectOutcome
   stampCallsite(result, captureCallsite(redirect))
   return result
@@ -97,10 +97,10 @@ export function redirect(definition: Omit<RedirectOutcome, 'type'>): RedirectOut
  *   message: Format('Failed to save: %1', Data('saveError')),
  * })
  */
-export function throwError(definition: Omit<ThrowErrorOutcome, 'type'>): ThrowErrorOutcome {
+export function throwError(definition: Omit<ThrowErrorOutcome, '_forge'>): ThrowErrorOutcome {
   const result = {
     ...definition,
-    type: OutcomeType.THROW_ERROR,
+    _forge: PolicyType.OUTCOME_THROW_ERROR,
   } as ThrowErrorOutcome
   stampCallsite(result, captureCallsite(throwError))
   return result

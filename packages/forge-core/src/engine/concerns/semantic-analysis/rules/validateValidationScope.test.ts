@@ -1,9 +1,7 @@
-import { BlockType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
-import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
+import { PolicyType, ComponentCallType, ExpressionType, IteratorType } from '../../../../shared/taxonomy'
+import type { MaterialisedASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { IterateASTNode, ValidationASTNode } from '../../../chassis/contracts/ast/expressions.type'
-import type { TemplateNode } from '../../../chassis/contracts/ast/template.type'
-import type { TemplateNodeId } from '../../../chassis/contracts/ast/ast.type'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import type { TemplateASTNode, TemplateNodeId } from '../../../chassis/contracts/ast/ast.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
@@ -13,8 +11,11 @@ import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTValidationContext } from './types'
 import { validateValidationScope } from './validateValidationScope'
 
-const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, NodeId]>): ASTValidationContext => {
-  const byId = new Map<NodeId, ASTNode>(nodes.map(node => [node.id, node]))
+const createContext = (
+  nodes: readonly MaterialisedASTNode[],
+  edges: ReadonlyArray<[NodeId, NodeId]>,
+): ASTValidationContext => {
+  const byId = new Map<NodeId, MaterialisedASTNode>(nodes.map(node => [node.id, node]))
 
   edges.forEach(([childId, parentId]) => {
     const child = byId.get(childId)
@@ -39,10 +40,9 @@ const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, 
 const errorMessages = (errors: readonly Error[]): string[] =>
   errors.map(error => (error as ForgeReferenceScopeError).message)
 
-const validationTemplate = (): TemplateNode => ({
-  type: ASTNodeType.TEMPLATE,
-  originalType: ASTNodeType.EXPRESSION,
-  expressionType: ExpressionType.VALIDATION,
+const validationTemplate = (): TemplateASTNode => ({
+  kind: PolicyType.VALIDATION_RULE,
+  isTemplate: true,
   id: 'template:1' as TemplateNodeId,
   diagnostics: ASTTestFactory.diagnostics(['validWhen', 'template']),
   properties: {},
@@ -63,7 +63,7 @@ describe('validateValidationScope', () => {
     it('should return no errors when a bare Iterate is a field validWhen and its template holds a validation', () => {
       // Arrange
       const iterate = mapIterate()
-      const block = ASTTestFactory.block('text', BlockType.FIELD).withProperty('validWhen', iterate).build()
+      const block = ASTTestFactory.block('text', ComponentCallType.FIELD).withProperty('validWhen', iterate).build()
       const context = createContext([block, iterate], [[iterate.id, block.id]])
 
       // Act
@@ -89,7 +89,7 @@ describe('validateValidationScope', () => {
     it('should return no errors when an array-wrapped Iterate is a field validWhen and its template holds a validation', () => {
       // Arrange
       const iterate = mapIterate()
-      const block = ASTTestFactory.block('text', BlockType.FIELD).withProperty('validWhen', [iterate]).build()
+      const block = ASTTestFactory.block('text', ComponentCallType.FIELD).withProperty('validWhen', [iterate]).build()
       const context = createContext([block, iterate], [[iterate.id, block.id]])
 
       // Act
@@ -101,7 +101,7 @@ describe('validateValidationScope', () => {
 
     it('should return an error when a validation node is not inside any validWhen', () => {
       // Arrange
-      const validation = ASTTestFactory.expression<ValidationASTNode>(ExpressionType.VALIDATION).build()
+      const validation = ASTTestFactory.expression<ValidationASTNode>(PolicyType.VALIDATION_RULE).build()
       const context = createContext([validation], [])
 
       // Act

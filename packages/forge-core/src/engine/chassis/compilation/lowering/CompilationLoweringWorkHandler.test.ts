@@ -1,4 +1,4 @@
-import { BlockType } from '../../../../authoring/types/enums'
+import { ComponentCallType } from '../../../../shared/taxonomy'
 import { ASTTestFactory } from '../ast/testing-helpers/ASTTestFactory'
 import type { CompilationModel, JourneyModel, StepModel } from '../../contracts/models/compilationModel.type'
 import type { ReachabilityModel } from '../../../concerns/reachability/contracts/reachabilityModel.type'
@@ -47,7 +47,7 @@ describe('CompilationLoweringWorkHandler', () => {
       const journeyNode = ASTTestFactory.journey().withProperty('path', '/journey').build()
       const stepNode = ASTTestFactory.step().withPath('/first').build()
       const validatingStepNode = ASTTestFactory.step().withPath('/second').build()
-      const validatingFieldBlock = ASTTestFactory.block('TextInput', BlockType.FIELD)
+      const validatingFieldBlock = ASTTestFactory.block('TextInput', ComponentCallType.FIELD)
         .withCode('name')
         .withProperty('validWhen', [{ message: 'Enter your name' }])
         .build() as FieldBlockASTNode
@@ -151,7 +151,7 @@ describe('CompilationLoweringWorkHandler', () => {
       const journeyNode = ASTTestFactory.journey().withProperty('path', '/journey').build()
       const stepNode = ASTTestFactory.step().withPath('/first').build()
       const validatingStepNode = ASTTestFactory.step().withPath('/second').build()
-      const validatingFieldBlock = ASTTestFactory.block('TextInput', BlockType.FIELD)
+      const validatingFieldBlock = ASTTestFactory.block('TextInput', ComponentCallType.FIELD)
         .withCode('name')
         .withProperty('validWhen', [{ message: 'Enter your name' }])
         .build() as FieldBlockASTNode

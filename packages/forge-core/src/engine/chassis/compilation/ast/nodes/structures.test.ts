@@ -1,17 +1,17 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
 import {
+  PolicyType,
   ExpressionType,
   StructureType,
-  BlockType,
-  FunctionType,
+  ComponentCallType,
+  FunctionCallType,
   HookType,
   PredicateType,
-} from '../../../../../authoring/types/enums'
+} from '../../../../../shared/taxonomy'
 import type { JourneyDefinition, StepDefinition, ValidationExpr } from '../../../../../authoring/types/structures.type'
 import type {
   BlockDefinition,
-  ResolvableBoolean,
   FieldBlockDefinition,
+  ResolvableBoolean,
 } from '../../../../../components/types/structures.type'
 import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
 import { StepASTNode, BlockASTNode } from '../../../contracts/ast/structures.type'
@@ -23,7 +23,12 @@ import type {
   ResolvableValue,
   PredicateTestExpr,
 } from '../../../../../authoring/types/expressions.type'
-import { createBlockNode, createJourneyNode, createStepNode } from './structures'
+import { createBasicBlock, createFieldBlock, createJourneyNode, createStepNode } from './structures'
+import type { NodeBuildContext } from './NodeFactory'
+import { isFieldBlockDefinition } from '../../../../../components/typeguards'
+
+const createBlockNode = (json: BlockDefinition | FieldBlockDefinition, ctx: NodeBuildContext) =>
+  isFieldBlockDefinition(json) ? createFieldBlock(json, ctx) : createBasicBlock(json, ctx)
 
 describe('structures', () => {
   describe('createJourneyNode()', () => {
@@ -38,7 +43,7 @@ describe('structures', () => {
     it('should create a Journey node with basic properties', () => {
       // Arrange
       const json = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         code: 'test-journey',
         path: 'test-journey',
         title: 'Test Journey',
@@ -50,7 +55,7 @@ describe('structures', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.JOURNEY)
+      expect(result.isTemplate).toBe(false)
       expect(result.properties.title).toBe('Test Journey')
       expect(result.properties.code).toBe('test-journey')
       expect(result.properties.path).toBe('test-journey')
@@ -59,19 +64,19 @@ describe('structures', () => {
     it('should transform nested steps using nodeFactory', () => {
       // Arrange
       const json = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         code: 'test-journey',
         path: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: 'step1',
             title: 'step1',
             blocks: [] as BlockDefinition[],
           } satisfies StepDefinition,
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: 'step2',
             title: 'step2',
             blocks: [] as BlockDefinition[],
@@ -87,14 +92,14 @@ describe('structures', () => {
       expect(Array.isArray(steps)).toBe(true)
       expect(steps).toHaveLength(2)
       steps.forEach((step: StepASTNode) => {
-        expect(step.type).toBe(ASTNodeType.STEP)
+        expect(step.isTemplate).toBe(false)
       })
     })
 
     it('should exclude type from properties', () => {
       // Arrange
       const json = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         code: 'test-journey',
         path: 'test-journey',
         title: 'Test Journey',
@@ -112,7 +117,7 @@ describe('structures', () => {
     it('should generate unique node IDs', () => {
       // Arrange
       const json = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         code: 'test-journey',
         path: 'test-journey',
         title: 'Test Journey',
@@ -132,7 +137,7 @@ describe('structures', () => {
     it('should pass through unreachable redirect reachability config', () => {
       // Arrange
       const json = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         code: 'test-journey',
         path: 'test-journey',
         title: 'Test Journey',
@@ -152,7 +157,7 @@ describe('structures', () => {
     it('should omit resumeWhen from reachability config when set to false', () => {
       // Arrange
       const json = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         code: 'test-journey',
         path: 'test-journey',
         title: 'Test Journey',
@@ -173,13 +178,13 @@ describe('structures', () => {
     it('should create a child node for resumeWhen when set to an expression', () => {
       // Arrange
       const json = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         code: 'test-journey',
         path: 'test-journey',
         title: 'Test Journey',
         reachability: {
           resumeWhen: {
-            type: ExpressionType.REFERENCE,
+            _forge: ExpressionType.REFERENCE,
             path: ['data', 'resumeActive'],
           } as unknown as ResolvableBoolean,
         },
@@ -192,7 +197,7 @@ describe('structures', () => {
 
       // Assert
       expect(resumeWhen).not.toBe(true)
-      expect(resumeWhen).toMatchObject({ type: ASTNodeType.EXPRESSION, expressionType: ExpressionType.REFERENCE })
+      expect(resumeWhen).toMatchObject({ kind: ExpressionType.REFERENCE, isTemplate: false })
     })
   })
 
@@ -208,7 +213,7 @@ describe('structures', () => {
     it('should create a Step node with basic properties', () => {
       // Arrange
       const json = {
-        type: StructureType.STEP,
+        _forge: StructureType.STEP,
         path: 'test-step',
         code: 'test-step',
         title: 'test-step',
@@ -220,7 +225,7 @@ describe('structures', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.STEP)
+      expect(result.isTemplate).toBe(false)
       expect(result.properties.path).toBe('test-step')
       expect(result.properties.code).toBe('test-step')
     })
@@ -228,18 +233,16 @@ describe('structures', () => {
     it('should transform nested blocks using nodeFactory', () => {
       // Arrange
       const json = {
-        type: StructureType.STEP,
+        _forge: StructureType.STEP,
         path: 'test-step',
         title: 'test-step',
         blocks: [
           {
-            type: StructureType.BLOCK,
-            blockType: BlockType.BASIC,
+            _forge: ComponentCallType.BASIC,
             variant: 'Block1',
           } satisfies BlockDefinition,
           {
-            type: StructureType.BLOCK,
-            blockType: BlockType.BASIC,
+            _forge: ComponentCallType.BASIC,
             variant: 'Block2',
           } satisfies BlockDefinition,
         ],
@@ -253,20 +256,20 @@ describe('structures', () => {
       expect(Array.isArray(blocks)).toBe(true)
       expect(blocks).toHaveLength(2)
       blocks.forEach((block: BlockASTNode) => {
-        expect(block.type).toBe(ASTNodeType.BLOCK)
+        expect(block.isTemplate).toBe(false)
       })
     })
 
     it('should transform onAccess hooks', () => {
       // Arrange
       const json = {
-        type: StructureType.STEP,
+        _forge: StructureType.STEP,
         path: 'test-step',
         title: 'test-step',
         blocks: [] as BlockDefinition[],
         onAccess: [
           {
-            type: HookType.ACCESS,
+            _forge: HookType.ACCESS,
             next: [] as HookOutcome[],
           } satisfies AccessHook,
         ],
@@ -284,13 +287,13 @@ describe('structures', () => {
     it('should transform onSubmission hooks', () => {
       // Arrange
       const json = {
-        type: StructureType.STEP,
+        _forge: StructureType.STEP,
         path: 'test-step',
         title: 'test-step',
         blocks: [] as BlockDefinition[],
         onSubmission: [
           {
-            type: HookType.SUBMIT,
+            _forge: HookType.SUBMIT,
             validate: false,
             onAlways: {
               next: [] as HookOutcome[],
@@ -311,7 +314,7 @@ describe('structures', () => {
     it('should pass through cleardownFieldCodes', () => {
       // Arrange
       const json = {
-        type: StructureType.STEP,
+        _forge: StructureType.STEP,
         path: 'test-step',
         title: 'test-step',
         blocks: [] as BlockDefinition[],
@@ -328,7 +331,7 @@ describe('structures', () => {
     it('should transform validateOnEntry predicates', () => {
       // Arrange
       const json = {
-        type: StructureType.STEP,
+        _forge: StructureType.STEP,
         path: 'test-step',
         title: 'test-step',
         blocks: [] as BlockDefinition[],
@@ -340,10 +343,10 @@ describe('structures', () => {
           {
             groups: ['address'],
             when: {
-              type: PredicateType.TEST,
+              _forge: PredicateType.TEST,
               negate: false,
-              subject: { type: ExpressionType.REFERENCE, path: ['data', 'addressLoaded'] },
-              condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: [true] as ResolvableValue[] },
+              subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'addressLoaded'] },
+              condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: [true] as ResolvableValue[] },
             },
           },
         ],
@@ -356,13 +359,13 @@ describe('structures', () => {
       expect(result.properties.validateOnEntry).toHaveLength(2)
       expect(result.properties.validateOnEntry?.[0]).toEqual({ groups: ['contact'], when: true })
       expect(result.properties.validateOnEntry?.[1].groups).toEqual(['address'])
-      expect(result.properties.validateOnEntry?.[1].when).toMatchObject({ type: ASTNodeType.PREDICATE })
+      expect(result.properties.validateOnEntry?.[1].when).toMatchObject({ kind: PredicateType.TEST, isTemplate: false })
     })
 
     it('should omit cleardownFieldCodes when not specified', () => {
       // Arrange
       const json = {
-        type: StructureType.STEP,
+        _forge: StructureType.STEP,
         path: 'test-step',
         title: 'test-step',
         blocks: [] as BlockDefinition[],
@@ -378,7 +381,7 @@ describe('structures', () => {
     it('should exclude type from properties', () => {
       // Arrange
       const json = {
-        type: StructureType.STEP,
+        _forge: StructureType.STEP,
         path: 'test-step',
         title: 'test-step',
         blocks: [] as BlockDefinition[],
@@ -395,7 +398,7 @@ describe('structures', () => {
     it('should omit entryWhen from reachability config when set to false', () => {
       // Arrange
       const json = {
-        type: StructureType.STEP,
+        _forge: StructureType.STEP,
         path: 'test-step',
         title: 'test-step',
         blocks: [] as BlockDefinition[],
@@ -415,12 +418,15 @@ describe('structures', () => {
     it('should create a child node for entryWhen when set to an expression', () => {
       // Arrange
       const json = {
-        type: StructureType.STEP,
+        _forge: StructureType.STEP,
         path: 'test-step',
         title: 'test-step',
         blocks: [] as BlockDefinition[],
         reachability: {
-          entryWhen: { type: ExpressionType.REFERENCE, path: ['data', 'entryActive'] } as unknown as ResolvableBoolean,
+          entryWhen: {
+            _forge: ExpressionType.REFERENCE,
+            path: ['data', 'entryActive'],
+          } as unknown as ResolvableBoolean,
         },
       } satisfies StepDefinition
 
@@ -430,13 +436,13 @@ describe('structures', () => {
 
       // Assert
       expect(entryWhen).not.toBe(true)
-      expect(entryWhen).toMatchObject({ type: ASTNodeType.EXPRESSION, expressionType: ExpressionType.REFERENCE })
+      expect(entryWhen).toMatchObject({ kind: ExpressionType.REFERENCE, isTemplate: false })
     })
 
     it('should drop validateOnEntry rules whose when is false while keeping the others', () => {
       // Arrange
       const json = {
-        type: StructureType.STEP,
+        _forge: StructureType.STEP,
         path: 'test-step',
         title: 'test-step',
         blocks: [] as BlockDefinition[],
@@ -457,14 +463,17 @@ describe('structures', () => {
     it('should create a child node for validateOnEntry when when is set to an expression', () => {
       // Arrange
       const json = {
-        type: StructureType.STEP,
+        _forge: StructureType.STEP,
         path: 'test-step',
         title: 'test-step',
         blocks: [] as BlockDefinition[],
         validateOnEntry: [
           {
             groups: ['conditional'],
-            when: { type: ExpressionType.REFERENCE, path: ['data', 'entryValidation'] } as unknown as ResolvableBoolean,
+            when: {
+              _forge: ExpressionType.REFERENCE,
+              path: ['data', 'entryValidation'],
+            } as unknown as ResolvableBoolean,
           },
         ],
       } satisfies StepDefinition
@@ -475,7 +484,7 @@ describe('structures', () => {
 
       // Assert
       expect(when).not.toBe(true)
-      expect(when).toMatchObject({ type: ASTNodeType.EXPRESSION, expressionType: ExpressionType.REFERENCE })
+      expect(when).toMatchObject({ kind: ExpressionType.REFERENCE, isTemplate: false })
     })
   })
 
@@ -491,8 +500,7 @@ describe('structures', () => {
     it('should create a basic Block node', () => {
       // Arrange
       const json = {
-        type: StructureType.BLOCK,
-        blockType: BlockType.BASIC,
+        _forge: ComponentCallType.BASIC,
         variant: 'TestBlock',
       } satisfies BlockDefinition
 
@@ -501,16 +509,15 @@ describe('structures', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.BLOCK)
+      expect(result.isTemplate).toBe(false)
       expect(result.variant).toBe('TestBlock')
-      expect(result.blockType).toBe(BlockType.BASIC)
+      expect(result.kind).toBe(ComponentCallType.BASIC)
     })
 
     it('should exclude type and variant from properties', () => {
       // Arrange
       const json = {
-        type: StructureType.BLOCK,
-        blockType: BlockType.BASIC,
+        _forge: ComponentCallType.BASIC,
         variant: 'TestBlock',
         customProp: 'value',
       } satisfies BlockDefinition & { customProp: string }
@@ -527,19 +534,16 @@ describe('structures', () => {
     it('should transform nested blocks', () => {
       // Arrange
       const json = {
-        type: StructureType.BLOCK,
-        blockType: BlockType.BASIC,
+        _forge: ComponentCallType.BASIC,
         variant: 'Fieldset',
         blocks: [
           {
-            type: StructureType.BLOCK,
-            blockType: BlockType.FIELD,
+            _forge: ComponentCallType.FIELD,
             variant: 'TextInput',
             code: 'field1',
           } satisfies FieldBlockDefinition,
           {
-            type: StructureType.BLOCK,
-            blockType: BlockType.FIELD,
+            _forge: ComponentCallType.FIELD,
             variant: 'TextInput',
             code: 'field2',
           } satisfies FieldBlockDefinition,
@@ -554,16 +558,15 @@ describe('structures', () => {
       expect(Array.isArray(blocks)).toBe(true)
       expect(blocks).toHaveLength(2)
       blocks.forEach((block: BlockASTNode) => {
-        expect(block.type).toBe(ASTNodeType.BLOCK)
-        expect(block.blockType).toBe(BlockType.FIELD)
+        expect(block.isTemplate).toBe(false)
+        expect(block.kind).toBe(ComponentCallType.FIELD)
       })
     })
 
     it('should create a field Block node with code property', () => {
       // Arrange
       const json = {
-        type: StructureType.BLOCK,
-        blockType: BlockType.FIELD,
+        _forge: ComponentCallType.FIELD,
         variant: 'TextInput',
         code: 'email',
       } satisfies FieldBlockDefinition
@@ -572,27 +575,26 @@ describe('structures', () => {
       const result = createBlockNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.type).toBe(ASTNodeType.BLOCK)
+      expect(result.isTemplate).toBe(false)
       expect(result.variant).toBe('TextInput')
-      expect(result.blockType).toBe(BlockType.FIELD)
+      expect(result.kind).toBe(ComponentCallType.FIELD)
       expect(result.properties.code).toBe('email')
     })
 
     it('should handle field block with validation', () => {
       // Arrange
       const json = {
-        type: StructureType.BLOCK,
-        blockType: BlockType.FIELD,
+        _forge: ComponentCallType.FIELD,
         variant: 'TextInput',
         code: 'email',
         validWhen: [
           {
-            type: ExpressionType.VALIDATION,
+            _forge: PolicyType.VALIDATION_RULE,
             condition: {
-              type: PredicateType.TEST,
-              subject: { type: ExpressionType.REFERENCE, path: ['@self'] },
+              _forge: PredicateType.TEST,
+              subject: { _forge: ExpressionType.REFERENCE, path: ['@self'] },
               negate: true,
-              condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] as ResolvableValue[] },
+              condition: { _forge: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] as ResolvableValue[] },
             },
             message: 'Email is required',
           },
@@ -606,21 +608,20 @@ describe('structures', () => {
       // Assert
       expect(Array.isArray(validWhen)).toBe(true)
       expect(validWhen).toHaveLength(1)
-      expect(validWhen[0].type).toBe(ASTNodeType.EXPRESSION)
+      expect(validWhen[0].isTemplate).toBe(false)
     })
 
     it('should handle field block with dependentWhen property', () => {
       // Arrange
       const json = {
-        type: StructureType.BLOCK,
-        blockType: BlockType.FIELD,
+        _forge: ComponentCallType.FIELD,
         variant: 'TextInput',
         code: 'details',
         dependentWhen: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'showDetails'] },
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'showDetails'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
       } satisfies FieldBlockDefinition
 
@@ -629,14 +630,13 @@ describe('structures', () => {
       const dependentWhen = result.properties.dependentWhen
 
       // Assert
-      expect(dependentWhen.type).toBe(ASTNodeType.PREDICATE)
+      expect(dependentWhen.isTemplate).toBe(false)
     })
 
     it('should handle field block with custom properties', () => {
       // Arrange
       const json = {
-        type: StructureType.BLOCK,
-        blockType: BlockType.FIELD,
+        _forge: ComponentCallType.FIELD,
         variant: 'TextInput',
         code: 'email',
         label: 'Email Address',
@@ -654,24 +654,23 @@ describe('structures', () => {
     it('should handle field block with all properties', () => {
       // Arrange
       const json: FieldBlockDefinition = {
-        type: StructureType.BLOCK,
-        blockType: BlockType.FIELD,
+        _forge: ComponentCallType.FIELD,
         variant: 'TextInput',
         code: 'email',
         dependentWhen: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'requireEmail'] },
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'requireEmail'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         validWhen: [
           {
-            type: ExpressionType.VALIDATION,
+            _forge: PolicyType.VALIDATION_RULE,
             condition: {
-              type: PredicateType.TEST,
-              subject: { type: ExpressionType.REFERENCE, path: ['@self'] },
+              _forge: PredicateType.TEST,
+              subject: { _forge: ExpressionType.REFERENCE, path: ['@self'] },
               negate: true,
-              condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] as ResolvableValue[] },
+              condition: { _forge: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] as ResolvableValue[] },
             },
             message: 'Required',
           },
@@ -682,7 +681,7 @@ describe('structures', () => {
       const result = createBlockNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.blockType).toBe(BlockType.FIELD)
+      expect(result.kind).toBe(ComponentCallType.FIELD)
       expect('code' in result.properties).toBe(true)
       expect('dependentWhen' in result.properties).toBe(true)
       expect('validWhen' in result.properties).toBe(true)

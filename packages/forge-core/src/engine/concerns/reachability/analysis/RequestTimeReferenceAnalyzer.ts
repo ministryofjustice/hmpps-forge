@@ -1,6 +1,5 @@
-import { ExpressionType } from '../../../../authoring/types/enums'
+import { ExpressionType } from '../../../../shared/taxonomy'
 import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type { ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import { isASTNode } from '../../../chassis/contracts/ast/nodes'
 
@@ -42,9 +41,7 @@ export default class RequestTimeReferenceAnalyzer {
   }
 
   private isReferenceNode(node: ASTNode): node is ReferenceASTNode {
-    return node.type === ASTNodeType.EXPRESSION &&
-      'expressionType' in node &&
-      node.expressionType === ExpressionType.REFERENCE
+    return node.kind === ExpressionType.REFERENCE
   }
 
   private isPlainRecord(value: unknown): value is Record<string, unknown> {

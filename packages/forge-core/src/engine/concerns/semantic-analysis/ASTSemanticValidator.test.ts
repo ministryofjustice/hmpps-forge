@@ -2,13 +2,13 @@ import { z } from 'zod'
 import {
   StructureType,
   HookType,
-  OutcomeType,
-  FunctionType,
+  PolicyType,
+  FunctionCallType,
   PredicateType,
   ExpressionType,
-  BlockType,
+  ComponentCallType,
   IteratorType,
-} from '../../../authoring/types/enums'
+} from '../../../shared/taxonomy'
 import type { ReferenceExpr } from '../../../authoring/types/expressions.type'
 import type { JourneyDefinition, StepDefinition } from '../../../authoring/types/structures.type'
 import type { FieldBlockDefinition, BlockDefinition, ResolvableString } from '../../../components/types/structures.type'
@@ -48,7 +48,7 @@ describe('ASTSemanticValidator', () => {
     ])
 
     const createBaseJourney = (overrides: Partial<JourneyDefinition> = {}): JourneyDefinition => ({
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       path: '/travel-declaration',
       code: 'travel-declaration',
       title: 'Travel Declaration',
@@ -57,7 +57,7 @@ describe('ASTSemanticValidator', () => {
     })
 
     const createReference = (path: string[]): ReferenceExpr => ({
-      type: ExpressionType.REFERENCE,
+      _forge: ExpressionType.REFERENCE,
       path,
     })
 
@@ -67,8 +67,7 @@ describe('ASTSemanticValidator', () => {
     const createBasicBlock = (
       properties: Partial<BlockDefinition> & Record<string, unknown>,
     ): RawBasicBlockDefinition => ({
-      type: StructureType.BLOCK,
-      blockType: BlockType.BASIC,
+      _forge: ComponentCallType.BASIC,
       variant: 'collection-block',
       ...properties,
     })
@@ -76,8 +75,7 @@ describe('ASTSemanticValidator', () => {
     const createFieldBlock = (
       properties: Pick<FieldBlockDefinition, 'code'> & Partial<FieldBlockDefinition> & Record<string, unknown>,
     ): RawFieldBlockDefinition => ({
-      type: StructureType.BLOCK,
-      blockType: BlockType.FIELD,
+      _forge: ComponentCallType.FIELD,
       variant: 'GovUKInput',
       ...properties,
     })
@@ -87,7 +85,7 @@ describe('ASTSemanticValidator', () => {
       const journey = createBaseJourney({
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/personal-details',
             title: 'Personal details',
             blocks: [
@@ -121,21 +119,20 @@ describe('ASTSemanticValidator', () => {
       const journey = createBaseJourney({
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/trips',
             title: 'Trips',
             blocks: [
               createBasicBlock({
                 collection: {
-                  type: ExpressionType.ITERATE,
+                  _forge: ExpressionType.ITERATE,
                   input: createReference(['answers', 'trips']),
                   iterator: {
-                    type: IteratorType.MAP,
+                    _forge: IteratorType.MAP,
                     yield: {
                       blocks: [
                         {
-                          type: StructureType.BLOCK,
-                          blockType: BlockType.FIELD,
+                          _forge: ComponentCallType.FIELD,
                           variant: 'GovUKInput',
                           code: 'country',
                           defaultValue: createReference(['@scope', '1', 'country']),
@@ -171,21 +168,20 @@ describe('ASTSemanticValidator', () => {
       const journey = createBaseJourney({
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/trips',
             title: 'Trips',
             blocks: [
               createBasicBlock({
                 collection: {
-                  type: ExpressionType.ITERATE,
+                  _forge: ExpressionType.ITERATE,
                   input: createReference(['answers', 'trips']),
                   iterator: {
-                    type: IteratorType.MAP,
+                    _forge: IteratorType.MAP,
                     yield: {
                       blocks: [
                         {
-                          type: StructureType.BLOCK,
-                          blockType: BlockType.FIELD,
+                          _forge: ComponentCallType.FIELD,
                           variant: 'GovUKInput',
                           code: 'country',
                           defaultValue: createReference(['@loop', '0', 'banana']),
@@ -221,7 +217,7 @@ describe('ASTSemanticValidator', () => {
       const journey = createBaseJourney({
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/personal-details',
             title: 'Personal details',
             blocks: [
@@ -257,27 +253,26 @@ describe('ASTSemanticValidator', () => {
       const journey = createBaseJourney({
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/teams',
             title: 'Teams',
             blocks: [
               createBasicBlock({
                 collection: {
-                  type: ExpressionType.ITERATE,
+                  _forge: ExpressionType.ITERATE,
                   input: createReference(['data', 'teams']),
                   iterator: {
-                    type: IteratorType.MAP,
+                    _forge: IteratorType.MAP,
                     yield: {
                       collection: {
-                        type: ExpressionType.ITERATE,
+                        _forge: ExpressionType.ITERATE,
                         input: createReference(['@scope', '0', 'members']),
                         iterator: {
-                          type: IteratorType.MAP,
+                          _forge: IteratorType.MAP,
                           yield: {
                             blocks: [
                               {
-                                type: StructureType.BLOCK,
-                                blockType: BlockType.FIELD,
+                                _forge: ComponentCallType.FIELD,
                                 variant: 'GovUKInput',
                                 code: 'memberName',
                                 defaultValue: {
@@ -326,7 +321,7 @@ describe('ASTSemanticValidator', () => {
     compRegistry.registerMany([buildComponent('text', () => '<input />'), buildComponent('radio', () => '<radio />')])
 
     const baseJourney: JourneyDefinition = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       path: '/test',
       code: 'test',
       title: 'Test',
@@ -349,17 +344,17 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
             onSubmission: [
               {
-                type: HookType.SUBMIT,
+                _forge: HookType.SUBMIT,
                 validate: true,
                 onValid: {
-                  effects: [{ type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] }],
-                  next: [{ type: OutcomeType.REDIRECT, goto: '/next' }],
+                  effects: [{ _forge: FunctionCallType.EFFECT, name: 'saveToApi', arguments: [] }],
+                  next: [{ _forge: PolicyType.OUTCOME_REDIRECT, goto: '/next' }],
                 },
               },
             ],
@@ -379,15 +374,15 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
             onSubmission: [
               {
-                type: HookType.SUBMIT,
+                _forge: HookType.SUBMIT,
                 onValid: {
-                  effects: [{ type: FunctionType.EFFECT, name: 'nonExistentEffect', arguments: [] }],
+                  effects: [{ _forge: FunctionCallType.EFFECT, name: 'nonExistentEffect', arguments: [] }],
                 },
               },
             ],
@@ -407,7 +402,7 @@ describe('ASTSemanticValidator', () => {
 
           expect(fnErrors).toHaveLength(1)
           expect(fnErrors[0].functionName).toBe('nonExistentEffect')
-          expect(fnErrors[0].functionType).toBe(FunctionType.EFFECT)
+          expect(fnErrors[0].functionType).toBe(FunctionCallType.EFFECT)
         }
       }
     })
@@ -420,24 +415,23 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'text',
                 code: 'field1',
                 validWhen: [
                   {
-                    type: ExpressionType.VALIDATION,
+                    _forge: PolicyType.VALIDATION_RULE,
                     message: 'Required',
                     condition: {
-                      type: PredicateType.TEST,
-                      subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+                      _forge: PredicateType.TEST,
+                      subject: { _forge: ExpressionType.REFERENCE, path: ['field1'] },
                       negate: false,
-                      condition: { type: FunctionType.CONDITION, name: 'missingCondition', arguments: [] },
+                      condition: { _forge: FunctionCallType.CONDITION, name: 'missingCondition', arguments: [] },
                     },
                   },
                 ],
@@ -458,7 +452,7 @@ describe('ASTSemanticValidator', () => {
 
           expect(fnErrors).toHaveLength(1)
           expect(fnErrors[0].functionName).toBe('missingCondition')
-          expect(fnErrors[0].functionType).toBe(FunctionType.CONDITION)
+          expect(fnErrors[0].functionType).toBe(FunctionCallType.CONDITION)
         }
       }
     })
@@ -471,24 +465,24 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
             onAccess: [
               {
-                type: HookType.ACCESS,
+                _forge: HookType.ACCESS,
                 effects: [
-                  { type: FunctionType.EFFECT, name: 'registeredEffect', arguments: [] },
-                  { type: FunctionType.EFFECT, name: 'missingEffect1', arguments: [] },
+                  { _forge: FunctionCallType.EFFECT, name: 'registeredEffect', arguments: [] },
+                  { _forge: FunctionCallType.EFFECT, name: 'missingEffect1', arguments: [] },
                 ],
               },
             ],
             onSubmission: [
               {
-                type: HookType.SUBMIT,
+                _forge: HookType.SUBMIT,
                 onValid: {
-                  effects: [{ type: FunctionType.EFFECT, name: 'missingEffect2', arguments: [] }],
+                  effects: [{ _forge: FunctionCallType.EFFECT, name: 'missingEffect2', arguments: [] }],
                 },
               },
             ],
@@ -522,20 +516,20 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         children: [
           {
-            type: StructureType.JOURNEY,
+            _forge: StructureType.JOURNEY,
             path: '/child',
             code: 'child',
             title: 'Child',
             steps: [
               {
-                type: StructureType.STEP,
+                _forge: StructureType.STEP,
                 path: '/nested-step',
                 title: 'Nested',
                 blocks: [],
                 onAccess: [
                   {
-                    type: HookType.ACCESS,
-                    effects: [{ type: FunctionType.EFFECT, name: 'deeplyNestedEffect', arguments: [] }],
+                    _forge: HookType.ACCESS,
+                    effects: [{ _forge: FunctionCallType.EFFECT, name: 'deeplyNestedEffect', arguments: [] }],
                   },
                 ],
               } as StepDefinition,
@@ -567,17 +561,16 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'text',
                 code: 'field1',
-                defaultValue: { type: FunctionType.GENERATOR, name: 'missingGenerator', arguments: [] },
-                formatters: [{ type: FunctionType.TRANSFORMER, name: 'missingTransformer', arguments: [] }],
+                defaultValue: { _forge: FunctionCallType.GENERATOR, name: 'missingGenerator', arguments: [] },
+                formatters: [{ _forge: FunctionCallType.TRANSFORMER, name: 'missingTransformer', arguments: [] }],
               } as FieldBlockDefinition,
             ],
           } as StepDefinition,
@@ -596,8 +589,8 @@ describe('ASTSemanticValidator', () => {
           expect(fnErrors).toHaveLength(2)
 
           const types = fnErrors.map((e: ForgeUnregisteredFunctionError) => e.functionType)
-          expect(types).toContain(FunctionType.GENERATOR)
-          expect(types).toContain(FunctionType.TRANSFORMER)
+          expect(types).toContain(FunctionCallType.GENERATOR)
+          expect(types).toContain(FunctionCallType.TRANSFORMER)
         }
       }
     })
@@ -617,7 +610,7 @@ describe('ASTSemanticValidator', () => {
     const fnRegistry = new FunctionRegistry()
 
     const baseJourney: JourneyDefinition = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       path: '/test',
       code: 'test',
       title: 'Test',
@@ -640,19 +633,17 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'text',
                 code: 'field1',
               } as FieldBlockDefinition,
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.BASIC,
+                _forge: ComponentCallType.BASIC,
                 variant: 'radio',
               },
             ],
@@ -672,13 +663,12 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'nonExistentComponent',
                 code: 'field1',
               } as FieldBlockDefinition,
@@ -710,25 +700,22 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'text',
                 code: 'field1',
               },
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'missingRadio',
                 code: 'field2',
               },
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.BASIC,
+                _forge: ComponentCallType.BASIC,
                 variant: 'missingCheckbox',
               },
             ],
@@ -760,19 +747,18 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         children: [
           {
-            type: StructureType.JOURNEY,
+            _forge: StructureType.JOURNEY,
             path: '/child',
             code: 'child',
             title: 'Child',
             steps: [
               {
-                type: StructureType.STEP,
+                _forge: StructureType.STEP,
                 path: '/nested-step',
                 title: 'Nested',
                 blocks: [
                   {
-                    type: StructureType.BLOCK,
-                    blockType: BlockType.FIELD,
+                    _forge: ComponentCallType.FIELD,
                     variant: 'deeplyNestedComponent',
                     code: 'field1',
                   } as FieldBlockDefinition,
@@ -809,7 +795,7 @@ describe('ASTSemanticValidator', () => {
     componentRegistry.registerMany([buildComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       path: '/test',
       code: 'test',
       title: 'Test',
@@ -822,14 +808,14 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
             onAccess: [
               {
-                type: HookType.ACCESS,
-                effects: [{ type: FunctionType.EFFECT, name: 'loadData', arguments: [] }],
+                _forge: HookType.ACCESS,
+                effects: [{ _forge: FunctionCallType.EFFECT, name: 'loadData', arguments: [] }],
               },
             ],
           } as StepDefinition,
@@ -846,15 +832,15 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
             onSubmission: [
               {
-                type: HookType.SUBMIT,
+                _forge: HookType.SUBMIT,
                 onValid: {
-                  effects: [{ type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] }],
+                  effects: [{ _forge: FunctionCallType.EFFECT, name: 'saveToApi', arguments: [] }],
                 },
               },
             ],
@@ -872,24 +858,23 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'text',
                 code: 'field1',
                 validWhen: [
                   {
-                    type: ExpressionType.VALIDATION,
+                    _forge: PolicyType.VALIDATION_RULE,
                     message: 'Required',
                     condition: {
-                      type: PredicateType.TEST,
-                      subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+                      _forge: PredicateType.TEST,
+                      subject: { _forge: ExpressionType.REFERENCE, path: ['field1'] },
                       negate: false,
-                      condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                      condition: { _forge: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                     },
                   },
                 ],
@@ -909,16 +894,15 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'text',
                 code: 'field1',
-                defaultValue: { type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] },
+                defaultValue: { _forge: FunctionCallType.EFFECT, name: 'saveToApi', arguments: [] },
               } as unknown as FieldBlockDefinition,
             ],
           } as StepDefinition,
@@ -957,7 +941,7 @@ describe('ASTSemanticValidator', () => {
     ])
 
     const baseJourney: JourneyDefinition = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       path: '/test',
       code: 'test',
       title: 'Test',
@@ -970,22 +954,20 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'text',
                 code: 'field1',
                 defaultValue: {
-                  type: FunctionType.TRANSFORMER,
+                  _forge: FunctionCallType.TRANSFORMER,
                   name: 'someTransformer',
                   arguments: [
                     {
-                      type: StructureType.BLOCK,
-                      blockType: BlockType.BASIC,
+                      _forge: ComponentCallType.BASIC,
                       variant: 'text',
                     },
                   ],
@@ -1019,27 +1001,26 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'text',
                 code: 'field1',
                 defaultValue: {
-                  type: FunctionType.TRANSFORMER,
+                  _forge: FunctionCallType.TRANSFORMER,
                   name: 'someTransformer',
                   arguments: [
                     {
-                      type: ExpressionType.VALIDATION,
+                      _forge: PolicyType.VALIDATION_RULE,
                       message: 'Required',
                       condition: {
-                        type: PredicateType.TEST,
-                        subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+                        _forge: PredicateType.TEST,
+                        subject: { _forge: ExpressionType.REFERENCE, path: ['field1'] },
                         negate: false,
-                        condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                        condition: { _forge: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                       },
                     },
                   ],
@@ -1074,29 +1055,28 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'text',
                 code: 'field1',
                 defaultValue: {
-                  type: FunctionType.TRANSFORMER,
+                  _forge: FunctionCallType.TRANSFORMER,
                   name: 'someTransformer',
-                  arguments: [{ type: ExpressionType.REFERENCE, path: ['answers', 'name'] }],
+                  arguments: [{ _forge: ExpressionType.REFERENCE, path: ['answers', 'name'] }],
                 },
                 validWhen: [
                   {
-                    type: ExpressionType.VALIDATION,
+                    _forge: PolicyType.VALIDATION_RULE,
                     message: 'Required',
                     condition: {
-                      type: PredicateType.TEST,
-                      subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+                      _forge: PredicateType.TEST,
+                      subject: { _forge: ExpressionType.REFERENCE, path: ['field1'] },
                       negate: false,
-                      condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                      condition: { _forge: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                     },
                   },
                 ],
@@ -1116,32 +1096,30 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'text',
                 code: 'field1',
                 defaultValue: {
-                  type: FunctionType.TRANSFORMER,
+                  _forge: FunctionCallType.TRANSFORMER,
                   name: 'someTransformer',
                   arguments: [
                     {
-                      type: StructureType.BLOCK,
-                      blockType: BlockType.BASIC,
+                      _forge: ComponentCallType.BASIC,
                       variant: 'text',
                     },
                     {
-                      type: ExpressionType.VALIDATION,
+                      _forge: PolicyType.VALIDATION_RULE,
                       message: 'Required',
                       condition: {
-                        type: PredicateType.TEST,
-                        subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+                        _forge: PredicateType.TEST,
+                        subject: { _forge: ExpressionType.REFERENCE, path: ['field1'] },
                         negate: false,
-                        condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                        condition: { _forge: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                       },
                     },
                   ],
@@ -1176,33 +1154,30 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.BASIC,
+                _forge: ComponentCallType.BASIC,
                 variant: 'collection-block',
                 collection: {
-                  type: ExpressionType.ITERATE,
-                  input: { type: ExpressionType.REFERENCE, path: ['data', 'items'] },
+                  _forge: ExpressionType.ITERATE,
+                  input: { _forge: ExpressionType.REFERENCE, path: ['data', 'items'] },
                   iterator: {
-                    type: IteratorType.MAP,
+                    _forge: IteratorType.MAP,
                     yield: {
                       blocks: [
                         {
-                          type: StructureType.BLOCK,
-                          blockType: BlockType.FIELD,
+                          _forge: ComponentCallType.FIELD,
                           variant: 'text',
                           code: 'item',
                           defaultValue: {
-                            type: FunctionType.TRANSFORMER,
+                            _forge: FunctionCallType.TRANSFORMER,
                             name: 'someTransformer',
                             arguments: [
                               {
-                                type: StructureType.BLOCK,
-                                blockType: BlockType.BASIC,
+                                _forge: ComponentCallType.BASIC,
                                 variant: 'text',
                               },
                             ],
@@ -1250,7 +1225,7 @@ describe('ASTSemanticValidator', () => {
     ])
 
     const baseJourney: JourneyDefinition = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       path: '/test',
       code: 'test',
       title: 'Test',
@@ -1263,24 +1238,23 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'text',
                 code: 'field1',
                 validWhen: [
                   {
-                    type: ExpressionType.VALIDATION,
+                    _forge: PolicyType.VALIDATION_RULE,
                     message: 'Required',
                     condition: {
-                      type: PredicateType.TEST,
-                      subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+                      _forge: PredicateType.TEST,
+                      subject: { _forge: ExpressionType.REFERENCE, path: ['field1'] },
                       negate: false,
-                      condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                      condition: { _forge: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                     },
                   },
                 ],
@@ -1300,19 +1274,19 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
             validWhen: [
               {
-                type: ExpressionType.VALIDATION,
+                _forge: PolicyType.VALIDATION_RULE,
                 message: 'Step is not valid',
                 condition: {
-                  type: PredicateType.TEST,
-                  subject: { type: ExpressionType.REFERENCE, path: ['answers', 'name'] },
+                  _forge: PredicateType.TEST,
+                  subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'name'] },
                   negate: false,
-                  condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                  condition: { _forge: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                 },
               },
             ],
@@ -1330,22 +1304,21 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.BASIC,
+                _forge: ComponentCallType.BASIC,
                 variant: 'text',
                 content: {
-                  type: ExpressionType.VALIDATION,
+                  _forge: PolicyType.VALIDATION_RULE,
                   message: 'Misplaced',
                   condition: {
-                    type: PredicateType.TEST,
-                    subject: { type: ExpressionType.REFERENCE, path: ['field1'] },
+                    _forge: PredicateType.TEST,
+                    subject: { _forge: ExpressionType.REFERENCE, path: ['field1'] },
                     negate: false,
-                    condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                    condition: { _forge: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                   },
                 },
               } as BlockDefinition & Record<string, unknown>,
@@ -1378,19 +1351,18 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'text',
                 code: 'field1',
                 defaultValue: {
-                  type: FunctionType.TRANSFORMER,
+                  _forge: FunctionCallType.TRANSFORMER,
                   name: 'someTransformer',
-                  arguments: [{ type: ExpressionType.REFERENCE, path: ['answers', 'name'] }],
+                  arguments: [{ _forge: ExpressionType.REFERENCE, path: ['answers', 'name'] }],
                 },
               } as FieldBlockDefinition,
             ],
@@ -1408,41 +1380,40 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'text',
                 code: 'field1',
                 validWhen: [
                   {
-                    type: ExpressionType.ITERATE,
+                    _forge: ExpressionType.ITERATE,
                     input: {
-                      type: ExpressionType.ITERATE,
-                      input: { type: ExpressionType.REFERENCE, path: ['answers', 'goals'] },
+                      _forge: ExpressionType.ITERATE,
+                      input: { _forge: ExpressionType.REFERENCE, path: ['answers', 'goals'] },
                       iterator: {
-                        type: IteratorType.FILTER,
+                        _forge: IteratorType.FILTER,
                         predicate: {
-                          type: PredicateType.TEST,
-                          subject: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'status'] },
+                          _forge: PredicateType.TEST,
+                          subject: { _forge: ExpressionType.REFERENCE, path: ['@scope', '0', 'status'] },
                           negate: false,
-                          condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                          condition: { _forge: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                         },
                       },
                     },
                     iterator: {
-                      type: IteratorType.MAP,
+                      _forge: IteratorType.MAP,
                       yield: {
-                        type: ExpressionType.VALIDATION,
+                        _forge: PolicyType.VALIDATION_RULE,
                         message: 'Must have steps',
                         condition: {
-                          type: PredicateType.TEST,
-                          subject: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'steps'] },
+                          _forge: PredicateType.TEST,
+                          subject: { _forge: ExpressionType.REFERENCE, path: ['@scope', '0', 'steps'] },
                           negate: false,
-                          condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                          condition: { _forge: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                         },
                       },
                     },
@@ -1469,7 +1440,7 @@ describe('ASTSemanticValidator', () => {
     componentRegistry.registerMany([buildComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       path: '/test',
       code: 'test',
       title: 'Test',
@@ -1482,16 +1453,16 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
             onSubmission: [
               {
-                type: HookType.SUBMIT,
+                _forge: HookType.SUBMIT,
                 onValid: {
-                  effects: [{ type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] }],
-                  next: [{ type: OutcomeType.REDIRECT, goto: '/next' }],
+                  effects: [{ _forge: FunctionCallType.EFFECT, name: 'saveToApi', arguments: [] }],
+                  next: [{ _forge: PolicyType.OUTCOME_REDIRECT, goto: '/next' }],
                 },
               },
             ],
@@ -1511,7 +1482,7 @@ describe('ASTSemanticValidator', () => {
     componentRegistry.registerMany([buildComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       path: '/test',
       code: 'test',
       title: 'Test',
@@ -1522,16 +1493,16 @@ describe('ASTSemanticValidator', () => {
       // Arrange
       const journey: JourneyDefinition = {
         ...baseJourney,
-        onAccess: [{ type: HookType.ACCESS, next: [{ type: OutcomeType.REDIRECT, goto: '/login' }] }],
+        onAccess: [{ _forge: HookType.ACCESS, next: [{ _forge: PolicyType.OUTCOME_REDIRECT, goto: '/login' }] }],
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
-            onAccess: [{ type: HookType.ACCESS }],
+            onAccess: [{ _forge: HookType.ACCESS }],
             onSubmission: [
-              { type: HookType.SUBMIT, onValid: { next: [{ type: OutcomeType.REDIRECT, goto: '/done' }] } },
+              { _forge: HookType.SUBMIT, onValid: { next: [{ _forge: PolicyType.OUTCOME_REDIRECT, goto: '/done' }] } },
             ],
           } as StepDefinition,
         ],
@@ -1549,7 +1520,7 @@ describe('ASTSemanticValidator', () => {
     componentRegistry.registerMany([buildComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       path: '/test',
       code: 'test',
       title: 'Test',
@@ -1562,12 +1533,12 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
             reachability: {
-              tieBreakers: [{ type: ExpressionType.TIE_BREAKER, priority: 1 }],
+              tieBreakers: [{ _forge: PolicyType.NAVIGATION_TIE_BREAKER, priority: 1 }],
             },
           } as StepDefinition,
         ],
@@ -1585,7 +1556,7 @@ describe('ASTSemanticValidator', () => {
     componentRegistry.registerMany([buildComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       path: '/test',
       code: 'test',
       title: 'Test',
@@ -1596,14 +1567,14 @@ describe('ASTSemanticValidator', () => {
       // Arrange
       const journey: JourneyDefinition = {
         ...baseJourney,
-        steps: [{ type: StructureType.STEP, path: '/step1', title: 'Step 1', blocks: [] } as StepDefinition],
+        steps: [{ _forge: StructureType.STEP, path: '/step1', title: 'Step 1', blocks: [] } as StepDefinition],
         children: [
           {
-            type: StructureType.JOURNEY,
+            _forge: StructureType.JOURNEY,
             path: '/child',
             code: 'child',
             title: 'Child',
-            steps: [{ type: StructureType.STEP, path: '/step2', title: 'Step 2', blocks: [] } as StepDefinition],
+            steps: [{ _forge: StructureType.STEP, path: '/step2', title: 'Step 2', blocks: [] } as StepDefinition],
           },
         ],
       }
@@ -1618,16 +1589,15 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'text',
                 code: 'field1',
-                content: { type: StructureType.STEP, path: '/stray', title: 'Stray' },
+                content: { _forge: StructureType.STEP, path: '/stray', title: 'Stray' },
               } as unknown as FieldBlockDefinition,
             ],
           } as StepDefinition,
@@ -1657,16 +1627,15 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'text',
                 code: 'field1',
-                content: { type: StructureType.JOURNEY, path: '/stray', code: 'stray', title: 'Stray' },
+                content: { _forge: StructureType.JOURNEY, path: '/stray', code: 'stray', title: 'Stray' },
               } as unknown as FieldBlockDefinition,
             ],
           } as StepDefinition,
@@ -1701,7 +1670,7 @@ describe('ASTSemanticValidator', () => {
     ])
 
     const baseJourney: JourneyDefinition = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       path: '/test',
       code: 'test',
       title: 'Test',
@@ -1714,15 +1683,14 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.BASIC,
+                _forge: ComponentCallType.BASIC,
                 variant: 'wrapper',
-                content: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'text' },
+                content: { _forge: ComponentCallType.BASIC, variant: 'text' },
               } as unknown as BlockDefinition,
             ],
           } as StepDefinition,
@@ -1738,9 +1706,9 @@ describe('ASTSemanticValidator', () => {
       const journey: JourneyDefinition = {
         ...baseJourney,
         metadata: {
-          banner: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'text' },
+          banner: { _forge: ComponentCallType.BASIC, variant: 'text' },
         },
-        steps: [{ type: StructureType.STEP, path: '/step1', title: 'Step 1', blocks: [] } as StepDefinition],
+        steps: [{ _forge: StructureType.STEP, path: '/step1', title: 'Step 1', blocks: [] } as StepDefinition],
       }
 
       // Act / Assert
@@ -1772,7 +1740,7 @@ describe('ASTSemanticValidator', () => {
     componentRegistry.registerMany([buildComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       path: '/test',
       code: 'test',
       title: 'Test',
@@ -1785,24 +1753,23 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'text',
                 code: 'field1',
               } as FieldBlockDefinition,
             ],
-            onAccess: [{ type: HookType.ACCESS }],
+            onAccess: [{ _forge: HookType.ACCESS }],
             onSubmission: [
               {
-                type: HookType.SUBMIT,
+                _forge: HookType.SUBMIT,
                 onValid: {
-                  effects: [{ type: FunctionType.EFFECT, name: 'saveToApi', arguments: [] }],
-                  next: [{ type: OutcomeType.REDIRECT, goto: '/done' }],
+                  effects: [{ _forge: FunctionCallType.EFFECT, name: 'saveToApi', arguments: [] }],
+                  next: [{ _forge: PolicyType.OUTCOME_REDIRECT, goto: '/done' }],
                 },
               },
             ],
@@ -1851,30 +1818,29 @@ describe('ASTSemanticValidator', () => {
     ])
 
     const baseJourney: JourneyDefinition = {
-      type: StructureType.JOURNEY,
+      _forge: StructureType.JOURNEY,
       path: '/test',
       code: 'test',
       title: 'Test',
       steps: [],
     }
 
-    const ref = (name: string): ReferenceExpr => ({ type: ExpressionType.REFERENCE, path: [name] })
+    const ref = (name: string): ReferenceExpr => ({ _forge: ExpressionType.REFERENCE, path: [name] })
 
     const conditionField = (code: string, conditionName: string, args: ReferenceExpr[]): FieldBlockDefinition =>
       ({
-        type: StructureType.BLOCK,
-        blockType: BlockType.FIELD,
+        _forge: ComponentCallType.FIELD,
         variant: 'text',
         code,
         validWhen: [
           {
-            type: ExpressionType.VALIDATION,
+            _forge: PolicyType.VALIDATION_RULE,
             message: 'Invalid',
             condition: {
-              type: PredicateType.TEST,
-              subject: { type: ExpressionType.REFERENCE, path: [code] },
+              _forge: PredicateType.TEST,
+              subject: { _forge: ExpressionType.REFERENCE, path: [code] },
               negate: false,
-              condition: { type: FunctionType.CONDITION, name: conditionName, arguments: args },
+              condition: { _forge: FunctionCallType.CONDITION, name: conditionName, arguments: args },
             },
           },
         ],
@@ -1884,7 +1850,7 @@ describe('ASTSemanticValidator', () => {
       ...baseJourney,
       steps: [
         {
-          type: StructureType.STEP,
+          _forge: StructureType.STEP,
           path: '/step1',
           title: 'Step 1',
           blocks: [field],
@@ -2027,28 +1993,26 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.BASIC,
+                _forge: ComponentCallType.BASIC,
                 variant: 'collection-block',
                 collection: {
-                  type: ExpressionType.ITERATE,
-                  input: { type: ExpressionType.REFERENCE, path: ['data', 'items'] },
+                  _forge: ExpressionType.ITERATE,
+                  input: { _forge: ExpressionType.REFERENCE, path: ['data', 'items'] },
                   iterator: {
-                    type: IteratorType.MAP,
+                    _forge: IteratorType.MAP,
                     yield: {
                       blocks: [
                         {
-                          type: StructureType.BLOCK,
-                          blockType: BlockType.FIELD,
+                          _forge: ComponentCallType.FIELD,
                           variant: 'text',
                           code: 'item',
                           defaultValue: {
-                            type: FunctionType.TRANSFORMER,
+                            _forge: FunctionCallType.TRANSFORMER,
                             name: 'exactOneTransformer',
                             arguments: [],
                           },
@@ -2086,7 +2050,7 @@ describe('ASTSemanticValidator', () => {
         ...baseJourney,
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
@@ -2132,7 +2096,7 @@ describe('ASTSemanticValidator', () => {
           ) as ForgeFunctionArityError
 
           expect(arityError.functionName).toBe('exactOne')
-          expect(arityError.functionType).toBe(FunctionType.CONDITION)
+          expect(arityError.functionType).toBe(FunctionCallType.CONDITION)
           expect(arityError.expected).toBe('1')
           expect(arityError.received).toBe(0)
           expect(arityError.formattedPath).toBeDefined()

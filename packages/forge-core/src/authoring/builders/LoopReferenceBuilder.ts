@@ -1,5 +1,7 @@
+import { BuilderType } from '../../shared/taxonomy'
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { LoopItemReferenceBuilder } from './LoopItemReferenceBuilder'
+import ForgeAuthoringError from '../../engine/errors/ForgeAuthoringError'
 
 /**
  * Immutable builder for creating references to iterator loop metadata.
@@ -10,7 +12,7 @@ import { LoopItemReferenceBuilder } from './LoopItemReferenceBuilder'
  * @internal Exposed to authors via the ChainableLoopRef interface.
  */
 export class LoopReferenceBuilder {
-  readonly nodeKind = 'forge-builder' as const
+  readonly _forge = BuilderType.LOOP as const
 
   private readonly level: number
 
@@ -24,6 +26,12 @@ export class LoopReferenceBuilder {
    */
   static create(level: number): LoopReferenceBuilder {
     return new LoopReferenceBuilder(level)
+  }
+
+  build(): never {
+    throw new ForgeAuthoringError({
+      message: 'A bare Loop is not a value. Call Loop.Index(), Loop.Item(), or another Loop member.',
+    })
   }
 
   /**

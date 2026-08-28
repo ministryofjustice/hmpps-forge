@@ -1,10 +1,10 @@
 import type { Resolvable, TransformerFunctionExpr } from '../types/expressions.type'
-import { FunctionType } from '../types/enums'
+import { FunctionCallType } from '../../shared/taxonomy'
 import { BaseFunctionRegistry, type RegistrationOptions } from './BaseFunctionRegistry'
 
 export default class TransformerRegistry<TDeps = Record<string, never>> extends BaseFunctionRegistry<TDeps> {
   constructor() {
-    super(FunctionType.TRANSFORMER)
+    super(FunctionCallType.TRANSFORMER)
   }
 
   register<TArgs extends any[]>(

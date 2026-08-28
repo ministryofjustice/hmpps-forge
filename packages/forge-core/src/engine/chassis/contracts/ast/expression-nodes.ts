@@ -1,14 +1,18 @@
-import { ExpressionType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from './enums'
+import { ExpressionType } from '../../../../shared/taxonomy'
 import { ExpressionASTNode, ReferenceASTNode } from './expressions.type'
 
-function isExpressionNode(obj: any): obj is ExpressionASTNode {
-  return obj != null && obj.type === ASTNodeType.EXPRESSION
+function isExpressionNode(obj: unknown): obj is ExpressionASTNode {
+  return obj !== null &&
+    obj !== undefined &&
+    typeof obj === 'object' &&
+    'kind' in obj &&
+    typeof obj.kind === 'string' &&
+    obj.kind.startsWith('expression.')
 }
 
 /**
  * Check if an AST node is a Reference Expression node
  */
-export function isReferenceExprNode(obj: any): obj is ReferenceASTNode {
-  return isExpressionNode(obj) && obj.expressionType === ExpressionType.REFERENCE
+export function isReferenceExprNode(obj: unknown): obj is ReferenceASTNode {
+  return isExpressionNode(obj) && obj.kind === ExpressionType.REFERENCE
 }

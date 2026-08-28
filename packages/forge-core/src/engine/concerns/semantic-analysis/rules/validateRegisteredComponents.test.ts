@@ -1,5 +1,5 @@
-import { BlockType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
-import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
+import { ComponentCallType, ExpressionType, IteratorType } from '../../../../shared/taxonomy'
+import type { MaterialisedASTNode } from '../../../chassis/contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { TemplateValue } from '../../../chassis/contracts/ast/template.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
@@ -14,7 +14,7 @@ import { buildComponent } from '../../../../components/utils/buildComponent'
 import { validateRegisteredComponents } from './validateRegisteredComponents'
 import type { ASTValidationContext } from './types'
 
-function buildContext(nodes: ASTNode[], registeredVariants: string[]): ASTValidationContext {
+function buildContext(nodes: MaterialisedASTNode[], registeredVariants: string[]): ASTValidationContext {
   const nodeIndex = new ASTNodeIndex()
   nodes.forEach(node => nodeIndex.register(node.id, node))
 
@@ -43,7 +43,7 @@ function buildContext(nodes: ASTNode[], registeredVariants: string[]): ASTValida
 }
 
 function compileBlockTemplate(variant: string): TemplateValue {
-  const block = ASTTestFactory.block(variant, BlockType.FIELD).withCode('field').build()
+  const block = ASTTestFactory.block(variant, ComponentCallType.FIELD).withCode('field').build()
 
   return compileTemplate(block, new NodeIDGenerator())
 }
@@ -62,7 +62,7 @@ describe('validateRegisteredComponents', () => {
 
   it('should return no errors when a registered block has a known variant', () => {
     // Arrange
-    const block = ASTTestFactory.block('text', BlockType.FIELD).withCode('field1').build()
+    const block = ASTTestFactory.block('text', ComponentCallType.FIELD).withCode('field1').build()
     const context = buildContext([block], ['text'])
 
     // Act
@@ -74,7 +74,7 @@ describe('validateRegisteredComponents', () => {
 
   it('should return an error when a registered block has an unknown variant', () => {
     // Arrange
-    const block = ASTTestFactory.block('missing', BlockType.FIELD).withCode('field1').build()
+    const block = ASTTestFactory.block('missing', ComponentCallType.FIELD).withCode('field1').build()
     const context = buildContext([block], [])
 
     // Act

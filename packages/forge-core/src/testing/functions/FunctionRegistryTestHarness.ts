@@ -4,7 +4,7 @@ import { getEntryStamp } from '../../authoring/builders/utils/stampEntry'
 import { FunctionEntryRegistry } from '../../authoring/functions/FunctionEntryRegistry'
 import { GeneratorBuilder } from '../../authoring/builders/GeneratorBuilder'
 import type { ChainableGenerator } from '../../authoring/builders/types'
-import { FunctionType } from '../../authoring/types/enums'
+import { FunctionCallType } from '../../shared/taxonomy'
 import type {
   ConditionFunctionExpr,
   EffectFunctionExpr,
@@ -111,13 +111,13 @@ export class FunctionRegistryTestHarness<TDeps = Record<string, never>> {
     const stampedEntry = getEntryStamp(functionExpr) as FunctionEntry<TDeps> | undefined
     const entry = this.lookup((stampedEntry && this.entryNames.get(stampedEntry)) ?? functionExpr.name)
 
-    if (functionExpr.type === FunctionType.EFFECT) {
+    if (functionExpr._forge === FunctionCallType.EFFECT) {
       return {
         withContext: (context: EffectFunctionContext) => this.execute(entry, [context, ...functionExpr.arguments]),
       }
     }
 
-    if (functionExpr.type === FunctionType.GENERATOR) {
+    if (functionExpr._forge === FunctionCallType.GENERATOR) {
       return this.execute(entry, [...functionExpr.arguments])
     }
 

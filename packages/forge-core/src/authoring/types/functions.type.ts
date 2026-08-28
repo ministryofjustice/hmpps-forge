@@ -1,5 +1,5 @@
 import type { ZodType } from 'zod'
-import type { FunctionType } from './enums'
+import type { FunctionEntryType } from '../../shared/taxonomy'
 
 /**
  * The callable implementation of a registered function, with its dependencies
@@ -52,7 +52,8 @@ export interface FunctionRegistryEntry {
    * Which kind of function this is. Decides whether a value is injected as
    * the first argument and how schema failures short-circuit.
    */
-  functionType?: FunctionType
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge?: FunctionEntryType
 }
 
 /**
@@ -81,7 +82,8 @@ export interface FunctionEntry<TDeps = any> {
   readonly name: string | undefined
 
   /** Which function table the entry belongs to. */
-  readonly functionType: FunctionType
+  /** Internal Forge discriminator. Do not set or override this property. */
+  readonly _forge: FunctionEntryType
 
   /** Validates the injected value, where declared. */
   readonly inputSchema?: ZodType

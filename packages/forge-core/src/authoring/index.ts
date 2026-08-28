@@ -20,7 +20,14 @@ export { default as EffectRegistry } from './registries/EffectRegistry'
 
 export { EffectFunctionContext } from '../engine/chassis/runtime/context/EffectFunctionContext'
 
-export { StructureType, BlockType, FunctionType, ExpressionType, ConditionCombinatorType } from './types/enums'
+export {
+  StructureType,
+  ComponentCallType,
+  FunctionCallType,
+  ExpressionType,
+  PolicyType,
+  ConditionCombinatorType,
+} from '../shared/taxonomy'
 
 export type { ForgePackage, RegisteredForgePackage } from './types/package.type'
 export type {
@@ -49,7 +56,7 @@ export type {
 export type {
   AccessHook,
   Resolvable,
-  ResolvableExpression,
+  ResolvableNode,
   SubmitHook,
   RedirectOutcome,
   ThrowErrorOutcome,

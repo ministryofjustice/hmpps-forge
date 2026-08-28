@@ -1,5 +1,5 @@
 import { NumberTransformers } from './numberTransformers'
-import { FunctionType } from '../../../authoring/types/enums'
+import { FunctionCallType } from '../../../shared/taxonomy'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('Number Transformers', () => {
@@ -35,7 +35,7 @@ describe('Number Transformers', () => {
     it('should return a function expression when called', () => {
       const expr = NumberTransformers.Add(5)
       expect(expr).toEqual({
-        type: FunctionType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'Number.Add',
         arguments: [5],
       })

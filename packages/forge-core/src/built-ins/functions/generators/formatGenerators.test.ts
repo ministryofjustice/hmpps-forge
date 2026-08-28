@@ -1,4 +1,4 @@
-import { FunctionType } from '../../../authoring/types/enums'
+import { FunctionCallType } from '../../../shared/taxonomy'
 import { ResolvableValue } from '../../../authoring/types/expressions.type'
 import { FORMAT_STRING_GENERATOR_NAME, FormatGenerators } from './formatGenerators'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
@@ -73,7 +73,7 @@ describe('FormatGenerators', () => {
 
       // Assert
       expect(builder.expr).toEqual({
-        type: FunctionType.GENERATOR,
+        _forge: FunctionCallType.GENERATOR,
         name: FORMAT_STRING_GENERATOR_NAME,
         arguments: ['Hello %1', 'Ada'],
       })

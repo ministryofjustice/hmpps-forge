@@ -1,4 +1,4 @@
-import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { ComponentCallType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
 
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
@@ -13,8 +13,7 @@ describe('mojMessages', () => {
   const helper = new MojComponentTestHelper(MOJMessages)
   const renderedBlock = (html: string): RenderedBlock => ({
     block: {
-      type: StructureType.BLOCK,
-      blockType: BlockType.BASIC,
+      _forge: ComponentCallType.BASIC,
       variant: 'html',
     },
     html,

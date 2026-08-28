@@ -1,5 +1,5 @@
-import { HookType, BlockType } from '../../../../authoring/types/enums'
-import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
+import { HookType, ComponentCallType } from '../../../../shared/taxonomy'
+import type { MaterialisedASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
@@ -9,8 +9,11 @@ import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTValidationContext } from './types'
 import { validateHookScope } from './validateHookScope'
 
-const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, NodeId]>): ASTValidationContext => {
-  const byId = new Map<NodeId, ASTNode>(nodes.map(node => [node.id, node]))
+const createContext = (
+  nodes: readonly MaterialisedASTNode[],
+  edges: ReadonlyArray<[NodeId, NodeId]>,
+): ASTValidationContext => {
+  const byId = new Map<NodeId, MaterialisedASTNode>(nodes.map(node => [node.id, node]))
 
   edges.forEach(([childId, parentId]) => {
     const child = byId.get(childId)
@@ -83,7 +86,7 @@ describe('validateHookScope', () => {
     it('should return an error when the parent is neither a step nor a journey', () => {
       // Arrange
       const hook = ASTTestFactory.hook(HookType.ACCESS).build()
-      const block = ASTTestFactory.block('text', BlockType.FIELD).withProperty('defaultValue', hook).build()
+      const block = ASTTestFactory.block('text', ComponentCallType.FIELD).withProperty('defaultValue', hook).build()
       const context = createContext([hook, block], [[hook.id, block.id]])
 
       // Act

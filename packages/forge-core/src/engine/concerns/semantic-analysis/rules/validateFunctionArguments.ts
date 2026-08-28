@@ -1,14 +1,13 @@
-import { FunctionType, ExpressionType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { ExpressionType } from '../../../../shared/taxonomy'
+import { ASTNodeFamily, astNodeFamily } from '../../../chassis/contracts/ast/enums'
 import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
-import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
-import type { TemplateNode, TemplateValue } from '../../../chassis/contracts/ast/template.type'
+import { isTemplateASTNode } from '../../../chassis/contracts/ast/nodes'
+import type { TemplateASTNode } from '../../../chassis/contracts/ast/ast.type'
+import type { TemplateValue } from '../../../chassis/contracts/ast/template.type'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
-
-const FUNCTION_TYPES: readonly string[] = Object.values(FunctionType)
 
 function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeReferenceScopeError {
   const source = diagnostics?.source
@@ -24,10 +23,7 @@ function hasFunctionAncestor(node: ASTNode): boolean {
   let current = node.parent
 
   while (current !== undefined) {
-    if (
-      'expressionType' in current &&
-      FUNCTION_TYPES.includes((current as { expressionType: string }).expressionType)
-    ) {
+    if (astNodeFamily(current.kind) === ASTNodeFamily.FUNCTION_CALL) {
       return true
     }
 
@@ -37,14 +33,8 @@ function hasFunctionAncestor(node: ASTNode): boolean {
   return false
 }
 
-function isFunctionTemplateNode(node: TemplateNode): boolean {
-  if (node.originalType !== ASTNodeType.EXPRESSION) {
-    return false
-  }
-
-  const expressionType = (node as Record<string, unknown>).expressionType as string | undefined
-
-  return expressionType !== undefined && FUNCTION_TYPES.includes(expressionType)
+function isFunctionTemplateNode(node: TemplateASTNode): boolean {
+  return astNodeFamily(node.kind) === ASTNodeFamily.FUNCTION_CALL
 }
 
 function walkTemplateForBlocks(value: TemplateValue, insideFunction: boolean, errors: Error[]): void {
@@ -58,10 +48,10 @@ function walkTemplateForBlocks(value: TemplateValue, insideFunction: boolean, er
     return
   }
 
-  if (isTemplateNode(value)) {
+  if (isTemplateASTNode(value)) {
     const nextInsideFunction = insideFunction || isFunctionTemplateNode(value)
 
-    if (insideFunction && value.originalType === ASTNodeType.BLOCK) {
+    if (insideFunction && astNodeFamily(value.kind) === ASTNodeFamily.COMPONENT_CALL) {
       errors.push(buildError(value.diagnostics))
     }
 
@@ -72,7 +62,7 @@ function walkTemplateForBlocks(value: TemplateValue, insideFunction: boolean, er
     }
 
     Object.entries(value).forEach(([key, val]) => {
-      if (key === 'type' || key === 'originalType' || key === 'id' || key === 'properties') {
+      if (key === 'kind' || key === 'isTemplate' || key === 'id' || key === 'properties') {
         return
       }
 
@@ -91,13 +81,13 @@ export const validateFunctionArguments: ASTValidationRule = (context: ASTValidat
   const { nodeIndex } = context
   const errors: Error[] = []
 
-  nodeIndex.findByType(ASTNodeType.BLOCK).forEach(node => {
+  nodeIndex.findByFamily(ASTNodeFamily.COMPONENT_CALL).forEach(node => {
     if (hasFunctionAncestor(node)) {
       errors.push(buildError(node.diagnostics))
     }
   })
 
-  const iterateNodes = nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE)
+  const iterateNodes = nodeIndex.findByKind<IterateASTNode>(ExpressionType.ITERATE)
 
   iterateNodes.forEach(iterateNode => {
     const { iterator } = iterateNode.properties

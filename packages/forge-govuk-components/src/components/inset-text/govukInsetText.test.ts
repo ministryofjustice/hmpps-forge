@@ -1,4 +1,4 @@
-import { BlockType, StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { ComponentCallType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import type { RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
 
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
@@ -13,8 +13,7 @@ describe('GOV.UK Inset Text Component', () => {
   const helper = new GovukComponentTestHelper(GovUKInsetText)
   const renderedBlock = (html: string): RenderedBlock => ({
     block: {
-      type: StructureType.BLOCK,
-      blockType: BlockType.BASIC,
+      _forge: ComponentCallType.BASIC,
       variant: 'html',
     },
     html,

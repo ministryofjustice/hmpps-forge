@@ -1,7 +1,7 @@
 import type { WorkContextContract, WorkHandler } from '../../contracts/work/work.type'
 import { createWorkTask } from '../../work/workTask'
 import type { StepASTNode } from '../../contracts/ast/structures.type'
-import { ASTNodeType } from '../../contracts/ast/enums'
+import { StructureType } from '../../../../shared/taxonomy'
 import type CompilationState from '../pipeline/CompilationState'
 import CompilationModelBuilder from './CompilationModelBuilder'
 
@@ -10,7 +10,7 @@ export const COMPILATION_ANALYSIS_WORK_HANDLER: WorkHandler<'compilation.analysi
 
   begin(ctx: WorkContextContract<CompilationState, undefined>) {
     const state = ctx.state
-    const stepNodes = state.ast.nodeIndex.findByType<StepASTNode>(ASTNodeType.STEP)
+    const stepNodes = state.ast.nodeIndex.findByKind<StepASTNode>(StructureType.STEP)
     const stepIndex = new Map(stepNodes.map(stepNode => [stepNode.id, stepNode]))
 
     const modelBuilder = new CompilationModelBuilder(state.ast.nodeIndex, {

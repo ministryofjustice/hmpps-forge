@@ -2,7 +2,7 @@ import { expectTypeOf, vi } from 'vitest'
 import { z } from 'zod'
 import { Answer } from '../builders'
 import ConditionRegistry from '../registries/ConditionRegistry'
-import { FunctionType } from '../types/enums'
+import { FunctionCallType, FunctionEntryType } from '../../shared/taxonomy'
 import { getEntryStamp } from '../builders/utils/stampEntry'
 import { condition } from './condition'
 import type { Callsite } from '../builders/utils/captureCallsite'
@@ -11,7 +11,7 @@ import type {
   ConditionFunctionExpr,
   PredicateTestExpr,
   Resolvable,
-  ResolvableExpression,
+  ResolvableNode,
 } from '../types/expressions.type'
 
 const callsiteOf = (value: unknown): Callsite | undefined =>
@@ -29,7 +29,7 @@ describe('condition()', () => {
   describe('entry creation', () => {
     it('should carry the given name, function type, schemas, and factory on a named entry', () => {
       expect(IsValidCrn.name).toBe('Caseload.IsValidCrn')
-      expect(IsValidCrn.functionType).toBe(FunctionType.CONDITION)
+      expect(IsValidCrn._forge).toBe(FunctionEntryType.CONDITION)
       expect(IsValidCrn.inputSchema?.safeParse('X123456').success).toBe(true)
       expect(IsValidCrn.argumentsSchema?.safeParse([5]).success).toBe(true)
       expect(IsValidCrn.outputSchema).toBeUndefined()
@@ -61,7 +61,7 @@ describe('condition()', () => {
 
       // Assert
       expect(expr).toEqual({
-        type: FunctionType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Caseload.IsValidCrn',
         arguments: [5],
       })
@@ -153,13 +153,10 @@ describe('condition()', () => {
       IsValidCrn(Answer('minimumLength'))
 
       // An expression declaring the matching resolved type is accepted
-      IsValidCrn(null as unknown as ResolvableExpression<number>)
+      IsValidCrn(null as unknown as ResolvableNode)
 
       // @ts-expect-error - the evaluator declares a number, so a string is rejected
       IsValidCrn('5')
-
-      // @ts-expect-error - an expression declaring a string resolution cannot fill a number argument
-      IsValidCrn(null as unknown as ResolvableExpression<string>)
     })
 
     it('should build expressions accepted wherever registry-handle expressions are', () => {

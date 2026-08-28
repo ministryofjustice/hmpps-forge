@@ -1,7 +1,8 @@
-import { IteratorType } from '../../../../../authoring/types/enums'
+import { IteratorType } from '../../../../../shared/taxonomy'
 import { IterateASTNode } from '../../../contracts/ast/expressions.type'
-import { isTemplateNode } from '../../../contracts/ast/nodes'
-import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
+import { isTemplateASTNode } from '../../../contracts/ast/nodes'
+import type { TemplateASTNode } from '../../../contracts/ast/ast.type'
+import type { TemplateValue } from '../../../contracts/ast/template.type'
 import type { FieldModel, IterateRef } from '../../../contracts/models/fieldModel.type'
 import { arrayCode, CodeFragment, code, literal } from '../codegen/fragments/CodeFragment'
 import CodeGenerator from '../codegen/CodeGenerator'
@@ -87,7 +88,7 @@ export default class ScopedTemplateCompiler {
    * Resolves a template field code to generated source, including dynamic code expressions.
    */
   compileTemplateCodeExpression(
-    node: TemplateNode,
+    node: TemplateASTNode,
     generator: CodeGenerator,
   ): CodeFragment | IdentifierName | undefined {
     return this.fieldCodes.compileTemplateExpression(node, generator)
@@ -96,7 +97,7 @@ export default class ScopedTemplateCompiler {
   /**
    * Emits the runtime block ID for one template node under the current iterator scope.
    */
-  compileTemplateInstanceIdExpression(node: TemplateNode): CodeFragment {
+  compileTemplateInstanceIdExpression(node: TemplateASTNode): CodeFragment {
     const prefix = `compiled:${String(node.id)}`
     const iteratorIndexes = this.expr.iteratorStack.map(frame => frame.indexVar)
 
@@ -151,7 +152,7 @@ export default class ScopedTemplateCompiler {
 
   /** Emits one loop level for a registered or template MAP iterate node. */
   private compileIterateRefLoop(ref: IterateRef, generator: CodeGenerator, compileBody: () => void): void {
-    const input = isTemplateNode(ref.node)
+    const input = isTemplateASTNode(ref.node)
       ? ((ref.node.properties ?? {}) as TemplateMapIteratorProperties).input
       : ref.node.properties.input
 

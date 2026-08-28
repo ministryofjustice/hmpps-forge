@@ -1,4 +1,4 @@
-import { BlockType } from '../../../../authoring/types/enums'
+import { ComponentCallType } from '../../../../shared/taxonomy'
 import type { CompiledResolveContext } from '../../../chassis/contracts/compiled/compiledContexts.type'
 import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import WorkContext from '../../../chassis/work/WorkContext'
@@ -36,7 +36,7 @@ describe('ResolveBlockWorkHandler', () => {
       const element = createWorkTask('content', RESOLVE_BLOCK_WORK_HANDLER, {
         id: 'compile_ast:1',
         variant: 'html',
-        blockType: BlockType.BASIC,
+        blockType: ComponentCallType.BASIC,
         properties: { html: '<p>Hello</p>' },
       })
 
@@ -48,7 +48,7 @@ describe('ResolveBlockWorkHandler', () => {
       expect(result.output).toMatchObject({
         id: 'compile_ast:1',
         variant: 'html',
-        blockType: BlockType.BASIC,
+        blockType: ComponentCallType.BASIC,
         properties: { html: '<p>Hello</p>' },
       })
       expect(result.children).toEqual([])
@@ -60,13 +60,13 @@ describe('ResolveBlockWorkHandler', () => {
       const child = createWorkTask('child', RESOLVE_BLOCK_WORK_HANDLER, {
         id: 'compile_ast:2',
         variant: 'html',
-        blockType: BlockType.BASIC,
+        blockType: ComponentCallType.BASIC,
         properties: { html: '<span>Child</span>' },
       })
       const parent = createWorkTask('parent', RESOLVE_BLOCK_WORK_HANDLER, {
         id: 'compile_ast:3',
         variant: 'templateWrapper',
-        blockType: BlockType.BASIC,
+        blockType: ComponentCallType.BASIC,
         properties: {
           content: child,
         },
@@ -80,7 +80,7 @@ describe('ResolveBlockWorkHandler', () => {
       expect(result.output.properties.content).toMatchObject({
         id: 'compile_ast:2',
         variant: 'html',
-        blockType: BlockType.BASIC,
+        blockType: ComponentCallType.BASIC,
         properties: { html: '<span>Child</span>' },
       })
       expect(isRenderBlock(result.output.properties.content)).toBe(true)
@@ -92,19 +92,19 @@ describe('ResolveBlockWorkHandler', () => {
       const header = createWorkTask('header', RESOLVE_BLOCK_WORK_HANDLER, {
         id: 'compile_ast:4',
         variant: 'html',
-        blockType: BlockType.BASIC,
+        blockType: ComponentCallType.BASIC,
         properties: { html: '<h1>Header</h1>' },
       })
       const footer = createWorkTask('footer', RESOLVE_BLOCK_WORK_HANDLER, {
         id: 'compile_ast:5',
         variant: 'html',
-        blockType: BlockType.BASIC,
+        blockType: ComponentCallType.BASIC,
         properties: { html: '<footer>Footer</footer>' },
       })
       const parent = createWorkTask('parent', RESOLVE_BLOCK_WORK_HANDLER, {
         id: 'compile_ast:6',
         variant: 'templateWrapper',
-        blockType: BlockType.BASIC,
+        blockType: ComponentCallType.BASIC,
         properties: { header, footer },
       })
 
@@ -123,19 +123,19 @@ describe('ResolveBlockWorkHandler', () => {
       const left = createWorkTask('compile_ast:7', RESOLVE_BLOCK_WORK_HANDLER, {
         id: 'compile_ast:7',
         variant: 'html',
-        blockType: BlockType.BASIC,
+        blockType: ComponentCallType.BASIC,
         properties: { html: '<p>Left</p>' },
       })
       const right = createWorkTask('compile_ast:7', RESOLVE_BLOCK_WORK_HANDLER, {
         id: 'compile_ast:7',
         variant: 'html',
-        blockType: BlockType.BASIC,
+        blockType: ComponentCallType.BASIC,
         properties: { html: '<p>Right</p>' },
       })
       const parent = createWorkTask('parent', RESOLVE_BLOCK_WORK_HANDLER, {
         id: 'compile_ast:8',
         variant: 'templateWrapper',
-        blockType: BlockType.BASIC,
+        blockType: ComponentCallType.BASIC,
         properties: { left, right },
       })
 
@@ -158,7 +158,7 @@ describe('ResolveBlockWorkHandler', () => {
         {
           id: 'compile_ast:1',
           variant: 'html',
-          blockType: BlockType.BASIC,
+          blockType: ComponentCallType.BASIC,
           properties: { visibleWhen: false },
         },
         RESOLVE_BLOCK_WORK_INSTRUMENTATION,
@@ -171,7 +171,7 @@ describe('ResolveBlockWorkHandler', () => {
       expect(root.children[0].beginFields).toEqual({
         id: 'compile_ast:1',
         variant: 'html',
-        blockType: BlockType.BASIC,
+        blockType: ComponentCallType.BASIC,
       })
       expect(root.children[0].completeFields).toEqual({ visible: false, properties: { visibleWhen: false } })
     })

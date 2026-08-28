@@ -1,12 +1,10 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
 import {
   ConditionCombinatorType,
   ExpressionType,
-  FunctionType,
   IteratorType,
-  OutcomeType,
+  PolicyType,
   PredicateType,
-} from '../../../../../authoring/types/enums'
+} from '../../../../../shared/taxonomy'
 import {
   ConditionalASTNode,
   FunctionASTNode,
@@ -49,40 +47,30 @@ import ForgeInvalidNodeError from '../../../../errors/ForgeInvalidNodeError'
 import type { NodeBuildContext } from './NodeFactory'
 
 /**
- * Every `type` discriminant that marks an authored expression, as opposed to
+ * The `_forge` categories that mark an authored expression, as opposed to
  * a structure (journey/step/block), a hook, or plain data.
  *
- * ExpressionType.NEXT and IteratorType are deliberately absent: nothing in
+ * PolicyType.NAVIGATION_NEXT and iterators are deliberately absent: nothing in
  * the authoring surface produces a NEXT expression, and iterator configs are
  * inline configuration consumed by Iterate expressions, not expressions
  * themselves.
  */
-const EXPRESSION_TYPES: ReadonlySet<string> = new Set([
-  ExpressionType.REFERENCE,
-  ExpressionType.PIPELINE,
-  ExpressionType.CONDITIONAL,
-  ExpressionType.MATCH,
-  ExpressionType.ITERATE,
-  ExpressionType.VALIDATION,
-  ExpressionType.TIE_BREAKER,
-  ...Object.values(PredicateType),
-  ...Object.values(ConditionCombinatorType),
-  ...Object.values(FunctionType),
-  ...Object.values(OutcomeType),
-])
+const EXPRESSION_PREFIXES = ['expression.', 'predicate.', 'combinator.', 'function.call.', 'policy.']
 
 function isExpression(node: any): boolean {
-  return node != null && EXPRESSION_TYPES.has(node.type)
+  const tag = node?._forge
+
+  return typeof tag === 'string' &&
+    tag !== PolicyType.NAVIGATION_NEXT &&
+    EXPRESSION_PREFIXES.some(prefix => tag.startsWith(prefix))
 }
 
-const CONDITION_COMBINATOR_TYPES: ReadonlySet<string> = new Set(Object.values(ConditionCombinatorType))
-
 function isConditionNotExpr(obj: any): obj is ConditionNotExpr {
-  return obj != null && obj.type === ConditionCombinatorType.NOT
+  return obj != null && obj._forge === ConditionCombinatorType.NOT
 }
 
 function isConditionCombinatorExpr(obj: any): obj is ConditionCombinatorExpr {
-  return obj != null && CONDITION_COMBINATOR_TYPES.has(obj.type)
+  return obj != null && typeof obj._forge === 'string' && obj._forge.startsWith('combinator.')
 }
 
 /**
@@ -102,8 +90,8 @@ export function createReferenceNode(json: ReferenceExpr, ctx: NodeBuildContext):
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.REFERENCE,
+    kind: ExpressionType.REFERENCE,
+    isTemplate: false,
     properties: { path: referencePath, base },
   }
 }
@@ -165,8 +153,8 @@ export function createPipelineNode(json: PipelineExpr, ctx: NodeBuildContext): P
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.PIPELINE,
+    kind: ExpressionType.PIPELINE,
+    isTemplate: false,
     properties: {
       input,
       steps,
@@ -194,8 +182,8 @@ export function createConditionalNode(json: ConditionalExpr, ctx: NodeBuildConte
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.CONDITIONAL,
+    kind: ExpressionType.CONDITIONAL,
+    isTemplate: false,
     properties: {
       predicate: ctx.createNode(json.predicate),
       thenValue: json.thenValue !== undefined ? ctx.transformValue(json.thenValue) : true,
@@ -221,11 +209,11 @@ export function createIterateNode(json: IterateExpr, ctx: NodeBuildContext): Ite
     // Transform the input data source (this IS an expression that needs evaluation)
     input: ctx.transformValue(json.input),
     iterator: {
-      type: json.iterator.type,
+      type: json.iterator._forge,
     },
   }
 
-  switch (json.iterator.type) {
+  switch (json.iterator._forge) {
     // For MAP: compile yield template once and instantiate per item at runtime
     case IteratorType.MAP:
       properties.iterator.yieldTemplate = compileIteratorTemplate(json.iterator.yield, ctx)
@@ -243,8 +231,8 @@ export function createIterateNode(json: IterateExpr, ctx: NodeBuildContext): Ite
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.ITERATE,
+    kind: ExpressionType.ITERATE,
+    isTemplate: false,
     properties,
   }
 }
@@ -270,8 +258,8 @@ export function createValidationNode(json: ValidationExpr, ctx: NodeBuildContext
   if ('function' in json && json.function !== undefined) {
     return {
       id: ctx.nextId(),
-      type: ASTNodeType.EXPRESSION,
-      expressionType: ExpressionType.VALIDATION,
+      kind: PolicyType.VALIDATION_RULE,
+      isTemplate: false,
       properties: {
         ...executionProperties,
         function: ctx.createNode(json.function) as FunctionASTNode,
@@ -291,8 +279,8 @@ export function createValidationNode(json: ValidationExpr, ctx: NodeBuildContext
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.VALIDATION,
+    kind: PolicyType.VALIDATION_RULE,
+    isTemplate: false,
     properties,
   }
 }
@@ -311,8 +299,8 @@ export function createTieBreakerNode(json: TieBreaker, ctx: NodeBuildContext): T
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.TIE_BREAKER,
+    kind: PolicyType.NAVIGATION_TIE_BREAKER,
+    isTemplate: false,
     properties,
   }
 }
@@ -322,15 +310,15 @@ export function createTieBreakerNode(json: TieBreaker, ctx: NodeBuildContext): T
  * Types: Condition (boolean), Transformer (value), Effect (side-effect), Generator (value)
  */
 export function createFunctionNode(json: FunctionExpr<ResolvableValue[]>, ctx: NodeBuildContext): FunctionASTNode {
-  const funcType = json.type
+  const funcType = json._forge
 
   // Transform arguments recursively
   const args = json.arguments.map((arg: unknown) => ctx.transformValue(arg))
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.EXPRESSION,
-    expressionType: funcType,
+    kind: funcType,
+    isTemplate: false,
     properties: {
       name: json.name,
       arguments: args,
@@ -395,8 +383,8 @@ export function createMatchNode(json: MatchExpr, ctx: NodeBuildContext): MatchAS
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.MATCH,
+    kind: ExpressionType.MATCH,
+    isTemplate: false,
     properties: {
       branches: compiledBranches,
       ...(json.otherwise !== undefined && {
@@ -435,8 +423,8 @@ function createTestPredicate(
 ): TestPredicateASTNode {
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.PREDICATE,
-    predicateType: PredicateType.TEST,
+    kind: PredicateType.TEST,
+    isTemplate: false,
     ...createBranchDiagnostics(context, ctx),
     properties: {
       subject: ctx.transformValue(context.subject),
@@ -453,8 +441,8 @@ function createNotPredicate(
 ): NotPredicateASTNode {
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.PREDICATE,
-    predicateType: PredicateType.NOT,
+    kind: PredicateType.NOT,
+    isTemplate: false,
     ...createBranchDiagnostics(context, ctx),
     properties: {
       operand: expandCondition(combinator.operand, context, ctx),
@@ -469,8 +457,8 @@ function createLogicalPredicate(
 ): AndPredicateASTNode | OrPredicateASTNode | XorPredicateASTNode {
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.PREDICATE,
-    predicateType: LOGICAL_PREDICATE_TYPES[combinator.type],
+    kind: LOGICAL_PREDICATE_TYPES[combinator._forge],
+    isTemplate: false,
     ...createBranchDiagnostics(context, ctx),
     properties: {
       operands: combinator.operands.map(operand => expandCondition(operand, context, ctx)),

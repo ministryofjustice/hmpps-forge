@@ -9,9 +9,8 @@ import { CodeFragment, code, positionedCode } from './codegen/fragments/CodeFrag
 import CodeGenerator from './codegen/CodeGenerator'
 import ExpressionDispatcher from './expressions/ExpressionDispatcher'
 import { CompilationPhase, compileGeneratedFunction, type GeneratedFunction } from './GeneratedFunctionCompiler'
-import { ASTNodeType } from '../../contracts/ast/enums'
 import type { FunctionASTNode } from '../../contracts/ast/expressions.type'
-import { FunctionType } from '../../../../authoring/types/enums'
+import { FunctionCallType } from '../../../../shared/taxonomy'
 
 const dependencies: CompilationDependencies = {
   functionRegistry: new FunctionRegistry(),
@@ -137,8 +136,8 @@ describe('GeneratedFunctionCompiler', () => {
 
       const expr = new ExpressionDispatcher({ functionRegistry, componentRegistry: new ComponentRegistry() })
       const expression: FunctionASTNode = {
-        type: ASTNodeType.EXPRESSION,
-        expressionType: FunctionType.GENERATOR,
+        kind: FunctionCallType.GENERATOR,
+        isTemplate: false,
         id: 'compile_ast:1',
         diagnostics: {
           source: { path: ['journey'], formattedPath: 'myJourney > value' },
@@ -177,7 +176,7 @@ describe('GeneratedFunctionCompiler', () => {
           nodeId: 'compile_ast:1',
           formattedPath: 'myJourney > value',
           functionName: 'throwingFunction',
-          functionType: FunctionType.GENERATOR,
+          functionType: FunctionCallType.GENERATOR,
           definedAt: 'myJourney (/app/journeys/goals.journey.ts:12:5)',
         })
         expect(error.stack).toContain('at [defined] myJourney (/app/journeys/goals.journey.ts:12:5)')

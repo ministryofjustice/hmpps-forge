@@ -6,9 +6,9 @@ import {
   PredicateExpr,
   GeneratorFunctionExpr,
 } from './expressions.type'
-import { ExpressionType, StructureType } from './enums'
+import { PolicyType, StructureType } from '../../shared/taxonomy'
 import type { ChainableGenerator, ChainableIterable } from '../builders/types'
-import type { BlockDefinition, ResolvableString, ResolvableBoolean } from '../../components/types/structures.type'
+import type { BlockDefinition, ResolvableBoolean, ResolvableString } from '../../components/types/structures.type'
 
 /**
  * View configuration for journeys and steps.
@@ -24,7 +24,8 @@ export interface ViewConfig {
 }
 
 interface BaseValidationExpr {
-  type: ExpressionType.VALIDATION
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: PolicyType.VALIDATION_RULE
   /** When `true`, the rule only runs on form submission, not during navigation/traversal checks. Useful for expensive or time-sensitive validations. */
   submissionOnly?: boolean
   /** Validation groups this rule belongs to. Defaults to `['default']` when omitted or empty. */
@@ -62,7 +63,7 @@ export interface FunctionValidationExpr extends BaseValidationExpr {
 /** Represents either a predicate-backed or generator-backed validation rule. */
 export type ValidationExpr = ConditionValidationExpr | FunctionValidationExpr
 
-export type ValidationProps = Omit<ConditionValidationExpr, 'type'> | Omit<FunctionValidationExpr, 'type'>
+export type ValidationProps = Omit<ConditionValidationExpr, '_forge'> | Omit<FunctionValidationExpr, '_forge'>
 
 type ValidWhenInput = ValidationExpr | IterateExpr | ChainableIterable
 
@@ -74,14 +75,15 @@ type ValidWhenInput = ValidationExpr | IterateExpr | ChainableIterable
  * as the final tiebreaker.
  */
 export interface TieBreaker {
-  type: ExpressionType.TIE_BREAKER
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: PolicyType.NAVIGATION_TIE_BREAKER
   /** Priority value — higher beats lower. */
   priority: number
   /** Predicate that must hold for this priority to apply. Omit for a catch-all. */
   when?: PredicateExpr
 }
 
-export type TieBreakerProps = Omit<TieBreaker, 'type'>
+export type TieBreakerProps = Omit<TieBreaker, '_forge'>
 
 /**
  * Where Forge redirects a request for an unreachable step: the journey's
@@ -106,7 +108,8 @@ export type RouteMetadata = Record<string, ResolvableValue | undefined>
  * Journeys contain steps and can have nested child journeys.
  */
 export interface JourneyDefinition {
-  type: StructureType.JOURNEY
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: StructureType.JOURNEY
 
   /**
    * URL segment this journey mounts under.
@@ -323,7 +326,8 @@ interface StepEntryValidation {
  * Steps contain blocks and define navigation/hook logic.
  */
 export interface StepDefinition {
-  type: StructureType.STEP
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: StructureType.STEP
 
   /**
    * URL segment appended to the owning journey's path to form the step's

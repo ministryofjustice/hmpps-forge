@@ -1,40 +1,41 @@
 import {
   ConditionCombinatorType,
   ExpressionType,
-  FunctionType,
+  FunctionCallType,
   HookType,
   IteratorType,
-  OutcomeType,
+  PolicyType,
   PredicateType,
   StructureType,
-} from '../../../../../authoring/types/enums'
+  ComponentCallType,
+} from '../../../../../shared/taxonomy'
 import { ExpressionBuilder } from '../../../../../authoring/builders/ExpressionBuilder'
 import { finaliseBuilders } from '../../../../../authoring/builders/utils/finaliseBuilders'
 import type { ConditionFunctionExpr, ReferenceExpr } from '../../../../../authoring/types/expressions.type'
 import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
 import ForgeInvalidNodeError from '../../../../errors/ForgeInvalidNodeError'
 import ForgeUnknownNodeTypeError from '../../../../errors/ForgeUnknownNodeTypeError'
-import { NodeFactory, creatorsByType } from './NodeFactory'
+import { NodeFactory, creatorsByForgeTag } from './NodeFactory'
 
 describe('NodeFactory', () => {
-  // Every enum whose values appear in a `type` discriminant. BlockType is
-  // absent by design: it discriminates the `blockType` field, never `type`.
+  // Every enum whose values name a constructible node. ConditionCombinatorType
+  // and IteratorType are absent by design: their tags are inline-only and the
+  // factory rejects them by prefix before map lookup.
   const discriminantEnums: Record<string, string>[] = [
     StructureType,
+    ComponentCallType,
     ExpressionType,
     PredicateType,
-    ConditionCombinatorType,
-    IteratorType,
     HookType,
-    OutcomeType,
-    FunctionType,
+    PolicyType,
+    FunctionCallType,
   ]
 
   // Dead enum member: nothing in the authoring surface produces a NEXT
   // expression and no creator ever existed for it.
-  const excludedDiscriminants: string[] = [ExpressionType.NEXT]
+  const excludedDiscriminants: string[] = [PolicyType.NAVIGATION_NEXT]
 
-  describe('creatorsByType', () => {
+  describe('creatorsByForgeTag', () => {
     it('should have a row for every discriminant enum value', () => {
       // Arrange
       const discriminantValues = discriminantEnums
@@ -42,7 +43,7 @@ describe('NodeFactory', () => {
         .filter(value => !excludedDiscriminants.includes(value))
 
       // Act
-      const missingRows = discriminantValues.filter(value => !creatorsByType.has(value))
+      const missingRows = discriminantValues.filter(value => !creatorsByForgeTag.has(value))
 
       // Assert
       expect(missingRows).toEqual([])
@@ -53,7 +54,7 @@ describe('NodeFactory', () => {
       const discriminantValues = new Set(discriminantEnums.flatMap(discriminantEnum => Object.values(discriminantEnum)))
 
       // Act
-      const unknownRows = [...creatorsByType.keys()].filter(key => !discriminantValues.has(key))
+      const unknownRows = [...creatorsByForgeTag.keys()].filter(key => !discriminantValues.has(key))
 
       // Assert
       expect(unknownRows).toEqual([])
@@ -69,7 +70,7 @@ describe('NodeFactory', () => {
 
     it('should throw a placement error when a condition combinator appears outside a match expression', () => {
       // Arrange
-      const strayCombinators = Object.values(ConditionCombinatorType).map(type => ({ type, operands: [] }))
+      const strayCombinators = Object.values(ConditionCombinatorType).map(tag => ({ _forge: tag, operands: [] }))
 
       // Act & Assert
       strayCombinators.forEach(combinator => {
@@ -82,7 +83,7 @@ describe('NodeFactory', () => {
 
     it('should throw a placement error when an iterator config appears outside an Iterate expression', () => {
       // Arrange
-      const strayIteratorConfigs = Object.values(IteratorType).map(type => ({ type }))
+      const strayIteratorConfigs = Object.values(IteratorType).map(tag => ({ _forge: tag }))
 
       // Act & Assert
       strayIteratorConfigs.forEach(iteratorConfig => {
@@ -96,9 +97,9 @@ describe('NodeFactory', () => {
     it('should throw a placement error when a stray combinator is nested inside an otherwise-valid node', () => {
       // Arrange
       const json = {
-        type: StructureType.BLOCK,
+        _forge: ComponentCallType.BASIC,
         variant: 'test-block',
-        someProperty: { type: ConditionCombinatorType.AND, operands: [] },
+        someProperty: { _forge: ConditionCombinatorType.AND, operands: [] },
       }
 
       // Act & Assert
@@ -110,9 +111,9 @@ describe('NodeFactory', () => {
     it('should throw a placement error when a stray iterator config is nested inside an otherwise-valid node', () => {
       // Arrange
       const json = {
-        type: StructureType.BLOCK,
+        _forge: ComponentCallType.BASIC,
         variant: 'test-block',
-        someProperty: { type: IteratorType.MAP },
+        someProperty: { _forge: IteratorType.MAP },
       }
 
       // Act & Assert
@@ -139,9 +140,9 @@ describe('NodeFactory', () => {
 
     it('should preserve the exact match invocation line through finalisation and node creation', () => {
       // Arrange
-      const reference = { type: ExpressionType.REFERENCE, path: ['answers', 'email'] } satisfies ReferenceExpr
+      const reference = { _forge: ExpressionType.REFERENCE, path: ['answers', 'email'] } satisfies ReferenceExpr
       const condition = {
-        type: FunctionType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'IsRequired',
         arguments: [],
       } satisfies ConditionFunctionExpr

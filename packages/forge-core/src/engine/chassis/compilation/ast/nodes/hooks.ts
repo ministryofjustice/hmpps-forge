@@ -1,5 +1,4 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import { HookType } from '../../../../../authoring/types/enums'
+import { HookType } from '../../../../../shared/taxonomy'
 import { AccessHookASTNode, SubmitHookASTNode } from '../../../contracts/ast/expressions.type'
 import { AccessHook, SubmitHook } from '../../../../../authoring/types/expressions.type'
 import type { ASTNode } from '../../../contracts/ast/engine.type'
@@ -34,8 +33,8 @@ export function createAccessHookNode(json: AccessHook, ctx: NodeBuildContext): A
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.HOOK,
-    hookType: HookType.ACCESS,
+    kind: HookType.ACCESS,
+    isTemplate: false,
     properties,
   }
 }
@@ -72,8 +71,8 @@ export function createSubmitHookNode(json: SubmitHook, ctx: NodeBuildContext): S
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.HOOK,
-    hookType: HookType.SUBMIT,
+    kind: HookType.SUBMIT,
+    isTemplate: false,
     properties,
   }
 }

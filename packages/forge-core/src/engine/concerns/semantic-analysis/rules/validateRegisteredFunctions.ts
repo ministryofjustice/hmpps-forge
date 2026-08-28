@@ -1,10 +1,10 @@
-import { FunctionType } from '../../../../authoring/types/enums'
+import { FunctionCallType } from '../../../../shared/taxonomy'
 import type { FunctionASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ForgeUnregisteredFunctionError from '../../../errors/ForgeUnregisteredFunctionError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
 
-const FUNCTION_TYPES = Object.values(FunctionType)
+const FUNCTION_TYPES = Object.values(FunctionCallType)
 
 function buildError(
   name: string,
@@ -26,13 +26,13 @@ export const validateRegisteredFunctions: ASTValidationRule = (context: ASTValid
   const errors: Error[] = []
 
   FUNCTION_TYPES.forEach(functionType => {
-    nodeIndex.findByType<FunctionASTNode>(functionType).forEach(node => {
+    nodeIndex.findByKind<FunctionASTNode>(functionType).forEach(node => {
       if (!functionRegistry.has(node.properties.name)) {
         errors.push(buildError(node.properties.name, functionType, node.diagnostics))
       }
     })
 
-    templateNodeIndex.findByType(functionType).forEach(({ node }) => {
+    templateNodeIndex.findByKind(functionType).forEach(({ node }) => {
       const name = (node.properties?.name as string) ?? ''
 
       if (!functionRegistry.has(name)) {

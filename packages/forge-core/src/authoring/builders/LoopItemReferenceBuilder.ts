@@ -1,6 +1,5 @@
-import { ReferenceBuilder } from './ReferenceBuilder'
-import { splitKey } from './utils/splitKey'
-import type { ReferenceExpr } from '../types/expressions.type'
+import { BuilderType } from '../../shared/taxonomy'
+import { ItemReferenceBuilder } from './ScopedReferenceBuilder'
 
 /**
  * Immutable builder for references to the item a loop is iterating, reached
@@ -12,13 +11,11 @@ import type { ReferenceExpr } from '../types/expressions.type'
  *
  * @internal Exposed to authors via the ChainableLoopItemRef interface.
  */
-export class LoopItemReferenceBuilder {
-  readonly nodeKind = 'forge-builder' as const
-
-  private readonly level: number
+export class LoopItemReferenceBuilder extends ItemReferenceBuilder {
+  readonly _forge = BuilderType.LOOP_ITEM as const
 
   private constructor(level: number) {
-    this.level = level
+    super(level)
   }
 
   /**
@@ -29,49 +26,7 @@ export class LoopItemReferenceBuilder {
     return new LoopItemReferenceBuilder(level)
   }
 
-  /**
-   * Build the whole-item reference expression, so a bare Loop.Item() in a
-   * value position means the same as Loop.Item().value().
-   * Called automatically by finaliseBuilders().
-   */
-  build(): ReferenceExpr {
-    return this.value().build()
-  }
-
-  /**
-   * Get a sub-property of the loop item.
-   * Supports dot notation: .path('user.address.city')
-   *
-   * @example
-   * Loop.Item().path('name')
-   * Loop.Item().path('address.postcode')
-   */
-  path(key: string): ReferenceBuilder {
-    return ReferenceBuilder.create(['@loop', this.level.toString(), 'item', ...splitKey(key)])
-  }
-
-  /**
-   * Get the full value of the loop item.
-   *
-   * @example
-   * Loop.Item().value()  // Returns the entire item
-   */
-  value(): ReferenceBuilder {
-    return ReferenceBuilder.create(['@loop', this.level.toString(), 'item'])
-  }
-
-  /**
-   * Get the key when iterating over an object.
-   * Only available when iterating over object entries (not arrays).
-   *
-   * @example
-   * // Given: { accommodation: { score: 5 }, finances: { score: 3 } }
-   * Data('scores').each(Iterator.Map({
-   *   slug: Loop.Item().key(),     // 'accommodation', 'finances'
-   *   score: Loop.Item().path('score')  // 5, 3
-   * }))
-   */
-  key(): ReferenceBuilder {
-    return ReferenceBuilder.create(['@loop', this.level.toString(), 'item', '@key'])
+  protected itemPath(): string[] {
+    return ['@loop', this.level.toString(), 'item']
   }
 }

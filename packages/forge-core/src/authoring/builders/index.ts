@@ -27,6 +27,7 @@ export type {
   BranchValue,
   ChainableConditional,
   ChainableExpr,
+  ChainableExpression,
   ChainableGenerator,
   ChainableIterable,
   ChainableLoopItemRef,
@@ -35,4 +36,5 @@ export type {
   ChainableNegation,
   ChainableRef,
   ChainableScopedRef,
+  ChainableValue,
 } from './types'

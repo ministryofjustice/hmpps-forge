@@ -4,7 +4,7 @@ import { and, not, or } from './combinators'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import { MatchExpr } from '../types/expressions.type'
 import { Condition } from '../../built-ins/functions/conditions'
-import { ConditionCombinatorType, ExpressionType, FunctionType } from '../types/enums'
+import { ConditionCombinatorType, ExpressionType, FunctionCallType } from '../../shared/taxonomy'
 
 describe('MatchExprBuilder', () => {
   describe('match()', () => {
@@ -68,7 +68,7 @@ describe('MatchExprBuilder', () => {
 
       // Assert
       expect(result.branches[0].value).toEqual({
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: ['answers', 'someField'],
       })
     })
@@ -119,7 +119,7 @@ describe('MatchExprBuilder', () => {
 
       // Assert
       expect(result.otherwise).toEqual({
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: ['answers', 'fallbackField'],
       })
     })
@@ -138,19 +138,19 @@ describe('MatchExprBuilder', () => {
 
       // Assert
       expect(result).toEqual({
-        type: ExpressionType.MATCH,
-        subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
+        _forge: ExpressionType.MATCH,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A'] },
+            condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A'] },
             value: 'Result A',
           },
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['B'] },
+            condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['B'] },
             value: 'Result B',
           },
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['C'] },
+            condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['C'] },
             value: 'Result C',
           },
         ],
@@ -174,7 +174,7 @@ describe('MatchExprBuilder', () => {
 
       // Assert
       expect(result.subject).toEqual({
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: ['@scope', '0', 'status'],
       })
     })
@@ -188,18 +188,18 @@ describe('MatchExprBuilder', () => {
 
       // Assert
       expect(result.branches[0].condition).toEqual({
-        type: ConditionCombinatorType.OR,
+        _forge: ConditionCombinatorType.OR,
         operands: [
           {
-            type: ConditionCombinatorType.AND,
+            _forge: ConditionCombinatorType.AND,
             operands: [
-              { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A'] },
-              { type: FunctionType.CONDITION, name: 'Equals', arguments: ['B'] },
+              { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A'] },
+              { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['B'] },
             ],
           },
           {
-            type: ConditionCombinatorType.NOT,
-            operand: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['C'] },
+            _forge: ConditionCombinatorType.NOT,
+            operand: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['C'] },
           },
         ],
       })

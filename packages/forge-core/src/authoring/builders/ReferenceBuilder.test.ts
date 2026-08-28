@@ -1,18 +1,18 @@
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { ConditionFunctionExpr, PipelineExpr, TransformerFunctionExpr } from '../types/expressions.type'
-import { ExpressionType, FunctionType, PredicateType } from '../types/enums'
+import { ExpressionType, FunctionCallType, PredicateType } from '../../shared/taxonomy'
 
 describe('ReferenceBuilder', () => {
   // Helper to create a mock condition
   const mockCondition = (name: string): ConditionFunctionExpr<any> => ({
-    type: FunctionType.CONDITION,
+    _forge: FunctionCallType.CONDITION,
     name,
     arguments: [],
   })
 
   // Helper to create a mock transformer
   const mockTransformer = (name: string): TransformerFunctionExpr<any> => ({
-    type: FunctionType.TRANSFORMER,
+    _forge: FunctionCallType.TRANSFORMER,
     name,
     arguments: [],
   })
@@ -27,7 +27,7 @@ describe('ReferenceBuilder', () => {
 
       // Assert
       expect(builder.expr).toEqual({
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: ['answers', 'email'],
       })
     })
@@ -54,7 +54,7 @@ describe('ReferenceBuilder', () => {
 
       // Assert
       expect(result).toEqual({
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: ['answers', 'email'],
       })
     })
@@ -117,9 +117,9 @@ describe('ReferenceBuilder', () => {
       const result = builder.pipe(transformer)
 
       // Assert
-      expect(result.expr.type).toBe(ExpressionType.PIPELINE)
+      expect(result.expr._forge).toBe(ExpressionType.PIPELINE)
       expect((result.expr as PipelineExpr).input).toEqual({
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: ['answers', 'email'],
       })
       expect((result.expr as PipelineExpr).steps).toEqual([transformer])
@@ -148,8 +148,8 @@ describe('ReferenceBuilder', () => {
       const result = builder.pipe(transformer).match(condition)
 
       // Assert
-      expect(result.type).toBe(PredicateType.TEST)
-      expect((result.subject as PipelineExpr).type).toBe(ExpressionType.PIPELINE)
+      expect(result._forge).toBe(PredicateType.TEST)
+      expect((result.subject as PipelineExpr)._forge).toBe(ExpressionType.PIPELINE)
       expect(result.condition).toEqual(condition)
     })
 
@@ -178,11 +178,11 @@ describe('ReferenceBuilder', () => {
       // Assert
       // Outer pipeline wraps inner pipeline
       const outer = result.expr as PipelineExpr
-      expect(outer.type).toBe(ExpressionType.PIPELINE)
+      expect(outer._forge).toBe(ExpressionType.PIPELINE)
       expect(outer.steps).toEqual([t2])
 
       const inner = outer.input as PipelineExpr
-      expect(inner.type).toBe(ExpressionType.PIPELINE)
+      expect(inner._forge).toBe(ExpressionType.PIPELINE)
       expect(inner.steps).toEqual([t1])
     })
   })
@@ -198,9 +198,9 @@ describe('ReferenceBuilder', () => {
 
       // Assert
       expect(result).toEqual({
-        type: PredicateType.TEST,
+        _forge: PredicateType.TEST,
         subject: {
-          type: ExpressionType.REFERENCE,
+          _forge: ExpressionType.REFERENCE,
           path: ['answers', 'email'],
         },
         negate: false,

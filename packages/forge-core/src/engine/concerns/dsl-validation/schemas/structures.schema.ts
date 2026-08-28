@@ -1,14 +1,5 @@
 import { z } from 'zod'
-import {
-  BlockType,
-  ExpressionType,
-  FunctionType,
-  HookType,
-  IteratorType,
-  OutcomeType,
-  PredicateType,
-  StructureType,
-} from '../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, HookType, PolicyType, StructureType } from '../../../../shared/taxonomy'
 import { ReferenceExprSchema, PipelineExprSchema, IterateExprSchema, ResolvableValueSchema } from './expressions.schema'
 import { PredicateExprSchema, ConditionalExprSchema, MatchExprSchema, HookOutcomeSchema } from './predicates.schema'
 import {
@@ -26,15 +17,6 @@ const ViewConfigSchema = z.object({
   locals: z.record(z.string(), z.unknown()).optional(),
 })
 
-const staticDataDynamicMarkers = new Set<string>([
-  ...Object.values(ExpressionType),
-  ...Object.values(FunctionType),
-  ...Object.values(HookType),
-  ...Object.values(IteratorType),
-  ...Object.values(OutcomeType),
-  ...Object.values(PredicateType),
-])
-
 const StaticDataValueSchema: z.ZodType<unknown> = z.lazy(() =>
   z
     .union([
@@ -50,9 +32,7 @@ const StaticDataValueSchema: z.ZodType<unknown> = z.lazy(() =>
         return
       }
 
-      const type = (value as { type?: unknown }).type
-
-      if (typeof type !== 'string' || !staticDataDynamicMarkers.has(type)) {
+      if (!('_forge' in value)) {
         return
       }
 
@@ -100,7 +80,7 @@ const RouteMetadataSchema = z.record(z.string(), ResolvableValueSchema.optional(
  * @see {@link ValidationExpr}
  */
 const ValidationExecutionSchema = {
-  type: z.literal(ExpressionType.VALIDATION),
+  _forge: z.literal(PolicyType.VALIDATION_RULE),
   submissionOnly: z.boolean().optional(),
   groups: z.array(z.string().trim().min(1)).optional(),
 }
@@ -141,14 +121,14 @@ const ValidationExprSchema = z
     }
   })
 
-const ValidWhenItemSchema = z.discriminatedUnion('type', [ValidationExprSchema, IterateExprSchema])
+const ValidWhenItemSchema = z.discriminatedUnion('_forge', [ValidationExprSchema, IterateExprSchema])
 const ValidWhenSchema = z.preprocess(value => {
   if (
     value !== null &&
     value !== undefined &&
     typeof value === 'object' &&
     !Array.isArray(value) &&
-    (value as { type?: unknown }).type === ExpressionType.ITERATE
+    (value as { _forge?: unknown })._forge === ExpressionType.ITERATE
   ) {
     return [value]
   }
@@ -161,7 +141,6 @@ const ValidWhenSchema = z.preprocess(value => {
  */
 const BlockSchema: z.ZodType<any> = z.lazy(() => {
   const baseBlock = z.looseObject({
-    type: z.literal(StructureType.BLOCK),
     variant: z.string(),
     visibleWhen: ResolvableBooleanSchema.optional(),
     metadata: z.record(z.string(), z.any()).optional(),
@@ -185,25 +164,25 @@ const BlockSchema: z.ZodType<any> = z.lazy(() => {
   })
 
   const fieldBlock = baseBlock.extend({
-    blockType: z.literal(BlockType.FIELD),
+    _forge: z.literal(ComponentCallType.FIELD),
     ...fieldBlockProps.shape,
   })
 
   const basicBlock = baseBlock.extend({
-    blockType: z.literal(BlockType.BASIC),
+    _forge: z.literal(ComponentCallType.BASIC),
   })
 
-  return z.discriminatedUnion('blockType', [fieldBlock, basicBlock])
+  return z.discriminatedUnion('_forge', [fieldBlock, basicBlock])
 })
 
 /**
  * @see {@link AccessHook}
  *
  * Access hooks handle access control, data loading, and outcomes.
- * All properties except `type` are optional.
+ * All properties except `_forge` are optional.
  */
 const AccessHookSchema = z.object({
-  type: z.literal(HookType.ACCESS),
+  _forge: z.literal(HookType.ACCESS),
   when: PredicateExprSchema.optional(),
   effects: z.array(EffectFunctionExprSchema).optional(),
   next: z.array(HookOutcomeSchema).optional(),
@@ -213,7 +192,7 @@ const AccessHookSchema = z.object({
  * @see {@link SubmitHook}
  */
 const SubmitHookSchema = z.object({
-  type: z.literal(HookType.SUBMIT),
+  _forge: z.literal(HookType.SUBMIT),
   when: PredicateExprSchema.optional(),
   guards: PredicateExprSchema.optional(),
   validate: z
@@ -245,7 +224,7 @@ const SubmitHookSchema = z.object({
 })
 
 const TieBreakerSchema = z.looseObject({
-  type: z.literal(ExpressionType.TIE_BREAKER),
+  _forge: z.literal(PolicyType.NAVIGATION_TIE_BREAKER),
   priority: z.number(),
   when: PredicateExprSchema.optional(),
 })
@@ -274,7 +253,7 @@ const JourneyReachabilitySchema = z
  * @see {@link StepDefinition}
  */
 const StepSchema = z.looseObject({
-  type: z.literal(StructureType.STEP),
+  _forge: z.literal(StructureType.STEP),
   path: z.string(),
   blocks: z.array(BlockSchema).optional(),
   onAccess: z.array(AccessHookSchema).optional(),
@@ -295,7 +274,7 @@ const StepSchema = z.looseObject({
  */
 export const JourneySchema: z.ZodType<any> = z.lazy(() =>
   z.looseObject({
-    type: z.literal(StructureType.JOURNEY),
+    _forge: z.literal(StructureType.JOURNEY),
     path: z.string(),
     code: z.string(),
     onAccess: z.array(AccessHookSchema).optional(),

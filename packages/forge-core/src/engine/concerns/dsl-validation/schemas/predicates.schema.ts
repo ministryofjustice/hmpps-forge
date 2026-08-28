@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { PredicateType, ExpressionType, OutcomeType, ConditionCombinatorType } from '../../../../authoring/types/enums'
+import { PredicateType, ExpressionType, PolicyType, ConditionCombinatorType } from '../../../../shared/taxonomy'
 import { ResolvableValueSchema } from './expressions.schema'
 import { ConditionFunctionExprSchema } from './base.schema'
 
@@ -7,7 +7,7 @@ import { ConditionFunctionExprSchema } from './base.schema'
  * @see {@link PredicateExpr}
  */
 export const PredicateExprSchema: z.ZodType<any> = z.lazy(() =>
-  z.union([
+  z.discriminatedUnion('_forge', [
     PredicateTestExprSchema,
     PredicateAndExprSchema,
     PredicateOrExprSchema,
@@ -20,7 +20,7 @@ export const PredicateExprSchema: z.ZodType<any> = z.lazy(() =>
  * @see {@link PredicateTestExpr}
  */
 const PredicateTestExprSchema = z.object({
-  type: z.literal(PredicateType.TEST),
+  _forge: z.literal(PredicateType.TEST),
   subject: ResolvableValueSchema,
   negate: z.boolean(),
   condition: ConditionFunctionExprSchema,
@@ -29,32 +29,32 @@ const PredicateTestExprSchema = z.object({
 /**
  * @see {@link PredicateAndExpr}
  */
-const PredicateAndExprSchema: z.ZodType<any> = z.looseObject({
-  type: z.literal(PredicateType.AND),
+const PredicateAndExprSchema = z.looseObject({
+  _forge: z.literal(PredicateType.AND),
   operands: z.array(PredicateExprSchema).min(2),
 })
 
 /**
  * @see {@link PredicateOrExpr}
  */
-const PredicateOrExprSchema: z.ZodType<any> = z.looseObject({
-  type: z.literal(PredicateType.OR),
+const PredicateOrExprSchema = z.looseObject({
+  _forge: z.literal(PredicateType.OR),
   operands: z.array(PredicateExprSchema).min(2),
 })
 
 /**
  * @see {@link PredicateXorExpr}
  */
-const PredicateXorExprSchema: z.ZodType<any> = z.looseObject({
-  type: z.literal(PredicateType.XOR),
+const PredicateXorExprSchema = z.looseObject({
+  _forge: z.literal(PredicateType.XOR),
   operands: z.array(PredicateExprSchema).min(2),
 })
 
 /**
  * @see {@link PredicateNotExpr}
  */
-const PredicateNotExprSchema: z.ZodType<any> = z.looseObject({
-  type: z.literal(PredicateType.NOT),
+const PredicateNotExprSchema = z.looseObject({
+  _forge: z.literal(PredicateType.NOT),
   operand: PredicateExprSchema,
 })
 
@@ -63,7 +63,7 @@ const PredicateNotExprSchema: z.ZodType<any> = z.looseObject({
  */
 export const ConditionalExprSchema = z.lazy(() =>
   z.object({
-    type: z.literal(ExpressionType.CONDITIONAL),
+    _forge: z.literal(ExpressionType.CONDITIONAL),
     predicate: PredicateExprSchema,
     thenValue: ResolvableValueSchema.optional(),
     elseValue: ResolvableValueSchema.optional(),
@@ -74,7 +74,7 @@ export const ConditionalExprSchema = z.lazy(() =>
  * @see {@link ConditionBranchExpr}
  */
 const ConditionBranchExprSchema: z.ZodType<any> = z.lazy(() =>
-  z.union([
+  z.discriminatedUnion('_forge', [
     ConditionFunctionExprSchema,
     ConditionAndExprSchema,
     ConditionOrExprSchema,
@@ -86,32 +86,32 @@ const ConditionBranchExprSchema: z.ZodType<any> = z.lazy(() =>
 /**
  * @see {@link ConditionAndExpr}
  */
-const ConditionAndExprSchema: z.ZodType<any> = z.looseObject({
-  type: z.literal(ConditionCombinatorType.AND),
+const ConditionAndExprSchema = z.looseObject({
+  _forge: z.literal(ConditionCombinatorType.AND),
   operands: z.array(ConditionBranchExprSchema).min(2),
 })
 
 /**
  * @see {@link ConditionOrExpr}
  */
-const ConditionOrExprSchema: z.ZodType<any> = z.looseObject({
-  type: z.literal(ConditionCombinatorType.OR),
+const ConditionOrExprSchema = z.looseObject({
+  _forge: z.literal(ConditionCombinatorType.OR),
   operands: z.array(ConditionBranchExprSchema).min(2),
 })
 
 /**
  * @see {@link ConditionXorExpr}
  */
-const ConditionXorExprSchema: z.ZodType<any> = z.looseObject({
-  type: z.literal(ConditionCombinatorType.XOR),
+const ConditionXorExprSchema = z.looseObject({
+  _forge: z.literal(ConditionCombinatorType.XOR),
   operands: z.array(ConditionBranchExprSchema).min(2),
 })
 
 /**
  * @see {@link ConditionNotExpr}
  */
-export const ConditionNotExprSchema: z.ZodType<any> = z.looseObject({
-  type: z.literal(ConditionCombinatorType.NOT),
+export const ConditionNotExprSchema = z.looseObject({
+  _forge: z.literal(ConditionCombinatorType.NOT),
   operand: ConditionBranchExprSchema,
 })
 
@@ -128,7 +128,7 @@ export const MatchBranchSchema = z.object({
  */
 export const MatchExprSchema = z.lazy(() =>
   z.object({
-    type: z.literal(ExpressionType.MATCH),
+    _forge: z.literal(ExpressionType.MATCH),
     subject: ResolvableValueSchema,
     branches: z.array(MatchBranchSchema).min(1),
     otherwise: ResolvableValueSchema.optional(),
@@ -139,7 +139,7 @@ export const MatchExprSchema = z.lazy(() =>
  * @see {@link RedirectOutcome}
  */
 const RedirectOutcomeSchema = z.object({
-  type: z.literal(OutcomeType.REDIRECT),
+  _forge: z.literal(PolicyType.OUTCOME_REDIRECT),
   when: PredicateExprSchema.optional(),
   goto: z.union([z.string(), ResolvableValueSchema]),
 })
@@ -148,7 +148,7 @@ const RedirectOutcomeSchema = z.object({
  * @see {@link ThrowErrorOutcome}
  */
 const ThrowErrorOutcomeSchema = z.object({
-  type: z.literal(OutcomeType.THROW_ERROR),
+  _forge: z.literal(PolicyType.OUTCOME_THROW_ERROR),
   when: PredicateExprSchema.optional(),
   status: z.number().int().min(100).max(599),
   message: z.union([z.string(), ResolvableValueSchema]),
@@ -157,4 +157,4 @@ const ThrowErrorOutcomeSchema = z.object({
 /**
  * @see {@link HookOutcome}
  */
-export const HookOutcomeSchema = z.discriminatedUnion('type', [RedirectOutcomeSchema, ThrowErrorOutcomeSchema])
+export const HookOutcomeSchema = z.discriminatedUnion('_forge', [RedirectOutcomeSchema, ThrowErrorOutcomeSchema])

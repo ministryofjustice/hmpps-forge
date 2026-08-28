@@ -1,6 +1,5 @@
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
-import { BlockType, ExpressionType, FunctionType, IteratorType } from '../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, FunctionCallType, IteratorType } from '../../../../shared/taxonomy'
 import { FieldBlockASTNode } from '../../../chassis/contracts/ast/structures.type'
 import { FunctionASTNode, IterateASTNode, ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import { TemplateValue } from '../../../chassis/contracts/ast/template.type'
@@ -16,15 +15,15 @@ import type { CleardownModel } from '../contracts/cleardownModel.type'
 import StepFieldInventoryCompiler from './StepFieldInventoryCompiler'
 
 function createFieldBlock(code: string | FunctionASTNode): FieldBlockASTNode {
-  return ASTTestFactory.block('text-input', BlockType.FIELD)
+  return ASTTestFactory.block('text-input', ComponentCallType.FIELD)
     .withProperty('code', code)
     .build() as FieldBlockASTNode
 }
 
 function createReference(path: (string | number)[]): ReferenceASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.REFERENCE,
+    kind: ExpressionType.REFERENCE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     properties: { path },
   } as ReferenceASTNode
@@ -32,8 +31,8 @@ function createReference(path: (string | number)[]): ReferenceASTNode {
 
 function createGeneratorFunction(name: string, args: unknown[] = []): FunctionASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: FunctionType.GENERATOR,
+    kind: FunctionCallType.GENERATOR,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     properties: { name, arguments: args },
   } as FunctionASTNode
@@ -45,8 +44,8 @@ function createTemplate(value: unknown): TemplateValue {
 
 function createIterateNode(input: unknown, yieldTemplate: TemplateValue): IterateASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.ITERATE,
+    kind: ExpressionType.ITERATE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     properties: {
       input,

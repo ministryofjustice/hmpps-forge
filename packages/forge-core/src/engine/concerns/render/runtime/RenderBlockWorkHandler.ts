@@ -1,6 +1,5 @@
 import type { ComponentRegistryEntry } from '../../../../components/types/components.type'
 import type { BlockDefinition, EvaluatedBlock } from '../../../../components/types/structures.type'
-import { StructureType } from '../../../../authoring/types/enums'
 import { RENDER_BLOCK_BRAND } from '../contracts/renderBlock.brand'
 import type { RenderBlock, ForgeRenderer } from '../../../../framework/types/rendering.type'
 import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
@@ -92,9 +91,8 @@ export const RENDER_BLOCK_WORK_HANDLER: WorkHandler<'render.render-blocks.block'
 
 function toEvaluatedBlock(block: RenderBlock): EvaluatedBlock<BlockDefinition> {
   return {
-    type: StructureType.BLOCK,
+    _forge: block.blockType,
     variant: block.variant,
-    blockType: block.blockType,
     ...block.properties,
   } as EvaluatedBlock<BlockDefinition>
 }
@@ -143,9 +141,8 @@ function replaceNestedBlocks(
     }
 
     const blockDefinition = {
-      type: StructureType.BLOCK,
+      _forge: value.blockType,
       variant: value.variant,
-      blockType: value.blockType,
       ...value.properties,
     } as BlockDefinition
 

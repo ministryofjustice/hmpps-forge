@@ -1,5 +1,5 @@
 import { NodeId } from '../../engine/chassis/contracts/ast/ast.type'
-import { BlockType } from '../../authoring/types/enums'
+import { ComponentCallType } from '../../shared/taxonomy'
 import { ValidationResult } from '../../engine/concerns/validation/contracts/validationResult.type'
 import type { ViewConfig } from '../../authoring/types/structures.type'
 import type { ComponentRegistryEntry } from '../../components/types/components.type'
@@ -11,7 +11,7 @@ type MaybePromise<T> = T | Promise<T>
 export interface RenderBlock {
   readonly id: NodeId
   readonly variant: string
-  readonly blockType: BlockType
+  readonly blockType: ComponentCallType
   readonly properties: Record<string, unknown>
 }
 

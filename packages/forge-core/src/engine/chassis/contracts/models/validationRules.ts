@@ -1,8 +1,6 @@
-import { ExpressionType } from '../../../../authoring/types/enums'
+import { PolicyType } from '../../../../shared/taxonomy'
 import type { ASTNode } from '../ast/ast.type'
-import { ASTNodeType } from '../ast/enums'
-import { isASTNode, isTemplateNode } from '../ast/nodes'
-import type { TemplateNode } from '../ast/template.type'
+import { isASTNode } from '../ast/nodes'
 import { AuthoredValueKind, type AuthoredValue, type ExpressionValue } from './authoredValue.type'
 import { ValidationRulesKind, type ValidationRulesModel } from './fieldModel.type'
 
@@ -47,14 +45,6 @@ export function classifyValidationRules(
   return { kind: ValidationRulesKind.DYNAMIC, value: classify(value) }
 }
 
-function isDirectValidationRule(value: unknown): value is ASTNode | TemplateNode {
-  if (isTemplateNode(value)) {
-    return value.originalType === ASTNodeType.EXPRESSION && value.expressionType === ExpressionType.VALIDATION
-  }
-
-  if (!isASTNode(value) || !('id' in value) || value.type !== ASTNodeType.EXPRESSION) {
-    return false
-  }
-
-  return 'expressionType' in value && value.expressionType === ExpressionType.VALIDATION
+function isDirectValidationRule(value: unknown): value is ASTNode {
+  return isASTNode(value) && value.kind === PolicyType.VALIDATION_RULE
 }

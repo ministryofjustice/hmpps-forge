@@ -1,6 +1,5 @@
-import { BlockType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, IteratorType } from '../../../../shared/taxonomy'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import { AuthoredValueKind } from '../../../chassis/contracts/models/authoredValue.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
@@ -16,8 +15,8 @@ function setParent(child: ASTNode, parent: ASTNode): void {
 
 function createIterateNode(yieldTemplate: unknown): IterateASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.ITERATE,
+    kind: ExpressionType.ITERATE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: {
@@ -32,9 +31,10 @@ function createIterateNode(yieldTemplate: unknown): IterateASTNode {
 
 function blockTemplate(): unknown {
   return {
-    type: ASTNodeType.BLOCK,
+    kind: ComponentCallType.BASIC,
+    isTemplate: false,
+    id: ASTTestFactory.getId(),
     variant: 'content',
-    blockType: BlockType.BASIC,
     content: 'Hello',
   }
 }
@@ -95,7 +95,7 @@ describe('ResolveAnalyzer', () => {
       const inlineIterate = createIterateNode({ label: 'inline value' })
       const standaloneIterate = createIterateNode(blockTemplate())
       const skipPropIterate = createIterateNode(blockTemplate())
-      const block = ASTTestFactory.block('collection-block', BlockType.BASIC)
+      const block = ASTTestFactory.block('collection-block', ComponentCallType.BASIC)
         .withProperty('collection', inlineIterate)
         .withProperty('formatters', [skipPropIterate])
         .build()
@@ -126,9 +126,10 @@ describe('ResolveAnalyzer', () => {
       const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().build()
       const nestedBlock = {
-        type: ASTNodeType.BLOCK,
+        kind: ComponentCallType.FIELD,
+        isTemplate: false,
+        id: ASTTestFactory.getId(),
         variant: 'text-input',
-        blockType: BlockType.FIELD,
         properties: { code: 'nested', formatters: ['trim'], hint: 'Keep me' },
       }
       const stepNode = ASTTestFactory.step().withPath('/step').withProperty('summaryBlock', nestedBlock).build()

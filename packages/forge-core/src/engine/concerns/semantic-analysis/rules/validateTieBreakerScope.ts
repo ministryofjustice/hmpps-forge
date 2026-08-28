@@ -1,7 +1,7 @@
-import { ExpressionType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { PolicyType, StructureType } from '../../../../shared/taxonomy'
 import type { NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { TieBreakerASTNode } from '../../../chassis/contracts/ast/expressions.type'
+import type { StepASTNode } from '../../../chassis/contracts/ast/structures.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
@@ -24,21 +24,23 @@ export const validateTieBreakerScope: ASTValidationRule = (context: ASTValidatio
   const { nodeIndex, templateNodeIndex } = context
   const errors: Error[] = []
 
-  nodeIndex.findByType<TieBreakerASTNode>(ExpressionType.TIE_BREAKER).forEach(node => {
+  nodeIndex.findByKind<TieBreakerASTNode>(PolicyType.NAVIGATION_TIE_BREAKER).forEach(node => {
     const parent = node.parent
 
-    if (!parent || parent.type !== ASTNodeType.STEP) {
+    if (!parent || parent.kind !== StructureType.STEP) {
       errors.push(buildError(node.diagnostics))
 
       return
     }
 
-    if (!containsNode(parent.properties?.reachability?.tieBreakers, node.id)) {
+    const step = parent as StepASTNode
+
+    if (!containsNode(step.properties.reachability?.tieBreakers, node.id)) {
       errors.push(buildError(node.diagnostics))
     }
   })
 
-  templateNodeIndex.findByType(ExpressionType.TIE_BREAKER).forEach(({ node }) => {
+  templateNodeIndex.findByKind(PolicyType.NAVIGATION_TIE_BREAKER).forEach(({ node }) => {
     errors.push(buildError(node.diagnostics))
   })
 

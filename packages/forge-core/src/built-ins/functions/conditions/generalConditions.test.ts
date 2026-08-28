@@ -1,5 +1,5 @@
 import { GeneralConditions } from './generalConditions'
-import { FunctionType } from '../../../authoring/types/enums'
+import { FunctionCallType } from '../../../shared/taxonomy'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('GeneralConditions', () => {
@@ -59,7 +59,7 @@ describe('GeneralConditions', () => {
     test('should build correct expression object', () => {
       const expr = GeneralConditions.IsRequired()
       expect(expr).toEqual({
-        type: FunctionType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'IsRequired',
         arguments: [],
       })
@@ -138,7 +138,7 @@ describe('GeneralConditions', () => {
     test('should build correct expression object', () => {
       const expr = GeneralConditions.Equals('expectedValue')
       expect(expr).toEqual({
-        type: FunctionType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Equals',
         arguments: ['expectedValue'],
       })

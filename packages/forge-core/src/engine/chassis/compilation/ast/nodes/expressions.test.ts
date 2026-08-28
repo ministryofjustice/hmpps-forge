@@ -1,13 +1,12 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
 import {
+  PolicyType,
   ConditionCombinatorType,
   ExpressionType,
-  FunctionType,
+  FunctionCallType,
   PredicateType,
-  BlockType,
+  ComponentCallType,
   IteratorType,
-  StructureType,
-} from '../../../../../authoring/types/enums'
+} from '../../../../../shared/taxonomy'
 import type {
   ReferenceExpr,
   PipelineExpr,
@@ -40,8 +39,8 @@ import type {
   TestPredicateASTNode,
   XorPredicateASTNode,
 } from '../../../contracts/ast/predicates.type'
-import { isTemplateNode } from '../../../contracts/ast/nodes'
-import { TemplateNode } from '../../../contracts/ast/template.type'
+import { isTemplateASTNode } from '../../../contracts/ast/nodes'
+import type { TemplateASTNode } from '../../../contracts/ast/ast.type'
 import type { ValidationExpr } from '../../../../../authoring/types/structures.type'
 import {
   createConditionalNode,
@@ -66,7 +65,7 @@ describe('expressions', () => {
     it('should create a Reference expression with simple path', () => {
       // Arrange
       const json = {
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: ['answers', 'field'],
       } satisfies ReferenceExpr
 
@@ -75,8 +74,8 @@ describe('expressions', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.REFERENCE)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(ExpressionType.REFERENCE)
       expect(result.properties.path).toBeDefined()
 
       const path = result.properties.path
@@ -88,8 +87,8 @@ describe('expressions', () => {
     it('should transform path segments that are expressions', () => {
       // Arrange
       const json = {
-        type: ExpressionType.REFERENCE,
-        path: ['items', { type: ExpressionType.REFERENCE, path: ['scope', 'index'] }],
+        _forge: ExpressionType.REFERENCE,
+        path: ['items', { _forge: ExpressionType.REFERENCE, path: ['scope', 'index'] }],
       } as ReferenceExpr
 
       // Act
@@ -103,14 +102,14 @@ describe('expressions', () => {
 
       // Second segment should be transformed to an AST node
       expect(path[1]).toHaveProperty('id')
-      expect(path[1]).toHaveProperty('type')
-      expect((path[1] as ExpressionASTNode).type).toBe(ASTNodeType.EXPRESSION)
+      expect(path[1]).toHaveProperty('kind')
+      expect((path[1] as ExpressionASTNode).kind).toBe(ExpressionType.REFERENCE)
     })
 
     it('should throw error for non-array path values', () => {
       // Arrange
       const json = {
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: 'simpleString',
       }
 
@@ -123,7 +122,7 @@ describe('expressions', () => {
     it('should generate unique node IDs', () => {
       // Arrange
       const json = {
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: ['answers', 'field'],
       } satisfies ReferenceExpr
 
@@ -140,7 +139,7 @@ describe('expressions', () => {
     it('should rewrite Item scope paths into loop item paths', () => {
       // Arrange
       const json = {
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: ['@scope', '1', 'name'],
       } satisfies ReferenceExpr
 
@@ -154,7 +153,7 @@ describe('expressions', () => {
     it('should rewrite bare Item scope paths into loop item paths', () => {
       // Arrange
       const json = {
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: ['@scope', '0'],
       } satisfies ReferenceExpr
 
@@ -168,7 +167,7 @@ describe('expressions', () => {
     it('should not rewrite loop paths', () => {
       // Arrange
       const json = {
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: ['@loop', '0', 'index0'],
       } satisfies ReferenceExpr
 
@@ -182,7 +181,7 @@ describe('expressions', () => {
     it('should not modify paths without dot notation', () => {
       // Arrange
       const json = {
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: ['answers', 'fieldCode'],
       } satisfies ReferenceExpr
 
@@ -206,11 +205,11 @@ describe('expressions', () => {
     it('should create a Pipeline expression with input and steps', () => {
       // Arrange
       const json = {
-        type: ExpressionType.PIPELINE,
-        input: { type: ExpressionType.REFERENCE, path: ['answers', 'value'] } satisfies ReferenceExpr,
+        _forge: ExpressionType.PIPELINE,
+        input: { _forge: ExpressionType.REFERENCE, path: ['answers', 'value'] } satisfies ReferenceExpr,
         steps: [
-          { type: FunctionType.TRANSFORMER, name: 'trim', arguments: [] as any },
-          { type: FunctionType.TRANSFORMER, name: 'uppercase', arguments: [] as any },
+          { _forge: FunctionCallType.TRANSFORMER, name: 'trim', arguments: [] as any },
+          { _forge: FunctionCallType.TRANSFORMER, name: 'uppercase', arguments: [] as any },
         ],
       } satisfies PipelineExpr
 
@@ -219,8 +218,8 @@ describe('expressions', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.PIPELINE)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(ExpressionType.PIPELINE)
 
       expect(result.properties.input).toBeDefined()
       expect(result.properties.steps).toBeDefined()
@@ -229,11 +228,11 @@ describe('expressions', () => {
 
     it('should transform input using real nodeFactory', () => {
       // Arrange
-      const inputJson = { type: ExpressionType.REFERENCE, path: ['answers', 'name'] } satisfies ReferenceExpr
+      const inputJson = { _forge: ExpressionType.REFERENCE, path: ['answers', 'name'] } satisfies ReferenceExpr
       const json = {
-        type: ExpressionType.PIPELINE,
+        _forge: ExpressionType.PIPELINE,
         input: inputJson,
-        steps: [{ type: FunctionType.TRANSFORMER, name: 'trim', arguments: [] as any }],
+        steps: [{ _forge: FunctionCallType.TRANSFORMER, name: 'trim', arguments: [] as any }],
       } satisfies PipelineExpr
 
       // Act
@@ -241,18 +240,18 @@ describe('expressions', () => {
       const input = result.properties.input
 
       // Assert
-      expect(input.type).toBe(ASTNodeType.EXPRESSION)
-      expect(input.expressionType).toBe(ExpressionType.REFERENCE)
+      expect(input.isTemplate).toBe(false)
+      expect(input.kind).toBe(ExpressionType.REFERENCE)
     })
 
     it('should preserve step names and transform step arguments', () => {
       // Arrange
       const json = {
-        type: ExpressionType.PIPELINE,
-        input: { type: ExpressionType.REFERENCE, path: ['answers', 'value'] } satisfies ReferenceExpr,
+        _forge: ExpressionType.PIPELINE,
+        input: { _forge: ExpressionType.REFERENCE, path: ['answers', 'value'] } satisfies ReferenceExpr,
         steps: [
-          { type: FunctionType.TRANSFORMER, name: 'pad', arguments: [10, '0'] },
-          { type: FunctionType.TRANSFORMER, name: 'substring', arguments: [0, 5] },
+          { _forge: FunctionCallType.TRANSFORMER, name: 'pad', arguments: [10, '0'] },
+          { _forge: FunctionCallType.TRANSFORMER, name: 'substring', arguments: [0, 5] },
         ],
       } satisfies PipelineExpr
 
@@ -274,15 +273,15 @@ describe('expressions', () => {
     it('should transform step arguments that are expressions', () => {
       // Arrange
       const json = {
-        type: ExpressionType.PIPELINE,
-        input: { type: ExpressionType.REFERENCE, path: ['answers', 'value'] } satisfies ReferenceExpr,
+        _forge: ExpressionType.PIPELINE,
+        input: { _forge: ExpressionType.REFERENCE, path: ['answers', 'value'] } satisfies ReferenceExpr,
         steps: [
           {
-            type: FunctionType.TRANSFORMER,
+            _forge: FunctionCallType.TRANSFORMER,
             name: 'replace',
             arguments: [
               'old',
-              { type: ExpressionType.REFERENCE, path: ['answers', 'replacement'] } satisfies ReferenceExpr,
+              { _forge: ExpressionType.REFERENCE, path: ['answers', 'replacement'] } satisfies ReferenceExpr,
             ],
           },
         ],
@@ -300,18 +299,18 @@ describe('expressions', () => {
 
       // Second argument should be transformed to AST node
       expect(steps[0].properties.arguments[1]).toHaveProperty('id')
-      expect(steps[0].properties.arguments[1]).toHaveProperty('type')
-      expect(steps[0].properties.arguments[1].type).toBe(ASTNodeType.EXPRESSION)
+      expect(steps[0].properties.arguments[1]).toHaveProperty('kind')
+      expect(steps[0].properties.arguments[1].isTemplate).toBe(false)
     })
 
     it('should handle steps without arguments', () => {
       // Arrange
       const json = {
-        type: ExpressionType.PIPELINE,
-        input: { type: ExpressionType.REFERENCE, path: ['answers', 'value'] } satisfies ReferenceExpr,
+        _forge: ExpressionType.PIPELINE,
+        input: { _forge: ExpressionType.REFERENCE, path: ['answers', 'value'] } satisfies ReferenceExpr,
         steps: [
-          { type: FunctionType.TRANSFORMER, name: 'trim', arguments: [] as any },
-          { type: FunctionType.TRANSFORMER, name: 'uppercase', arguments: [] as any },
+          { _forge: FunctionCallType.TRANSFORMER, name: 'trim', arguments: [] as any },
+          { _forge: FunctionCallType.TRANSFORMER, name: 'uppercase', arguments: [] as any },
         ],
       } satisfies PipelineExpr
 
@@ -330,9 +329,9 @@ describe('expressions', () => {
       // Arrange - simulates Literal([1, 2, 3]).pipe(...)
       const literalArray = [1, 2, 3]
       const json = {
-        type: ExpressionType.PIPELINE,
+        _forge: ExpressionType.PIPELINE,
         input: literalArray as any,
-        steps: [{ type: FunctionType.TRANSFORMER, name: 'filter', arguments: [] as any }],
+        steps: [{ _forge: FunctionCallType.TRANSFORMER, name: 'filter', arguments: [] as any }],
       } satisfies PipelineExpr
 
       // Act
@@ -345,9 +344,9 @@ describe('expressions', () => {
     it('should support literal string as input (for Literal() builder)', () => {
       // Arrange - simulates Literal('hello').pipe(...)
       const json = {
-        type: ExpressionType.PIPELINE,
+        _forge: ExpressionType.PIPELINE,
         input: 'hello' as any,
-        steps: [{ type: FunctionType.TRANSFORMER, name: 'uppercase', arguments: [] as any }],
+        steps: [{ _forge: FunctionCallType.TRANSFORMER, name: 'uppercase', arguments: [] as any }],
       } satisfies PipelineExpr
 
       // Act
@@ -361,9 +360,9 @@ describe('expressions', () => {
       // Arrange - simulates Literal({ name: 'test' }).pipe(...)
       const literalObj = { name: 'test', count: 5 }
       const json = {
-        type: ExpressionType.PIPELINE,
+        _forge: ExpressionType.PIPELINE,
         input: literalObj as any,
-        steps: [{ type: FunctionType.TRANSFORMER, name: 'transform', arguments: [] as any }],
+        steps: [{ _forge: FunctionCallType.TRANSFORMER, name: 'transform', arguments: [] as any }],
       } satisfies PipelineExpr
 
       // Act
@@ -386,12 +385,12 @@ describe('expressions', () => {
     it('should create a Conditional expression with all properties', () => {
       // Arrange
       const json = {
-        type: ExpressionType.CONDITIONAL,
+        _forge: ExpressionType.CONDITIONAL,
         predicate: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         thenValue: 'yes',
         elseValue: 'no',
@@ -402,8 +401,8 @@ describe('expressions', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.CONDITIONAL)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(ExpressionType.CONDITIONAL)
       expect(result.properties.predicate).toBeDefined()
       expect(result.properties.thenValue).toBeDefined()
       expect(result.properties.elseValue).toBeDefined()
@@ -412,14 +411,14 @@ describe('expressions', () => {
     it('should transform predicate using nodeFactory', () => {
       // Arrange
       const predicateJson = {
-        type: PredicateType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
+        _forge: PredicateType.TEST,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+        condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       const json = {
-        type: ExpressionType.CONDITIONAL,
+        _forge: ExpressionType.CONDITIONAL,
         predicate: predicateJson,
         thenValue: 'yes',
         elseValue: 'no',
@@ -430,19 +429,19 @@ describe('expressions', () => {
       const predicate = result.properties.predicate as TestPredicateASTNode
 
       // Assert
-      expect(predicate.type).toBe(ASTNodeType.PREDICATE)
-      expect(predicate.predicateType).toBe(PredicateType.TEST)
+      expect(predicate.isTemplate).toBe(false)
+      expect(predicate.kind).toBe(PredicateType.TEST)
     })
 
     it('should handle literal thenValue and elseValue', () => {
       // Arrange
       const json = {
-        type: ExpressionType.CONDITIONAL,
+        _forge: ExpressionType.CONDITIONAL,
         predicate: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         thenValue: 'literalThen',
         elseValue: 'literalElse',
@@ -459,34 +458,34 @@ describe('expressions', () => {
     it('should transform expression thenValue and elseValue', () => {
       // Arrange
       const json = {
-        type: ExpressionType.CONDITIONAL,
+        _forge: ExpressionType.CONDITIONAL,
         predicate: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
-        thenValue: { type: ExpressionType.REFERENCE, path: ['answers', 'thenField'] },
-        elseValue: { type: ExpressionType.REFERENCE, path: ['answers', 'elseField'] },
+        thenValue: { _forge: ExpressionType.REFERENCE, path: ['answers', 'thenField'] },
+        elseValue: { _forge: ExpressionType.REFERENCE, path: ['answers', 'elseField'] },
       } satisfies ConditionalExpr
 
       // Act
       const result = createConditionalNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.properties.thenValue.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.properties.elseValue.type).toBe(ASTNodeType.EXPRESSION)
+      expect(result.properties.thenValue.isTemplate).toBe(false)
+      expect(result.properties.elseValue.isTemplate).toBe(false)
     })
 
     it('should default thenValue to true when omitted', () => {
       // Arrange
       const json = {
-        type: ExpressionType.CONDITIONAL,
+        _forge: ExpressionType.CONDITIONAL,
         predicate: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         elseValue: 'no',
       }
@@ -503,12 +502,12 @@ describe('expressions', () => {
     it('should default elseValue to false when omitted', () => {
       // Arrange
       const json = {
-        type: ExpressionType.CONDITIONAL,
+        _forge: ExpressionType.CONDITIONAL,
         predicate: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         thenValue: 'yes',
       }
@@ -525,12 +524,12 @@ describe('expressions', () => {
     it('should generate unique node IDs', () => {
       // Arrange
       const json = {
-        type: ExpressionType.CONDITIONAL,
+        _forge: ExpressionType.CONDITIONAL,
         predicate: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
         thenValue: 'yes',
         elseValue: 'no',
@@ -549,7 +548,7 @@ describe('expressions', () => {
     it('should throw ForgeInvalidNodeError when predicate is missing', () => {
       // Arrange
       const json = {
-        type: ExpressionType.CONDITIONAL,
+        _forge: ExpressionType.CONDITIONAL,
         thenValue: 'yes',
         elseValue: 'no',
       } as any
@@ -574,7 +573,7 @@ describe('expressions', () => {
     it('should create a Function expression with Condition type', () => {
       // Arrange
       const json = {
-        type: FunctionType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'IsTrue',
         arguments: [] as ResolvableValue[],
       }
@@ -584,8 +583,8 @@ describe('expressions', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(FunctionType.CONDITION)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(FunctionCallType.CONDITION)
 
       expect(result.properties.name).toBe('IsTrue')
       expect(result.properties.arguments).toBeDefined()
@@ -595,7 +594,7 @@ describe('expressions', () => {
     it('should create a Function expression with Transformer type', () => {
       // Arrange
       const json = {
-        type: FunctionType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'Uppercase',
         arguments: [] as ResolvableValue[],
       } satisfies TransformerFunctionExpr
@@ -604,14 +603,14 @@ describe('expressions', () => {
       const result = createFunctionNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.expressionType).toBe(FunctionType.TRANSFORMER)
+      expect(result.kind).toBe(FunctionCallType.TRANSFORMER)
       expect(result.properties.name).toBe('Uppercase')
     })
 
     it('should create a Function expression with Effect type', () => {
       // Arrange
       const json = {
-        type: FunctionType.EFFECT,
+        _forge: FunctionCallType.EFFECT,
         name: 'SaveData',
         arguments: [] as ResolvableValue[],
       } satisfies EffectFunctionExpr
@@ -620,14 +619,14 @@ describe('expressions', () => {
       const result = createFunctionNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.expressionType).toBe(FunctionType.EFFECT)
+      expect(result.kind).toBe(FunctionCallType.EFFECT)
       expect(result.properties.name).toBe('SaveData')
     })
 
     it('should create a Function expression with Generator type', () => {
       // Arrange
       const json = {
-        type: FunctionType.GENERATOR,
+        _forge: FunctionCallType.GENERATOR,
         name: 'GenerateID',
         arguments: [] as ResolvableValue[],
       }
@@ -636,14 +635,14 @@ describe('expressions', () => {
       const result = createFunctionNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.expressionType).toBe(FunctionType.GENERATOR)
+      expect(result.kind).toBe(FunctionCallType.GENERATOR)
       expect(result.properties.name).toBe('GenerateID')
     })
 
     it('should transform literal arguments', () => {
       // Arrange
       const json = {
-        type: FunctionType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'IsEqual',
         arguments: ['value1', 42, true],
       } satisfies ConditionFunctionExpr
@@ -660,11 +659,11 @@ describe('expressions', () => {
     it('should transform expression arguments', () => {
       // Arrange
       const json = {
-        type: FunctionType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'IsEqual',
         arguments: [
-          { type: ExpressionType.REFERENCE, path: ['answers', 'field1'] } satisfies ReferenceExpr,
-          { type: ExpressionType.REFERENCE, path: ['answers', 'field2'] } satisfies ReferenceExpr,
+          { _forge: ExpressionType.REFERENCE, path: ['answers', 'field1'] } satisfies ReferenceExpr,
+          { _forge: ExpressionType.REFERENCE, path: ['answers', 'field2'] } satisfies ReferenceExpr,
         ],
       } satisfies ConditionFunctionExpr
 
@@ -677,19 +676,19 @@ describe('expressions', () => {
 
       args.forEach((arg: any) => {
         expect(arg.id).toBeDefined()
-        expect(arg.type).toBe(ASTNodeType.EXPRESSION)
-        expect(arg.expressionType).toBe(ExpressionType.REFERENCE)
+        expect(arg.isTemplate).toBe(false)
+        expect(arg.kind).toBe(ExpressionType.REFERENCE)
       })
     })
 
     it('should transform mixed literal and expression arguments', () => {
       // Arrange
       const json = {
-        type: FunctionType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'Replace',
         arguments: [
           'searchString',
-          { type: ExpressionType.REFERENCE, path: ['answers', 'replacementValue'] } satisfies ReferenceExpr,
+          { _forge: ExpressionType.REFERENCE, path: ['answers', 'replacementValue'] } satisfies ReferenceExpr,
           true,
         ],
       } satisfies TransformerFunctionExpr
@@ -702,25 +701,25 @@ describe('expressions', () => {
       expect(args).toHaveLength(3)
       expect(args[0]).toBe('searchString')
       expect(args[1]).toHaveProperty('id')
-      expect(args[1].type).toBe(ASTNodeType.EXPRESSION)
+      expect(args[1].isTemplate).toBe(false)
       expect(args[2]).toBe(true)
     })
 
     it('should handle nested function arguments', () => {
       // Arrange
       const json = {
-        type: FunctionType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'And',
         arguments: [
           {
-            type: FunctionType.CONDITION,
+            _forge: FunctionCallType.CONDITION,
             name: 'IsTrue',
-            arguments: [{ type: ExpressionType.REFERENCE, path: ['answers', 'field1'] } satisfies ReferenceExpr],
+            arguments: [{ _forge: ExpressionType.REFERENCE, path: ['answers', 'field1'] } satisfies ReferenceExpr],
           } satisfies ConditionFunctionExpr,
           {
-            type: FunctionType.CONDITION,
+            _forge: FunctionCallType.CONDITION,
             name: 'IsNotEmpty',
-            arguments: [{ type: ExpressionType.REFERENCE, path: ['answers', 'field2'] } satisfies ReferenceExpr],
+            arguments: [{ _forge: ExpressionType.REFERENCE, path: ['answers', 'field2'] } satisfies ReferenceExpr],
           } satisfies ConditionFunctionExpr,
         ],
       } satisfies ConditionFunctionExpr
@@ -735,8 +734,8 @@ describe('expressions', () => {
       // Nested functions should be transformed to AST nodes
       args.forEach((arg: any) => {
         expect(arg).toHaveProperty('id')
-        expect(arg).toHaveProperty('type')
-        expect(arg.type).toBe(ASTNodeType.EXPRESSION)
+        expect(arg).toHaveProperty('kind')
+        expect(arg.isTemplate).toBe(false)
         expect(arg.properties.name).toBeDefined()
         expect(arg.properties.arguments).toBeDefined()
       })
@@ -755,11 +754,11 @@ describe('expressions', () => {
     it('should create an Iterate expression with a compiled MAP template', () => {
       // Arrange
       const json = {
-        type: ExpressionType.ITERATE,
-        input: { type: ExpressionType.REFERENCE, path: ['answers', 'items'] } satisfies ReferenceExpr,
+        _forge: ExpressionType.ITERATE,
+        input: { _forge: ExpressionType.REFERENCE, path: ['answers', 'items'] } satisfies ReferenceExpr,
         iterator: {
-          type: IteratorType.MAP,
-          yield: { type: ExpressionType.REFERENCE, path: ['scope', 'item', 'name'] },
+          _forge: IteratorType.MAP,
+          yield: { _forge: ExpressionType.REFERENCE, path: ['scope', 'item', 'name'] },
         },
       } satisfies IterateExpr
 
@@ -768,27 +767,27 @@ describe('expressions', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.ITERATE)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(ExpressionType.ITERATE)
       expect(result.properties.iterator.type).toBe(IteratorType.MAP)
       expect(result.properties.iterator.yieldTemplate).toBeDefined()
-      expect(isTemplateNode(result.properties.iterator.yieldTemplate)).toBe(true)
+      expect(isTemplateASTNode(result.properties.iterator.yieldTemplate)).toBe(true)
     })
 
     it('should create an Iterate expression with a compiled FILTER template', () => {
       // Arrange
       const predicate: PredicateTestExpr = {
-        type: PredicateType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['scope', 'item', 'active'] },
+        _forge: PredicateType.TEST,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['scope', 'item', 'active'] },
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: [true] },
+        condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: [true] },
       }
 
       const json = {
-        type: ExpressionType.ITERATE,
-        input: { type: ExpressionType.REFERENCE, path: ['answers', 'items'] } satisfies ReferenceExpr,
+        _forge: ExpressionType.ITERATE,
+        input: { _forge: ExpressionType.REFERENCE, path: ['answers', 'items'] } satisfies ReferenceExpr,
         iterator: {
-          type: IteratorType.FILTER,
+          _forge: IteratorType.FILTER,
           predicate,
         },
       } satisfies IterateExpr
@@ -799,23 +798,23 @@ describe('expressions', () => {
       // Assert
       expect(result.properties.iterator.type).toBe(IteratorType.FILTER)
       expect(result.properties.iterator.predicateTemplate).toBeDefined()
-      expect(isTemplateNode(result.properties.iterator.predicateTemplate)).toBe(true)
+      expect(isTemplateASTNode(result.properties.iterator.predicateTemplate)).toBe(true)
     })
 
     it('should create an Iterate expression with a compiled FIND template', () => {
       // Arrange
       const predicate: PredicateTestExpr = {
-        type: PredicateType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['scope', 'item', 'id'] },
+        _forge: PredicateType.TEST,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['scope', 'item', 'id'] },
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+        condition: { _forge: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
       }
 
       const json = {
-        type: ExpressionType.ITERATE,
-        input: { type: ExpressionType.REFERENCE, path: ['answers', 'items'] } satisfies ReferenceExpr,
+        _forge: ExpressionType.ITERATE,
+        input: { _forge: ExpressionType.REFERENCE, path: ['answers', 'items'] } satisfies ReferenceExpr,
         iterator: {
-          type: IteratorType.FIND,
+          _forge: IteratorType.FIND,
           predicate,
         },
       } satisfies IterateExpr
@@ -826,17 +825,17 @@ describe('expressions', () => {
       // Assert
       expect(result.properties.iterator.type).toBe(IteratorType.FIND)
       expect(result.properties.iterator.predicateTemplate).toBeDefined()
-      expect(isTemplateNode(result.properties.iterator.predicateTemplate)).toBe(true)
+      expect(isTemplateASTNode(result.properties.iterator.predicateTemplate)).toBe(true)
     })
 
     it('should transform the input expression', () => {
       // Arrange
       const json = {
-        type: ExpressionType.ITERATE,
-        input: { type: ExpressionType.REFERENCE, path: ['data', 'collection'] } satisfies ReferenceExpr,
+        _forge: ExpressionType.ITERATE,
+        input: { _forge: ExpressionType.REFERENCE, path: ['data', 'collection'] } satisfies ReferenceExpr,
         iterator: {
-          type: IteratorType.MAP,
-          yield: { type: ExpressionType.REFERENCE, path: ['scope', 'item'] },
+          _forge: IteratorType.MAP,
+          yield: { _forge: ExpressionType.REFERENCE, path: ['scope', 'item'] },
         },
       } satisfies IterateExpr
 
@@ -845,18 +844,18 @@ describe('expressions', () => {
 
       // Assert
       expect(result.properties.input).toHaveProperty('id')
-      expect(result.properties.input.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.properties.input.expressionType).toBe(ExpressionType.REFERENCE)
+      expect(result.properties.input.isTemplate).toBe(false)
+      expect(result.properties.input.kind).toBe(ExpressionType.REFERENCE)
     })
 
     it('should store compiled templates instead of raw iterator JSON', () => {
       // Arrange
-      const yieldTemplate = { type: ExpressionType.REFERENCE, path: ['scope', 'item', 'value'] }
+      const yieldTemplate = { _forge: ExpressionType.REFERENCE, path: ['scope', 'item', 'value'] }
       const json = {
-        type: ExpressionType.ITERATE,
-        input: { type: ExpressionType.REFERENCE, path: ['answers', 'items'] } satisfies ReferenceExpr,
+        _forge: ExpressionType.ITERATE,
+        input: { _forge: ExpressionType.REFERENCE, path: ['answers', 'items'] } satisfies ReferenceExpr,
         iterator: {
-          type: IteratorType.MAP,
+          _forge: IteratorType.MAP,
           yield: yieldTemplate,
         },
       } satisfies IterateExpr
@@ -868,23 +867,22 @@ describe('expressions', () => {
       expect(result.properties.iterator.yieldTemplate).toBeDefined()
       expect(result.properties.iterator.yieldTemplate).not.toEqual(yieldTemplate)
 
-      const compiledTemplate = result.properties.iterator.yieldTemplate as TemplateNode
+      const compiledTemplate = result.properties.iterator.yieldTemplate as TemplateASTNode
 
-      expect(compiledTemplate.type).toBe(ASTNodeType.TEMPLATE)
-      expect(compiledTemplate.originalType).toBe(ASTNodeType.EXPRESSION)
+      expect(compiledTemplate.isTemplate).toBe(true)
+      expect(compiledTemplate.kind).toBe(ExpressionType.REFERENCE)
       expect(compiledTemplate.properties?.path).toEqual(['scope', 'item', 'value'])
     })
 
     it('should not add Self() value to fields at compile time (deferred to runtime)', () => {
       // Arrange
       const json = {
-        type: ExpressionType.ITERATE,
-        input: { type: ExpressionType.REFERENCE, path: ['answers', 'items'] } satisfies ReferenceExpr,
+        _forge: ExpressionType.ITERATE,
+        input: { _forge: ExpressionType.REFERENCE, path: ['answers', 'items'] } satisfies ReferenceExpr,
         iterator: {
-          type: IteratorType.MAP,
+          _forge: IteratorType.MAP,
           yield: {
-            type: StructureType.BLOCK,
-            blockType: BlockType.FIELD,
+            _forge: ComponentCallType.FIELD,
             variant: 'textInput',
             code: 'street',
             label: 'Street',
@@ -894,27 +892,26 @@ describe('expressions', () => {
 
       // Act
       const result = createIterateNode(json, nodeFactory.context)
-      const yieldTemplate = result.properties.iterator.yieldTemplate as TemplateNode
+      const yieldTemplate = result.properties.iterator.yieldTemplate as TemplateASTNode
 
       // Assert — the compiled field template carries no `value`; compiled iterator expansion adds @self at runtime
-      expect(yieldTemplate.originalType).toBe(ASTNodeType.BLOCK)
+      expect(yieldTemplate.kind).toBe(ComponentCallType.FIELD)
       expect(yieldTemplate.properties?.value).toBeUndefined()
     })
 
     it('should preserve @self references for runtime resolution', () => {
       // Arrange
       const json = {
-        type: ExpressionType.ITERATE,
-        input: { type: ExpressionType.REFERENCE, path: ['answers', 'items'] } satisfies ReferenceExpr,
+        _forge: ExpressionType.ITERATE,
+        input: { _forge: ExpressionType.REFERENCE, path: ['answers', 'items'] } satisfies ReferenceExpr,
         iterator: {
-          type: IteratorType.MAP,
+          _forge: IteratorType.MAP,
           yield: {
-            type: StructureType.BLOCK,
-            blockType: BlockType.FIELD,
+            _forge: ComponentCallType.FIELD,
             variant: 'textInput',
             code: 'street',
             label: {
-              type: ExpressionType.REFERENCE,
+              _forge: ExpressionType.REFERENCE,
               path: ['answers', '@self'],
             },
           },
@@ -923,22 +920,22 @@ describe('expressions', () => {
 
       // Act
       const result = createIterateNode(json, nodeFactory.context)
-      const yieldTemplate = result.properties.iterator.yieldTemplate as TemplateNode
-      const labelTemplate = yieldTemplate.properties?.label as TemplateNode
+      const yieldTemplate = result.properties.iterator.yieldTemplate as TemplateASTNode
+      const labelTemplate = yieldTemplate.properties?.label as TemplateASTNode
 
       // Assert — @self is preserved in the compiled reference template; compiled iterator expansion resolves it at runtime
-      expect(isTemplateNode(labelTemplate)).toBe(true)
+      expect(isTemplateASTNode(labelTemplate)).toBe(true)
       expect(labelTemplate.properties?.path).toEqual(['answers', '@self'])
     })
 
     it('should generate unique iterate node ids', () => {
       // Arrange
       const json = {
-        type: ExpressionType.ITERATE,
-        input: { type: ExpressionType.REFERENCE, path: ['answers', 'items'] } satisfies ReferenceExpr,
+        _forge: ExpressionType.ITERATE,
+        input: { _forge: ExpressionType.REFERENCE, path: ['answers', 'items'] } satisfies ReferenceExpr,
         iterator: {
-          type: IteratorType.MAP,
-          yield: { type: ExpressionType.REFERENCE, path: ['scope', 'item'] },
+          _forge: IteratorType.MAP,
+          yield: { _forge: ExpressionType.REFERENCE, path: ['scope', 'item'] },
         },
       } satisfies IterateExpr
 
@@ -965,13 +962,13 @@ describe('expressions', () => {
     it('should create a Validation expression with message', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        _forge: PolicyType.VALIDATION_RULE,
         message: 'Field is required',
         condition: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] },
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'test'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
       } satisfies ValidationExpr
 
@@ -980,8 +977,8 @@ describe('expressions', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.VALIDATION)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(PolicyType.VALIDATION_RULE)
 
       expect(result.properties.message !== undefined).toBe(true)
       expect(result.properties.message).toBe('Field is required')
@@ -990,18 +987,18 @@ describe('expressions', () => {
     it('should create a Validation expression with condition predicate', () => {
       // Arrange
       const conditionPredicate = {
-        type: PredicateType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
+        _forge: PredicateType.TEST,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
         negate: false,
         condition: {
-          type: FunctionType.CONDITION,
+          _forge: FunctionCallType.CONDITION,
           name: 'IsNotEmpty',
           arguments: [] as ResolvableValue[],
         } satisfies ConditionFunctionExpr,
       } satisfies PredicateTestExpr
 
       const json = {
-        type: ExpressionType.VALIDATION,
+        _forge: PolicyType.VALIDATION_RULE,
         condition: conditionPredicate,
         message: 'Invalid value',
       } satisfies ValidationExpr
@@ -1011,17 +1008,17 @@ describe('expressions', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.properties.condition?.type).toBe(ASTNodeType.PREDICATE)
+      expect(result.properties.condition?.isTemplate).toBe(false)
     })
 
     it('should create a Validation expression with a generator function', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        _forge: PolicyType.VALIDATION_RULE,
         function: {
-          type: FunctionType.GENERATOR,
+          _forge: FunctionCallType.GENERATOR,
           name: 'ValidateDate',
-          arguments: [{ type: ExpressionType.REFERENCE, path: ['@self'] } satisfies ReferenceExpr],
+          arguments: [{ _forge: ExpressionType.REFERENCE, path: ['@self'] } satisfies ReferenceExpr],
         } satisfies GeneratorFunctionExpr,
       } satisfies ValidationExpr
 
@@ -1029,8 +1026,8 @@ describe('expressions', () => {
       const result = createValidationNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.properties.function?.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.properties.function?.expressionType).toBe(FunctionType.GENERATOR)
+      expect(result.properties.function?.isTemplate).toBe(false)
+      expect(result.properties.function?.kind).toBe(FunctionCallType.GENERATOR)
       expect(result.properties.condition).toBeUndefined()
       expect(result.properties.message).toBeUndefined()
     })
@@ -1038,14 +1035,14 @@ describe('expressions', () => {
     it('should set submissionOnly flag when provided', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        _forge: PolicyType.VALIDATION_RULE,
         message: 'Error',
         condition: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            _forge: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1064,14 +1061,14 @@ describe('expressions', () => {
     it('should set submissionOnly to false when explicitly false', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        _forge: PolicyType.VALIDATION_RULE,
         message: 'Error',
         condition: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            _forge: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1090,14 +1087,14 @@ describe('expressions', () => {
     it('should default submissionOnly to false when undefined', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        _forge: PolicyType.VALIDATION_RULE,
         message: 'Error',
         condition: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            _forge: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1114,14 +1111,14 @@ describe('expressions', () => {
     it('should default groups to default when omitted', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        _forge: PolicyType.VALIDATION_RULE,
         message: 'Error',
         condition: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            _forge: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1138,14 +1135,14 @@ describe('expressions', () => {
     it('should set groups when provided', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        _forge: PolicyType.VALIDATION_RULE,
         message: 'Error',
         condition: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            _forge: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1163,14 +1160,14 @@ describe('expressions', () => {
     it('should set details when provided', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        _forge: PolicyType.VALIDATION_RULE,
         message: 'Error',
         condition: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            _forge: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1192,14 +1189,14 @@ describe('expressions', () => {
     it('should not set details when not provided', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        _forge: PolicyType.VALIDATION_RULE,
         message: 'Error',
         condition: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            _forge: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1216,14 +1213,14 @@ describe('expressions', () => {
     it('should default message to empty string when not provided', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        _forge: PolicyType.VALIDATION_RULE,
         message: '',
         condition: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'test'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            _forge: FunctionCallType.CONDITION,
             name: 'IsTrue',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1240,13 +1237,13 @@ describe('expressions', () => {
     it('should create a Validation expression with all properties', () => {
       // Arrange
       const json = {
-        type: ExpressionType.VALIDATION,
+        _forge: PolicyType.VALIDATION_RULE,
         condition: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] } satisfies ReferenceExpr,
           negate: false,
           condition: {
-            type: FunctionType.CONDITION,
+            _forge: FunctionCallType.CONDITION,
             name: 'IsNotEmpty',
             arguments: [] as ResolvableValue[],
           } satisfies ConditionFunctionExpr,
@@ -1276,14 +1273,14 @@ describe('expressions', () => {
     let nodeFactory: NodeFactory
     // Helpers for the combinator branch cases, which need larger condition trees than a single condition
     const equals = (value: string): ConditionFunctionExpr => ({
-      type: FunctionType.CONDITION,
+      _forge: FunctionCallType.CONDITION,
       name: 'Equals',
       arguments: [value],
     })
 
     const matchOn = (condition: ConditionBranchExpr): MatchExpr => ({
-      type: ExpressionType.MATCH,
-      subject: { type: ExpressionType.REFERENCE, path: ['data', 'status'] },
+      _forge: ExpressionType.MATCH,
+      subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'status'] },
       branches: [{ condition, value: 'Result' }],
     })
 
@@ -1294,7 +1291,7 @@ describe('expressions', () => {
       const leaf = predicate as TestPredicateASTNode
 
       return {
-        predicateType: leaf.predicateType,
+        predicateType: leaf.kind,
         negate: leaf.properties.negate,
         subjectPath: (leaf.properties.subject as ReferenceASTNode).properties.path,
         conditionArguments: (leaf.properties.condition as FunctionASTNode).properties.arguments,
@@ -1309,15 +1306,15 @@ describe('expressions', () => {
     it('should create a Match expression with all properties', () => {
       // Arrange
       const json = {
-        type: ExpressionType.MATCH,
-        subject: { type: ExpressionType.REFERENCE, path: ['data', 'status'] },
+        _forge: ExpressionType.MATCH,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'status'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['ACTIVE' as ResolvableValue] },
+            condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['ACTIVE' as ResolvableValue] },
             value: 'Active',
           },
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['CLOSED' as ResolvableValue] },
+            condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['CLOSED' as ResolvableValue] },
             value: 'Closed',
           },
         ],
@@ -1329,8 +1326,8 @@ describe('expressions', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.EXPRESSION)
-      expect(result.expressionType).toBe(ExpressionType.MATCH)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(ExpressionType.MATCH)
       expect(result.properties.branches).toHaveLength(2)
       expect(result.properties.otherwise).toBe('Unknown')
     })
@@ -1338,11 +1335,11 @@ describe('expressions', () => {
     it('should synthesise predicates for each branch', () => {
       // Arrange
       const json = {
-        type: ExpressionType.MATCH,
-        subject: { type: ExpressionType.REFERENCE, path: ['data', 'status'] },
+        _forge: ExpressionType.MATCH,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'status'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
+            condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'Result A',
           },
         ],
@@ -1354,8 +1351,8 @@ describe('expressions', () => {
       const predicate = result.properties.branches[0].predicate as TestPredicateASTNode
 
       // Assert
-      expect(predicate.type).toBe(ASTNodeType.PREDICATE)
-      expect(predicate.predicateType).toBe(PredicateType.TEST)
+      expect(predicate.isTemplate).toBe(false)
+      expect(predicate.kind).toBe(PredicateType.TEST)
     })
 
     it('should synthesise a TEST predicate carrying the subject when the branch is a single condition', () => {
@@ -1376,13 +1373,13 @@ describe('expressions', () => {
 
     it('should expand an AND branch condition into an AND predicate over TEST leaves', () => {
       // Arrange
-      const json = matchOn({ type: ConditionCombinatorType.AND, operands: [equals('A'), equals('B')] })
+      const json = matchOn({ _forge: ConditionCombinatorType.AND, operands: [equals('A'), equals('B')] })
 
       // Act
       const predicate = branchPredicate(json) as AndPredicateASTNode
 
       // Assert
-      expect(predicate.predicateType).toBe(PredicateType.AND)
+      expect(predicate.kind).toBe(PredicateType.AND)
       expect(predicate.properties.operands.map(testLeaf)).toEqual([
         {
           predicateType: PredicateType.TEST,
@@ -1401,13 +1398,13 @@ describe('expressions', () => {
 
     it('should expand an OR branch condition into an OR predicate over TEST leaves', () => {
       // Arrange
-      const json = matchOn({ type: ConditionCombinatorType.OR, operands: [equals('A'), equals('B')] })
+      const json = matchOn({ _forge: ConditionCombinatorType.OR, operands: [equals('A'), equals('B')] })
 
       // Act
       const predicate = branchPredicate(json) as OrPredicateASTNode
 
       // Assert
-      expect(predicate.predicateType).toBe(PredicateType.OR)
+      expect(predicate.kind).toBe(PredicateType.OR)
       expect(predicate.properties.operands.map(testLeaf)).toEqual([
         {
           predicateType: PredicateType.TEST,
@@ -1426,13 +1423,13 @@ describe('expressions', () => {
 
     it('should expand an XOR branch condition into an XOR predicate over TEST leaves', () => {
       // Arrange
-      const json = matchOn({ type: ConditionCombinatorType.XOR, operands: [equals('A'), equals('B')] })
+      const json = matchOn({ _forge: ConditionCombinatorType.XOR, operands: [equals('A'), equals('B')] })
 
       // Act
       const predicate = branchPredicate(json) as XorPredicateASTNode
 
       // Assert
-      expect(predicate.predicateType).toBe(PredicateType.XOR)
+      expect(predicate.kind).toBe(PredicateType.XOR)
       expect(predicate.properties.operands.map(testLeaf)).toEqual([
         {
           predicateType: PredicateType.TEST,
@@ -1451,13 +1448,13 @@ describe('expressions', () => {
 
     it('should expand a NOT branch condition into a NOT predicate over a TEST leaf', () => {
       // Arrange
-      const json = matchOn({ type: ConditionCombinatorType.NOT, operand: equals('A') })
+      const json = matchOn({ _forge: ConditionCombinatorType.NOT, operand: equals('A') })
 
       // Act
       const predicate = branchPredicate(json) as NotPredicateASTNode
 
       // Assert
-      expect(predicate.predicateType).toBe(PredicateType.NOT)
+      expect(predicate.kind).toBe(PredicateType.NOT)
       expect(testLeaf(predicate.properties.operand as PredicateASTNode)).toEqual({
         predicateType: PredicateType.TEST,
         negate: false,
@@ -1469,10 +1466,10 @@ describe('expressions', () => {
     it('should expand a nested combinator tree into matching nested predicates', () => {
       // Arrange
       const json = matchOn({
-        type: ConditionCombinatorType.OR,
+        _forge: ConditionCombinatorType.OR,
         operands: [
-          { type: ConditionCombinatorType.AND, operands: [equals('A'), equals('B')] },
-          { type: ConditionCombinatorType.NOT, operand: equals('C') },
+          { _forge: ConditionCombinatorType.AND, operands: [equals('A'), equals('B')] },
+          { _forge: ConditionCombinatorType.NOT, operand: equals('C') },
         ],
       })
 
@@ -1481,20 +1478,20 @@ describe('expressions', () => {
       const [nestedAnd, nestedNot] = predicate.properties.operands as [AndPredicateASTNode, NotPredicateASTNode]
 
       // Assert
-      expect(predicate.predicateType).toBe(PredicateType.OR)
-      expect(nestedAnd.predicateType).toBe(PredicateType.AND)
+      expect(predicate.kind).toBe(PredicateType.OR)
+      expect(nestedAnd.kind).toBe(PredicateType.AND)
       expect(nestedAnd.properties.operands.map(operand => testLeaf(operand).conditionArguments)).toEqual([['A'], ['B']])
-      expect(nestedNot.predicateType).toBe(PredicateType.NOT)
+      expect(nestedNot.kind).toBe(PredicateType.NOT)
       expect(testLeaf(nestedNot.properties.operand as PredicateASTNode).conditionArguments).toEqual(['C'])
     })
 
     it('should generate unique node IDs across the synthesised predicates of a combinator tree', () => {
       // Arrange
       const json = matchOn({
-        type: ConditionCombinatorType.OR,
+        _forge: ConditionCombinatorType.OR,
         operands: [
-          { type: ConditionCombinatorType.AND, operands: [equals('A'), equals('B')] },
-          { type: ConditionCombinatorType.NOT, operand: equals('C') },
+          { _forge: ConditionCombinatorType.AND, operands: [equals('A'), equals('B')] },
+          { _forge: ConditionCombinatorType.NOT, operand: equals('C') },
         ],
       })
 
@@ -1516,11 +1513,11 @@ describe('expressions', () => {
     it('should handle literal branch values', () => {
       // Arrange
       const json = {
-        type: ExpressionType.MATCH,
-        subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
+        _forge: ExpressionType.MATCH,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
+            condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'literalValue',
           },
         ],
@@ -1536,12 +1533,12 @@ describe('expressions', () => {
     it('should transform expression branch values', () => {
       // Arrange
       const json = {
-        type: ExpressionType.MATCH,
-        subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
+        _forge: ExpressionType.MATCH,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
-            value: { type: ExpressionType.REFERENCE, path: ['answers', 'fieldA'] },
+            condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
+            value: { _forge: ExpressionType.REFERENCE, path: ['answers', 'fieldA'] },
           },
         ],
       } satisfies MatchExpr
@@ -1550,17 +1547,17 @@ describe('expressions', () => {
       const result = createMatchNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.properties.branches[0].value.type).toBe(ASTNodeType.EXPRESSION)
+      expect(result.properties.branches[0].value.isTemplate).toBe(false)
     })
 
     it('should handle otherwise when present', () => {
       // Arrange
       const json = {
-        type: ExpressionType.MATCH,
-        subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
+        _forge: ExpressionType.MATCH,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
+            condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'A',
           },
         ],
@@ -1577,11 +1574,11 @@ describe('expressions', () => {
     it('should handle missing otherwise', () => {
       // Arrange
       const json = {
-        type: ExpressionType.MATCH,
-        subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
+        _forge: ExpressionType.MATCH,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
+            condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'A',
           },
         ],
@@ -1597,32 +1594,32 @@ describe('expressions', () => {
     it('should transform expression otherwise value', () => {
       // Arrange
       const json = {
-        type: ExpressionType.MATCH,
-        subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
+        _forge: ExpressionType.MATCH,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
+            condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'A',
           },
         ],
-        otherwise: { type: ExpressionType.REFERENCE, path: ['answers', 'fallback'] },
+        otherwise: { _forge: ExpressionType.REFERENCE, path: ['answers', 'fallback'] },
       } satisfies MatchExpr
 
       // Act
       const result = createMatchNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.properties.otherwise.type).toBe(ASTNodeType.EXPRESSION)
+      expect(result.properties.otherwise.isTemplate).toBe(false)
     })
 
     it('should generate unique node IDs', () => {
       // Arrange
       const json = {
-        type: ExpressionType.MATCH,
-        subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
+        _forge: ExpressionType.MATCH,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
+            condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A' as ResolvableValue] },
             value: 'A',
           },
         ],
@@ -1641,10 +1638,10 @@ describe('expressions', () => {
     it('should throw ForgeInvalidNodeError when subject is missing', () => {
       // Arrange
       const json = {
-        type: ExpressionType.MATCH,
+        _forge: ExpressionType.MATCH,
         branches: [
           {
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A'] },
+            condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A'] },
             value: 'A',
           },
         ],
@@ -1663,11 +1660,11 @@ describe('expressions', () => {
       const results = falsySubjects.map(subject =>
         createMatchNode(
           {
-            type: ExpressionType.MATCH,
+            _forge: ExpressionType.MATCH,
             subject,
             branches: [
               {
-                condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['A'] },
+                condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['A'] },
                 value: 'A',
               },
             ],
@@ -1686,8 +1683,8 @@ describe('expressions', () => {
     it('should throw ForgeInvalidNodeError when branches is empty', () => {
       // Arrange
       const json = {
-        type: ExpressionType.MATCH,
-        subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
+        _forge: ExpressionType.MATCH,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'type'] },
         branches: [],
       } as any
 
@@ -1699,8 +1696,8 @@ describe('expressions', () => {
     it('should throw ForgeInvalidNodeError when branches is missing', () => {
       // Arrange
       const json = {
-        type: ExpressionType.MATCH,
-        subject: { type: ExpressionType.REFERENCE, path: ['data', 'type'] },
+        _forge: ExpressionType.MATCH,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'type'] },
       } as any
 
       // Act & Assert

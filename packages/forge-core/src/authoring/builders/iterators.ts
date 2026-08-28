@@ -1,5 +1,5 @@
 import { MapIteratorConfig, FilterIteratorConfig, FindIteratorConfig, PredicateExpr } from '../types/expressions.type'
-import { IteratorType } from '../types/enums'
+import { IteratorType } from '../../shared/taxonomy'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 
 /**
@@ -44,7 +44,7 @@ export const Iterator = {
    */
   Map(yieldValue: unknown): MapIteratorConfig {
     const config: MapIteratorConfig = {
-      type: IteratorType.MAP,
+      _forge: IteratorType.MAP,
       yield: yieldValue,
     }
     stampCallsite(config, captureCallsite(Iterator.Map))
@@ -67,7 +67,7 @@ export const Iterator = {
    */
   Filter(predicate: PredicateExpr): FilterIteratorConfig {
     const config: FilterIteratorConfig = {
-      type: IteratorType.FILTER,
+      _forge: IteratorType.FILTER,
       predicate,
     }
     stampCallsite(config, captureCallsite(Iterator.Filter))
@@ -95,7 +95,7 @@ export const Iterator = {
    */
   Find(predicate: PredicateExpr): FindIteratorConfig {
     const config: FindIteratorConfig = {
-      type: IteratorType.FIND,
+      _forge: IteratorType.FIND,
       predicate,
     }
     stampCallsite(config, captureCallsite(Iterator.Find))

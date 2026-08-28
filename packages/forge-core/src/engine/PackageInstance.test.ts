@@ -3,7 +3,7 @@ import { component } from '../components/component'
 import { createForgePackage, field, journey, step, submit, validation, Self } from '../authoring/builders'
 import { condition } from '../authoring/functions/condition'
 import TransformerRegistry from '../authoring/registries/TransformerRegistry'
-import { StructureType } from '../authoring/types/enums'
+import { StructureType } from '../shared/taxonomy'
 import type { JourneyDefinition } from '../authoring/types/structures.type'
 import type { PredicateExpr } from '../authoring/types/expressions.type'
 import type { BlockDefinition } from '../components/types/structures.type'
@@ -209,7 +209,7 @@ function mockCompilation(): void {
 
 function createJourneyDefinition(): JourneyDefinition {
   return {
-    type: StructureType.JOURNEY,
+    _forge: StructureType.JOURNEY,
     path: '/journey',
     code: 'journey',
     title: 'Journey',

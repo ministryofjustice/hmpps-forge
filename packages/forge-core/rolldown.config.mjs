@@ -6,9 +6,10 @@ export default {
     { name: 'core/framework', input: 'forge-core/src/framework/index.ts' },
     { name: 'core/testing', input: 'forge-core/src/testing/index.ts' },
   ],
-  // Order matters: the specific ast.type / enums rules must win over the broader
-  // /forge-core/src/engine/ rule below them, which is matched by find().
+  // Order matters: the specific taxonomy / ast.type / enums rules must win over the
+  // broader ownership rules below them, which are matched by find().
   dtsOwnershipRules: [
+    { match: '/forge-core/src/shared/taxonomy', entrypoint: 'core/authoring' },
     { match: '/forge-core/src/built-ins/components', entrypoint: 'core/components' },
     { match: '/forge-core/src/built-ins/', entrypoint: 'core/authoring' },
     { match: '/forge-core/src/components/', entrypoint: 'core/components' },

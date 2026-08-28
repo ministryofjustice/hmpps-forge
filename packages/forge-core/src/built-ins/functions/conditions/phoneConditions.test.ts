@@ -1,5 +1,5 @@
 import { PhoneConditions } from './phoneConditions'
-import { FunctionType } from '../../../authoring/types/enums'
+import { FunctionCallType } from '../../../shared/taxonomy'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('PhoneConditions', () => {
@@ -38,7 +38,7 @@ describe('PhoneConditions', () => {
     test('should build correct expression object', () => {
       const expr = PhoneConditions.IsValidPhoneNumber()
       expect(expr).toEqual({
-        type: FunctionType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Phone.IsValidPhoneNumber',
         arguments: [],
       })
@@ -92,7 +92,7 @@ describe('PhoneConditions', () => {
     test('should build correct expression object', () => {
       const expr = PhoneConditions.IsValidUKMobile()
       expect(expr).toEqual({
-        type: FunctionType.CONDITION,
+        _forge: FunctionCallType.CONDITION,
         name: 'Phone.IsValidUKMobile',
         arguments: [],
       })

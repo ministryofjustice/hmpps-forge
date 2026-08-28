@@ -40,7 +40,7 @@ function createRecordingRenderer(options: { asyncAssemble?: boolean } = {}): Rec
 
   const renderer: ForgeRenderer<unknown> = {
     renderBlock(entry: ComponentRegistryEntry<BlockDefinition, unknown>, block: EvaluatedBlock<BlockDefinition>) {
-      calls.renderBlock.push({ variant: block.variant })
+      calls.renderBlock.push({ variant: block.variant ?? '' })
 
       return entry.render(block)
     },

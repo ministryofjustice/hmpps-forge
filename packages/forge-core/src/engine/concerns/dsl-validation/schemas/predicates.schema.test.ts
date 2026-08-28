@@ -1,12 +1,12 @@
 import { ConditionNotExprSchema, MatchBranchSchema, MatchExprSchema } from './predicates.schema'
-import { ConditionCombinatorType, ExpressionType, FunctionType, PredicateType } from '../../../../authoring/types/enums'
+import { ConditionCombinatorType, ExpressionType, FunctionCallType, PredicateType } from '../../../../shared/taxonomy'
 
 describe('predicates.schema', () => {
-  const condition = (value: string) => ({ type: FunctionType.CONDITION, name: 'Equals', arguments: [value] })
+  const condition = (value: string) => ({ _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: [value] })
 
   const matchOn = (branchCondition: unknown) => ({
-    type: ExpressionType.MATCH,
-    subject: { type: ExpressionType.REFERENCE, path: ['data', 'status'] },
+    _forge: ExpressionType.MATCH,
+    subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'status'] },
     branches: [{ condition: branchCondition, value: 'Result' }],
   })
 
@@ -25,10 +25,10 @@ describe('predicates.schema', () => {
     it('should accept a branch whose condition is a nested combinator tree', () => {
       // Arrange
       const json = matchOn({
-        type: ConditionCombinatorType.OR,
+        _forge: ConditionCombinatorType.OR,
         operands: [
-          { type: ConditionCombinatorType.AND, operands: [condition('A'), condition('B')] },
-          { type: ConditionCombinatorType.NOT, operand: condition('C') },
+          { _forge: ConditionCombinatorType.AND, operands: [condition('A'), condition('B')] },
+          { _forge: ConditionCombinatorType.NOT, operand: condition('C') },
         ],
       })
 
@@ -43,7 +43,10 @@ describe('predicates.schema', () => {
   describe('MatchBranchSchema', () => {
     it('should reject a branch whose condition is a predicate', () => {
       // Arrange
-      const branch = { condition: { type: PredicateType.AND, operands: [condition('A'), condition('B')] }, value: 'A' }
+      const branch = {
+        condition: { _forge: PredicateType.AND, operands: [condition('A'), condition('B')] },
+        value: 'A',
+      }
 
       // Act
       const result = MatchBranchSchema.safeParse(branch)
@@ -54,7 +57,7 @@ describe('predicates.schema', () => {
 
     it('should reject a branch whose combinator has fewer than two operands', () => {
       // Arrange
-      const branch = { condition: { type: ConditionCombinatorType.AND, operands: [condition('A')] }, value: 'A' }
+      const branch = { condition: { _forge: ConditionCombinatorType.AND, operands: [condition('A')] }, value: 'A' }
 
       // Act
       const result = MatchBranchSchema.safeParse(branch)
@@ -67,7 +70,7 @@ describe('predicates.schema', () => {
   describe('ConditionNotExprSchema', () => {
     it('should accept a NOT combinator with a single operand', () => {
       // Arrange
-      const json = { type: ConditionCombinatorType.NOT, operand: condition('A') }
+      const json = { _forge: ConditionCombinatorType.NOT, operand: condition('A') }
 
       // Act
       const result = ConditionNotExprSchema.safeParse(json)

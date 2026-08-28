@@ -1,5 +1,5 @@
 import { z, type ZodType } from 'zod'
-import { FunctionType } from '../types/enums'
+import { FunctionCallType, FunctionEntryType } from '../../shared/taxonomy'
 import ForgeAuthoringError from '../../engine/errors/ForgeAuthoringError'
 import ForgeRegistryDuplicateError from '../../engine/errors/ForgeRegistryDuplicateError'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
@@ -28,13 +28,20 @@ interface StoredRegistration {
 
 export const CONDITION_OUTPUT_SCHEMA = z.boolean()
 
+const ENTRY_TAGS: Record<FunctionCallType, FunctionEntryType> = {
+  [FunctionCallType.CONDITION]: FunctionEntryType.CONDITION,
+  [FunctionCallType.TRANSFORMER]: FunctionEntryType.TRANSFORMER,
+  [FunctionCallType.GENERATOR]: FunctionEntryType.GENERATOR,
+  [FunctionCallType.EFFECT]: FunctionEntryType.EFFECT,
+}
+
 export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> implements FunctionRegistryBuilder<TDeps> {
   private readonly registrations = new Map<string, StoredRegistration>()
 
   private anonymousCounter = 0
 
   constructor(
-    private readonly functionType: FunctionType,
+    private readonly functionType: FunctionCallType,
     private readonly defaultOutputSchema?: ZodType,
   ) {}
 
@@ -100,7 +107,7 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> implem
   protected buildExpressionHandle(name: string, prepare?: (...args: any[]) => any[]): (...args: any[]) => any {
     const type = this.functionType
 
-    if (type === FunctionType.GENERATOR) {
+    if (type === FunctionCallType.GENERATOR) {
       const generatorHandle = (...args: any[]) => {
         const prepared = prepare ? prepare(...args) : args
         const builder = GeneratorBuilder.create(name, prepared)
@@ -114,7 +121,7 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> implem
 
     const expressionHandle = (...args: any[]) => {
       const prepared = prepare ? prepare(...args) : args
-      const expr = { type, name, arguments: prepared }
+      const expr = { _forge: type, name, arguments: prepared }
 
       stampCallsite(expr, captureCallsite(expressionHandle))
       return expr
@@ -137,7 +144,7 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> implem
         inputSchema: registration.inputSchema,
         argumentsSchema: registration.argumentsSchema,
         outputSchema: registration.outputSchema,
-        functionType: this.functionType,
+        _forge: ENTRY_TAGS[this.functionType],
       }
     })
 

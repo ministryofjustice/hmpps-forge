@@ -1,7 +1,8 @@
-import { FunctionType, HookType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { FunctionCallType, HookType, StructureType } from '../../../../shared/taxonomy'
+import { ASTNodeFamily, astNodeFamily } from '../../../chassis/contracts/ast/enums'
 import type { AccessHookASTNode, SubmitHookASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { StepASTNode, JourneyASTNode } from '../../../chassis/contracts/ast/structures.type'
+import { isASTNode } from '../../../chassis/contracts/ast/nodes'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
@@ -67,23 +68,23 @@ function checkEntries(
 }
 
 function isAccessHook(value: unknown): boolean {
-  return isObject(value) && value.type === ASTNodeType.HOOK && value.hookType === HookType.ACCESS
+  return isObject(value) && value.kind === HookType.ACCESS
 }
 
 function isSubmitHook(value: unknown): boolean {
-  return isObject(value) && value.type === ASTNodeType.HOOK && value.hookType === HookType.SUBMIT
+  return isObject(value) && value.kind === HookType.SUBMIT
 }
 
 function isBlock(value: unknown): boolean {
-  return isObject(value) && value.type === ASTNodeType.BLOCK
+  return isASTNode(value) && astNodeFamily(value.kind) === ASTNodeFamily.COMPONENT_CALL
 }
 
 function isEffect(value: unknown): boolean {
-  return isObject(value) && value.expressionType === FunctionType.EFFECT
+  return isObject(value) && value.kind === FunctionCallType.EFFECT
 }
 
 function isOutcome(value: unknown): boolean {
-  return isObject(value) && value.type === ASTNodeType.OUTCOME
+  return isASTNode(value) && astNodeFamily(value.kind) === ASTNodeFamily.POLICY_OUTCOME
 }
 
 const ON_ACCESS: ContainerCheck = {
@@ -128,7 +129,7 @@ export const validateContainerTypes: ASTValidationRule = (context: ASTValidation
   const { nodeIndex } = context
   const errors: Error[] = []
 
-  nodeIndex.findByType<StepASTNode>(ASTNodeType.STEP).forEach(step => {
+  nodeIndex.findByKind<StepASTNode>(StructureType.STEP).forEach(step => {
     const diagnostics = step.diagnostics
 
     checkEntries(step.properties.onAccess, ON_ACCESS, diagnostics, errors)
@@ -136,18 +137,18 @@ export const validateContainerTypes: ASTValidationRule = (context: ASTValidation
     checkEntries(step.properties.blocks, BLOCKS, diagnostics, errors)
   })
 
-  nodeIndex.findByType<JourneyASTNode>(ASTNodeType.JOURNEY).forEach(journey => {
+  nodeIndex.findByKind<JourneyASTNode>(StructureType.JOURNEY).forEach(journey => {
     checkEntries(journey.properties.onAccess, ON_ACCESS, journey.diagnostics, errors)
   })
 
-  nodeIndex.findByType<AccessHookASTNode>(HookType.ACCESS).forEach(hook => {
+  nodeIndex.findByKind<AccessHookASTNode>(HookType.ACCESS).forEach(hook => {
     const diagnostics = hook.diagnostics
 
     checkEntries(hook.properties.effects, EFFECTS, diagnostics, errors)
     checkEntries(hook.properties.next, NEXT, diagnostics, errors)
   })
 
-  nodeIndex.findByType<SubmitHookASTNode>(HookType.SUBMIT).forEach(hook => {
+  nodeIndex.findByKind<SubmitHookASTNode>(HookType.SUBMIT).forEach(hook => {
     const diagnostics = hook.diagnostics
 
     checkHookBranch(hook.properties.onAlways, diagnostics, errors)

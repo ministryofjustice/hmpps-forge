@@ -89,6 +89,21 @@ enough.
 
 ### Changed
 
+- Authored nodes and builders now use one Forge-managed `_forge` discriminator with
+  hierarchical taxonomy values, replacing the previous collection of broad types,
+  subtype properties, merged enum sets, and the separate `resolvesMarker` brand.
+  Forge uses the taxonomy prefixes to identify related node families, while shared
+  builder capabilities and chainable interfaces no longer duplicate the same members.
+  The taxonomy now lives in shared core code, and `_forge` properties are documented
+  as internal so consumers know not to set or override them ([#280]).
+
+- Forge's internal AST now uses each authored `_forge` taxonomy value directly as
+  the node's exact `kind`, with `isTemplate` independently distinguishing template
+  nodes from materialised nodes. This removes the previous type/subtype identity
+  split and unifies template and materialised compilation and indexing without
+  further changing the authored `_forge` wire format or generated runtime behaviour
+  ([#280]).
+
 - The contract test suite now mirrors the engine's chassis/concerns split - per-area
   suites under `test/contracts/chassis/` (expressions, references, registration,
   tracing) and `test/contracts/concerns/` (one per runtime concern), expanded to 525
@@ -240,12 +255,13 @@ use returned error items for expected invalid input. ([#274])
 [#276]: https://github.com/ministryofjustice/hmpps-forge/pull/276
 [#277]: https://github.com/ministryofjustice/hmpps-forge/pull/277
 [#278]: https://github.com/ministryofjustice/hmpps-forge/pull/278
+[#280]: https://github.com/ministryofjustice/hmpps-forge/pull/280
 
 ---
 
 ## 0.4.1
 
-Release focused mainly on internal engine cleanup plus a few bug fixes/security improvements 
+Release focused mainly on internal engine cleanup plus a few bug fixes/security improvements
 for Forge's codegen and the express-adapter.
 
 ### Fixed

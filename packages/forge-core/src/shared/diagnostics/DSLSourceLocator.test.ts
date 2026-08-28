@@ -1,12 +1,11 @@
-import { BlockType, ExpressionType, FunctionType, IteratorType, StructureType } from '../../authoring/types/enums'
+import { ComponentCallType, ExpressionType, FunctionCallType, IteratorType, StructureType } from '../taxonomy'
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import type { FunctionASTNode, IterateASTNode, MatchASTNode } from '../../engine/chassis/contracts/ast/expressions.type'
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../../engine/chassis/contracts/ast/structures.type'
 import type { TestPredicateASTNode } from '../../engine/chassis/contracts/ast/predicates.type'
-import type { TemplateNode } from '../../engine/chassis/contracts/ast/template.type'
+import type { TemplateASTNode } from '../../engine/chassis/contracts/ast/ast.type'
 import { NodeIDGenerator } from '../../engine/chassis/compilation/ast/ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../engine/chassis/compilation/ast/nodes/NodeFactory'
-import { ASTNodeType } from '../../engine/chassis/contracts/ast/enums'
 import { finaliseBuilders } from '../../authoring/builders/utils/finaliseBuilders'
 import DSLSourceLocator from './DSLSourceLocator'
 
@@ -21,13 +20,13 @@ describe('DSLSourceLocator', () => {
     it('should return a source location with a formatted path', () => {
       // Arrange
       const journey = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         code: 'travel-declaration',
         path: '/travel-declaration',
         title: 'Travel declaration',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             code: 'personal-details',
             path: '/personal-details',
             title: 'Personal details',
@@ -49,24 +48,23 @@ describe('DSLSourceLocator', () => {
     it('should add diagnostic source to nested AST nodes', () => {
       // Arrange
       const journey = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         code: 'travel-declaration',
         path: '/travel-declaration',
         title: 'Travel declaration',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             code: 'personal-details',
             path: '/personal-details',
             title: 'Personal details',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'GovUKInput',
                 code: 'firstName',
                 defaultValue: {
-                  type: FunctionType.GENERATOR,
+                  _forge: FunctionCallType.GENERATOR,
                   name: 'defaultFirstName',
                   arguments: [],
                 },
@@ -93,29 +91,27 @@ describe('DSLSourceLocator', () => {
     it('should preserve diagnostic source on template nodes inside iterator yields', () => {
       // Arrange
       const journey = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         code: 'travel-declaration',
         path: '/travel-declaration',
         title: 'Travel declaration',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             code: 'personal-details',
             path: '/personal-details',
             title: 'Personal details',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.BASIC,
+                _forge: ComponentCallType.BASIC,
                 variant: 'collection-block',
                 items: {
-                  type: ExpressionType.ITERATE,
-                  input: { type: ExpressionType.REFERENCE, path: ['data', 'people'] },
+                  _forge: ExpressionType.ITERATE,
+                  input: { _forge: ExpressionType.REFERENCE, path: ['data', 'people'] },
                   iterator: {
-                    type: IteratorType.MAP,
+                    _forge: IteratorType.MAP,
                     yield: {
-                      type: StructureType.BLOCK,
-                      blockType: BlockType.FIELD,
+                      _forge: ComponentCallType.FIELD,
                       variant: 'GovUKInput',
                       code: 'firstName',
                     },
@@ -132,10 +128,10 @@ describe('DSLSourceLocator', () => {
       const step = root.properties.steps![0] as StepASTNode
       const block = step.properties.blocks![0]
       const iterate = block.properties.items as IterateASTNode
-      const template = iterate.properties.iterator.yieldTemplate as TemplateNode
+      const template = iterate.properties.iterator.yieldTemplate as TemplateASTNode
 
       // Assert
-      expect(template.type).toBe(ASTNodeType.TEMPLATE)
+      expect(template.isTemplate).toBe(true)
       expect(template.diagnostics?.source.path).toEqual(['steps', 0, 'blocks', 0, 'items', 'iterator', 'yield'])
       expect(template.diagnostics?.source.formattedPath).toBe(
         'travel-declaration > personal-details > blocks[0] (collection-block) > items > source > iterator > template',
@@ -146,27 +142,26 @@ describe('DSLSourceLocator', () => {
     it('should use branch condition source for synthetic match predicates', () => {
       // Arrange
       const journey = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         code: 'travel-declaration',
         path: '/travel-declaration',
         title: 'Travel declaration',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/personal-details',
             title: 'Personal details',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.BASIC,
+                _forge: ComponentCallType.BASIC,
                 variant: 'GovUKBody',
                 content: {
-                  type: ExpressionType.MATCH,
-                  subject: { type: ExpressionType.REFERENCE, path: ['answers', 'role'] },
+                  _forge: ExpressionType.MATCH,
+                  subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'role'] },
                   branches: [
                     {
                       condition: {
-                        type: FunctionType.CONDITION,
+                        _forge: FunctionCallType.CONDITION,
                         name: 'Equals',
                         arguments: ['admin'],
                       },

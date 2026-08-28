@@ -1,5 +1,5 @@
-import { BlockType, PredicateType } from '../../../../authoring/types/enums'
-import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
+import { ComponentCallType, PredicateType } from '../../../../shared/taxonomy'
+import type { MaterialisedASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
@@ -9,8 +9,11 @@ import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTValidationContext } from './types'
 import { validateFieldCodeUniqueness } from './validateFieldCodeUniqueness'
 
-const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, NodeId]>): ASTValidationContext => {
-  const byId = new Map<NodeId, ASTNode>(nodes.map(node => [node.id, node]))
+const createContext = (
+  nodes: readonly MaterialisedASTNode[],
+  edges: ReadonlyArray<[NodeId, NodeId]>,
+): ASTValidationContext => {
+  const byId = new Map<NodeId, MaterialisedASTNode>(nodes.map(node => [node.id, node]))
 
   edges.forEach(([childId, parentId]) => {
     const child = byId.get(childId)
@@ -37,8 +40,8 @@ const errorMessages = (errors: readonly Error[]): string[] =>
 
 const dependentWhen = (): unknown => ({ type: 'predicate', predicateType: PredicateType.TEST })
 
-const fieldBlock = (code: string, props: Record<string, unknown> = {}): ASTNode => {
-  const builder = ASTTestFactory.block('text', BlockType.FIELD).withProperty('code', code)
+const fieldBlock = (code: string, props: Record<string, unknown> = {}): MaterialisedASTNode => {
+  const builder = ASTTestFactory.block('text', ComponentCallType.FIELD).withProperty('code', code)
 
   Object.entries(props).forEach(([key, value]) => {
     builder.withProperty(key, value)
@@ -142,7 +145,7 @@ describe('validateFieldCodeUniqueness', () => {
     it('should group nested field blocks by their owning step', () => {
       // Arrange
       const nested = fieldBlock('employed')
-      const wrapper = ASTTestFactory.block('radio', BlockType.FIELD)
+      const wrapper = ASTTestFactory.block('radio', ComponentCallType.FIELD)
         .withProperty('code', 'employment_status')
         .withProperty('items', [{ value: 'a', block: nested }])
         .build()
@@ -167,7 +170,7 @@ describe('validateFieldCodeUniqueness', () => {
     it('should ignore field blocks whose code is not a literal string', () => {
       // Arrange
       const first = fieldBlock('employed')
-      const second = ASTTestFactory.block('text', BlockType.FIELD)
+      const second = ASTTestFactory.block('text', ComponentCallType.FIELD)
         .withProperty('code', { type: 'expression' })
         .build()
       const step = ASTTestFactory.step().withProperty('blocks', [first, second]).build()

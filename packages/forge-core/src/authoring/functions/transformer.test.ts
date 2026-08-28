@@ -2,7 +2,7 @@ import { expectTypeOf, vi } from 'vitest'
 import { z } from 'zod'
 import { Answer } from '../builders'
 import TransformerRegistry from '../registries/TransformerRegistry'
-import { FunctionType } from '../types/enums'
+import { FunctionCallType, FunctionEntryType } from '../../shared/taxonomy'
 import { getEntryStamp } from '../builders/utils/stampEntry'
 import { transformer } from './transformer'
 import type { Callsite } from '../builders/utils/captureCallsite'
@@ -23,7 +23,7 @@ describe('transformer()', () => {
   describe('entry creation', () => {
     it('should carry the given name, function type, schemas, and factory on a named entry', () => {
       expect(Truncate.name).toBe('Text.Truncate')
-      expect(Truncate.functionType).toBe(FunctionType.TRANSFORMER)
+      expect(Truncate._forge).toBe(FunctionEntryType.TRANSFORMER)
       expect(Truncate.inputSchema?.safeParse('summary').success).toBe(true)
       expect(Truncate.argumentsSchema?.safeParse([20]).success).toBe(true)
       expect(Truncate.outputSchema).toBeUndefined()
@@ -47,7 +47,7 @@ describe('transformer()', () => {
 
       // Assert
       expect(expr).toEqual({
-        type: FunctionType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'Text.Truncate',
         arguments: [20],
       })

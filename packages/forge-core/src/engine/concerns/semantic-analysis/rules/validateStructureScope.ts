@@ -1,4 +1,4 @@
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { StructureType } from '../../../../shared/taxonomy'
 import type { AstNodeId } from '../../../chassis/contracts/ast/engine.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
@@ -32,31 +32,31 @@ export const validateStructureScope: ASTValidationRule = (context: ASTValidation
   const { nodeIndex, templateNodeIndex } = context
   const errors: Error[] = []
 
-  nodeIndex.findByType(ASTNodeType.STEP).forEach(node => {
+  nodeIndex.findByKind(StructureType.STEP).forEach(node => {
     const parent = node.parent
 
-    if (!parent || parent.type !== ASTNodeType.JOURNEY || !containsNode(parent.properties?.steps, node.id)) {
+    if (!parent || parent.kind !== StructureType.JOURNEY || !containsNode(parent.properties?.steps, node.id)) {
       errors.push(buildStepError(node.diagnostics))
     }
   })
 
-  nodeIndex.findByType(ASTNodeType.JOURNEY).forEach(node => {
+  nodeIndex.findByKind(StructureType.JOURNEY).forEach(node => {
     const parent = node.parent
 
     if (!parent) {
       return
     }
 
-    if (parent.type !== ASTNodeType.JOURNEY || !containsNode(parent.properties?.children, node.id)) {
+    if (parent.kind !== StructureType.JOURNEY || !containsNode(parent.properties?.children, node.id)) {
       errors.push(buildJourneyError(node.diagnostics))
     }
   })
 
-  templateNodeIndex.findByType(ASTNodeType.STEP).forEach(({ node }) => {
+  templateNodeIndex.findByKind(StructureType.STEP).forEach(({ node }) => {
     errors.push(buildStepError(node.diagnostics))
   })
 
-  templateNodeIndex.findByType(ASTNodeType.JOURNEY).forEach(({ node }) => {
+  templateNodeIndex.findByKind(StructureType.JOURNEY).forEach(({ node }) => {
     errors.push(buildJourneyError(node.diagnostics))
   })
 

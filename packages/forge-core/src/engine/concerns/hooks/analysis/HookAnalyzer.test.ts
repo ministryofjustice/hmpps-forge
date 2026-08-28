@@ -1,4 +1,4 @@
-import { FunctionType, HookType } from '../../../../authoring/types/enums'
+import { FunctionCallType, HookType } from '../../../../shared/taxonomy'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import {
   createJourneyAnalysisContext,
@@ -47,7 +47,7 @@ describe('HookAnalyzer', () => {
 
     it('should keep only effect nodes and stamp branch-scoped effect keys', () => {
       // Arrange
-      const effect = ASTTestFactory.functionExpression(FunctionType.EFFECT, 'markAction')
+      const effect = ASTTestFactory.functionExpression(FunctionCallType.EFFECT, 'markAction')
       const nonEffect = ASTTestFactory.reference(['answers', 'ignored'])
       const submitHook = ASTTestFactory.hook(HookType.SUBMIT)
         .withProperty('validate', false)

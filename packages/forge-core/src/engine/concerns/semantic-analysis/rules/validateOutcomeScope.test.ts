@@ -1,5 +1,5 @@
-import { HookType, BlockType, ExpressionType, IteratorType } from '../../../../authoring/types/enums'
-import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
+import { HookType, ComponentCallType, ExpressionType, IteratorType } from '../../../../shared/taxonomy'
+import type { MaterialisedASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { TemplateValue } from '../../../chassis/contracts/ast/template.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
@@ -13,8 +13,11 @@ import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTValidationContext } from './types'
 import { validateOutcomeScope } from './validateOutcomeScope'
 
-const createContext = (nodes: readonly ASTNode[], edges: ReadonlyArray<[NodeId, NodeId]>): ASTValidationContext => {
-  const byId = new Map<NodeId, ASTNode>(nodes.map(node => [node.id, node]))
+const createContext = (
+  nodes: readonly MaterialisedASTNode[],
+  edges: ReadonlyArray<[NodeId, NodeId]>,
+): ASTValidationContext => {
+  const byId = new Map<NodeId, MaterialisedASTNode>(nodes.map(node => [node.id, node]))
 
   edges.forEach(([childId, parentId]) => {
     const child = byId.get(childId)
@@ -55,7 +58,7 @@ const iterateNodeWithYield = (yieldTemplate: TemplateValue): IterateASTNode =>
 const errorMessages = (errors: readonly Error[]): string[] =>
   errors.map(error => (error as ForgeReferenceScopeError).message)
 
-const createOutcome = (): ASTNode => ASTTestFactory.redirectOutcome({ goto: '/next' })
+const createOutcome = (): MaterialisedASTNode => ASTTestFactory.redirectOutcome({ goto: '/next' })
 
 describe('validateOutcomeScope', () => {
   describe('validateOutcomeScope()', () => {
@@ -109,7 +112,7 @@ describe('validateOutcomeScope', () => {
     it('should return an error when the parent is not a hook', () => {
       // Arrange
       const outcome = createOutcome()
-      const block = ASTTestFactory.block('text', BlockType.FIELD).withProperty('defaultValue', outcome).build()
+      const block = ASTTestFactory.block('text', ComponentCallType.FIELD).withProperty('defaultValue', outcome).build()
       const context = createContext([outcome, block], [[outcome.id, block.id]])
 
       // Act

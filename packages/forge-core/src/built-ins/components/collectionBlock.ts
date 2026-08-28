@@ -1,12 +1,12 @@
 import { component } from '../../components/component'
-import { StructureType } from '../../authoring/types/enums'
+import { ComponentCallType } from '../../shared/taxonomy'
 import { isRenderedBlock } from '../../components/typeguards'
 import { escapeHtmlEntities } from '../sanitize'
 import type {
   BlockDefinition,
+  RenderedBlock,
   ResolvableArray,
   ResolvableString,
-  RenderedBlock,
 } from '../../components/types/structures.type'
 
 /**
@@ -77,7 +77,8 @@ export interface CollectionBlock<T = BlockDefinition, F = T> extends BlockDefini
  * during evaluation - a transformation the generic type can't express.
  */
 export interface EvaluatedCollectionBlock {
-  type: typeof StructureType.BLOCK
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: ComponentCallType
   variant: 'collection-block'
 
   /** The rendered blocks from applying the template to each collection item */

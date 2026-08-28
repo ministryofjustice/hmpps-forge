@@ -1,20 +1,18 @@
 import { CollectionBlock, EvaluatedCollectionBlock } from './collectionBlock'
-import { BlockType, StructureType } from '../../authoring/types/enums'
+import { ComponentCallType } from '../../shared/taxonomy'
 import type { RenderedBlock } from '../../components/types/structures.type'
 
 describe('collectionBlock component', () => {
   const mockEvaluatedBlock = (overrides?: Partial<EvaluatedCollectionBlock>): EvaluatedCollectionBlock =>
     ({
-      type: StructureType.BLOCK,
-      blockType: BlockType.BASIC,
+      _forge: ComponentCallType.BASIC,
       variant: 'collection-block',
       ...overrides,
     }) as EvaluatedCollectionBlock
 
   const mockRenderedBlock = (html: string): RenderedBlock => ({
     block: {
-      type: StructureType.BLOCK,
-      blockType: BlockType.BASIC,
+      _forge: ComponentCallType.BASIC,
       variant: 'test',
     },
     html,

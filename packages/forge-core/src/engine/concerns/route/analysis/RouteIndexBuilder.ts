@@ -1,5 +1,5 @@
 import type { JourneyASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
-import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
+import type { MaterialisedASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import type { JourneyRouteIndex, StepRouteIndex } from '../contracts/routeDescriptors.type'
 
 /**
@@ -36,7 +36,7 @@ export default class RouteIndexBuilder {
   }
 
   /** Journey NodeIds from the outermost ancestor down, walking `parent` from `start`. */
-  private ancestorJourneyIds(start: ASTNode | undefined): NodeId[] {
+  private ancestorJourneyIds(start: MaterialisedASTNode | undefined): NodeId[] {
     const ids: NodeId[] = []
     let current = start
 

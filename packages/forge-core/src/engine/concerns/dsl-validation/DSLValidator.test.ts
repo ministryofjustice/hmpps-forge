@@ -1,13 +1,13 @@
 import {
   StructureType,
   HookType,
-  OutcomeType,
-  FunctionType,
+  PolicyType,
+  FunctionCallType,
   PredicateType,
   ExpressionType,
-  BlockType,
+  ComponentCallType,
   IteratorType,
-} from '../../../authoring/types/enums'
+} from '../../../shared/taxonomy'
 import type { JourneyDefinition, StepDefinition } from '../../../authoring/types/structures.type'
 import type { FieldBlockDefinition, ResolvableBoolean } from '../../../components/types/structures.type'
 import ForgeSerialisationError from '../../errors/ForgeSerialisationError'
@@ -18,13 +18,13 @@ describe('FormValidator', () => {
   describe('validateSchema', () => {
     it('should validate a valid schema', () => {
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
@@ -38,7 +38,7 @@ describe('FormValidator', () => {
     it('should validate journey unreachable redirect targets', () => {
       // Arrange
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
@@ -47,7 +47,7 @@ describe('FormValidator', () => {
         },
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
@@ -62,7 +62,7 @@ describe('FormValidator', () => {
     it('should accept journey resumeWhen when set to true', () => {
       // Arrange
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
@@ -71,7 +71,7 @@ describe('FormValidator', () => {
         },
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
@@ -86,7 +86,7 @@ describe('FormValidator', () => {
     it('should accept journey resumeWhen when set to false', () => {
       // Arrange
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
@@ -95,7 +95,7 @@ describe('FormValidator', () => {
         },
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
@@ -110,21 +110,21 @@ describe('FormValidator', () => {
     it('should accept journey resumeWhen when set to a predicate expression', () => {
       // Arrange
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         reachability: {
           resumeWhen: {
-            type: PredicateType.TEST,
+            _forge: PredicateType.TEST,
             negate: false,
-            subject: { type: ExpressionType.REFERENCE, path: ['query', 'resume'] },
-            condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['true'] },
+            subject: { _forge: ExpressionType.REFERENCE, path: ['query', 'resume'] },
+            condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['true'] },
           },
         },
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
@@ -139,19 +139,19 @@ describe('FormValidator', () => {
     it('should accept journey resumeWhen when set to a non-predicate expression', () => {
       // Arrange
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         reachability: {
           resumeWhen: {
-            type: ExpressionType.REFERENCE,
+            _forge: ExpressionType.REFERENCE,
             path: ['data', 'resumeActive'],
           } as unknown as ResolvableBoolean,
         },
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
@@ -166,7 +166,7 @@ describe('FormValidator', () => {
     it('should reject journey resumeWhen when set to an invalid value', () => {
       // Arrange
       const invalidJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
@@ -183,22 +183,21 @@ describe('FormValidator', () => {
     it('should accept block visibleWhen when set to a non-predicate expression', () => {
       // Arrange
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.BASIC,
+                _forge: ComponentCallType.BASIC,
                 variant: 'GovUKPanel',
                 visibleWhen: {
-                  type: ExpressionType.REFERENCE,
+                  _forge: ExpressionType.REFERENCE,
                   path: ['data', 'showBlock'],
                 } as unknown as ResolvableBoolean,
               },
@@ -214,19 +213,18 @@ describe('FormValidator', () => {
     it('should reject block visibleWhen when set to an invalid value', () => {
       // Arrange
       const invalidJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.BASIC,
+                _forge: ComponentCallType.BASIC,
                 variant: 'GovUKPanel',
                 visibleWhen: 'yes',
               },
@@ -242,13 +240,13 @@ describe('FormValidator', () => {
     it('should accept step entryWhen when set to true', () => {
       // Arrange
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
@@ -266,13 +264,13 @@ describe('FormValidator', () => {
     it('should accept step entryWhen when set to false', () => {
       // Arrange
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
@@ -290,22 +288,22 @@ describe('FormValidator', () => {
     it('should accept step entryWhen when set to a predicate expression', () => {
       // Arrange
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
             reachability: {
               entryWhen: {
-                type: PredicateType.TEST,
+                _forge: PredicateType.TEST,
                 negate: false,
-                subject: { type: ExpressionType.REFERENCE, path: ['session', 'submitted'] },
-                condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['true'] },
+                subject: { _forge: ExpressionType.REFERENCE, path: ['session', 'submitted'] },
+                condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['true'] },
               },
             },
           } as StepDefinition,
@@ -319,19 +317,19 @@ describe('FormValidator', () => {
     it('should accept step entryWhen when set to a non-predicate expression', () => {
       // Arrange
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
             reachability: {
               entryWhen: {
-                type: ExpressionType.REFERENCE,
+                _forge: ExpressionType.REFERENCE,
                 path: ['data', 'entryActive'],
               } as unknown as ResolvableBoolean,
             },
@@ -346,13 +344,13 @@ describe('FormValidator', () => {
     it('should reject step entryWhen when set to an invalid value', () => {
       // Arrange
       const invalidJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
@@ -370,13 +368,13 @@ describe('FormValidator', () => {
     it('should accept step validateOnEntry when set to true', () => {
       // Arrange
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
@@ -392,13 +390,13 @@ describe('FormValidator', () => {
     it('should accept step validateOnEntry when set to false', () => {
       // Arrange
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
@@ -414,13 +412,13 @@ describe('FormValidator', () => {
     it('should accept step validateOnEntry when set to a predicate expression', () => {
       // Arrange
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
@@ -428,10 +426,10 @@ describe('FormValidator', () => {
               {
                 groups: ['personal-details'],
                 when: {
-                  type: PredicateType.TEST,
+                  _forge: PredicateType.TEST,
                   negate: false,
-                  subject: { type: ExpressionType.REFERENCE, path: ['session', 'submitted'] },
-                  condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: ['true'] },
+                  subject: { _forge: ExpressionType.REFERENCE, path: ['session', 'submitted'] },
+                  condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: ['true'] },
                 },
               },
             ],
@@ -446,13 +444,13 @@ describe('FormValidator', () => {
     it('should accept step validateOnEntry when set to a non-predicate expression', () => {
       // Arrange
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
@@ -460,7 +458,7 @@ describe('FormValidator', () => {
               {
                 groups: ['personal-details'],
                 when: {
-                  type: ExpressionType.REFERENCE,
+                  _forge: ExpressionType.REFERENCE,
                   path: ['data', 'entryValidation'],
                 } as unknown as ResolvableBoolean,
               },
@@ -476,13 +474,13 @@ describe('FormValidator', () => {
     it('should reject step validateOnEntry when set to an invalid value', () => {
       // Arrange
       const invalidJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             blocks: [],
@@ -498,7 +496,7 @@ describe('FormValidator', () => {
     it('should validate static data with ordinary nested type fields', () => {
       // Arrange
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
@@ -510,7 +508,7 @@ describe('FormValidator', () => {
         },
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             data: {
@@ -528,29 +526,29 @@ describe('FormValidator', () => {
     it('should validate dynamic route metadata schema', () => {
       // Arrange
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
-        title: { type: ExpressionType.REFERENCE, path: ['data', 'journeyTitle'] },
-        description: { type: ExpressionType.REFERENCE, path: ['data', 'journeyDescription'] },
+        title: { _forge: ExpressionType.REFERENCE, path: ['data', 'journeyTitle'] },
+        description: { _forge: ExpressionType.REFERENCE, path: ['data', 'journeyDescription'] },
         metadata: {
-          hiddenFromNav: { type: ExpressionType.REFERENCE, path: ['data', 'hideJourney'] },
+          hiddenFromNav: { _forge: ExpressionType.REFERENCE, path: ['data', 'hideJourney'] },
           navGroup: {
-            type: FunctionType.GENERATOR,
+            _forge: FunctionCallType.GENERATOR,
             name: 'Format',
-            arguments: ['Group %1', { type: ExpressionType.REFERENCE, path: ['params', 'groupId'] }],
+            arguments: ['Group %1', { _forge: ExpressionType.REFERENCE, path: ['params', 'groupId'] }],
           },
         },
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
-            title: { type: ExpressionType.REFERENCE, path: ['data', 'stepTitle'] },
-            description: { type: ExpressionType.REFERENCE, path: ['data', 'stepDescription'] },
+            title: { _forge: ExpressionType.REFERENCE, path: ['data', 'stepTitle'] },
+            description: { _forge: ExpressionType.REFERENCE, path: ['data', 'stepDescription'] },
             metadata: {
-              hiddenFromNav: { type: ExpressionType.REFERENCE, path: ['data', 'hideStep'] },
+              hiddenFromNav: { _forge: ExpressionType.REFERENCE, path: ['data', 'hideStep'] },
               navigation: {
-                label: { type: ExpressionType.REFERENCE, path: ['data', 'stepNavLabel'] },
+                label: { _forge: ExpressionType.REFERENCE, path: ['data', 'stepNavLabel'] },
               },
             },
             blocks: [],
@@ -565,13 +563,13 @@ describe('FormValidator', () => {
     it('should reject Forge expressions in nested static data', () => {
       // Arrange
       const invalidJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/step1',
             title: 'Step 1',
             data: {
@@ -579,7 +577,7 @@ describe('FormValidator', () => {
                 {
                   label: 'Disallowed',
                   value: {
-                    type: ExpressionType.REFERENCE,
+                    _forge: ExpressionType.REFERENCE,
                     path: ['request', 'user'],
                   },
                 },
@@ -611,7 +609,7 @@ describe('FormValidator', () => {
     it('should reject invalid journey unreachable redirect targets', () => {
       // Arrange
       const invalidJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
@@ -627,19 +625,18 @@ describe('FormValidator', () => {
 
     it('should validate grouped validation and validateOnEntry schema', () => {
       const postcodeBlock = {
-        type: StructureType.BLOCK,
-        blockType: BlockType.FIELD,
+        _forge: ComponentCallType.FIELD,
         variant: 'TextInput',
         code: 'postcode',
         validWhen: [
           {
-            type: ExpressionType.VALIDATION,
+            _forge: PolicyType.VALIDATION_RULE,
             groups: ['address'],
             condition: {
-              type: PredicateType.TEST,
+              _forge: PredicateType.TEST,
               negate: false,
-              subject: { type: ExpressionType.REFERENCE, path: ['answers', 'postcode'] },
-              condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+              subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'postcode'] },
+              condition: { _forge: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
             },
             message: 'Enter your postcode',
           },
@@ -647,13 +644,13 @@ describe('FormValidator', () => {
       } satisfies FieldBlockDefinition
 
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/review',
             title: 'Review',
             validateOnEntry: [
@@ -661,17 +658,17 @@ describe('FormValidator', () => {
               {
                 groups: ['address'],
                 when: {
-                  type: PredicateType.TEST,
+                  _forge: PredicateType.TEST,
                   negate: false,
-                  subject: { type: ExpressionType.REFERENCE, path: ['data', 'addressLoaded'] },
-                  condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: [true] },
+                  subject: { _forge: ExpressionType.REFERENCE, path: ['data', 'addressLoaded'] },
+                  condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: [true] },
                 },
               },
             ],
             blocks: [postcodeBlock],
             onSubmission: [
               {
-                type: HookType.SUBMIT,
+                _forge: HookType.SUBMIT,
                 validate: { groups: ['contact', 'address'] },
               },
             ],
@@ -685,37 +682,36 @@ describe('FormValidator', () => {
     it('should validate generator-backed field and step validation', () => {
       // Arrange
       const fieldValidation = {
-        type: ExpressionType.VALIDATION,
+        _forge: PolicyType.VALIDATION_RULE,
         function: {
-          type: FunctionType.GENERATOR,
+          _forge: FunctionCallType.GENERATOR,
           name: 'ValidateField',
-          arguments: [{ type: ExpressionType.REFERENCE, path: ['@self'] }],
+          arguments: [{ _forge: ExpressionType.REFERENCE, path: ['@self'] }],
         },
       }
       const stepValidation = {
-        type: ExpressionType.VALIDATION,
+        _forge: PolicyType.VALIDATION_RULE,
         groups: ['review'],
         submissionOnly: true,
         function: {
-          type: FunctionType.GENERATOR,
+          _forge: FunctionCallType.GENERATOR,
           name: 'ValidateStep',
-          arguments: [{ type: ExpressionType.REFERENCE, path: ['answers', 'postcode'] }],
+          arguments: [{ _forge: ExpressionType.REFERENCE, path: ['answers', 'postcode'] }],
         },
       }
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/review',
             title: 'Review',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'TextInput',
                 code: 'postcode',
                 validWhen: [fieldValidation],
@@ -737,48 +733,47 @@ describe('FormValidator', () => {
       {
         name: 'both condition and function',
         rule: {
-          type: ExpressionType.VALIDATION,
+          _forge: PolicyType.VALIDATION_RULE,
           condition: {
-            type: PredicateType.TEST,
+            _forge: PredicateType.TEST,
             negate: false,
-            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'postcode'] },
-            condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+            subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'postcode'] },
+            condition: { _forge: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
           },
           message: 'Enter a postcode',
-          function: { type: FunctionType.GENERATOR, name: 'ValidatePostcode', arguments: [] },
+          function: { _forge: FunctionCallType.GENERATOR, name: 'ValidatePostcode', arguments: [] },
         },
       },
-      { name: 'neither condition nor function', rule: { type: ExpressionType.VALIDATION } },
+      { name: 'neither condition nor function', rule: { _forge: PolicyType.VALIDATION_RULE } },
       {
         name: 'a condition function in the function property',
         rule: {
-          type: ExpressionType.VALIDATION,
-          function: { type: FunctionType.CONDITION, name: 'ValidatePostcode', arguments: [] },
+          _forge: PolicyType.VALIDATION_RULE,
+          function: { _forge: FunctionCallType.CONDITION, name: 'ValidatePostcode', arguments: [] },
         },
       },
       {
         name: 'a transformer in the function property',
         rule: {
-          type: ExpressionType.VALIDATION,
-          function: { type: FunctionType.TRANSFORMER, name: 'ValidatePostcode', arguments: [] },
+          _forge: PolicyType.VALIDATION_RULE,
+          function: { _forge: FunctionCallType.TRANSFORMER, name: 'ValidatePostcode', arguments: [] },
         },
       },
     ])('should reject validation with $name', ({ rule }) => {
       // Arrange
       const invalidJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/review',
             title: 'Review',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'TextInput',
                 code: 'postcode',
                 validWhen: [rule],
@@ -797,22 +792,21 @@ describe('FormValidator', () => {
 
     it('should validate field validWhen supplied by an iterator', () => {
       const block = {
-        type: StructureType.BLOCK,
-        blockType: BlockType.FIELD,
+        _forge: ComponentCallType.FIELD,
         variant: 'TextInput',
         code: 'status',
         validWhen: {
-          type: ExpressionType.ITERATE,
-          input: { type: ExpressionType.REFERENCE, path: ['data', 'checks'] },
+          _forge: ExpressionType.ITERATE,
+          input: { _forge: ExpressionType.REFERENCE, path: ['data', 'checks'] },
           iterator: {
-            type: IteratorType.MAP,
+            _forge: IteratorType.MAP,
             yield: {
-              type: ExpressionType.VALIDATION,
+              _forge: PolicyType.VALIDATION_RULE,
               condition: {
-                type: PredicateType.TEST,
+                _forge: PredicateType.TEST,
                 negate: false,
-                subject: { type: ExpressionType.REFERENCE, path: ['@scope', '0', 'enabled'] },
-                condition: { type: FunctionType.CONDITION, name: 'Equals', arguments: [true] },
+                subject: { _forge: ExpressionType.REFERENCE, path: ['@scope', '0', 'enabled'] },
+                condition: { _forge: FunctionCallType.CONDITION, name: 'Equals', arguments: [true] },
               },
               message: 'Check must be enabled',
             },
@@ -821,13 +815,13 @@ describe('FormValidator', () => {
       } satisfies FieldBlockDefinition
 
       const validJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/review',
             title: 'Review',
             blocks: [block],
@@ -838,9 +832,9 @@ describe('FormValidator', () => {
       expect(() => DSLValidator.validateSchema(validJourney)).not.toThrow()
     })
 
-    it('should fail when type is missing with clear error path', () => {
+    it('should fail when _forge is missing with clear error path', () => {
       const invalidJourney = {
-        // Missing type
+        // Missing _forge
         code: 'test-journey',
         title: 'Test Journey',
         steps: [],
@@ -856,7 +850,7 @@ describe('FormValidator', () => {
           expect(error.errors.length).toBeGreaterThan(0)
 
           const typeError = error.errors.find(
-            e => e instanceof ForgeSchemaError && e.formattedPath === 'test-journey > type',
+            e => e instanceof ForgeSchemaError && e.formattedPath === 'test-journey > _forge',
           )
           expect(typeError).toBeDefined()
           expect(typeError?.message).toContain('Invalid input')
@@ -867,30 +861,29 @@ describe('FormValidator', () => {
     it('should render schema errors with a formatted DSL path', () => {
       // Arrange
       const invalidJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/travel-declaration',
         code: 'travel-declaration',
         title: 'Travel Declaration',
         steps: [
           {
-            type: StructureType.STEP,
+            _forge: StructureType.STEP,
             path: '/personal-details',
             title: 'Personal details',
             blocks: [
               {
-                type: StructureType.BLOCK,
-                blockType: BlockType.FIELD,
+                _forge: ComponentCallType.FIELD,
                 variant: 'GovUKInput',
                 code: 'firstName',
                 validWhen: [
                   {
-                    type: ExpressionType.VALIDATION,
+                    _forge: PolicyType.VALIDATION_RULE,
                     message: null,
                     condition: {
-                      type: PredicateType.TEST,
+                      _forge: PredicateType.TEST,
                       negate: false,
-                      subject: { type: ExpressionType.REFERENCE, path: ['answers', 'firstName'] },
-                      condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] },
+                      subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'firstName'] },
+                      condition: { _forge: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] },
                     },
                   },
                 ],
@@ -926,14 +919,14 @@ describe('FormValidator', () => {
     it('should attach the nearest ancestor callsite to schema errors', () => {
       // Arrange
       const step = {
-        type: StructureType.STEP,
+        _forge: StructureType.STEP,
         path: '/step1',
         title: 123,
         blocks: [],
       }
       Object.defineProperty(step, '__callsite', { value: { stack: 'at step-site' }, enumerable: false })
       const invalidJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         path: '/test-journey',
         code: 'test-journey',
         title: 'Test Journey',
@@ -960,7 +953,7 @@ describe('FormValidator', () => {
 
     it('should fail when required fields are missing', () => {
       const invalidJourney = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         steps: [],
       } as unknown as JourneyDefinition
 
@@ -980,22 +973,22 @@ describe('FormValidator', () => {
 
     it('should catch multiple errors in a schema', () => {
       const brokenJson = {
-        type: StructureType.JOURNEY,
+        _forge: StructureType.JOURNEY,
         code: 'strengths_and_needs',
         title: 'Strengths and Needs Assessment',
         path: '/strength-and-needs',
         children: [
           {
-            type: StructureType.JOURNEY,
+            _forge: StructureType.JOURNEY,
             code: null,
             title: null,
             path: null,
             onAccess: [
               {
-                type: HookType.ACCESS,
+                _forge: HookType.ACCESS,
                 next: [
                   {
-                    type: OutcomeType.REDIRECT,
+                    _forge: PolicyType.OUTCOME_REDIRECT,
                     goto: '/unauthorized',
                   },
                 ],
@@ -1003,18 +996,18 @@ describe('FormValidator', () => {
             ],
             steps: [
               {
-                type: StructureType.STEP,
+                _forge: StructureType.STEP,
                 path: '/test',
                 title: null,
                 blocks: [],
                 onSubmission: [
                   {
-                    type: HookType.SUBMIT,
+                    _forge: HookType.SUBMIT,
                     validate: true,
                     onValid: {
                       next: [
                         {
-                          type: OutcomeType.REDIRECT,
+                          _forge: PolicyType.OUTCOME_REDIRECT,
                           goto: '/next',
                         },
                       ],
@@ -1022,7 +1015,7 @@ describe('FormValidator', () => {
                     onInvalid: {
                       next: [
                         {
-                          type: OutcomeType.REDIRECT,
+                          _forge: PolicyType.OUTCOME_REDIRECT,
                           goto: '@self',
                         },
                       ],

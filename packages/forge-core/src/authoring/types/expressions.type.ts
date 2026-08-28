@@ -1,12 +1,13 @@
 import {
-  FunctionType,
+  BuilderType,
+  FunctionCallType,
   ExpressionType,
   PredicateType,
   ConditionCombinatorType,
   HookType,
   IteratorType,
-  OutcomeType,
-} from './enums'
+  PolicyType,
+} from '../../shared/taxonomy'
 
 /**
  * Represents a reference to a value in the form context.
@@ -14,26 +15,27 @@ import {
  *
  * @example
  * // Reference to a form field answer
- * { type: 'ExpressionType.Reference', path: ['answers', 'email'] }
+ * { _forge: 'expression.reference', path: ['answers', 'email'] }
  *
  * @example
  * // Reference to external data
- * { type: 'ExpressionType.Reference', path: ['data', 'user', 'role'] }
+ * { _forge: 'expression.reference', path: ['data', 'user', 'role'] }
  *
  * @example
  * // Reference to current field (self)
- * { type: 'ExpressionType.Reference', path: ['@self'] }
+ * { _forge: 'expression.reference', path: ['@self'] }
  *
  * @example
  * // Reference to current collection item
- * { type: 'ExpressionType.Reference', path: ['@scope', '0', 'id'] }
+ * { _forge: 'expression.reference', path: ['@scope', '0', 'id'] }
  *
  * @example
  * // Reference to current loop metadata
- * { type: 'ExpressionType.Reference', path: ['@loop', '0', 'index0'] }
+ * { _forge: 'expression.reference', path: ['@loop', '0', 'index0'] }
  */
-export interface ReferenceExpr extends ResolvableExpression {
-  type: ExpressionType.REFERENCE
+export interface ReferenceExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: ExpressionType.REFERENCE
 
   /**
    * Path segments to traverse to reach the target value.
@@ -50,8 +52,8 @@ export interface ReferenceExpr extends ResolvableExpression {
    * @example
    * // Navigate into the result of an iteration
    * {
-   *   type: 'ExpressionType.Reference',
-   *   base: { type: 'ExpressionType.Iterate', ... },
+   *   _forge: 'expression.reference',
+   *   base: { _forge: 'expression.iterate', ... },
    *   path: ['goals']
    * }
    */
@@ -66,29 +68,30 @@ export interface ReferenceExpr extends ResolvableExpression {
  * @example
  * // Chain multiple transformations
  * {
- *   type: 'ExpressionType.Pipeline',
- *   input: { type: 'ExpressionType.Reference', path: ['answers', 'email'] },
+ *   _forge: 'expression.pipeline',
+ *   input: { _forge: 'expression.reference', path: ['answers', 'email'] },
  *   steps: [
- *     { type: 'FunctionType.Transformer', name: 'trim', arguments: [] },
- *     { type: 'FunctionType.Transformer', name: 'toLowerCase', arguments: [] },
- *     { type: 'FunctionType.Transformer', name: 'validateEmail', arguments: [] }
+ *     { _forge: 'function.call.transformer', name: 'trim', arguments: [] },
+ *     { _forge: 'function.call.transformer', name: 'toLowerCase', arguments: [] },
+ *     { _forge: 'function.call.transformer', name: 'validateEmail', arguments: [] }
  *   ]
  * }
  *
  * @example
  * // Transform with arguments
  * {
- *   type: 'ExpressionType.Pipeline',
- *   input: { type: 'ExpressionType.Reference', path: ['answers', 'price'] },
+ *   _forge: 'expression.pipeline',
+ *   input: { _forge: 'expression.reference', path: ['answers', 'price'] },
  *   steps: [
- *     { type: 'FunctionType.Transformer', name: 'multiply', arguments: [1.2] },
- *     { type: 'FunctionType.Transformer', name: 'round', arguments: [2] },
- *     { type: 'FunctionType.Transformer', name: 'formatCurrency', arguments: ['GBP'] }
+ *     { _forge: 'function.call.transformer', name: 'multiply', arguments: [1.2] },
+ *     { _forge: 'function.call.transformer', name: 'round', arguments: [2] },
+ *     { _forge: 'function.call.transformer', name: 'formatCurrency', arguments: ['GBP'] }
  *   ]
  * }
  */
-export interface PipelineExpr extends ResolvableExpression {
-  type: ExpressionType.PIPELINE
+export interface PipelineExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: ExpressionType.PIPELINE
 
   /**
    * Initial value expression to be transformed.
@@ -108,7 +111,8 @@ export interface PipelineExpr extends ResolvableExpression {
  * This serves as the foundation for specific function types like conditions and transformers.
  */
 interface BaseFunctionExpr<A extends ResolvableValue[]> {
-  type: FunctionType
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: FunctionCallType
   /**
    * Name of the registered function.
    * Must match a function in the appropriate registry. Built-in functions
@@ -129,7 +133,7 @@ interface BaseFunctionExpr<A extends ResolvableValue[]> {
  * @example
  * // Required validation condition
  * {
- *   type: 'FunctionType.Condition',
+ *   _forge: 'function.call.condition',
  *   name: 'IsRequired',
  *   arguments: []
  * }
@@ -137,7 +141,7 @@ interface BaseFunctionExpr<A extends ResolvableValue[]> {
  * @example
  * // Length validation with parameter
  * {
- *   type: 'FunctionType.Condition',
+ *   _forge: 'function.call.condition',
  *   name: 'hasMaxLength',
  *   arguments: [100]
  * }
@@ -145,13 +149,14 @@ interface BaseFunctionExpr<A extends ResolvableValue[]> {
  * @example
  * // Range validation with multiple parameters
  * {
- *   type: 'FunctionType.Condition',
+ *   _forge: 'function.call.condition',
  *   name: 'isBetween',
  *   arguments: [10, 100]
  * }
  */
 export interface ConditionFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
-  type: FunctionType.CONDITION
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: FunctionCallType.CONDITION
 }
 
 /**
@@ -167,7 +172,7 @@ export type FunctionExpr<A extends ResolvableValue[]> = BaseFunctionExpr<A>
  * @example
  * // Transform to uppercase
  * {
- *   type: 'FunctionType.Transformer',
+ *   _forge: 'function.call.transformer',
  *   name: 'toUpperCase',
  *   arguments: []
  * }
@@ -175,14 +180,14 @@ export type FunctionExpr<A extends ResolvableValue[]> = BaseFunctionExpr<A>
  * @example
  * // Extract regex capture group
  * {
- *   type: 'FunctionType.Transformer',
+ *   _forge: 'function.call.transformer',
  *   name: 'regexCapture',
  *   arguments: ['^item-(.+)$', 1]
  * }
  */
-export interface TransformerFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]>
-  extends BaseFunctionExpr<A>, ResolvableExpression {
-  type: FunctionType.TRANSFORMER
+export interface TransformerFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: FunctionCallType.TRANSFORMER
 }
 
 /**
@@ -193,7 +198,7 @@ export interface TransformerFunctionExpr<A extends ResolvableValue[] = Resolvabl
  * @example
  * // Save effect
  * {
- *   type: 'FunctionType.Effect',
+ *   _forge: 'function.call.effect',
  *   name: 'save',
  *   arguments: [{ draft: true }]
  * }
@@ -201,16 +206,17 @@ export interface TransformerFunctionExpr<A extends ResolvableValue[] = Resolvabl
  * @example
  * // Add to collection effect
  * {
- *   type: 'FunctionType.Effect',
+ *   _forge: 'function.call.effect',
  *   name: 'addToCollection',
  *   arguments: [
- *     { type: 'ExpressionType.Reference', path: ['answers', 'addresses'] },
+ *     { _forge: 'expression.reference', path: ['answers', 'addresses'] },
  *     { street: '', city: '', postcode: '' }
  *   ]
  * }
  */
 export interface EffectFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
-  type: FunctionType.EFFECT
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: FunctionCallType.EFFECT
 }
 
 /**
@@ -221,7 +227,7 @@ export interface EffectFunctionExpr<A extends ResolvableValue[] = ResolvableValu
  * @example
  * // Generate current date
  * {
- *   type: 'FunctionType.Generator',
+ *   _forge: 'function.call.generator',
  *   name: 'Date.Now',
  *   arguments: []
  * }
@@ -229,14 +235,14 @@ export interface EffectFunctionExpr<A extends ResolvableValue[] = ResolvableValu
  * @example
  * // Generate UUID with prefix
  * {
- *   type: 'FunctionType.Generator',
+ *   _forge: 'function.call.generator',
  *   name: 'UUID',
  *   arguments: ['prefix-']
  * }
  */
-export interface GeneratorFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]>
-  extends BaseFunctionExpr<A>, ResolvableExpression {
-  type: FunctionType.GENERATOR
+export interface GeneratorFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: FunctionCallType.GENERATOR
 }
 
 /**
@@ -246,7 +252,8 @@ export interface GeneratorFunctionExpr<A extends ResolvableValue[] = ResolvableV
  * Iterator.Map({ label: Item().path('name'), value: Item().path('id') })
  */
 export interface MapIteratorConfig {
-  type: IteratorType.MAP
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: IteratorType.MAP
 
   /**
    * Template with Item() references - evaluated per item to produce output.
@@ -262,7 +269,8 @@ export interface MapIteratorConfig {
  * Iterator.Filter(Item().path('active').match(Condition.Equals(true)))
  */
 export interface FilterIteratorConfig {
-  type: IteratorType.FILTER
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: IteratorType.FILTER
 
   /**
    * Predicate evaluated per item - items where predicate is true are kept.
@@ -278,7 +286,8 @@ export interface FilterIteratorConfig {
  * Iterator.Find(Item().path('id').match(Condition.Equals(Params('userId'))))
  */
 export interface FindIteratorConfig {
-  type: IteratorType.FIND
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: IteratorType.FIND
 
   /**
    * Predicate evaluated per item - returns first item where predicate is true.
@@ -308,8 +317,9 @@ export type IteratorConfig = MapIteratorConfig | FilterIteratorConfig | FindIter
  *   .each(Iterator.Map(Item().path('name')))
  *   .pipe(Transformer.Array.Slice(0, 10))
  */
-export interface IterateExpr extends ResolvableExpression {
-  type: ExpressionType.ITERATE
+export interface IterateExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: ExpressionType.ITERATE
 
   /**
    * The input source expression (array or prior iterate result).
@@ -324,26 +334,18 @@ export interface IterateExpr extends ResolvableExpression {
 }
 
 /**
- * The type-level marker shared by every authoring expression that resolves to
- * a value at runtime - references, pipelines, iterations, and
- * generator/transformer chains. An interface rather than a union so IDE
- * hovers show one name; the optional-only member makes it a weak type, so
- * only types declaring the marker are assignable. Never set at runtime.
- *
- * `T` is the value the expression resolves to. It defaults to `any` because
- * references are untyped at authoring time - the extending expression types
- * inherit that default and stay assignable to every `ResolvableExpression<T>`.
- * A builder that knows its resolved type can narrow it and be checked for real.
+ * Any Forge-tagged node or live builder that resolves to a value at runtime.
  */
-export interface ResolvableExpression<T = any> {
-  readonly __resolves?: T
+export interface ResolvableNode {
+  /** Internal Forge discriminator. Do not set or override this property. */
+  readonly _forge: ExpressionType | FunctionCallType | PredicateType | ConditionCombinatorType | BuilderType
 }
 
 /**
  * Widens a declared argument type so a caller can pass either a literal of
  * that type or any authoring expression that resolves to one at runtime.
  */
-export type Resolvable<T> = T | ResolvableExpression<T>
+export type Resolvable<T> = T | ResolvableNode
 
 /**
  * Represents any expression that evaluates to a value.
@@ -369,23 +371,24 @@ export type ResolvableValue =
  * @example
  * // Test if field is required (not empty)
  * {
- *   type: 'PredicateType.Test',
- *   subject: { type: 'ExpressionType.Reference', path: ['@self'] },
+ *   _forge: 'predicate.test',
+ *   subject: { _forge: 'expression.reference', path: ['@self'] },
  *   negate: false,
- *   condition: { type: 'FunctionType.Condition', name: 'IsRequired', arguments: [] }
+ *   condition: { _forge: 'function.call.condition', name: 'IsRequired', arguments: [] }
  * }
  *
  * @example
  * // Test if email is NOT valid (negated)
  * {
- *   type: 'PredicateType.Test',
- *   subject: { type: 'ExpressionType.Reference', path: ['answers', 'email'] },
+ *   _forge: 'predicate.test',
+ *   subject: { _forge: 'expression.reference', path: ['answers', 'email'] },
  *   negate: true,
- *   condition: { type: 'FunctionType.Condition', name: 'Email.IsValidEmail', arguments: [] }
+ *   condition: { _forge: 'function.call.condition', name: 'Email.IsValidEmail', arguments: [] }
  * }
  */
 export interface PredicateTestExpr {
-  type: PredicateType.TEST
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: PredicateType.TEST
   /** The value expression to test. */
   subject: ResolvableValue
 
@@ -405,15 +408,16 @@ export interface PredicateTestExpr {
  * @example
  * // AND logic - all must be true
  * {
- *   type: 'PredicateType.And',
+ *   _forge: 'predicate.and',
  *   operands: [
- *     { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} },
- *     { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} }
+ *     { _forge: 'predicate.test', subject: {...}, negate: false, condition: {...} },
+ *     { _forge: 'predicate.test', subject: {...}, negate: false, condition: {...} }
  *   ]
  * }
  */
 export interface PredicateAndExpr {
-  type: PredicateType.AND
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: PredicateType.AND
 
   /**
    * Array of predicates that must all be true.
@@ -428,15 +432,16 @@ export interface PredicateAndExpr {
  * @example
  * // OR logic - at least one must be true
  * {
- *   type: 'PredicateType.Or',
+ *   _forge: 'predicate.or',
  *   operands: [
- *     { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} },
- *     { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} }
+ *     { _forge: 'predicate.test', subject: {...}, negate: false, condition: {...} },
+ *     { _forge: 'predicate.test', subject: {...}, negate: false, condition: {...} }
  *   ]
  * }
  */
 export interface PredicateOrExpr {
-  type: PredicateType.OR
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: PredicateType.OR
 
   /**
    * Array of predicates where at least one must be true.
@@ -451,15 +456,16 @@ export interface PredicateOrExpr {
  * @example
  * // XOR logic - exactly one must be true
  * {
- *   type: 'PredicateType.Xor',
+ *   _forge: 'predicate.xor',
  *   operands: [
- *     { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} },
- *     { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} }
+ *     { _forge: 'predicate.test', subject: {...}, negate: false, condition: {...} },
+ *     { _forge: 'predicate.test', subject: {...}, negate: false, condition: {...} }
  *   ]
  * }
  */
 export interface PredicateXorExpr {
-  type: PredicateType.XOR
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: PredicateType.XOR
 
   /**
    * Array of predicates where exactly one must be true.
@@ -474,12 +480,13 @@ export interface PredicateXorExpr {
  * @example
  * // NOT logic - invert the result
  * {
- *   type: 'PredicateType.Not',
- *   operand: { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} }
+ *   _forge: 'predicate.not',
+ *   operand: { _forge: 'predicate.test', subject: {...}, negate: false, condition: {...} }
  * }
  */
 export interface PredicateNotExpr {
-  type: PredicateType.NOT
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: PredicateType.NOT
 
   /**
    * Single predicate to negate.
@@ -501,12 +508,12 @@ export type PredicateExpr = PredicateTestExpr | PredicateAndExpr | PredicateOrEx
  * @example
  * // Simple validation rule
  * {
- *   type: 'ExpressionType.Conditional',
+ *   _forge: 'expression.conditional',
  *   predicate: {
- *     type: 'PredicateType.Test',
- *     subject: { type: 'ExpressionType.Reference', path: ['@self'] },
+ *     _forge: 'predicate.test',
+ *     subject: { _forge: 'expression.reference', path: ['@self'] },
  *     negate: true,
- *     condition: { type: 'FunctionType.Condition', name: 'IsRequired', arguments: [] }
+ *     condition: { _forge: 'function.call.condition', name: 'IsRequired', arguments: [] }
  *   },
  *   thenValue: 'This field is required',
  *   elseValue: false
@@ -515,12 +522,12 @@ export type PredicateExpr = PredicateTestExpr | PredicateAndExpr | PredicateOrEx
  * @example
  * // Conditional field visibility (dependentWhen)
  * {
- *   type: 'ExpressionType.Conditional',
+ *   _forge: 'expression.conditional',
  *   predicate: {
- *     type: 'PredicateType.Test',
- *     subject: { type: 'ExpressionType.Reference', path: ['answers', 'hasChildren'] },
+ *     _forge: 'predicate.test',
+ *     subject: { _forge: 'expression.reference', path: ['answers', 'hasChildren'] },
  *     negate: false,
- *     condition: { type: 'FunctionType.Condition', name: 'Equals', arguments: [true] }
+ *     condition: { _forge: 'function.call.condition', name: 'Equals', arguments: [true] }
  *   },
  *   thenValue: true,
  *   elseValue: false
@@ -529,11 +536,11 @@ export type PredicateExpr = PredicateTestExpr | PredicateAndExpr | PredicateOrEx
  * @example
  * // Nested conditionals for complex logic
  * {
- *   type: 'ExpressionType.Conditional',
- *   predicate: { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} },
+ *   _forge: 'expression.conditional',
+ *   predicate: { _forge: 'predicate.test', subject: {...}, negate: false, condition: {...} },
  *   thenValue: {
- *     type: 'ExpressionType.Conditional',
- *     predicate: { type: 'PredicateType.Test', subject: {...}, negate: false, condition: {...} },
+ *     _forge: 'expression.conditional',
+ *     predicate: { _forge: 'predicate.test', subject: {...}, negate: false, condition: {...} },
  *     thenValue: 'Option A',
  *     elseValue: 'Option B'
  *   },
@@ -541,7 +548,8 @@ export type PredicateExpr = PredicateTestExpr | PredicateAndExpr | PredicateOrEx
  * }
  */
 export interface ConditionalExpr {
-  type: ExpressionType.CONDITIONAL
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: ExpressionType.CONDITIONAL
 
   /** The condition to evaluate. */
   predicate: PredicateExpr
@@ -567,15 +575,16 @@ export interface ConditionalExpr {
  * @example
  * // AND logic - all must be true
  * {
- *   type: 'ConditionCombinatorType.And',
+ *   _forge: 'combinator.and',
  *   operands: [
- *     { type: 'FunctionType.Condition', name: 'IsRequired', arguments: [] },
- *     { type: 'FunctionType.Condition', name: 'Number.IsGreaterThan', arguments: [18] }
+ *     { _forge: 'function.call.condition', name: 'IsRequired', arguments: [] },
+ *     { _forge: 'function.call.condition', name: 'Number.IsGreaterThan', arguments: [18] }
  *   ]
  * }
  */
 export interface ConditionAndExpr {
-  type: ConditionCombinatorType.AND
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: ConditionCombinatorType.AND
 
   /**
    * Array of condition branches that must all be true.
@@ -592,15 +601,16 @@ export interface ConditionAndExpr {
  * @example
  * // OR logic - at least one must be true
  * {
- *   type: 'ConditionCombinatorType.Or',
+ *   _forge: 'combinator.or',
  *   operands: [
- *     { type: 'FunctionType.Condition', name: 'Equals', arguments: ['ACTIVE'] },
- *     { type: 'FunctionType.Condition', name: 'Equals', arguments: ['PENDING'] }
+ *     { _forge: 'function.call.condition', name: 'Equals', arguments: ['ACTIVE'] },
+ *     { _forge: 'function.call.condition', name: 'Equals', arguments: ['PENDING'] }
  *   ]
  * }
  */
 export interface ConditionOrExpr {
-  type: ConditionCombinatorType.OR
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: ConditionCombinatorType.OR
 
   /**
    * Array of condition branches where at least one must be true.
@@ -617,15 +627,16 @@ export interface ConditionOrExpr {
  * @example
  * // XOR logic - exactly one must be true
  * {
- *   type: 'ConditionCombinatorType.Xor',
+ *   _forge: 'combinator.xor',
  *   operands: [
- *     { type: 'FunctionType.Condition', name: 'Equals', arguments: ['ACTIVE'] },
- *     { type: 'FunctionType.Condition', name: 'String.IsEmpty', arguments: [] }
+ *     { _forge: 'function.call.condition', name: 'Equals', arguments: ['ACTIVE'] },
+ *     { _forge: 'function.call.condition', name: 'String.IsEmpty', arguments: [] }
  *   ]
  * }
  */
 export interface ConditionXorExpr {
-  type: ConditionCombinatorType.XOR
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: ConditionCombinatorType.XOR
 
   /**
    * Array of condition branches where exactly one must be true.
@@ -642,12 +653,13 @@ export interface ConditionXorExpr {
  * @example
  * // NOT logic - invert the result
  * {
- *   type: 'ConditionCombinatorType.Not',
- *   operand: { type: 'FunctionType.Condition', name: 'Equals', arguments: ['ACTIVE'] }
+ *   _forge: 'combinator.not',
+ *   operand: { _forge: 'function.call.condition', name: 'Equals', arguments: ['ACTIVE'] }
  * }
  */
 export interface ConditionNotExpr {
-  type: ConditionCombinatorType.NOT
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: ConditionCombinatorType.NOT
 
   /**
    * Single condition branch to negate.
@@ -690,17 +702,18 @@ interface MatchBranch {
  * @example
  * // Match on status
  * {
- *   type: 'ExpressionType.Match',
- *   subject: { type: 'ExpressionType.Reference', path: ['data', 'status'] },
+ *   _forge: 'expression.match',
+ *   subject: { _forge: 'expression.reference', path: ['data', 'status'] },
  *   branches: [
- *     { condition: { type: 'FunctionType.Condition', name: 'Equals', arguments: ['ACTIVE'] }, value: 'Active' },
- *     { condition: { type: 'FunctionType.Condition', name: 'Equals', arguments: ['CLOSED'] }, value: 'Closed' },
+ *     { condition: { _forge: 'function.call.condition', name: 'Equals', arguments: ['ACTIVE'] }, value: 'Active' },
+ *     { condition: { _forge: 'function.call.condition', name: 'Equals', arguments: ['CLOSED'] }, value: 'Closed' },
  *   ],
  *   otherwise: 'Unknown'
  * }
  */
 export interface MatchExpr {
-  type: ExpressionType.MATCH
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: ExpressionType.MATCH
 
   /** The value to test each branch's condition against. */
   subject: ResolvableValue
@@ -733,7 +746,8 @@ export interface MatchExpr {
  * })
  */
 export interface RedirectOutcome {
-  type: OutcomeType.REDIRECT
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: PolicyType.OUTCOME_REDIRECT
   /** Optional condition that must be true for this redirect to occur. */
   when?: PredicateExpr
   /** The path to redirect to. */
@@ -761,7 +775,8 @@ export interface RedirectOutcome {
  * })
  */
 export interface ThrowErrorOutcome {
-  type: OutcomeType.THROW_ERROR
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: PolicyType.OUTCOME_THROW_ERROR
   /** Optional condition that must be true for this error to be thrown. */
   when?: PredicateExpr
   /** HTTP status code to return. */
@@ -812,7 +827,8 @@ export type HookOutcome = RedirectOutcome | ThrowErrorOutcome
  * })
  */
 export interface AccessHook {
-  type: HookType.ACCESS
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: HookType.ACCESS
   /** Condition for this hook to execute. If omitted, always executes. */
   when?: PredicateExpr
   /** Effects to execute when hook runs (data loading, analytics, etc.) */
@@ -853,7 +869,8 @@ export interface AccessHook {
  * })
  */
 export interface SubmitHook {
-  type: HookType.SUBMIT
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: HookType.SUBMIT
 
   /**
    * Optional trigger condition for this hook.

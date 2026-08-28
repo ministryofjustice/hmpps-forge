@@ -22,7 +22,16 @@ export default class MountInfoAnalyzer {
 
   // Ancestor static data merges root-first so a descendant's `data` overrides its ancestors'.
   resolveStaticData(node: JourneyASTNode | StepASTNode): Record<string, unknown> {
-    return this.ancestry.valuesRootFirst<Record<string, unknown>>(node, ancestor => ancestor.properties?.data)
-      .reduce((data, staticData) => ({ ...data, ...staticData }), {})
+    return (
+      this.ancestry
+        .valuesRootFirst<Record<string, unknown>>(node, ancestor => {
+          const data = ancestor.properties?.data
+
+          return typeof data === 'object' && data !== null && !Array.isArray(data)
+            ? (data as Record<string, unknown>)
+            : undefined
+        })
+        .reduce((data, staticData) => ({ ...data, ...staticData }), {})
+    )
   }
 }

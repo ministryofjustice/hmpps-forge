@@ -1,7 +1,7 @@
 import type { CompiledResolveBlockWorkProps } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
 import type { NodeId } from '../../../chassis/contracts/ast/ast.type'
-import type { BlockType } from '../../../../authoring/types/enums'
+import type { ComponentCallType } from '../../../../shared/taxonomy'
 import { RENDER_BLOCK_BRAND } from '../../render/contracts/renderBlock.brand'
 import type { RenderBlock } from '../../../../framework/types/rendering.type'
 import WorkTaskPropsWalker from '../../../chassis/work/WorkTaskPropsWalker'
@@ -105,7 +105,7 @@ function traceComplete(output: RenderBlock): TraceSpanFields {
 export function createResolveBlockTask(
   id: NodeId,
   variant: string,
-  blockType: BlockType,
+  blockType: ComponentCallType,
   properties: Record<PropertyKey, unknown>,
 ) {
   return createWorkTask(

@@ -1,6 +1,5 @@
-import { ASTNodeType } from './enums'
-import { BlockType } from '../../../../authoring/types/enums'
-import { ASTNode } from './ast.type'
+import { ComponentCallType, StructureType } from '../../../../shared/taxonomy'
+import { ASTNode, MaterialisedASTNode } from './ast.type'
 import { AccessHookASTNode, SubmitHookASTNode, TieBreakerASTNode } from './expressions.type'
 import type { RouteMetadata, UnreachableRedirectTarget, ViewConfig } from '../../../../authoring/types/structures.type'
 import type { ResolvableString } from '../../../../components/types/structures.type'
@@ -21,8 +20,8 @@ export interface StepEntryValidationAST {
   when: true | ASTNode
 }
 
-export interface JourneyASTNode extends ASTNode {
-  type: ASTNodeType.JOURNEY
+export interface JourneyASTNode extends MaterialisedASTNode {
+  kind: StructureType.JOURNEY
   properties: {
     path: string
     code: string
@@ -39,8 +38,8 @@ export interface JourneyASTNode extends ASTNode {
   }
 }
 
-export interface StepASTNode extends ASTNode {
-  type: ASTNodeType.STEP
+export interface StepASTNode extends MaterialisedASTNode {
+  kind: StructureType.STEP
   properties: {
     path: string
     code?: string
@@ -63,10 +62,9 @@ export interface StepASTNode extends ASTNode {
 /**
  * Basic Block AST node - for non-field UI components (HTML, dividers, etc.)
  */
-export interface BasicBlockASTNode extends ASTNode {
-  type: ASTNodeType.BLOCK
+export interface BasicBlockASTNode extends MaterialisedASTNode {
+  kind: ComponentCallType.BASIC
   variant: string
-  blockType: BlockType.BASIC
   properties: {
     visibleWhen?: ASTNode // Conditional visibility
     metadata?: Record<string, any>
@@ -78,10 +76,9 @@ export interface BasicBlockASTNode extends ASTNode {
 /**
  * Field Block AST node - for input fields with validation
  */
-export interface FieldBlockASTNode extends ASTNode {
-  type: ASTNodeType.BLOCK
+export interface FieldBlockASTNode extends MaterialisedASTNode {
+  kind: ComponentCallType.FIELD
   variant: string
-  blockType: BlockType.FIELD
   properties: {
     // Known field properties
     code?: string | ASTNode // Optional because it might not be set initially

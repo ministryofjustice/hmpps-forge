@@ -2,7 +2,7 @@ import { expectTypeOf } from 'vitest'
 import ConditionRegistry from './ConditionRegistry'
 import GeneratorRegistry from './GeneratorRegistry'
 import { Answer } from '../builders'
-import type { Resolvable, ResolvableExpression } from '../types/expressions.type'
+import type { Resolvable, ResolvableNode } from '../types/expressions.type'
 
 describe('ConditionRegistry', () => {
   describe('register()', () => {
@@ -21,13 +21,10 @@ describe('ConditionRegistry', () => {
       HasMinLength(Answer('minimumLength'))
 
       // An expression declaring the matching resolved type is accepted
-      HasMinLength(null as unknown as ResolvableExpression<number>)
+      HasMinLength(null as unknown as ResolvableNode)
 
       // @ts-expect-error - the evaluator declares a number, so a string is rejected
       HasMinLength('5')
-
-      // @ts-expect-error - an expression declaring a string resolution cannot fill a number argument
-      HasMinLength(null as unknown as ResolvableExpression<string>)
     })
 
     it('should widen evaluator arguments when the factory is embedded in the options object', () => {

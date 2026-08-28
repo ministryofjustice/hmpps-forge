@@ -1,12 +1,11 @@
 import type { EvaluatedBlock } from '../../components/types/structures.type'
 import { TemplateWrapper } from './templateWrapper'
-import { BlockType, StructureType } from '../../authoring/types/enums'
+import { ComponentCallType } from '../../shared/taxonomy'
 
 describe('templateWrapper component', () => {
   const mockBlock = (overrides?: Partial<EvaluatedBlock<TemplateWrapper>>): EvaluatedBlock<TemplateWrapper> =>
     ({
-      type: StructureType.BLOCK,
-      blockType: BlockType.BASIC,
+      _forge: ComponentCallType.BASIC,
       variant: 'templateWrapper',
       template: '<div>{{slot:content}}</div>',
       ...overrides,
@@ -19,8 +18,8 @@ describe('templateWrapper component', () => {
         template: '<section>{{slot:content}}</section>',
         slots: {
           content: [
-            { block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' }, html: '<p>Hello</p>' },
-            { block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' }, html: '<p>World</p>' },
+            { block: { _forge: ComponentCallType.BASIC, variant: 'html' }, html: '<p>Hello</p>' },
+            { block: { _forge: ComponentCallType.BASIC, variant: 'html' }, html: '<p>World</p>' },
           ],
         },
       })
@@ -39,16 +38,14 @@ describe('templateWrapper component', () => {
         slots: {
           header: [
             {
-              block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' },
+              block: { _forge: ComponentCallType.BASIC, variant: 'html' },
               html: '<h1>Title</h1>',
             },
           ],
-          content: [
-            { block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' }, html: '<p>Body</p>' },
-          ],
+          content: [{ block: { _forge: ComponentCallType.BASIC, variant: 'html' }, html: '<p>Body</p>' }],
           footer: [
             {
-              block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' },
+              block: { _forge: ComponentCallType.BASIC, variant: 'html' },
               html: '<footer>End</footer>',
             },
           ],
@@ -90,7 +87,7 @@ describe('templateWrapper component', () => {
         slots: {
           content: [
             {
-              block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' },
+              block: { _forge: ComponentCallType.BASIC, variant: 'html' },
               html: '<p>Content here</p>',
             },
           ],
@@ -111,7 +108,7 @@ describe('templateWrapper component', () => {
         slots: {
           content: [
             {
-              block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' },
+              block: { _forge: ComponentCallType.BASIC, variant: 'html' },
               html: '<p>Present</p>',
             },
           ],
@@ -272,7 +269,7 @@ describe('templateWrapper component', () => {
         slots: {
           content: [
             {
-              block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' },
+              block: { _forge: ComponentCallType.BASIC, variant: 'html' },
               html: '<span>Repeated</span>',
             },
           ],
@@ -324,7 +321,7 @@ describe('templateWrapper component', () => {
         template: '<div>{{content}}</div>',
         values: {
           content: {
-            block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' },
+            block: { _forge: ComponentCallType.BASIC, variant: 'html' },
             html: '<p>Rendered block content</p>',
           } as unknown as string,
         },
@@ -344,11 +341,11 @@ describe('templateWrapper component', () => {
         values: {
           items: [
             {
-              block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' },
+              block: { _forge: ComponentCallType.BASIC, variant: 'html' },
               html: '<li>First</li>',
             },
             {
-              block: { type: StructureType.BLOCK, blockType: BlockType.BASIC, variant: 'html' },
+              block: { _forge: ComponentCallType.BASIC, variant: 'html' },
               html: '<li>Second</li>',
             },
           ] as unknown as string,

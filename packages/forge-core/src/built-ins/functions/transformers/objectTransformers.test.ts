@@ -1,5 +1,5 @@
 import { ObjectTransformers, type DateParts } from './objectTransformers'
-import { FunctionType } from '../../../authoring/types/enums'
+import { FunctionCallType } from '../../../shared/taxonomy'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('Object Transformers', () => {
@@ -95,7 +95,7 @@ describe('Object Transformers', () => {
       const paths = { year: 'year', month: 'month', day: 'day' }
       const expr = ObjectTransformers.ToISO(paths)
       expect(expr).toEqual({
-        type: FunctionType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'Object.ToISO',
         arguments: [paths],
       })
@@ -213,7 +213,7 @@ describe('Object Transformers', () => {
 
       // Assert
       expect(expr).toEqual({
-        type: FunctionType.TRANSFORMER,
+        _forge: FunctionCallType.TRANSFORMER,
         name: 'Object.FromISO',
         arguments: [paths],
       })

@@ -1,7 +1,6 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import { ASTNode } from '../../../contracts/ast/engine.type'
-import { TemplateNode, TemplateValue } from '../../../contracts/ast/template.type'
-import { isASTNode } from '../../../contracts/ast/nodes'
+import type { MaterialisedASTNode, TemplateASTNode } from '../../../contracts/ast/ast.type'
+import { TemplateValue } from '../../../contracts/ast/template.type'
+import { isMaterialisedASTNode } from '../../../contracts/ast/nodes'
 import { NodeIDGenerator } from '../ast-state/NodeIDGenerator'
 
 function isObjectValue(obj: unknown): obj is Record<string, unknown> {
@@ -11,16 +10,14 @@ function isObjectValue(obj: unknown): obj is Record<string, unknown> {
 /**
  * Compile an AST value tree into a reusable template.
  *
- * Templates preserve the shape of AST nodes but swap the type to TEMPLATE
- * so they're excluded from traversal, registration, and normalization.
- * The original type is stored in originalType for restoration on instantiation.
+ * Templates preserve the semantic kind of AST nodes while marking their
+ * unmaterialised state explicitly.
  * Template IDs become stable generated runtime instance ID prefixes.
  *
  * Used by the iterate creator to compile iterator payloads once, then
  * instantiate them per collection item at runtime with fresh IDs.
  *
- * AST nodes are converted to template nodes (type swapped to TEMPLATE,
- * original type preserved, id stripped).
+ * Materialised AST nodes are copied into template AST nodes with fresh IDs.
  * All other values (primitives, arrays, plain objects) are recursively compiled.
  */
 export function compileTemplate(value: unknown, nodeIDGenerator: NodeIDGenerator): TemplateValue {
@@ -32,7 +29,7 @@ export function compileTemplate(value: unknown, nodeIDGenerator: NodeIDGenerator
     return value as TemplateValue
   }
 
-  if (isASTNode(value)) {
+  if (isMaterialisedASTNode(value)) {
     return compileTemplateNode(value, nodeIDGenerator)
   }
 
@@ -45,25 +42,27 @@ export function compileTemplate(value: unknown, nodeIDGenerator: NodeIDGenerator
   return compiled
 }
 
-function compileTemplateNode(node: ASTNode, nodeIDGenerator: NodeIDGenerator): TemplateNode {
-  const compiled: TemplateNode = {
-    type: ASTNodeType.TEMPLATE,
-    originalType: node.type,
+function compileTemplateNode(node: MaterialisedASTNode, nodeIDGenerator: NodeIDGenerator): TemplateASTNode {
+  const compiled: Record<string, unknown> = {
+    kind: node.kind,
+    isTemplate: true,
     id: nodeIDGenerator.nextTemplateNodeId(),
     diagnostics: node.diagnostics,
   }
 
   Object.entries(node).forEach(([key, value]) => {
-    if (key === 'id' || key === 'type' || key === 'diagnostics') {
+    if (key === 'id' || key === 'kind' || key === 'isTemplate' || key === 'diagnostics') {
       return
     }
 
     if (key === 'properties' && isObjectValue(value) && !Array.isArray(value)) {
-      compiled.properties = {}
+      const properties: Record<string, TemplateValue> = {}
 
       Object.entries(value as Record<string, unknown>).forEach(([propKey, propValue]) => {
-        compiled.properties![propKey] = compileTemplate(propValue, nodeIDGenerator)
+        properties[propKey] = compileTemplate(propValue, nodeIDGenerator)
       })
+
+      compiled.properties = properties
 
       return
     }
@@ -71,5 +70,5 @@ function compileTemplateNode(node: ASTNode, nodeIDGenerator: NodeIDGenerator): T
     compiled[key] = compileTemplate(value, nodeIDGenerator)
   })
 
-  return compiled
+  return compiled as unknown as TemplateASTNode
 }

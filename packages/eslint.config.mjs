@@ -43,6 +43,10 @@ export default [
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
+      'no-underscore-dangle': [
+        'error',
+        { allow: ['_forge'], allowAfterThis: false, allowAfterSuper: false, enforceInMethodNames: true },
+      ],
       'no-param-reassign': 'off',
       'prefer-destructuring': 'off',
       'import/prefer-default-export': 'off',

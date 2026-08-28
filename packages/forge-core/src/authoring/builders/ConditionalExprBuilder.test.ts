@@ -3,7 +3,7 @@ import { ConditionalExprBuilder, when } from './ConditionalExprBuilder'
 import { finaliseBuilders } from './utils/finaliseBuilders'
 import { ConditionalExpr, PredicateTestExpr } from '../types/expressions.type'
 import { Condition } from '../../built-ins/functions/conditions'
-import { FunctionType, ExpressionType, PredicateType } from '../types/enums'
+import { FunctionCallType, ExpressionType, PredicateType } from '../../shared/taxonomy'
 
 describe('ConditionalExprBuilder', () => {
   const simplePredicate = () => Self().match(Condition.IsRequired())
@@ -22,10 +22,10 @@ describe('ConditionalExprBuilder', () => {
 
     it('accepts a PredicateTestExpr directly', () => {
       const testExpr: PredicateTestExpr = {
-        type: PredicateType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['@self'] },
+        _forge: PredicateType.TEST,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['@self'] },
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'isRequired', arguments: [] },
+        condition: { _forge: FunctionCallType.CONDITION, name: 'isRequired', arguments: [] },
       }
 
       const builder = when(testExpr)
@@ -58,7 +58,7 @@ describe('ConditionalExprBuilder', () => {
 
       // After finaliseBuilders, the ReferenceBuilder is converted to a ReferenceExpr
       expect(result.thenValue).toEqual({
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: ['answers', 'someField'],
       })
     })
@@ -102,7 +102,7 @@ describe('ConditionalExprBuilder', () => {
 
       // After finaliseBuilders, the ReferenceBuilder is converted to a ReferenceExpr
       expect(result.elseValue).toEqual({
-        type: ExpressionType.REFERENCE,
+        _forge: ExpressionType.REFERENCE,
         path: ['answers', 'fallbackField'],
       })
     })
@@ -114,7 +114,7 @@ describe('ConditionalExprBuilder', () => {
       const result = finaliseBuilders(when(predicate).then('Yes').else('No')) as ConditionalExpr
 
       expect(result).toEqual({
-        type: ExpressionType.CONDITIONAL,
+        _forge: ExpressionType.CONDITIONAL,
         predicate,
         thenValue: 'Yes',
         elseValue: 'No',

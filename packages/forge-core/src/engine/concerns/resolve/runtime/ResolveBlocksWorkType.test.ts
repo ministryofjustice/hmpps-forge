@@ -1,4 +1,4 @@
-import { BlockType } from '../../../../authoring/types/enums'
+import { ComponentCallType } from '../../../../shared/taxonomy'
 import type { CompiledResolveContext } from '../../../chassis/contracts/compiled/compiledContexts.type'
 import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import WorkContext from '../../../chassis/work/WorkContext'
@@ -35,13 +35,13 @@ describe('ResolveBlocksWorkHandler', () => {
       const first = createWorkTask('first', RESOLVE_BLOCK_WORK_HANDLER, {
         id: 'compile_ast:1',
         variant: 'html',
-        blockType: BlockType.BASIC,
+        blockType: ComponentCallType.BASIC,
         properties: { html: '<p>First</p>' },
       })
       const second = createWorkTask('second', RESOLVE_BLOCK_WORK_HANDLER, {
         id: 'compile_ast:2',
         variant: 'html',
-        blockType: BlockType.BASIC,
+        blockType: ComponentCallType.BASIC,
         properties: { html: '<p>Second</p>' },
       })
       const element = createWorkTask('resolve-blocks', RESOLVE_BLOCKS_WORK_HANDLER, {
@@ -64,13 +64,13 @@ describe('ResolveBlocksWorkHandler', () => {
       const visible = createWorkTask('visible', RESOLVE_BLOCK_WORK_HANDLER, {
         id: 'compile_ast:1',
         variant: 'html',
-        blockType: BlockType.BASIC,
+        blockType: ComponentCallType.BASIC,
         properties: { html: '<p>Visible</p>' },
       })
       const hidden = createWorkTask('hidden', RESOLVE_BLOCK_WORK_HANDLER, {
         id: 'compile_ast:2',
         variant: 'html',
-        blockType: BlockType.BASIC,
+        blockType: ComponentCallType.BASIC,
         properties: { visibleWhen: false },
       })
       const element = createWorkTask(

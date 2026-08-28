@@ -1,4 +1,4 @@
-import type { ASTNode } from '../../../contracts/ast/ast.type'
+import type { MaterialisedASTNode } from '../../../contracts/ast/ast.type'
 
 /**
  * Provides three ways to walk the `parent` chain of an AST node (the tree
@@ -12,7 +12,10 @@ export default class Ancestry {
    * on each. Returns the non-`undefined` results in root-first order, so a
    * descendant's value appears after (and can override) its ancestors'.
    */
-  valuesRootFirst<TValue>(node: ASTNode, extract: (ancestor: ASTNode) => TValue | undefined): TValue[] {
+  valuesRootFirst<TValue>(
+    node: MaterialisedASTNode,
+    extract: (ancestor: MaterialisedASTNode) => TValue | undefined,
+  ): TValue[] {
     return this.chainRootFirst(node).flatMap(ancestor => {
       const value = extract(ancestor)
 
@@ -25,10 +28,10 @@ export default class Ancestry {
    * outward. `undefined` when nothing along the chain sets one.
    */
   nearestAncestorSetting<TValue>(
-    node: ASTNode,
-    extract: (ancestor: ASTNode) => TValue | undefined,
+    node: MaterialisedASTNode,
+    extract: (ancestor: MaterialisedASTNode) => TValue | undefined,
   ): TValue | undefined {
-    let current: ASTNode | undefined = node
+    let current: MaterialisedASTNode | undefined = node
 
     while (current !== undefined) {
       const value = extract(current)
@@ -44,13 +47,16 @@ export default class Ancestry {
   }
 
   /** Ancestors matching the type-guard predicate, root-first, excluding the node itself. */
-  ancestorsOfType<TNode extends ASTNode>(node: ASTNode, predicate: (ancestor: ASTNode) => ancestor is TNode): TNode[] {
+  ancestorsOfType<TNode extends MaterialisedASTNode>(
+    node: MaterialisedASTNode,
+    predicate: (ancestor: MaterialisedASTNode) => ancestor is TNode,
+  ): TNode[] {
     return this.chainRootFirst(node).slice(0, -1).filter(predicate)
   }
 
-  private chainRootFirst(node: ASTNode): ASTNode[] {
-    const chain: ASTNode[] = []
-    let current: ASTNode | undefined = node
+  private chainRootFirst(node: MaterialisedASTNode): MaterialisedASTNode[] {
+    const chain: MaterialisedASTNode[] = []
+    let current: MaterialisedASTNode | undefined = node
 
     while (current !== undefined) {
       chain.unshift(current)

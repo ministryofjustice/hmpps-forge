@@ -8,17 +8,16 @@ import { BlockDefinition, FieldBlockDefinition } from '../../components/types/st
 import { JourneyDefinition, StepDefinition } from '../types/structures.type'
 import { ForgePackage, RegisteredForgePackage } from '../types/package.type'
 import { FunctionRegistryBuilder } from '../types/functions.type'
-import { BlockType, StructureType } from '../types/enums'
+import { ComponentCallType, StructureType } from '../../shared/taxonomy'
 
 /**
  * Creates a presentational (non-field) block for a step.
  * Use for headings, paragraphs, inset text, and other non-interactive content.
  */
-export function block<D extends BlockDefinition>(definition: Omit<D, 'type' | 'blockType'>): D {
+export function block<D extends BlockDefinition>(definition: Omit<D, '_forge'>): D {
   const result = finaliseBuilders({
     ...definition,
-    type: StructureType.BLOCK,
-    blockType: BlockType.BASIC,
+    _forge: ComponentCallType.BASIC,
   }) as D
   stampCallsite(result, captureCallsite(block))
   return result
@@ -29,11 +28,10 @@ export function block<D extends BlockDefinition>(definition: Omit<D, 'type' | 'b
  * Fields have a `code` for storing answers and support `validWhen`, `dependentWhen`,
  * `defaultValue`, and `formatters`.
  */
-export function field<D extends FieldBlockDefinition>(definition: Omit<D, 'type' | 'blockType'>): D {
+export function field<D extends FieldBlockDefinition>(definition: Omit<D, '_forge'>): D {
   const result = finaliseBuilders({
     ...definition,
-    type: StructureType.BLOCK,
-    blockType: BlockType.FIELD,
+    _forge: ComponentCallType.FIELD,
   }) as D
   stampCallsite(result, captureCallsite(field))
   return result
@@ -43,10 +41,10 @@ export function field<D extends FieldBlockDefinition>(definition: Omit<D, 'type'
  * Creates a step (page) within a journey.
  * Steps contain blocks and define lifecycle hooks for access, submission, and actions.
  */
-export function step<D extends StepDefinition>(definition: Omit<D, 'type'>): D {
+export function step<D extends StepDefinition>(definition: Omit<D, '_forge'>): D {
   const result = finaliseBuilders({
     ...definition,
-    type: StructureType.STEP,
+    _forge: StructureType.STEP,
   }) as D
   stampCallsite(result, captureCallsite(step))
   return result
@@ -55,10 +53,10 @@ export function step<D extends StepDefinition>(definition: Omit<D, 'type'>): D {
 /**
  * Creates a journey definition - a complete form flow containing steps.
  */
-export function journey<D extends JourneyDefinition>(definition: Omit<D, 'type'>): D {
+export function journey<D extends JourneyDefinition>(definition: Omit<D, '_forge'>): D {
   const result = finaliseBuilders({
     ...definition,
-    type: StructureType.JOURNEY,
+    _forge: StructureType.JOURNEY,
   }) as D
   stampCallsite(result, captureCallsite(journey))
   return result

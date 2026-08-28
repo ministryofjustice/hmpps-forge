@@ -1,13 +1,18 @@
 /* eslint-disable no-new-func */
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
-import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
+import {
+  ComponentCallType,
+  ExpressionType,
+  FunctionCallType,
+  IteratorType,
+  PredicateType,
+} from '../../../../shared/taxonomy'
 import {
   FORMAT_STRING_GENERATOR_NAME,
   FormatGenerators,
 } from '../../../../built-ins/functions/generators/formatGenerators'
 import { StringTransformers } from '../../../../built-ins/functions/transformers/stringTransformers'
 import { FunctionEntryRegistry } from '../../../../authoring/functions/FunctionEntryRegistry'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import { BlockASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
 import { IterateASTNode, ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import { TemplateValue } from '../../../chassis/contracts/ast/template.type'
@@ -49,14 +54,14 @@ function createReference(path: string[]): ReferenceASTNode {
 }
 
 function createFieldBlock(code: string, defaultValue: ReferenceASTNode): BlockASTNode {
-  return ASTTestFactory.block('text-input', BlockType.FIELD)
+  return ASTTestFactory.block('text-input', ComponentCallType.FIELD)
     .withProperty('code', code)
     .withProperty('defaultValue', defaultValue)
     .build()
 }
 
 function createCollectionBlock(collection: IterateASTNode): BlockASTNode {
-  return ASTTestFactory.block('collection-block', BlockType.BASIC)
+  return ASTTestFactory.block('collection-block', ComponentCallType.BASIC)
     .withProperty('collection', collection)
     .build()
 }
@@ -86,8 +91,8 @@ function createIterateNode(
   input: ReferenceASTNode = createReference(['data', 'members']),
 ): IterateASTNode {
   return {
-    type: ASTNodeType.EXPRESSION,
-    expressionType: ExpressionType.ITERATE,
+    kind: ExpressionType.ITERATE,
+    isTemplate: false,
     id: ASTTestFactory.getId(),
     diagnostics: ASTTestFactory.diagnostics(),
     properties: {
@@ -186,7 +191,7 @@ describe('StepResolveCompiler', () => {
   describe('compile()', () => {
     it('should return the branded resolve-blocks root task carrying blocks step and ancestors', async () => {
       // Arrange
-      const block = ASTTestFactory.block('content', BlockType.BASIC).withProperty('content', 'Hello').build()
+      const block = ASTTestFactory.block('content', ComponentCallType.BASIC).withProperty('content', 'Hello').build()
       const compiled = compiler.compile(resolveModel(createStepWithBlocks([block]), [], []))
       const ctx = createCtx()
 
@@ -208,7 +213,7 @@ describe('StepResolveCompiler', () => {
     it('should produce readable source code', () => {
       // Arrange
       const ancestor = ASTTestFactory.journey().withProperty('path', '/guide').withTitle('Guide').build()
-      const field = ASTTestFactory.block('text-input', BlockType.FIELD)
+      const field = ASTTestFactory.block('text-input', ComponentCallType.FIELD)
         .withProperty('code', 'name')
         .withProperty('label', { text: 'Your name' })
         .withProperty('hint', createReference(['data', 'nameHint']))
@@ -238,7 +243,7 @@ describe('StepResolveCompiler', () => {
           '',
           '_forgeHelpers.resolveFieldValue(ctx, textInputProps);',
           `_forgeHelpers.resolveFieldFailures(ctx, "${field.id}", "text-input", textInputProps);`,
-          `blocks.push(ctx.workTasks.resolveBlock("${field.id}", "text-input", "BlockType.field", textInputProps));`,
+          `blocks.push(ctx.workTasks.resolveBlock("${field.id}", "text-input", "component.call.field", textInputProps));`,
           '',
           'return ctx.workTasks.resolveBlocks(blocks, step, ancestors);',
         ].join('\n'),
@@ -247,8 +252,8 @@ describe('StepResolveCompiler', () => {
 
     it('should keep compiled render synchronous when registry functions are sync', () => {
       // Arrange
-      const title = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'renderTitle', ['Ada'])
-      const block = ASTTestFactory.block('content', BlockType.BASIC)
+      const title = ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'renderTitle', ['Ada'])
+      const block = ASTTestFactory.block('content', ComponentCallType.BASIC)
         .withProperty('content', title)
         .build()
       const functionRegistry = new FunctionRegistry()
@@ -281,8 +286,8 @@ describe('StepResolveCompiler', () => {
 
     it('should await async generator expressions when registry functions are async', async () => {
       // Arrange
-      const title = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'renderTitle', ['Ada'])
-      const block = ASTTestFactory.block('content', BlockType.BASIC)
+      const title = ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'renderTitle', ['Ada'])
+      const block = ASTTestFactory.block('content', ComponentCallType.BASIC)
         .withProperty('content', title)
         .build()
       const functionRegistry = new FunctionRegistry()
@@ -309,7 +314,7 @@ describe('StepResolveCompiler', () => {
 
     it('should return branded render work tasks for compiled blocks', () => {
       // Arrange
-      const block = ASTTestFactory.block('content', BlockType.BASIC)
+      const block = ASTTestFactory.block('content', ComponentCallType.BASIC)
         .withProperty('content', 'Hello Ada')
         .build()
       const compiled = compiler.compile(resolveModel(createStepWithBlocks([block]), [], []))
@@ -338,7 +343,7 @@ describe('StepResolveCompiler', () => {
       expect(child.props).toMatchObject({
         id: block.id,
         variant: 'content',
-        blockType: BlockType.BASIC,
+        blockType: ComponentCallType.BASIC,
         properties: { content: 'Hello Ada' },
       })
     })
@@ -392,7 +397,7 @@ describe('StepResolveCompiler', () => {
 
     it('should evaluate generator expressions when rendering block properties', async () => {
       // Arrange
-      const addressDisplay = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'renderAddress', [
+      const addressDisplay = ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'renderAddress', [
         {
           template: '{{ line1 }}<br>{{ town }}',
           data: {
@@ -401,7 +406,7 @@ describe('StepResolveCompiler', () => {
           },
         },
       ])
-      const block = ASTTestFactory.block('summary-row', BlockType.BASIC)
+      const block = ASTTestFactory.block('summary-row', ComponentCallType.BASIC)
         .withProperty('html', addressDisplay)
         .build()
       const compiled = compiler.compile(resolveModel(createStepWithBlocks([block]), []))
@@ -440,7 +445,7 @@ describe('StepResolveCompiler', () => {
 
     it('should evaluate post references when rendering block properties', async () => {
       // Arrange
-      const block = ASTTestFactory.block('content', BlockType.BASIC)
+      const block = ASTTestFactory.block('content', ComponentCallType.BASIC)
         .withProperty('content', createReference(['post', 'action']))
         .build()
       const compiled = compiler.compile(resolveModel(createStepWithBlocks([block]), []))
@@ -458,11 +463,11 @@ describe('StepResolveCompiler', () => {
 
     it('should stringify dynamic answer reference field codes', async () => {
       // Arrange
-      const dynamicAnswerCode = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'answerCode')
+      const dynamicAnswerCode = ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'answerCode')
       const answerReference = ASTTestFactory.expression<ReferenceASTNode>(ExpressionType.REFERENCE)
         .withProperty('path', ['answers', dynamicAnswerCode])
         .build()
-      const block = ASTTestFactory.block('content', BlockType.BASIC)
+      const block = ASTTestFactory.block('content', ComponentCallType.BASIC)
         .withProperty('content', answerReference)
         .build()
       const step = createStepWithBlocks([block])
@@ -500,7 +505,7 @@ describe('StepResolveCompiler', () => {
 
     it('should render action-set field values after POST preparation', async () => {
       // Arrange
-      const block = ASTTestFactory.block('text-input', BlockType.FIELD)
+      const block = ASTTestFactory.block('text-input', ComponentCallType.FIELD)
         .withCode('addressTown')
         .build()
       const compiled = compiler.compile(resolveModel(createStepWithBlocks([block]), []))
@@ -531,7 +536,7 @@ describe('StepResolveCompiler', () => {
 
     it('should render raw POST field values when only formatter processing follows', async () => {
       // Arrange
-      const block = ASTTestFactory.block('text-input', BlockType.FIELD)
+      const block = ASTTestFactory.block('text-input', ComponentCallType.FIELD)
         .withCode('email')
         .build()
       const compiled = compiler.compile(resolveModel(createStepWithBlocks([block]), []))
@@ -562,7 +567,7 @@ describe('StepResolveCompiler', () => {
 
     it('should resolve Self references in non-validation field properties', async () => {
       // Arrange
-      const block = ASTTestFactory.block('text-input', BlockType.FIELD)
+      const block = ASTTestFactory.block('text-input', ComponentCallType.FIELD)
         .withCode('email')
         .withProperty('hint', createReference(['answers', '@self']))
         .build()
@@ -588,7 +593,7 @@ describe('StepResolveCompiler', () => {
 
     it('should resolve Self references inside a visibility gated field', async () => {
       // Arrange
-      const block = ASTTestFactory.block('text-input', BlockType.FIELD)
+      const block = ASTTestFactory.block('text-input', ComponentCallType.FIELD)
         .withCode('email')
         .withProperty('visibleWhen', createReference(['answers', 'show']))
         .withProperty('hint', createReference(['answers', '@self']))
@@ -616,8 +621,8 @@ describe('StepResolveCompiler', () => {
 
     it('should resolve dynamic registered field codes as strings', async () => {
       // Arrange
-      const dynamicCode = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'fieldCode')
-      const block = ASTTestFactory.block('text-input', BlockType.FIELD)
+      const dynamicCode = ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'fieldCode')
+      const block = ASTTestFactory.block('text-input', ComponentCallType.FIELD)
         .withProperty('code', dynamicCode)
         .build()
       const step = createStepWithBlocks([block])
@@ -657,7 +662,7 @@ describe('StepResolveCompiler', () => {
 
     it('should resolve a field block its own validation failures by block ID', async () => {
       // Arrange
-      const block = ASTTestFactory.block('text-input', BlockType.FIELD).withProperty('code', 'email').build()
+      const block = ASTTestFactory.block('text-input', ComponentCallType.FIELD).withProperty('code', 'email').build()
       const step = createStepWithBlocks([block])
       const compiled = compiler.compile(resolveModel(step, []))
       const source = compiler.generateSource(resolveModel(step, []))
@@ -684,7 +689,7 @@ describe('StepResolveCompiler', () => {
 
     it('should attach iterator field failures by template block ID instead of field code', async () => {
       // Arrange
-      const field = ASTTestFactory.block('text-input', BlockType.FIELD).withProperty('code', 'name').build()
+      const field = ASTTestFactory.block('text-input', ComponentCallType.FIELD).withProperty('code', 'name').build()
       const iterateNode = createIterateNode(createTemplate([field]), createReference(['data', 'members']))
       const compiled = compiler.compile(resolveModel(createStep(), [], [iterateNode]))
 
@@ -719,10 +724,10 @@ describe('StepResolveCompiler', () => {
     it('should evaluate generator expressions inside iterator yield templates', async () => {
       // Arrange
       const members = [{ memberName: 'Ada' }]
-      const templateBlock = ASTTestFactory.block('summary-row', BlockType.BASIC)
+      const templateBlock = ASTTestFactory.block('summary-row', ComponentCallType.BASIC)
         .withProperty(
           'html',
-          ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'renderMember', [
+          ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'renderMember', [
             {
               template: '{{ memberName }}<br>Member',
               data: {
@@ -765,7 +770,7 @@ describe('StepResolveCompiler', () => {
     it('should evaluate Loop metadata inside iterator blocks', async () => {
       // Arrange
       const members = [{ memberName: 'Ada' }, null, { memberName: 'Grace' }, { memberName: 'Linus' }]
-      const templateBlock = ASTTestFactory.block('loop-row', BlockType.BASIC)
+      const templateBlock = ASTTestFactory.block('loop-row', ComponentCallType.BASIC)
         .withProperty('index', createReference(['@loop', '0', 'index']))
         .withProperty('index0', createReference(['@loop', '0', 'index0']))
         .withProperty('revIndex', createReference(['@loop', '0', 'revindex']))
@@ -837,8 +842,8 @@ describe('StepResolveCompiler', () => {
         { name: 'Beta', members: [{ name: 'Linus' }] },
       ]
       const innerIterateNode: IterateASTNode = {
-        type: ASTNodeType.EXPRESSION,
-        expressionType: ExpressionType.ITERATE,
+        kind: ExpressionType.ITERATE,
+        isTemplate: false,
         id: ASTTestFactory.getId(),
         diagnostics: ASTTestFactory.diagnostics(),
         properties: {
@@ -855,7 +860,7 @@ describe('StepResolveCompiler', () => {
           },
         },
       }
-      const templateBlock = ASTTestFactory.block('team-row', BlockType.BASIC)
+      const templateBlock = ASTTestFactory.block('team-row', ComponentCallType.BASIC)
         .withProperty('teamName', createReference(['@loop', '0', 'item', 'name']))
         .withProperty('members', innerIterateNode)
         .build()
@@ -885,22 +890,25 @@ describe('StepResolveCompiler', () => {
         createIterateNode(
           createTemplate([
             {
-              type: ASTNodeType.BLOCK,
+              kind: ComponentCallType.FIELD,
+              isTemplate: false,
+              id: ASTTestFactory.getId(),
               variant: 'text-input',
-              blockType: BlockType.FIELD,
               properties: {
                 code: ASTTestFactory.formatExpression('memberName_%1', [
                   {
-                    type: ASTNodeType.EXPRESSION,
-                    expressionType: ExpressionType.REFERENCE,
+                    kind: ExpressionType.REFERENCE,
+                    isTemplate: false,
+                    id: ASTTestFactory.getId(),
                     properties: {
                       path: ['@loop', 0, 'index0'],
                     },
                   },
                 ]),
                 defaultValue: {
-                  type: ASTNodeType.EXPRESSION,
-                  expressionType: ExpressionType.REFERENCE,
+                  kind: ExpressionType.REFERENCE,
+                  isTemplate: false,
+                  id: ASTTestFactory.getId(),
                   properties: {
                     path: ['@loop', 0, 'item', 'memberName'],
                   },
@@ -959,8 +967,8 @@ describe('StepResolveCompiler', () => {
 
       const localCompiler = new StepResolveCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
       const visitType = createReference(['answers', 'visitType'])
-      const equalsPhone = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', ['phone'])
-      const equalsVideo = ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', ['video'])
+      const equalsPhone = ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'Equals', ['phone'])
+      const equalsVideo = ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'Equals', ['video'])
       const phoneVisibleWhen = ASTTestFactory.predicate(PredicateType.TEST, {
         subject: visitType,
         condition: equalsPhone,
@@ -984,7 +992,7 @@ describe('StepResolveCompiler', () => {
         ])
         .withProperty('otherwise', '')
         .build()
-      const block = ASTTestFactory.block('summary-list', BlockType.BASIC)
+      const block = ASTTestFactory.block('summary-list', ComponentCallType.BASIC)
         .withProperty('rows', [
           {
             key: { text: 'How you would like to meet' },
@@ -1005,14 +1013,14 @@ describe('StepResolveCompiler', () => {
 
     it('should evaluate conditional expressions in block properties', async () => {
       // Arrange
-      const block = ASTTestFactory.block('inset-text', BlockType.BASIC)
+      const block = ASTTestFactory.block('inset-text', ComponentCallType.BASIC)
         .withProperty(
           'text',
           ASTTestFactory.expression(ExpressionType.CONDITIONAL)
             .withPredicate(
               ASTTestFactory.predicate(PredicateType.TEST, {
                 subject: createReference(['answers', 'visitType']),
-                condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', ['phone']),
+                condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'Equals', ['phone']),
               }),
             )
             .withThenValue('Phone call')
@@ -1046,20 +1054,20 @@ describe('StepResolveCompiler', () => {
 
     it('should evaluate predicate expressions in boolean block properties', async () => {
       // Arrange
-      const block = ASTTestFactory.block('pagination', BlockType.BASIC)
+      const block = ASTTestFactory.block('pagination', ComponentCallType.BASIC)
         .withProperty('items', [
           {
             number: '1',
             current: ASTTestFactory.predicate(PredicateType.TEST, {
               subject: createReference(['data', 'currentPage']),
-              condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', [1]),
+              condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'Equals', [1]),
             }),
           },
           {
             number: '2',
             current: ASTTestFactory.predicate(PredicateType.TEST, {
               subject: createReference(['data', 'currentPage']),
-              condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', [2]),
+              condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'Equals', [2]),
             }),
           },
         ])
@@ -1099,7 +1107,7 @@ describe('StepResolveCompiler', () => {
       const futureText = ASTTestFactory.formatExpression('Future goals (%1)', [
         createReference(['data', 'futureGoalsCount']),
       ])
-      const block = ASTTestFactory.block('mojSubNavigation', BlockType.BASIC)
+      const block = ASTTestFactory.block('mojSubNavigation', ComponentCallType.BASIC)
         .withProperty('items', [
           {
             text: currentText,
@@ -1149,17 +1157,17 @@ describe('StepResolveCompiler', () => {
           predicateTemplate: createTemplate(
             ASTTestFactory.predicate(PredicateType.TEST, {
               subject: createReference(['@loop', '0', 'item', 'status']),
-              condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', ['ACTIVE']),
+              condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'Equals', ['ACTIVE']),
             }),
           ),
         })
         .build()
       const activeGoalsCount = ASTTestFactory.pipelineExpression({
         input: activeGoals,
-        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'Length')],
+        steps: [ASTTestFactory.functionExpression(FunctionCallType.TRANSFORMER, 'Length')],
       })
       const currentText = ASTTestFactory.formatExpression('Goals to work on now (%1)', [activeGoalsCount])
-      const block = ASTTestFactory.block('mojSubNavigation', BlockType.BASIC)
+      const block = ASTTestFactory.block('mojSubNavigation', ComponentCallType.BASIC)
         .withProperty('items', [
           {
             text: currentText,
@@ -1224,7 +1232,7 @@ describe('StepResolveCompiler', () => {
           predicateTemplate: createTemplate(
             ASTTestFactory.predicate(PredicateType.TEST, {
               subject: createReference(['@loop', '0', 'item', 'slug']),
-              condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'Equals', [
+              condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'Equals', [
                 createReference(['params', 'area']),
               ]),
             }),
@@ -1237,10 +1245,10 @@ describe('StepResolveCompiler', () => {
         .build()
       const goalCount = ASTTestFactory.pipelineExpression({
         input: goalsInArea,
-        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'Length')],
+        steps: [ASTTestFactory.functionExpression(FunctionCallType.TRANSFORMER, 'Length')],
       })
       const text = ASTTestFactory.formatExpression('Goals in area (%1)', [goalCount])
-      const block = ASTTestFactory.block('mojSubNavigation', BlockType.BASIC)
+      const block = ASTTestFactory.block('mojSubNavigation', ComponentCallType.BASIC)
         .withProperty('items', [
           {
             text,
@@ -1307,7 +1315,7 @@ describe('StepResolveCompiler', () => {
       const currentText = ASTTestFactory.formatExpression('Goals to work on now (%1)', [
         createReference(['data', 'activeGoalsCount']),
       ])
-      const block = ASTTestFactory.block('mojSubNavigation', BlockType.BASIC)
+      const block = ASTTestFactory.block('mojSubNavigation', ComponentCallType.BASIC)
         .withProperty('items', [
           {
             text: currentText,
@@ -1337,10 +1345,10 @@ describe('StepResolveCompiler', () => {
       // Arrange
       const missingDate = ASTTestFactory.pipelineExpression({
         input: createReference(['data', 'missingDate']),
-        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'String.FormatDate')],
+        steps: [ASTTestFactory.functionExpression(FunctionCallType.TRANSFORMER, 'String.FormatDate')],
       })
       const content = ASTTestFactory.formatExpression('Date: %1', [missingDate])
-      const block = ASTTestFactory.block('content', BlockType.BASIC)
+      const block = ASTTestFactory.block('content', ComponentCallType.BASIC)
         .withProperty('html', content)
         .build()
       const functionRegistry = new FunctionRegistry()
@@ -1368,10 +1376,10 @@ describe('StepResolveCompiler', () => {
       // Arrange
       const missingDate = ASTTestFactory.pipelineExpression({
         input: createReference(['data', 'missingDate']),
-        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'AsyncFormatDate')],
+        steps: [ASTTestFactory.functionExpression(FunctionCallType.TRANSFORMER, 'AsyncFormatDate')],
       })
       const content = ASTTestFactory.formatExpression('Date: %1', [missingDate])
-      const block = ASTTestFactory.block('content', BlockType.BASIC)
+      const block = ASTTestFactory.block('content', ComponentCallType.BASIC)
         .withProperty('html', content)
         .build()
       const evaluate = vi.fn(async () => {
@@ -1407,10 +1415,10 @@ describe('StepResolveCompiler', () => {
       // Arrange
       const date = ASTTestFactory.pipelineExpression({
         input: createReference(['data', 'date']),
-        steps: [ASTTestFactory.functionExpression(FunctionType.TRANSFORMER, 'String.FormatDate')],
+        steps: [ASTTestFactory.functionExpression(FunctionCallType.TRANSFORMER, 'String.FormatDate')],
       })
       const content = ASTTestFactory.formatExpression('Date: %1', [date])
-      const block = ASTTestFactory.block('content', BlockType.BASIC)
+      const block = ASTTestFactory.block('content', ComponentCallType.BASIC)
         .withProperty('html', content)
         .build()
       const functionRegistry = new FunctionRegistry()
@@ -1448,24 +1456,26 @@ describe('StepResolveCompiler', () => {
       expect(getForgeRuntimeEvaluationDiagnostics(thrown)).toMatchObject({
         phase: 'resolve',
         functionName: 'String.FormatDate',
-        functionType: FunctionType.TRANSFORMER,
+        functionType: FunctionCallType.TRANSFORMER,
       })
     })
 
     it('should throw runtime errors when nested array item text evaluation throws', async () => {
       // Arrange
-      const throwingCount = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'throwingCount')
+      const throwingCount = ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'throwingCount')
 
-      throwingCount.diagnostics = {
-        source: {
-          path: ['steps', 0, 'blocks', 0, 'items', 0, 'text'],
-          formattedPath: 'journey > step > blocks[0] (mojSubNavigation) > items[0] > text',
+      Object.defineProperty(throwingCount, 'diagnostics', {
+        value: {
+          source: {
+            path: ['steps', 0, 'blocks', 0, 'items', 0, 'text'],
+            formattedPath: 'journey > step > blocks[0] (mojSubNavigation) > items[0] > text',
+          },
+          callsite: { stack: 'Error\n    at journeyAuthor (/app/journeys/goals.journey.ts:12:5)' },
         },
-        callsite: { stack: 'Error\n    at journeyAuthor (/app/journeys/goals.journey.ts:12:5)' },
-      }
+      })
 
       const currentText = ASTTestFactory.formatExpression('Goals to work on now (%1)', [throwingCount])
-      const block = ASTTestFactory.block('mojSubNavigation', BlockType.BASIC)
+      const block = ASTTestFactory.block('mojSubNavigation', ComponentCallType.BASIC)
         .withProperty('items', [
           {
             text: currentText,
@@ -1511,7 +1521,7 @@ describe('StepResolveCompiler', () => {
       expect(getForgeRuntimeEvaluationDiagnostics(thrown)).toMatchObject({
         phase: 'resolve',
         functionName: 'throwingCount',
-        functionType: FunctionType.GENERATOR,
+        functionType: FunctionCallType.GENERATOR,
         formattedPath: 'journey > step > blocks[0] (mojSubNavigation) > items[0] > text',
         definedAt: 'journeyAuthor (/app/journeys/goals.journey.ts:12:5)',
       })

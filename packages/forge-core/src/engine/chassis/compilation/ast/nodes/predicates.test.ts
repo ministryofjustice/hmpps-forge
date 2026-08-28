@@ -1,5 +1,4 @@
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import { ExpressionType, FunctionType, PredicateType } from '../../../../../authoring/types/enums'
+import { ExpressionType, FunctionCallType, PredicateType } from '../../../../../shared/taxonomy'
 import type {
   PredicateAndExpr,
   PredicateNotExpr,
@@ -26,10 +25,10 @@ describe('predicates', () => {
     it('should create a Test predicate with subject and condition', () => {
       // Arrange
       const json = {
-        type: PredicateType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
+        _forge: PredicateType.TEST,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+        condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       // Act
@@ -37,8 +36,8 @@ describe('predicates', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.PREDICATE)
-      expect(result.predicateType).toBe(PredicateType.TEST)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(PredicateType.TEST)
       expect(result.properties.subject).toBeDefined()
       expect(result.properties.condition).toBeDefined()
       expect(result.properties.negate).toBeDefined()
@@ -47,10 +46,10 @@ describe('predicates', () => {
     it('should transform subject using nodeFactory', () => {
       // Arrange
       const json = {
-        type: PredicateType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
+        _forge: PredicateType.TEST,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+        condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       // Act
@@ -58,17 +57,17 @@ describe('predicates', () => {
       const subject = result.properties.subject as ExpressionASTNode
 
       // Assert
-      expect(subject.type).toBe(ASTNodeType.EXPRESSION)
-      expect(subject.expressionType).toBe(ExpressionType.REFERENCE)
+      expect(subject.isTemplate).toBe(false)
+      expect(subject.kind).toBe(ExpressionType.REFERENCE)
     })
 
     it('should transform condition using nodeFactory', () => {
       // Arrange
       const json = {
-        type: PredicateType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
+        _forge: PredicateType.TEST,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+        condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       // Act
@@ -76,17 +75,17 @@ describe('predicates', () => {
       const condition = result.properties.condition as ExpressionASTNode
 
       // Assert
-      expect(condition.type).toBe(ASTNodeType.EXPRESSION)
-      expect(condition.expressionType).toBe(FunctionType.CONDITION)
+      expect(condition.isTemplate).toBe(false)
+      expect(condition.kind).toBe(FunctionCallType.CONDITION)
     })
 
     it('should handle negate flag as true', () => {
       // Arrange
       const json = {
-        type: PredicateType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
+        _forge: PredicateType.TEST,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: true,
-        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+        condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       // Act
@@ -99,10 +98,10 @@ describe('predicates', () => {
     it('should handle negate flag as false', () => {
       // Arrange
       const json = {
-        type: PredicateType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
+        _forge: PredicateType.TEST,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] },
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+        condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       // Act
@@ -115,9 +114,9 @@ describe('predicates', () => {
     it('should default negate to false when omitted', () => {
       // Arrange
       const json = {
-        type: PredicateType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
-        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+        _forge: PredicateType.TEST,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] },
+        condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
       }
 
       // Act
@@ -130,8 +129,8 @@ describe('predicates', () => {
     it('should throw ForgeInvalidNodeError when subject is missing', () => {
       // Arrange
       const json = {
-        type: PredicateType.TEST,
-        condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+        _forge: PredicateType.TEST,
+        condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
       } as any
 
       // Act & Assert
@@ -147,9 +146,9 @@ describe('predicates', () => {
       const results = falsySubjects.map(subject =>
         createTestPredicateNode(
           {
-            type: PredicateType.TEST,
+            _forge: PredicateType.TEST,
             subject,
-            condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+            condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
           } as PredicateTestExpr,
           nodeFactory.context,
         ),
@@ -162,8 +161,8 @@ describe('predicates', () => {
     it('should throw ForgeInvalidNodeError when condition is missing', () => {
       // Arrange
       const json = {
-        type: PredicateType.TEST,
-        subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
+        _forge: PredicateType.TEST,
+        subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] },
       } as any
 
       // Act & Assert
@@ -174,10 +173,10 @@ describe('predicates', () => {
     it('should support literal string as subject', () => {
       // Arrange
       const json = {
-        type: PredicateType.TEST,
+        _forge: PredicateType.TEST,
         subject: 'hello' as any,
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'IsRequired', arguments: [] as ResolvableValue[] },
+        condition: { _forge: FunctionCallType.CONDITION, name: 'IsRequired', arguments: [] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       // Act
@@ -190,10 +189,10 @@ describe('predicates', () => {
     it('should support literal number as subject', () => {
       // Arrange
       const json = {
-        type: PredicateType.TEST,
+        _forge: PredicateType.TEST,
         subject: 42 as any,
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'GreaterThan', arguments: [0] as ResolvableValue[] },
+        condition: { _forge: FunctionCallType.CONDITION, name: 'GreaterThan', arguments: [0] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       // Act
@@ -207,10 +206,10 @@ describe('predicates', () => {
       // Arrange
       const literalArray = [1, 2, 3]
       const json = {
-        type: PredicateType.TEST,
+        _forge: PredicateType.TEST,
         subject: literalArray as any,
         negate: false,
-        condition: { type: FunctionType.CONDITION, name: 'HasLength', arguments: [3] as ResolvableValue[] },
+        condition: { _forge: FunctionCallType.CONDITION, name: 'HasLength', arguments: [3] as ResolvableValue[] },
       } satisfies PredicateTestExpr
 
       // Act
@@ -233,12 +232,12 @@ describe('predicates', () => {
     it('should create a Not predicate with operand', () => {
       // Arrange
       const json = {
-        type: PredicateType.NOT,
+        _forge: PredicateType.NOT,
         operand: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
       } satisfies PredicateNotExpr
 
@@ -247,20 +246,20 @@ describe('predicates', () => {
 
       // Assert
       expect(result.id).toBeDefined()
-      expect(result.type).toBe(ASTNodeType.PREDICATE)
-      expect(result.predicateType).toBe(PredicateType.NOT)
+      expect(result.isTemplate).toBe(false)
+      expect(result.kind).toBe(PredicateType.NOT)
       expect(result.properties.operand).toBeDefined()
     })
 
     it('should transform operand using nodeFactory', () => {
       // Arrange
       const json = {
-        type: PredicateType.NOT,
+        _forge: PredicateType.NOT,
         operand: {
-          type: PredicateType.TEST,
-          subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
+          _forge: PredicateType.TEST,
+          subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] },
           negate: false,
-          condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+          condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
         } satisfies PredicateTestExpr,
       } satisfies PredicateNotExpr
 
@@ -269,21 +268,21 @@ describe('predicates', () => {
       const operand = result.properties.operand as PredicateASTNode
 
       // Assert
-      expect(operand.type).toBe(ASTNodeType.PREDICATE)
-      expect(operand.predicateType).toBe(PredicateType.TEST)
+      expect(operand.isTemplate).toBe(false)
+      expect(operand.kind).toBe(PredicateType.TEST)
     })
 
     it('should handle nested Not predicates', () => {
       // Arrange
       const json = {
-        type: PredicateType.NOT,
+        _forge: PredicateType.NOT,
         operand: {
-          type: PredicateType.NOT,
+          _forge: PredicateType.NOT,
           operand: {
-            type: PredicateType.TEST,
-            subject: { type: ExpressionType.REFERENCE, path: ['answers', 'field'] },
+            _forge: PredicateType.TEST,
+            subject: { _forge: ExpressionType.REFERENCE, path: ['answers', 'field'] },
             negate: false,
-            condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+            condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
           } satisfies PredicateTestExpr,
         } satisfies PredicateNotExpr,
       } satisfies PredicateNotExpr
@@ -294,14 +293,14 @@ describe('predicates', () => {
       const innerOperand = outerOperand.properties.operand as PredicateASTNode
 
       // Assert
-      expect(outerOperand.predicateType).toBe(PredicateType.NOT)
-      expect(innerOperand.predicateType).toBe(PredicateType.TEST)
+      expect(outerOperand.kind).toBe(PredicateType.NOT)
+      expect(innerOperand.kind).toBe(PredicateType.TEST)
     })
 
     it('should throw ForgeInvalidNodeError when operand is missing', () => {
       // Arrange
       const json = {
-        type: PredicateType.NOT,
+        _forge: PredicateType.NOT,
       } as any
 
       // Act & Assert
@@ -320,14 +319,14 @@ describe('predicates', () => {
     })
 
     const testPredicate = (field: string): PredicateTestExpr => ({
-      type: PredicateType.TEST,
-      subject: { type: ExpressionType.REFERENCE, path: ['answers', field] },
+      _forge: PredicateType.TEST,
+      subject: { _forge: ExpressionType.REFERENCE, path: ['answers', field] },
       negate: false,
-      condition: { type: FunctionType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
+      condition: { _forge: FunctionCallType.CONDITION, name: 'IsTrue', arguments: [] as ResolvableValue[] },
     })
 
     const naryExpr = (predicateType: (typeof naryPredicateTypes)[number], operands: unknown[]) =>
-      ({ type: predicateType, operands }) as PredicateAndExpr
+      ({ _forge: predicateType, operands }) as PredicateAndExpr
 
     it('should create a predicate of the matching type when given multiple operands', () => {
       // Arrange
@@ -336,13 +335,13 @@ describe('predicates', () => {
       )
 
       // Act
-      const results = jsons.map(json => naryPredicateCreator(json.type)(json, nodeFactory.context))
+      const results = jsons.map(json => naryPredicateCreator(json._forge)(json, nodeFactory.context))
 
       // Assert
       results.forEach((result, index) => {
         expect(result.id).toBeDefined()
-        expect(result.type).toBe(ASTNodeType.PREDICATE)
-        expect(result.predicateType).toBe(naryPredicateTypes[index])
+        expect(result.isTemplate).toBe(false)
+        expect(result.kind).toBe(naryPredicateTypes[index])
         expect(result.properties.operands).toHaveLength(2)
       })
     })
@@ -356,8 +355,8 @@ describe('predicates', () => {
 
       // Assert
       result.properties.operands.forEach(operand => {
-        expect(operand.type).toBe(ASTNodeType.PREDICATE)
-        expect(operand.predicateType).toBe(PredicateType.TEST)
+        expect(operand.isTemplate).toBe(false)
+        expect(operand.kind).toBe(PredicateType.TEST)
       })
     })
 
@@ -372,7 +371,7 @@ describe('predicates', () => {
 
       // Assert
       const [nested] = result.properties.operands
-      expect(nested.predicateType).toBe(PredicateType.XOR)
+      expect(nested.kind).toBe(PredicateType.XOR)
       expect((nested as typeof result).properties.operands).toHaveLength(2)
     })
 
@@ -383,18 +382,18 @@ describe('predicates', () => {
 
       // Act & Assert
       jsons.forEach((json, index) => {
-        expect(() => naryPredicateCreator(json.type)(json, nodeFactory.context)).toThrow(ForgeInvalidNodeError)
-        expect(() => naryPredicateCreator(json.type)(json, nodeFactory.context)).toThrow(expectedMessages[index])
+        expect(() => naryPredicateCreator(json._forge)(json, nodeFactory.context)).toThrow(ForgeInvalidNodeError)
+        expect(() => naryPredicateCreator(json._forge)(json, nodeFactory.context)).toThrow(expectedMessages[index])
       })
     })
 
     it('should throw ForgeInvalidNodeError when operands is missing', () => {
       // Arrange
-      const jsons = naryPredicateTypes.map(predicateType => ({ type: predicateType }) as PredicateAndExpr)
+      const jsons = naryPredicateTypes.map(predicateType => ({ _forge: predicateType }) as PredicateAndExpr)
 
       // Act & Assert
       jsons.forEach(json => {
-        expect(() => naryPredicateCreator(json.type)(json, nodeFactory.context)).toThrow(ForgeInvalidNodeError)
+        expect(() => naryPredicateCreator(json._forge)(json, nodeFactory.context)).toThrow(ForgeInvalidNodeError)
       })
     })
   })

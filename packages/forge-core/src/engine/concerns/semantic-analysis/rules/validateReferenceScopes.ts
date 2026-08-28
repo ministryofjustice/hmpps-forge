@@ -1,16 +1,16 @@
-import { ExpressionType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { ExpressionType } from '../../../../shared/taxonomy'
 import type { IterateASTNode, ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
-import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
-import type { TemplateNode, TemplateValue } from '../../../chassis/contracts/ast/template.type'
+import { isTemplateASTNode } from '../../../chassis/contracts/ast/nodes'
+import type { TemplateASTNode } from '../../../chassis/contracts/ast/ast.type'
+import type { TemplateValue } from '../../../chassis/contracts/ast/template.type'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 
 interface TemplateVisitor {
   /** Return false to skip walking this node's children. */
-  onTemplateNode(node: TemplateNode, diagnostics: ASTNodeDiagnostics | undefined): boolean | void
+  onTemplateNode(node: TemplateASTNode, diagnostics: ASTNodeDiagnostics | undefined): boolean | void
 }
 
 // The depth-tracking walk below is the one template check TemplateNodeIndex cannot
@@ -26,7 +26,7 @@ function walkTemplateValue(value: TemplateValue, visitor: TemplateVisitor): void
     return
   }
 
-  if (isTemplateNode(value)) {
+  if (isTemplateASTNode(value)) {
     const shouldWalkChildren = visitor.onTemplateNode(value, value.diagnostics)
 
     if (shouldWalkChildren !== false) {
@@ -41,17 +41,17 @@ function walkTemplateValue(value: TemplateValue, visitor: TemplateVisitor): void
   })
 }
 
-function walkTemplateProperties(node: TemplateNode, visitor: TemplateVisitor): void {
+function walkTemplateProperties(node: TemplateASTNode, visitor: TemplateVisitor): void {
   if (!node.properties) {
     return
   }
 
   Object.values(node.properties).forEach(propValue => {
-    walkTemplateValue(propValue, visitor)
+    walkTemplateValue(propValue as TemplateValue, visitor)
   })
 
   Object.entries(node).forEach(([key, value]) => {
-    if (key === 'type' || key === 'originalType' || key === 'id' || key === 'diagnostics' || key === 'properties') {
+    if (key === 'kind' || key === 'isTemplate' || key === 'id' || key === 'diagnostics' || key === 'properties') {
       return
     }
 
@@ -156,16 +156,10 @@ function walkIterateTemplateReferences(
 
   templates.forEach(template => {
     const visitor = {
-      onTemplateNode(templateNode: TemplateNode, templateMetadata: ASTNodeDiagnostics | undefined): boolean | void {
-        if (templateNode.originalType !== ASTNodeType.EXPRESSION) {
-          return undefined
-        }
-
-        const expressionType = (templateNode as Record<string, unknown>).expressionType as string | undefined
-
-        if (expressionType === ExpressionType.ITERATE) {
+      onTemplateNode(templateNode: TemplateASTNode, templateMetadata: ASTNodeDiagnostics | undefined): boolean | void {
+        if (templateNode.kind === ExpressionType.ITERATE) {
           if (templateNode.properties?.input) {
-            walkTemplateValue(templateNode.properties.input, visitor)
+            walkTemplateValue(templateNode.properties.input as TemplateValue, visitor)
           }
 
           const nestedIterator = templateNode.properties?.iterator as
@@ -179,7 +173,7 @@ function walkIterateTemplateReferences(
           return false
         }
 
-        if (expressionType !== ExpressionType.REFERENCE) {
+        if (templateNode.kind !== ExpressionType.REFERENCE) {
           return undefined
         }
 
@@ -216,13 +210,13 @@ export const validateReferenceScopes: ASTValidationRule = (context: ASTValidatio
   const { nodeIndex } = context
   const errors: Error[] = []
 
-  const referenceNodes = nodeIndex.findByType<ReferenceASTNode>(ExpressionType.REFERENCE)
+  const referenceNodes = nodeIndex.findByKind<ReferenceASTNode>(ExpressionType.REFERENCE)
 
   referenceNodes.forEach(node => {
     errors.push(...validateRegisteredReference(node))
   })
 
-  const iterateNodes = nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE)
+  const iterateNodes = nodeIndex.findByKind<IterateASTNode>(ExpressionType.ITERATE)
 
   iterateNodes.forEach(iterateNode => {
     errors.push(...validateTemplateReferences(iterateNode))

@@ -113,7 +113,7 @@ export class StepScaffold {
   }
 
   private buildScaffoldStep(): StepDefinition {
-    const draft: Omit<StepDefinition, 'type'> = {
+    const draft: Omit<StepDefinition, '_forge'> = {
       path: '/step',
       title: 'Step',
       reachability: { entryWhen: true },

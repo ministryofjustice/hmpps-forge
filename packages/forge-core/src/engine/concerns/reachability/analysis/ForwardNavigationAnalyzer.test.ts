@@ -1,5 +1,4 @@
-import { FunctionType, HookType, OutcomeType, PredicateType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { FunctionCallType, HookType, PolicyType, PredicateType } from '../../../../shared/taxonomy'
 import type { RedirectOutcomeASTNode, SubmitHookASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { TestPredicateASTNode } from '../../../chassis/contracts/ast/predicates.type'
 import type { StepASTNode } from '../../../chassis/contracts/ast/structures.type'
@@ -33,8 +32,8 @@ function createSubmitHookWithRedirect(
       next: [
         redirect,
         {
-          type: ASTNodeType.OUTCOME,
-          outcomeType: OutcomeType.THROW_ERROR,
+          kind: PolicyType.OUTCOME_THROW_ERROR,
+          isTemplate: false,
           id: ASTTestFactory.getId(),
           properties: { status: 400, message: 'Nope' },
         },
@@ -62,7 +61,7 @@ function createStep(hooks: SubmitHookASTNode[]): StepASTNode {
 function createPredicate(path: string[]): TestPredicateASTNode {
   return ASTTestFactory.predicate(PredicateType.TEST, {
     subject: ASTTestFactory.reference(path),
-    condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'equals', ['continue']),
+    condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'equals', ['continue']),
   }) as TestPredicateASTNode
 }
 

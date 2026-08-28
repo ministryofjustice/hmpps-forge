@@ -1,4 +1,4 @@
-import { StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { ComponentCallType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { GovUKDetails } from './govukDetails'
@@ -81,11 +81,11 @@ describe('GOV.UK Details Component', () => {
         summaryText: 'View example',
         content: [
           {
-            block: { type: StructureType.BLOCK, variant: 'html' },
+            block: { _forge: ComponentCallType.BASIC, variant: 'html' },
             html: '<p>First block</p>',
           },
           {
-            block: { type: StructureType.BLOCK, variant: 'govukCodeBlock' },
+            block: { _forge: ComponentCallType.BASIC, variant: 'govukCodeBlock' },
             html: '<pre><code>const x = 1;</code></pre>',
           },
         ],
@@ -104,7 +104,7 @@ describe('GOV.UK Details Component', () => {
         html: '<p>This is also ignored</p>',
         content: [
           {
-            block: { type: StructureType.BLOCK, variant: 'html' },
+            block: { _forge: ComponentCallType.BASIC, variant: 'html' },
             html: '<p>Child block content</p>',
           },
         ],

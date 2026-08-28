@@ -1,4 +1,4 @@
-import { StructureType } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { ComponentCallType } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovukComponentTestHelper } from '../../test-utils/GovukComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
 import { GovUKTabs } from './govukTabs'
@@ -189,11 +189,11 @@ describe('GOV.UK Tabs Component', () => {
             panel: {
               blocks: [
                 {
-                  block: { type: StructureType.BLOCK, variant: 'html' },
+                  block: { _forge: ComponentCallType.BASIC, variant: 'html' },
                   html: '<p>First block in panel</p>',
                 },
                 {
-                  block: { type: StructureType.BLOCK, variant: 'govukInsetText' },
+                  block: { _forge: ComponentCallType.BASIC, variant: 'govukInsetText' },
                   html: '<div class="govuk-inset-text">Important panel info</div>',
                 },
               ],
@@ -222,7 +222,7 @@ describe('GOV.UK Tabs Component', () => {
               html: '<p>This is also ignored</p>',
               blocks: [
                 {
-                  block: { type: StructureType.BLOCK, variant: 'html' },
+                  block: { _forge: ComponentCallType.BASIC, variant: 'html' },
                   html: '<p>Child block content wins</p>',
                 },
               ],

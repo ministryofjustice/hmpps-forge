@@ -1,9 +1,8 @@
-import { BlockType, ExpressionType } from '../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
+import { ComponentCallType, ExpressionType } from '../../../../shared/taxonomy'
 import type { IterateASTNode, ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import { isFieldBlockStructNode } from '../../../chassis/contracts/ast/structure-nodes'
-import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
+import { isTemplateASTNode } from '../../../chassis/contracts/ast/nodes'
 import type { TemplateValue } from '../../../chassis/contracts/ast/template.type'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
@@ -79,21 +78,16 @@ function walkTemplateForSelfScope(value: TemplateValue, scope: SelfScope, errors
     return
   }
 
-  if (isTemplateNode(value)) {
-    if (value.originalType === ASTNodeType.EXPRESSION) {
-      const expressionType = (value as Record<string, unknown>).expressionType as string | undefined
+  if (isTemplateASTNode(value)) {
+    if (value.kind === ExpressionType.REFERENCE && isSelfReferencePath(value.properties?.path)) {
+      const error = selfScopeError(scope, value.diagnostics)
 
-      if (expressionType === ExpressionType.REFERENCE && isSelfReferencePath(value.properties?.path)) {
-        const error = selfScopeError(scope, value.diagnostics)
-
-        if (error !== undefined) {
-          errors.push(error)
-        }
+      if (error !== undefined) {
+        errors.push(error)
       }
     }
 
-    const isFieldBlock =
-      value.originalType === ASTNodeType.BLOCK && (value as Record<string, unknown>).blockType === BlockType.FIELD
+    const isFieldBlock = value.kind === ComponentCallType.FIELD
 
     if (value.properties) {
       Object.entries(value.properties).forEach(([key, propValue]) => {
@@ -104,7 +98,7 @@ function walkTemplateForSelfScope(value: TemplateValue, scope: SelfScope, errors
     }
 
     Object.entries(value).forEach(([key, val]) => {
-      if (key === 'type' || key === 'originalType' || key === 'id' || key === 'properties') {
+      if (key === 'kind' || key === 'isTemplate' || key === 'id' || key === 'properties') {
         return
       }
 
@@ -123,7 +117,7 @@ export const validateSelfScope: ASTValidationRule = (context: ASTValidationConte
   const { nodeIndex } = context
   const errors: Error[] = []
 
-  nodeIndex.findByType<ReferenceASTNode>(ExpressionType.REFERENCE).forEach(node => {
+  nodeIndex.findByKind<ReferenceASTNode>(ExpressionType.REFERENCE).forEach(node => {
     if (!isSelfReferencePath(node.properties?.path)) {
       return
     }
@@ -135,7 +129,7 @@ export const validateSelfScope: ASTValidationRule = (context: ASTValidationConte
     }
   })
 
-  const iterateNodes = nodeIndex.findByType<IterateASTNode>(ExpressionType.ITERATE)
+  const iterateNodes = nodeIndex.findByKind<IterateASTNode>(ExpressionType.ITERATE)
 
   iterateNodes.forEach(iterateNode => {
     const scope = scopeAt(iterateNode)

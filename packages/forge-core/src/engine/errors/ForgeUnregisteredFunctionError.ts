@@ -3,7 +3,7 @@ import ForgeBaseError from './ForgeBaseError'
 interface ForgeUnregisteredFunctionErrorOptions {
   /** Name of the unregistered function */
   functionName: string
-  /** Type of the function (e.g. FunctionType.Effect) */
+  /** Type of the function (e.g. FunctionCallType.Effect) */
   functionType: string
   /** Human-readable path through the journey DSL */
   formattedPath?: string

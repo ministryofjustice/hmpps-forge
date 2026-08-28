@@ -1,23 +1,23 @@
-import { BlockType, FunctionType, PredicateType } from '../../../../authoring/types/enums'
-import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
+import { ComponentCallType, FunctionCallType, PredicateType } from '../../../../shared/taxonomy'
+import type { MaterialisedASTNode } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import type { TestPredicateASTNode } from '../../../chassis/contracts/ast/predicates.type'
 import { createJourneyAnalysisContext } from '../../../chassis/compilation/analysis/testing-helpers/analysisContexts'
 import ReachabilityAnalyzer from './ReachabilityAnalyzer'
 
-function setParent(child: ASTNode, parent: ASTNode): void {
+function setParent(child: MaterialisedASTNode, parent: MaterialisedASTNode): void {
   Object.defineProperty(child, 'parent', { value: parent, enumerable: false })
 }
 
-function registerAll(nodeIndex: ASTNodeIndex, nodes: readonly ASTNode[]): void {
+function registerAll(nodeIndex: ASTNodeIndex, nodes: readonly MaterialisedASTNode[]): void {
   nodes.forEach(node => nodeIndex.register(node.id, node))
 }
 
 function createPredicate(path: string[]): TestPredicateASTNode {
   return ASTTestFactory.predicate(PredicateType.TEST, {
     subject: ASTTestFactory.reference(path),
-    condition: ASTTestFactory.functionExpression(FunctionType.CONDITION, 'equals', ['yes']),
+    condition: ASTTestFactory.functionExpression(FunctionCallType.CONDITION, 'equals', ['yes']),
   }) as TestPredicateASTNode
 }
 
@@ -198,7 +198,7 @@ describe('ReachabilityAnalyzer', () => {
         })
         .build()
       const secondStepNode = ASTTestFactory.step().withCode('second').build()
-      const validatingFieldBlock = ASTTestFactory.block('TextInput', BlockType.FIELD)
+      const validatingFieldBlock = ASTTestFactory.block('TextInput', ComponentCallType.FIELD)
         .withCode('fieldA')
         .withProperty('validWhen', [createPredicate(['answers', 'fieldA'])])
         .build()

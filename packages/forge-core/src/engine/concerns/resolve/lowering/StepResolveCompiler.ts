@@ -1,6 +1,6 @@
-import { BlockType } from '../../../../authoring/types/enums'
-import { isTemplateNode } from '../../../chassis/contracts/ast/nodes'
-import type { TemplateNode } from '../../../chassis/contracts/ast/template.type'
+import { ComponentCallType } from '../../../../shared/taxonomy'
+import { isTemplateASTNode } from '../../../chassis/contracts/ast/nodes'
+import type { TemplateASTNode } from '../../../chassis/contracts/ast/ast.type'
 import {
   AuthoredValueKind,
   toRawOperand,
@@ -232,7 +232,7 @@ export default class StepResolveCompiler {
       this.templates.compileMapIterator(iterateModel.node, generator, () => {
         iterateModel.templateBlocks.forEach(templateBlock => {
           const codeExpression = this.templates.compileTemplateCodeExpression(
-            templateBlock.source as TemplateNode,
+            templateBlock.source as TemplateASTNode,
             generator,
           )
 
@@ -251,7 +251,7 @@ export default class StepResolveCompiler {
   ): void {
     const blockId = generator.const(
       'resolveBlockId',
-      this.templates.compileTemplateInstanceIdExpression(block.source as TemplateNode),
+      this.templates.compileTemplateInstanceIdExpression(block.source as TemplateASTNode),
     )
     const props = this.compileBlockProperties(
       this.toBlockPropsCompilation(block, blockId, codeExpression, this.toBlockPropsName(block.variant)),
@@ -327,7 +327,7 @@ export default class StepResolveCompiler {
    * never self-resolves.
    */
   private toSelfBoundPlan(plan: BlockPropsCompilation, generator: CodeGenerator): BlockPropsCompilation {
-    if (plan.blockType !== BlockType.FIELD || plan.codeExpression !== undefined) {
+    if (plan.blockType !== ComponentCallType.FIELD || plan.codeExpression !== undefined) {
       return plan
     }
 
@@ -345,7 +345,7 @@ export default class StepResolveCompiler {
 
   private compileBlockPropEntries(plan: BlockPropsCompilation, generator: CodeGenerator): ObjectCodeProperty[] {
     return plan.properties.flatMap(property => {
-      if (plan.blockType === BlockType.FIELD && property.key === 'code') {
+      if (plan.blockType === ComponentCallType.FIELD && property.key === 'code') {
         const codeExpression =
           plan.codeExpression ?? this.fieldCodes.compileRegisteredInlineExpression(toRawOperand(property.value))
 
@@ -375,7 +375,7 @@ export default class StepResolveCompiler {
 
       this.compilePropertyAssignment(visibleWhen.value, props, 'visibleWhen', generator)
 
-      if (boundPlan.blockType === BlockType.FIELD && codeProperty !== undefined) {
+      if (boundPlan.blockType === ComponentCallType.FIELD && codeProperty !== undefined) {
         this.fieldCodes.assignProperty(
           toRawOperand(codeProperty.value),
           generator,
@@ -403,7 +403,7 @@ export default class StepResolveCompiler {
     props: IdentifierName,
     generator: CodeGenerator,
   ): void {
-    if (plan.blockType === BlockType.FIELD && property.key === 'code') {
+    if (plan.blockType === ComponentCallType.FIELD && property.key === 'code') {
       this.fieldCodes.assignProperty(toRawOperand(property.value), generator, props, property.key, plan.codeExpression)
 
       return
@@ -413,7 +413,7 @@ export default class StepResolveCompiler {
   }
 
   private compileFieldResolution(plan: BlockPropsCompilation, props: IdentifierName, generator: CodeGenerator): void {
-    if (plan.blockType !== BlockType.FIELD) {
+    if (plan.blockType !== ComponentCallType.FIELD) {
       return
     }
 
@@ -441,7 +441,7 @@ export default class StepResolveCompiler {
    * it by name. Children therefore always appear above their parent.
    */
   private compileNestedBlockValue(block: BlockValue, generator: CodeGenerator, nameHint: string): SafeCode {
-    if (isTemplateNode(block.source)) {
+    if (isTemplateASTNode(block.source)) {
       return this.compileTemplateNestedBlock(block, block.source, nameHint, generator)
     }
 
@@ -468,7 +468,7 @@ export default class StepResolveCompiler {
 
   private compileTemplateNestedBlock(
     block: BlockValue,
-    source: TemplateNode,
+    source: TemplateASTNode,
     nameHint: string,
     generator: CodeGenerator,
   ): IdentifierName {

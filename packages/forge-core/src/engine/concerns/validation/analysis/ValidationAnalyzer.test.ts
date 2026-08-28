@@ -1,4 +1,4 @@
-import { BlockType } from '../../../../authoring/types/enums'
+import { ComponentCallType } from '../../../../shared/taxonomy'
 import type { ASTNode } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
@@ -21,11 +21,11 @@ describe('ValidationAnalyzer', () => {
       const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step().withPath('/step').build()
-      const validatingBlock = ASTTestFactory.block('TextInput', BlockType.FIELD)
+      const validatingBlock = ASTTestFactory.block('TextInput', ComponentCallType.FIELD)
         .withCode('email')
         .withProperty('validWhen', [{ message: 'Required' }])
         .build()
-      const plainBlock = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('name').build()
+      const plainBlock = ASTTestFactory.block('TextInput', ComponentCallType.FIELD).withCode('name').build()
 
       setParent(stepNode, journeyNode)
       setParent(validatingBlock, stepNode)
@@ -53,7 +53,7 @@ describe('ValidationAnalyzer', () => {
       const nodeIndex = new ASTNodeIndex()
       const journeyNode = ASTTestFactory.journey().build()
       const stepNode = ASTTestFactory.step().withPath('/step').build()
-      const plainBlock = ASTTestFactory.block('TextInput', BlockType.FIELD).withCode('name').build()
+      const plainBlock = ASTTestFactory.block('TextInput', ComponentCallType.FIELD).withCode('name').build()
 
       setParent(stepNode, journeyNode)
       setParent(plainBlock, stepNode)

@@ -1,9 +1,6 @@
-import { isFieldBlockDefinition } from '../../../../../components/typeguards'
-import { ASTNodeType } from '../../../contracts/ast/enums'
-import { ExpressionType, BlockType } from '../../../../../authoring/types/enums'
+import { PolicyType, ComponentCallType, StructureType } from '../../../../../shared/taxonomy'
 import {
   BasicBlockASTNode,
-  BlockASTNode,
   FieldBlockASTNode,
   JourneyASTNode,
   JourneyReachabilityAST,
@@ -16,7 +13,7 @@ import type { BlockDefinition, FieldBlockDefinition } from '../../../../../compo
 import type { NodeBuildContext } from './NodeFactory'
 
 function isTieBreaker(obj: unknown): obj is TieBreaker {
-  return obj != null && (obj as { type?: string }).type === ExpressionType.TIE_BREAKER
+  return obj != null && (obj as { _forge?: string })._forge === PolicyType.NAVIGATION_TIE_BREAKER
 }
 
 /**
@@ -24,7 +21,7 @@ function isTieBreaker(obj: unknown): obj is TieBreaker {
  * Extracts properties and recursively transforms nested steps/children
  */
 export function createJourneyNode(json: JourneyDefinition, ctx: NodeBuildContext): JourneyASTNode {
-  const { type, ...dataProperties } = json
+  const { _forge, ...dataProperties } = json
 
   const properties: JourneyASTNode['properties'] = {
     code: dataProperties.code,
@@ -123,7 +120,8 @@ export function createJourneyNode(json: JourneyDefinition, ctx: NodeBuildContext
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.JOURNEY,
+    kind: StructureType.JOURNEY,
+    isTemplate: false,
     properties,
   }
 }
@@ -133,7 +131,7 @@ export function createJourneyNode(json: JourneyDefinition, ctx: NodeBuildContext
  * Contains blocks and hooks for user interaction
  */
 export function createStepNode(json: StepDefinition, ctx: NodeBuildContext): StepASTNode {
-  const { type, ...dataProperties } = json
+  const { _forge, ...dataProperties } = json
 
   const properties: StepASTNode['properties'] = {
     path: json.path,
@@ -243,7 +241,8 @@ export function createStepNode(json: StepDefinition, ctx: NodeBuildContext): Ste
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.STEP,
+    kind: StructureType.STEP,
+    isTemplate: false,
     properties,
   }
 }
@@ -253,16 +252,8 @@ export function createStepNode(json: StepDefinition, ctx: NodeBuildContext): Ste
  * Basic blocks render but don't collect data; field blocks collect user data
  * via a code property.
  */
-export function createBlockNode(json: BlockDefinition | FieldBlockDefinition, ctx: NodeBuildContext): BlockASTNode {
-  if (isFieldBlockDefinition(json)) {
-    return createFieldBlock(json, ctx)
-  }
-
-  return createBasicBlock(json, ctx)
-}
-
-function createBasicBlock(json: BlockDefinition, ctx: NodeBuildContext): BasicBlockASTNode {
-  const { variant, type, ...dataProperties } = json
+export function createBasicBlock(json: BlockDefinition, ctx: NodeBuildContext): BasicBlockASTNode {
+  const { variant, _forge, ...dataProperties } = json
   const properties: BasicBlockASTNode['properties'] = {}
 
   Object.entries(dataProperties).forEach(([key, value]) => {
@@ -275,15 +266,15 @@ function createBasicBlock(json: BlockDefinition, ctx: NodeBuildContext): BasicBl
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.BLOCK,
+    kind: ComponentCallType.BASIC,
+    isTemplate: false,
     variant,
-    blockType: BlockType.BASIC,
     properties,
   }
 }
 
-function createFieldBlock(json: FieldBlockDefinition, ctx: NodeBuildContext): FieldBlockASTNode {
-  const { variant, type, ...dataProperties } = json
+export function createFieldBlock(json: FieldBlockDefinition, ctx: NodeBuildContext): FieldBlockASTNode {
+  const { variant, _forge, ...dataProperties } = json
 
   if (dataProperties.code === undefined) {
     const diagnostics = ctx.diagnosticsFor(json)
@@ -311,9 +302,9 @@ function createFieldBlock(json: FieldBlockDefinition, ctx: NodeBuildContext): Fi
 
   return {
     id: ctx.nextId(),
-    type: ASTNodeType.BLOCK,
+    kind: ComponentCallType.FIELD,
+    isTemplate: false,
     variant,
-    blockType: BlockType.FIELD,
     properties,
   }
 }

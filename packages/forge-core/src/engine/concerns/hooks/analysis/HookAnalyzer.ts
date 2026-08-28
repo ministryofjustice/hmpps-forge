@@ -1,4 +1,4 @@
-import { FunctionType } from '../../../../authoring/types/enums'
+import { FunctionCallType, StructureType } from '../../../../shared/taxonomy'
 import type {
   JourneyAnalysisContext,
   JourneyModelAnalyzer,
@@ -8,7 +8,6 @@ import type {
 import type Ancestry from '../../../chassis/compilation/analysis/shared/Ancestry'
 import type AuthoredValueClassifier from '../../../chassis/compilation/analysis/shared/AuthoredValueClassifier'
 import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
-import { ASTNodeType } from '../../../chassis/contracts/ast/enums'
 import type {
   AccessHookASTNode,
   FunctionASTNode,
@@ -192,12 +191,11 @@ export default class HookAnalyzer implements StepModelAnalyzer<StepHookModel>, J
   }
 
   private isAccessAncestor(node: ASTNode): node is JourneyASTNode | StepASTNode {
-    return node.type === ASTNodeType.JOURNEY || node.type === ASTNodeType.STEP
+    return node.kind === StructureType.JOURNEY || node.kind === StructureType.STEP
   }
 
   private isEffectNode(node: ASTNode): node is FunctionASTNode {
-    return node.type === ASTNodeType.EXPRESSION &&
-      (node as { expressionType?: unknown }).expressionType === FunctionType.EFFECT
+    return node.kind === FunctionCallType.EFFECT
   }
 
   private isOutcomeNode(node: ASTNode): node is RedirectOutcomeASTNode | ThrowErrorOutcomeASTNode {

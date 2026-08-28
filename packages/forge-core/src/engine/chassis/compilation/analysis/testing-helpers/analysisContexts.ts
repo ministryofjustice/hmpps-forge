@@ -1,7 +1,6 @@
-import { BlockType, ExpressionType, IteratorType } from '../../../../../authoring/types/enums'
-import { ASTNodeType } from '../../../contracts/ast/enums'
+import { ComponentCallType, ExpressionType, IteratorType } from '../../../../../shared/taxonomy'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
-import { isTemplateNode } from '../../../contracts/ast/nodes'
+import { isTemplateASTNode } from '../../../contracts/ast/nodes'
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
 import type { TemplateValue } from '../../../contracts/ast/template.type'
 import type { NodeId } from '../../../contracts/ast/ast.type'
@@ -138,14 +137,16 @@ function collectTemplateVariants(template: TemplateValue | undefined, variants: 
     return
   }
 
-  if (isTemplateNode(template)) {
-    if (template.originalType === ASTNodeType.BLOCK && template.blockType === BlockType.FIELD) {
-      if (typeof template.variant === 'string') {
-        variants.add(template.variant)
+  if (isTemplateASTNode(template)) {
+    if (template.kind === ComponentCallType.FIELD) {
+      const templateData = template as unknown as Record<string, unknown>
+
+      if (typeof templateData.variant === 'string') {
+        variants.add(templateData.variant)
       }
     }
 
-    if (template.originalType === ASTNodeType.EXPRESSION && template.expressionType === ExpressionType.ITERATE) {
+    if (template.kind === ExpressionType.ITERATE) {
       const iterator = (template.properties ?? {}).iterator as
         | { type?: unknown; yieldTemplate?: TemplateValue }
         | undefined

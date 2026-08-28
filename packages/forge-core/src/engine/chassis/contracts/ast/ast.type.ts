@@ -1,36 +1,34 @@
-import { ASTNodeType } from './enums'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
+import type { ASTNodeKind } from './enums'
 
-/**
- * Template literal types for enforcing NodeID structure
- */
 export type CompileAstNodeId = `compile_ast:${number}`
 export type TemplateNodeId = `template:${number}`
 type CompiledNodeId = `compiled:${string}`
 
-/**
- * Union of all valid NodeId formats
- */
 export type NodeId = CompileAstNodeId | CompiledNodeId
-
-/**
- * NodeIds categorized by AST node type
- */
 export type AstNodeId = CompileAstNodeId
 
-/**
- * Base AST node interface that all nodes extend
- */
-export interface ASTNode {
-  type: ASTNodeType
-  id: AstNodeId
-  diagnostics?: ASTNodeDiagnostics
-  properties?: Record<string, any>
-  /**
-   * Direct parent in the registered AST. Assigned top-down by
-   * NodeRegistrationWalker as a non-enumerable field so property walkers never
-   * recurse back up the tree. Undefined on the root and on unregistered template
-   * innards.
-   */
-  readonly parent?: ASTNode
+export interface BaseASTNode {
+  readonly kind: ASTNodeKind
+  readonly isTemplate: boolean
+  readonly diagnostics?: ASTNodeDiagnostics
+  readonly properties?: Record<string, unknown>
 }
+
+export interface MaterialisedASTNode extends BaseASTNode {
+  readonly isTemplate: false
+  readonly id: AstNodeId
+  /**
+   * Direct parent in the registered AST. Assigned top-down as a
+   * non-enumerable field before the node is frozen.
+   */
+  readonly parent?: MaterialisedASTNode
+}
+
+export interface TemplateASTNode extends BaseASTNode {
+  readonly isTemplate: true
+  readonly id: TemplateNodeId
+  readonly parent?: never
+}
+
+export type ASTNode = MaterialisedASTNode | TemplateASTNode
