@@ -2,7 +2,7 @@
 title: Building Components
 section: packages
 path: packages/express-nunjucks/building-components
-teaches: [nunjucksComponent, NunjucksComponentRenderer, component-rendering, validation-errors]
+teaches: [nunjucksComponent, plain-component-props, component-rendering, validation-errors]
 prerequisites: [express-nunjucks, block]
 ---
 
@@ -26,9 +26,13 @@ that variant - authors call it with props to build blocks:
 
 ```typescript
 import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
-import type { MyInputDefinition } from './types'
 
-export const MyInput = nunjucksComponent<MyInputDefinition>('my-input', {
+interface MyInputProps {
+  id?: string
+  label: string
+}
+
+export const MyInput = nunjucksComponent<MyInputProps>('my-input', {
   field: true,
   render: (block, nunjucksEnv) => {
     return nunjucksEnv.render('components/my-input.njk', {
@@ -48,10 +52,9 @@ export const MyInput = nunjucksComponent<MyInputDefinition>('my-input', {
 
 The render function receives two arguments:
 
-1. **`block`** - the evaluated block, with all expressions
-   resolved to concrete values. Its type is
-   `EvaluatedBlock<T>`, where `T` is the block definition type
-   you provide as the generic parameter.
+1. **`block`** - the resolved props. The plain interface supplied as
+   the generic parameter shapes these values; fields also receive
+   `code`, `value`, and `errors` from Forge.
 2. **`nunjucksEnv`** - the Nunjucks environment, backed by an
    internal template cache so repeated renders of the same
    template don't recompile.
@@ -94,7 +97,7 @@ handle registers wherever it is used.
 When a form is submitted and validation fails, the engine
 collects the failed results from each field's `validWhen`
 validations and attaches them as an `errors` array on the
-evaluated block:
+field's render props:
 
 ```typescript
 // Each error has a message and optional details

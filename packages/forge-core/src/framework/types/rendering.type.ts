@@ -3,7 +3,7 @@ import { ComponentCallType } from '../../shared/taxonomy'
 import { ValidationResult } from '../../engine/concerns/validation/contracts/validationResult.type'
 import type { ViewConfig } from '../../authoring/types/structures.type'
 import type { ComponentRegistryEntry } from '../../components/types/components.type'
-import type { BlockDefinition, EvaluatedBlock } from '../../components/types/structures.type'
+import type { BlockDefinition } from '../../components/types/structures.type'
 import type { RouteTree } from './routeTree.type'
 
 type MaybePromise<T> = T | Promise<T>
@@ -14,6 +14,9 @@ export interface RenderBlock {
   readonly blockType: ComponentCallType
   readonly properties: Record<string, unknown>
 }
+
+/** A block after its expressions and nested blocks have been resolved for a component renderer. */
+export type ResolvedBlock = Record<string, unknown>
 
 /**
  * A field validation failure prepared for rendering. `anchor` is the failing
@@ -83,10 +86,7 @@ export interface RenderContext {
 }
 
 export interface ForgeRenderer<TOut> {
-  renderBlock(
-    entry: ComponentRegistryEntry<BlockDefinition, TOut>,
-    block: EvaluatedBlock<BlockDefinition>,
-  ): MaybePromise<TOut>
+  renderBlock(entry: ComponentRegistryEntry<object, TOut>, block: ResolvedBlock): MaybePromise<TOut>
 
   /**
    * Optionally tag a block's rendered output with an out-of-band marker tying it

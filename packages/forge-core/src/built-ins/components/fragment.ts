@@ -1,6 +1,6 @@
 import { component } from '../../components/component'
 import { isRenderedBlock } from '../../components/typeguards'
-import type { BlockDefinition, ResolvableArray } from '../../components/types/structures.type'
+import type { BlockDefinition } from '../../components/types/structures.type'
 
 /**
  * Fragment component.
@@ -23,24 +23,18 @@ import type { BlockDefinition, ResolvableArray } from '../../components/types/st
  * ))
  * ```
  */
-export interface Fragment extends BlockDefinition {
+export interface Fragment {
   /**
    * The child blocks to render, in order.
    *
    * @example [GovUKHeading({ text: 'Title' }), GovUKBody({ text: 'Body' })]
    */
-  blocks: ResolvableArray<BlockDefinition>
+  blocks: BlockDefinition[]
 }
 
-/**
- * Renders a fragment child to its HTML string:
- * - Rendered blocks contribute their HTML as-is
- * - Arrays are flattened in order
- * - Anything else (e.g. a dynamic expression resolving to non-blocks) is skipped
- */
 const renderChild = (child: unknown): string => {
   if (Array.isArray(child)) {
-    return child.map(c => renderChild(c)).join('')
+    return child.map(renderChild).join('')
   }
 
   if (isRenderedBlock(child)) {
@@ -67,5 +61,5 @@ const renderChild = (child: unknown): string => {
  * ```
  */
 export const Fragment = component<Fragment>('fragment', {
-  render: props => props.blocks.map(child => renderChild(child)).join(''),
+  render: props => props.blocks.map(renderChild).join(''),
 })

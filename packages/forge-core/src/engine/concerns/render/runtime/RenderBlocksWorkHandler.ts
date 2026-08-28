@@ -1,7 +1,6 @@
 import type { RenderBlock, ForgeRenderer } from '../../../../framework/types/rendering.type'
 import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
 import type { ComponentRegistryEntry } from '../../../../components/types/components.type'
-import type { BlockDefinition } from '../../../../components/types/structures.type'
 import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
 import type {
   CompletedWork,
@@ -72,7 +71,7 @@ export const RENDER_BLOCKS_WORK_HANDLER: WorkHandler<'render.render-blocks', Ren
 function resolveComponentEntry(
   componentRegistry: ComponentRegistry,
   variant: string,
-): ComponentRegistryEntry<BlockDefinition, unknown> {
+): ComponentRegistryEntry<object, unknown> {
   const entry = componentRegistry.get(variant)
 
   if (entry === undefined) {

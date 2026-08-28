@@ -45,7 +45,7 @@ const StaticDataValueSchema: z.ZodType<unknown> = z.lazy(() =>
 
 const StaticDataSchema = z.record(z.string(), StaticDataValueSchema)
 
-// TODO: Probably should add the remaining resolvable schemas, such as ResolvableNumber/Array/Object.
+// TODO: Probably should add resolvable schemas for the remaining value shapes, such as numbers, arrays, and objects.
 /**
  * @see {@link ResolvableString}
  */

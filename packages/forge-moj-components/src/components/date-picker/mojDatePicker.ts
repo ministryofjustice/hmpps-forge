@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { ResolvableFieldProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -70,7 +69,7 @@ export interface MOJDatePickerFormGroup {
  * })
  * ```
  */
-export type MOJDatePicker = ResolvableFieldProps<{
+export interface MOJDatePicker {
   /**
    * The ID of the input. Defaults to the value of `code` if not provided.
    * @example 'appointment-date'
@@ -133,7 +132,7 @@ export type MOJDatePicker = ResolvableFieldProps<{
 
   /** Additional HTML attributes */
   attributes?: Record<string, string>
-}>
+}
 
 /**
  * Converts an ISO date string (YYYY-MM-DD) to UK format (DD/MM/YYYY).

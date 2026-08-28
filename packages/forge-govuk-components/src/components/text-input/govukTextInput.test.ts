@@ -217,7 +217,6 @@ describe('govukTextInput', () => {
     it('renders a valid text input component', async () => {
       const html = await helper.renderWithNunjucks({
         code: 'email-address',
-        variant: 'govukTextInput',
         inputType: 'email',
         label: 'Email address',
         hint: `We'll only use this to contact you`,

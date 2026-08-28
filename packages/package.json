@@ -108,7 +108,7 @@
     "node": "20 || 22 || 24"
   },
   "scripts": {
-    "build": "rolldown -c rolldown.config.mjs && cp ../README.md ../LICENSE.md ../CHANGELOG.md .",
+    "build": "npm run clean && rolldown -c rolldown.config.mjs && cp ../README.md ../LICENSE.md ../CHANGELOG.md .",
     "clean": "rm -rf ./dist/",
     "test": "vitest run",
     "lint": "eslint . --cache --max-warnings 0",

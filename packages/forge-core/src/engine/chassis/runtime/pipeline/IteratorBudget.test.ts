@@ -3,17 +3,19 @@ import { Answer } from '../../../../authoring/builders/references'
 import { Iterator } from '../../../../authoring/builders/iterators'
 import { block, createForgePackage, field, journey, step } from '../../../../authoring/builders/structures'
 import { CollectionBlock } from '../../../../built-ins/components/collectionBlock'
-import { buildComponent } from '../../../../components/utils/buildComponent'
+import { component } from '../../../../components/component'
 import { ForgeTestHarness } from '../../../../testing/test-client/ForgeTestHarness'
 import type { ForgeTestClient } from '../../../../testing/test-client/ForgeTestClient'
 import IteratorBudget from './IteratorBudget'
 
-const MultiValueField = buildComponent('iterator-budget-multi-value', () => '', {
+const MultiValueField = component<object>('iterator-budget-multi-value', {
+  field: true,
+  render: () => '',
   inputSchema: z.array(z.string()),
   multiple: true,
 })
 
-const RepeatedBlock = buildComponent('iterator-budget-repeated-block', () => '')
+const RepeatedBlock = component<object>('iterator-budget-repeated-block', { render: () => '' })
 
 const iteratorBudgetJourney = journey({
   code: 'iterator-budget',

@@ -150,9 +150,9 @@ function assembleFunctions<TDeps>(
  * them. Packages whose journey embeds no components pass through untouched.
  */
 function assembleComponents(
-  components: ComponentRegistryEntry<BlockDefinition, unknown>[] | undefined,
+  components: ComponentRegistryEntry<object, unknown>[] | undefined,
   finalisedJourney: JourneyDefinition,
-): ComponentRegistryEntry<BlockDefinition, unknown>[] | undefined {
+): ComponentRegistryEntry<object, unknown>[] | undefined {
   const componentCollector = new ComponentEntryCollector()
 
   components?.forEach(component => componentCollector.collectListed(component))

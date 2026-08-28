@@ -1,4 +1,4 @@
-import { BlockDefinition, EvaluatedBlock, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ComponentRenderProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { renderGovukBlocksToHtml } from '../../utils/govukParamNormalisers'
 
@@ -87,7 +87,7 @@ export type TableRow = TableCell[]
  * })
  * ```
  */
-export type GovUKTable = ResolvableBlockProps<{
+export interface GovUKTable {
   /** The rows within the table. Each row is an array of cells. Supports dynamic expressions. */
   rows: TableRow[]
 
@@ -108,12 +108,12 @@ export type GovUKTable = ResolvableBlockProps<{
 
   /** Custom HTML attributes for the table element. */
   attributes?: Record<string, any>
-}>
+}
 
-type EvaluatedTableRow = EvaluatedBlock<GovUKTable>['rows'][number]
-type EvaluatedTableCell = EvaluatedTableRow[number]
+type RuntimeTableRow = ComponentRenderProps<GovUKTable>['rows'][number]
+type RuntimeTableCell = RuntimeTableRow[number]
 
-function normaliseTableCell(cell: EvaluatedTableCell) {
+function normaliseTableCell(cell: RuntimeTableCell) {
   const { blocks, ...cellParams } = cell
   const blocksHtml = renderGovukBlocksToHtml(blocks)
 

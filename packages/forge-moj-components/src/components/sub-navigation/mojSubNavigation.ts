@@ -1,4 +1,3 @@
-import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -44,7 +43,7 @@ export interface MOJSubNavigationItem {
  * })
  * ```
  */
-export type MOJSubNavigation = ResolvableBlockProps<{
+export interface MOJSubNavigation {
   /** The aria-label to add to the navigation container (defaults to "Secondary navigation region") */
   label?: string
 
@@ -56,7 +55,7 @@ export type MOJSubNavigation = ResolvableBlockProps<{
 
   /** Additional HTML attributes */
   attributes?: Record<string, string>
-}>
+}
 
 /**
  * MOJ Sub-Navigation component.

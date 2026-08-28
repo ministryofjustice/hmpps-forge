@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
@@ -92,7 +92,7 @@ export interface TabItem {
  * })
  * ```
  */
-export type GovUKTabs = ResolvableBlockProps<{
+export interface GovUKTabs {
   /**
    * Unique ID for the tabs component.
    * This is used for the main component and to compose the ID attribute for each item.
@@ -114,7 +114,7 @@ export type GovUKTabs = ResolvableBlockProps<{
 
   /** Custom HTML attributes for the tabs element. */
   attributes?: Record<string, any>
-}>
+}
 
 /**
  * GOV.UK Tabs component.

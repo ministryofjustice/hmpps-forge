@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
@@ -29,7 +29,7 @@ import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers
  * })
  * ```
  */
-export type GovUKNotificationBanner = ResolvableBlockProps<{
+export interface GovUKNotificationBanner {
   /**
    * The text that displays in the notification banner.
    * You can use any string with this option.
@@ -116,7 +116,7 @@ export type GovUKNotificationBanner = ResolvableBlockProps<{
 
   /** Custom HTML attributes for the notification banner container */
   attributes?: Record<string, any>
-}>
+}
 
 /**
  * GOV.UK Notification Banner component.

@@ -1,7 +1,6 @@
 import { getComponentStamp } from '../authoring/builders/utils/stampEntry'
 import { isForgeComponent } from './component'
 import ForgeRegistryDuplicateError from '../engine/errors/ForgeRegistryDuplicateError'
-import type { BlockDefinition } from './types/structures.type'
 import type { ComponentRegistryEntry } from './types/components.type'
 
 /**
@@ -15,12 +14,12 @@ import type { ComponentRegistryEntry } from './types/components.type'
  * because the variant is authored into every block that uses it.
  */
 export class ComponentEntryCollector {
-  private readonly componentsByVariant = new Map<string, ComponentRegistryEntry<BlockDefinition, unknown>>()
+  private readonly componentsByVariant = new Map<string, ComponentRegistryEntry<object, unknown>>()
 
   private embeddedFound = false
 
   /** Registers a listed component under its variant. */
-  collectListed(component: ComponentRegistryEntry<BlockDefinition, unknown>): void {
+  collectListed(component: ComponentRegistryEntry<object, unknown>): void {
     this.claim(component)
   }
 
@@ -38,11 +37,11 @@ export class ComponentEntryCollector {
   }
 
   /** The collected components, listed ones first. */
-  entries(): ComponentRegistryEntry<BlockDefinition, unknown>[] {
+  entries(): ComponentRegistryEntry<object, unknown>[] {
     return [...this.componentsByVariant.values()]
   }
 
-  private claim(component: ComponentRegistryEntry<BlockDefinition, unknown>): void {
+  private claim(component: ComponentRegistryEntry<object, unknown>): void {
     const existing = this.componentsByVariant.get(component.variant)
 
     if (existing === component) {

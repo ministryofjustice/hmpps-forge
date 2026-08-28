@@ -1,4 +1,3 @@
-import { EvaluatedBlock, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -86,7 +85,7 @@ export interface MOJCardGroupItem {
  * })
  * ```
  */
-export type MOJCardGroup = ResolvableBlockProps<{
+export interface MOJCardGroup {
   /** Array of cards to display */
   items: MOJCardGroupItem[]
 
@@ -98,14 +97,12 @@ export type MOJCardGroup = ResolvableBlockProps<{
 
   /** Additional HTML attributes */
   attributes?: Record<string, string>
-}>
-
-type EvaluatedMOJCardGroupItem = EvaluatedBlock<MOJCardGroup>['items'][number]
+}
 
 /**
  * Normalizes a card item's heading and description to object form
  */
-function normalizeCardItem(item: EvaluatedMOJCardGroupItem): {
+function normalizeCardItem(item: MOJCardGroupItem): {
   heading: MOJCardGroupItemHeading
   href: string
   description: MOJCardGroupItemDescription | undefined
@@ -129,7 +126,7 @@ function normalizeCardItem(item: EvaluatedMOJCardGroupItem): {
   }
 }
 
-function normalizeHeading(heading: EvaluatedMOJCardGroupItem['heading']): MOJCardGroupItemHeading {
+function normalizeHeading(heading: MOJCardGroupItem['heading']): MOJCardGroupItemHeading {
   if (typeof heading === 'string') {
     return { text: heading }
   }

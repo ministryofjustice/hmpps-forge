@@ -1,4 +1,3 @@
-import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -21,7 +20,7 @@ import { nunjucksComponent } from '../../utils/nunjucksComponent'
  * })
  * ```
  */
-export type GovUKBackLink = ResolvableBlockProps<{
+export interface GovUKBackLink {
   /**
    * The value of the link's `href` attribute.
    * This is the URL that the user will be taken to when they click the back link.
@@ -53,7 +52,7 @@ export type GovUKBackLink = ResolvableBlockProps<{
    * Useful for adding custom data attributes or ARIA attributes.
    */
   attributes?: Record<string, any>
-}>
+}
 
 /**
  * GOV.UK Back Link component.

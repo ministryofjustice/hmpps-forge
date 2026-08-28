@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { ResolvableFieldProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
@@ -32,7 +31,7 @@ import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils
  * })
  * ```
  */
-export type GovUKPasswordInput = ResolvableFieldProps<{
+export interface GovUKPasswordInput {
   /**
    * The ID of the input. Defaults to the value of `code` if not provided.
    * @example 'user-password'
@@ -217,7 +216,7 @@ export type GovUKPasswordInput = ResolvableFieldProps<{
     /** Additional CSS classes for the toggle button */
     classes?: string
   }
-}>
+}
 
 /**
  * GOV.UK Password Input component.

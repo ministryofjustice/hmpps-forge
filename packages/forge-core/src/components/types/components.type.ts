@@ -1,35 +1,14 @@
 import type { ZodType } from 'zod'
-import type { BlockDefinition, EvaluatedBlock, FieldBlockDefinition } from './structures.type'
+import type {
+  BasicBlockProps,
+  BlockDefinition,
+  FieldBlockDefinition,
+  FieldBlockProps,
+  RenderedBlock,
+  ResolvableProps,
+} from './structures.type'
 
 type MaybePromise<T> = T | Promise<T>
-
-/**
- * Component render function
- *
- * Components are functions that take an evaluated block and an optional renderer,
- * returning framework-specific output. The optional `renderer` parameter allows
- * framework adapters to inject rendering dependencies at render time.
- *
- * @param block - The evaluated block with resolved properties
- * @param renderer - Optional renderer provided by the framework adapter
- * @returns Rendered component output
- *
- * @example
- * ```typescript
- * // Simple component (no renderer needed)
- * const htmlComponent: ComponentRenderer<HtmlBlock, string> = block => block.content
- *
- * // Template-based component (uses renderer)
- * const textInput: ComponentRenderer<TextInputBlock, string> = (block, renderer) => {
- *   const nunjucksEnv = renderer as nunjucks.Environment
- *   return nunjucksEnv.render('govuk/components/input/template.njk', { params })
- * }
- * ```
- */
-export type ComponentRenderer<T extends BlockDefinition, TRenderOutput = unknown> = (
-  block: EvaluatedBlock<T>,
-  renderer?: unknown,
-) => MaybePromise<TRenderOutput>
 
 /**
  * Component registry entry
@@ -39,15 +18,9 @@ export type ComponentRenderer<T extends BlockDefinition, TRenderOutput = unknown
  * strings, React components may return React nodes, and test components can return
  * whichever value the test needs.
  */
-export interface ComponentRegistryEntry<T extends BlockDefinition, TRenderOutput = unknown> {
+export interface ComponentRegistryEntry<TProps extends object = object, TRenderOutput = unknown> {
   variant: string
-  render(block: EvaluatedBlock<T>, renderer?: unknown): MaybePromise<TRenderOutput>
-
-  /**
-   * Type-inference marker only - never set at runtime. Gives generic consumers a bare
-   * `T` position to infer from (`EvaluatedBlock<T>` is a conditional type TS cannot invert).
-   */
-  readonly __block?: T
+  render(props: TProps, renderer?: unknown): MaybePromise<TRenderOutput>
 
   /**
    * The shape of the submitted (post-normalise) value this component can legitimately
@@ -69,97 +42,76 @@ export interface ComponentRegistryEntry<T extends BlockDefinition, TRenderOutput
    * so only it can say where focus should land. Returning `undefined` (or not
    * declaring this) falls back to the field code.
    */
-  errorAnchor?(props: ResolvedPropsOf<T>): string | undefined
+  errorAnchor?(props: TProps): string | undefined
+}
+
+type AuthorProps<TProps> = BasicBlockProps & ResolvableProps<TProps>
+
+type FieldAuthorProps<TProps> = FieldBlockProps & ResolvableProps<TProps>
+
+type ComponentBlock<TProps> = BlockDefinition & ResolvableProps<TProps>
+
+type FieldComponentBlock<TProps> = FieldBlockDefinition & ResolvableProps<TProps>
+
+type IsAny<T> = 0 extends 1 & T ? true : false
+
+type RenderValue<T> =
+  IsAny<T> extends true
+    ? T
+    : T extends BlockDefinition
+      ? RenderedBlock
+      : T extends (...args: never[]) => unknown
+        ? T
+        : T extends readonly (infer TItem)[]
+          ? RenderValue<TItem>[]
+          : T extends object
+            ? { [K in keyof T]: RenderValue<T[K]> }
+            : T
+
+type RenderProps<TProps> = {
+  [K in keyof TProps]: RenderValue<TProps[K]>
 }
 
 /**
- * The keys `component()` stamps onto every block it builds. Authors never supply
- * them, so they are stripped from the props a component accepts.
+ * What a component's render receives. Plain props pass through unchanged except
+ * for nested blocks, which the engine replaces with `RenderedBlock`. Fields also
+ * receive their evaluated `code`, `value` and `errors`.
  */
-type ComponentDiscriminatorKey = '_forge' | 'variant'
+export type ComponentRenderProps<TProps> = RenderProps<TProps> & Pick<BasicBlockProps, 'metadata'> & { value?: unknown }
 
-/**
- * The props an author writes for a block - everything on the block definition except
- * the `_forge` and `variant` keys that `component()` stamps automatically.
- * Optionality and JSDoc carry through from the block interface.
- */
-export type PropsOf<TBlock> = {
-  [K in keyof TBlock as K extends ComponentDiscriminatorKey ? never : K]: TBlock[K]
+export type FieldComponentRenderProps<TProps> = ComponentRenderProps<TProps> & {
+  code: string
+  errors?: { message: string; details?: Record<string, any> }[]
 }
 
-/**
- * The framework-declared keys render props keep. Everything else on the base
- * block definitions is consumed by the engine before render.
- */
-type RenderKeptKey = 'code' | 'metadata'
+export interface ComponentOptions<TProps extends object, TOutput = string, TRenderer = unknown> {
+  /** Turns the component's runtime props into rendered output. */
+  render: (props: ComponentRenderProps<TProps>, renderer: TRenderer) => TOutput
 
-/**
- * What a component's render receives - the evaluated block minus the keys the
- * engine has already consumed. `code`, `metadata`, `value` and `errors` come through.
- */
-export type ResolvedPropsOf<TBlock> = {
-  [K in keyof EvaluatedBlock<TBlock> as K extends Exclude<keyof FieldBlockDefinition, RenderKeptKey>
-    ? never
-    : K]: EvaluatedBlock<TBlock>[K]
-}
-
-/**
- * The options every component supplies.
- *
- * @typeParam TBlock - The component's block definition interface
- * @typeParam TOutput - What the component's render produces
- * @typeParam TRenderer - The renderer the framework adapter supplies at render time
- */
-export interface BaseComponentOptions<TBlock extends BlockDefinition, TOutput, TRenderer> {
-  /**
-   * Turns the block's render props into rendered output.
-   *
-   * The framework adapter supplies its renderer as the second argument - the
-   * Express/Nunjucks adapter passes a `nunjucks.Environment`.
-   *
-   * @example
-   * ```typescript
-   * render: (props, nunjucksEnv) =>
-   *   nunjucksEnv.render('components/card.njk', { params: { text: props.title } })
-   * ```
-   */
-  render: (props: ResolvedPropsOf<TBlock>, renderer: TRenderer) => TOutput
-
-  /**
-   * Adjusts the props an author wrote before the block is built from them. Runs each time
-   * the builder is called. Use it for props the component supplies itself - a date input
-   * prepending its ISO `formatters`, for instance.
-   *
-   * @example
-   * ```typescript
-   * prepare: props => ({
-   *   ...props,
-   *   formatters: [Transformer.Object.ToISO(datePaths), ...(props.formatters ?? [])],
-   * })
-   * ```
-   */
-  prepare?: (props: PropsOf<TBlock>) => PropsOf<TBlock>
+  /** Adjusts authored props before Forge builds the block. */
+  prepare?: (props: AuthorProps<TProps>) => AuthorProps<TProps>
 }
 
 /**
  * The extra options a field component supplies - a block that captures user input.
  *
- * @typeParam TBlock - The component's block definition interface
+ * @typeParam TProps - The plain props the component implementation consumes
  * @typeParam TOutput - What the component's render produces
  * @typeParam TRenderer - The renderer the framework adapter supplies at render time
  */
-export interface FieldComponentOptions<TBlock extends BlockDefinition, TOutput, TRenderer> extends BaseComponentOptions<
-  TBlock,
-  TOutput,
-  TRenderer
-> {
+export interface FieldComponentOptions<TProps extends object, TOutput = string, TRenderer = unknown> {
+  /** Turns the field's runtime props into rendered output. */
+  render: (props: FieldComponentRenderProps<TProps>, renderer: TRenderer) => TOutput
+
+  /** Adjusts authored props before Forge builds the field. */
+  prepare?: (props: FieldAuthorProps<TProps>) => FieldAuthorProps<TProps>
+
   /**
    * Marks this as a field component, so the block it builds is stamped
    * `_forge: ComponentCallType.FIELD` and takes part in answer capture and validation.
    *
-   * Required when the block interface extends {@link FieldBlockDefinition} and rejected
-   * when it does not - interfaces are erased at runtime, so field-ness has to be declared
-   * somewhere the runtime can see it.
+   * The literal selects the field overload, so callers receive field authoring props
+   * while `render()` receives evaluated field runtime props.
    */
   field: true
 
@@ -188,27 +140,15 @@ export interface FieldComponentOptions<TBlock extends BlockDefinition, TOutput, 
    * errorAnchor: props => props.idPrefix ?? props.code
    * ```
    */
-  errorAnchor?: (props: ResolvedPropsOf<TBlock>) => string | undefined
+  errorAnchor?: (props: FieldComponentRenderProps<TProps>) => string | undefined
 }
-
-/**
- * The options `component()` accepts: the field options when the block interface is a
- * field block, the base options otherwise.
- *
- * @typeParam TBlock - The component's block definition interface
- * @typeParam TOutput - What the component's render produces
- * @typeParam TRenderer - The renderer the framework adapter supplies at render time
- */
-export type ComponentOptions<
-  TBlock extends BlockDefinition,
-  TOutput = string,
-  TRenderer = unknown,
-> = TBlock extends FieldBlockDefinition
-  ? FieldComponentOptions<TBlock, TOutput, TRenderer>
-  : BaseComponentOptions<TBlock, TOutput, TRenderer>
 
 // A type alias intersection rather than an interface with a call signature: JetBrains IDEs
 // only render JSDoc tags on a const whose type resolves to something function-shaped.
+type ComponentBuilder<TProps, TBlock> =
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- `{} extends X` is the every-prop-optional test
+  {} extends TProps ? (props?: TProps) => TBlock : (props: TProps) => TBlock
+
 /**
  * What `component()` returns: a builder an author calls with props to create a block,
  * which is simultaneously the registry entry the framework renders with.
@@ -216,11 +156,30 @@ export type ComponentOptions<
  * When every prop is optional the props argument is too, so an all-defaults component
  * can be built with a bare call - `GovUKSectionBreak()`.
  *
- * @typeParam TBlock - The component's block definition interface
+ * @typeParam TProps - The plain props the component implementation consumes
  * @typeParam TOutput - What the component's render produces
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- `{} extends X` is the every-prop-optional test
-export type ForgeComponent<TBlock extends BlockDefinition, TOutput = string> = ({} extends PropsOf<TBlock>
-  ? (props?: PropsOf<TBlock>) => TBlock
-  : (props: PropsOf<TBlock>) => TBlock) &
-  ComponentRegistryEntry<TBlock, TOutput>
+export type ForgeComponent<TProps extends object, TOutput = string> = ComponentBuilder<
+  AuthorProps<TProps>,
+  ComponentBlock<TProps>
+> &
+  ComponentRegistryEntry<ComponentRenderProps<TProps>, TOutput>
+
+export type ForgeFieldComponent<TProps extends object, TOutput = string> = ComponentBuilder<
+  FieldAuthorProps<TProps>,
+  FieldComponentBlock<TProps>
+> &
+  ComponentRegistryEntry<FieldComponentRenderProps<TProps>, TOutput>
+
+/** A renderer-pinned form of {@link component}. */
+export interface ComponentFactory<TOutput, TRenderer> {
+  <TProps extends object>(
+    variant: string,
+    options: FieldComponentOptions<TProps, TOutput, TRenderer>,
+  ): ForgeFieldComponent<TProps, TOutput>
+
+  <TProps extends object>(
+    variant: string,
+    options: ComponentOptions<TProps, TOutput, TRenderer>,
+  ): ForgeComponent<TProps, TOutput>
+}

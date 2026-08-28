@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
@@ -22,7 +22,7 @@ export type MOJBannerType = 'success' | 'warning' | 'information'
  * })
  * ```
  */
-export type MOJBanner = ResolvableBlockProps<{
+export interface MOJBanner {
   /**
    * The type of banner which determines styling and icon.
    * Options: 'success', 'warning', 'information'
@@ -78,7 +78,7 @@ export type MOJBanner = ResolvableBlockProps<{
    * @example { 'data-module': 'custom-banner' }
    */
   attributes?: Record<string, string>
-}>
+}
 
 /**
  * MOJ Banner component.

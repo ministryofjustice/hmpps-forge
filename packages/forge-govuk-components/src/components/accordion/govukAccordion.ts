@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
@@ -112,7 +112,7 @@ export interface AccordionItem {
  * })
  * ```
  */
-export type GovUKAccordion = ResolvableBlockProps<{
+export interface GovUKAccordion {
   /**
    * Unique ID for the accordion.
    * Must be unique across the domain if `rememberExpanded` is true, as the expanded state
@@ -155,7 +155,7 @@ export type GovUKAccordion = ResolvableBlockProps<{
 
   /** Custom HTML attributes for the accordion element. */
   attributes?: Record<string, any>
-}>
+}
 
 /**
  * GOV.UK Accordion component.

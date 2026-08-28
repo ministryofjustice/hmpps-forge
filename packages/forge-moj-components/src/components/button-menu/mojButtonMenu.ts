@@ -1,4 +1,3 @@
-import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -152,7 +151,7 @@ export interface MOJButtonMenuItem {
  * })
  * ```
  */
-export type MOJButtonMenu = ResolvableBlockProps<{
+export interface MOJButtonMenu {
   /**
    * Configuration for the toggle button.
    * Sets the text and styling of the button that opens the menu.
@@ -190,7 +189,7 @@ export type MOJButtonMenu = ResolvableBlockProps<{
    * @example { 'data-module': 'custom-menu' }
    */
   attributes?: Record<string, string>
-}>
+}
 
 /**
  * MOJ Button Menu component.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ComponentRegistryEntry } from '../../../../src/components/types/components.type'
-import type { BlockDefinition, EvaluatedBlock } from '../../../../src/components'
-import type { ForgeRenderer, RenderContext } from '../../../../src/framework/types/rendering.type'
+import type { BlockDefinition } from '../../../../src/components'
+import type { ForgeRenderer, RenderContext, ResolvedBlock } from '../../../../src/framework/types/rendering.type'
 import { createForgePackage } from '../../../../src/authoring'
 import { ForgeTestHarness, type RequestTraceEvent } from '../../../../src/testing'
 import type { SerializedTraceSpan } from '../../../../src/engine/chassis/tracing/traceSpan.type'
@@ -39,8 +39,8 @@ function createRecordingRenderer(options: { asyncAssemble?: boolean } = {}): Rec
   const calls: RecordedCalls = { renderBlock: [], wrapNestedBlock: [], assemblePage: [] }
 
   const renderer: ForgeRenderer<unknown> = {
-    renderBlock(entry: ComponentRegistryEntry<BlockDefinition, unknown>, block: EvaluatedBlock<BlockDefinition>) {
-      calls.renderBlock.push({ variant: block.variant ?? '' })
+    renderBlock(entry: ComponentRegistryEntry<object, unknown>, block: ResolvedBlock) {
+      calls.renderBlock.push({ variant: String(block.variant ?? '') })
 
       return entry.render(block)
     },

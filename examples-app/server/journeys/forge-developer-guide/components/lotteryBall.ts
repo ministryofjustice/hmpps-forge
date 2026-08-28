@@ -1,18 +1,9 @@
 import { component } from '@ministryofjustice/hmpps-forge/core/components'
-import type {
-  BasicBlockProps,
-  BlockDefinition,
-  ResolvableString,
-} from '@ministryofjustice/hmpps-forge/core/components'
 
-export interface LotteryBallProps extends BasicBlockProps {
-  number: ResolvableString
+export interface LotteryBall {
+  number: string
   color?: 'blue' | 'green'
   classes?: string
-}
-
-export interface LotteryBall extends BlockDefinition, LotteryBallProps {
-  variant: 'lotteryBall'
 }
 
 export const LotteryBall = component<LotteryBall>('lotteryBall', {

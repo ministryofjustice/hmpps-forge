@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { ResolvableFieldProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
@@ -18,7 +17,7 @@ import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils
  * })
  * ```
  */
-export type GovUKCharacterCount = ResolvableFieldProps<{
+export interface GovUKCharacterCount {
   /**
    * The ID of the textarea. Defaults to the value of `code` if not provided.
    * @example 'feedback-textarea'
@@ -217,7 +216,7 @@ export type GovUKCharacterCount = ResolvableFieldProps<{
     /** Message when multiple words over limit */
     other?: string
   }
-}>
+}
 
 /**
  * GOV.UK Character Count component.

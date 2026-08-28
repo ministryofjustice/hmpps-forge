@@ -1,5 +1,4 @@
 import type { ComponentRegistryEntry } from '../../components/types/components.type'
-import type { BlockDefinition } from '../../components/types/structures.type'
 import type { BaseFunctionRegistry } from '../registries/BaseFunctionRegistry'
 import type { FunctionEntry, FunctionRegistryBuilder } from './functions.type'
 import type { JourneyDefinition } from './structures.type'
@@ -49,7 +48,7 @@ export interface ForgePackage<TDeps = Record<string, never>> {
    *
    * @see {@link ComponentRegistryEntry}
    */
-  components?: ComponentRegistryEntry<BlockDefinition, unknown>[]
+  components?: ComponentRegistryEntry<object, unknown>[]
 
   /**
    * Whether this package should be registered. Default: true

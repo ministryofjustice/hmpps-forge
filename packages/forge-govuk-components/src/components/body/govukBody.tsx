@@ -1,4 +1,3 @@
-import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { jsxComponent, raw } from '@ministryofjustice/hmpps-forge/jsx-components'
 
 type BodySize = 'l' | 's'
@@ -15,7 +14,7 @@ type BodySize = 'l' | 's'
  * GovUKBody({ text: 'Small print text', size: 's' })
  * ```
  */
-export type GovUKBody = ResolvableBlockProps<{
+export interface GovUKBody {
   /**
    * Text content for the paragraph. Supports dynamic expressions.
    *
@@ -32,7 +31,7 @@ export type GovUKBody = ResolvableBlockProps<{
 
   /** HTML attributes to add to the paragraph element. */
   attributes?: Record<string, any>
-}>
+}
 
 /**
  * GOV.UK styled paragraph.

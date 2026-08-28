@@ -1,4 +1,3 @@
-import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -99,7 +98,7 @@ export interface MOJSideNavigationSection {
  * })
  * ```
  */
-export type MOJSideNavigation = ResolvableBlockProps<{
+export interface MOJSideNavigation {
   /**
    * The aria-label to add to the navigation container.
    * @example 'Side navigation'
@@ -129,7 +128,7 @@ export type MOJSideNavigation = ResolvableBlockProps<{
    * @example { 'data-module': 'app-navigation' }
    */
   attributes?: Record<string, string>
-}>
+}
 
 /**
  * MOJ Side Navigation component.

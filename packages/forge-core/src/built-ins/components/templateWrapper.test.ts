@@ -1,15 +1,19 @@
-import type { EvaluatedBlock } from '../../components/types/structures.type'
 import { TemplateWrapper } from './templateWrapper'
-import { ComponentCallType } from '../../shared/taxonomy'
+import { component } from '../../components/component'
+import { ComponentRegistryTestHarness } from '../../testing/components/ComponentRegistryTestHarness'
+
+const TestChild = component<{ html: string }>('testChild', { render: props => props.html })
 
 describe('templateWrapper component', () => {
-  const mockBlock = (overrides?: Partial<EvaluatedBlock<TemplateWrapper>>): EvaluatedBlock<TemplateWrapper> =>
-    ({
-      _forge: ComponentCallType.BASIC,
-      variant: 'templateWrapper',
+  const harness = new ComponentRegistryTestHarness([TemplateWrapper, TestChild])
+
+  const mockBlock = (overrides?: Partial<TemplateWrapper>) =>
+    TemplateWrapper({
       template: '<div>{{slot:content}}</div>',
       ...overrides,
-    }) as EvaluatedBlock<TemplateWrapper>
+    })
+
+  const child = (html: string) => TestChild({ html })
 
   describe('render()', () => {
     it('should render template with slot content', async () => {
@@ -17,15 +21,12 @@ describe('templateWrapper component', () => {
       const block = mockBlock({
         template: '<section>{{slot:content}}</section>',
         slots: {
-          content: [
-            { block: { _forge: ComponentCallType.BASIC, variant: 'html' }, html: '<p>Hello</p>' },
-            { block: { _forge: ComponentCallType.BASIC, variant: 'html' }, html: '<p>World</p>' },
-          ],
+          content: [child('<p>Hello</p>'), child('<p>World</p>')],
         },
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<section><p>Hello</p><p>World</p></section>')
@@ -36,24 +37,14 @@ describe('templateWrapper component', () => {
       const block = mockBlock({
         template: '<div>{{slot:header}}<main>{{slot:content}}</main>{{slot:footer}}</div>',
         slots: {
-          header: [
-            {
-              block: { _forge: ComponentCallType.BASIC, variant: 'html' },
-              html: '<h1>Title</h1>',
-            },
-          ],
-          content: [{ block: { _forge: ComponentCallType.BASIC, variant: 'html' }, html: '<p>Body</p>' }],
-          footer: [
-            {
-              block: { _forge: ComponentCallType.BASIC, variant: 'html' },
-              html: '<footer>End</footer>',
-            },
-          ],
+          header: [child('<h1>Title</h1>')],
+          content: [child('<p>Body</p>')],
+          footer: [child('<footer>End</footer>')],
         },
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<div><h1>Title</h1><main><p>Body</p></main><footer>End</footer></div>')
@@ -70,7 +61,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<h2>Journey Config</h2><p>Learn about journey configuration.</p>')
@@ -85,17 +76,12 @@ describe('templateWrapper component', () => {
           footer: 'See also...',
         },
         slots: {
-          content: [
-            {
-              block: { _forge: ComponentCallType.BASIC, variant: 'html' },
-              html: '<p>Content here</p>',
-            },
-          ],
+          content: [child('<p>Content here</p>')],
         },
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<section><h2>My Section</h2><p>Content here</p><p>See also...</p></section>')
@@ -106,17 +92,12 @@ describe('templateWrapper component', () => {
       const block = mockBlock({
         template: '<div>{{slot:content}}{{slot:missing}}</div>',
         slots: {
-          content: [
-            {
-              block: { _forge: ComponentCallType.BASIC, variant: 'html' },
-              html: '<p>Present</p>',
-            },
-          ],
+          content: [child('<p>Present</p>')],
         },
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<div><p>Present</p></div>')
@@ -132,7 +113,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<div>Hello</div>')
@@ -146,7 +127,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<div class="govuk-section"><p>Content</p></div>')
@@ -163,7 +144,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<div data-module="section" id="my-section"><p>Content</p></div>')
@@ -180,7 +161,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<div class="custom-class" data-test="value"><p>Content</p></div>')
@@ -194,7 +175,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<section><p>Content</p></section>')
@@ -209,7 +190,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<aside class="app-sidebar"><p>Content</p></aside>')
@@ -227,7 +208,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<nav class="app-nav" aria-label="Main navigation"><p>Content</p></nav>')
@@ -240,7 +221,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<div><p>Plain template</p></div>')
@@ -256,7 +237,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<div></div>')
@@ -267,17 +248,12 @@ describe('templateWrapper component', () => {
       const block = mockBlock({
         template: '<div>{{slot:content}}</div><div>{{slot:content}}</div>',
         slots: {
-          content: [
-            {
-              block: { _forge: ComponentCallType.BASIC, variant: 'html' },
-              html: '<span>Repeated</span>',
-            },
-          ],
+          content: [child('<span>Repeated</span>')],
         },
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<div><span>Repeated</span></div><div><span>Repeated</span></div>')
@@ -293,7 +269,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<span>Alice</span> and <span>Alice</span>')
@@ -309,7 +285,7 @@ describe('templateWrapper component', () => {
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<ul><li>One</li><li>Two</li><li>Three</li></ul>')
@@ -320,15 +296,12 @@ describe('templateWrapper component', () => {
       const block = mockBlock({
         template: '<div>{{content}}</div>',
         values: {
-          content: {
-            block: { _forge: ComponentCallType.BASIC, variant: 'html' },
-            html: '<p>Rendered block content</p>',
-          } as unknown as string,
+          content: child('<p>Rendered block content</p>') as unknown as string,
         },
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<div><p>Rendered block content</p></div>')
@@ -339,21 +312,12 @@ describe('templateWrapper component', () => {
       const block = mockBlock({
         template: '<ul>{{items}}</ul>',
         values: {
-          items: [
-            {
-              block: { _forge: ComponentCallType.BASIC, variant: 'html' },
-              html: '<li>First</li>',
-            },
-            {
-              block: { _forge: ComponentCallType.BASIC, variant: 'html' },
-              html: '<li>Second</li>',
-            },
-          ] as unknown as string,
+          items: [child('<li>First</li>'), child('<li>Second</li>')] as unknown as string,
         },
       })
 
       // Act
-      const result = await TemplateWrapper.render(block)
+      const result = await harness.render(block)
 
       // Assert
       expect(result).toBe('<ul><li>First</li><li>Second</li></ul>')

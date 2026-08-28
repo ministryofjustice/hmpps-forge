@@ -1,4 +1,3 @@
-import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -77,7 +76,7 @@ export interface PaginationItem {
  * })
  * ```
  */
-export type GovUKPagination = ResolvableBlockProps<{
+export interface GovUKPagination {
   /** Link to the previous page. */
   previous?: PaginationLink
 
@@ -95,7 +94,7 @@ export type GovUKPagination = ResolvableBlockProps<{
 
   /** Custom HTML attributes for the pagination nav element. */
   attributes?: Record<string, any>
-}>
+}
 
 /**
  * GOV.UK Pagination component.

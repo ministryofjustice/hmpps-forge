@@ -2,8 +2,8 @@
 title: Custom components
 section: building-functions-and-components
 path: building-functions-and-components/custom-components
-teaches: [component, nunjucksComponent, ComponentRenderer, EvaluatedBlock, RenderedBlock, custom-component-variant, field-value, field-errors]
-prerequisites: [block, field, BlockDefinition, FieldBlockProps, createForgePackage]
+teaches: [component, nunjucksComponent, ComponentRegistryTestHarness, plain-component-props, RenderedBlock, custom-component-variant, field-value, field-errors]
+prerequisites: [block, field, createForgePackage]
 ---
 
 <p class="govuk-caption-xl">Components</p>
@@ -48,60 +48,40 @@ been pre-rendered to HTML. The component only sees concrete values.
 
 ## The props interface
 
-Every custom component starts with a props interface. This is the
-public API that journey definitions use, and the type that shapes
-what the component's builder accepts.
-
-Extend `BasicBlockProps` for a display component, or `FieldBlockProps`
-for one that captures user input:
+Every custom component starts with an ordinary props interface. It describes
+the concrete values the component implementation renders:
 
 ```typescript
-import type {
-  BasicBlockProps,
-  ResolvableString,
-  ResolvableBoolean,
-} from '@ministryofjustice/hmpps-forge/core/components'
-
-export interface MyCardProps extends BasicBlockProps {
+export interface MyCardProps {
   /** The card's heading. */
-  heading: ResolvableString
+  heading: string
   /** Body text shown below the heading. */
-  content?: ResolvableString
+  content?: string
   /** Whether to show a subtle border. */
-  outlined?: ResolvableBoolean
+  outlined?: boolean
 }
 ```
 
-Use the `Resolvable*` types for any prop that should accept
-expressions from the authoring language. `ResolvableString` accepts
-a plain string, an `Answer()` or `Data()` reference, a `Format()`
-expression, a pipeline, or any other expression that resolves to a
-string. The same pattern applies to `ResolvableBoolean`,
-`ResolvableNumber`, and `ResolvableArray<T>`.
-
-Properties that should stay static (an inline `attributes` record,
-for example) can use plain TypeScript types.
+`component()` derives the journey-authoring side from this interface. A plain
+`string` prop therefore accepts either a string or an expression that resolves
+to one when an author calls the component. The render implementation still sees
+the original `string` type. Forge also adds `visibleWhen` and `metadata` to the
+builder automatically.
 
 ---
 
 ## Declaring the component
 
-Pair the props with a block interface that fixes the `variant`, then
-declare the component with `component()`. The result is a callable
-block builder - authors call it with props and never set the variant
-themselves - and the same value carries the renderer.
+Pass the props interface directly to `component()`. The result is a callable
+block builder - authors call it with expression-aware props and never set the
+variant themselves - and the same value carries the renderer.
 
 For a display block:
 
 ```typescript
 import { component } from '@ministryofjustice/hmpps-forge/core/components'
-import type { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 
-export interface MyCard extends BlockDefinition, MyCardProps {
-  variant: 'myCard'
-}
-
-export const MyCard = component<MyCard>('myCard', {
+export const MyCard = component<MyCardProps>('myCard', {
   render: block => {
     const border = block.outlined ? ' my-card--outlined' : ''
 
@@ -115,19 +95,19 @@ export const MyCard = component<MyCard>('myCard', {
 })
 ```
 
-For a field block, extend `FieldBlockDefinition` and declare
-`field: true`. Field blocks gain a `code`, validation, and the
-runtime `value`/`errors` state described below.
+For a field block, declare only its visual props and set `field: true`.
+The builder gains `code`, validation, defaults, parsers and formatters;
+the renderer gains the resolved `code`, `value`, and `errors` described below.
 
 ```typescript
 import { component } from '@ministryofjustice/hmpps-forge/core/components'
-import type { FieldBlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 
-export interface MyStarRating extends FieldBlockDefinition, MyStarRatingProps {
-  variant: 'myStarRating'
+export interface MyStarRatingProps {
+  label: string
+  maximum?: number
 }
 
-export const MyStarRating = component<MyStarRating>('myStarRating', {
+export const MyStarRating = component<MyStarRatingProps>('myStarRating', {
   field: true,
   render: block => { ... },
 })
@@ -137,13 +117,13 @@ export const MyStarRating = component<MyStarRating>('myStarRating', {
 
 ## The renderer
 
-The `render` option is a function that receives the evaluated block
+The `render` option is a function that receives the resolved props
 and returns an HTML string. There are two ways to produce that HTML.
 
 ### Pure function components
 
 The plain `component()` form shown above is the simpler of the two:
-the render function takes the evaluated block and returns HTML
+the render function takes the resolved props and returns HTML
 directly. Use this when the output is short, self-contained, and
 does not need a template engine.
 
@@ -152,13 +132,13 @@ does not need a template engine.
 `nunjucksComponent` (from `@ministryofjustice/hmpps-forge/express-nunjucks`)
 is the right choice when you want to render through a Nunjucks
 template. It is `component()` with the render signature pinned: the
-render function receives the evaluated block and a Nunjucks
+render function receives the resolved props and a Nunjucks
 environment supplied by Forge.
 
 ```typescript
 import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
-export const MyCard = nunjucksComponent<MyCard>('myCard', {
+export const MyCard = nunjucksComponent<MyCardProps>('myCard', {
   render: (block, nunjucksEnv) => {
     const params = {
       heading: block.heading,
@@ -172,21 +152,20 @@ export const MyCard = nunjucksComponent<MyCard>('myCard', {
 ```
 
 The built-in GOV.UK and MOJ components follow this pattern. Each one
-extracts a `params` object from the evaluated block, then hands that
+extracts a `params` object from the resolved props, then hands that
 to the matching design-system template. Your own Nunjucks components
 should do the same: keep the renderer thin, and let the template
 deal with markup.
 
 ---
 
-## What the evaluated block contains
+## What the render props contain
 
-The block passed to your renderer is an `EvaluatedBlock`. The
-important points:
+The props passed to your renderer are inferred from the plain interface.
+The important points:
 
-- **All `Resolvable*` props are resolved values.** If your prop type
-  was `ResolvableString`, `block.heading` is now a plain `string`.
-  There is no expression object to evaluate.
+- **Plain props stay plain.** A declared `heading: string` is a `string`
+  in `render`, even when the journey author supplied an expression.
 - **Props omitted in the definition are `undefined`.** Guard before
   reading them, especially for optional content.
 - **Field blocks gain `value` and `errors`.** `block.value` is the
@@ -455,35 +434,36 @@ MyCard({
 })
 ```
 
-Because the props accept `Resolvable*` types, authors can pass
-expressions wherever the type allows. Forge resolves them before
-calling the renderer.
+The component's call signature derives expression-aware versions of the plain
+props, so authors can pass expressions wherever the declared result type allows.
+Forge resolves them before calling the renderer.
 
 ---
 
 ## Testing
 
-Renderers are plain functions, and the component carries its own
-`render`. Call it with a hand-crafted evaluated block and assert on
-the returned HTML. Pure-function components need no framework setup:
+`ComponentRegistryTestHarness` tests the same author-facing component call used
+in a journey. It looks up the registered component, renders nested blocks first,
+and invokes the component through Forge's rendering boundary. Tests do not need
+to construct internal render props:
 
 ```typescript
+import { ComponentRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 import { MyCard } from './myCard'
-import type { EvaluatedBlock } from '@ministryofjustice/hmpps-forge/core/components'
 
 describe('MyCard', () => {
   describe('render()', () => {
-    it('should include the heading text', () => {
+    it('should include the heading text', async () => {
       // Arrange
-      const block = {
-        variant: 'myCard',
+      const harness = new ComponentRegistryTestHarness(MyCard)
+      const block = MyCard({
         heading: 'Hello',
         content: 'Body text',
         outlined: false,
-      } as unknown as EvaluatedBlock<MyCard>
+      })
 
       // Act
-      const html = MyCard.render(block)
+      const html = await harness.render(block)
 
       // Assert
       expect(html).toContain('Hello')
@@ -493,21 +473,17 @@ describe('MyCard', () => {
 })
 ```
 
-For a `nunjucksComponent` renderer, pass a stub with a `render`
-method to assert on the template path and params:
+For a `nunjucksComponent`, pass the Nunjucks environment as the harness's
+component renderer and assert on its template call:
 
 ```typescript
-it('should pass heading to the template', () => {
+it('should pass heading to the template', async () => {
   // Arrange
   const nunjucksEnv = { render: jest.fn().mockReturnValue('<div></div>') }
-
-  const block = {
-    variant: 'myCard',
-    heading: 'Hello',
-  } as unknown as EvaluatedBlock<MyCard>
+  const harness = new ComponentRegistryTestHarness(MyCard, nunjucksEnv)
 
   // Act
-  MyCard.render(block, nunjucksEnv)
+  await harness.render(MyCard({ heading: 'Hello' }))
 
   // Assert
   expect(nunjucksEnv.render).toHaveBeenCalledWith(
@@ -517,19 +493,29 @@ it('should pass heading to the template', () => {
 })
 ```
 
-For field components, include `value` and `errors` in the test
-block to exercise populated and error states separately.
+Field runtime values and errors use the same injected-input shape as the
+function harness:
+
+```typescript
+const harness = new ComponentRegistryTestHarness(MyInput, nunjucksEnv)
+
+await harness
+  .render(MyInput({ code: 'name', label: 'Name' }))
+  .withValue('Ada', [{ message: 'Check the name' }])
+```
+
+Use concrete authored values in component unit tests. Use `ForgeTestHarness`
+when the test is about resolving expressions from answers, data or request state.
 
 ---
 
 ## Best practices
 
-- **Use `Resolvable*` types for props that should accept
-  expressions.** Plain string, boolean, number, and array types
-  prevent authors from passing `Answer()`, `Data()`, or pipelines,
-  which is almost never what you want for display properties.
+- **Declare the values the renderer actually consumes.** Plain string,
+  boolean, number, array and object types become expression-aware in the
+  component's builder automatically.
 - **Keep renderers thin.** A renderer pulls values off the
-  evaluated block and hands them to a template or a short HTML
+  resolved props and hands them to a template or a short HTML
   string. Move logic that belongs in the authoring layer
   (conditions, formatting) into the definition instead.
 - **Escape all dynamic values in pure-function components.** Nunjucks

@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { ResolvableFieldProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
@@ -18,7 +17,7 @@ import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils
  * })
  * ```
  */
-export type GovUKTextareaInput = ResolvableFieldProps<{
+export interface GovUKTextareaInput {
   /**
    * The ID of the textarea. Defaults to the value of `code` if not provided.
    *
@@ -153,7 +152,7 @@ export type GovUKTextareaInput = ResolvableFieldProps<{
 
   /** Additional HTML attributes (such as data attributes) to add to the textarea element. */
   attributes?: Record<string, any>
-}>
+}
 
 /**
  * GOV.UK Textarea component.

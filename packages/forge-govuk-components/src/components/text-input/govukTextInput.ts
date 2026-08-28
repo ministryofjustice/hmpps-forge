@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { ResolvableFieldProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
@@ -18,7 +17,7 @@ import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils
  * })
  * ```
  */
-export type GovUKTextInput = ResolvableFieldProps<{
+export interface GovUKTextInput {
   /**
    * The ID of the input. Defaults to the value of `code` if not provided.
    * @example 'user-email'
@@ -241,7 +240,7 @@ export type GovUKTextInput = ResolvableFieldProps<{
    * @example { 'aria-describedby': 'additional-help-text' }
    */
   attributes?: Record<string, any>
-}>
+}
 
 /**
  * GOV.UK Text Input component.

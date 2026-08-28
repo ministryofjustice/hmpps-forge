@@ -1,35 +1,22 @@
-import { CollectionBlock, EvaluatedCollectionBlock } from './collectionBlock'
-import { ComponentCallType } from '../../shared/taxonomy'
-import type { RenderedBlock } from '../../components/types/structures.type'
+import { component } from '../../components/component'
+import { ComponentRegistryTestHarness } from '../../testing/components/ComponentRegistryTestHarness'
+import { CollectionBlock } from './collectionBlock'
+
+const TestBlock = component<{ html: string }>('testBlock', { render: props => props.html })
+
+const harness = new ComponentRegistryTestHarness([CollectionBlock, TestBlock])
+
+const testBlock = (html: string) => TestBlock({ html })
 
 describe('collectionBlock component', () => {
-  const mockEvaluatedBlock = (overrides?: Partial<EvaluatedCollectionBlock>): EvaluatedCollectionBlock =>
-    ({
-      _forge: ComponentCallType.BASIC,
-      variant: 'collection-block',
-      ...overrides,
-    }) as EvaluatedCollectionBlock
-
-  const mockRenderedBlock = (html: string): RenderedBlock => ({
-    block: {
-      _forge: ComponentCallType.BASIC,
-      variant: 'test',
-    },
-    html,
-  })
-
   it('should render collection when it has items', async () => {
     // Arrange
-    const block = mockEvaluatedBlock({
-      collection: [
-        mockRenderedBlock('<div>Item 1</div>'),
-        mockRenderedBlock('<div>Item 2</div>'),
-        mockRenderedBlock('<div>Item 3</div>'),
-      ],
+    const block = CollectionBlock({
+      collection: [testBlock('<div>Item 1</div>'), testBlock('<div>Item 2</div>'), testBlock('<div>Item 3</div>')],
     })
 
     // Act
-    const result = await CollectionBlock.render(block as any)
+    const result = await harness.render(block)
 
     // Assert
     expect(result).toBe('<div>Item 1</div><div>Item 2</div><div>Item 3</div>')
@@ -37,12 +24,10 @@ describe('collectionBlock component', () => {
 
   it('should render empty string when collection is empty', async () => {
     // Arrange
-    const block = mockEvaluatedBlock({
-      collection: [],
-    })
+    const block = CollectionBlock({ collection: [] })
 
     // Act
-    const result = await CollectionBlock.render(block as any)
+    const result = await harness.render(block)
 
     // Assert
     expect(result).toBe('')
@@ -50,13 +35,13 @@ describe('collectionBlock component', () => {
 
   it('should render with wrapper div when classes are provided', async () => {
     // Arrange
-    const block = mockEvaluatedBlock({
-      collection: [mockRenderedBlock('<div>Item 1</div>'), mockRenderedBlock('<div>Item 2</div>')],
+    const block = CollectionBlock({
+      collection: [testBlock('<div>Item 1</div>'), testBlock('<div>Item 2</div>')],
       classes: 'collection-wrapper custom-class',
     })
 
     // Act
-    const result = await CollectionBlock.render(block as any)
+    const result = await harness.render(block)
 
     // Assert
     expect(result).toBe('<div class="collection-wrapper custom-class"><div>Item 1</div><div>Item 2</div></div>')
@@ -64,8 +49,8 @@ describe('collectionBlock component', () => {
 
   it('should render with wrapper div when attributes are provided', async () => {
     // Arrange
-    const block = mockEvaluatedBlock({
-      collection: [mockRenderedBlock('<div>Item 1</div>')],
+    const block = CollectionBlock({
+      collection: [testBlock('<div>Item 1</div>')],
       attributes: {
         'data-collection': 'items',
         id: 'item-list',
@@ -73,7 +58,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await CollectionBlock.render(block as any)
+    const result = await harness.render(block)
 
     // Assert
     expect(result).toBe('<div data-collection="items" id="item-list"><div>Item 1</div></div>')
@@ -81,8 +66,8 @@ describe('collectionBlock component', () => {
 
   it('should render with wrapper div when both classes and attributes are provided', async () => {
     // Arrange
-    const block = mockEvaluatedBlock({
-      collection: [mockRenderedBlock('<div>Item 1</div>'), mockRenderedBlock('<div>Item 2</div>')],
+    const block = CollectionBlock({
+      collection: [testBlock('<div>Item 1</div>'), testBlock('<div>Item 2</div>')],
       classes: 'styled-collection',
       attributes: {
         'data-count': '2',
@@ -91,7 +76,7 @@ describe('collectionBlock component', () => {
     })
 
     // Act
-    const result = await CollectionBlock.render(block as any)
+    const result = await harness.render(block)
 
     // Assert
     expect(result).toBe(
@@ -101,14 +86,14 @@ describe('collectionBlock component', () => {
 
   it('should render with specified tag instead of div', async () => {
     // Arrange
-    const block = mockEvaluatedBlock({
-      collection: [mockRenderedBlock('<li>Item 1</li>'), mockRenderedBlock('<li>Item 2</li>')],
+    const block = CollectionBlock({
+      collection: [testBlock('<li>Item 1</li>'), testBlock('<li>Item 2</li>')],
       tag: 'ul',
       classes: 'govuk-list',
     })
 
     // Act
-    const result = await CollectionBlock.render(block as any)
+    const result = await harness.render(block)
 
     // Assert
     expect(result).toBe('<ul class="govuk-list"><li>Item 1</li><li>Item 2</li></ul>')
@@ -116,13 +101,13 @@ describe('collectionBlock component', () => {
 
   it('should render with tag even without classes or attributes', async () => {
     // Arrange
-    const block = mockEvaluatedBlock({
-      collection: [mockRenderedBlock('<li>Item 1</li>')],
+    const block = CollectionBlock({
+      collection: [testBlock('<li>Item 1</li>')],
       tag: 'ol',
     })
 
     // Act
-    const result = await CollectionBlock.render(block as any)
+    const result = await harness.render(block)
 
     // Assert
     expect(result).toBe('<ol><li>Item 1</li></ol>')
@@ -130,13 +115,13 @@ describe('collectionBlock component', () => {
 
   it('should render empty wrapper when classes provided and collection is empty', async () => {
     // Arrange
-    const block = mockEvaluatedBlock({
+    const block = CollectionBlock({
       collection: [],
       classes: 'empty-collection',
     })
 
     // Act
-    const result = await CollectionBlock.render(block as any)
+    const result = await harness.render(block)
 
     // Assert
     expect(result).toBe('<div class="empty-collection"></div>')
@@ -144,17 +129,15 @@ describe('collectionBlock component', () => {
 
   it('should handle complex nested HTML in collection', async () => {
     // Arrange
-    const html1 = '<div class="card"><h3>Title 1</h3></div>'
-    const html2 = '<div class="card"><h3>Title 2</h3></div>'
-    const block = mockEvaluatedBlock({
-      collection: [mockRenderedBlock(html1), mockRenderedBlock(html2)],
-    })
+    const firstHtml = '<div class="card"><h3>Title 1</h3></div>'
+    const secondHtml = '<div class="card"><h3>Title 2</h3></div>'
+    const block = CollectionBlock({ collection: [testBlock(firstHtml), testBlock(secondHtml)] })
 
     // Act
-    const result = await CollectionBlock.render(block as any)
+    const result = await harness.render(block)
 
     // Assert
-    expect(result).toBe(`${html1}${html2}`)
+    expect(result).toBe(`${firstHtml}${secondHtml}`)
   })
 
   it('should have the correct variant', () => {
@@ -162,102 +145,29 @@ describe('collectionBlock component', () => {
     expect(CollectionBlock.variant).toBe('collection-block')
   })
 
-  it('should handle undefined collection', async () => {
-    // Arrange
-    const block = mockEvaluatedBlock({
-      collection: undefined,
-    })
-
-    // Act
-    const result = await CollectionBlock.render(block as any)
-
-    // Assert
-    expect(result).toBe('')
-  })
-
-  it('should handle plain string items in collection', async () => {
-    // Arrange
-    const block = mockEvaluatedBlock({
-      collection: ['<li>Item 1</li>', '<li>Item 2</li>', '<li>Item 3</li>'] as unknown as any[],
-    })
-
-    // Act
-    const result = await CollectionBlock.render(block as any)
-
-    // Assert
-    expect(result).toBe('<li>Item 1</li><li>Item 2</li><li>Item 3</li>')
-  })
-
-  it('should handle mixed rendered blocks and strings in collection', async () => {
-    // Arrange
-    const block = mockEvaluatedBlock({
-      collection: [
-        mockRenderedBlock('<div>Block 1</div>'),
-        '<p>Plain string</p>',
-        mockRenderedBlock('<div>Block 2</div>'),
-      ] as unknown as any[],
-    })
-
-    // Act
-    const result = await CollectionBlock.render(block as any)
-
-    // Assert
-    expect(result).toBe('<div>Block 1</div><p>Plain string</p><div>Block 2</div>')
-  })
-
-  it('should handle nested arrays in collection items', async () => {
-    // Arrange
-    const block = mockEvaluatedBlock({
-      collection: [
-        ['<li>Nested 1</li>', '<li>Nested 2</li>'],
-        mockRenderedBlock('<li>Block item</li>'),
-      ] as unknown as any[],
-    })
-
-    // Act
-    const result = await CollectionBlock.render(block as any)
-
-    // Assert
-    expect(result).toBe('<li>Nested 1</li><li>Nested 2</li><li>Block item</li>')
-  })
-
   it('should render fallback when collection is empty', async () => {
     // Arrange
-    const block = mockEvaluatedBlock({
+    const block = CollectionBlock({
       collection: [],
-      fallback: [mockRenderedBlock('<p>No items found</p>')],
+      fallback: [testBlock('<p>No items found</p>')],
     })
 
     // Act
-    const result = await CollectionBlock.render(block as any)
+    const result = await harness.render(block)
 
     // Assert
     expect(result).toBe('<p>No items found</p>')
   })
 
-  it('should render fallback when collection is undefined', async () => {
-    // Arrange
-    const block = mockEvaluatedBlock({
-      collection: undefined,
-      fallback: [mockRenderedBlock('<p>No items available</p>')],
-    })
-
-    // Act
-    const result = await CollectionBlock.render(block as any)
-
-    // Assert
-    expect(result).toBe('<p>No items available</p>')
-  })
-
   it('should render collection items instead of fallback when collection has items', async () => {
     // Arrange
-    const block = mockEvaluatedBlock({
-      collection: [mockRenderedBlock('<div>Item 1</div>')],
-      fallback: [mockRenderedBlock('<p>No items found</p>')],
+    const block = CollectionBlock({
+      collection: [testBlock('<div>Item 1</div>')],
+      fallback: [testBlock('<p>No items found</p>')],
     })
 
     // Act
-    const result = await CollectionBlock.render(block as any)
+    const result = await harness.render(block)
 
     // Assert
     expect(result).toBe('<div>Item 1</div>')
@@ -265,14 +175,14 @@ describe('collectionBlock component', () => {
 
   it('should render fallback with wrapper div when classes are provided', async () => {
     // Arrange
-    const block = mockEvaluatedBlock({
+    const block = CollectionBlock({
       collection: [],
-      fallback: [mockRenderedBlock('<p>Empty state</p>')],
+      fallback: [testBlock('<p>Empty state</p>')],
       classes: 'empty-collection',
     })
 
     // Act
-    const result = await CollectionBlock.render(block as any)
+    const result = await harness.render(block)
 
     // Assert
     expect(result).toBe('<div class="empty-collection"><p>Empty state</p></div>')

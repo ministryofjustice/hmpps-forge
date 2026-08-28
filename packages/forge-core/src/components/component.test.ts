@@ -6,48 +6,59 @@ import { ComponentCallType } from '../shared/taxonomy'
 import { component } from './component'
 import type {
   ComponentOptions,
+  ComponentRenderProps,
   ComponentRegistryEntry,
+  FieldComponentRenderProps,
+  FieldComponentOptions,
   ForgeComponent,
-  PropsOf,
-  ResolvedPropsOf,
 } from './types/components.type'
-import type { BlockDefinition, EvaluatedBlock, FieldBlockDefinition, ResolvableBoolean } from './types/structures.type'
+import type {
+  BlockDefinition,
+  FieldBlockDefinition,
+  RenderedBlock,
+  ResolvableBoolean,
+  ResolvableProps,
+  ResolvableString,
+} from './types/structures.type'
 
-interface TestCard extends BlockDefinition {
+interface TestCardProps {
   /** Text shown as the card's title */
   title: string
 
   /** Optional supporting text */
   hint?: string
+
+  /** Optional rendered content */
+  content?: BlockDefinition
 }
 
-const TestCard = component<TestCard>('testCard', { render: card => `<h2>${card.title}</h2>` })
+const TestCard = component<TestCardProps>('testCard', { render: card => `<h2>${card.title}</h2>` })
+type TestCardBlock = ReturnType<typeof TestCard>
 
-interface TestField extends FieldBlockDefinition {
+interface TestFieldProps {
   /** Label shown above the input */
   label: string
 }
 
-const TestField = component<TestField>('testField', {
+const TestField = component<TestFieldProps>('testField', {
   field: true,
   render: input => `<label>${input.label}</label>`,
   inputSchema: z.string(),
 })
+type TestFieldBlock = ReturnType<typeof TestField>
 
-interface TestDivider extends BlockDefinition {
+interface TestDividerProps {
   /** Optional modifier class */
   classes?: string
 }
 
-const TestDivider = component<TestDivider>('testDivider', {
+const TestDivider = component<TestDividerProps>('testDivider', {
   render: divider => `<hr class="${divider.classes ?? 'divider'}">`,
 })
 
 const evaluatedCard = {
-  _forge: ComponentCallType.BASIC,
-  variant: 'testCard',
   title: 'Card title',
-} as EvaluatedBlock<TestCard>
+} satisfies ComponentRenderProps<TestCardProps>
 
 describe('component()', () => {
   describe('block building', () => {
@@ -76,8 +87,11 @@ describe('component()', () => {
 
     it('should still run prepare on a bare call', () => {
       // Arrange
-      const prepare = vi.fn((props: PropsOf<TestDivider>) => ({ ...props, classes: 'prepared' }))
-      const PreparedDivider = component<TestDivider>('preparedDivider', {
+      const prepare: NonNullable<ComponentOptions<TestDividerProps>['prepare']> = vi.fn(props => ({
+        ...props,
+        classes: 'prepared',
+      }))
+      const PreparedDivider = component<TestDividerProps>('preparedDivider', {
         render: divider => `<hr class="${divider.classes}">`,
         prepare,
       })
@@ -107,7 +121,7 @@ describe('component()', () => {
       const built = TestCard(props)
 
       // Assert
-      expect(built).toEqual(block<TestCard>({ ...props, variant: 'testCard' }))
+      expect(built).toEqual(block<TestCardBlock>({ ...props, variant: 'testCard' }))
       expect(built.visibleWhen).not.toHaveProperty('build')
     })
 
@@ -119,15 +133,15 @@ describe('component()', () => {
       const built = TestField(props)
 
       // Assert
-      expect(built).toEqual(field<TestField>({ ...props, variant: 'testField' }))
+      expect(built).toEqual(field<TestFieldBlock>({ ...props, variant: 'testField' }))
       expect(built.defaultValue).not.toHaveProperty('build')
     })
 
     it('should build the block from the props prepare returns', () => {
       // Arrange
-      const prepared = component<TestCard>('testCard', {
+      const prepared = component<TestCardProps>('testCard', {
         render: card => `<h2>${card.title}</h2>`,
-        prepare: props => ({ ...props, title: props.title.toUpperCase(), hint: 'Prepared hint' }),
+        prepare: props => ({ ...props, title: 'Prepared title', hint: 'Prepared hint' }),
       })
 
       // Act
@@ -137,17 +151,17 @@ describe('component()', () => {
       expect(built).toEqual({
         _forge: ComponentCallType.BASIC,
         variant: 'testCard',
-        title: 'CARD TITLE',
+        title: 'Prepared title',
         hint: 'Prepared hint',
       })
     })
 
     it('should apply prepare when the component builds a field block', () => {
       // Arrange
-      const preparedField = component<TestField>('testField', {
+      const preparedField = component<TestFieldProps>('testField', {
         field: true,
         render: input => `<label>${input.label}</label>`,
-        prepare: props => ({ ...props, label: props.label.toUpperCase(), defaultValue: 'Prepared default' }),
+        prepare: props => ({ ...props, label: 'Prepared label', defaultValue: 'Prepared default' }),
       })
 
       // Act
@@ -158,7 +172,7 @@ describe('component()', () => {
         _forge: ComponentCallType.FIELD,
         variant: 'testField',
         code: 'first_name',
-        label: 'FIRST NAME',
+        label: 'Prepared label',
         defaultValue: 'Prepared default',
       })
     })
@@ -169,7 +183,7 @@ describe('component()', () => {
       // Arrange
       const renderer = { render: vi.fn().mockReturnValue('<div></div>') }
       const render = vi.fn().mockReturnValue('<h2>Card title</h2>')
-      const rendered = component<TestCard>('testCard', { render })
+      const rendered = component<TestCardProps>('testCard', { render })
 
       // Act
       const html = rendered.render(evaluatedCard, renderer)
@@ -182,7 +196,7 @@ describe('component()', () => {
     it('should render through the renderer the adapter supplies', () => {
       // Arrange
       const renderer = { render: vi.fn().mockReturnValue('<div>Card title</div>') }
-      const templated = component<TestCard>('testCard', {
+      const templated = component<TestCardProps>('testCard', {
         render: (card, adapterRenderer) =>
           (adapterRenderer as typeof renderer).render('components/test-card.njk', { params: { text: card.title } }),
       })
@@ -208,7 +222,7 @@ describe('component()', () => {
 
     it('should set multiple on the entry when the field component declares it', () => {
       // Arrange
-      const multiSelect = component<TestField>('testField', {
+      const multiSelect = component<TestFieldProps>('testField', {
         field: true,
         multiple: true,
         render: input => `<label>${input.label}</label>`,
@@ -248,29 +262,43 @@ describe('component()', () => {
 
   describe('types', () => {
     it('should expose only the writable props on the builder parameter', () => {
-      expectTypeOf<keyof PropsOf<TestCard>>().toEqualTypeOf<'visibleWhen' | 'metadata' | 'title' | 'hint'>()
-      expectTypeOf<Parameters<typeof TestCard>[0]>().toEqualTypeOf<PropsOf<TestCard>>()
+      expectTypeOf<keyof Parameters<typeof TestCard>[0]>().toEqualTypeOf<
+        'visibleWhen' | 'metadata' | 'title' | 'hint' | 'content'
+      >()
     })
 
     it('should require the props argument only when a prop is required', () => {
-      expectTypeOf<Parameters<typeof TestDivider>[0]>().toEqualTypeOf<PropsOf<TestDivider> | undefined>()
+      expectTypeOf<typeof TestDivider>().toBeCallableWith()
       // @ts-expect-error - TestCard has a required title prop, so a bare call is rejected
       expectTypeOf<typeof TestCard>().toBeCallableWith()
     })
 
     it('should drop the engine-consumed keys from the props render receives', () => {
-      expectTypeOf<keyof ResolvedPropsOf<TestField>>().toEqualTypeOf<
+      expectTypeOf<keyof FieldComponentRenderProps<TestFieldProps>>().toEqualTypeOf<
         'metadata' | 'code' | 'label' | 'value' | 'errors'
       >()
-      expectTypeOf<keyof ResolvedPropsOf<TestCard>>().toEqualTypeOf<'metadata' | 'title' | 'hint' | 'value'>()
-      expectTypeOf<Parameters<ComponentOptions<TestField>['render']>[0]>().toEqualTypeOf<ResolvedPropsOf<TestField>>()
+      expectTypeOf<keyof ComponentRenderProps<TestCardProps>>().toEqualTypeOf<
+        'metadata' | 'title' | 'hint' | 'content' | 'value'
+      >()
+      expectTypeOf<Parameters<FieldComponentOptions<TestFieldProps, string, unknown>['render']>[0]>().toEqualTypeOf<
+        FieldComponentRenderProps<TestFieldProps>
+      >()
+    })
+
+    it('should pass retained plain props forward to render', () => {
+      expectTypeOf<ComponentRenderProps<TestCardProps>['title']>().toEqualTypeOf<string>()
+      expectTypeOf<ComponentRenderProps<TestCardProps>['hint']>().toEqualTypeOf<string | undefined>()
+      expectTypeOf<ComponentRenderProps<TestCardProps>['content']>().toEqualTypeOf<RenderedBlock | undefined>()
+      expectTypeOf<ComponentRenderProps<TestCardProps>['title']>().not.toEqualTypeOf<
+        Parameters<typeof TestCard>[0]['title']
+      >()
     })
 
     it('should preserve prop optionality and the props inherited from the block base', () => {
-      expectTypeOf<PropsOf<TestCard>['hint']>().toEqualTypeOf<string | undefined>()
-      expectTypeOf<PropsOf<TestCard>['title']>().toEqualTypeOf<string>()
-      expectTypeOf<PropsOf<TestCard>['visibleWhen']>().toEqualTypeOf<ResolvableBoolean | undefined>()
-      expectTypeOf<{ hint: string }>().not.toExtend<PropsOf<TestCard>>()
+      expectTypeOf<Parameters<typeof TestCard>[0]['hint']>().toEqualTypeOf<ResolvableString | undefined>()
+      expectTypeOf<Parameters<typeof TestCard>[0]['title']>().toEqualTypeOf<ResolvableString>()
+      expectTypeOf<Parameters<typeof TestCard>[0]['visibleWhen']>().toEqualTypeOf<ResolvableBoolean | undefined>()
+      expectTypeOf<{ hint: string }>().not.toExtend<Parameters<typeof TestCard>[0]>()
     })
 
     it('should build the exact block type', () => {
@@ -278,7 +306,7 @@ describe('component()', () => {
       const built = TestCard({ title: 'Card title' })
 
       // Assert
-      expectTypeOf(built).toEqualTypeOf<TestCard>()
+      expectTypeOf(built).toEqualTypeOf<BlockDefinition & ResolvableProps<TestCardProps>>()
     })
 
     it('should build a field block definition for a field component', () => {
@@ -286,45 +314,42 @@ describe('component()', () => {
       const built = TestField({ code: 'first_name', label: 'First name' })
 
       // Assert
-      expectTypeOf(built).toEqualTypeOf<TestField>()
+      expectTypeOf(built).toEqualTypeOf<TestFieldBlock>()
       expectTypeOf(built).toExtend<FieldBlockDefinition>()
-      expectTypeOf<PropsOf<TestField>['code']>().not.toBeUndefined()
+      expectTypeOf<Parameters<typeof TestField>[0]['code']>().not.toBeUndefined()
     })
 
     it('should satisfy the component registry entry a forge package accepts', () => {
-      expectTypeOf(TestCard).toExtend<ComponentRegistryEntry<BlockDefinition, unknown>>()
-      expectTypeOf(TestField).toExtend<ComponentRegistryEntry<BlockDefinition, unknown>>()
-      expectTypeOf<ForgeComponent<TestCard>>().toExtend<ComponentRegistryEntry<BlockDefinition, unknown>>()
+      expectTypeOf(TestCard).toExtend<ComponentRegistryEntry<object, unknown>>()
+      expectTypeOf(TestField).toExtend<ComponentRegistryEntry<object, unknown>>()
+      expectTypeOf<ForgeComponent<TestCardProps>>().toExtend<ComponentRegistryEntry<object, unknown>>()
     })
 
-    it('should infer its block type when handed to a generic registry consumer', () => {
+    it('should infer its render props when handed to a generic registry consumer', () => {
       // Arrange
-      const registerComponent = <T extends BlockDefinition>(entry: ComponentRegistryEntry<T, string>) =>
-        entry as unknown as T
+      const registerComponent = <TProps extends object>(entry: ComponentRegistryEntry<TProps, string>) => entry
 
       // Act
       const registered = registerComponent(TestCard)
 
       // Assert
-      expectTypeOf(registered).toEqualTypeOf<TestCard>()
+      expect(registered.variant).toBe('testCard')
+      expectTypeOf(registered.render).parameter(0).toEqualTypeOf<ComponentRenderProps<TestCardProps>>()
     })
 
-    it('should require a field component to declare that it is a field', () => {
-      expectTypeOf<ComponentOptions<TestField>>().toExtend<{ field: true }>()
-      expectTypeOf<{ render: () => string }>().not.toExtend<ComponentOptions<TestField>>()
+    it('should select field render props when field is true', () => {
+      expectTypeOf<FieldComponentOptions<TestFieldProps, string, unknown>>().toExtend<{ field: true }>()
+      expectTypeOf<FieldComponentRenderProps<TestFieldProps>['code']>().toEqualTypeOf<string>()
     })
 
     it('should offer a block component the render and prepare options alone', () => {
-      expectTypeOf<keyof ComponentOptions<TestCard>>().toEqualTypeOf<'render' | 'prepare'>()
-
-      // @ts-expect-error - `field` is a field component option
-      component<TestCard>('testCard', { render: () => '', field: true })
+      expectTypeOf<keyof ComponentOptions<TestCardProps, string, unknown>>().toEqualTypeOf<'render' | 'prepare'>()
 
       // @ts-expect-error - `inputSchema` describes a submitted value, and blocks submit nothing
-      component<TestCard>('testCard', { render: () => '', inputSchema: z.string() })
+      component<TestCardProps>('testCard', { render: () => '', inputSchema: z.string() })
 
       // @ts-expect-error - `multiple` describes a submitted value, and blocks submit nothing
-      component<TestCard>('testCard', { render: () => '', multiple: true })
+      component<TestCardProps>('testCard', { render: () => '', multiple: true })
     })
   })
 })

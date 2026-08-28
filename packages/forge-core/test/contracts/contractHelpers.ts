@@ -2,7 +2,6 @@ import { createForgePackage, journey, effect } from '../../src/authoring'
 import { ForgeTestHarness, type ForgeTestHarnessOptions, type RequestTraceEvent } from '../../src/testing'
 import type { ForgeRenderer } from '../../src/framework/types/rendering.type'
 import type { ComponentRegistryEntry } from '../../src/components/types/components.type'
-import type { BlockDefinition } from '../../src/components'
 import type {
   RuntimeContextSnapshotTrace,
   RequestTraceUnit,
@@ -97,7 +96,7 @@ export function createTracedClient(journeyDef: ReturnType<typeof journey>, trace
 export function createRenderClient(
   journeyDef: ReturnType<typeof journey>,
   renderer: ForgeRenderer<unknown>,
-  components: ComponentRegistryEntry<BlockDefinition, unknown>[],
+  components: ComponentRegistryEntry<object, unknown>[],
 ) {
   return new ForgeTestHarness()
     .registerPackage(createForgePackage({ journey: journeyDef, components }))
@@ -108,7 +107,7 @@ export function createTracedRenderClient(
   journeyDef: ReturnType<typeof journey>,
   renderer: ForgeRenderer<unknown>,
   traces: RequestTraceEvent[],
-  components: ComponentRegistryEntry<BlockDefinition, unknown>[],
+  components: ComponentRegistryEntry<object, unknown>[],
 ) {
   return new ForgeTestHarness({
       instrumentation: {

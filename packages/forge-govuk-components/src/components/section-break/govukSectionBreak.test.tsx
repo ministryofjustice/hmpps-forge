@@ -1,12 +1,14 @@
-import type { EvaluatedBlock } from '@ministryofjustice/hmpps-forge/core/components'
 
+import { ComponentRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 import { GovUKSectionBreak } from './govukSectionBreak'
 
-const render = (props: Record<string, unknown>) => GovUKSectionBreak.render(props as EvaluatedBlock<GovUKSectionBreak>)
+const harness = new ComponentRegistryTestHarness(GovUKSectionBreak)
+
+const render = (props: GovUKSectionBreak) => harness.render(GovUKSectionBreak(props))
 
 describe('GovUKSectionBreak', () => {
   describe('block building', () => {
-    it('should stamp the govukSectionBreak variant when called as a builder', () => {
+    it('should stamp the govukSectionBreak variant when called as a builder', async () => {
       // Arrange & Act
       const built = GovUKSectionBreak()
 
@@ -16,33 +18,33 @@ describe('GovUKSectionBreak', () => {
   })
 
   describe('rendering', () => {
-    it('should render a spacing-only hr by default', () => {
+    it('should render a spacing-only hr by default', async () => {
       // Arrange & Act
-      const output = render({})
+      const output = await render({})
 
       // Assert
       expect(output).toBe('<hr class="govuk-section-break">')
     })
 
-    it('should apply the size modifier', () => {
+    it('should apply the size modifier', async () => {
       // Arrange & Act
-      const output = render({ size: 'xl' })
+      const output = await render({ size: 'xl' })
 
       // Assert
       expect(output).toBe('<hr class="govuk-section-break govuk-section-break--xl">')
     })
 
-    it('should apply the visible modifier', () => {
+    it('should apply the visible modifier', async () => {
       // Arrange & Act
-      const output = render({ size: 'l', visible: true })
+      const output = await render({ size: 'l', visible: true })
 
       // Assert
       expect(output).toBe('<hr class="govuk-section-break govuk-section-break--l govuk-section-break--visible">')
     })
 
-    it('should append additional classes and attributes', () => {
+    it('should append additional classes and attributes', async () => {
       // Arrange & Act
-      const output = render({ classes: 'app-break', attributes: { 'data-qa': 'divider' } })
+      const output = await render({ classes: 'app-break', attributes: { 'data-qa': 'divider' } })
 
       // Assert
       expect(output).toBe('<hr class="govuk-section-break app-break" data-qa="divider">')

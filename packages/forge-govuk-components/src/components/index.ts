@@ -1,4 +1,4 @@
-import { BlockDefinition, ComponentRegistryEntry } from '@ministryofjustice/hmpps-forge/core/components'
+import { ComponentRegistryEntry } from '@ministryofjustice/hmpps-forge/core/components'
 
 import { GovUKAccordion } from './accordion/govukAccordion'
 import { GovUKBackLink } from './back-link/govukBackLink'
@@ -102,7 +102,7 @@ export { GovUKTaskList } from './task-list/govukTaskList'
 export { GovUKWarningText } from './warning-text/govukWarningText'
 
 /** All GOV.UK component definitions */
-export const govukComponents: ComponentRegistryEntry<BlockDefinition, string>[] = [
+export const govukComponents: ComponentRegistryEntry<object, string>[] = [
   GovUKAccordion,
   GovUKBackLink,
   GovUKBody,

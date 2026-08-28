@@ -1,7 +1,7 @@
 import { component } from '../../components/component'
 import { isRenderedBlock } from '../../components/typeguards'
 import { escapeHtmlEntities } from '../sanitize'
-import type { BlockDefinition, ResolvableString } from '../../components/types/structures.type'
+import type { BlockDefinition } from '../../components/types/structures.type'
 
 /**
  * TemplateWrapper component.
@@ -36,14 +36,14 @@ import type { BlockDefinition, ResolvableString } from '../../components/types/s
  * })
  * ```
  */
-export interface TemplateWrapper extends BlockDefinition {
+export interface TemplateWrapper {
   /**
    * HTML template with slot markers ({{slot:name}}) and value markers ({{name}}).
    *
    * @example '<div class="wrapper">{{slot:content}}</div>'
    * @example '<h2>{{title}}</h2>{{slot:body}}'
    */
-  template: ResolvableString
+  template: string
 
   /**
    * String values to inject into the template at {{name}} markers.
@@ -53,7 +53,7 @@ export interface TemplateWrapper extends BlockDefinition {
    *
    * @example { title: 'Section Title', footer: 'Footer text' }
    */
-  values?: Record<string, ResolvableString>
+  values?: Record<string, string>
 
   /**
    * Named slots containing blocks to render at {{slot:name}} markers.
@@ -76,7 +76,7 @@ export interface TemplateWrapper extends BlockDefinition {
    *
    * @example 'govuk-!-margin-bottom-6'
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * Custom HTML attributes for the wrapper element (optional).

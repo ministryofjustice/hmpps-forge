@@ -5,7 +5,7 @@ import forgeMojComponents from './forge-moj-components/rolldown.config.mjs'
 import forgeJsxComponents from './forge-jsx-components/rolldown.config.mjs'
 import forgeDevtools from './forge-devtools/rolldown.config.mjs'
 import { jsFormats, createIsExternal, createJsConfig } from './rolldown.shared.mjs'
-import { createDtsConfig } from './rolldown.dts.mjs'
+import { createDtsConfigs } from './rolldown.dts.mjs'
 
 const packageConfigs = [
   forgeCore,
@@ -29,6 +29,6 @@ const jsConfigs = entrypoints.flatMap(({ name, input, jsPlugins = [] }) =>
 
 export default [
   ...jsConfigs,
-  createDtsConfig(registry, dtsOwnershipRules, isExternal),
+  ...createDtsConfigs(registry, dtsOwnershipRules, isExternal),
   ...extraConfigs,
 ]

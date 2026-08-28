@@ -1,4 +1,3 @@
-import type { BlockDefinition } from '../../../components/types/structures.type'
 import ComponentRegistry from './ComponentRegistry'
 import { ComponentRegistryEntry } from '../../../components/types/components.type'
 
@@ -15,17 +14,15 @@ export default class ScopedComponentRegistry extends ComponentRegistry {
     super()
   }
 
-  override get<T extends BlockDefinition, TRenderOutput = unknown>(
-    variant: string,
-  ): ComponentRegistryEntry<T, TRenderOutput> | undefined {
-    return super.get<T, TRenderOutput>(variant) ?? this.parent.get<T, TRenderOutput>(variant)
+  override get(variant: string): ComponentRegistryEntry<object, unknown> | undefined {
+    return super.get(variant) ?? this.parent.get(variant)
   }
 
   override has(variant: string): boolean {
     return super.has(variant) || this.parent.has(variant)
   }
 
-  override getAll(): Map<string, ComponentRegistryEntry<BlockDefinition, unknown>> {
+  override getAll(): Map<string, ComponentRegistryEntry<object, unknown>> {
     const merged = this.parent.getAll()
 
     for (const [variant, entry] of super.getAll()) {

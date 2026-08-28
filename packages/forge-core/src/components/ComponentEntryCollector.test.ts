@@ -1,9 +1,8 @@
 import { ComponentEntryCollector } from './ComponentEntryCollector'
 import { component } from './component'
 import ForgeRegistryDuplicateError from '../engine/errors/ForgeRegistryDuplicateError'
-import type { BlockDefinition } from './types/structures.type'
 
-interface TestCard extends BlockDefinition {
+interface TestCard {
   title: string
 }
 

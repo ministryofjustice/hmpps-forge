@@ -1,4 +1,3 @@
-import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -88,7 +87,7 @@ export type MultiSelectRow = MultiSelectCell[]
  * })
  * ```
  */
-export type MOJMultiSelect = ResolvableBlockProps<{
+export interface MOJMultiSelect {
   /** The rows within the table. Each row is an array of cells. Required. */
   rows: MultiSelectRow[]
 
@@ -109,7 +108,7 @@ export type MOJMultiSelect = ResolvableBlockProps<{
 
   /** Custom HTML attributes for the table element. */
   attributes?: Record<string, any>
-}>
+}
 
 /**
  * MOJ Multi Select component.

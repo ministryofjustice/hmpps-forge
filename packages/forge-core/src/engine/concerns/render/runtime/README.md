@@ -49,8 +49,8 @@ The `RenderContext` already contains the effective inherited view at `step.view`
 - `renderContext`.
 - `renderer`.
 
-`EvaluatedBlock` is the renderer-facing block shape.
-`RenderBlockWorkHandler` converts `RenderBlock` to `EvaluatedBlock` by spreading block properties over the block type and variant fields.
+`ResolvedBlock` is the internal renderer-boundary shape.
+`RenderBlockWorkHandler` converts `RenderBlock` to `ResolvedBlock` by spreading block properties over the block type and variant fields.
 
 ### Example
 
@@ -138,7 +138,7 @@ flowchart TD
 ## Editing Notes
 
 - To change top-level block rendering, start in `RenderBlocksWorkHandler`.
-- To change one block's renderer input, start in `toEvaluatedBlock()` in `RenderBlockWorkHandler.ts`.
+- To change one block's renderer input, start in `toResolvedBlock()` in `RenderBlockWorkHandler.ts`.
 - To change nested block replacement, start in `RenderBlockWorkHandler`.
 - To change page assembly, start in `RenderAssemblePageWorkHandler`.
 - To change unknown component handling, update `RenderBlocksWorkHandler`, `RenderBlockWorkHandler`, and missing-entry tests.

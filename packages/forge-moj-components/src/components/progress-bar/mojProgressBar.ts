@@ -1,4 +1,3 @@
-import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -81,7 +80,7 @@ export interface MOJProgressBarItem {
  * })
  * ```
  */
-export type MOJProgressBar = ResolvableBlockProps<{
+export interface MOJProgressBar {
   /**
    * Unique identifier for the progress bar.
    * Defaults to "progress" if not provided.
@@ -127,7 +126,7 @@ export type MOJProgressBar = ResolvableBlockProps<{
    * @example { 'data-module': 'progress-tracker' }
    */
   attributes?: Record<string, string>
-}>
+}
 
 /**
  * MOJ Progress Bar component.

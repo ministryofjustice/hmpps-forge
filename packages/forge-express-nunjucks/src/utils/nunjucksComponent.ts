@@ -1,7 +1,7 @@
 import type nunjucks from 'nunjucks'
 
 import { component } from '@ministryofjustice/hmpps-forge/core/components'
-import type { BlockDefinition, ComponentOptions, ForgeComponent } from '@ministryofjustice/hmpps-forge/core/components'
+import type { ComponentFactory } from '@ministryofjustice/hmpps-forge/core/components'
 
 /**
  * Defines a Nunjucks component from a single block interface - `component()` with the
@@ -9,20 +9,13 @@ import type { BlockDefinition, ComponentOptions, ForgeComponent } from '@ministr
  *
  * @example
  * ```typescript
- * export interface MyTextInput extends FieldBlockDefinition {
- *   label: ResolvableString
- * }
+ * export interface MyTextInputProps { label: string }
  *
- * export const MyTextInput = nunjucksComponent<MyTextInput>('myTextInput', {
+ * export const MyTextInput = nunjucksComponent<MyTextInputProps>('myTextInput', {
  *   field: true,
  *   render: (props, nunjucksEnv) =>
  *     nunjucksEnv.render('components/text-input.njk', { params: { name: props.code } }),
  * })
  * ```
  */
-export function nunjucksComponent<TBlock extends BlockDefinition>(
-  variant: string,
-  options: ComponentOptions<TBlock, string, nunjucks.Environment>,
-): ForgeComponent<TBlock, string> {
-  return component<TBlock, string, nunjucks.Environment>(variant, options)
-}
+export const nunjucksComponent: ComponentFactory<string, nunjucks.Environment> = component

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ResolvableFieldProps, ResolvedPropsOf } from '@ministryofjustice/hmpps-forge/core/components'
+import { FieldComponentRenderProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { Transformer } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import {
@@ -126,13 +126,13 @@ export interface GovUKDateInputBase {
 }
 
 /** GOV.UK Date Input capturing a full date - day, month and year. */
-export type GovUKDateInputFull = ResolvableFieldProps<GovUKDateInputBase>
+export type GovUKDateInputFull = GovUKDateInputBase
 
 /** GOV.UK Date Input capturing a month and year only. */
-export type GovUKDateInputYearMonth = ResolvableFieldProps<GovUKDateInputBase>
+export type GovUKDateInputYearMonth = GovUKDateInputBase
 
 /** GOV.UK Date Input capturing a day and month only. */
-export type GovUKDateInputMonthDay = ResolvableFieldProps<GovUKDateInputBase>
+export type GovUKDateInputMonthDay = GovUKDateInputBase
 
 /**
  * Supports field-specific error targeting through validation `details.field` property.
@@ -163,7 +163,7 @@ function combineClasses(...classes: (string | undefined)[]): string | undefined 
  */
 function buildItems(
   fields: Array<{ name: 'day' | 'month' | 'year'; label: string; classes: string }>,
-  block: ResolvedPropsOf<GovUKDateInputFull | GovUKDateInputYearMonth | GovUKDateInputMonthDay>,
+  block: FieldComponentRenderProps<GovUKDateInputFull | GovUKDateInputYearMonth | GovUKDateInputMonthDay>,
   dateParts: { year?: string; month?: string; day?: string },
   errorDetails?: Record<string, any>,
 ) {
@@ -191,7 +191,7 @@ function buildItems(
  * Creates the parameter object required by the GOV.UK date input template
  */
 function buildParams(
-  block: ResolvedPropsOf<GovUKDateInputFull | GovUKDateInputYearMonth | GovUKDateInputMonthDay>,
+  block: FieldComponentRenderProps<GovUKDateInputFull | GovUKDateInputYearMonth | GovUKDateInputMonthDay>,
   items: ReturnType<typeof buildItems>,
 ) {
   return {

@@ -1,11 +1,16 @@
 import nunjucks from 'nunjucks'
 import type {
   BlockDefinition,
-  EvaluatedBlock,
   RenderedBlock,
   ComponentRegistryEntry,
 } from '@ministryofjustice/hmpps-forge/core/components'
-import type { ForgeRenderer, NodeId, RenderContext, RouteTreeNode } from '@ministryofjustice/hmpps-forge/core/framework'
+import type {
+  ForgeRenderer,
+  NodeId,
+  RenderContext,
+  ResolvedBlock,
+  RouteTreeNode,
+} from '@ministryofjustice/hmpps-forge/core/framework'
 import type { TemplateBlock, TemplateContext, TemplateNavigationItem } from './types'
 
 export interface NunjucksRendererOptions {
@@ -84,7 +89,7 @@ export default class NunjucksRenderer implements ForgeRenderer<string> {
     }
   }
 
-  renderBlock(entry: ComponentRegistryEntry<BlockDefinition, string>, block: EvaluatedBlock<BlockDefinition>): string {
+  renderBlock(entry: ComponentRegistryEntry<object, string>, block: ResolvedBlock): string {
     const rendered = entry.render(block, this.cachedRenderer)
 
     if (typeof rendered !== 'string') {

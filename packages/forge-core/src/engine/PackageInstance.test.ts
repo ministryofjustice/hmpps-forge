@@ -1,4 +1,3 @@
-import { buildComponent } from '../components/utils/buildComponent'
 import { component } from '../components/component'
 import { createForgePackage, field, journey, step, submit, validation, Self } from '../authoring/builders'
 import { condition } from '../authoring/functions/condition'
@@ -85,8 +84,8 @@ describe('PackageInstance', () => {
       // Arrange
       const functionRegistry = new FunctionRegistry()
       const componentRegistry = new ComponentRegistry()
-      const globalComponent = buildComponent('global-component', () => '<div>Global</div>')
-      const packageComponent = buildComponent('package-component', () => '<div>Package</div>')
+      const globalComponent = component<object>('global-component', { render: () => '<div>Global</div>' })
+      const packageComponent = component<object>('package-component', { render: () => '<div>Package</div>' })
 
       componentRegistry.registerMany([globalComponent])
       mockCompilation()
@@ -169,12 +168,12 @@ describe('PackageInstance', () => {
   })
 })
 
-interface TestCardBlock extends BlockDefinition {
+interface TestCardBlock {
   title: string
 }
 
 const TestCard = component<TestCardBlock>('test-card', { render: card => `<h2>${card.title}</h2>` })
-const testInput = buildComponent('test-input', () => '<input />')
+const testInput = component<object>('test-input', { render: () => '<input />' })
 
 function fieldWithRule(code: string, rule: PredicateExpr, message: string) {
   return field({

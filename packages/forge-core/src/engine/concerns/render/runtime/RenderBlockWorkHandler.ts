@@ -1,7 +1,7 @@
 import type { ComponentRegistryEntry } from '../../../../components/types/components.type'
-import type { BlockDefinition, EvaluatedBlock } from '../../../../components/types/structures.type'
+import type { BlockDefinition } from '../../../../components/types/structures.type'
 import { RENDER_BLOCK_BRAND } from '../contracts/renderBlock.brand'
-import type { RenderBlock, ForgeRenderer } from '../../../../framework/types/rendering.type'
+import type { RenderBlock, ForgeRenderer, ResolvedBlock } from '../../../../framework/types/rendering.type'
 import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
 import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
 import type {
@@ -17,7 +17,7 @@ import { createWorkTask } from '../../../chassis/work/workTask'
 
 export interface RenderBlockWorkProps {
   readonly block: RenderBlock
-  readonly entry: ComponentRegistryEntry<BlockDefinition, unknown>
+  readonly entry: ComponentRegistryEntry<object, unknown>
   readonly renderer: ForgeRenderer<unknown>
   readonly componentRegistry: ComponentRegistry
 }
@@ -76,9 +76,9 @@ export const RENDER_BLOCK_WORK_HANDLER: WorkHandler<'render.render-blocks.block'
     }
 
     const updatedProperties = replaceNestedBlocks(block.properties, children, renderer)
-    const evaluatedBlock = toEvaluatedBlock({ ...block, properties: updatedProperties })
+    const resolvedBlock = toResolvedBlock({ ...block, properties: updatedProperties })
 
-    const output = await renderer.renderBlock(entry, evaluatedBlock)
+    const output = await renderer.renderBlock(entry, resolvedBlock)
 
     // Mark only while devtools is tracing, so production output stays unmarked.
     if (ctx.state.dependencies.traceEnabled && renderer.markBlock) {
@@ -89,12 +89,12 @@ export const RENDER_BLOCK_WORK_HANDLER: WorkHandler<'render.render-blocks.block'
   },
 }
 
-function toEvaluatedBlock(block: RenderBlock): EvaluatedBlock<BlockDefinition> {
+function toResolvedBlock(block: RenderBlock): ResolvedBlock {
   return {
     _forge: block.blockType,
     variant: block.variant,
     ...block.properties,
-  } as EvaluatedBlock<BlockDefinition>
+  }
 }
 
 function isRenderBlock(value: unknown): value is RenderBlock {
@@ -203,7 +203,7 @@ function replaceInValue(value: unknown, replacer: (value: unknown) => unknown): 
 export function createRenderBlockTask(
   id: string,
   block: RenderBlock,
-  entry: ComponentRegistryEntry<BlockDefinition, unknown>,
+  entry: ComponentRegistryEntry<object, unknown>,
   renderer: ForgeRenderer<unknown>,
   componentRegistry: ComponentRegistry,
 ) {

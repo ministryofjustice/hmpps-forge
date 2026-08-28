@@ -1,18 +1,18 @@
 import { z } from 'zod'
 
 import { Transformer } from '../../src/authoring'
-import { component, type BlockDefinition, type FieldBlockDefinition, type ResolvableString } from '../../src/components'
+import { component, type BlockDefinition } from '../../src/components'
 
 // Dumb components for engine contract tests. They declare only the registry
 // surface the engine reads (field, inputSchema, errorAnchor), so fixtures
 // carry nothing but the behavior under test. The resolvable props (label,
 // text) exist for suites that assert dynamic property resolution.
 
-export interface TextField extends FieldBlockDefinition {
+export interface TextField {
   /** Overrides the error anchor, mirroring components that render their own ids. */
-  id?: ResolvableString
+  id?: string
   /** A resolvable display prop, for tests that assert dynamic property resolution. */
-  label?: ResolvableString
+  label?: string
 }
 
 export const TextField = component<TextField>('testTextField', {
@@ -22,7 +22,7 @@ export const TextField = component<TextField>('testTextField', {
   render: props => `<field:${props.code}>`,
 })
 
-export type CheckboxField = FieldBlockDefinition
+export type CheckboxField = Record<never, never>
 
 /** A `multiple` field: every submitted value is kept and normalized to an array. */
 export const CheckboxField = component<CheckboxField>('testCheckboxField', {
@@ -32,9 +32,9 @@ export const CheckboxField = component<CheckboxField>('testCheckboxField', {
   render: props => `<field:${props.code}>`,
 })
 
-export interface StaticText extends BlockDefinition {
+export interface StaticText {
   /** A resolvable display prop, for tests that assert dynamic property resolution. */
-  text?: ResolvableString
+  text?: string
 }
 
 /** A non-field block, for tests that assert basic-block behavior. */
@@ -49,7 +49,7 @@ export interface RadioItem {
   block?: BlockDefinition
 }
 
-export interface RadioField extends FieldBlockDefinition {
+export interface RadioField {
   items: RadioItem[]
 }
 
@@ -60,7 +60,7 @@ export const RadioField = component<RadioField>('testRadioField', {
   render: props => `<field:${props.code}>`,
 })
 
-export type DateField = FieldBlockDefinition
+export type DateField = Record<never, never>
 
 /** An object-schema field with a component-injected formatter, like the date inputs. */
 export const DateField = component<DateField>('testDateField', {

@@ -1,8 +1,14 @@
-import { buildComponent } from '../../../components/utils/buildComponent'
+import type { ComponentRegistryEntry } from '../../../components/types/components.type'
 import ForgeRegistryDuplicateError from '../../errors/ForgeRegistryDuplicateError'
 import ForgeRegistryValidationError from '../../errors/ForgeRegistryValidationError'
-import type { BlockDefinition, EvaluatedBlock } from '../../../components/types/structures.type'
 import ComponentRegistry from './ComponentRegistry'
+
+function createTestComponent(
+  variant: string,
+  render: ComponentRegistryEntry<object, string>['render'] = () => '',
+): ComponentRegistryEntry<object, string> {
+  return { variant, render }
+}
 
 describe('ComponentRegistry', () => {
   let registry: ComponentRegistry
@@ -13,7 +19,7 @@ describe('ComponentRegistry', () => {
 
   describe('registerMany', () => {
     it('should register a single component successfully', () => {
-      const mockComponent = buildComponent('text-input', (_block: EvaluatedBlock<BlockDefinition>) => {
+      const mockComponent = createTestComponent('text-input', (_block: object) => {
         return `<input type="text" />`
       })
 
@@ -22,9 +28,9 @@ describe('ComponentRegistry', () => {
     })
 
     it('should register multiple components successfully', () => {
-      const comp1 = buildComponent('text', () => '<input type="text" />')
-      const comp2 = buildComponent('radio', () => '<input type="radio" />')
-      const comp3 = buildComponent('checkbox', () => '<input type="checkbox" />')
+      const comp1 = createTestComponent('text', () => '<input type="text" />')
+      const comp2 = createTestComponent('radio', () => '<input type="radio" />')
+      const comp3 = createTestComponent('checkbox', () => '<input type="checkbox" />')
 
       registry.registerMany([comp1, comp2, comp3])
 
@@ -47,8 +53,8 @@ describe('ComponentRegistry', () => {
 
     describe('duplicate registration', () => {
       it('should throw ForgeRegistryDuplicateError for duplicate component', () => {
-        const comp1 = buildComponent('text', () => '<input />')
-        const comp2 = buildComponent('text', () => '<textarea />')
+        const comp1 = createTestComponent('text', () => '<input />')
+        const comp2 = createTestComponent('text', () => '<textarea />')
 
         registry.registerMany([comp1])
 
@@ -68,14 +74,14 @@ describe('ComponentRegistry', () => {
       })
 
       it('should collect multiple duplicate errors', () => {
-        const comp1 = buildComponent('text', () => '<input />')
-        const comp2 = buildComponent('radio', () => '<radio />')
+        const comp1 = createTestComponent('text', () => '<input />')
+        const comp2 = createTestComponent('radio', () => '<radio />')
 
         registry.registerMany([comp1, comp2])
 
         const duplicates = [
-          buildComponent('text', () => '<different-input />'),
-          buildComponent('radio', () => '<different-radio />'),
+          createTestComponent('text', () => '<different-input />'),
+          createTestComponent('radio', () => '<different-radio />'),
         ]
 
         try {
@@ -166,7 +172,7 @@ describe('ComponentRegistry', () => {
 
   describe('get', () => {
     it('should return component spec when it exists', () => {
-      const mockComponent = buildComponent('text', () => '<input />')
+      const mockComponent = createTestComponent('text', () => '<input />')
       registry.registerMany([mockComponent])
 
       const spec = registry.get('text')
@@ -183,7 +189,7 @@ describe('ComponentRegistry', () => {
 
   describe('has', () => {
     it('should return true for registered component', () => {
-      const mockComponent = buildComponent('text', () => '<input />')
+      const mockComponent = createTestComponent('text', () => '<input />')
       registry.registerMany([mockComponent])
 
       expect(registry.has('text')).toBe(true)
@@ -196,8 +202,8 @@ describe('ComponentRegistry', () => {
 
   describe('getAll', () => {
     it('should return all registered components', () => {
-      const comp1 = buildComponent('text', () => '<input />')
-      const comp2 = buildComponent('radio', () => '<radio />')
+      const comp1 = createTestComponent('text', () => '<input />')
+      const comp2 = createTestComponent('radio', () => '<radio />')
 
       registry.registerMany([comp1, comp2])
 
@@ -213,7 +219,7 @@ describe('ComponentRegistry', () => {
     })
 
     it('should return a copy of the internal map', () => {
-      const comp = buildComponent('text', () => '<input />')
+      const comp = createTestComponent('text', () => '<input />')
       registry.registerMany([comp])
 
       const all = registry.getAll()
@@ -227,12 +233,12 @@ describe('ComponentRegistry', () => {
     it('should return correct count of registered components', () => {
       expect(registry.size()).toBe(0)
 
-      const comp1 = buildComponent('text', () => '<input />')
+      const comp1 = createTestComponent('text', () => '<input />')
       registry.registerMany([comp1])
       expect(registry.size()).toBe(1)
 
-      const comp2 = buildComponent('radio', () => '<radio />')
-      const comp3 = buildComponent('checkbox', () => '<checkbox />')
+      const comp2 = createTestComponent('radio', () => '<radio />')
+      const comp3 = createTestComponent('checkbox', () => '<checkbox />')
       registry.registerMany([comp2, comp3])
       expect(registry.size()).toBe(3)
     })

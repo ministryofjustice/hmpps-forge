@@ -1,4 +1,3 @@
-import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -46,7 +45,7 @@ export interface MOJCardDescription {
  * })
  * ```
  */
-export type MOJCard = ResolvableBlockProps<{
+export interface MOJCard {
   /**
    * Card heading - can be a simple string or object with additional options.
    * @example 'Search cases'
@@ -72,7 +71,7 @@ export type MOJCard = ResolvableBlockProps<{
 
   /** Additional HTML attributes */
   attributes?: Record<string, string>
-}>
+}
 
 /**
  * MOJ Card component.

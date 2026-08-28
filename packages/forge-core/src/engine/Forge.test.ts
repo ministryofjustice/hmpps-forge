@@ -1,5 +1,5 @@
 import type { MockInstance } from 'vitest'
-import { buildComponent } from '../components/utils/buildComponent'
+import { component } from '../components/component'
 import { createForgePackage } from '../authoring/builders'
 import { ConditionsRegistry } from '../built-ins/functions/conditions'
 import { GeneratorsRegistry } from '../built-ins/functions/generators'
@@ -142,7 +142,7 @@ describe('Forge', () => {
 
     it('should create and register a package instance', () => {
       // Arrange
-      const mockComponent = buildComponent('pkg-comp', () => '<div />')
+      const mockComponent = component<object>('pkg-comp', { render: () => '<div />' })
       const functionDependencies = { prefix: 'case-' }
       const pkg = createForgePackage<{ prefix: string }>({
         journey: mockJourneyDef,

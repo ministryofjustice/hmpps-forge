@@ -1,7 +1,7 @@
 import { journey, step } from '../../../../src/authoring'
 import { component, type BlockDefinition } from '../../../../src/components'
 
-export interface TestCardBlock extends BlockDefinition {
+export interface TestCardBlock {
   title: string
 }
 

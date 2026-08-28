@@ -1,4 +1,3 @@
-import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -114,7 +113,7 @@ export interface MOJFilterSubmit {
  * })
  * ```
  */
-export type MOJFilter = ResolvableBlockProps<{
+export interface MOJFilter {
   /**
    * Heading for the filter panel.
    * @example { text: 'Filter' }
@@ -154,7 +153,7 @@ export type MOJFilter = ResolvableBlockProps<{
    * @example { 'data-module': 'app-filter' }
    */
   attributes?: Record<string, string>
-}>
+}
 
 /**
  * MOJ Filter component.

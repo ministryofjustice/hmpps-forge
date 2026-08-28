@@ -1,4 +1,4 @@
-import { BlockDefinition, EvaluatedBlock, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ComponentRenderProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
@@ -111,7 +111,7 @@ export interface MOJMessageItem {
  * })
  * ```
  */
-export type MOJMessages = ResolvableBlockProps<{
+export interface MOJMessages {
   /**
    * Array of message items to display.
    * Messages are displayed in the order provided, grouped by date.
@@ -143,11 +143,11 @@ export type MOJMessages = ResolvableBlockProps<{
    * @example { 'data-module': 'app-messages' }
    */
   attributes?: Record<string, string>
-}>
+}
 
-type EvaluatedMOJMessageItem = EvaluatedBlock<MOJMessages>['items'][number]
+type RuntimeMOJMessageItem = ComponentRenderProps<MOJMessages>['items'][number]
 
-function normaliseMessageItem(item: EvaluatedMOJMessageItem) {
+function normaliseMessageItem(item: RuntimeMOJMessageItem) {
   const { blocks, ...itemParams } = item
   const content = normaliseMojTextHtmlContent({
     text: item.text,

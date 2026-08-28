@@ -1,4 +1,4 @@
-import { BlockDefinition, EvaluatedBlock, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ComponentRenderProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
@@ -177,7 +177,7 @@ export interface SummaryCard {
  * })
  * ```
  */
-export type GovUKSummaryList = ResolvableBlockProps<{
+export interface GovUKSummaryList {
   /** The rows within the summary list. Each row contains a key-value pair. Required. */
   rows: SummaryListRow[]
 
@@ -193,18 +193,18 @@ export type GovUKSummaryList = ResolvableBlockProps<{
 
   /** Custom HTML attributes for the summary list dl element. */
   attributes?: Record<string, any>
-}>
+}
 
-type EvaluatedSummaryListRow = EvaluatedBlock<GovUKSummaryList>['rows'][number]
+type RuntimeSummaryListRow = ComponentRenderProps<GovUKSummaryList>['rows'][number]
 
-function normaliseSummaryListRow(row: EvaluatedSummaryListRow) {
+function normaliseSummaryListRow(row: RuntimeSummaryListRow) {
   return {
     ...row,
     value: normaliseSummaryListValue(row.value),
   }
 }
 
-function normaliseSummaryListValue(value: EvaluatedSummaryListRow['value'] | undefined) {
+function normaliseSummaryListValue(value: RuntimeSummaryListRow['value'] | undefined) {
   if (!value) {
     return undefined
   }

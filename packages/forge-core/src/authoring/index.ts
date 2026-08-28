@@ -23,6 +23,7 @@ export { EffectFunctionContext } from '../engine/chassis/runtime/context/EffectF
 export {
   StructureType,
   ComponentCallType,
+  ComponentEntryType,
   FunctionCallType,
   ExpressionType,
   PolicyType,

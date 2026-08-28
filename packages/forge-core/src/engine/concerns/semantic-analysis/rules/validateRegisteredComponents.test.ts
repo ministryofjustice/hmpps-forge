@@ -10,7 +10,7 @@ import { compileTemplate } from '../../../chassis/compilation/ast/nodes/template
 import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
 import ForgeUnregisteredComponentError from '../../../errors/ForgeUnregisteredComponentError'
-import { buildComponent } from '../../../../components/utils/buildComponent'
+import { component } from '../../../../components/component'
 import { validateRegisteredComponents } from './validateRegisteredComponents'
 import type { ASTValidationContext } from './types'
 
@@ -31,7 +31,9 @@ function buildContext(nodes: MaterialisedASTNode[], registeredVariants: string[]
   const componentRegistry = new ComponentRegistry()
 
   if (registeredVariants.length > 0) {
-    componentRegistry.registerMany(registeredVariants.map(variant => buildComponent(variant, () => `<${variant} />`)))
+    componentRegistry.registerMany(
+      registeredVariants.map(variant => component<object>(variant, { render: () => `<${variant} />` })),
+    )
   }
 
   return {

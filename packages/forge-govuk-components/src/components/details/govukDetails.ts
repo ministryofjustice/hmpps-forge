@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
@@ -17,7 +17,7 @@ import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers
  * })
  * ```
  */
-export type GovUKDetails = ResolvableBlockProps<{
+export interface GovUKDetails {
   /** Text to display in the summary (clickable part). Required unless summaryHtml is provided. */
   summaryText?: string
 
@@ -44,7 +44,7 @@ export type GovUKDetails = ResolvableBlockProps<{
 
   /** Custom HTML attributes for the details element */
   attributes?: Record<string, any>
-}>
+}
 
 /**
  * GOV.UK Details component.

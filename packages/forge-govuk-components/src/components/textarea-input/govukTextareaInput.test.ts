@@ -196,7 +196,6 @@ describe('govukTextareaInput', () => {
   describe('DOM rendering smoke test', () => {
     it('renders a valid textarea component', async () => {
       const html = await helper.renderWithNunjucks({
-        variant: 'govukTextarea',
         code: 'feedback-textarea',
         label: 'Provide your feedback',
         hint: 'Tell us what you think',
