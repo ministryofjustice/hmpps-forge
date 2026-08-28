@@ -40,6 +40,7 @@ export interface BasicBlockProps {
  * Blocks are the fundamental building units of form UI.
  */
 export interface BlockDefinition extends BasicBlockProps {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: ComponentCallType
 
   /** The specific variant/type of block (e.g., 'text', 'number', 'radio', etc.) */
@@ -125,6 +126,7 @@ export interface FieldBlockProps extends BasicBlockProps {
  * Represents user input fields with validation and formatting.
  */
 export interface FieldBlockDefinition extends BlockDefinition, FieldBlockProps {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: ComponentCallType.FIELD
 }
 

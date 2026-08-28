@@ -24,6 +24,7 @@ export interface ViewConfig {
 }
 
 interface BaseValidationExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: PolicyType.VALIDATION_RULE
   /** When `true`, the rule only runs on form submission, not during navigation/traversal checks. Useful for expensive or time-sensitive validations. */
   submissionOnly?: boolean
@@ -74,6 +75,7 @@ type ValidWhenInput = ValidationExpr | IterateExpr | ChainableIterable
  * as the final tiebreaker.
  */
 export interface TieBreaker {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: PolicyType.NAVIGATION_TIE_BREAKER
   /** Priority value — higher beats lower. */
   priority: number
@@ -106,6 +108,7 @@ export type RouteMetadata = Record<string, ResolvableValue | undefined>
  * Journeys contain steps and can have nested child journeys.
  */
 export interface JourneyDefinition {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: StructureType.JOURNEY
 
   /**
@@ -323,6 +326,7 @@ interface StepEntryValidation {
  * Steps contain blocks and define navigation/hook logic.
  */
 export interface StepDefinition {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: StructureType.STEP
 
   /**

@@ -52,6 +52,7 @@ export interface FunctionRegistryEntry {
    * Which kind of function this is. Decides whether a value is injected as
    * the first argument and how schema failures short-circuit.
    */
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge?: FunctionEntryType
 }
 
@@ -81,6 +82,7 @@ export interface FunctionEntry<TDeps = any> {
   readonly name: string | undefined
 
   /** Which function table the entry belongs to. */
+  /** Internal Forge discriminator. Do not set or override this property. */
   readonly _forge: FunctionEntryType
 
   /** Validates the injected value, where declared. */

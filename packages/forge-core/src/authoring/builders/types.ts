@@ -16,6 +16,7 @@ import { BuilderType } from '../../shared/taxonomy'
  * aliases' builder arm can be discriminated with a plain `Exclude`.
  */
 export interface ChainableExpression {
+  /** Internal Forge discriminator. Do not set or override this property. */
   readonly _forge: BuilderType
 }
 

@@ -34,6 +34,7 @@ import {
  * { _forge: 'expression.reference', path: ['@loop', '0', 'index0'] }
  */
 export interface ReferenceExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: ExpressionType.REFERENCE
 
   /**
@@ -89,6 +90,7 @@ export interface ReferenceExpr {
  * }
  */
 export interface PipelineExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: ExpressionType.PIPELINE
 
   /**
@@ -109,6 +111,7 @@ export interface PipelineExpr {
  * This serves as the foundation for specific function types like conditions and transformers.
  */
 interface BaseFunctionExpr<A extends ResolvableValue[]> {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: FunctionCallType
   /**
    * Name of the registered function.
@@ -152,6 +155,7 @@ interface BaseFunctionExpr<A extends ResolvableValue[]> {
  * }
  */
 export interface ConditionFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: FunctionCallType.CONDITION
 }
 
@@ -182,6 +186,7 @@ export type FunctionExpr<A extends ResolvableValue[]> = BaseFunctionExpr<A>
  * }
  */
 export interface TransformerFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: FunctionCallType.TRANSFORMER
 }
 
@@ -210,6 +215,7 @@ export interface TransformerFunctionExpr<A extends ResolvableValue[] = Resolvabl
  * }
  */
 export interface EffectFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: FunctionCallType.EFFECT
 }
 
@@ -235,6 +241,7 @@ export interface EffectFunctionExpr<A extends ResolvableValue[] = ResolvableValu
  * }
  */
 export interface GeneratorFunctionExpr<A extends ResolvableValue[] = ResolvableValue[]> extends BaseFunctionExpr<A> {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: FunctionCallType.GENERATOR
 }
 
@@ -245,6 +252,7 @@ export interface GeneratorFunctionExpr<A extends ResolvableValue[] = ResolvableV
  * Iterator.Map({ label: Item().path('name'), value: Item().path('id') })
  */
 export interface MapIteratorConfig {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: IteratorType.MAP
 
   /**
@@ -261,6 +269,7 @@ export interface MapIteratorConfig {
  * Iterator.Filter(Item().path('active').match(Condition.Equals(true)))
  */
 export interface FilterIteratorConfig {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: IteratorType.FILTER
 
   /**
@@ -277,6 +286,7 @@ export interface FilterIteratorConfig {
  * Iterator.Find(Item().path('id').match(Condition.Equals(Params('userId'))))
  */
 export interface FindIteratorConfig {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: IteratorType.FIND
 
   /**
@@ -308,6 +318,7 @@ export type IteratorConfig = MapIteratorConfig | FilterIteratorConfig | FindIter
  *   .pipe(Transformer.Array.Slice(0, 10))
  */
 export interface IterateExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: ExpressionType.ITERATE
 
   /**
@@ -326,6 +337,7 @@ export interface IterateExpr {
  * Any Forge-tagged node or live builder that resolves to a value at runtime.
  */
 export interface ResolvableNode {
+  /** Internal Forge discriminator. Do not set or override this property. */
   readonly _forge: ExpressionType | FunctionCallType | PredicateType | ConditionCombinatorType | BuilderType
 }
 
@@ -375,6 +387,7 @@ export type ResolvableValue =
  * }
  */
 export interface PredicateTestExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: PredicateType.TEST
   /** The value expression to test. */
   subject: ResolvableValue
@@ -403,6 +416,7 @@ export interface PredicateTestExpr {
  * }
  */
 export interface PredicateAndExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: PredicateType.AND
 
   /**
@@ -426,6 +440,7 @@ export interface PredicateAndExpr {
  * }
  */
 export interface PredicateOrExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: PredicateType.OR
 
   /**
@@ -449,6 +464,7 @@ export interface PredicateOrExpr {
  * }
  */
 export interface PredicateXorExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: PredicateType.XOR
 
   /**
@@ -469,6 +485,7 @@ export interface PredicateXorExpr {
  * }
  */
 export interface PredicateNotExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: PredicateType.NOT
 
   /**
@@ -531,6 +548,7 @@ export type PredicateExpr = PredicateTestExpr | PredicateAndExpr | PredicateOrEx
  * }
  */
 export interface ConditionalExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: ExpressionType.CONDITIONAL
 
   /** The condition to evaluate. */
@@ -565,6 +583,7 @@ export interface ConditionalExpr {
  * }
  */
 export interface ConditionAndExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: ConditionCombinatorType.AND
 
   /**
@@ -590,6 +609,7 @@ export interface ConditionAndExpr {
  * }
  */
 export interface ConditionOrExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: ConditionCombinatorType.OR
 
   /**
@@ -615,6 +635,7 @@ export interface ConditionOrExpr {
  * }
  */
 export interface ConditionXorExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: ConditionCombinatorType.XOR
 
   /**
@@ -637,6 +658,7 @@ export interface ConditionXorExpr {
  * }
  */
 export interface ConditionNotExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: ConditionCombinatorType.NOT
 
   /**
@@ -690,6 +712,7 @@ interface MatchBranch {
  * }
  */
 export interface MatchExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: ExpressionType.MATCH
 
   /** The value to test each branch's condition against. */
@@ -723,6 +746,7 @@ export interface MatchExpr {
  * })
  */
 export interface RedirectOutcome {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: PolicyType.OUTCOME_REDIRECT
   /** Optional condition that must be true for this redirect to occur. */
   when?: PredicateExpr
@@ -751,6 +775,7 @@ export interface RedirectOutcome {
  * })
  */
 export interface ThrowErrorOutcome {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: PolicyType.OUTCOME_THROW_ERROR
   /** Optional condition that must be true for this error to be thrown. */
   when?: PredicateExpr
@@ -802,6 +827,7 @@ export type HookOutcome = RedirectOutcome | ThrowErrorOutcome
  * })
  */
 export interface AccessHook {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: HookType.ACCESS
   /** Condition for this hook to execute. If omitted, always executes. */
   when?: PredicateExpr
@@ -843,6 +869,7 @@ export interface AccessHook {
  * })
  */
 export interface SubmitHook {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: HookType.SUBMIT
 
   /**

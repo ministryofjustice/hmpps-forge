@@ -77,6 +77,7 @@ export interface CollectionBlock<T = BlockDefinition, F = T> extends BlockDefini
  * during evaluation - a transformation the generic type can't express.
  */
 export interface EvaluatedCollectionBlock {
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge: ComponentCallType
   variant: 'collection-block'
 

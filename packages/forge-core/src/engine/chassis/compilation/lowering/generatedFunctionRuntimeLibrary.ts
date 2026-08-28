@@ -34,6 +34,7 @@ export interface FunctionRegistryLookupEntry {
   inputSchema?: ZodType
   argumentsSchema?: ZodType
   outputSchema?: ZodType
+  /** Internal Forge discriminator. Do not set or override this property. */
   _forge?: FunctionEntryType
 }
 
