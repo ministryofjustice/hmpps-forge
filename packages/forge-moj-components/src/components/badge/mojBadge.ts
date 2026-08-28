@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -49,7 +49,7 @@ export type MOJBadgeColour =
  * })
  * ```
  */
-export interface MOJBadge extends BlockDefinition {
+export type MOJBadge = ResolvableBlockProps<{
   /**
    * Plain text content for the badge.
    * Use either text or html, not both.
@@ -57,7 +57,7 @@ export interface MOJBadge extends BlockDefinition {
    * @example 'Complete'
    * @example 'In progress'
    */
-  text?: ResolvableString
+  text?: string
 
   /**
    * HTML content for the badge.
@@ -65,7 +65,7 @@ export interface MOJBadge extends BlockDefinition {
    *
    * @example '<strong>Urgent</strong>'
    */
-  html?: ResolvableString
+  html?: string
 
   /**
    * CSS classes for the badge container.
@@ -74,7 +74,7 @@ export interface MOJBadge extends BlockDefinition {
    * @example 'moj-badge--blue'
    * @example 'moj-badge--red moj-badge--large'
    */
-  classes?: MOJBadgeColour | ResolvableString
+  classes?: MOJBadgeColour | string
 
   /**
    * Accessible label for the badge.
@@ -82,15 +82,15 @@ export interface MOJBadge extends BlockDefinition {
    *
    * @example 'Status: Complete'
    */
-  label?: ResolvableString
+  label?: string
 
   /**
    * Additional HTML attributes for the badge container.
    *
    * @example { 'data-status': 'complete' }
    */
-  attributes?: Record<string, ResolvableString>
-}
+  attributes?: Record<string, string>
+}>
 
 /**
  * MOJ Badge component.

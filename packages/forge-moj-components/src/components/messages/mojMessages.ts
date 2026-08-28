@@ -1,10 +1,4 @@
-import {
-  BlockDefinition,
-  ResolvableBoolean,
-  ResolvableString,
-  ResolvableArray,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, EvaluatedBlock, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
@@ -33,14 +27,14 @@ export interface MOJMessageItem {
    * Use either text or html, not both.
    * @example 'Hello, how can I help you today?'
    */
-  text?: ResolvableString
+  text?: string
 
   /**
    * HTML content of the message.
    * Use either text or html, not both.
    * @example '<p>Please see the <strong>attached document</strong>.</p>'
    */
-  html?: ResolvableString
+  html?: string
 
   /**
    * Child blocks to render as the message content.
@@ -53,7 +47,7 @@ export interface MOJMessageItem {
    * - 'sent': Outgoing message (blue, right-aligned)
    * - 'received': Incoming message (grey, left-aligned)
    */
-  type: MOJMessageType | ResolvableString
+  type: MOJMessageType
 
   /**
    * The sender of the message.
@@ -61,7 +55,7 @@ export interface MOJMessageItem {
    * @example 'John Smith'
    * @example 'Support Agent'
    */
-  sender: ResolvableString
+  sender: string
 
   /**
    * Timestamp of when the message was sent.
@@ -69,10 +63,10 @@ export interface MOJMessageItem {
    * @example '2019-06-14T14:01:00.000Z'
    * @example '2023-12-25T09:30:00.000Z'
    */
-  timestamp: ResolvableString
+  timestamp: string
 
   /** Conditional visibility for this message */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 }
 
 /**
@@ -117,39 +111,39 @@ export interface MOJMessageItem {
  * })
  * ```
  */
-export interface MOJMessages extends BlockDefinition {
+export type MOJMessages = ResolvableBlockProps<{
   /**
    * Array of message items to display.
    * Messages are displayed in the order provided, grouped by date.
    */
-  items: ResolvableArray<MOJMessageItem>
+  items: MOJMessageItem[]
 
   /**
    * ID for the messages container element.
    * Defaults to 'messages' if not specified.
    * @example 'case-messages'
    */
-  id?: ResolvableString
+  id?: string
 
   /**
    * Accessible label for the messages container.
    * Applied as aria-label attribute.
    * @example 'Case correspondence'
    */
-  label?: ResolvableString
+  label?: string
 
   /**
    * Additional CSS classes for the messages container.
    * @example 'app-messages--compact'
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * Additional HTML attributes for the messages container.
    * @example { 'data-module': 'app-messages' }
    */
-  attributes?: Record<string, ResolvableString>
-}
+  attributes?: Record<string, string>
+}>
 
 type EvaluatedMOJMessageItem = EvaluatedBlock<MOJMessages>['items'][number]
 

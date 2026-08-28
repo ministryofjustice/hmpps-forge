@@ -1,9 +1,4 @@
-import {
-  BlockDefinition,
-  ResolvableString,
-  ResolvableBoolean,
-  ResolvableArray,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -11,19 +6,19 @@ import { nunjucksComponent } from '../../utils/nunjucksComponent'
  */
 export interface MOJSubNavigationItem {
   /** URL of the navigation item anchor */
-  href: ResolvableString
+  href: string
 
   /** Item text (required if html not set) */
-  text?: ResolvableString
+  text?: string
 
   /** Item HTML content (required if text not set) */
-  html?: ResolvableString
+  html?: string
 
   /** Flag to mark the navigation item as active (aria-current="page") */
-  active?: ResolvableBoolean
+  active?: boolean
 
   /** Conditional visibility for this navigation item */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 
   /** Additional HTML attributes for the item */
   attributes?: Record<string, string>
@@ -49,19 +44,19 @@ export interface MOJSubNavigationItem {
  * })
  * ```
  */
-export interface MOJSubNavigation extends BlockDefinition {
+export type MOJSubNavigation = ResolvableBlockProps<{
   /** The aria-label to add to the navigation container (defaults to "Secondary navigation region") */
-  label?: ResolvableString
+  label?: string
 
   /** Array of navigation items */
-  items: ResolvableArray<MOJSubNavigationItem>
+  items: MOJSubNavigationItem[]
 
   /** Additional CSS classes for the nav container */
-  classes?: ResolvableString
+  classes?: string
 
   /** Additional HTML attributes */
   attributes?: Record<string, string>
-}
+}>
 
 /**
  * MOJ Sub-Navigation component.

@@ -1,9 +1,4 @@
-import {
-  BlockDefinition,
-  ResolvableBoolean,
-  ResolvableObject,
-  ResolvableString,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -11,16 +6,16 @@ import { nunjucksComponent } from '../../utils/nunjucksComponent'
  */
 export interface MOJCardHeading {
   /** Heading text (required if html not set) */
-  text?: ResolvableString
+  text?: string
 
   /** Heading HTML content (required if text not set) */
-  html?: ResolvableString
+  html?: string
 
   /** Heading level 1-6 (default: 2) */
   level?: 1 | 2 | 3 | 4 | 5 | 6
 
   /** Additional classes for the heading element */
-  classes?: ResolvableString
+  classes?: string
 }
 
 /**
@@ -28,13 +23,13 @@ export interface MOJCardHeading {
  */
 export interface MOJCardDescription {
   /** Description text (required if html not set) */
-  text?: ResolvableString
+  text?: string
 
   /** Description HTML content (required if text not set) */
-  html?: ResolvableString
+  html?: string
 
   /** Additional classes for the description element */
-  classes?: ResolvableString
+  classes?: string
 }
 
 /**
@@ -51,33 +46,33 @@ export interface MOJCardDescription {
  * })
  * ```
  */
-export interface MOJCard extends BlockDefinition {
+export type MOJCard = ResolvableBlockProps<{
   /**
    * Card heading - can be a simple string or object with additional options.
    * @example 'Search cases'
    * @example { text: 'Search cases', level: 3 }
    */
-  heading: ResolvableString | ResolvableObject<MOJCardHeading>
+  heading: string | MOJCardHeading
 
   /** Link URL for the card heading */
-  href: ResolvableString
+  href: string
 
   /**
    * Optional description - can be a simple string or object with additional options.
    * @example 'Find and manage case records'
    * @example { html: '<strong>Find</strong> records' }
    */
-  description?: ResolvableString | ResolvableObject<MOJCardDescription>
+  description?: string | MOJCardDescription
 
   /** Makes the entire card clickable via CSS (default: true) */
-  clickable?: ResolvableBoolean
+  clickable?: boolean
 
   /** Additional CSS classes for the card container */
-  classes?: ResolvableString
+  classes?: string
 
   /** Additional HTML attributes */
   attributes?: Record<string, string>
-}
+}>
 
 /**
  * MOJ Card component.

@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
@@ -22,7 +22,7 @@ export type MOJBannerType = 'success' | 'warning' | 'information'
  * })
  * ```
  */
-export interface MOJBanner extends BlockDefinition {
+export type MOJBanner = ResolvableBlockProps<{
   /**
    * The type of banner which determines styling and icon.
    * Options: 'success', 'warning', 'information'
@@ -32,7 +32,7 @@ export interface MOJBanner extends BlockDefinition {
    * @example 'warning' // Yellow banner with warning icon
    * @example 'information' // Blue banner with info icon
    */
-  bannerType?: MOJBannerType | ResolvableString
+  bannerType?: MOJBannerType
 
   /**
    * Plain text content for the banner message.
@@ -40,7 +40,7 @@ export interface MOJBanner extends BlockDefinition {
    *
    * @example 'Your application has been submitted.'
    */
-  text?: ResolvableString
+  text?: string
 
   /**
    * HTML content for the banner message.
@@ -48,7 +48,7 @@ export interface MOJBanner extends BlockDefinition {
    *
    * @example '<p>Your application has been <strong>submitted</strong>.</p>'
    */
-  html?: ResolvableString
+  html?: string
 
   /**
    * Child blocks to render in the banner message.
@@ -63,22 +63,22 @@ export interface MOJBanner extends BlockDefinition {
    * @example 'Success'
    * @example 'Warning'
    */
-  iconFallbackText?: ResolvableString
+  iconFallbackText?: string
 
   /**
    * Additional CSS classes for the banner container.
    *
    * @example 'app-banner--custom'
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * Additional HTML attributes for the banner container.
    *
    * @example { 'data-module': 'custom-banner' }
    */
-  attributes?: Record<string, ResolvableString>
-}
+  attributes?: Record<string, string>
+}>
 
 /**
  * MOJ Banner component.

@@ -1,10 +1,4 @@
-import {
-  BlockDefinition,
-  ResolvableBoolean,
-  ResolvableString,
-  ResolvableArray,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, EvaluatedBlock, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
@@ -14,10 +8,10 @@ import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
  */
 export interface MOJTimelineItemLabel {
   /** Label text (required if html not set) */
-  text?: ResolvableString
+  text?: string
 
   /** Label HTML content (required if text not set) */
-  html?: ResolvableString
+  html?: string
 }
 
 /**
@@ -29,7 +23,7 @@ export interface MOJTimelineItemDatetime {
    * A valid datetime string to be formatted.
    * @example '2019-06-14T14:01:00.000Z'
    */
-  timestamp: ResolvableString
+  timestamp: string
 
   /**
    * Standard date format type (use instead of format).
@@ -37,7 +31,7 @@ export interface MOJTimelineItemDatetime {
    * @example 'datetime' // Full date and time
    * @example 'date' // Date only
    */
-  type?: 'datetime' | 'shortdatetime' | 'date' | 'shortdate' | 'time' | ResolvableString
+  type?: 'datetime' | 'shortdatetime' | 'date' | 'shortdate' | 'time'
 
   /**
    * Custom date format string (use instead of type).
@@ -46,7 +40,7 @@ export interface MOJTimelineItemDatetime {
    * @example 'DD/MM/YYYY'
    * @example 'dddd, MMMM Do YYYY, h:mm:ss a'
    */
-  format?: ResolvableString
+  format?: string
 }
 
 /**
@@ -55,10 +49,10 @@ export interface MOJTimelineItemDatetime {
  */
 export interface MOJTimelineItemByline {
   /** Byline text (required if html not set) */
-  text?: ResolvableString
+  text?: string
 
   /** Byline HTML content (required if text not set) */
-  html?: ResolvableString
+  html?: string
 }
 
 /**
@@ -77,14 +71,14 @@ export interface MOJTimelineItem {
    * Use either text or html, not both.
    * @example 'Your application has been received.'
    */
-  text?: ResolvableString
+  text?: string
 
   /**
    * HTML description of the event.
    * Use either text or html, not both.
    * @example '<p>Your application has been <strong>approved</strong>.</p>'
    */
-  html?: ResolvableString
+  html?: string
 
   /**
    * Child blocks to render as the event description.
@@ -105,16 +99,16 @@ export interface MOJTimelineItem {
   byline?: MOJTimelineItemByline
 
   /** Additional CSS classes for this timeline item */
-  classes?: ResolvableString
+  classes?: string
 
   /** Additional HTML attributes for this timeline item */
-  attributes?: Record<string, ResolvableString>
+  attributes?: Record<string, string>
 
   /**
    * Conditional visibility for this timeline item. When the evaluated value is `false`,
    * the item is omitted from rendering. Defaults to showing the item.
    */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 }
 
 /**
@@ -147,12 +141,12 @@ export interface MOJTimelineItem {
  * })
  * ```
  */
-export interface MOJTimeline extends BlockDefinition {
+export type MOJTimeline = ResolvableBlockProps<{
   /**
    * Array of timeline items to display.
    * Items are displayed in the order provided (typically most recent first).
    */
-  items: ResolvableArray<MOJTimelineItem>
+  items: MOJTimelineItem[]
 
   /**
    * Heading level for timeline item labels.
@@ -165,17 +159,16 @@ export interface MOJTimeline extends BlockDefinition {
    * Additional CSS classes for the timeline container.
    * @example 'app-timeline--custom'
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * Additional HTML attributes for the timeline container.
    * @example { 'data-module': 'app-timeline' }
    */
-  attributes?: Record<string, ResolvableString>
-}
+  attributes?: Record<string, string>
+}>
 
-/** Evaluated timeline item after expression resolution */
-type EvaluatedMOJTimelineItem = EvaluatedBlock<MOJTimelineItem, false>
+type EvaluatedMOJTimelineItem = EvaluatedBlock<MOJTimeline>['items'][number]
 
 function normaliseTimelineItem(item: EvaluatedMOJTimelineItem) {
   const { blocks, ...itemParams } = item
@@ -223,10 +216,8 @@ function normaliseTimelineItem(item: EvaluatedMOJTimelineItem) {
  */
 export const MOJTimeline = nunjucksComponent<MOJTimeline>('mojTimeline', {
   render: (props, nunjucksEnv) => {
-    // NOTE: items is typed as ResolvableArray<MOJTimelineItem> which resolves to EvaluatedMOJTimelineItem[] at runtime
-    const items = props.items as EvaluatedMOJTimelineItem[]
     const params = {
-      items: items.filter(item => item.visibleWhen !== false).map(normaliseTimelineItem),
+      items: props.items.filter(item => item.visibleWhen !== false).map(normaliseTimelineItem),
       headingLevel: props.headingLevel,
       classes: props.classes,
       attributes: props.attributes,

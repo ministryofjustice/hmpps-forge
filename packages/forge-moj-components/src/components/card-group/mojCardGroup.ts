@@ -1,9 +1,4 @@
-import {
-  BlockDefinition,
-  ResolvableBoolean,
-  ResolvableString,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { EvaluatedBlock, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -72,7 +67,7 @@ export interface MOJCardGroupItem {
    * Conditional visibility for this card. When the evaluated value is `false`,
    * the card is omitted from rendering. Defaults to showing the card.
    */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 }
 
 /**
@@ -91,7 +86,7 @@ export interface MOJCardGroupItem {
  * })
  * ```
  */
-export interface MOJCardGroup extends BlockDefinition {
+export type MOJCardGroup = ResolvableBlockProps<{
   /** Array of cards to display */
   items: MOJCardGroupItem[]
 
@@ -99,11 +94,11 @@ export interface MOJCardGroup extends BlockDefinition {
   columns?: 2 | 3 | 4
 
   /** Additional CSS classes for the card group container */
-  classes?: ResolvableString
+  classes?: string
 
   /** Additional HTML attributes */
   attributes?: Record<string, string>
-}
+}>
 
 type EvaluatedMOJCardGroupItem = EvaluatedBlock<MOJCardGroup>['items'][number]
 
