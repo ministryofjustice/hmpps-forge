@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableArray, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { jsxComponent, raw } from '@ministryofjustice/hmpps-forge/jsx-components'
 
 type ListType = 'bullet' | 'number'
@@ -19,14 +19,14 @@ type ListType = 'bullet' | 'number'
  * })
  * ```
  */
-export interface GovUKList extends BlockDefinition {
+export type GovUKList = ResolvableBlockProps<{
   /**
    * The list items - strings, child blocks, or a dynamic expression evaluating to an array.
    *
    * **String items are rendered as raw HTML without sanitization** - escape untrusted data
    * with `Transformer.String.EscapeHtml()` before interpolating it.
    */
-  items: ResolvableArray<ResolvableString | BlockDefinition>
+  items: (string | BlockDefinition)[]
 
   /** List style. 'bullet' for unordered, 'number' for ordered. Omit for plain list. */
   style?: ListType
@@ -39,7 +39,7 @@ export interface GovUKList extends BlockDefinition {
 
   /** HTML attributes to add to the list element. */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * GOV.UK styled list. Items can be strings, child blocks, or a mix of the two.

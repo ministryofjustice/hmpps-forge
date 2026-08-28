@@ -1,9 +1,4 @@
-import {
-  BlockDefinition,
-  ResolvableString,
-  ResolvableBoolean,
-  ResolvableObject,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -11,13 +6,13 @@ import { nunjucksComponent } from '../../utils/nunjucksComponent'
  */
 export interface MOJProgressBarItemLabel {
   /** Label text (required if html not set) */
-  text?: ResolvableString
+  text?: string
 
   /** Label HTML content (required if text not set) */
-  html?: ResolvableString
+  html?: string
 
   /** Additional CSS classes for the label element */
-  classes?: ResolvableString
+  classes?: string
 }
 
 /**
@@ -30,7 +25,7 @@ export interface MOJProgressBarItem {
    *
    * @example 'step-1'
    */
-  id?: ResolvableString
+  id?: string
 
   /**
    * Label for the progress item - can be a simple string or object with additional options.
@@ -38,7 +33,7 @@ export interface MOJProgressBarItem {
    * @example 'Personal details'
    * @example { text: 'Personal details', classes: 'custom-label' }
    */
-  label: ResolvableString | ResolvableObject<MOJProgressBarItemLabel>
+  label: string | MOJProgressBarItemLabel
 
   /**
    * Whether this item represents the current/active step.
@@ -46,7 +41,7 @@ export interface MOJProgressBarItem {
    *
    * @example true // Current step
    */
-  active?: ResolvableBoolean
+  active?: boolean
 
   /**
    * Whether this step has been completed.
@@ -54,16 +49,16 @@ export interface MOJProgressBarItem {
    *
    * @example true // Step is complete
    */
-  complete?: ResolvableBoolean
+  complete?: boolean
 
   /** Additional CSS classes for the item element */
-  classes?: ResolvableString
+  classes?: string
 
   /** Additional HTML attributes for the item element */
-  attributes?: Record<string, ResolvableString>
+  attributes?: Record<string, string>
 
   /** Conditional visibility for this progress item */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 }
 
 /**
@@ -86,14 +81,14 @@ export interface MOJProgressBarItem {
  * })
  * ```
  */
-export interface MOJProgressBar extends BlockDefinition {
+export type MOJProgressBar = ResolvableBlockProps<{
   /**
    * Unique identifier for the progress bar.
    * Defaults to "progress" if not provided.
    *
    * @example 'application-progress'
    */
-  id?: ResolvableString
+  id?: string
 
   /**
    * Accessible label for the progress bar (aria-label).
@@ -102,7 +97,7 @@ export interface MOJProgressBar extends BlockDefinition {
    * @example 'Application progress'
    * @example 'Registration steps'
    */
-  label?: ResolvableString
+  label?: string
 
   /**
    * Array of progress items representing each step in the journey.
@@ -124,15 +119,15 @@ export interface MOJProgressBar extends BlockDefinition {
    *
    * @example 'app-progress-bar--custom'
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * Additional HTML attributes for the progress bar container.
    *
    * @example { 'data-module': 'progress-tracker' }
    */
-  attributes?: Record<string, ResolvableString>
-}
+  attributes?: Record<string, string>
+}>
 
 /**
  * MOJ Progress Bar component.

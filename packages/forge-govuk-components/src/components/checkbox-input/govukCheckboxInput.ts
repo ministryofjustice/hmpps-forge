@@ -1,12 +1,5 @@
 import { z } from 'zod'
-import {
-  BlockDefinition,
-  ResolvableArray,
-  ResolvableBoolean,
-  ResolvableString,
-  EvaluatedBlock,
-  FieldBlockDefinition,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, EvaluatedBlock, ResolvableFieldProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import {
   normaliseGovukErrorMessage,
@@ -35,14 +28,14 @@ import {
  * })
  * ```
  */
-export interface GovUKCheckboxInput extends FieldBlockDefinition {
+export type GovUKCheckboxInput = ResolvableFieldProps<{
   /**
    * The label for the checkbox group.
    * When using fieldset, this becomes the legend text if no fieldset legend is specified.
    *
    * @example 'Which countries have you visited?'
    */
-  label?: ResolvableString
+  label?: string
 
   /** Can be used to add a fieldset to the checkboxes component. */
   fieldset?: {
@@ -52,26 +45,26 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition {
      */
     legend?: {
       /** Text content of the legend */
-      text?: ResolvableString
+      text?: string
 
       /** HTML content of the legend (takes precedence over text) */
-      html?: ResolvableString
+      html?: string
 
       /** Additional CSS classes for the legend */
-      classes?: ResolvableString
+      classes?: string
 
       /** Whether to render the legend as a page heading (wrapped in h1) */
-      isPageHeading?: ResolvableBoolean
+      isPageHeading?: boolean
     }
 
     /** Additional CSS classes for the fieldset wrapper */
-    classes?: ResolvableString
+    classes?: string
 
     /** HTML attributes to add to the fieldset */
     attributes?: Record<string, any>
 
     /** Element IDs to add to the fieldset's aria-describedby attribute */
-    describedBy?: ResolvableString
+    describedBy?: string
   }
 
   /**
@@ -82,19 +75,19 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition {
    * @example { html: 'Choose <strong>all relevant</strong> options' } // Rich HTML hint
    */
   hint?:
-    | ResolvableString
+    | string
     | {
         /** Unique ID for the hint (auto-generated if not provided) */
-        id?: ResolvableString
+        id?: string
 
         /** Text content of the hint */
-        text?: ResolvableString
+        text?: string
 
         /** HTML content of the hint (takes precedence over text) */
-        html?: ResolvableString
+        html?: string
 
         /** Additional CSS classes for the hint */
-        classes?: ResolvableString
+        classes?: string
 
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
@@ -103,7 +96,7 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition {
   /** Additional options for the form group containing the checkboxes component. */
   formGroup?: {
     /** Classes to add to the form group wrapper. */
-    classes?: ResolvableString
+    classes?: string
 
     /** HTML attributes to add to the form group wrapper */
     attributes?: Record<string, any>
@@ -111,23 +104,23 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition {
     /** Content to add before all checkbox items within the checkboxes component. */
     beforeInputs?: {
       /** Text content to add before all checkbox items */
-      text?: ResolvableString
+      text?: string
       /** HTML content to add before all checkbox items (takes precedence over text) */
-      html?: ResolvableString
+      html?: string
       /** Additional CSS classes for the before inputs content */
-      classes?: ResolvableString
+      classes?: string
     }
 
     /** Content to add after all checkbox items within the checkboxes component. */
     afterInputs?: {
       /** Text content to add after all checkbox items */
-      text?: ResolvableString
+      text?: string
 
       /** HTML content to add after all checkbox items (takes precedence over text) */
-      html?: ResolvableString
+      html?: string
 
       /** Additional CSS classes for the after inputs content */
-      classes?: ResolvableString
+      classes?: string
     }
   }
 
@@ -137,14 +130,14 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition {
    *
    * @example 'contact-methods' // Creates IDs like 'contact-methods-email', 'contact-methods-phone'
    */
-  idPrefix?: ResolvableString
+  idPrefix?: string
 
   /**
    * Name attribute for all checkbox items.
    *
    * @example 'contact_preferences' // Form submission key
    */
-  name?: ResolvableString
+  name?: string
 
   /**
    * One or more element IDs to add to the input `aria-describedby` attribute without a fieldset.
@@ -152,14 +145,14 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition {
    *
    * @example 'contact-methods-guidance'
    */
-  describedBy?: ResolvableString
+  describedBy?: string
 
   /**
    * Additional CSS classes to add to the checkboxes container.
    *
    * @example 'govuk-checkboxes--small' // Smaller checkboxes
    */
-  classes?: ResolvableString
+  classes?: string
 
   /** Additional HTML attributes (such as data attributes) to add to the anchor tag. */
   attributes?: Record<string, any>
@@ -180,8 +173,8 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition {
    * // Dynamic items using Iterator
    * Data('areas').each(Iterator.Map({ value: Item().path('value'), text: Item().path('text') }))
    */
-  items: ResolvableArray<GovUKCheckboxInputItem | GovUKCheckboxInputDivider>
-}
+  items: (GovUKCheckboxInputItem | GovUKCheckboxInputDivider)[]
+}>
 
 /**
  * Individual checkbox option within a checkbox group.
@@ -193,7 +186,7 @@ interface GovUKCheckboxInputItem {
    *
    * @example 'Dog'
    */
-  value: ResolvableString
+  value: string
 
   /**
    * Text to use within the checkbox item label.
@@ -201,7 +194,7 @@ interface GovUKCheckboxInputItem {
    *
    * @example 'Email'
    */
-  text?: ResolvableString
+  text?: string
 
   /**
    * HTML to use within the checkbox item label.
@@ -209,7 +202,7 @@ interface GovUKCheckboxInputItem {
    *
    * @example 'Email <span class="govuk-caption-m">Fastest response</span>'
    */
-  html?: ResolvableString
+  html?: string
 
   /**
    * Specific ID attribute for the checkbox item.
@@ -217,7 +210,7 @@ interface GovUKCheckboxInputItem {
    *
    * @example 'contact-email'
    */
-  id?: ResolvableString
+  id?: string
 
   /**
    * Can be used to add a hint to each checkbox item within the checkboxes component.
@@ -226,19 +219,19 @@ interface GovUKCheckboxInputItem {
    * @example 'We'll send updates to this email address'
    */
   hint?:
-    | ResolvableString
+    | string
     | {
         /** Unique ID for the hint (auto-generated if not provided) */
-        id?: ResolvableString
+        id?: string
 
         /** Text content of the hint */
-        text?: ResolvableString
+        text?: string
 
         /** HTML content of the hint (takes precedence over text) */
-        html?: ResolvableString
+        html?: string
 
         /** Additional CSS classes for the hint */
-        classes?: ResolvableString
+        classes?: string
 
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
@@ -250,14 +243,14 @@ interface GovUKCheckboxInputItem {
    *
    * @example true // Pre-select this option
    */
-  checked?: ResolvableBoolean
+  checked?: boolean
 
   /**
    * If `true`, checkbox will be disabled and cannot be selected.
    *
    * @example true // Disable this option
    */
-  disabled?: ResolvableBoolean
+  disabled?: boolean
 
   /**
    * If set to "exclusive", implements a 'None of these' type behavior via JavaScript.
@@ -278,7 +271,7 @@ interface GovUKCheckboxInputItem {
    */
   label?: {
     /** Additional CSS classes for the label tag */
-    classes?: ResolvableString
+    classes?: string
 
     /** HTML attributes to add to the label tag */
     attributes?: Record<string, any>
@@ -293,7 +286,7 @@ interface GovUKCheckboxInputItem {
   block?: BlockDefinition | BlockDefinition[]
 
   /** Conditional visibility for this checkbox item */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 }
 
 /**
@@ -305,10 +298,10 @@ interface GovUKCheckboxInputDivider {
    *
    * @example 'or'
    */
-  divider: ResolvableString
+  divider: string
 
   /** Conditional visibility for this divider */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 }
 
 /**

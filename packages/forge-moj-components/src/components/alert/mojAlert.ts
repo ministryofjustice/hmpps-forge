@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableString, ResolvableBoolean } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
@@ -29,7 +29,7 @@ export type MOJAlertHeadingTag = 'h2' | 'h3' | 'h4'
  * })
  * ```
  */
-export interface MOJAlert extends BlockDefinition {
+export type MOJAlert = ResolvableBlockProps<{
   /**
    * The type of alert which determines styling and icon.
    * Options: 'information' (default), 'success', 'warning', 'error'
@@ -39,7 +39,7 @@ export interface MOJAlert extends BlockDefinition {
    * @example 'warning' // Yellow warning alert
    * @example 'error' // Red error alert
    */
-  alertVariant?: MOJAlertVariant | ResolvableString
+  alertVariant?: MOJAlertVariant
 
   /**
    * The title of the alert. Used for the aria-label and optionally as a heading.
@@ -47,7 +47,7 @@ export interface MOJAlert extends BlockDefinition {
    * @example 'Important information'
    * @example 'Application submitted'
    */
-  title: ResolvableString
+  title: string
 
   /**
    * Plain text content for the alert message.
@@ -55,7 +55,7 @@ export interface MOJAlert extends BlockDefinition {
    *
    * @example 'Your application has been received.'
    */
-  text?: ResolvableString
+  text?: string
 
   /**
    * HTML content for the alert message.
@@ -63,7 +63,7 @@ export interface MOJAlert extends BlockDefinition {
    *
    * @example '<p>You have <strong>unsaved changes</strong>.</p>'
    */
-  html?: ResolvableString
+  html?: string
 
   /**
    * Child blocks to render in the alert message.
@@ -77,7 +77,7 @@ export interface MOJAlert extends BlockDefinition {
    *
    * @example true // Show title as heading
    */
-  showTitleAsHeading?: ResolvableBoolean
+  showTitleAsHeading?: boolean
 
   /**
    * The heading level when showTitleAsHeading is true.
@@ -86,7 +86,7 @@ export interface MOJAlert extends BlockDefinition {
    * @example 'h2' // Default heading level
    * @example 'h3' // Smaller heading
    */
-  headingTag?: MOJAlertHeadingTag | ResolvableString
+  headingTag?: MOJAlertHeadingTag
 
   /**
    * Whether the alert can be dismissed by the user.
@@ -94,7 +94,7 @@ export interface MOJAlert extends BlockDefinition {
    *
    * @example true // Show dismiss button
    */
-  dismissible?: ResolvableBoolean
+  dismissible?: boolean
 
   /**
    * Text for the dismiss button.
@@ -103,21 +103,21 @@ export interface MOJAlert extends BlockDefinition {
    * @example 'Close'
    * @example 'Hide this message'
    */
-  dismissText?: ResolvableString
+  dismissText?: string
 
   /**
    * Whether to disable auto-focus on the alert when it appears.
    *
    * @example true // Disable auto-focus
    */
-  disableAutoFocus?: ResolvableBoolean
+  disableAutoFocus?: boolean
 
   /**
    * CSS selector for the element to focus when the alert is dismissed.
    *
    * @example '#main-content'
    */
-  focusOnDismissSelector?: ResolvableString
+  focusOnDismissSelector?: string
 
   /**
    * ARIA role for the alert container.
@@ -126,22 +126,22 @@ export interface MOJAlert extends BlockDefinition {
    * @example 'alert' // For urgent notifications
    * @example 'status' // For status updates
    */
-  role?: ResolvableString
+  role?: string
 
   /**
    * Additional CSS classes for the alert container.
    *
    * @example 'app-alert--custom'
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * Additional HTML attributes for the alert container.
    *
    * @example { 'data-module': 'custom-alert' }
    */
-  attributes?: Record<string, ResolvableString>
-}
+  attributes?: Record<string, string>
+}>
 
 /**
  * MOJ Alert component.

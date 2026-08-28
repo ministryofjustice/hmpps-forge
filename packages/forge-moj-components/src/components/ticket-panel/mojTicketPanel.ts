@@ -1,9 +1,4 @@
-import {
-  BlockDefinition,
-  ResolvableBoolean,
-  ResolvableString,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, EvaluatedBlock, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseMojTextHtmlContent } from '../../utils/mojParamNormalisers'
 
@@ -22,7 +17,7 @@ export interface MOJTicketPanelItem {
    *
    * @example 'Reference: ABC123'
    */
-  text?: ResolvableString
+  text?: string
 
   /**
    * HTML content for the section.
@@ -30,7 +25,7 @@ export interface MOJTicketPanelItem {
    *
    * @example '<h2 class="govuk-heading-m">Application details</h2><p>Reference: ABC123</p>'
    */
-  html?: ResolvableString
+  html?: string
 
   /**
    * Child blocks to render in the section.
@@ -44,17 +39,17 @@ export interface MOJTicketPanelItem {
    *
    * @example 'moj-ticket-panel__content--blue'
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * Additional HTML attributes for the section.
    *
    * @example { 'aria-label': 'Application summary' }
    */
-  attributes?: Record<string, ResolvableString>
+  attributes?: Record<string, string>
 
   /** Conditional visibility for this ticket panel item */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 }
 
 /**
@@ -90,7 +85,7 @@ export interface MOJTicketPanelItem {
  * })
  * ```
  */
-export interface MOJTicketPanel extends BlockDefinition {
+export type MOJTicketPanel = ResolvableBlockProps<{
   /**
    * Array of sections to display in the ticket panel.
    * Each item represents a content section with optional styling.
@@ -108,15 +103,15 @@ export interface MOJTicketPanel extends BlockDefinition {
    *
    * @example 'app-ticket-panel--custom'
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * Additional HTML attributes for the ticket panel container.
    *
    * @example { 'aria-label': 'Application summary' }
    */
-  attributes?: Record<string, ResolvableString>
-}
+  attributes?: Record<string, string>
+}>
 
 type EvaluatedMOJTicketPanelItem = EvaluatedBlock<MOJTicketPanel>['items'][number]
 

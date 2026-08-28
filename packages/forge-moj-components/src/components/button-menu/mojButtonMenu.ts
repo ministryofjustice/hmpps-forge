@@ -1,9 +1,4 @@
-import {
-  BlockDefinition,
-  ResolvableString,
-  ResolvableBoolean,
-  ResolvableArray,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -21,14 +16,14 @@ export interface MOJButtonMenuButton {
    * @example 'Actions'
    * @example 'Options'
    */
-  text?: ResolvableString
+  text?: string
 
   /**
    * Additional CSS classes for the toggle button.
    *
    * @example 'govuk-button--secondary'
    */
-  classes?: ResolvableString
+  classes?: string
 }
 
 /**
@@ -45,7 +40,7 @@ export interface MOJButtonMenuItem {
    * @example 'button'
    * @example 'a'
    */
-  element?: 'input' | 'button' | 'a' | ResolvableString
+  element?: 'input' | 'button' | 'a'
 
   /**
    * Text content for the button or link.
@@ -54,7 +49,7 @@ export interface MOJButtonMenuItem {
    * @example 'Archive'
    * @example 'Delete'
    */
-  text?: ResolvableString
+  text?: string
 
   /**
    * HTML content for the button or link.
@@ -62,7 +57,7 @@ export interface MOJButtonMenuItem {
    *
    * @example '<span class="icon">+</span> Add item'
    */
-  html?: ResolvableString
+  html?: string
 
   /**
    * Name attribute for input or button elements.
@@ -70,7 +65,7 @@ export interface MOJButtonMenuItem {
    *
    * @example 'action'
    */
-  name?: ResolvableString
+  name?: string
 
   /**
    * Type attribute for input or button elements.
@@ -79,7 +74,7 @@ export interface MOJButtonMenuItem {
    *
    * @example 'button'
    */
-  type?: 'button' | 'submit' | 'reset' | ResolvableString
+  type?: 'button' | 'submit' | 'reset'
 
   /**
    * Value attribute for button elements.
@@ -87,14 +82,14 @@ export interface MOJButtonMenuItem {
    *
    * @example 'archive'
    */
-  value?: ResolvableString
+  value?: string
 
   /**
    * Whether the button should be disabled.
    *
    * @example true
    */
-  disabled?: ResolvableBoolean
+  disabled?: boolean
 
   /**
    * URL that the button should link to.
@@ -103,34 +98,34 @@ export interface MOJButtonMenuItem {
    * @example '/actions/archive'
    * @example '#archive'
    */
-  href?: ResolvableString
+  href?: string
 
   /**
    * Additional CSS classes for the button.
    *
    * @example 'govuk-button--warning'
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * Additional HTML attributes for the button.
    *
    * @example { 'data-action': 'archive' }
    */
-  attributes?: Record<string, ResolvableString>
+  attributes?: Record<string, string>
 
   /**
    * Prevent accidental double clicks from submitting forms multiple times.
    *
    * @example true
    */
-  preventDoubleClick?: ResolvableBoolean
+  preventDoubleClick?: boolean
 
   /**
    * Conditional visibility for this menu item.
    * When the evaluated value is `false`, the item is omitted from rendering.
    */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 }
 
 /**
@@ -157,7 +152,7 @@ export interface MOJButtonMenuItem {
  * })
  * ```
  */
-export interface MOJButtonMenu extends BlockDefinition {
+export type MOJButtonMenu = ResolvableBlockProps<{
   /**
    * Configuration for the toggle button.
    * Sets the text and styling of the button that opens the menu.
@@ -172,7 +167,7 @@ export interface MOJButtonMenu extends BlockDefinition {
    *
    * @example 'right'
    */
-  alignMenu?: MOJButtonMenuAlign | ResolvableString
+  alignMenu?: MOJButtonMenuAlign
 
   /**
    * Array of menu item button configurations.
@@ -180,22 +175,22 @@ export interface MOJButtonMenu extends BlockDefinition {
    *
    * @example [{ text: 'Archive', href: '#archive' }]
    */
-  items: ResolvableArray<MOJButtonMenuItem>
+  items: MOJButtonMenuItem[]
 
   /**
    * Additional CSS classes for the menu container.
    *
    * @example 'app-button-menu--custom'
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * Additional HTML attributes for the menu container.
    *
    * @example { 'data-module': 'custom-menu' }
    */
-  attributes?: Record<string, ResolvableString>
-}
+  attributes?: Record<string, string>
+}>
 
 /**
  * MOJ Button Menu component.

@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -6,16 +6,16 @@ import { nunjucksComponent } from '../../utils/nunjucksComponent'
  */
 export interface MultiSelectHeadCell {
   /** Plain text content for the header cell. */
-  text?: ResolvableString
+  text?: string
 
   /** HTML content for the header cell. Takes precedence over `text`. */
-  html?: ResolvableString
+  html?: string
 
   /** Specify format of the cell. Use "numeric" for right-aligned numeric data. */
-  format?: ResolvableString
+  format?: string
 
   /** Additional CSS classes for the header cell. */
-  classes?: ResolvableString
+  classes?: string
 
   /** Number of columns this cell should span. */
   colspan?: number
@@ -32,16 +32,16 @@ export interface MultiSelectHeadCell {
  */
 export interface MultiSelectCell {
   /** Plain text content for the cell. */
-  text?: ResolvableString
+  text?: string
 
   /** HTML content for the cell. Takes precedence over `text`. */
-  html?: ResolvableString
+  html?: string
 
   /** Specify format of the cell. Use "numeric" for right-aligned numeric data. */
-  format?: ResolvableString
+  format?: string
 
   /** Additional CSS classes for the cell. */
-  classes?: ResolvableString
+  classes?: string
 
   /** Number of columns this cell should span. */
   colspan?: number
@@ -88,7 +88,7 @@ export type MultiSelectRow = MultiSelectCell[]
  * })
  * ```
  */
-export interface MOJMultiSelect extends BlockDefinition {
+export type MOJMultiSelect = ResolvableBlockProps<{
   /** The rows within the table. Each row is an array of cells. Required. */
   rows: MultiSelectRow[]
 
@@ -96,20 +96,20 @@ export interface MOJMultiSelect extends BlockDefinition {
   head?: MultiSelectHeadCell[]
 
   /** Caption text displayed above the table. Useful for accessibility. */
-  caption?: ResolvableString
+  caption?: string
 
   /** CSS classes for the caption. */
-  captionClasses?: ResolvableString
+  captionClasses?: string
 
   /** If true, the first cell in each row will be rendered as a header (`<th>`) with row scope. */
   firstCellIsHeader?: boolean
 
   /** Additional CSS classes for the table element. */
-  classes?: ResolvableString
+  classes?: string
 
   /** Custom HTML attributes for the table element. */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * MOJ Multi Select component.

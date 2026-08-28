@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { jsxComponent, raw } from '@ministryofjustice/hmpps-forge/jsx-components'
 
 type HeadingSize = 'xl' | 'l' | 'm' | 's'
@@ -24,14 +24,14 @@ const defaultLevels: Record<HeadingSize, HeadingLevel> = {
  * GovUKHeading({ text: Format('Goal: %1', goalTitle), size: 'm', level: 2 })
  * ```
  */
-export interface GovUKHeading extends BlockDefinition {
+export type GovUKHeading = ResolvableBlockProps<{
   /**
    * Heading text content. Supports dynamic expressions.
    *
    * **Rendered as raw HTML without sanitization** - escape untrusted data with
    * `Transformer.String.EscapeHtml()` before interpolating it.
    */
-  text: ResolvableString
+  text: string
 
   /** Visual size of the heading. Defaults to 'l'. */
   size?: HeadingSize
@@ -45,14 +45,14 @@ export interface GovUKHeading extends BlockDefinition {
    * **Rendered as raw HTML without sanitization** - escape untrusted data with
    * `Transformer.String.EscapeHtml()` before interpolating it.
    */
-  caption?: ResolvableString
+  caption?: string
 
   /** Additional CSS classes to append to the heading. */
   classes?: string
 
   /** HTML attributes to add to the heading element. */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * GOV.UK heading with an optional caption.

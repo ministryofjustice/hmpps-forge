@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
@@ -16,25 +16,25 @@ import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers
  * })
  * ```
  */
-export interface GovUKWarningText extends BlockDefinition {
+export type GovUKWarningText = ResolvableBlockProps<{
   /** Plain text content for the warning. Required unless html is provided. */
-  text?: ResolvableString
+  text?: string
 
   /** HTML content for the warning. Takes precedence over text. */
-  html?: ResolvableString
+  html?: string
 
   /** Child blocks to render in the warning. Takes precedence over text/html. */
   blocks?: BlockDefinition[]
 
   /** Fallback text for the warning icon (for screen readers). Defaults to "Warning". */
-  iconFallbackText?: ResolvableString
+  iconFallbackText?: string
 
   /** Additional CSS classes for the warning text container */
-  classes?: ResolvableString
+  classes?: string
 
   /** Custom HTML attributes for the warning text container */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * GOV.UK Warning Text component.

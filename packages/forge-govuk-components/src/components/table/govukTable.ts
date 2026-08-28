@@ -1,9 +1,4 @@
-import {
-  BlockDefinition,
-  ResolvableArray,
-  ResolvableString,
-  EvaluatedBlock,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, EvaluatedBlock, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { renderGovukBlocksToHtml } from '../../utils/govukParamNormalisers'
 
@@ -13,16 +8,16 @@ import { renderGovukBlocksToHtml } from '../../utils/govukParamNormalisers'
  */
 export interface TableHeadCell {
   /** Plain text content for the header cell. If `html` is provided, this will be ignored. */
-  text?: ResolvableString
+  text?: string
 
   /** HTML content for the header cell. Takes precedence over `text`. */
-  html?: ResolvableString
+  html?: string
 
   /** Specify format of the cell. Use "numeric" for right-aligned numeric data. */
-  format?: ResolvableString
+  format?: string
 
   /** Additional CSS classes for the header cell. */
-  classes?: ResolvableString
+  classes?: string
 
   /** Number of columns this cell should span. */
   colspan?: number
@@ -40,19 +35,19 @@ export interface TableHeadCell {
  */
 export interface TableCell {
   /** Plain text content for the cell. If `html` or `blocks` is provided, this will be ignored. */
-  text?: ResolvableString
+  text?: string
 
   /** HTML content for the cell. Takes precedence over `text`; ignored when `blocks` is provided. */
-  html?: ResolvableString
+  html?: string
 
   /** Child blocks to render for the cell. Takes precedence over `text` and `html`. */
   blocks?: BlockDefinition[]
 
   /** Specify format of the cell. Use "numeric" for right-aligned numeric data. */
-  format?: ResolvableString
+  format?: string
 
   /** Additional CSS classes for the cell. */
-  classes?: ResolvableString
+  classes?: string
 
   /** Number of columns this cell should span. */
   colspan?: number
@@ -92,28 +87,28 @@ export type TableRow = TableCell[]
  * })
  * ```
  */
-export interface GovUKTable extends BlockDefinition {
+export type GovUKTable = ResolvableBlockProps<{
   /** The rows within the table. Each row is an array of cells. Supports dynamic expressions. */
-  rows: ResolvableArray<TableRow>
+  rows: TableRow[]
 
   /** Table header cells. Renders a `<thead>` with a single header row. */
   head?: TableHeadCell[]
 
   /** Caption text displayed above the table. Useful for accessibility. */
-  caption?: ResolvableString
+  caption?: string
 
   /** CSS classes for the caption. Use GOV.UK typography classes like "govuk-table__caption--m". */
-  captionClasses?: ResolvableString
+  captionClasses?: string
 
   /** If true, the first cell in each row will be rendered as a header (`<th>`) with row scope. */
   firstCellIsHeader?: boolean
 
   /** Additional CSS classes for the table element. */
-  classes?: ResolvableString
+  classes?: string
 
   /** Custom HTML attributes for the table element. */
   attributes?: Record<string, any>
-}
+}>
 
 type EvaluatedTableRow = EvaluatedBlock<GovUKTable>['rows'][number]
 type EvaluatedTableCell = EvaluatedTableRow[number]

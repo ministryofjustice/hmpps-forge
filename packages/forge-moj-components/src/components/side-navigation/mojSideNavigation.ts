@@ -1,9 +1,4 @@
-import {
-  BlockDefinition,
-  ResolvableString,
-  ResolvableBoolean,
-  ResolvableArray,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -14,13 +9,13 @@ export interface MOJSideNavigationHeading {
   headingLevel?: 1 | 2 | 3 | 4 | 5 | 6
 
   /** Heading text (required if html not set) */
-  text?: ResolvableString
+  text?: string
 
   /** Heading HTML content (required if text not set) */
-  html?: ResolvableString
+  html?: string
 
   /** Additional classes for the heading element */
-  classes?: ResolvableString
+  classes?: string
 
   /** Additional HTML attributes for the heading */
   attributes?: Record<string, string>
@@ -31,19 +26,19 @@ export interface MOJSideNavigationHeading {
  */
 export interface MOJSideNavigationItem {
   /** URL of the navigation item anchor */
-  href: ResolvableString
+  href: string
 
   /** Item text (required if html not set) */
-  text?: ResolvableString
+  text?: string
 
   /** Item HTML content (required if text not set) */
-  html?: ResolvableString
+  html?: string
 
   /** Flag to mark the navigation item as active */
-  active?: ResolvableBoolean
+  active?: boolean
 
   /** Conditional visibility for this navigation item */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 
   /** Additional HTML attributes for the item */
   attributes?: Record<string, string>
@@ -57,10 +52,10 @@ export interface MOJSideNavigationSection {
   heading?: MOJSideNavigationHeading
 
   /** Array of navigation items in this section */
-  items: ResolvableArray<MOJSideNavigationItem>
+  items: MOJSideNavigationItem[]
 
   /** Conditional visibility for this navigation section */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 }
 
 /**
@@ -104,37 +99,37 @@ export interface MOJSideNavigationSection {
  * })
  * ```
  */
-export interface MOJSideNavigation extends BlockDefinition {
+export type MOJSideNavigation = ResolvableBlockProps<{
   /**
    * The aria-label to add to the navigation container.
    * @example 'Side navigation'
    */
-  label?: ResolvableString
+  label?: string
 
   /**
    * Array of navigation items (simple mode - use instead of sections).
    * @example [{ text: 'Nav item 1', href: '#1', active: true }]
    */
-  items?: ResolvableArray<MOJSideNavigationItem>
+  items?: MOJSideNavigationItem[]
 
   /**
    * Array of navigation sections (sectioned mode - use instead of items).
    * @example [{ heading: { text: 'Section 1' }, items: [...] }]
    */
-  sections?: ResolvableArray<MOJSideNavigationSection>
+  sections?: MOJSideNavigationSection[]
 
   /**
    * Additional CSS classes for the nav container.
    * @example 'app-side-navigation--custom'
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * Additional HTML attributes for the navigation container.
    * @example { 'data-module': 'app-navigation' }
    */
   attributes?: Record<string, string>
-}
+}>
 
 /**
  * MOJ Side Navigation component.

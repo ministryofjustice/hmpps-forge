@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -35,20 +35,20 @@ import { nunjucksComponent } from '../../utils/nunjucksComponent'
  * })
  * ```
  */
-export interface GovUKTag extends BlockDefinition {
+export type GovUKTag = ResolvableBlockProps<{
   /**
    * Plain text content for the tag.
    * Required unless `html` is provided.
    * If `html` is provided, this option will be ignored.
    */
-  text?: ResolvableString
+  text?: string
 
   /**
    * HTML content for the tag.
    * Takes precedence over `text` if both are provided.
    * Use this when you need to include HTML elements within the tag.
    */
-  html?: ResolvableString
+  html?: string
 
   /**
    * Additional CSS classes to add to the tag.
@@ -63,14 +63,14 @@ export interface GovUKTag extends BlockDefinition {
    * - `govuk-tag--orange` - Orange tag for warnings
    * - `govuk-tag--yellow` - Yellow tag for pending or attention states
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * HTML attributes (for example data attributes) to add to the tag.
    * Useful for adding custom data attributes or ARIA attributes.
    */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * GOV.UK Tag component.

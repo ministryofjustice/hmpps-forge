@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -21,39 +21,39 @@ import { nunjucksComponent } from '../../utils/nunjucksComponent'
  * })
  * ```
  */
-export interface GovUKBackLink extends BlockDefinition {
+export type GovUKBackLink = ResolvableBlockProps<{
   /**
    * The value of the link's `href` attribute.
    * This is the URL that the user will be taken to when they click the back link.
    */
-  href: ResolvableString
+  href: string
 
   /**
    * Plain text content for the back link.
    * Defaults to "Back" if neither `text` nor `html` is provided.
    * If `html` is provided, this option will be ignored.
    */
-  text?: ResolvableString
+  text?: string
 
   /**
    * HTML content for the back link.
    * Takes precedence over `text` if both are provided.
    * Defaults to "Back" if neither `text` nor `html` is provided.
    */
-  html?: ResolvableString
+  html?: string
 
   /**
    * Additional CSS classes to add to the anchor tag.
    * Use this to apply custom styling or modifier classes.
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * HTML attributes (for example data attributes) to add to the anchor tag.
    * Useful for adding custom data attributes or ARIA attributes.
    */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * GOV.UK Back Link component.

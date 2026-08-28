@@ -1,9 +1,4 @@
-import {
-  BlockDefinition,
-  ResolvableBoolean,
-  ResolvableObject,
-  ResolvableString,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -14,16 +9,16 @@ import { nunjucksComponent } from '../../utils/nunjucksComponent'
  */
 export interface TaskListStatusTag {
   /** Plain text content for the tag. Required unless html is provided. */
-  text?: ResolvableString
+  text?: string
 
   /** HTML content for the tag. Takes precedence over text. */
-  html?: ResolvableString
+  html?: string
 
   /**
    * Additional CSS classes for the tag.
    * Use modifier classes like `govuk-tag--blue`, `govuk-tag--grey` to change color.
    */
-  classes?: ResolvableString
+  classes?: string
 
   /** Custom HTML attributes for the tag element. */
   attributes?: Record<string, any>
@@ -40,24 +35,24 @@ export interface TaskListStatus {
    * Use this for statuses that should be visually prominent.
    * If provided, text and html are ignored.
    */
-  tag?: ResolvableObject<TaskListStatusTag>
+  tag?: TaskListStatusTag
 
   /**
    * Plain text for the status.
    * Used when a simpler, non-tag status is needed.
    * Ignored if tag or html is provided.
    */
-  text?: ResolvableString
+  text?: string
 
   /**
    * HTML content for the status.
    * Used when custom HTML is needed for the status.
    * Ignored if tag is provided.
    */
-  html?: ResolvableString
+  html?: string
 
   /** Additional CSS classes for the status container. */
-  classes?: ResolvableString
+  classes?: string
 }
 
 /**
@@ -66,13 +61,13 @@ export interface TaskListStatus {
  */
 export interface TaskListTitle {
   /** Plain text content for the title. Required unless html is provided. */
-  text?: ResolvableString
+  text?: string
 
   /** HTML content for the title. Takes precedence over text. */
-  html?: ResolvableString
+  html?: string
 
   /** Additional CSS classes for the title wrapper. */
-  classes?: ResolvableString
+  classes?: string
 }
 
 /**
@@ -81,10 +76,10 @@ export interface TaskListTitle {
  */
 export interface TaskListHint {
   /** Plain text content for the hint. Required unless html is provided. */
-  text?: ResolvableString
+  text?: string
 
   /** HTML content for the hint. Takes precedence over text. */
-  html?: ResolvableString
+  html?: string
 }
 
 /**
@@ -114,10 +109,10 @@ export interface TaskListItem {
    * The URL to navigate to when the task title is clicked.
    * If not provided, the title is rendered as plain text rather than a link.
    */
-  href?: ResolvableString
+  href?: string
 
   /** Additional CSS classes for the item div. */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * Conditional visibility for this task. When the evaluated value is `false`,
@@ -125,7 +120,7 @@ export interface TaskListItem {
    *
    * @example Answer('applicationType').match(Condition.Equals('business'))
    */
-  visibleWhen?: ResolvableBoolean
+  visibleWhen?: boolean
 }
 
 /**
@@ -179,12 +174,12 @@ export interface TaskListItem {
  * })
  * ```
  */
-export interface GovUKTaskList extends BlockDefinition {
+export type GovUKTaskList = ResolvableBlockProps<{
   /** The items within the task list. Each item represents a single task. Required. */
   items: TaskListItem[]
 
   /** Additional CSS classes for the task list ul element. */
-  classes?: ResolvableString
+  classes?: string
 
   /** Custom HTML attributes for the task list ul element. */
   attributes?: Record<string, any>
@@ -194,8 +189,8 @@ export interface GovUKTaskList extends BlockDefinition {
    * Used to prefix the id attribute for task list item tags and hints.
    * Defaults to "task-list".
    */
-  idPrefix?: ResolvableString
-}
+  idPrefix?: string
+}>
 
 /**
  * GOV.UK Task List component.

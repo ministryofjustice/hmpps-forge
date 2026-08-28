@@ -1,9 +1,5 @@
 import { z } from 'zod'
-import {
-  FieldBlockDefinition,
-  ResolvableBoolean,
-  ResolvableString,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableFieldProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
@@ -36,12 +32,12 @@ import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils
  * })
  * ```
  */
-export interface GovUKPasswordInput extends FieldBlockDefinition {
+export type GovUKPasswordInput = ResolvableFieldProps<{
   /**
    * The ID of the input. Defaults to the value of `code` if not provided.
    * @example 'user-password'
    */
-  id?: ResolvableString
+  id?: string
 
   /**
    * The label used by the password input component.
@@ -51,18 +47,18 @@ export interface GovUKPasswordInput extends FieldBlockDefinition {
    * @example { text: 'Create a password', classes: 'govuk-label--l' } // Object with styling
    */
   label:
-    | ResolvableString
+    | string
     | {
         /** Text content of the label */
-        text?: ResolvableString
+        text?: string
         /** HTML content of the label (takes precedence over text) */
-        html?: ResolvableString
+        html?: string
         /** Additional CSS classes for the label */
-        classes?: ResolvableString
+        classes?: string
         /** For attribute - automatically set if not provided */
-        for?: ResolvableString
+        for?: string
         /** Whether to render the label as a page heading (wrapped in h1) */
-        isPageHeading?: ResolvableBoolean
+        isPageHeading?: boolean
         /** Additional HTML attributes for the label */
         attributes?: Record<string, any>
       }
@@ -75,16 +71,16 @@ export interface GovUKPasswordInput extends FieldBlockDefinition {
    * @example { html: 'It must contain at least one <strong>number</strong>' } // Rich HTML hint
    */
   hint?:
-    | ResolvableString
+    | string
     | {
         /** Text content of the hint */
-        text?: ResolvableString
+        text?: string
         /** HTML content of the hint (takes precedence over text) */
-        html?: ResolvableString
+        html?: string
         /** Additional CSS classes for the hint */
-        classes?: ResolvableString
+        classes?: string
         /** Unique ID for the hint (auto-generated if not provided) */
-        id?: ResolvableString
+        id?: string
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
       }
@@ -93,7 +89,7 @@ export interface GovUKPasswordInput extends FieldBlockDefinition {
    * If `true`, input will be disabled and cannot be edited by the user.
    * @example true // Disable the input
    */
-  disabled?: ResolvableBoolean
+  disabled?: boolean
 
   /**
    * Attribute to meet WCAG success criterion 1.3.5: Identify input purpose.
@@ -105,7 +101,7 @@ export interface GovUKPasswordInput extends FieldBlockDefinition {
    * @example 'current-password' // For login forms
    * @example 'new-password' // For registration or password change forms
    */
-  autocomplete?: ResolvableString
+  autocomplete?: string
 
   /**
    * One or more element IDs to add to the `aria-describedby` attribute.
@@ -113,7 +109,7 @@ export interface GovUKPasswordInput extends FieldBlockDefinition {
    *
    * @example 'password-requirements'
    */
-  describedBy?: ResolvableString
+  describedBy?: string
 
   /**
    * Additional options for the form group containing the password input component.
@@ -124,7 +120,7 @@ export interface GovUKPasswordInput extends FieldBlockDefinition {
      * Classes to add to the form group wrapper.
      * Useful for custom styling or indicating error states.
      */
-    classes?: ResolvableString
+    classes?: string
     /** HTML attributes to add to the form group wrapper */
     attributes?: Record<string, any>
     /**
@@ -133,9 +129,9 @@ export interface GovUKPasswordInput extends FieldBlockDefinition {
      */
     beforeInput?: {
       /** Text content to add before the input */
-      text?: ResolvableString
+      text?: string
       /** HTML content to add before the input (takes precedence over text) */
-      html?: ResolvableString
+      html?: string
     }
     /**
      * Content to add after the input element.
@@ -144,9 +140,9 @@ export interface GovUKPasswordInput extends FieldBlockDefinition {
      */
     afterInput?: {
       /** Text content to add after the input */
-      text?: ResolvableString
+      text?: string
       /** HTML content to add after the input (takes precedence over text) */
-      html?: ResolvableString
+      html?: string
     }
   }
 
@@ -154,7 +150,7 @@ export interface GovUKPasswordInput extends FieldBlockDefinition {
    * Additional CSS classes to add to the input element.
    * @example 'govuk-input--width-20' // Fixed width input
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * Additional HTML attributes (such as data attributes) to add to the input element.
@@ -168,7 +164,7 @@ export interface GovUKPasswordInput extends FieldBlockDefinition {
    *
    * @example 'Show password'
    */
-  showPasswordText?: ResolvableString
+  showPasswordText?: string
 
   /**
    * Button text when the password is visible.
@@ -176,7 +172,7 @@ export interface GovUKPasswordInput extends FieldBlockDefinition {
    *
    * @example 'Hide password'
    */
-  hidePasswordText?: ResolvableString
+  hidePasswordText?: string
 
   /**
    * Button text exposed to assistive technologies, like screen readers,
@@ -185,7 +181,7 @@ export interface GovUKPasswordInput extends FieldBlockDefinition {
    *
    * @example 'Show your password'
    */
-  showPasswordAriaLabelText?: ResolvableString
+  showPasswordAriaLabelText?: string
 
   /**
    * Button text exposed to assistive technologies, like screen readers,
@@ -194,7 +190,7 @@ export interface GovUKPasswordInput extends FieldBlockDefinition {
    *
    * @example 'Hide your password'
    */
-  hidePasswordAriaLabelText?: ResolvableString
+  hidePasswordAriaLabelText?: string
 
   /**
    * Announcement made to screen reader users when their password
@@ -203,7 +199,7 @@ export interface GovUKPasswordInput extends FieldBlockDefinition {
    *
    * @example 'Password shown'
    */
-  passwordShownAnnouncementText?: ResolvableString
+  passwordShownAnnouncementText?: string
 
   /**
    * Announcement made to screen reader users when their password
@@ -212,16 +208,16 @@ export interface GovUKPasswordInput extends FieldBlockDefinition {
    *
    * @example 'Password hidden'
    */
-  passwordHiddenAnnouncementText?: ResolvableString
+  passwordHiddenAnnouncementText?: string
 
   /**
    * Optional object allowing customisation of the toggle button.
    */
   button?: {
     /** Additional CSS classes for the toggle button */
-    classes?: ResolvableString
+    classes?: string
   }
-}
+}>
 
 /**
  * GOV.UK Password Input component.

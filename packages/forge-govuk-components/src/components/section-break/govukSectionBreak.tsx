@@ -1,4 +1,4 @@
-import { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { jsxComponent } from '@ministryofjustice/hmpps-forge/jsx-components'
 
 type SectionBreakSize = 'xl' | 'l' | 'm'
@@ -14,7 +14,7 @@ type SectionBreakSize = 'xl' | 'l' | 'm'
  * GovUKSectionBreak()
  * ```
  */
-export interface GovUKSectionBreak extends BlockDefinition {
+export type GovUKSectionBreak = ResolvableBlockProps<{
   /** Size of the section break margin. Omit for default (smallest) spacing. */
   size?: SectionBreakSize
 
@@ -26,7 +26,7 @@ export interface GovUKSectionBreak extends BlockDefinition {
 
   /** HTML attributes to add to the hr element. */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * GOV.UK section break (thematic `<hr>` between content sections).

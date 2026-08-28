@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableBoolean, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
@@ -17,34 +17,34 @@ import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers
  * })
  * ```
  */
-export interface GovUKDetails extends BlockDefinition {
+export type GovUKDetails = ResolvableBlockProps<{
   /** Text to display in the summary (clickable part). Required unless summaryHtml is provided. */
-  summaryText?: ResolvableString
+  summaryText?: string
 
   /** HTML to display in the summary (clickable part). Takes precedence over summaryText. */
-  summaryHtml?: ResolvableString
+  summaryHtml?: string
 
   /** Plain text content for the expandable section */
-  text?: ResolvableString
+  text?: string
 
   /** HTML content for the expandable section. Takes precedence over text. */
-  html?: ResolvableString
+  html?: string
 
   /** Child blocks to render in the expandable section. Takes precedence over text/html. */
   content?: BlockDefinition[]
 
   /** Whether the details should be expanded by default */
-  open?: ResolvableBoolean
+  open?: boolean
 
   /** ID attribute for the details element */
-  id?: ResolvableString
+  id?: string
 
   /** Additional CSS classes for the details element */
-  classes?: ResolvableString
+  classes?: string
 
   /** Custom HTML attributes for the details element */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * GOV.UK Details component.

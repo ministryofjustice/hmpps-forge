@@ -1,10 +1,5 @@
 import { z } from 'zod'
-import {
-  FieldBlockDefinition,
-  ResolvableBoolean,
-  ResolvableNumber,
-  ResolvableString,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableFieldProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
@@ -23,13 +18,13 @@ import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils
  * })
  * ```
  */
-export interface GovUKTextareaInput extends FieldBlockDefinition {
+export type GovUKTextareaInput = ResolvableFieldProps<{
   /**
    * The ID of the textarea. Defaults to the value of `code` if not provided.
    *
    * @example 'user-feedback'
    */
-  id?: ResolvableString
+  id?: string
 
   /**
    * Optional field to enable or disable the `spellcheck` attribute on the textarea.
@@ -37,7 +32,7 @@ export interface GovUKTextareaInput extends FieldBlockDefinition {
    *
    * @example true // Enable spellcheck
    */
-  spellcheck?: ResolvableBoolean
+  spellcheck?: boolean
 
   /**
    * Optional number of textarea rows. Defaults to 5 rows if not specified.
@@ -46,7 +41,7 @@ export interface GovUKTextareaInput extends FieldBlockDefinition {
    * @example 8 // Taller textarea
    * @example 3 // Shorter textarea
    */
-  rows?: ResolvableNumber | ResolvableString
+  rows?: number | string
 
   /**
    * The label used by the textarea component.
@@ -56,19 +51,19 @@ export interface GovUKTextareaInput extends FieldBlockDefinition {
    * @example { text: 'Feedback', classes: 'govuk-label--l' } // Object with styling
    */
   label?:
-    | ResolvableString
+    | string
     | {
         /** Text content of the label */
-        text?: ResolvableString
+        text?: string
 
         /** HTML content of the label (takes precedence over text) */
-        html?: ResolvableString
+        html?: string
 
         /** Additional CSS classes for the label */
-        classes?: ResolvableString
+        classes?: string
 
         /** Whether to render the label as a page heading (wrapped in h1) */
-        isPageHeading?: ResolvableBoolean
+        isPageHeading?: boolean
 
         /** Additional HTML attributes for the label */
         attributes?: Record<string, any>
@@ -82,19 +77,19 @@ export interface GovUKTextareaInput extends FieldBlockDefinition {
    * @example { html: 'See <a href="/help">guidance</a> for examples' } // Rich HTML hint
    */
   hint?:
-    | ResolvableString
+    | string
     | {
         /** Unique ID for the hint (auto-generated if not provided) */
-        id?: ResolvableString
+        id?: string
 
         /** Text content of the hint */
-        text?: ResolvableString
+        text?: string
 
         /** HTML content of the hint (takes precedence over text) */
-        html?: ResolvableString
+        html?: string
 
         /** Additional CSS classes for the hint */
-        classes?: ResolvableString
+        classes?: string
 
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
@@ -103,7 +98,7 @@ export interface GovUKTextareaInput extends FieldBlockDefinition {
   /** Additional options for the form group containing the textarea component. */
   formGroup?: {
     /** Classes to add to the form group wrapper. */
-    classes?: ResolvableString
+    classes?: string
 
     /** HTML attributes to add to the form group wrapper */
     attributes?: Record<string, any>
@@ -111,31 +106,31 @@ export interface GovUKTextareaInput extends FieldBlockDefinition {
     /** Content to add before the textarea input */
     beforeInput?: {
       /** Text content to add before the textarea */
-      text?: ResolvableString
+      text?: string
 
       /** HTML content to add before the textarea (takes precedence over text) */
-      html?: ResolvableString
+      html?: string
     }
 
     /** Content to add after the textarea input. */
     afterInput?: {
       /** Text content to add after the textarea */
-      text?: ResolvableString
+      text?: string
 
       /** HTML content to add after the textarea (takes precedence over text) */
-      html?: ResolvableString
+      html?: string
     }
   }
 
   /** Additional CSS classes to add to the textarea element */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * If `true`, textarea will be disabled and cannot be edited by the user.
    *
    * @example true // Disable the textarea
    */
-  disabled?: ResolvableBoolean
+  disabled?: boolean
 
   /**
    * Attribute to meet WCAG success criterion 1.3.5: Identify input purpose.
@@ -146,7 +141,7 @@ export interface GovUKTextareaInput extends FieldBlockDefinition {
    * @example 'street-address' // For address fields
    * @example 'off' // Disable autocomplete
    */
-  autocomplete?: ResolvableString
+  autocomplete?: string
 
   /**
    * One or more element IDs to add to the `aria-describedby` attribute.
@@ -154,11 +149,11 @@ export interface GovUKTextareaInput extends FieldBlockDefinition {
    *
    * @example 'comments-guidance'
    */
-  describedBy?: ResolvableString
+  describedBy?: string
 
   /** Additional HTML attributes (such as data attributes) to add to the textarea element. */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * GOV.UK Textarea component.

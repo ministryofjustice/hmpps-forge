@@ -1,10 +1,5 @@
 import { z } from 'zod'
-import {
-  FieldBlockDefinition,
-  ResolvableBoolean,
-  ResolvableNumber,
-  ResolvableString,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableFieldProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils/govukParamNormalisers'
 
@@ -23,12 +18,12 @@ import { normaliseGovukErrorMessage, normaliseGovukTextParam } from '../../utils
  * })
  * ```
  */
-export interface GovUKCharacterCount extends FieldBlockDefinition {
+export type GovUKCharacterCount = ResolvableFieldProps<{
   /**
    * The ID of the textarea. Defaults to the value of `code` if not provided.
    * @example 'feedback-textarea'
    */
-  id?: ResolvableString
+  id?: string
 
   /**
    * Optional number of textarea rows. Defaults to 5 rows if not specified.
@@ -36,7 +31,7 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
    * @example 8 // Taller textarea
    * @example 3 // Shorter textarea
    */
-  rows?: ResolvableNumber | ResolvableString
+  rows?: number | string
 
   /**
    * The maximum number of characters allowed.
@@ -45,7 +40,7 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
    * @example 200 // Allow up to 200 characters
    * @example 1000 // Allow up to 1000 characters
    */
-  maxLength?: ResolvableNumber
+  maxLength?: number
 
   /**
    * The maximum number of words allowed.
@@ -54,7 +49,7 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
    * @example 150 // Allow up to 150 words
    * @example 500 // Allow up to 500 words
    */
-  maxWords?: ResolvableNumber
+  maxWords?: number
 
   /**
    * The percentage value of the limit at which the count message is displayed.
@@ -62,7 +57,7 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
    * @example '75' // Show count when 75% of limit is reached
    * @example '90' // Show count when 90% of limit is reached
    */
-  threshold?: ResolvableString
+  threshold?: string
 
   /**
    * The label used by the character count component.
@@ -71,16 +66,16 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
    * @example { text: 'Feedback', classes: 'govuk-label--l' } // Object with styling
    */
   label:
-    | ResolvableString
+    | string
     | {
         /** Text content of the label */
-        text?: ResolvableString
+        text?: string
         /** HTML content of the label (takes precedence over text) */
-        html?: ResolvableString
+        html?: string
         /** Additional CSS classes for the label */
-        classes?: ResolvableString
+        classes?: string
         /** Whether to render the label as a page heading (wrapped in h1) */
-        isPageHeading?: ResolvableBoolean
+        isPageHeading?: boolean
         /** Additional HTML attributes for the label */
         attributes?: Record<string, any>
       }
@@ -92,16 +87,16 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
    * @example { html: 'See <a href="/help">guidance</a> for examples' } // Rich HTML hint
    */
   hint?:
-    | ResolvableString
+    | string
     | {
         /** Unique ID for the hint (auto-generated if not provided) */
-        id?: ResolvableString
+        id?: string
         /** Text content of the hint */
-        text?: ResolvableString
+        text?: string
         /** HTML content of the hint (takes precedence over text) */
-        html?: ResolvableString
+        html?: string
         /** Additional CSS classes for the hint */
-        classes?: ResolvableString
+        classes?: string
         /** Additional HTML attributes for the hint */
         attributes?: Record<string, any>
       }
@@ -109,27 +104,27 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
   /** Additional options for the form group containing the character count component. */
   formGroup?: {
     /** Classes to add to the form group wrapper. */
-    classes?: ResolvableString
+    classes?: string
     /** HTML attributes to add to the form group wrapper */
     attributes?: Record<string, any>
     /** Content to add before the textarea input */
     beforeInput?: {
       /** Text content to add before the textarea */
-      text?: ResolvableString
+      text?: string
       /** HTML content to add before the textarea (takes precedence over text) */
-      html?: ResolvableString
+      html?: string
     }
     /** Content to add after the textarea input (in addition to count message). */
     afterInput?: {
       /** Text content to add after the textarea */
-      text?: ResolvableString
+      text?: string
       /** HTML content to add after the textarea (takes precedence over text) */
-      html?: ResolvableString
+      html?: string
     }
   }
 
   /** Additional CSS classes to add to the textarea element */
-  classes?: ResolvableString
+  classes?: string
 
   /** Additional HTML attributes (such as data attributes) to add to the textarea element. */
   attributes?: Record<string, any>
@@ -140,12 +135,12 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
    * @example true // Enable spellcheck
    * @example false // Disable spellcheck
    */
-  spellcheck?: ResolvableBoolean
+  spellcheck?: boolean
 
   /** Additional options for the count message displayed below the textarea. */
   countMessage?: {
     /** Additional CSS classes for the count message */
-    classes?: ResolvableString
+    classes?: string
   }
 
   /**
@@ -155,7 +150,7 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
    * @example 'You can enter up to %{count} characters'
    * @example 'Please limit your response to %{count} words'
    */
-  textareaDescriptionText?: ResolvableString
+  textareaDescriptionText?: string
 
   /**
    * Message displayed when the number of characters is under the configured maximum.
@@ -165,9 +160,9 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
    */
   charactersUnderLimitText?: {
     /** Message when exactly 1 character remains */
-    one?: ResolvableString
+    one?: string
     /** Message when multiple characters remain */
-    other?: ResolvableString
+    other?: string
   }
 
   /**
@@ -175,7 +170,7 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
    * This message is displayed visually and through assistive technologies.
    * @example 'You have reached the character limit'
    */
-  charactersAtLimitText?: ResolvableString
+  charactersAtLimitText?: string
 
   /**
    * Message displayed when the number of characters exceeds the configured maximum.
@@ -185,9 +180,9 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
    */
   charactersOverLimitText?: {
     /** Message when exactly 1 character over limit */
-    one?: ResolvableString
+    one?: string
     /** Message when multiple characters over limit */
-    other?: ResolvableString
+    other?: string
   }
 
   /**
@@ -198,9 +193,9 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
    */
   wordsUnderLimitText?: {
     /** Message when exactly 1 word remains */
-    one?: ResolvableString
+    one?: string
     /** Message when multiple words remain */
-    other?: ResolvableString
+    other?: string
   }
 
   /**
@@ -208,7 +203,7 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
    * This message is displayed visually and through assistive technologies.
    * @example 'You have reached the word limit'
    */
-  wordsAtLimitText?: ResolvableString
+  wordsAtLimitText?: string
 
   /**
    * Message displayed when the number of words exceeds the configured maximum.
@@ -218,11 +213,11 @@ export interface GovUKCharacterCount extends FieldBlockDefinition {
    */
   wordsOverLimitText?: {
     /** Message when exactly 1 word over limit */
-    one?: ResolvableString
+    one?: string
     /** Message when multiple words over limit */
-    other?: ResolvableString
+    other?: string
   }
-}
+}>
 
 /**
  * GOV.UK Character Count component.

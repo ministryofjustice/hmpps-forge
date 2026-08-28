@@ -1,10 +1,5 @@
 import { z } from 'zod'
-import {
-  FieldBlockDefinition,
-  ResolvableString,
-  ResolvableBoolean,
-  ResolvableObject,
-} from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableFieldProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -12,16 +7,16 @@ import { nunjucksComponent } from '../../utils/nunjucksComponent'
  */
 export interface MOJDatePickerLabel {
   /** Label text (required if html not set) */
-  text?: ResolvableString
+  text?: string
 
   /** Label HTML content (required if text not set) */
-  html?: ResolvableString
+  html?: string
 
   /** Additional classes for the label element */
-  classes?: ResolvableString
+  classes?: string
 
   /** Whether the label should be visually hidden */
-  isPageHeading?: ResolvableBoolean
+  isPageHeading?: boolean
 
   /** HTML attributes for the label */
   attributes?: Record<string, string>
@@ -32,13 +27,13 @@ export interface MOJDatePickerLabel {
  */
 export interface MOJDatePickerHint {
   /** Hint text (required if html not set) */
-  text?: ResolvableString
+  text?: string
 
   /** Hint HTML content (required if text not set) */
-  html?: ResolvableString
+  html?: string
 
   /** Additional classes for the hint element */
-  classes?: ResolvableString
+  classes?: string
 
   /** HTML attributes for the hint */
   attributes?: Record<string, string>
@@ -49,7 +44,7 @@ export interface MOJDatePickerHint {
  */
 export interface MOJDatePickerFormGroup {
   /** Additional classes for the form group */
-  classes?: ResolvableString
+  classes?: string
 
   /** HTML attributes for the form group */
   attributes?: Record<string, string>
@@ -75,40 +70,40 @@ export interface MOJDatePickerFormGroup {
  * })
  * ```
  */
-export interface MOJDatePicker extends FieldBlockDefinition {
+export type MOJDatePicker = ResolvableFieldProps<{
   /**
    * The ID of the input. Defaults to the value of `code` if not provided.
    * @example 'appointment-date'
    */
-  id?: ResolvableString
+  id?: string
 
   /**
    * Label for the date picker - can be a simple string or object with additional options.
    * @example 'Select a date'
    * @example { text: 'Select a date', classes: 'govuk-label--l' }
    */
-  label: ResolvableString | ResolvableObject<MOJDatePickerLabel>
+  label: string | MOJDatePickerLabel
 
   /**
    * Optional hint text - can be a simple string or object with additional options.
    * @example 'For example, 17/5/2024'
    * @example { html: 'Enter the date in <strong>dd/mm/yyyy</strong> format' }
    */
-  hint?: ResolvableString | ResolvableObject<MOJDatePickerHint>
+  hint?: string | MOJDatePickerHint
 
   /**
    * Earliest date that can be selected (format: dd/mm/yyyy).
    * Users can still type dates before this, so server-side validation is required.
    * @example '01/04/2025'
    */
-  minDate?: ResolvableString
+  minDate?: string
 
   /**
    * Latest date that can be selected (format: dd/mm/yyyy).
    * Users can still type dates after this, so server-side validation is required.
    * @example '30/04/2025'
    */
-  maxDate?: ResolvableString
+  maxDate?: string
 
   /**
    * Array of dates that cannot be selected (format: dd/mm/yyyy).
@@ -134,11 +129,11 @@ export interface MOJDatePicker extends FieldBlockDefinition {
   formGroup?: MOJDatePickerFormGroup
 
   /** Additional CSS classes for the date picker container */
-  classes?: ResolvableString
+  classes?: string
 
   /** Additional HTML attributes */
   attributes?: Record<string, string>
-}
+}>
 
 /**
  * Converts an ISO date string (YYYY-MM-DD) to UK format (DD/MM/YYYY).

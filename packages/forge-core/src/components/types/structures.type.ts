@@ -140,6 +140,74 @@ export type ResolvableArray<T> = T[] | ChainableExpression
 
 export type ResolvableObject<T extends object> = T | ChainableExpression
 
+/**
+ * What {@link ResolvableValueOf} passes through untouched: expression machinery
+ * that is already resolvable, child blocks, and functions.
+ */
+type ResolvableTerminal = { readonly _forge: string } | ((...args: never[]) => unknown)
+
+type IsAny<T> = 0 extends 1 & T ? true : false
+
+/**
+ * Widens one plain-typed value to what an author may write for it: the value
+ * itself, or an expression that resolves to it. Reproduces the per-primitive
+ * extras the `Resolvable*` aliases encode - booleans also accept
+ * `PredicateExpr`, arrays also accept `ChainableIterable` - and recurses into
+ * array elements and object properties.
+ */
+type ResolvableValueOf<T> =
+  IsAny<T> extends true
+    ? T
+    : T extends ResolvableTerminal
+      ? T
+      : T extends boolean
+        ? ResolvableBoolean
+        : T extends string | number
+          ? T | ChainableExpression
+          : T extends readonly (infer U)[]
+            ? ResolvableArray<ResolvableValueOf<U>>
+            : T extends object
+              ? ResolvableObject<{ [K in keyof T]: ResolvableValueOf<T[K]> }>
+              : T
+
+/**
+ * Derives a component's authored props from a plain-typed props interface, the
+ * way function entries derive their call signature: write the props with plain
+ * types once, and every prop also accepts an expression that resolves to it.
+ *
+ * Homomorphic, so optionality and JSDoc carry through from the plain interface.
+ * Render code keeps using `ResolvedPropsOf`, which unwraps back to the plain
+ * types.
+ *
+ * Component definitions normally reach this through {@link ResolvableBlockProps}
+ * or {@link ResolvableFieldProps}, which add the block base.
+ */
+export type ResolvableProps<TProps> = {
+  [K in keyof TProps]: ResolvableValueOf<TProps[K]>
+}
+
+/**
+ * A complete block definition from plain-typed props: the block base plus
+ * {@link ResolvableProps}, so every prop also accepts an expression.
+ *
+ * ```typescript
+ * export type MyCard = ResolvableBlockProps<{ title?: string }>
+ * // title now accepts 'Details' or Answer('cardTitle')
+ * ```
+ */
+export type ResolvableBlockProps<TProps> = BlockDefinition & ResolvableProps<TProps>
+
+/**
+ * A complete field block definition from plain-typed props: the field base
+ * (`code`, `validWhen`, `defaultValue`, ...) plus {@link ResolvableProps}, so
+ * every prop also accepts an expression.
+ *
+ * ```typescript
+ * export type MyInput = ResolvableFieldProps<{ hint?: string }>
+ * ```
+ */
+export type ResolvableFieldProps<TProps> = FieldBlockDefinition & ResolvableProps<TProps>
+
 export type RenderedBlock<TOutput = string> = {
   block: BlockDefinition
 } & ([TOutput] extends [string] ? { html: string } : { output: TOutput })

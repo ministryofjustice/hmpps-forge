@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -27,36 +27,36 @@ import { nunjucksComponent } from '../../utils/nunjucksComponent'
  * })
  * ```
  */
-export interface GovUKExitThisPage extends BlockDefinition {
+export type GovUKExitThisPage = ResolvableBlockProps<{
   /**
    * Plain text content for the button.
    * If `html` is provided, this option will be ignored.
    * Defaults to "Emergency Exit this page" with 'Emergency' visually hidden.
    */
-  text?: ResolvableString
+  text?: string
 
   /**
    * HTML content for the button.
    * Takes precedence over `text` if both are provided.
    * Defaults to "Emergency Exit this page" with 'Emergency' visually hidden.
    */
-  html?: ResolvableString
+  html?: string
 
   /**
    * URL to redirect the current tab to when the exit button is activated.
    * Defaults to "https://www.bbc.co.uk/weather".
    */
-  redirectUrl?: ResolvableString
+  redirectUrl?: string
 
   /**
    * ID attribute to add to the exit this page container.
    */
-  id?: ResolvableString
+  id?: string
 
   /**
    * Additional CSS classes to add to the exit this page container.
    */
-  classes?: ResolvableString
+  classes?: string
 
   /**
    * HTML attributes (for example data attributes) to add to the exit this page container.
@@ -68,29 +68,29 @@ export interface GovUKExitThisPage extends BlockDefinition {
    * via the keyboard shortcut.
    * Defaults to "Loading.".
    */
-  activatedText?: ResolvableString
+  activatedText?: string
 
   /**
    * Text announced by screen readers when the keyboard shortcut has timed out
    * without successful activation.
    * Defaults to "Exit this page expired.".
    */
-  timedOutText?: ResolvableString
+  timedOutText?: string
 
   /**
    * Text announced by screen readers when the user must press Shift two more
    * times to activate the button.
    * Defaults to "Shift, press 2 more times to exit.".
    */
-  pressTwoMoreTimesText?: ResolvableString
+  pressTwoMoreTimesText?: string
 
   /**
    * Text announced by screen readers when the user must press Shift one more
    * time to activate the button.
    * Defaults to "Shift, press 1 more time to exit.".
    */
-  pressOneMoreTimeText?: ResolvableString
-}
+  pressOneMoreTimeText?: string
+}>
 
 /**
  * GOV.UK Exit This Page component.

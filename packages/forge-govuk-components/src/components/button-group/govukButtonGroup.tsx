@@ -1,4 +1,4 @@
-import { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ResolvableBlockProps } from '@ministryofjustice/hmpps-forge/core/components'
 import { jsxComponent, raw } from '@ministryofjustice/hmpps-forge/jsx-components'
 
 /**
@@ -15,7 +15,7 @@ import { jsxComponent, raw } from '@ministryofjustice/hmpps-forge/jsx-components
  * })
  * ```
  */
-export interface GovUKButtonGroup extends BlockDefinition {
+export type GovUKButtonGroup = ResolvableBlockProps<{
   /** The buttons/links to render inside the group. */
   buttons: BlockDefinition[]
 
@@ -24,7 +24,7 @@ export interface GovUKButtonGroup extends BlockDefinition {
 
   /** HTML attributes to add to the wrapper element. */
   attributes?: Record<string, any>
-}
+}>
 
 /**
  * Wraps child blocks in a GOV.UK button group layout.
