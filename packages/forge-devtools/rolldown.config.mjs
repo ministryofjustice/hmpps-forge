@@ -14,6 +14,7 @@ const createPluginConfig = (name, input, plugins) => ({
   output: {
     dir: 'dist/plugin',
     format: 'iife',
+    codeSplitting: false,
     entryFileNames: '[name].js',
   },
   resolve: {

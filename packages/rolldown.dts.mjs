@@ -65,10 +65,9 @@ const createMethodSignaturePlugin = () => ({
   },
 })
 
-// The dts build stays a single combined build across all entrypoints: splitting it
-// would change chunk dedup of un-owned files (e.g. forge-core/src/shared/). Each
-// package contributes its entrypoints and ownership rules as data; this rewriter
-// redirects a cross-entrypoint import to the owning entrypoint's public subpath.
+// Each declaration entrypoint is bundled independently so its output is self-contained.
+// Ownership rules redirect genuine cross-entrypoint imports to public package subpaths;
+// un-owned shared declarations are duplicated instead of emitted as private chunks.
 const createDtsEntrypointPlugin = (dtsOwnershipRules, isExternal) => {
   const resolveDtsEntrypoint = id => {
     const normalizedId = normalizeId(id)
@@ -105,19 +104,20 @@ const createDtsEntrypointPlugin = (dtsOwnershipRules, isExternal) => {
   }
 }
 
-export const createDtsConfig = (registry, dtsOwnershipRules, isExternal) => ({
-  input: Object.fromEntries(Object.entries(registry).map(([name, input]) => [`${name}/index`, input])),
-  output: {
-    dir: 'dist',
-    format: 'esm',
-    entryFileNames: chunk => (chunk.name.endsWith('.d') ? '[name].ts' : '[name].js'),
-    chunkFileNames: chunk => (chunk.name.endsWith('.d') ? '[name]-[hash].ts' : '[name]-[hash].js'),
-  },
-  external: isExternal,
-  resolve: { tsconfigFilename: './tsconfig.json' },
-  plugins: [
-    createDtsEntrypointPlugin(dtsOwnershipRules, isExternal),
-    dts({ emitDtsOnly: true, tsgo: {} }),
-    createMethodSignaturePlugin(),
-  ],
-})
+export const createDtsConfigs = (registry, dtsOwnershipRules, isExternal) =>
+  Object.entries(registry).map(([name, input]) => ({
+    input: { [`${name}/index`]: input },
+    output: {
+      dir: 'dist',
+      format: 'esm',
+      codeSplitting: false,
+      entryFileNames: chunk => (chunk.name.endsWith('.d') ? '[name].ts' : '[name].js'),
+    },
+    external: isExternal,
+    resolve: { tsconfigFilename: './tsconfig.json' },
+    plugins: [
+      createDtsEntrypointPlugin(dtsOwnershipRules, isExternal),
+      dts({ emitDtsOnly: true, tsgo: {} }),
+      createMethodSignaturePlugin(),
+    ],
+  }))
