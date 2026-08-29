@@ -184,34 +184,34 @@ describe('HookLifecycleCompiler', () => {
       ...formatGeneratorRows,
       isRequired: {
         name: 'isRequired',
-        isAsync: false,
+
         evaluate: (value: unknown) =>
           value !== undefined && value !== null && (typeof value !== 'string' || value.trim() !== ''),
       },
       loadProfile: {
         name: 'loadProfile',
-        isAsync: true,
+
         evaluate: async (ctx: { setAnswer: (key: string, value: string) => void }) => {
           ctx.setAnswer('profileLoaded', 'yes')
         },
       },
       markAction: {
         name: 'markAction',
-        isAsync: false,
+
         evaluate: (ctx: { setData: (key: string, value: string) => void }) => {
           ctx.setData('action', 'ran')
         },
       },
       submitEffect: {
         name: 'submitEffect',
-        isAsync: false,
+
         evaluate: (ctx: { setData: (key: string, value: string) => void }) => {
           ctx.setData('submit', 'ran')
         },
       },
       throwingEffect: {
         name: 'throwingEffect',
-        isAsync: false,
+
         evaluate: () => {
           throw new Error('Effect failed')
         },
@@ -496,11 +496,12 @@ describe('HookLifecycleCompiler', () => {
 
       // Assert
       expect(source).toContain('ctx.effectFunctionContext')
-      expect(source).toContain('_forgeHelpers.evaluateFunctionAsync')
+      expect(source).toContain('_forgeHelpers.evaluateFunction')
+      expect(source).toContain('_forgeHelpers.isThenable(functionResult)')
       expect(source).toContain('"loadProfile"')
     })
 
-    it('should emit an async run function only when the effect function is async', () => {
+    it('should emit the same dynamically awaitable run shape for every effect function', () => {
       // Arrange
       const hook = ASTTestFactory.hook(HookType.ACCESS)
         .withProperty('effects', [
@@ -513,12 +514,12 @@ describe('HookLifecycleCompiler', () => {
       const source = compiler.generateAccessSource(accessModel([hook]))
 
       // Assert
-      expect(source).toContain('function runMarkAction')
-      expect(source).not.toContain('async function runMarkAction')
+      expect(source).toContain('async function runMarkAction')
       expect(source).toContain('async function runLoadProfile')
+      expect(source.match(/_forgeHelpers\.isThenable\(functionResult\)/g)).toHaveLength(2)
     })
 
-    it('should emit sync when and next functions when no expression awaits', () => {
+    it('should make authored when expressions awaitable while keeping static next functions synchronous', () => {
       // Arrange
       const hook = ASTTestFactory.hook(HookType.ACCESS)
         .withProperty('when', createPredicate('allowed'))
@@ -529,9 +530,9 @@ describe('HookLifecycleCompiler', () => {
       const source = compiler.generateAccessSource(accessModel([hook]))
 
       // Assert
-      expect(source).toContain('function evaluateAccessHookWhen')
+      expect(source).toContain('async function evaluateAccessHookWhen')
       expect(source).toContain('function resolveAccessHookNext')
-      expect(source).not.toContain('async')
+      expect(source).not.toContain('async function resolveAccessHookNext')
     })
   })
 })

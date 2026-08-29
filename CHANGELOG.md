@@ -202,6 +202,12 @@ enough.
   `validWhen` or reachability rule silently resolved `undefined` even mid-POST
   ([#278])
 
+- Forge functions now detect asynchronous work from their returned value: promises
+  and custom thenables are awaited even when the evaluator is not declared with
+  `async`, while direct values continue synchronously. Function registration no
+  longer relies on `evaluate.constructor.name === 'AsyncFunction'`, which was fragile
+  under wrapping and transpilation ([#283])
+
 ### Details
 
 #### Functions as entries
@@ -266,6 +272,7 @@ use returned error items for expected invalid input. ([#274])
 [#280]: https://github.com/ministryofjustice/hmpps-forge/pull/280
 [#281]: https://github.com/ministryofjustice/hmpps-forge/pull/281
 [#282]: https://github.com/ministryofjustice/hmpps-forge/pull/282
+[#283]: https://github.com/ministryofjustice/hmpps-forge/pull/283
 
 ---
 

@@ -6,7 +6,7 @@ describe('ScopedFunctionRegistry', () => {
     return {
       name,
       evaluate: () => returnValue,
-      isAsync: false,
+
     }
   }
 

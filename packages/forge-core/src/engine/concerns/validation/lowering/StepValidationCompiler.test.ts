@@ -265,12 +265,12 @@ describe('StepValidationCompiler', () => {
   }
 
   dependencies.functionRegistry.register({
-    equals: { name: 'equals', isAsync: true, evaluate: () => undefined },
-    FormatString: { name: 'FormatString', isAsync: true, evaluate: () => undefined },
-    hasMaxLength: { name: 'hasMaxLength', isAsync: true, evaluate: () => undefined },
-    isRequired: { name: 'isRequired', isAsync: true, evaluate: () => undefined },
-    messageGenerator: { name: 'messageGenerator', isAsync: true, evaluate: () => undefined },
-    throwingCondition: { name: 'throwingCondition', isAsync: true, evaluate: () => undefined },
+    equals: { name: 'equals', evaluate: () => undefined },
+    FormatString: { name: 'FormatString', evaluate: () => undefined },
+    hasMaxLength: { name: 'hasMaxLength', evaluate: () => undefined },
+    isRequired: { name: 'isRequired', evaluate: () => undefined },
+    messageGenerator: { name: 'messageGenerator', evaluate: () => undefined },
+    throwingCondition: { name: 'throwingCondition', evaluate: () => undefined },
   })
 
   beforeEach(() => {
@@ -294,7 +294,7 @@ describe('StepValidationCompiler', () => {
       // Assert
       expect(result).toEqual({ fieldFailures: [], domainFailures: [] })
     })
-    it('should keep compiled validation synchronous when registry functions are sync', async () => {
+    it('should keep the validation plan synchronous while rule conditions are dynamically awaitable', async () => {
       // Arrange
       const step = createStep()
       const block = createFieldBlock('firstName')
@@ -308,7 +308,7 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         isRequired: {
           name: 'isRequired',
-          isAsync: false,
+
           evaluate: (value: unknown) => value !== undefined && value !== '',
         },
       })
@@ -325,8 +325,10 @@ describe('StepValidationCompiler', () => {
       const task = fn!(ctx, { groups: ['default'], includeSubmissionOnly: false })
 
       // Assert
-      expect(source).not.toContain('await')
-      expect(source).not.toContain('async function')
+      expect(source).toContain('function validate_firstName()')
+      expect(source).not.toContain('async function validate_firstName()')
+      expect(source).toContain('async function evaluate_firstName_condition()')
+      expect(source).toContain('_forgeHelpers.isThenable(functionResult)')
       expect(task).not.toBeInstanceOf(Promise)
 
       if (task instanceof Promise) {
@@ -352,7 +354,7 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         isRequired: {
           name: 'isRequired',
-          isAsync: true,
+
           evaluate: async (value: unknown) => value !== undefined && value !== '',
         },
       })
@@ -397,7 +399,7 @@ describe('StepValidationCompiler', () => {
         validateDate: {
           name: 'validateDate',
           _forge: FunctionEntryType.GENERATOR,
-          isAsync: false,
+
           evaluate,
         },
       })
@@ -441,7 +443,7 @@ describe('StepValidationCompiler', () => {
         validateCrn: {
           name: 'validateCrn',
           _forge: FunctionEntryType.GENERATOR,
-          isAsync: false,
+
           evaluate,
         },
       })
@@ -477,7 +479,7 @@ describe('StepValidationCompiler', () => {
         validateCrn: {
           name: 'validateCrn',
           _forge: FunctionEntryType.GENERATOR,
-          isAsync: true,
+
           evaluate: async () => [{ message: 'CRN was not found' }],
         },
       })
@@ -509,7 +511,7 @@ describe('StepValidationCompiler', () => {
         validateStep: {
           name: 'validateStep',
           _forge: FunctionEntryType.GENERATOR,
-          isAsync: false,
+
           evaluate: () => [{ message: 'The step is incomplete', details: { section: 'identity' } }],
         },
       })
@@ -547,13 +549,13 @@ describe('StepValidationCompiler', () => {
         isRequired: {
           name: 'isRequired',
           _forge: FunctionEntryType.CONDITION,
-          isAsync: false,
+
           evaluate: () => false,
         },
         validateName: {
           name: 'validateName',
           _forge: FunctionEntryType.GENERATOR,
-          isAsync: false,
+
           evaluate: () => [{ message: 'Use your full name' }, { message: 'Do not include a title' }],
         },
       })
@@ -613,12 +615,12 @@ describe('StepValidationCompiler', () => {
       functionRegistry.register({
         fieldCode: {
           name: 'fieldCode',
-          isAsync: false,
+
           evaluate: () => 123,
         },
         isRequired: {
           name: 'isRequired',
-          isAsync: false,
+
           evaluate: (value: unknown) =>
             value !== null && value !== undefined && (typeof value !== 'string' || value.trim() !== ''),
         },
@@ -739,13 +741,13 @@ describe('StepValidationCompiler', () => {
         equals: {
           name: 'equals',
           _forge: FunctionEntryType.CONDITION,
-          isAsync: false,
+
           evaluate: (value: unknown, expected: unknown) => value === expected,
         },
         validateRequired: {
           name: 'validateRequired',
           _forge: FunctionEntryType.GENERATOR,
-          isAsync: false,
+
           evaluate,
         },
       })
@@ -1069,7 +1071,7 @@ describe('StepValidationCompiler', () => {
         validateDate: {
           name: 'validateDate',
           _forge: FunctionEntryType.GENERATOR,
-          isAsync: true,
+
           evaluate: async () => {
             throw new TypeError('Date service returned an invalid response')
           },
@@ -1466,9 +1468,9 @@ describe('StepValidationCompiler', () => {
       expect(source).not.toContain('registerActiveValidationGroup')
       expect(source).not.toContain('String(activeGroup)')
       expect(source).not.toContain('const errors = []')
-      expect(source).toContain('async function validate_name()')
+      expect(source).toContain('function validate_name()')
+      expect(source).not.toContain('async function validate_name()')
       expect(source).toContain('run: validate_name')
-      expect(source).not.toContain('run: async function validate_name')
       expect(source).not.toContain('function validate_name_results(results)')
       expect(source).not.toContain('function create_name_validation()')
       expect(source).not.toContain('function evaluate_name_validation()')
@@ -1478,14 +1480,16 @@ describe('StepValidationCompiler', () => {
       expect(source).not.toContain('function evaluate_name_details()')
       expect(source).toContain('const subject =')
       expect(source).toContain('const functionArgument1 = 10')
-      expect(source).toContain('return (await _forgeHelpers.evaluateFunctionAsync(')
+      expect(source).toContain('let functionResult = _forgeHelpers.evaluateFunction(')
+      expect(source).toContain('if (_forgeHelpers.isThenable(functionResult))')
+      expect(source).toContain('functionResult = await functionResult')
+      expect(source).toContain('return functionResult')
       expect(source).not.toContain('evaluateTracked')
-      expect(source).not.toContain('const functionResult')
       expect(source).not.toContain('const conditionResult')
       expect(source).not.toContain('_forgeHelpers.evaluateValidationCondition')
       expect(source).toContain(
         [
-          '      return await _forgeHelpers.collectFieldValidationFailuresAsync(',
+          '      return _forgeHelpers.collectFieldValidationFailures(',
           '        validationRules,',
           '        ruleIsActive,',
           '        { blockId: "compile_ast:2", blockCode: "name" }',
@@ -1494,28 +1498,8 @@ describe('StepValidationCompiler', () => {
       )
       expect(source).not.toContain('const validationStack = [results]')
       expect(source).not.toContain('RuntimeValueCompiler.compileArrayValue')
-      expect(source).toContain(
-        [
-          '      const validationRules = [',
-          '        {',
-          '          condition: async function evaluate_name_condition() {',
-          '            const subject = ctx.answers.name?.current;',
-          '            const functionArgument1 = 10;',
-          '',
-          '            return (await _forgeHelpers.evaluateFunctionAsync(',
-          '              ctx,',
-          '              _forgeRuntimeDiagnostics,',
-          '              0,',
-          '              "hasMaxLength",',
-          '              [subject, functionArgument1]',
-          '            ));',
-          '          },',
-          '          message: "Enter your name",',
-          '          submissionOnly: false',
-          '        }',
-          '      ];',
-        ].join('\n'),
-      )
+      expect(source).toContain('condition: async function evaluate_name_condition()')
+      expect(source).toContain('"hasMaxLength"')
       expect(source).toContain('ctx.answers.name?.current')
       expect(source).toContain('_forgeHelpers.evaluateFunction')
       expect(source).toContain('"hasMaxLength"')
@@ -2193,7 +2177,7 @@ describe('StepValidationCompiler', () => {
         validateName: {
           name: 'validateName',
           _forge: FunctionEntryType.GENERATOR,
-          isAsync: false,
+
           evaluate: () => [{ message: 'Enter a name' }],
         },
       })

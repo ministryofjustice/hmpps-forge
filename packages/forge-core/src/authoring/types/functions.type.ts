@@ -23,13 +23,6 @@ export interface FunctionRegistryEntry {
   evaluate: FunctionEvaluator
 
   /**
-   * Whether {@link evaluate} is an async function. Decides whether compiled
-   * expressions await the call, so it must be accurate; `build()` detects it
-   * from the function itself.
-   */
-  isAsync: boolean
-
-  /**
    * Validates the injected value before {@link evaluate} runs. A failing
    * value makes a condition evaluate to `false` (a wrongly-shaped field is
    * a normal "not valid yet" outcome); for any other kind a failure throws.

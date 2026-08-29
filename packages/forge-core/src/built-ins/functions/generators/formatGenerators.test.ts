@@ -3,15 +3,9 @@ import { ResolvableValue } from '../../../authoring/types/expressions.type'
 import { FORMAT_STRING_GENERATOR_NAME, FormatGenerators } from './formatGenerators'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 import { GeneratorBuilder } from '../../../authoring/builders/GeneratorBuilder'
-import { FunctionEntryRegistry } from '../../../authoring/functions/FunctionEntryRegistry'
 
 describe('FormatGenerators', () => {
   const entries = Object.values(FormatGenerators)
-  const entryRegistry = new FunctionEntryRegistry()
-
-  entries.forEach(entry => entryRegistry.collectListed(entry))
-
-  const builtRegistry = entryRegistry.build()
   const harness = new FunctionRegistryTestHarness(entries)
 
   describe('FormatString', () => {
@@ -77,11 +71,6 @@ describe('FormatGenerators', () => {
         name: FORMAT_STRING_GENERATOR_NAME,
         arguments: ['Hello %1', 'Ada'],
       })
-    })
-
-    it('should mark FormatString as sync', () => {
-      // Assert
-      expect(builtRegistry[FORMAT_STRING_GENERATOR_NAME].isAsync).toBe(false)
     })
   })
 })

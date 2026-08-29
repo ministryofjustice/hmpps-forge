@@ -42,7 +42,7 @@ describe('ASTSemanticValidator', () => {
   describe('reference scopes', () => {
     const functionRegistry = new FunctionRegistry()
     functionRegistry.register({
-      IsRequired: { name: 'IsRequired', evaluate: () => true, isAsync: false },
+      IsRequired: { name: 'IsRequired', evaluate: () => true },
     })
 
     const componentRegistry = new ComponentRegistry()
@@ -309,10 +309,10 @@ describe('ASTSemanticValidator', () => {
       const registry = new FunctionRegistry()
 
       if (names.length > 0) {
-        const entries: Record<string, { name: string; evaluate: () => void; isAsync: boolean }> = {}
+        const entries: Record<string, { name: string; evaluate: () => void }> = {}
 
         names.forEach(name => {
-          entries[name] = { name, evaluate: () => {}, isAsync: false }
+          entries[name] = { name, evaluate: () => {} }
         })
 
         registry.register(entries)
@@ -793,9 +793,9 @@ describe('ASTSemanticValidator', () => {
   describe('effect scope', () => {
     const functionRegistry = new FunctionRegistry()
     functionRegistry.register({
-      saveToApi: { name: 'saveToApi', evaluate: () => {}, isAsync: false },
-      loadData: { name: 'loadData', evaluate: () => {}, isAsync: false },
-      IsRequired: { name: 'IsRequired', evaluate: () => true, isAsync: false },
+      saveToApi: { name: 'saveToApi', evaluate: () => {} },
+      loadData: { name: 'loadData', evaluate: () => {} },
+      IsRequired: { name: 'IsRequired', evaluate: () => true },
     })
 
     const componentRegistry = new ComponentRegistry()
@@ -936,9 +936,9 @@ describe('ASTSemanticValidator', () => {
   describe('function argument scope', () => {
     const functionRegistry = new FunctionRegistry()
     functionRegistry.register({
-      someTransformer: { name: 'someTransformer', evaluate: () => 'value', isAsync: false },
-      someCondition: { name: 'someCondition', evaluate: () => true, isAsync: false },
-      IsRequired: { name: 'IsRequired', evaluate: () => true, isAsync: false },
+      someTransformer: { name: 'someTransformer', evaluate: () => 'value' },
+      someCondition: { name: 'someCondition', evaluate: () => true },
+      IsRequired: { name: 'IsRequired', evaluate: () => true },
     })
 
     const componentRegistry = new ComponentRegistry()
@@ -1221,8 +1221,8 @@ describe('ASTSemanticValidator', () => {
   describe('validation scope', () => {
     const functionRegistry = new FunctionRegistry()
     functionRegistry.register({
-      IsRequired: { name: 'IsRequired', evaluate: () => true, isAsync: false },
-      someTransformer: { name: 'someTransformer', evaluate: () => 'value', isAsync: false },
+      IsRequired: { name: 'IsRequired', evaluate: () => true },
+      someTransformer: { name: 'someTransformer', evaluate: () => 'value' },
     })
 
     const componentRegistry = new ComponentRegistry()
@@ -1440,7 +1440,7 @@ describe('ASTSemanticValidator', () => {
   describe('outcome scope', () => {
     const functionRegistry = new FunctionRegistry()
     functionRegistry.register({
-      saveToApi: { name: 'saveToApi', evaluate: () => {}, isAsync: false },
+      saveToApi: { name: 'saveToApi', evaluate: () => {} },
     })
 
     const componentRegistry = new ComponentRegistry()
@@ -1740,7 +1740,7 @@ describe('ASTSemanticValidator', () => {
   describe('container types', () => {
     const functionRegistry = new FunctionRegistry()
     functionRegistry.register({
-      saveToApi: { name: 'saveToApi', evaluate: () => {}, isAsync: false },
+      saveToApi: { name: 'saveToApi', evaluate: () => {} },
     })
 
     const componentRegistry = new ComponentRegistry()

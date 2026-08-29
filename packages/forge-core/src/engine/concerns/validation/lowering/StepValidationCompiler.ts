@@ -131,7 +131,7 @@ export default class StepValidationCompiler {
 
       this.expr.withSelfCodeExpression(selfCodeExpression, () => {
         if (dependentWhen !== undefined && this.expr.isCompilableNode(dependentWhen)) {
-          generator.if(this.expr.compileExpressionCode(dependentWhen), () => {
+          generator.if(this.expr.compileExpressionCode(dependentWhen, generator), () => {
             this.compileFieldValidationSlot(
               rules,
               field.source.id,
@@ -177,7 +177,7 @@ export default class StepValidationCompiler {
       const dependentWhen = field.dependentWhen === undefined ? undefined : toRawOperand(field.dependentWhen)
 
       if (dependentWhen !== undefined) {
-        generator.if(this.expr.compileOperandCode(dependentWhen), () => {
+        generator.if(this.expr.compileOperandCode(dependentWhen, generator), () => {
           this.compileFieldValidationSlot(
             rules,
             blockId,
@@ -266,28 +266,34 @@ export default class StepValidationCompiler {
     functionPrefix: string,
     generator: CodeGenerator,
   ): IdentifierName {
+    let bodyUsesAwait = false
+
     return generator.function(
       functionPrefix,
       [],
       body => {
-        const validationResults = this.compileValidationRules(
-          rules,
-          this.compileValidationEvaluationPrefix(functionPrefix),
-          body,
-        )
-        const fieldIdentity = objectCode([
-          { key: 'blockId', value: blockId },
-          { key: 'blockCode', value: blockCode },
-        ])
+        bodyUsesAwait = this.expr.trackNestedFunctionAwait(() =>
+          this.expr.withGeneratorScope(body, () => {
+            const validationResults = this.compileValidationRules(
+              rules,
+              this.compileValidationEvaluationPrefix(functionPrefix),
+              body,
+            )
+            const fieldIdentity = objectCode([
+              { key: 'blockId', value: blockId },
+              { key: 'blockCode', value: blockCode },
+            ])
 
-        body.blank()
-        this.compileValidationFailuresReturn(
-          'collectFieldValidationFailures',
-          [validationResults, ruleIsActive, fieldIdentity],
-          body,
+            body.blank()
+            this.compileValidationFailuresReturn(
+              'collectFieldValidationFailures',
+              [validationResults, ruleIsActive, fieldIdentity],
+              body,
+            )
+          }),
         )
       },
-      { async: () => this.expr.usesAwait },
+      { async: () => bodyUsesAwait },
     )
   }
 
@@ -296,16 +302,26 @@ export default class StepValidationCompiler {
     ruleIsActive: IdentifierName,
     generator: CodeGenerator,
   ): IdentifierName {
+    let bodyUsesAwait = false
+
     return generator.function(
       'validateStep',
       [],
       body => {
-        const validationResults = this.compileValidationRules(rules, 'step', body)
+        bodyUsesAwait = this.expr.trackNestedFunctionAwait(() =>
+          this.expr.withGeneratorScope(body, () => {
+            const validationResults = this.compileValidationRules(rules, 'step', body)
 
-        body.blank()
-        this.compileValidationFailuresReturn('collectDomainValidationFailures', [validationResults, ruleIsActive], body)
+            body.blank()
+            this.compileValidationFailuresReturn(
+              'collectDomainValidationFailures',
+              [validationResults, ruleIsActive],
+              body,
+            )
+          }),
+        )
       },
-      { async: () => this.expr.usesAwait },
+      { async: () => bodyUsesAwait },
     )
   }
 
@@ -351,24 +367,15 @@ export default class StepValidationCompiler {
     return ruleIsActive
   }
 
-  /**
-   * Emits the run function's return: one runtime-library call that evaluates
-   * the rules and shapes the failed ones into validation failures.
-   *
-   * Async discovery is monotonic within a build, so this `usesAwait` read is
-   * safe only because this run function's rules were compiled just above; a
-   * rule that discovered an async call flips the helper (and, via the async
-   * thunk on the enclosing function, the run function itself) to async.
-   */
+  /** Emits the run function's return: one MaybeAsync runtime call that evaluates and shapes failures. */
   private compileValidationFailuresReturn(
     helperBaseName: string,
     helperArguments: readonly SafeCode[],
     generator: CodeGenerator,
   ): void {
-    const helperName = this.expr.usesAwait ? `${helperBaseName}Async` : helperBaseName
-    const helperCall = callCode(code`_forgeHelpers${propertyCode(helperName)}`, helperArguments)
+    const helperCall = callCode(code`_forgeHelpers${propertyCode(helperBaseName)}`, helperArguments)
 
-    generator.return(this.expr.usesAwait ? code`await ${helperCall}` : helperCall)
+    generator.return(helperCall)
   }
 
   private compileValidationRules(
@@ -378,7 +385,7 @@ export default class StepValidationCompiler {
   ): IdentifierName {
     if (rules.kind === ValidationRulesKind.DIRECT) {
       const validationRules = this.expr.withValidationFunctionPrefix(functionPrefix, () =>
-        rules.rules.map(rule => this.expr.compileOperandCode(rule.node)),
+        rules.rules.map(rule => this.expr.compileOperandCode(rule.node, generator)),
       )
 
       generator.comment('Build validation rules')

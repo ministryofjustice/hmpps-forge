@@ -14,6 +14,7 @@ import type {
 import type { FunctionEntry, FunctionRegistryEntry } from '../../authoring/types/functions.type'
 import type { EffectFunctionContext } from '../../engine/chassis/runtime/context/EffectFunctionContext'
 import {
+  isThenable,
   precheckShortCircuit,
   validateOutput,
 } from '../../engine/chassis/compilation/lowering/generatedFunctionRuntimeLibrary'
@@ -147,8 +148,8 @@ export class FunctionRegistryTestHarness<TDeps = Record<string, never>> {
 
     const result = entry.evaluate(...args)
 
-    if (entry.isAsync) {
-      return (result as Promise<unknown>).then(resolved => {
+    if (isThenable(result)) {
+      return Promise.resolve(result).then(resolved => {
         validateOutput(entry, entry.name, resolved)
 
         return resolved
