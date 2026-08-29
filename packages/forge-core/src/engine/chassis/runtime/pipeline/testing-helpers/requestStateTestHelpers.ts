@@ -14,7 +14,6 @@ export function createTestRequestState(
     componentRegistry: {} as ComponentRegistry,
     hasRenderer: false,
     traceEnabled: false,
-    buildStepValidation: () => undefined,
     ...dependencyOverrides,
   })
 }

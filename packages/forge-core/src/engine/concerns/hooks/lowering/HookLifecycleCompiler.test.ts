@@ -18,6 +18,7 @@ import type {
 } from '../contracts/hookLifecycle.type'
 import type { StepValidityResult } from '../../validation/contracts/stepValidityResult.type'
 import type { NodeId } from '../../../chassis/contracts/ast/ast.type'
+import type { CompiledValidationFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 import HookAnalyzer from '../analysis/HookAnalyzer'
 import type { AccessLifecycleModel, SubmitHooksModel } from '../contracts/hookModel.type'
 import { createStepAnalysisContext } from '../../../chassis/compilation/analysis/testing-helpers/analysisContexts'
@@ -25,10 +26,15 @@ import HookLifecycleCompiler from './HookLifecycleCompiler'
 import EffectFunctionContextImpl from '../../../chassis/runtime/context/EffectFunctionContext'
 import WorkContext from '../../../chassis/work/WorkContext'
 import WorkExecutor from '../../../chassis/work/WorkExecutor'
-import { createWorkTask, isWorkTask } from '../../../chassis/work/workTask'
-import type { WorkTask, WorkHandler } from '../../../chassis/contracts/work/work.type'
+import { isWorkTask } from '../../../chassis/work/workTask'
+import type { WorkTask } from '../../../chassis/contracts/work/work.type'
 import type { SubmitLifecycleWorkTask } from '../contracts/SubmitLifecycleWork.type'
 import { workTaskBuilders } from '../../../chassis/runtime/context/compiledEvaluationContext'
+import { createCurrentStepValidationTask } from '../../validation/runtime/CurrentStepValidationWorkHandler'
+import { createFieldValidationTask } from '../../validation/runtime/FieldValidationWorkHandler'
+import { createDomainValidationTask } from '../../validation/runtime/DomainValidationWorkHandler'
+import { createStepValidationTask } from '../../validation/runtime/StepValidationWorkHandler'
+import type { ValidationRuleFilter } from '../../validation/contracts/ValidationWork.type'
 
 function accessModel(hooks: AccessHookASTNode[]): AccessLifecycleModel {
   const stepNode = ASTTestFactory.step().withProperty('onAccess', hooks).build()
@@ -58,12 +64,22 @@ const formatGeneratorRows = (() => {
 })()
 
 function stubValidation(result: StepValidityResult) {
-  const workType: WorkHandler<'validation.step', Record<string, never>> = {
-    kind: 'validation.step',
-    begin: () => ({ output: result }),
-  }
+  const fields =
+    result.fieldFailures.length === 0
+      ? []
+      : [
+          createFieldValidationTask('field:stub', {
+            blockId: result.fieldFailures[0].blockId,
+            blockCode: result.fieldFailures[0].blockCode,
+            run: () => result.fieldFailures,
+          }),
+        ]
+  const domains =
+    result.domainFailures.length === 0
+      ? []
+      : [createDomainValidationTask('domain:stub', { run: () => result.domainFailures })]
 
-  return createWorkTask('validation:stub', workType, {})
+  return createStepValidationTask(fields, domains)
 }
 
 function invalidResult(groups: readonly string[]): StepValidityResult {
@@ -84,7 +100,7 @@ function invalidResult(groups: readonly string[]): StepValidityResult {
 
 type HookContextOverrides = Partial<CompiledHookLifecycleContext> & {
   readonly validation?: StepValidityResult
-  readonly buildStepValidation?: (...args: unknown[]) => unknown
+  readonly compiledValidation?: CompiledValidationFunction
   readonly recordStepValidation?: (...args: unknown[]) => void
 }
 
@@ -99,6 +115,20 @@ function createContext(
     setCookie: vi.fn(),
   } as unknown as ResponseBindings
   const stepValidities = new Map<string, StepValidityResult>()
+  const compiledValidation =
+    overrides.compiledValidation ??
+    vi.fn(() =>
+      stubValidation({
+        fieldFailures: overrides.validation?.fieldFailures ?? [],
+        domainFailures: overrides.validation?.domainFailures ?? [],
+      }),
+    )
+  const currentStepValidation = (key: string, filter: ValidationRuleFilter) =>
+    createCurrentStepValidationTask(key, {
+      ...filter,
+      stepId: 'submit-step' as NodeId,
+      compiledValidation,
+    })
 
   const state = {
     answers,
@@ -109,27 +139,20 @@ function createContext(
     post: {},
     request: { url: 'http://localhost/forms/journey/step', path: '/forms/journey/step', method: 'POST' },
     conditions: functionRegistry,
-    buildStepValidation: vi.fn(() =>
-      stubValidation({
-        fieldFailures: overrides.validation?.fieldFailures ?? [],
-        domainFailures: overrides.validation?.domainFailures ?? [],
-      }),
-    ),
     recordStepValidation: vi.fn((stepId: string, result: StepValidityResult) => stepValidities.set(stepId, result)),
     effectFunctionContext: new EffectFunctionContextImpl(
       { domain: { answers, data }, evaluation: {}, request: {} } as any,
       response,
       'access',
     ),
-    workTasks: workTaskBuilders,
+    workTasks: { ...workTaskBuilders, currentStepValidation },
     currentStepId: 'submit-step',
     context: { evaluation: { stepValidities }, domain: { data: {}, answers: {} }, request: {} },
     ...overrides,
   } as Record<string, unknown>
 
   state.dependencies = {
-    currentStepId: state.currentStepId,
-    buildStepValidation: state.buildStepValidation ?? (() => undefined),
+    functionRegistry,
   }
   state.recordCurrentPageValidation = (view: unknown) => {
     state.currentPageValidation = view
@@ -383,8 +406,8 @@ describe('HookLifecycleCompiler', () => {
         })
         .build() as SubmitHookASTNode
       const fn = compiler.compileSubmitHooks(submitModel([hook]))
-      const buildStepValidation = vi.fn(() => stubValidation({ fieldFailures: [], domainFailures: [] }))
-      const ctx = createContext(functionRegistry, { buildStepValidation })
+      const compiledValidation = vi.fn(() => stubValidation({ fieldFailures: [], domainFailures: [] }))
+      const ctx = createContext(functionRegistry, { compiledValidation })
 
       // Act
       const result = await executeCompiledSubmitHooks(fn!, ctx)
@@ -397,7 +420,7 @@ describe('HookLifecycleCompiler', () => {
         outcome: 'redirect',
         redirect: '/always',
       })
-      expect(buildStepValidation).not.toHaveBeenCalled()
+      expect(compiledValidation).not.toHaveBeenCalled()
     })
 
     it('should evaluate throwError outcomes for invalid submissions', async () => {
@@ -415,7 +438,7 @@ describe('HookLifecycleCompiler', () => {
         .build() as SubmitHookASTNode
       const fn = compiler.compileSubmitHooks(submitModel([hook]))
       const ctx = createContext(functionRegistry, {
-        buildStepValidation: vi.fn(() => stubValidation(invalidResult(['default']))),
+        compiledValidation: vi.fn(() => stubValidation(invalidResult(['default']))),
       })
 
       // Act
@@ -438,9 +461,9 @@ describe('HookLifecycleCompiler', () => {
         .withProperty('validate', true)
         .withProperty('validationGroups', ['lookup'])
         .build() as SubmitHookASTNode
-      const buildStepValidation = vi.fn(() => stubValidation({ fieldFailures: [], domainFailures: [] }))
+      const compiledValidation = vi.fn(() => stubValidation({ fieldFailures: [], domainFailures: [] }))
       const fn = compiler.compileSubmitHooks(submitModel([hook]))
-      const ctx = createContext(functionRegistry, { buildStepValidation })
+      const ctx = createContext(functionRegistry, { compiledValidation })
 
       // Act
       const lifecycleTask = (await fn(ctx)) as SubmitLifecycleWorkTask
@@ -449,7 +472,7 @@ describe('HookLifecycleCompiler', () => {
       // Assert
       expect(lifecycleTask.props.hooks[0]?.props.validation?.props.groups).toEqual(['lookup'])
       expect(lifecycleTask.props.hooks[0]?.props.validation?.props.includeSubmissionOnly).toBe(true)
-      expect(buildStepValidation).toHaveBeenCalledWith('submit-step', {
+      expect(compiledValidation).toHaveBeenCalledWith(expect.any(Object), {
         groups: ['lookup'],
         includeSubmissionOnly: true,
       })
@@ -470,15 +493,15 @@ describe('HookLifecycleCompiler', () => {
           effects: [ASTTestFactory.functionExpression(FunctionCallType.EFFECT, 'submitEffect')],
         })
         .build() as SubmitHookASTNode
-      const buildStepValidation = vi.fn(() => stubValidation({ fieldFailures: [], domainFailures: [] }))
+      const compiledValidation = vi.fn(() => stubValidation({ fieldFailures: [], domainFailures: [] }))
       const fn = compiler.compileSubmitHooks(submitModel([hook]))
-      const ctx = createContext(functionRegistry, { buildStepValidation })
+      const ctx = createContext(functionRegistry, { compiledValidation })
 
       // Act
       const result = await executeCompiledSubmitHooks(fn!, ctx)
 
       // Assert
-      expect(buildStepValidation).toHaveBeenCalledTimes(1)
+      expect(compiledValidation).toHaveBeenCalledTimes(1)
       expect(ctx.data.submit).toBe('ran')
       expect(result).toMatchObject({ executed: true, validated: true, isValid: true })
     })

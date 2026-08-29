@@ -51,9 +51,14 @@ depends on.
 
 `DomainValidationWorkProps` contains `run()`, the compiled function that returns `DomainValidationFailure[]`.
 
-`CurrentStepValidationWorkProps` is the `ValidationRuleFilter` both triggers supply:
+`CurrentStepValidationWorkProps` carries the current step's `NodeId`, compiled validation function, and the
+`ValidationRuleFilter` supplied by either trigger:
 - entry validation passes `{ groups: matchingEntryGroups, includeSubmissionOnly: false }`.
 - the submit lifecycle passes `{ groups: hook.validationGroups, includeSubmissionOnly: true }`.
+
+The explicit step and compiled function make `validation.current-step` self-contained. Both current-step and
+reachability validation build their `validation.step` children through the same `buildStepValidationTask()`
+boundary; neither resolves validation capabilities from `RequestState`.
 
 `StepValidityResult` stores `fieldFailures` and `domainFailures`.
 
@@ -70,7 +75,7 @@ flowchart TD
   entry["request.entry-validation (GET, groups matched)"] --> current["validation.current-step"]
   submit["submit lifecycle, after onAlways (POST)"] --> current
   validities["request.validities"] -->|"per step"| task["validation.step"]
-  current -->|"buildStepValidation(stepId, filter)"| task
+  current -->|"compiled validation + filter"| task
   task -->|"concurrent"| fields["validation.field[]"]
   task -->|"concurrent"| domains["validation.domain[]"]
   fields --> fold["StepValidationWorkHandler.complete()"]
@@ -92,6 +97,8 @@ flowchart TD
 ## Boundaries
 
 - Work handlers own task execution and output folding.
+- Validation work carries the compiled validation input it executes; request state does not expose a
+  validation-task builder.
 - `validation.current-step` owns the complete current-page operation: rule selection (via the filter it passes
   down), execution, validity, and the result store. Triggers only decide whether and with what filter it runs.
 - Hooks own sequencing; they never construct validation results or set rendering flags.

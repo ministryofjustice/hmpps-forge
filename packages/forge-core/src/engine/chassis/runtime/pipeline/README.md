@@ -68,7 +68,6 @@ It contains:
 - `renderContext`, written by resolve when a renderer is present and read by render.
 - `renderedBlocks`, written by the render-blocks work and read by page assembly.
 - `pipelineResult`, written by `request.pipeline` for `RequestPipeline`.
-- `buildStepValidation()`, the shared validation-task builder used by the validities phase and current-step validation.
 
 `PhaseWorkOutput` is the common output contract for request phases:
 - `continue`, for phases that finish and let the next phase run.
@@ -217,7 +216,8 @@ flowchart TD
 - `request.entry-validation` contains no validation implementation; it only triggers `validation.current-step`.
   It selects active groups and projects the already-stored current step validity.
 - `request.submit` does not write `ctx.state.currentPageValidation` directly.
-  Submit validation runs inside the hook lifecycle through `buildStepValidation()` and `recordCurrentPageValidation()`.
+  The submit context binds the current step's ID and compiled validation into its generated validation task;
+  `validation.current-step` executes that self-contained task and calls `recordCurrentPageValidation()`.
 - `request.answer-cleardown` runs after reachability and before submit or entry validation.
   It needs the reachability projection and current answers from the same request point.
 - `request.resolve` groups field failures by render block ID.

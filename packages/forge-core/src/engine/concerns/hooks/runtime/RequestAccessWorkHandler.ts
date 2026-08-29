@@ -1,5 +1,5 @@
 import type { CompiledAccessHookResult } from '../contracts/hookLifecycle.type'
-import { buildCompiledHookLifecycleContext } from '../../../chassis/runtime/context/compiledEvaluationContext'
+import { buildCompiledAccessHookLifecycleContext } from '../../../chassis/runtime/context/compiledEvaluationContext'
 import { ACCESS_LIFECYCLE_KIND } from './AccessLifecycleWorkHandler'
 import type {
   CompletedWork,
@@ -28,10 +28,9 @@ export const REQUEST_ACCESS_WORK_HANDLER: WorkHandler<'request.access', RequestA
   kind: REQUEST_ACCESS_KIND,
 
   async begin(ctx: WorkContextContract<RequestState, RequestAccessWorkProps>) {
-    const hookLifecycleContext = buildCompiledHookLifecycleContext(
+    const hookLifecycleContext = buildCompiledAccessHookLifecycleContext(
       ctx.state.context,
       ctx.state.dependencies.functionRegistry,
-      'access',
       ctx.state.dependencies.responseBindings,
     )
 

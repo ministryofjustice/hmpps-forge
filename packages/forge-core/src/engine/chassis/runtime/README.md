@@ -69,7 +69,7 @@ It has three branches:
 
 `RequestState`, in [pipeline/RequestState.ts](pipeline/RequestState.ts), wraps `RuntimeContext`.
 It adds request-phase signals such as `reachabilityEvaluation`, `currentPageValidation`, `renderContext`, `renderedBlocks`, and `pipelineResult`.
-It also carries `functionRegistry`, `responseBindings`, `currentStepId`, `hasRenderer`, `buildStepValidation()`, and `recordCurrentPageValidation()`.
+It also carries `functionRegistry`, `responseBindings`, `currentStepId`, `hasRenderer`, and `recordCurrentPageValidation()`.
 
 `WorkTask` is the runtime execution unit.
 Compiled functions and request phases return work tasks instead of directly running every child operation.

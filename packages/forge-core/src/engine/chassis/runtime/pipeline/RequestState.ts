@@ -8,13 +8,7 @@ import type { ComponentRegistry } from '../../../../framework/types/adapter.type
 import type { RenderContext } from '../../../../framework/types/rendering.type'
 import type { RouteTree } from '../../../../framework/types/routeTree.type'
 import type { RequestPipelineResult } from '../../contracts/runtime/requestPipelineOutput.type'
-import type {
-  StepValidationWorkTask,
-  ValidationRuleFilter,
-} from '../../../concerns/validation/contracts/ValidationWork.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
-
-type StepValidationTaskResult = StepValidationWorkTask | undefined
 
 export interface RequestDependencies {
   readonly responseBindings: ResponseBindings
@@ -23,10 +17,6 @@ export interface RequestDependencies {
   readonly currentStepId?: NodeId
   readonly hasRenderer: boolean
   readonly traceEnabled: boolean
-  readonly buildStepValidation: (
-    stepId: NodeId,
-    filter: ValidationRuleFilter,
-  ) => StepValidationTaskResult | Promise<StepValidationTaskResult>
 }
 
 /**

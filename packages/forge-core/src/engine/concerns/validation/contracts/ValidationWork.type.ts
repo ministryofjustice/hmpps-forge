@@ -2,6 +2,8 @@ import type {
   DomainValidationFailure,
   StepValidationFailure,
 } from '../../../chassis/contracts/runtime/evaluationState.type'
+import type { NodeId } from '../../../chassis/contracts/ast/ast.type'
+import type { CompiledValidationFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 import type { WorkTask } from '../../../chassis/contracts/work/work.type'
 
 /**
@@ -16,7 +18,10 @@ export interface ValidationRuleFilter {
   readonly includeSubmissionOnly: boolean
 }
 
-export type CurrentStepValidationWorkProps = ValidationRuleFilter
+export interface CurrentStepValidationWorkProps extends ValidationRuleFilter {
+  readonly stepId: NodeId
+  readonly compiledValidation: CompiledValidationFunction
+}
 
 export interface StepValidationWorkProps {
   readonly fields: readonly FieldValidationWorkTask[]

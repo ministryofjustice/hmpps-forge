@@ -6,7 +6,7 @@ import type {
 } from '../../../chassis/contracts/work/work.type'
 import { createWorkTask } from '../../../chassis/work/workTask'
 import { phaseInstrumentation } from '../../../chassis/runtime/pipeline/contextSnapshot'
-import { validationTaskKey } from './stepValidationStore'
+import { validationTaskKey, buildStepValidationTask } from './stepValidationStore'
 import { isStepValidityResult, recordReachabilityValidity } from './reachabilityValidityState'
 import type { ValidationRuleFilter } from '../contracts/ValidationWork.type'
 import type { RequestValiditiesWorkProps } from '../../../chassis/contracts/runtime/RequestPipelineWork.type'
@@ -47,8 +47,14 @@ export const REACHABILITY_VALIDITIES_WORK_HANDLER: WorkHandler<'request.validiti
 
   async begin(ctx: WorkContextContract<RequestState, RequestValiditiesWorkProps>) {
     const tasks = await Promise.all(
-      [...ctx.props.compiledStepValidations.keys()].map(stepId =>
-        ctx.state.dependencies.buildStepValidation(stepId, REACHABILITY_VALIDATION_FILTER),
+      [...ctx.props.compiledStepValidations.entries()].map(([stepId, compiledValidation]) =>
+        buildStepValidationTask(
+          compiledValidation,
+          stepId,
+          ctx.state.context,
+          ctx.state.dependencies.functionRegistry,
+          REACHABILITY_VALIDATION_FILTER,
+        ),
       ),
     )
     const present = tasks.filter(task => task !== undefined)
