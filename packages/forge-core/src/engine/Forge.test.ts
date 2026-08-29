@@ -1,12 +1,8 @@
 import type { MockInstance } from 'vitest'
 import { component } from '../components/component'
 import { createForgePackage } from '../authoring/builders'
-import { ConditionsRegistry } from '../built-ins/functions/conditions'
-import { GeneratorsRegistry } from '../built-ins/functions/generators'
-import { TransformersRegistry } from '../built-ins/functions/transformers'
-import { coreComponents } from '../built-ins/components'
-import ComponentRegistry from './chassis/registries/ComponentRegistry'
-import FunctionRegistry from './chassis/registries/FunctionRegistry'
+import type ComponentRegistry from './chassis/registries/ComponentRegistry'
+import type FunctionRegistry from './chassis/registries/FunctionRegistry'
 import MountRegistry from './chassis/registries/MountRegistry'
 import type { MountedNode } from './chassis/registries/MountRegistry'
 import RequestPipeline from './chassis/runtime/pipeline/RequestPipeline'
@@ -16,8 +12,6 @@ import ForgeRegistrationError from './errors/ForgeRegistrationError'
 import Forge from './Forge'
 
 vi.mock('./PackageInstance')
-vi.mock('./chassis/registries/ComponentRegistry')
-vi.mock('./chassis/registries/FunctionRegistry')
 vi.mock('./chassis/registries/MountRegistry')
 vi.mock('./chassis/runtime/pipeline/RequestPipeline')
 
@@ -94,39 +88,8 @@ describe('Forge', () => {
       // eslint-disable-next-line no-new
       new Forge(createDefaultOptions())
 
-      expect(ComponentRegistry).toHaveBeenCalledTimes(1)
-      expect(FunctionRegistry).toHaveBeenCalledTimes(1)
       expect(MountRegistry).toHaveBeenCalledTimes(1)
       expect(RequestPipeline).toHaveBeenCalledTimes(1)
-    })
-
-    it('should use custom options when provided', () => {
-      // eslint-disable-next-line no-new
-      new Forge(
-        createDefaultOptions({
-          disableBuiltInFunctions: true,
-          disableBuiltInComponents: true,
-        }),
-      )
-
-      const mockComponentRegistry = (ComponentRegistry as MockedClass<typeof ComponentRegistry>).mock.instances[0]
-      const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
-
-      expect(mockFunctionRegistry.register).not.toHaveBeenCalled()
-      expect(mockComponentRegistry.registerMany).not.toHaveBeenCalled()
-    })
-
-    it('should register built-in functions and components by default', () => {
-      // eslint-disable-next-line no-new
-      new Forge(createDefaultOptions())
-
-      const mockComponentRegistry = (ComponentRegistry as MockedClass<typeof ComponentRegistry>).mock.instances[0]
-      const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
-
-      expect(mockFunctionRegistry.register).toHaveBeenCalledWith(ConditionsRegistry)
-      expect(mockFunctionRegistry.register).toHaveBeenCalledWith(TransformersRegistry)
-      expect(mockFunctionRegistry.register).toHaveBeenCalledWith(GeneratorsRegistry)
-      expect(mockComponentRegistry.registerMany).toHaveBeenCalledWith([...coreComponents])
     })
 
     it('should use custom logger when provided', () => {
@@ -159,8 +122,6 @@ describe('Forge', () => {
       expect(PackageInstance).toHaveBeenCalledWith(
         pkg,
         expect.objectContaining({
-          functionRegistry: expect.any(FunctionRegistry),
-          componentRegistry: expect.any(ComponentRegistry),
           functionDependencies,
         }),
       )

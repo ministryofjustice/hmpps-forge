@@ -21,9 +21,8 @@ export interface ForgePackage<TDeps = Record<string, never>> {
   journey: string | JourneyDefinition
 
   /**
-   * Custom functions for this package, layered over the global function
-   * registry and visible only to this package's journey. Accepts a function
-   * registry or an array of registries and function entries. The dependencies
+   * Custom functions visible only to this package's journey. Accepts a
+   * function registry or an array of registries and function entries. The dependencies
    * passed to `registerPackage()` are given to each registry's `build()` and
    * each entry's `factory`.
    *
@@ -43,8 +42,7 @@ export interface ForgePackage<TDeps = Record<string, never>> {
     | (BaseFunctionRegistry<TDeps> | BaseFunctionRegistry | FunctionEntry<TDeps>)[]
 
   /**
-   * Custom components for this package, layered over the global component
-   * registry and visible only to this package's journey.
+   * Custom components visible only to this package's journey.
    *
    * @see {@link ComponentRegistryEntry}
    */

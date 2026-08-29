@@ -2,6 +2,21 @@ import type { Resolvable, TransformerFunctionExpr } from '../types/expressions.t
 import { FunctionCallType } from '../../shared/taxonomy'
 import { BaseFunctionRegistry, type RegistrationOptions } from './BaseFunctionRegistry'
 
+/**
+ * @deprecated Use `transformer()` to define each transformer as a standalone entry:
+ *
+ * ```typescript
+ * const NormaliseName = transformer<Dependencies>('NormaliseName', {
+ *   factory: dependencies => (value: string) => dependencies.names.normalise(value),
+ * })
+ *
+ * Answer('name').pipe(NormaliseName())
+ * ```
+ *
+ * You don't need to register the transformer or add it to the package. Just use `NormaliseName()`
+ * in your journey and Forge will pick it up. If your journey is JSON and refers to the transformer
+ * only by name, add it with `functions: [NormaliseName]`.
+ */
 export default class TransformerRegistry<TDeps = Record<string, never>> extends BaseFunctionRegistry<TDeps> {
   constructor() {
     super(FunctionCallType.TRANSFORMER)

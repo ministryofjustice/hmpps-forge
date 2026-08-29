@@ -138,17 +138,19 @@ environment that a journey is allowed to use.
 
 Extension registration is package-scoped.
 
-A package's functions and components go into scoped registries for that
-package. Those scoped registries fall back to the built-in registries, but
-entries registered in the package take precedence for that package.
+A package's functions and components go into registries owned by that package.
+Nothing is registered globally, so every entry visible to a journey arrives
+through that journey's package.
 
 This gives packages local extension names without mutating a shared registry.
 It also means one package can register a custom function or component variant
 without making it visible to another package.
 
-The rule to preserve is that scoped extensions should be visible to the journey
-they are registered with, and invisible to unrelated journeys. Only the
-built-in functions and components are shared across every journey.
+The rule to preserve is that package extensions should be visible to the
+journey they are registered with and invisible to unrelated journeys. Built-in
+entries follow the same rule as application entries: using their builder in a
+TypeScript journey registers them automatically, while name-only packages can
+list `builtInFunctions` and `builtInComponents` explicitly.
 
 ## What Forge does not define
 
@@ -177,7 +179,7 @@ Important failure cases include:
 - a definition references an unregistered function
 - a definition references an unregistered component variant
 - an effect function is used outside a hook
-- a scoped registry does not contain the expected package extension
+- a package registry does not contain the expected extension
 - a function or component renderer throws when it is called
 
 The first group should fail during registration/validation. Runtime failures
@@ -192,8 +194,8 @@ components, and render-facing contracts in more detail.
 The function registry doc explains function entries, sync and async metadata,
 function families, and generated-function call sites.
 
-The registry scoping doc explains built-in registries, package-scoped
-registration, fallback lookup, and isolation rules.
+The registry scoping doc explains package registries, explicit built-in
+registration, and isolation rules.
 
 The framework rendering doc explains how evaluated blocks are dispatched to
 component renderers by framework integrations.

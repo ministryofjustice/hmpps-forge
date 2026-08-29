@@ -35,6 +35,22 @@ const ENTRY_TAGS: Record<FunctionCallType, FunctionEntryType> = {
   [FunctionCallType.EFFECT]: FunctionEntryType.EFFECT,
 }
 
+/**
+ * @deprecated Use `condition()`, `transformer()`, `generator()`, or `effect()` to define each
+ * function as a standalone entry instead of adding it to a registry.
+ *
+ * ```typescript
+ * const SaveCase = effect<Dependencies>('SaveCase', {
+ *   factory: dependencies => async context => dependencies.api.save(context.getAllAnswers()),
+ * })
+ *
+ * submit({ validate: true, onValid: { effects: [SaveCase()] } })
+ * ```
+ *
+ * You don't need a function registry anymore. Just define the function and use it in your journey;
+ * Forge will pick it up. If your journey is JSON and refers to the function only by name, add it
+ * with `functions: [SaveCase]`.
+ */
 export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> implements FunctionRegistryBuilder<TDeps> {
   private readonly registrations = new Map<string, StoredRegistration>()
 

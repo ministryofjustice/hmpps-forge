@@ -2,6 +2,23 @@ import type { EffectFunctionExpr, Resolvable } from '../types/expressions.type'
 import { FunctionCallType } from '../../shared/taxonomy'
 import { BaseFunctionRegistry, type RegistrationOptions } from './BaseFunctionRegistry'
 
+/**
+ * @deprecated Use `effect()` to define each effect as a standalone entry:
+ *
+ * ```typescript
+ * const SaveCase = effect<Dependencies>('SaveCase', {
+ *   factory: dependencies => async (context, caseId: string) => {
+ *     await dependencies.api.saveCase(caseId, context.getAllAnswers())
+ *   },
+ * })
+ *
+ * submit({ validate: true, onValid: { effects: [SaveCase(Params('caseId'))] } })
+ * ```
+ *
+ * You don't need to register the effect or add it to the package. Just use `SaveCase()` in your
+ * journey and Forge will pick it up. If your journey is JSON and refers to the effect only by name,
+ * add it with `functions: [SaveCase]`.
+ */
 export default class EffectRegistry<TDeps = Record<string, never>> extends BaseFunctionRegistry<TDeps> {
   constructor() {
     super(FunctionCallType.EFFECT)

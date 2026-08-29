@@ -2,6 +2,21 @@ import type { ConditionFunctionExpr, Resolvable } from '../types/expressions.typ
 import { FunctionCallType } from '../../shared/taxonomy'
 import { BaseFunctionRegistry, CONDITION_OUTPUT_SCHEMA, type RegistrationOptions } from './BaseFunctionRegistry'
 
+/**
+ * @deprecated Use `condition()` to define each condition as a standalone entry:
+ *
+ * ```typescript
+ * const IsAllowed = condition<Dependencies>('IsAllowed', {
+ *   factory: dependencies => (value: string) => dependencies.allowedValues.includes(value),
+ * })
+ *
+ * Self().match(IsAllowed())
+ * ```
+ *
+ * You don't need to register the condition or add it to the package. Just use `IsAllowed()` in your
+ * journey and Forge will pick it up. If your journey is JSON and refers to the condition only by
+ * name, add it with `functions: [IsAllowed]`.
+ */
 export default class ConditionRegistry<TDeps = Record<string, never>> extends BaseFunctionRegistry<TDeps> {
   constructor() {
     super(FunctionCallType.CONDITION, CONDITION_OUTPUT_SCHEMA)

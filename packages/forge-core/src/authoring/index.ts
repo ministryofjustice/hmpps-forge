@@ -1,3 +1,8 @@
+import { Condition, builtInConditions } from '../built-ins/functions/conditions'
+import { Generator, builtInGenerators } from '../built-ins/functions/generators'
+import { Transformer, builtInTransformers } from '../built-ins/functions/transformers'
+import type { FunctionEntry } from './types/functions.type'
+
 export * from './builders'
 export { condition } from './functions/condition'
 export { transformer } from './functions/transformer'
@@ -8,9 +13,14 @@ export type { ConditionEntry, ConditionOptions } from './functions/condition'
 export type { TransformerEntry, TransformerOptions } from './functions/transformer'
 export type { GeneratorEntry, GeneratorOptions } from './functions/generator'
 export type { EffectEntry, EffectOptions, EffectContext } from './functions/effect'
-export { Condition, ConditionsRegistry } from '../built-ins/functions/conditions'
-export { Generator, GeneratorsRegistry } from '../built-ins/functions/generators'
-export { Transformer, TransformersRegistry } from '../built-ins/functions/transformers'
+export { Condition, Generator, Transformer }
+
+/** Every Forge-provided function entry, for explicit registration by name-only packages. */
+export const builtInFunctions: readonly FunctionEntry[] = [
+  ...builtInConditions,
+  ...builtInTransformers,
+  ...builtInGenerators,
+]
 
 export { BaseFunctionRegistry } from './registries/BaseFunctionRegistry'
 export { default as ConditionRegistry } from './registries/ConditionRegistry'

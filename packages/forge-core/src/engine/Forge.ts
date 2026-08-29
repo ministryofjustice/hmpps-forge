@@ -1,11 +1,5 @@
 import PackageInstance from './PackageInstance'
 import type { ForgeDependencies, ForgePackageRegistration } from './chassis/contracts/ast/engine.type'
-import FunctionRegistry from './chassis/registries/FunctionRegistry'
-import ComponentRegistry from './chassis/registries/ComponentRegistry'
-import { ConditionsRegistry } from '../built-ins/functions/conditions'
-import { GeneratorsRegistry } from '../built-ins/functions/generators'
-import { TransformersRegistry } from '../built-ins/functions/transformers'
-import { coreComponents } from '../built-ins/components'
 import { ForgeDeprecations } from '../shared/ForgeDeprecations'
 import type { Logger } from '../framework/types/adapter.type'
 import type { ForgeRenderer } from '../framework/types/rendering.type'
@@ -36,12 +30,6 @@ export interface ForgeRouterAdapter {
 }
 
 export interface ForgeOptions {
-  /** Skip registering built-in functions (conditions, transformers, effects). Default: false */
-  disableBuiltInFunctions?: boolean
-
-  /** Skip registering built-in components (html, collection-block). Default: false */
-  disableBuiltInComponents?: boolean
-
   /** Enable debug logging for compilation and evaluation. Default: false */
   debug?: boolean
 
@@ -91,12 +79,6 @@ export interface ForgeOptions {
 export default class Forge {
   private readonly options: Required<Omit<ForgeOptions, 'frameworkAdapter'>> & Pick<ForgeOptions, 'frameworkAdapter'>
 
-  /** Built-in functions only - the parent every package-scoped function registry falls back to. */
-  private readonly functionRegistry = new FunctionRegistry()
-
-  /** Built-in components only - the parent every package-scoped component registry falls back to. */
-  private readonly componentRegistry = new ComponentRegistry()
-
   private readonly dependencies: ForgeDependencies
 
   private readonly mountRegistry: MountRegistry
@@ -124,8 +106,6 @@ export default class Forge {
    */
   constructor(constructorOptions: ForgeOptions) {
     const defaultOptions = {
-      disableBuiltInFunctions: false,
-      disableBuiltInComponents: false,
       debug: false,
       strictRegistration: true,
       logger: console,
@@ -137,16 +117,6 @@ export default class Forge {
     this.options = {
       ...defaultOptions,
       ...constructorOptions,
-    }
-
-    if (!this.options.disableBuiltInFunctions) {
-      this.functionRegistry.register(ConditionsRegistry)
-      this.functionRegistry.register(TransformersRegistry)
-      this.functionRegistry.register(GeneratorsRegistry)
-    }
-
-    if (!this.options.disableBuiltInComponents) {
-      this.componentRegistry.registerMany([...coreComponents])
     }
 
     this.dependencies = {
@@ -203,8 +173,6 @@ export default class Forge {
 
     try {
       const packageInstance = new PackageInstance(pkg, {
-        functionRegistry: this.functionRegistry,
-        componentRegistry: this.componentRegistry,
         functionDependencies: deps,
         instrumentation: this.instrumentation,
       })
