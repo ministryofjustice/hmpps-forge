@@ -39,9 +39,14 @@ export type RequestAccessWorkProps = PhaseWorkProps<CompiledAccessLifecycleFunct
 
 export type RequestAnswerPreparationWorkProps = PhaseWorkProps<CompiledAnswerPreparationFunction>
 
-export type RequestEntryValidationWorkProps = PhaseWorkProps<CompiledEntryValidationFunction>
+type CurrentStepValidationPhaseWorkProps<TCompiled> = PhaseWorkProps<TCompiled> & {
+  readonly stepId: NodeId
+  readonly compiledValidation: CompiledValidationFunction
+}
 
-export type RequestSubmitWorkProps = PhaseWorkProps<CompiledSubmitHooksFunction>
+export type RequestEntryValidationWorkProps = CurrentStepValidationPhaseWorkProps<CompiledEntryValidationFunction>
+
+export type RequestSubmitWorkProps = CurrentStepValidationPhaseWorkProps<CompiledSubmitHooksFunction>
 
 export type RequestResolveWorkProps = PhaseWorkProps<CompiledResolveFunction>
 

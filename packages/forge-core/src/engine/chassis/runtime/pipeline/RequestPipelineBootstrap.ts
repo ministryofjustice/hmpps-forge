@@ -1,10 +1,7 @@
 import type { ForgeRenderer } from '../../../../framework/types/rendering.type'
-import type { NodeId } from '../../contracts/ast/ast.type'
-import type { ValidationRuleFilter } from '../../../concerns/validation/contracts/ValidationWork.type'
 import type { HttpMethod } from '../../../../framework/types/request.type'
 import type { RequestSnapshot } from '../../../../framework/types/snapshot.type'
 import type { MountedNode, MountedStepNode } from '../../registries/MountRegistry'
-import { buildStepValidationTask } from '../../../concerns/validation/runtime/stepValidationStore'
 import type { WorkTask } from '../../contracts/work/work.type'
 import type { RuntimeContext } from '../../contracts/runtime/evaluationState.type'
 import type { ResponseBindings } from '../../../../framework/types/responseBindings.type'
@@ -44,8 +41,7 @@ export default class RequestPipelineBootstrap {
 
   buildExecutionContext(): RequestState {
     const { node } = this.config
-    const { functionRegistry, componentRegistry, compiledStepValidations } = node
-    const compiledValidation = node.kind === 'step' ? node.compiledValidation : undefined
+    const { functionRegistry, componentRegistry } = node
 
     const context = {
       request: {},
@@ -58,15 +54,6 @@ export default class RequestPipelineBootstrap {
 
     context.evaluation.iteratorBudget = new IteratorBudget(this.config.maxIteratorIterations)
 
-    const buildStepValidation = (stepId: NodeId, filter: ValidationRuleFilter) =>
-      buildStepValidationTask(
-        compiledStepValidations.get(stepId) ?? compiledValidation,
-        stepId,
-        context,
-        functionRegistry,
-        filter,
-      )
-
     return new RequestState(context, {
       responseBindings: this.config.responseBindings,
       functionRegistry,
@@ -74,7 +61,6 @@ export default class RequestPipelineBootstrap {
       currentStepId: node.kind === 'step' ? node.nodeId : undefined,
       hasRenderer: this.config.renderer !== undefined,
       traceEnabled: this.config.traceEnabled,
-      buildStepValidation,
     })
   }
 
@@ -135,6 +121,8 @@ export default class RequestPipelineBootstrap {
       const submit = createRequestSubmitTask({
         compiled: stepNode.compiledSubmitHooks,
         path: node.path,
+        stepId: stepNode.nodeId,
+        compiledValidation: stepNode.compiledValidation,
       })
 
       return [
@@ -152,6 +140,8 @@ export default class RequestPipelineBootstrap {
     const entryValidation = createRequestEntryValidationTask({
       compiled: stepNode.compiledEntryValidation,
       path: node.path,
+      stepId: stepNode.nodeId,
+      compiledValidation: stepNode.compiledValidation,
     })
 
     return [

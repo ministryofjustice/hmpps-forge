@@ -7,10 +7,7 @@ import type {
 } from '../../../chassis/contracts/work/work.type'
 import { createWorkTask, singleTaskGroup } from '../../../chassis/work/workTask'
 import { phaseInstrumentation } from '../../../chassis/runtime/pipeline/contextSnapshot'
-import {
-  CURRENT_STEP_VALIDATION_WORK_HANDLER,
-  CURRENT_STEP_VALIDATION_WORK_INSTRUMENTATION,
-} from './CurrentStepValidationWorkHandler'
+import { createCurrentStepValidationTask } from './CurrentStepValidationWorkHandler'
 import type { CurrentStepValidationWorkProps } from '../contracts/ValidationWork.type'
 import type { RequestEntryValidationWorkProps } from '../../../chassis/contracts/runtime/RequestPipelineWork.type'
 import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
@@ -46,16 +43,14 @@ export const REQUEST_ENTRY_VALIDATION_WORK_HANDLER: WorkHandler<
       return { groups: [] }
     }
 
-    const props: CurrentStepValidationWorkProps = { groups, includeSubmissionOnly: false }
+    const props: CurrentStepValidationWorkProps = {
+      groups,
+      includeSubmissionOnly: false,
+      stepId: ctx.props.stepId,
+      compiledValidation: ctx.props.compiledValidation,
+    }
 
-    return singleTaskGroup(
-      createWorkTask(
-        'entry-validation',
-        CURRENT_STEP_VALIDATION_WORK_HANDLER,
-        props,
-        CURRENT_STEP_VALIDATION_WORK_INSTRUMENTATION,
-      ),
-    )
+    return singleTaskGroup(createCurrentStepValidationTask('entry-validation', props))
   },
 
   complete(

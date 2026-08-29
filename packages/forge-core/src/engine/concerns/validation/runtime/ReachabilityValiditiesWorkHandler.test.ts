@@ -6,27 +6,15 @@ import type { RequestDependencies } from '../../../chassis/runtime/pipeline/Requ
 import type { RuntimeContext } from '../../../chassis/contracts/runtime/evaluationState.type'
 import { createTestRequestState } from '../../../chassis/runtime/pipeline/testing-helpers/requestStateTestHelpers'
 import type { StepValidityResult } from '../contracts/stepValidityResult.type'
-import type { StepValidationWorkProps } from '../contracts/ValidationWork.type'
-import type { WorkHandler } from '../../../chassis/contracts/work/work.type'
-import { createWorkTask } from '../../../chassis/work/workTask'
 import WorkContext from '../../../chassis/work/WorkContext'
 import WorkExecutor from '../../../chassis/work/WorkExecutor'
 import { createReachabilityValiditiesTask } from './ReachabilityValiditiesWorkHandler'
-import { validationTaskKey } from './stepValidationStore'
+import { createStepValidationTask } from './StepValidationWorkHandler'
 
 function createRequestContext(overrides: Partial<RequestDependencies> = {}): WorkContext<RequestState> {
   const context = { evaluation: {}, domain: { data: {}, answers: {} }, request: {} } as RuntimeContext
 
   return new WorkContext(createTestRequestState(context, overrides))
-}
-
-function stubValidation(stepId: NodeId, result: StepValidityResult) {
-  const workHandler: WorkHandler<'validation.step', StepValidationWorkProps> = {
-    kind: 'validation.step',
-    begin: () => ({ output: result }),
-  }
-
-  return createWorkTask(validationTaskKey(stepId), workHandler, { fields: [], domains: [] })
 }
 
 describe('ReachabilityValiditiesWorkHandler', () => {
@@ -36,9 +24,8 @@ describe('ReachabilityValiditiesWorkHandler', () => {
       const validatingStepId = 'validating-step' as NodeId
       const nonValidatingStepId = 'non-validating-step' as NodeId
       const result: StepValidityResult = { fieldFailures: [], domainFailures: [] }
-      const buildStepValidation = vi.fn((stepId: NodeId) => stubValidation(stepId, result))
-      const compiledValidation = vi.fn() as unknown as CompiledValidationFunction
-      const context = createRequestContext({ buildStepValidation })
+      const compiledValidation: CompiledValidationFunction = vi.fn(() => createStepValidationTask([], []))
+      const context = createRequestContext()
       const validities = createReachabilityValiditiesTask({
         compiledStepValidations: new Map([[validatingStepId, compiledValidation]]),
       })
@@ -48,11 +35,11 @@ describe('ReachabilityValiditiesWorkHandler', () => {
 
       // Assert
       expect(completed.output).toEqual({ action: 'continue' })
-      expect(buildStepValidation).toHaveBeenCalledWith(validatingStepId, {
+      expect(compiledValidation).toHaveBeenCalledWith(expect.any(Object), {
         groups: ['default'],
         includeSubmissionOnly: false,
       })
-      expect(buildStepValidation).toHaveBeenCalledTimes(1)
+      expect(compiledValidation).toHaveBeenCalledTimes(1)
       expect(context.state.context.evaluation.reachabilityValidities?.get(validatingStepId)).toEqual(result)
       expect(context.state.context.evaluation.reachabilityValidities?.has(nonValidatingStepId)).toBe(false)
     })
@@ -61,9 +48,8 @@ describe('ReachabilityValiditiesWorkHandler', () => {
       // Arrange
       const currentStepId = 'current-step' as NodeId
       const result: StepValidityResult = { fieldFailures: [], domainFailures: [] }
-      const buildStepValidation = vi.fn((stepId: NodeId) => stubValidation(stepId, result))
-      const compiledValidation = vi.fn() as unknown as CompiledValidationFunction
-      const context = createRequestContext({ buildStepValidation, currentStepId })
+      const compiledValidation: CompiledValidationFunction = vi.fn(() => createStepValidationTask([], []))
+      const context = createRequestContext({ currentStepId })
       const validities = createReachabilityValiditiesTask({
         compiledStepValidations: new Map([[currentStepId, compiledValidation]]),
       })

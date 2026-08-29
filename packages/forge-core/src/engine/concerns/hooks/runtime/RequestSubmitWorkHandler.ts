@@ -1,5 +1,5 @@
 import type { CompiledSubmitHookResult } from '../contracts/hookLifecycle.type'
-import { buildCompiledHookLifecycleContext } from '../../../chassis/runtime/context/compiledEvaluationContext'
+import { buildCompiledSubmitHookLifecycleContext } from '../../../chassis/runtime/context/compiledEvaluationContext'
 import { SUBMIT_LIFECYCLE_KIND } from './SubmitLifecycleWorkHandler'
 import type {
   CompletedWork,
@@ -30,11 +30,12 @@ export const REQUEST_SUBMIT_WORK_HANDLER: WorkHandler<'request.submit', RequestS
   kind: REQUEST_SUBMIT_KIND,
 
   async begin(ctx: WorkContextContract<RequestState, RequestSubmitWorkProps>) {
-    const hookLifecycleContext = buildCompiledHookLifecycleContext(
+    const hookLifecycleContext = buildCompiledSubmitHookLifecycleContext(
       ctx.state.context,
       ctx.state.dependencies.functionRegistry,
-      'submit',
       ctx.state.dependencies.responseBindings,
+      ctx.props.stepId,
+      ctx.props.compiledValidation,
     )
 
     const resolved = await ctx.props.compiled(hookLifecycleContext)

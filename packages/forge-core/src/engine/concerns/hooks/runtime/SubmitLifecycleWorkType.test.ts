@@ -3,8 +3,8 @@ import WorkContext from '../../../chassis/work/WorkContext'
 import WorkExecutor from '../../../chassis/work/WorkExecutor'
 import type { CompiledHookLifecycleContext } from '../contracts/hookLifecycle.type'
 import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
-import type { StepValidityResult } from '../../validation/contracts/stepValidityResult.type'
-import type { WorkHandler } from '../../../chassis/contracts/work/work.type'
+import type { NodeId } from '../../../chassis/contracts/ast/ast.type'
+import type { CompiledValidationFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 import { createWorkTask } from '../../../chassis/work/workTask'
 import { HOOK_EFFECT_WORK_HANDLER } from './HookEffectWorkHandler'
 import { SUBMIT_BRANCH_WORK_HANDLER } from './SubmitBranchWorkHandler'
@@ -13,6 +13,7 @@ import { SUBMIT_HOOK_WORK_HANDLER } from './SubmitHookWorkHandler'
 import { SUBMIT_LIFECYCLE_WORK_HANDLER } from './SubmitLifecycleWorkHandler'
 import { CURRENT_STEP_VALIDATION_WORK_HANDLER } from '../../validation/runtime/CurrentStepValidationWorkHandler'
 import type { SubmitHookNextResult } from '../contracts/SubmitLifecycleWork.type'
+import { createStepValidationTask } from '../../validation/runtime/StepValidationWorkHandler'
 
 function createContext(overrides: Record<string, unknown> = {}): WorkContext<CompiledHookLifecycleContext> {
   const state = {
@@ -39,8 +40,7 @@ function createContext(overrides: Record<string, unknown> = {}): WorkContext<Com
   } as Record<string, unknown>
 
   state.dependencies = {
-    currentStepId: state.currentStepId,
-    buildStepValidation: state.buildStepValidation ?? (() => undefined),
+    functionRegistry: { get: vi.fn() },
   }
   state.recordCurrentPageValidation = (view: unknown) => {
     state.currentPageValidation = view
@@ -57,6 +57,7 @@ function createHook(
     readonly onAlwaysEffects?: readonly (() => void | Promise<void>)[]
     readonly onAlwaysNext?: () => SubmitHookNextResult | Promise<SubmitHookNextResult>
     readonly validationGroups?: readonly string[]
+    readonly compiledValidation?: CompiledValidationFunction
     readonly onValidEffects?: readonly (() => void | Promise<void>)[]
     readonly onValidNext?: () => SubmitHookNextResult | Promise<SubmitHookNextResult>
     readonly onInvalidEffects?: readonly (() => void | Promise<void>)[]
@@ -79,6 +80,8 @@ function createHook(
         : createWorkTask(`${key}-validation`, CURRENT_STEP_VALIDATION_WORK_HANDLER, {
             groups: options.validationGroups,
             includeSubmissionOnly: true,
+            stepId: 'step-1' as NodeId,
+            compiledValidation: options.compiledValidation ?? stubCompiledValidation(),
           }),
     onValid:
       options.onValidEffects === undefined && options.onValidNext === undefined
@@ -106,6 +109,14 @@ function createBranch(
       }),
     ),
     next,
+  })
+}
+
+function stubCompiledValidation(onRun?: () => void): CompiledValidationFunction {
+  return vi.fn(() => {
+    onRun?.()
+
+    return createStepValidationTask([], [])
   })
 }
 
@@ -182,19 +193,7 @@ describe('SubmitLifecycleWorkHandler', () => {
     it('should run onAlways before validation and then the selected valid branch', async () => {
       // Arrange
       const calls: string[] = []
-      const result: StepValidityResult = { fieldFailures: [], domainFailures: [] }
-      const buildStepValidation = vi.fn((_groups: string[]) => {
-        const workType: WorkHandler<'validation.step', Record<string, never>> = {
-          kind: 'validation.step',
-          begin: () => {
-            calls.push('validation')
-
-            return { output: result }
-          },
-        }
-
-        return createWorkTask('validation:stub', workType, {})
-      })
+      const compiledValidation = stubCompiledValidation(() => calls.push('validation'))
       const executor = new WorkExecutor()
       const lifecycle = createWorkTask('submit-lifecycle', SUBMIT_LIFECYCLE_WORK_HANDLER, {
         hooks: [
@@ -205,6 +204,7 @@ describe('SubmitLifecycleWorkHandler', () => {
               },
             ],
             validationGroups: ['lookup'],
+            compiledValidation,
             onValidEffects: [
               () => {
                 calls.push('valid effect')
@@ -220,12 +220,15 @@ describe('SubmitLifecycleWorkHandler', () => {
       })
 
       // Act
-      const context = createContext({ buildStepValidation })
+      const context = createContext()
       const lifecycleResult = await executor.execute(lifecycle, context)
 
       // Assert
       expect(calls).toEqual(['always effect', 'validation', 'valid effect', 'valid next'])
-      expect(buildStepValidation).toHaveBeenCalledWith('step-1', { groups: ['lookup'], includeSubmissionOnly: true })
+      expect(compiledValidation).toHaveBeenCalledWith(expect.any(Object), {
+        groups: ['lookup'],
+        includeSubmissionOnly: true,
+      })
       expect((context.state as unknown as RequestState).currentPageValidation).toEqual({
         isValid: true,
         fieldFailures: [],

@@ -32,6 +32,9 @@ import { createSubmitPredicateTask } from '../../../concerns/hooks/runtime/Submi
 import { createSubmitBranchTask } from '../../../concerns/hooks/runtime/SubmitBranchWorkHandler'
 import IteratorBudget from '../pipeline/IteratorBudget'
 import type { IteratorBudgetContract } from '../../contracts/runtime/iteratorBudget.type'
+import type { NodeId } from '../../contracts/ast/ast.type'
+import type { CompiledValidationFunction } from '../../contracts/compiled/compiledFunctions.type'
+import type { ValidationRuleFilter } from '../../../concerns/validation/contracts/ValidationWork.type'
 
 /**
  * The task-construction surface handed to generated functions as `ctx.workTasks`.
@@ -44,7 +47,6 @@ export const workTaskBuilders = {
   stepValidation: createStepValidationTask,
   fieldValidation: createFieldValidationTask,
   domainValidation: createDomainValidationTask,
-  currentStepValidation: createCurrentStepValidationTask,
   resolveBlock: createResolveBlockTask,
   resolveBlocks: createResolveBlocksTask,
   accessLifecycle: createAccessLifecycleTask,
@@ -63,7 +65,11 @@ export const workTaskBuilders = {
  * generated-function boundary explicit and prevents controller-specific objects
  * leaking into codegen as the compiler surface changes.
  */
-function buildCompiledBaseContext(context: RuntimeContext, functionRegistry: FunctionRegistry): CompiledBaseContext {
+function buildCompiledBaseContext(
+  context: RuntimeContext,
+  functionRegistry: FunctionRegistry,
+  requestWorkTaskBuilders: unknown = workTaskBuilders,
+): CompiledBaseContext {
   return {
     iteratorBudget: resolveIteratorBudget(context),
     answers: context.domain.answers,
@@ -74,7 +80,7 @@ function buildCompiledBaseContext(context: RuntimeContext, functionRegistry: Fun
     post: context.request.post,
     request: { ...context.request },
     conditions: functionRegistry,
-    workTasks: workTaskBuilders,
+    workTasks: requestWorkTaskBuilders,
   }
 }
 
@@ -138,14 +144,43 @@ export function buildCompiledRouteMetadataContext(
   }
 }
 
-export function buildCompiledHookLifecycleContext(
+export function buildCompiledAccessHookLifecycleContext(
+  context: RuntimeContext,
+  functionRegistry: FunctionRegistry,
+  responseBindings: ResponseBindings,
+): CompiledHookLifecycleContext {
+  return buildCompiledHookLifecycleContext(context, functionRegistry, 'access', responseBindings, workTaskBuilders)
+}
+
+export function buildCompiledSubmitHookLifecycleContext(
+  context: RuntimeContext,
+  functionRegistry: FunctionRegistry,
+  responseBindings: ResponseBindings,
+  stepId: NodeId,
+  compiledValidation: CompiledValidationFunction,
+): CompiledHookLifecycleContext {
+  const currentStepValidation = (key: string, filter: ValidationRuleFilter) =>
+    createCurrentStepValidationTask(key, { ...filter, stepId, compiledValidation })
+  const submitWorkTaskBuilders = { ...workTaskBuilders, currentStepValidation }
+
+  return buildCompiledHookLifecycleContext(
+    context,
+    functionRegistry,
+    'submit',
+    responseBindings,
+    submitWorkTaskBuilders,
+  )
+}
+
+function buildCompiledHookLifecycleContext(
   context: RuntimeContext,
   functionRegistry: FunctionRegistry,
   hookType: HookType,
   responseBindings: ResponseBindings,
+  requestWorkTaskBuilders: unknown,
 ): CompiledHookLifecycleContext {
   return {
-    ...buildCompiledBaseContext(context, functionRegistry),
+    ...buildCompiledBaseContext(context, functionRegistry, requestWorkTaskBuilders),
     answers: context.domain.answers,
     effectFunctionContext: new EffectFunctionContextImpl(context, responseBindings, hookType),
   }
