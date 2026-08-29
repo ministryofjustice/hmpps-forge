@@ -1,4 +1,3 @@
-/* eslint-disable no-new-func */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z, type ZodType } from 'zod'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
@@ -38,10 +37,10 @@ import { workTaskBuilders } from '../../../chassis/runtime/context/compiledEvalu
 
 function createSyncRegistry(...funcNames: string[]): FunctionRegistry {
   const registry = new FunctionRegistry()
-  const entries: Record<string, { name: string; isAsync: false; evaluate: () => undefined }> = {}
+  const entries: Record<string, { name: string; evaluate: () => undefined }> = {}
 
   funcNames.forEach(name => {
-    entries[name] = { name, isAsync: false, evaluate: () => undefined }
+    entries[name] = { name, evaluate: () => undefined }
   })
   registry.register(entries)
 
@@ -226,8 +225,11 @@ async function runGeneratedSource(
   ctx: CompiledAnswerPreparationContext,
   diagnostics: unknown = undefined,
 ): Promise<void> {
-  const fn = new Function('ctx', '_forgeHelpers', '_forgeRuntimeDiagnostics', source)
-  const task = fn(ctx, generatedFunctionRuntimeLibrary, diagnostics) as unknown
+  const AsyncFunction = Object.getPrototypeOf(async function asyncFunctionPrototype() {
+    return undefined
+  }).constructor as FunctionConstructor
+  const fn = new AsyncFunction('ctx', '_forgeHelpers', '_forgeRuntimeDiagnostics', source)
+  const task = (await fn(ctx, generatedFunctionRuntimeLibrary, diagnostics)) as unknown
 
   await executeAnswerPreparationTask(task, ctx)
 }
@@ -284,7 +286,7 @@ describe('StepAnswerPreparationCompiler', () => {
   })
 
   describe('hybrid async compilation', () => {
-    it('should keep compiled answer preparation synchronous when registry functions are sync', async () => {
+    it('should keep the preparation plan synchronous while formatter calls are dynamically awaitable', async () => {
       // Arrange
       const trimFormatter = createTransformerFunction('trim')
       const block = createFieldBlock('name', { formatters: [trimFormatter] })
@@ -297,7 +299,7 @@ describe('StepAnswerPreparationCompiler', () => {
       functionRegistry.register({
         trim: {
           name: 'trim',
-          isAsync: false,
+
           evaluate: (value: unknown) => (typeof value === 'string' ? value.trim() : value),
         },
       })
@@ -315,7 +317,8 @@ describe('StepAnswerPreparationCompiler', () => {
       await executeAnswerPreparationTask(result, ctx)
 
       // Assert
-      expect(source).not.toContain('await')
+      expect(source).toContain('async function formatSubmittedValue')
+      expect(source).toContain('_forgeHelpers.isThenable(functionResult)')
       expect(result).not.toBeInstanceOf(Promise)
       expect(ctx.answers.name.current).toBe('Ada')
     })
@@ -333,7 +336,7 @@ describe('StepAnswerPreparationCompiler', () => {
       functionRegistry.register({
         trim: {
           name: 'trim',
-          isAsync: true,
+
           evaluate: async (value: unknown) => (typeof value === 'string' ? value.trim() : value),
         },
       })
@@ -371,7 +374,7 @@ describe('StepAnswerPreparationCompiler', () => {
       functionRegistry.register({
         isRequired: {
           name: 'isRequired',
-          isAsync: true,
+
           evaluate: async (value: unknown) =>
             value !== null && value !== undefined && (typeof value !== 'string' || value.trim() !== ''),
         },
@@ -407,7 +410,7 @@ describe('StepAnswerPreparationCompiler', () => {
       functionRegistry.register({
         nextReference: {
           name: 'nextReference',
-          isAsync: true,
+
           evaluate: async () => 'ABC-123',
         },
       })
@@ -1316,7 +1319,7 @@ describe('StepAnswerPreparationCompiler', () => {
       functionRegistry.register({
         parseIso: {
           name: 'parseIso',
-          isAsync: false,
+
           evaluate: (value: unknown) => {
             if (typeof value !== 'string') {
               return undefined
