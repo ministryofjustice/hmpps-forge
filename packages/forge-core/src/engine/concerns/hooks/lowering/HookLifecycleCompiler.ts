@@ -204,7 +204,7 @@ export default class HookLifecycleCompiler {
   private compileEffectTask(effect: EffectCall, generator: CodeGenerator): IdentifierName {
     const effectNamePart = this.toFunctionNamePart(this.camelise(effect.name))
     const run = this.compileFunctionExpression(`run${effectNamePart}`, generator, body => {
-      body.return(this.compileEffectCall(effect))
+      body.return(this.compileEffectCall(effect, body))
     })
 
     return generator.const(
@@ -218,7 +218,7 @@ export default class HookLifecycleCompiler {
 
   private compileAccessWhenTask(when: ExpressionValue, key: string, generator: CodeGenerator): CodeFragment {
     const evaluate = this.compileFunctionExpression('evaluateAccessHookWhen', generator, body => {
-      body.return(code`Boolean(${this.expr.compileOperandCode(when.node)})`)
+      body.return(code`Boolean(${this.expr.compileOperandCode(when.node, body)})`)
     })
 
     return code`${CONTEXT}.workTasks.accessHookWhen(${key}, ${objectCode([{ key: 'evaluate', value: evaluate }])})`
@@ -234,7 +234,7 @@ export default class HookLifecycleCompiler {
       `evaluateSubmit${this.toFunctionNamePart(name)}`,
       generator,
       body => {
-        body.return(code`Boolean(${this.expr.compileOperandCode(predicate.node)})`)
+        body.return(code`Boolean(${this.expr.compileOperandCode(predicate.node, body)})`)
       },
     )
 
@@ -299,7 +299,7 @@ export default class HookLifecycleCompiler {
 
     const outcomeWhen = generator.const(
       'outcomeWhen',
-      code`Boolean(${this.expr.compileOperandCode(outcome.when.node)})`,
+      code`Boolean(${this.expr.compileOperandCode(outcome.when.node, generator)})`,
     )
 
     generator.if(outcomeWhen, emitReturn)
@@ -312,7 +312,7 @@ export default class HookLifecycleCompiler {
       return
     }
 
-    const gotoValue = generator.const('gotoValue', this.expr.compileOperandCode(redirect.goto.node))
+    const gotoValue = generator.const('gotoValue', this.expr.compileOperandCode(redirect.goto.node, generator))
 
     generator.if(code`${gotoValue} !== undefined`, () => {
       generator.return(this.redirectResult(code`String(${gotoValue})`))
@@ -346,13 +346,13 @@ export default class HookLifecycleCompiler {
       return literal(message)
     }
 
-    const messageValue = generator.const('messageValue', this.expr.compileOperandCode(message.node))
+    const messageValue = generator.const('messageValue', this.expr.compileOperandCode(message.node, generator))
 
     return code`${messageValue} !== undefined ? String(${messageValue}) : ""`
   }
 
-  private compileEffectCall(effect: EffectCall): CodeFragment {
-    const argExprs = effect.arguments.map(arg => this.expr.compileOperandCode(toRawOperand(arg)))
+  private compileEffectCall(effect: EffectCall, generator: CodeGenerator): CodeFragment {
+    const argExprs = effect.arguments.map(arg => this.expr.compileOperandCode(toRawOperand(arg), generator))
 
     return this.expr.compileFunctionCallCode(
       effect.name,
@@ -363,8 +363,8 @@ export default class HookLifecycleCompiler {
 
   /**
    * Emits a named function expression that is async only when its body awaits
-   * — the dispatcher emits `await` solely for async registered functions, so
-   * hooks built from sync expressions compile to plain sync functions.
+   * — nested callbacks own their awaits without making the enclosing generated
+   * function async.
    */
   private compileFunctionExpression(
     prefix: string,
@@ -377,7 +377,9 @@ export default class HookLifecycleCompiler {
       prefix,
       [],
       body => {
-        bodyUsesAwait = this.expr.trackNestedFunctionAwait(() => buildBody(body))
+        bodyUsesAwait = this.expr.trackNestedFunctionAwait(() =>
+          this.expr.withGeneratorScope(body, () => buildBody(body)),
+        )
       },
       { async: () => bodyUsesAwait },
     )
