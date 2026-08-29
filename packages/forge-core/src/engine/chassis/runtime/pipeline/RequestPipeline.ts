@@ -25,6 +25,7 @@ export interface RequestEvaluationRequest {
   readonly snapshot: RequestSnapshot
   readonly responseBindings?: ResponseBindings
   readonly renderer?: ForgeRenderer<unknown>
+  readonly requestDependencies?: () => object | PromiseLike<object>
 }
 
 interface PreparedPipeline {
@@ -39,7 +40,7 @@ export default class RequestPipeline {
   ) {}
 
   async evaluate(requestInput: RequestEvaluationRequest): Promise<ForgeOutcome<unknown>> {
-    const { node, snapshot, renderer, responseBindings = NO_OP_RESPONSE_BINDINGS } = requestInput
+    const { node, snapshot, renderer, requestDependencies, responseBindings = NO_OP_RESPONSE_BINDINGS } = requestInput
 
     const instrumentation = this.options.instrumentation.forRequest(snapshot)
 
@@ -49,6 +50,7 @@ export default class RequestPipeline {
       responseBindings,
       instrumentation,
       renderer,
+      requestDependencies,
     )
 
     const pipelineResult = await this.run(node, executionContext, pipelineElement, snapshot, instrumentation)
@@ -62,6 +64,7 @@ export default class RequestPipeline {
     responseBindings: ResponseBindings,
     instrumentation: ForgeInstrumentation,
     renderer?: ForgeRenderer<unknown>,
+    requestDependencies?: () => object | PromiseLike<object>,
   ): PreparedPipeline {
     const bootstrap = new RequestPipelineBootstrap({
       method: snapshot.method,
@@ -71,6 +74,7 @@ export default class RequestPipeline {
       traceEnabled: instrumentation.enabled,
       maxIteratorIterations: this.options.maxIteratorIterations,
       responseBindings,
+      requestDependencies,
     })
 
     return {

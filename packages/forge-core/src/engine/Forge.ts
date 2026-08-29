@@ -20,6 +20,7 @@ export interface ForgeExecutionRequest {
   readonly snapshot: RequestSnapshot
   readonly responseBindings?: ResponseBindings
   readonly renderer?: ForgeRenderer<unknown>
+  readonly requestDependencies?: () => object | PromiseLike<object>
 }
 
 /**
