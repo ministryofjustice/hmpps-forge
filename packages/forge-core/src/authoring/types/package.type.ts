@@ -23,8 +23,9 @@ export interface ForgePackage<TDeps = Record<string, never>> {
   /**
    * Custom functions visible only to this package's journey. Accepts a
    * function registry or an array of registries and function entries. The dependencies
-   * passed to `registerPackage()` are given to each registry's `build()` and
-   * each entry's `factory` during request context preparation.
+   * supplied by package registration and the active framework request are
+   * resolved for each registry's `build()` and entry's `factory` during
+   * request context preparation.
    *
    * Listed entries register under their author name, which serves journey
    * definitions that reference functions by name only (e.g. plain JSON).

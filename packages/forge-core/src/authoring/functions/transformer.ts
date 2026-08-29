@@ -21,7 +21,7 @@ export interface TransformerOptions<
   inputSchema?: ZodType
 
   /**
-   * Builds one request's evaluator from the package dependencies.
+   * Builds one request's evaluator from its resolved dependencies.
    * `value` is declared `any` so the author can annotate the type they expect
    * without tripping contravariance checks.
    */

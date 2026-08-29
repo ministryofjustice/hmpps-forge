@@ -5,9 +5,9 @@ import ExpressHandlerFactory from './ExpressHandlerFactory'
 import NunjucksRenderer from '../renderer/NunjucksRenderer'
 
 /**
- * Options for {@link createExpressRouter}. Passed through verbatim to the
- * `NunjucksRenderer` the router builds, so each mounted router gets its own
- * renderer configuration.
+ * Options for {@link createExpressRouter}. Rendering options configure the
+ * router's `NunjucksRenderer`; request dependencies connect native Express
+ * capabilities to Forge function factories.
  */
 export interface ExpressForgeRouterOptions<TRequestDependencies extends object = Record<string, never>> {
   /**
@@ -37,9 +37,10 @@ export interface ExpressForgeRouterOptions<TRequestDependencies extends object =
   includeBlockData?: boolean
 
   /**
-   * Resolves capabilities that exist only for one Express request. Forge calls
-   * this once during request context preparation before binding function
-   * evaluators.
+   * Resolves capabilities that exist only for one Express request. Direct and
+   * thenable results are supported. Forge calls this once during request
+   * context preparation before binding function evaluators and rejects keys
+   * already supplied through package dependencies.
    */
   requestDependencies?: (request: express.Request) => TRequestDependencies | PromiseLike<TRequestDependencies>
 }

@@ -60,13 +60,15 @@ Packages can instead list only the individual entries they reference.
 A package can include its own functions, components, and journey definition.
 
 Forge catalogs each package's unbound function definitions for compilation and
-retains its builders and `packageDependencies` for request preparation.
+retains its builders and `packageDependencies` for request preparation. A
+request adapter can additionally provide `requestDependencies` for one request.
 
 Forge creates a `ComponentRegistry` for each package and registers the package's
 components into it.
 
-At the start of each request Forge builds a new `FunctionRegistry` from those
-retained builders and dependencies.
+At the start of each request Forge rejects collisions between the two dependency
+sources, merges them without mutation, and builds a new `FunctionRegistry` from
+the retained builders and the resulting flat object.
 
 This gives the package a local extension environment for validation,
 compilation, runtime evaluation, and rendering.

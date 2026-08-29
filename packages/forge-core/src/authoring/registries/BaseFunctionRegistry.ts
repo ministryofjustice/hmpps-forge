@@ -164,14 +164,14 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> implem
     return definitions
   }
 
-  build(packageDependencies?: TDeps): FunctionRegistryObject {
-    const resolvedPackageDependencies = (packageDependencies ?? {}) as TDeps
+  build(dependencies?: TDeps): FunctionRegistryObject {
+    const resolvedDependencies = (dependencies ?? {}) as TDeps
     const registry = {} as FunctionRegistryObject
     const errors: Error[] = []
 
     this.registrations.forEach((registration, name) => {
       try {
-        const evaluate = registration.factory(resolvedPackageDependencies)
+        const evaluate = registration.factory(resolvedDependencies)
 
         if (typeof evaluate !== 'function') {
           throw new TypeError(`Function "${name}" factory must return an evaluator function`)

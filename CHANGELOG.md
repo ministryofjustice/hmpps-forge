@@ -94,6 +94,10 @@ enough.
 - `ForgeTestHarness` options now cover engine configuration - `logger`,
   `strictRegistration`, and `basePath` pass through to the underlying `Forge`,
   alongside the existing `instrumentation` and `maxIteratorIterations` ([#277])
+- Request adapters can provide direct or thenable `requestDependencies` for one
+  request. Forge resolves them during context preparation, rejects collisions with
+  `packageDependencies`, and passes the flat merged object to function factories.
+  The bundled Express adapter exposes this through `createExpressRouter()`.
 
 ### Changed
 

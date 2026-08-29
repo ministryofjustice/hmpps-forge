@@ -200,9 +200,11 @@ the engine is one call inside the handler. A handler:
    when the route was registered from the topology)
 2. builds a `RequestSnapshot` from the native request
 3. builds a `ResponseBindings` sink (or omits it to use the no-op default)
-4. calls `forge.execute({ snapshot, responseBindings, renderer })` and awaits the
-   `ForgeOutcome`
-5. dispatches the outcome:
+4. optionally supplies a zero-argument `requestDependencies` callback that closes
+   over the native request
+5. calls `forge.execute({ snapshot, responseBindings, renderer, requestDependencies })`
+   and awaits the `ForgeOutcome`
+6. dispatches the outcome:
    - render: send the assembled `output` as the response body (or render
      `context` itself when no renderer was supplied)
    - navigate: perform a framework redirect to `url`
@@ -214,8 +216,8 @@ been applied to whatever sink the host provided.
 
 ### Express/Nunjucks reference adapter
 
-`createExpressRouter(forge, { nunjucksEnv, defaultTemplate? })` is the reference
-implementation. It returns an `express.Router`.
+`createExpressRouter(forge, { nunjucksEnv, defaultTemplate?, requestDependencies? })`
+is the reference implementation. It returns an `express.Router`.
 
 It creates a `NunjucksRenderer`, reads routes from `forge.getTopology()`, and
 registers one `ExpressHandlerFactory.create(forge, route, logger, renderer)`
@@ -228,7 +230,9 @@ Each handler (`ExpressHandlerFactory`):
   using `req.session` as the session)
 - builds a live `ResponseBindings` that writes straight to the response
   (`res.setHeader`, `res.cookie`) — nothing is buffered
-- calls `forge.execute({ snapshot, responseBindings, renderer })`
+- gives Forge a lazy callback for any configured request dependencies; Forge
+  resolves direct values or thenables once during context preparation
+- calls `forge.execute({ snapshot, responseBindings, renderer, requestDependencies })`
 - commits the returned outcome: `navigate` redirects with `res.redirect(url)`;
   `error` stamps `status`, `statusCode` and `expose` onto the same Error (using
   `error.status ?? error.statusCode ?? 500`) before passing it to `next`;

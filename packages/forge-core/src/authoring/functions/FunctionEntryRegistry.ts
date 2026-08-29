@@ -129,14 +129,14 @@ export class FunctionEntryRegistry<TDeps = any> implements FunctionRegistryBuild
   }
 
   /** Builds one request's registry rows and gathers every factory failure. */
-  build(packageDependencies?: TDeps): FunctionRegistryObject {
-    const resolvedPackageDependencies = (packageDependencies ?? {}) as TDeps
+  build(dependencies?: TDeps): FunctionRegistryObject {
+    const resolvedDependencies = (dependencies ?? {}) as TDeps
     const rows: FunctionRegistryObject = {}
     const errors: Error[] = []
 
     this.entriesByName.forEach((entry, name) => {
       try {
-        const evaluate = entry.factory(resolvedPackageDependencies)
+        const evaluate = entry.factory(resolvedDependencies)
 
         if (typeof evaluate !== 'function') {
           throw new TypeError(`Function "${name}" factory must return an evaluator function`)

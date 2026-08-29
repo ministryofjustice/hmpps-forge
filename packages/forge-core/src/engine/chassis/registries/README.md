@@ -11,9 +11,10 @@ executable function registries are built during request context preparation.
 | [`ComponentRegistry`](./ComponentRegistry.ts) | UI component renderers - by variant name (e.g. `govuk-text-input`). Each entry has a `render` function that produces blocks | `runtime/` resolves components during rendering |
 | [`MountRegistry`](./MountRegistry.ts) | `MountedNode` values - by mount key. `register()` builds the route tree and one mounted node per step and journey from a compiled `PackageInstance` | `Forge.execute()` calls `getNode()` to pick the node for a request; `getTopology()` gives framework adapters the routes to mount |
 
-Each package owns its function builders, dependencies, and component registry.
-Each request owns one ordinary function registry. There is no global registry
-or parent fallback.
+Each package owns its function builders, `packageDependencies`, and component
+registry. A request adapter can add `requestDependencies` for one request. Each
+request owns one ordinary function registry built from the combined dependency
+sources. There is no global registry or parent fallback.
 
 The function and component registries validate on registration. Bad entries
 raise `ForgeRegistryValidationError` or `ForgeRegistryDuplicateError`, collected into an
