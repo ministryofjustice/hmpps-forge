@@ -138,7 +138,7 @@ export default class EntryValidationCompiler {
       return literal(true)
     }
 
-    const predicate = this.expr.compileExpressionCode(when)
+    const predicate = this.expr.compileExpressionCode(when, generator)
 
     return generator.const('entryWhen', code`Boolean(${predicate})`)
   }

@@ -113,7 +113,10 @@ export default class ReachabilityCompiler {
       }
 
       generator.comment(`Entry predicate — step "${this.stepLabel(entry)}"`)
-      generator.assign(code`${entryResults}[${index}]`, code`Boolean(${this.expr.compileExpressionCode(node)})`)
+      generator.assign(
+        code`${entryResults}[${index}]`,
+        code`Boolean(${this.expr.compileExpressionCode(node, generator)})`,
+      )
     })
   }
 
@@ -170,7 +173,10 @@ export default class ReachabilityCompiler {
     const hookWhenNode = group.hookWhen
 
     if (hookWhenNode !== undefined) {
-      const hookWhen = generator.const('hookWhen', code`Boolean(${this.expr.compileExpressionCode(hookWhenNode)})`)
+      const hookWhen = generator.const(
+        'hookWhen',
+        code`Boolean(${this.expr.compileExpressionCode(hookWhenNode, generator)})`,
+      )
 
       generator.if(hookWhen, emitCascade)
 
@@ -213,7 +219,10 @@ export default class ReachabilityCompiler {
     }
 
     if (when !== undefined && this.expr.isCompilableNode(when)) {
-      const outcomeWhen = generator.const('outcomeWhen', code`Boolean(${this.expr.compileExpressionCode(when)})`)
+      const outcomeWhen = generator.const(
+        'outcomeWhen',
+        code`Boolean(${this.expr.compileExpressionCode(when, generator)})`,
+      )
       const emitRemaining =
         remainingOutcomes.length > 0
           ? () => this.compileStaticOutcomeChain(remainingOutcomes, stepIndex, outcomeValues, generator)
@@ -239,7 +248,10 @@ export default class ReachabilityCompiler {
       const { when, goto } = properties
 
       if (!overApproximateWhen && when !== undefined && this.expr.isCompilableNode(when)) {
-        const outcomeWhen = generator.const('outcomeWhen', code`Boolean(${this.expr.compileExpressionCode(when)})`)
+        const outcomeWhen = generator.const(
+          'outcomeWhen',
+          code`Boolean(${this.expr.compileExpressionCode(when, generator)})`,
+        )
 
         generator.if(outcomeWhen, () => {
           this.compileGotoResolution(goto, stepIndex, outcomeMatched, true, outcomeValues, generator)
@@ -273,7 +285,7 @@ export default class ReachabilityCompiler {
     outcomeValues: IdentifierName,
     generator: CodeGenerator,
   ): void {
-    const gotoExpression = this.compileGotoExpression(goto)
+    const gotoExpression = this.compileGotoExpression(goto, generator)
 
     if (gotoExpression === undefined) {
       return
@@ -290,12 +302,12 @@ export default class ReachabilityCompiler {
     })
   }
 
-  private compileGotoExpression(goto: ASTNode | string): CodeFragment | undefined {
+  private compileGotoExpression(goto: ASTNode | string, generator: CodeGenerator): CodeFragment | undefined {
     if (typeof goto === 'string') {
       return literal(goto)
     }
 
-    return this.expr.isCompilableNode(goto) ? this.expr.compileExpressionCode(goto) : undefined
+    return this.expr.isCompilableNode(goto) ? this.expr.compileExpressionCode(goto, generator) : undefined
   }
 
   private compileTieBreakers(
@@ -341,7 +353,7 @@ export default class ReachabilityCompiler {
 
     const tieBreakerWhen = generator.const(
       'tieBreakerWhen',
-      code`Boolean(${this.expr.compileExpressionCode(tieBreaker.when)})`,
+      code`Boolean(${this.expr.compileExpressionCode(tieBreaker.when, generator)})`,
     )
     const emitRemaining =
       remainingTieBreakers.length > 0
@@ -360,6 +372,9 @@ export default class ReachabilityCompiler {
       return generator.const('resumeActive', literal(false))
     }
 
-    return generator.const('resumeActive', code`Boolean(${this.expr.compileExpressionCode(model.resumeWhen)})`)
+    return generator.const(
+      'resumeActive',
+      code`Boolean(${this.expr.compileExpressionCode(model.resumeWhen, generator)})`,
+    )
   }
 }
