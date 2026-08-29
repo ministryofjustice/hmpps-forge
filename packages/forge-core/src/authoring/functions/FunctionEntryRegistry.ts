@@ -120,7 +120,6 @@ export class FunctionEntryRegistry<TDeps = any> implements FunctionRegistryBuild
         rows[name] = {
           name,
           evaluate,
-          isAsync: evaluate.constructor.name === 'AsyncFunction',
           inputSchema: entry.inputSchema,
           argumentsSchema: entry.argumentsSchema,
           outputSchema:

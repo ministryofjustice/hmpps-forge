@@ -49,7 +49,6 @@ describe('PackageInstance', () => {
         GlobalFunction: {
           name: 'GlobalFunction',
           evaluate: () => true,
-          isAsync: false,
         },
       })
       mockCompilation()
@@ -146,7 +145,7 @@ describe('PackageInstance', () => {
       expect(functionRegistry.has('Test.Scoped')).toBe(false)
     })
 
-    it('should register an async embedded entry evaluator as isAsync', () => {
+    it('should register an async embedded entry evaluator', async () => {
       // Arrange
       const IsOkAsync = condition('Test.IsOkAsync', { factory: () => async (value: unknown) => value === 'ok' })
       const functionRegistry = new FunctionRegistry()
@@ -163,7 +162,9 @@ describe('PackageInstance', () => {
       )
 
       // Assert
-      expect(instance.getDependencies().functionRegistry.get('Test.IsOkAsync')?.isAsync).toBe(true)
+      const registered = instance.getDependencies().functionRegistry.get('Test.IsOkAsync')
+
+      await expect(registered?.evaluate('ok')).resolves.toBe(true)
     })
   })
 })

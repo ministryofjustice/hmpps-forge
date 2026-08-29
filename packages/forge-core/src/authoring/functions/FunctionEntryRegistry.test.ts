@@ -25,7 +25,6 @@ describe('FunctionEntryRegistry', () => {
       expect(row).toBeDefined()
       expect(row.name).toBe('Test.MinLength')
       expect(row._forge).toBe(FunctionEntryType.CONDITION)
-      expect(row.isAsync).toBe(false)
       expect(row.outputSchema).toBe(CONDITION_OUTPUT_SCHEMA)
       expect(row.evaluate('abcd', 3)).toBe(true)
       expect(row.evaluate('ab', 3)).toBe(false)
@@ -90,7 +89,7 @@ describe('FunctionEntryRegistry', () => {
       expect(Object.keys(registry.build())).toEqual(['condition', 'condition@2'])
     })
 
-    it('should detect async evaluators', () => {
+    it('should retain async evaluators without execution metadata', async () => {
       // Arrange
       const entry = condition('Test.Async', { factory: () => async (value: unknown) => value === 'ok' })
       const tree = finaliseBuilders({ check: entry() })
@@ -100,7 +99,7 @@ describe('FunctionEntryRegistry', () => {
       registry.collectEmbedded(tree)
 
       // Assert
-      expect(registry.build()['Test.Async'].isAsync).toBe(true)
+      await expect(registry.build()['Test.Async'].evaluate('ok')).resolves.toBe(true)
     })
   })
 
