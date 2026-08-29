@@ -6,7 +6,12 @@ import ForgeAuthoringError from '../../engine/errors/ForgeAuthoringError'
 import ForgeRegistryDuplicateError from '../../engine/errors/ForgeRegistryDuplicateError'
 import ForgeFunctionEntryBuildError from '../../engine/errors/ForgeFunctionEntryBuildError'
 import type { DSLSourceLocation } from '../../shared/diagnostics/sourceLocation.type'
-import type { FunctionEntry, FunctionRegistryBuilder, FunctionRegistryObject } from '../types/functions.type'
+import type {
+  FunctionDefinitionObject,
+  FunctionEntry,
+  FunctionRegistryBuilder,
+  FunctionRegistryObject,
+} from '../types/functions.type'
 
 // Anonymous entries have no author name, so their registry name falls back to
 // the helper that created them.
@@ -22,8 +27,9 @@ const ANONYMOUS_LABELS: Record<FunctionEntryType, string> = {
  * authoring `condition()` / `transformer()` / `generator()` / `effect()`
  * helpers). `createForgePackage()` builds one per package: listed entries and
  * entries embedded in the journey collect into it, and from then on the
- * package carries an ordinary registry - the engine builds it with
- * dependencies at registration exactly like a `BaseFunctionRegistry`.
+ * package carries an ordinary registry builder - the engine reads its
+ * definitions during registration and builds it for each request exactly like
+ * a `BaseFunctionRegistry`.
  *
  * Collection assigns each distinct entry - distinct by pointer identity - a
  * unique registry name. An entry's name is its author name (or an anonymous
@@ -36,10 +42,10 @@ const ANONYMOUS_LABELS: Record<FunctionEntryType, string> = {
  * exact name to external references (e.g. plain JSON journeys), so a second
  * entry listed under the same name throws instead of being renamed.
  *
- * `build()` runs each entry's factory exactly once; an entry that is both
- * listed and embedded shares one evaluator and one name. Factory failures are
- * gathered and thrown together so every broken factory is reported in one
- * pass.
+ * `build()` runs each entry's factory exactly once for one request; an entry
+ * that is both listed and embedded shares one evaluator and one name. Factory
+ * failures are gathered and thrown together so every broken factory is
+ * reported in one pass.
  */
 export class FunctionEntryRegistry<TDeps = any> implements FunctionRegistryBuilder<TDeps> {
   private readonly assignedNames = new Map<FunctionEntry, string>()
@@ -104,18 +110,37 @@ export class FunctionEntryRegistry<TDeps = any> implements FunctionRegistryBuild
     return this.entriesByName.size > 0
   }
 
-  /**
-   * Builds the registry rows, running each entry's factory once with the given
-   * dependencies. Throws every factory failure at once.
-   */
-  build(deps?: TDeps): FunctionRegistryObject {
-    const resolvedDeps = (deps ?? {}) as TDeps
+  getDefinitions(): FunctionDefinitionObject<TDeps> {
+    const definitions: FunctionDefinitionObject<TDeps> = {}
+
+    this.entriesByName.forEach((entry, name) => {
+      definitions[name] = {
+        name,
+        factory: entry.factory,
+        inputSchema: entry.inputSchema,
+        argumentsSchema: entry.argumentsSchema,
+        outputSchema:
+          entry.outputSchema ?? (entry._forge === FunctionEntryType.CONDITION ? CONDITION_OUTPUT_SCHEMA : undefined),
+        _forge: entry._forge,
+      }
+    })
+
+    return definitions
+  }
+
+  /** Builds one request's registry rows and gathers every factory failure. */
+  build(packageDependencies?: TDeps): FunctionRegistryObject {
+    const resolvedPackageDependencies = (packageDependencies ?? {}) as TDeps
     const rows: FunctionRegistryObject = {}
     const errors: Error[] = []
 
     this.entriesByName.forEach((entry, name) => {
       try {
-        const evaluate = entry.factory(resolvedDeps)
+        const evaluate = entry.factory(resolvedPackageDependencies)
+
+        if (typeof evaluate !== 'function') {
+          throw new TypeError(`Function "${name}" factory must return an evaluator function`)
+        }
 
         rows[name] = {
           name,
@@ -132,7 +157,7 @@ export class FunctionEntryRegistry<TDeps = any> implements FunctionRegistryBuild
     })
 
     if (errors.length > 0) {
-      throw new AggregateError(errors, 'Function registration failed')
+      throw new AggregateError(errors, 'Function preparation failed')
     }
 
     return rows

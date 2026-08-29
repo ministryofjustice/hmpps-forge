@@ -56,13 +56,37 @@ export interface FunctionRegistryEntry {
 export type FunctionRegistryObject = Record<string, FunctionRegistryEntry>
 
 /**
+ * An unbound function definition used to validate and compile a package
+ * without invoking its factory.
+ */
+export interface FunctionDefinition<TDeps = unknown> {
+  readonly name: string
+  readonly factory: (packageDependencies: TDeps) => FunctionEvaluator
+  readonly inputSchema?: ZodType
+  readonly argumentsSchema?: ZodType
+  readonly outputSchema?: ZodType
+  readonly _forge?: FunctionEntryType
+}
+
+/** Function definitions keyed by their package-scoped registry name. */
+export type FunctionDefinitionObject<TDeps = unknown> = Record<string, FunctionDefinition<TDeps>>
+
+/** The function metadata lookup required by package validation and compilation. */
+export interface FunctionDefinitionLookup {
+  get(name: string): Omit<FunctionRegistryEntry, 'evaluate'> | undefined
+  has(name: string): boolean
+}
+
+/**
  * The contract the engine consumes custom functions through: anything that can
- * build registry rows from dependencies at registration time. Satisfied by
- * `BaseFunctionRegistry` subclasses and by the entry registry that
- * `createForgePackage()` assembles from function entries.
+ * expose definitions for package compilation and build request-owned registry
+ * rows from package dependencies. Satisfied by `BaseFunctionRegistry`
+ * subclasses and by the entry registry that `createForgePackage()` assembles
+ * from function entries.
  */
 export interface FunctionRegistryBuilder<TDeps = any> {
-  build(deps?: TDeps): FunctionRegistryObject
+  getDefinitions(): FunctionDefinitionObject<TDeps>
+  build(packageDependencies?: TDeps): FunctionRegistryObject
 }
 
 /**
@@ -87,6 +111,6 @@ export interface FunctionEntry<TDeps = any> {
   /** Validates the evaluator's result, where declared. */
   readonly outputSchema?: ZodType
 
-  /** Builds the evaluator from the dependencies supplied at registration time. */
-  readonly factory: (deps: TDeps) => FunctionEvaluator
+  /** Builds one request's evaluator from the package dependencies. */
+  readonly factory: (packageDependencies: TDeps) => FunctionEvaluator
 }

@@ -4,7 +4,8 @@ import ForgeAuthoringError from '../../engine/errors/ForgeAuthoringError'
 import ForgeRegistryDuplicateError from '../../engine/errors/ForgeRegistryDuplicateError'
 import { GeneratorBuilder } from '../builders/GeneratorBuilder'
 import { captureCallsite, stampCallsite } from '../builders/utils/captureCallsite'
-import type { FunctionRegistryBuilder, FunctionRegistryObject } from '../types/functions.type'
+import type { FunctionDefinitionObject, FunctionRegistryBuilder, FunctionRegistryObject } from '../types/functions.type'
+import ForgeFunctionEntryBuildError from '../../engine/errors/ForgeFunctionEntryBuildError'
 
 export interface RegistrationOptions {
   inputSchema?: ZodType
@@ -146,22 +147,58 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> implem
     return expressionHandle
   }
 
-  build(deps?: TDeps): FunctionRegistryObject {
-    const resolvedDeps = (deps ?? {}) as TDeps
-    const registry = {} as FunctionRegistryObject
+  getDefinitions(): FunctionDefinitionObject<TDeps> {
+    const definitions: FunctionDefinitionObject<TDeps> = {}
 
     this.registrations.forEach((registration, name) => {
-      const evaluate = registration.factory(resolvedDeps)
-
-      registry[name] = {
+      definitions[name] = {
         name,
-        evaluate,
+        factory: registration.factory,
         inputSchema: registration.inputSchema,
         argumentsSchema: registration.argumentsSchema,
         outputSchema: registration.outputSchema,
         _forge: ENTRY_TAGS[this.functionType],
       }
     })
+
+    return definitions
+  }
+
+  build(packageDependencies?: TDeps): FunctionRegistryObject {
+    const resolvedPackageDependencies = (packageDependencies ?? {}) as TDeps
+    const registry = {} as FunctionRegistryObject
+    const errors: Error[] = []
+
+    this.registrations.forEach((registration, name) => {
+      try {
+        const evaluate = registration.factory(resolvedPackageDependencies)
+
+        if (typeof evaluate !== 'function') {
+          throw new TypeError(`Function "${name}" factory must return an evaluator function`)
+        }
+
+        registry[name] = {
+          name,
+          evaluate,
+          inputSchema: registration.inputSchema,
+          argumentsSchema: registration.argumentsSchema,
+          outputSchema: registration.outputSchema,
+          _forge: ENTRY_TAGS[this.functionType],
+        }
+      } catch (cause) {
+        errors.push(
+          new ForgeFunctionEntryBuildError({
+            functionName: name,
+            functionType: ENTRY_TAGS[this.functionType],
+            cause,
+          }),
+        )
+      }
+    })
+
+    if (errors.length > 0) {
+      throw new AggregateError(errors, 'Function preparation failed')
+    }
 
     return registry
   }
