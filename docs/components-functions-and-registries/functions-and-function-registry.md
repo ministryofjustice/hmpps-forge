@@ -15,22 +15,26 @@ evaluator at runtime.
 
 ## Where this sits in the pipeline
 
-Functions are registered before a journey is validated and compiled.
+Function definitions are registered before a journey is validated and compiled.
+Their factories are bound during request context preparation.
 
 The function model is then used across the pipeline:
 
 1. Authoring creates function expressions with a function type, name, and
    arguments.
 
-2. Validation checks that each named function exists in the registry.
+2. Validation checks that each named function exists in the package definition catalog.
 
 3. Validation also checks that effect functions only appear inside hooks.
 
 4. Intermediate representation keeps function expressions as typed nodes.
 
-5. Compilation uses registry metadata to emit sync or async call sites.
+5. Compilation uses definition metadata to emit function call sites.
 
-6. Runtime evaluation calls the registered evaluator through the compiled
+6. Context preparation builds a request-owned registry from the package's
+   function builders and dependencies.
+
+7. Runtime evaluation calls the request-bound evaluator through the compiled
    evaluation context.
 
 This means function lookup must stay stable from validation through to runtime.
@@ -44,16 +48,17 @@ The definition contains the reference to a function. It records:
 - the function name
 - the function arguments
 
-The registry contains the implementation. A function registry entry records:
+The request registry contains the implementation. A function registry entry records:
 
 - the registered name
 - the evaluator function
-- whether the evaluator is asynchronous
+- input, argument, and output schemas where declared
+- the function kind
 
 These shapes are deliberately separate.
 
-The definition stays declarative and inspectable. The registry holds executable
-code and any dependencies that were bound when the function was registered.
+The definition stays declarative and inspectable. The request registry holds
+executable code with the package dependencies captured by that request's evaluator.
 
 ## Function types
 
@@ -94,39 +99,34 @@ side effects.
 
 ## Function registration
 
-Function registration turns named implementations into registry entries.
+Function registration records named definitions for validation and compilation.
 
-Package or application code can provide function factories. Those factories are
-called with dependencies and return evaluator functions. Forge stores the
-resulting evaluators in the function registry.
+Package or application code provides function factories. During context
+preparation Forge calls every factory with `packageDependencies` and stores the
+resulting evaluators in a new registry owned by that request.
 
 This gives registered functions a dependency boundary. A function can depend on
 an application service, but the journey definition only sees the function name
 and arguments.
 
-Registration should fail when:
+Package registration should fail when:
 
 - a function entry has no name
-- a function entry has no evaluator
+- a function definition has no factory
 - a name is registered twice in the same registry
+
+Context preparation fails when a factory throws or does not return an evaluator.
 
 The registry does not decide where a function is allowed to appear. That is
 handled by validation rules over the journey definition.
 
-## Sync and async metadata
+## Direct and thenable results
 
-Each function registry entry records whether its evaluator is asynchronous.
-
-Compilation uses this metadata when generating function calls. If the evaluator
-is async, the generated function emits an awaited call. If it is sync, the
-generated function can emit a direct call.
-
-This matters because Forge compiles whole evaluation phases. A single async
-function call can make the generated phase async too.
-
-The async flag should describe the evaluator that will actually run at runtime.
-If it is wrong, generated code can either await unnecessarily or fail to await
-work that should be awaited.
+Function registry entries do not declare whether their evaluators are
+asynchronous. Generated call sites invoke the evaluator directly and inspect
+each returned value with `isThenable`. Direct values continue immediately;
+thenables are awaited before output validation. The same evaluator may return
+either form on different calls.
 
 ## Generated-function call sites
 
@@ -170,14 +170,15 @@ Important failure cases include:
 - a function name is registered twice in the same registry
 - a journey definition references an unregistered function
 - an effect function is used outside a hook
-- async metadata does not match the evaluator
+- a factory throws or does not return an evaluator during context preparation
 - the evaluator throws when runtime evaluation calls it
 
 Registration and validation should catch problems that are knowable before
 routes are mounted.
 
-Runtime errors should be reserved for failures inside the evaluator itself, or
-for failures that depend on request-time state.
+Context preparation catches factory failures; later runtime errors should be
+reserved for failures inside the evaluator itself, or for failures that depend
+on request-time state.
 
 ## Rules to preserve
 

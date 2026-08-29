@@ -24,7 +24,7 @@ export interface ConditionOptions<
   outputSchema?: ZodType
 
   /**
-   * Builds the evaluator from the dependencies supplied at registration time.
+   * Builds one request's evaluator from the package dependencies.
    * `value` is declared `any` so the author can annotate the type they expect
    * without tripping contravariance checks.
    */

@@ -4,8 +4,9 @@
 
 Registry scoping controls which functions and components a journey can see.
 
-Every registered package owns its function and component registries. Forge has
-no global extension registries and does not install built-ins automatically.
+Every registered package owns its function definitions, builders, dependencies,
+and component registry. Each request gets an isolated function registry. Forge
+has no global extension registries and does not install built-ins automatically.
 
 This lets packages bring their own functions and components without mutating
 the extension environment for every other journey.
@@ -20,16 +21,18 @@ the journey lifecycle:
 1. Validation checks function names and component variants against the active
    registries.
 
-2. Compilation uses the active function registry for sync and async function
-   metadata.
+2. Compilation uses the package's unbound function metadata.
 
-3. Runtime evaluation calls functions through the active function registry.
+3. Context preparation builds the active request function registry.
 
-4. Framework rendering resolves component variants through the active component
+4. Runtime evaluation calls functions through that request registry.
+
+5. Framework rendering resolves component variants through the active component
    registry.
 
 The important point is that validation, compilation, runtime, and rendering all
-use the same scoped view of extensions for a journey.
+use the same package-scoped names, while executable function evaluators remain
+request-owned.
 
 ## Built-in entries
 
@@ -56,14 +59,14 @@ Packages can instead list only the individual entries they reference.
 
 A package can include its own functions, components, and journey definition.
 
-Forge creates a `FunctionRegistry` for each package and registers the package's
-functions into it.
+Forge catalogs each package's unbound function definitions for compilation and
+retains its builders and `packageDependencies` for request preparation.
 
 Forge creates a `ComponentRegistry` for each package and registers the package's
 components into it.
 
-The journey is then registered with those scoped registries as part of its
-dependencies.
+At the start of each request Forge builds a new `FunctionRegistry` from those
+retained builders and dependencies.
 
 This gives the package a local extension environment for validation,
 compilation, runtime evaluation, and rendering.
@@ -101,12 +104,11 @@ adapter-held registry to reconcile.
 
 Function scoping affects both compilation and runtime evaluation.
 
-Compilation reads function metadata from the active function registry. This is
-how generated functions know whether a registered evaluator should be treated as
-sync or async.
+Compilation reads unbound function metadata from the package definition catalog.
 
-Runtime evaluation then receives the same active function registry through the
-compiled evaluation context.
+Runtime evaluation receives the request-owned function registry through the
+compiled evaluation context. Each returned value is inspected for thenability at
+the generated call site.
 
 The function name that validates and compiles should resolve to the same
 evaluator when the generated function runs.

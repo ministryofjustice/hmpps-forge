@@ -59,7 +59,8 @@ It contains:
 It contains:
 - `context`, the `RuntimeContext` with request, domain, and evaluation state.
 - `responseBindings`, used by hook effects.
-- `functionRegistry`, used by compiled functions.
+- `functionRegistry`, built during context preparation and used by compiled functions.
+- the package's function builders and `packageDependencies`, used only to prepare that registry.
 - `currentStepId`, present for step requests.
 - `hasRenderer`, which decides whether resolve is terminal.
 - `reachabilityEvaluation`, written by `request.reachability`.
