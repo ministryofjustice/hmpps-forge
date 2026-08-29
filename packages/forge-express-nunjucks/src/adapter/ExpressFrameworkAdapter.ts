@@ -48,7 +48,9 @@ export interface ExpressForgeAdapter extends ForgeRouterAdapter {
  * @deprecated Build the router directly with `createExpressRouter(forge, options)`.
  */
 export const ExpressFrameworkAdapter = {
-  configure(options: ExpressForgeRouterOptions): ExpressForgeAdapter {
+  configure<TRequestDependencies extends object = Record<string, never>>(
+    options: ExpressForgeRouterOptions<TRequestDependencies>,
+  ): ExpressForgeAdapter {
     warnOnce(
       'FORGE_DEP_ExpressFrameworkAdapter',
       'ExpressFrameworkAdapter is deprecated - build the router directly with createExpressRouter(forge, options).',

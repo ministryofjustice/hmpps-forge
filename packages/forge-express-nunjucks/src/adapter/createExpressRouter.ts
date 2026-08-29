@@ -9,7 +9,7 @@ import NunjucksRenderer from '../renderer/NunjucksRenderer'
  * `NunjucksRenderer` the router builds, so each mounted router gets its own
  * renderer configuration.
  */
-export interface ExpressForgeRouterOptions {
+export interface ExpressForgeRouterOptions<TRequestDependencies extends object = Record<string, never>> {
   /**
    * Nunjucks environment used to load and render page templates. The same
    * environment is handed to components at render time via their `renderer`
@@ -35,15 +35,25 @@ export interface ExpressForgeRouterOptions {
    * @default false
    */
   includeBlockData?: boolean
+
+  /**
+   * Resolves capabilities that exist only for one Express request. Forge calls
+   * this once during request context preparation before binding function
+   * evaluators.
+   */
+  requestDependencies?: (request: express.Request) => TRequestDependencies | PromiseLike<TRequestDependencies>
 }
 
-export function createExpressRouter(forge: Forge, options: ExpressForgeRouterOptions): express.Router {
+export function createExpressRouter<TRequestDependencies extends object = Record<string, never>>(
+  forge: Forge,
+  options: ExpressForgeRouterOptions<TRequestDependencies>,
+): express.Router {
   const logger = forge.getLogger()
   const router = express.Router({ mergeParams: true })
   const renderer = new NunjucksRenderer(options)
 
   forge.getTopology().routes.forEach(route => {
-    const handler = ExpressHandlerFactory.create(forge, route, logger, renderer)
+    const handler = ExpressHandlerFactory.create(forge, route, logger, renderer, options.requestDependencies)
 
     route.methods.forEach(method => {
       if (method === 'GET') {
