@@ -235,7 +235,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
     })
   })
 
-  describe('collectFieldValidationFailuresAsync()', () => {
+  describe('collectFieldValidationFailures() with asynchronous rules', () => {
     const fieldIdentity = { blockId: 'block:1', blockCode: 'firstName' }
 
     it('should await each failed rule before advancing to the next rule', async () => {
@@ -263,7 +263,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
       }
 
       // Act
-      const failures = await generatedFunctionRuntimeLibrary.collectFieldValidationFailuresAsync(
+      const failures = await generatedFunctionRuntimeLibrary.collectFieldValidationFailures(
         [firstRule, secondRule],
         () => true,
         fieldIdentity,
@@ -285,7 +285,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
 
       // Act
       const collect = () =>
-        generatedFunctionRuntimeLibrary.collectFieldValidationFailuresAsync([conditionRule], () => true, fieldIdentity)
+        generatedFunctionRuntimeLibrary.collectFieldValidationFailures([conditionRule], () => true, fieldIdentity)
 
       // Assert
       await expect(collect).rejects.toThrow('Wrong input shape')
@@ -298,7 +298,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
       }
 
       // Act
-      const failures = await generatedFunctionRuntimeLibrary.collectFieldValidationFailuresAsync(
+      const failures = await generatedFunctionRuntimeLibrary.collectFieldValidationFailures(
         [functionRule],
         () => true,
         fieldIdentity,
@@ -335,16 +335,13 @@ describe('generatedFunctionRuntimeLibrary', () => {
     })
   })
 
-  describe('collectDomainValidationFailuresAsync()', () => {
+  describe('collectDomainValidationFailures() with asynchronous rules', () => {
     it('should shape failed rules as step-level failures when conditions are async', async () => {
       // Arrange
       const failingRule = { condition: async () => false, message: 'Broken' }
 
       // Act
-      const failures = await generatedFunctionRuntimeLibrary.collectDomainValidationFailuresAsync(
-        [failingRule],
-        () => true,
-      )
+      const failures = await generatedFunctionRuntimeLibrary.collectDomainValidationFailures([failingRule], () => true)
 
       // Assert
       expect(failures).toEqual([
@@ -395,6 +392,72 @@ describe('generatedFunctionRuntimeLibrary', () => {
       // Assert
       expect(result).toBe(true)
       expect(evaluate).toHaveBeenCalledWith('hello')
+    })
+
+    it('should preserve a direct result without creating a promise', () => {
+      // Arrange
+      const ctx = contextFor({ evaluate: () => 'direct' })
+
+      // Act
+      const result = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'value', [])
+
+      // Assert
+      expect(result).toBe('direct')
+      expect(result).not.toBeInstanceOf(Promise)
+    })
+
+    it('should adopt a promise returned by an evaluator that is not declared async', async () => {
+      // Arrange
+      const evaluate = () => Promise.resolve('deferred')
+      const ctx = contextFor({ evaluate })
+
+      // Act
+      const result = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'value', [])
+
+      // Assert
+      expect(result).toBeInstanceOf(Promise)
+      await expect(result).resolves.toBe('deferred')
+    })
+
+    it('should handle an evaluator that returns direct and promised values on different calls', async () => {
+      // Arrange
+      const evaluate = (defer: unknown) => (defer ? Promise.resolve('deferred') : 'direct')
+      const ctx = contextFor({ evaluate })
+
+      // Act
+      const directResult = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'value', [false])
+      const deferredResult = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'value', [true])
+
+      // Assert
+      expect(directResult).toBe('direct')
+      await expect(deferredResult).resolves.toBe('deferred')
+    })
+
+    it('should assimilate custom thenables', async () => {
+      // Arrange
+      const thenable = {
+        then(resolve: (value: string) => void) {
+          resolve('custom')
+        },
+      }
+      const ctx = contextFor({ evaluate: () => thenable })
+
+      // Act
+      const result = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'value', [])
+
+      // Assert
+      await expect(result).resolves.toBe('custom')
+    })
+
+    it('should validate a promised output after it resolves', async () => {
+      // Arrange
+      const ctx = contextFor({ evaluate: () => Promise.resolve(42), outputSchema: z.string() })
+
+      // Act
+      const result = generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'value', [])
+
+      // Assert
+      await expect(result).rejects.toBeInstanceOf(TypeError)
     })
 
     it('should throw TypeError when arguments fail the arguments schema', () => {
@@ -506,14 +569,14 @@ describe('generatedFunctionRuntimeLibrary', () => {
     })
   })
 
-  describe('evaluateFunctionAsync()', () => {
+  describe('evaluateFunction() short circuits', () => {
     it('should return undefined without invoking the implementation when a transformer value is absent', async () => {
       // Arrange
       const evaluate = vi.fn()
       const ctx = contextFor({ evaluate, _forge: FunctionEntryType.TRANSFORMER })
 
       // Act
-      const result = await generatedFunctionRuntimeLibrary.evaluateFunctionAsync(ctx, undefined, 0, 'toUpperCase', [
+      const result = await generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'toUpperCase', [
         undefined,
       ])
 
@@ -528,7 +591,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
       const ctx = contextFor({ evaluate, _forge: FunctionEntryType.CONDITION })
 
       // Act
-      const result = await generatedFunctionRuntimeLibrary.evaluateFunctionAsync(ctx, undefined, 0, 'isNotEmpty', [
+      const result = await generatedFunctionRuntimeLibrary.evaluateFunction(ctx, undefined, 0, 'isNotEmpty', [
         undefined,
       ])
 
@@ -694,104 +757,30 @@ describe('generatedFunctionRuntimeLibrary', () => {
     })
   })
 
-  describe('applyTransformerPipeline()', () => {
-    it('should thread each transformer result into the next transformer', () => {
+  describe('isTransformerTypeError()', () => {
+    it('should recognise direct and wrapped TypeErrors', () => {
       // Arrange
-      const transformers = [(value: unknown) => `${value}!`, (value: unknown) => `${value}?`]
+      const direct = new TypeError('wrong shape')
+      const wrapped = new Error('wrapped', { cause: direct })
 
       // Act
-      const result = generatedFunctionRuntimeLibrary.applyTransformerPipeline('a', transformers)
+      const directResult = generatedFunctionRuntimeLibrary.isTransformerTypeError(direct)
+      const wrappedResult = generatedFunctionRuntimeLibrary.isTransformerTypeError(wrapped)
 
       // Assert
-      expect(result).toBe('a!?')
+      expect(directResult).toBe(true)
+      expect(wrappedResult).toBe(true)
     })
 
-    it('should keep the previous value when a transformer returns undefined', () => {
+    it('should reject unrelated errors', () => {
       // Arrange
-      const transformers = [(value: unknown) => `${value}!`, () => undefined]
+      const error = new Error('boom')
 
       // Act
-      const result = generatedFunctionRuntimeLibrary.applyTransformerPipeline('a', transformers)
+      const result = generatedFunctionRuntimeLibrary.isTransformerTypeError(error)
 
       // Assert
-      expect(result).toBe('a!')
-    })
-
-    it('should revert to the original value when a transformer throws TypeError', () => {
-      // Arrange
-      const laterTransformer = vi.fn((value: unknown) => value)
-      const transformers = [
-        (value: unknown) => `${value}!`,
-        () => {
-          throw new TypeError('wrong shape')
-        },
-        laterTransformer,
-      ]
-
-      // Act
-      const result = generatedFunctionRuntimeLibrary.applyTransformerPipeline('a', transformers)
-
-      // Assert
-      expect(result).toBe('a')
-      expect(laterTransformer).not.toHaveBeenCalled()
-    })
-
-    it('should revert to the original value when a transformer error has a TypeError cause', () => {
-      // Arrange
-      const transformers = [
-        () => {
-          throw new Error('wrapped', { cause: new TypeError('wrong shape') })
-        },
-      ]
-
-      // Act
-      const result = generatedFunctionRuntimeLibrary.applyTransformerPipeline('a', transformers)
-
-      // Assert
-      expect(result).toBe('a')
-    })
-
-    it('should rethrow when a transformer throws a non-TypeError', () => {
-      // Arrange
-      const transformers = [
-        () => {
-          throw new Error('boom')
-        },
-      ]
-
-      // Act
-      const act = () => generatedFunctionRuntimeLibrary.applyTransformerPipeline('a', transformers)
-
-      // Assert
-      expect(act).toThrow('boom')
-    })
-  })
-
-  describe('applyTransformerPipelineAsync()', () => {
-    it('should await each transformer before running the next one', async () => {
-      // Arrange
-      const transformers = [async (value: unknown) => `${value}!`, (value: unknown) => `${value}?`]
-
-      // Act
-      const result = await generatedFunctionRuntimeLibrary.applyTransformerPipelineAsync('a', transformers)
-
-      // Assert
-      expect(result).toBe('a!?')
-    })
-
-    it('should revert to the original value when an async transformer rejects with TypeError', async () => {
-      // Arrange
-      const transformers = [
-        async () => {
-          throw new TypeError('wrong shape')
-        },
-      ]
-
-      // Act
-      const result = await generatedFunctionRuntimeLibrary.applyTransformerPipelineAsync('a', transformers)
-
-      // Assert
-      expect(result).toBe('a')
+      expect(result).toBe(false)
     })
   })
 })

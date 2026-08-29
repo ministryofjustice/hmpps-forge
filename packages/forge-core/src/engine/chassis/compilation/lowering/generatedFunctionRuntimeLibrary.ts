@@ -83,8 +83,6 @@ interface PreparedFieldAnswer {
   mutations: { value: unknown; source: string }[]
 }
 
-type TransformerThunk = (value: unknown) => unknown
-
 interface RuntimeDiagnosticState {
   readonly nodeId?: string
   readonly formattedPath?: string
@@ -140,8 +138,11 @@ interface RuntimeFieldValidationFailure extends RuntimeDomainValidationFailure {
   readonly blockCode: unknown
 }
 
+type MaybeAsync<TValue> = TValue | PromiseLike<TValue>
+
 export interface GeneratedFunctionRuntimeLibrary {
   renderBlockBrand: symbol
+  isThenable(value: unknown): value is PromiseLike<unknown>
   consumeIteratorIteration(ctx: IteratorBudgetContext): void
   ensureAnswerHistory(ctx: AnswerHistoryContext, code: string): AnswerHistory
   pushAnswerMutation(answerHistory: AnswerHistory, value: unknown, source: string): void
@@ -156,8 +157,7 @@ export interface GeneratedFunctionRuntimeLibrary {
     ctx: AnswerHistoryContext,
     fields: readonly PreparedFieldDefinition[],
   ): Promise<PreparedFieldAnswer>
-  applyTransformerPipeline(value: unknown, transformers: readonly TransformerThunk[]): unknown
-  applyTransformerPipelineAsync(value: unknown, transformers: readonly TransformerThunk[]): Promise<unknown>
+  isTransformerTypeError(error: unknown): boolean
   resolveFieldValue(ctx: RenderFieldValueContext, blockProps: Record<string, unknown>): void
   resolveFieldFailures(
     ctx: RenderFieldFailureContext,
@@ -172,45 +172,20 @@ export interface GeneratedFunctionRuntimeLibrary {
     functionName: string,
     args: unknown[],
   ): unknown
-  evaluateFunctionAsync(
-    ctx: FunctionEvaluationContext,
-    diagnostics: RuntimeEvaluationDiagnostics | undefined,
-    diagnosticReference: number,
-    functionName: string,
-    args: unknown[],
-  ): Promise<unknown>
-  evaluateTracked(
-    diagnostics: RuntimeEvaluationDiagnostics | undefined,
-    diagnosticReference: number,
-    evaluate: () => unknown,
-  ): unknown
-  evaluateTrackedAsync(
-    diagnostics: RuntimeEvaluationDiagnostics | undefined,
-    diagnosticReference: number,
-    evaluate: () => Promise<unknown>,
-  ): Promise<unknown>
   collectFieldValidationFailures(
     results: unknown,
     ruleIsActive: (rule: RuntimeValidationRule) => boolean,
     identity: FieldValidationIdentity,
-  ): RuntimeFieldValidationFailure[]
-  collectFieldValidationFailuresAsync(
-    results: unknown,
-    ruleIsActive: (rule: RuntimeValidationRule) => boolean,
-    identity: FieldValidationIdentity,
-  ): Promise<RuntimeFieldValidationFailure[]>
+  ): MaybeAsync<RuntimeFieldValidationFailure[]>
   collectDomainValidationFailures(
     results: unknown,
     ruleIsActive: (rule: RuntimeValidationRule) => boolean,
-  ): RuntimeDomainValidationFailure[]
-  collectDomainValidationFailuresAsync(
-    results: unknown,
-    ruleIsActive: (rule: RuntimeValidationRule) => boolean,
-  ): Promise<RuntimeDomainValidationFailure[]>
+  ): MaybeAsync<RuntimeDomainValidationFailure[]>
 }
 
 export const generatedFunctionRuntimeLibrary: GeneratedFunctionRuntimeLibrary = {
   renderBlockBrand: RENDER_BLOCK_BRAND,
+  isThenable,
 
   consumeIteratorIteration(ctx) {
     ctx.iteratorBudget.consume()
@@ -226,8 +201,7 @@ export const generatedFunctionRuntimeLibrary: GeneratedFunctionRuntimeLibrary = 
   groupFieldDefinitionsByCode,
   preparePostedFieldAnswerGroup,
   prepareStoredFieldAnswerGroup,
-  applyTransformerPipeline,
-  applyTransformerPipelineAsync,
+  isTransformerTypeError,
 
   resolveFieldValue(ctx, blockProps) {
     const fieldCode = blockProps.code
@@ -274,71 +248,62 @@ export const generatedFunctionRuntimeLibrary: GeneratedFunctionRuntimeLibrary = 
   },
 
   evaluateFunction(ctx, diagnostics, diagnosticReference, functionName, args) {
-    const evaluate = () => {
-      const entry = ctx.conditions.get(functionName)
+    const entry = ctx.conditions.get(functionName)
+    const previous = enterDiagnostics(diagnostics, diagnosticReference)
 
+    try {
       const shortCircuit = precheckShortCircuit(entry, functionName, args)
 
       if (shortCircuit !== undefined) {
+        exitDiagnostics(diagnostics, previous)
+
         return shortCircuit.value
       }
 
       const result = entry.evaluate(...args)
 
-      validateOutput(entry, functionName, result)
+      if (isThenable(result)) {
+        return Promise.resolve(result).then(
+          resolved => {
+            try {
+              validateOutput(entry, functionName, resolved)
 
-      return result
-    }
+              return resolved
+            } catch (error) {
+              throw wrapDiagnosticError(diagnostics, diagnosticReference, error)
+            } finally {
+              exitDiagnostics(diagnostics, previous)
+            }
+          },
+          error => {
+            exitDiagnostics(diagnostics, previous)
 
-    return evaluateWithDiagnostics(diagnostics, diagnosticReference, evaluate)
-  },
-
-  evaluateFunctionAsync(ctx, diagnostics, diagnosticReference, functionName, args) {
-    const evaluate = async () => {
-      const entry = ctx.conditions.get(functionName)
-
-      const shortCircuit = precheckShortCircuit(entry, functionName, args)
-
-      if (shortCircuit !== undefined) {
-        return shortCircuit.value
+            throw wrapDiagnosticError(diagnostics, diagnosticReference, error)
+          },
+        )
       }
 
-      const result = await entry.evaluate(...args)
-
       validateOutput(entry, functionName, result)
+      exitDiagnostics(diagnostics, previous)
 
       return result
+    } catch (error) {
+      exitDiagnostics(diagnostics, previous)
+
+      throw wrapDiagnosticError(diagnostics, diagnosticReference, error)
     }
-
-    return evaluateWithDiagnosticsAsync(diagnostics, diagnosticReference, evaluate)
-  },
-
-  evaluateTracked(diagnostics, diagnosticReference, evaluate) {
-    return evaluateWithDiagnostics(diagnostics, diagnosticReference, evaluate)
-  },
-
-  evaluateTrackedAsync(diagnostics, diagnosticReference, evaluate) {
-    return evaluateWithDiagnosticsAsync(diagnostics, diagnosticReference, evaluate)
   },
 
   collectFieldValidationFailures(results, ruleIsActive, identity) {
-    return collectValidationFailures(results, ruleIsActive).map(failure => toFieldValidationFailure(failure, identity))
-  },
-
-  async collectFieldValidationFailuresAsync(results, ruleIsActive, identity) {
-    const failures = await collectValidationFailuresAsync(results, ruleIsActive)
-
-    return failures.map(failure => toFieldValidationFailure(failure, identity))
+    return mapMaybeAsync(collectValidationFailures(results, ruleIsActive), failures =>
+      failures.map(failure => toFieldValidationFailure(failure, identity)),
+    )
   },
 
   collectDomainValidationFailures(results, ruleIsActive) {
-    return collectValidationFailures(results, ruleIsActive).map(toDomainValidationFailure)
-  },
-
-  async collectDomainValidationFailuresAsync(results, ruleIsActive) {
-    const failures = await collectValidationFailuresAsync(results, ruleIsActive)
-
-    return failures.map(toDomainValidationFailure)
+    return mapMaybeAsync(collectValidationFailures(results, ruleIsActive), failures =>
+      failures.map(toDomainValidationFailure),
+    )
   },
 }
 
@@ -580,54 +545,6 @@ function buildPreparedFieldAnswer(
  * transformer rejecting the value's shape) reverts to the original value and
  * abandons the rest of the pipeline. Any other error propagates.
  */
-function applyTransformerPipeline(value: unknown, transformers: readonly TransformerThunk[]): unknown {
-  let transformedValue = value
-
-  try {
-    transformers.forEach(transformer => {
-      const transformerResult = transformer(transformedValue)
-
-      if (transformerResult !== undefined) {
-        transformedValue = transformerResult
-      }
-    })
-  } catch (error) {
-    if (isTransformerTypeError(error)) {
-      return value
-    }
-
-    throw error
-  }
-
-  return transformedValue
-}
-
-async function applyTransformerPipelineAsync(
-  value: unknown,
-  transformers: readonly TransformerThunk[],
-): Promise<unknown> {
-  let transformedValue = value
-
-  try {
-    // Sequential on purpose: each transformer receives the previous one's output.
-    for (const transformer of transformers) {
-      const transformerResult = await transformer(transformedValue)
-
-      if (transformerResult !== undefined) {
-        transformedValue = transformerResult
-      }
-    }
-  } catch (error) {
-    if (isTransformerTypeError(error)) {
-      return value
-    }
-
-    throw error
-  }
-
-  return transformedValue
-}
-
 function isTransformerTypeError(error: unknown): boolean {
   if (error instanceof TypeError) {
     return true
@@ -639,89 +556,48 @@ function isTransformerTypeError(error: unknown): boolean {
 function collectValidationFailures(
   results: unknown,
   ruleIsActive: (rule: RuntimeValidationRule) => boolean,
-): RuntimeValidationFailure[] {
+): MaybeAsync<RuntimeValidationFailure[]> {
   const failures: RuntimeValidationFailure[] = []
   const validationStack = [results]
-  let validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
+  const collectNext = (): MaybeAsync<RuntimeValidationFailure[]> => {
+    const validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
 
-  while (validationRule !== undefined) {
-    const activeValidationRule = validationRule
-
-    if (typeof activeValidationRule.function === 'function') {
-      const validationErrors = evaluateValidationFunction(activeValidationRule)
-
-      validationErrors.forEach(validationError => {
-        failures.push({
-          rule: activeValidationRule,
-          message: validationError.message,
-          details: validationError.details,
-        })
-      })
-    } else {
-      const validationPassed = evaluateValidationRule(activeValidationRule)
-
-      if (!validationPassed) {
-        const validationMessage = resolveValidationRuleValue(activeValidationRule, activeValidationRule.message, '')
-        const validationDetails = resolveValidationRuleValue(
-          activeValidationRule,
-          activeValidationRule.details,
-          undefined,
-        )
-
-        failures.push({ rule: activeValidationRule, message: validationMessage, details: validationDetails })
-      }
+    if (validationRule === undefined) {
+      return failures
     }
 
-    validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
+    return chainMaybeAsync(collectValidationRuleFailures(validationRule), ruleFailures => {
+      failures.push(...ruleFailures)
+
+      return collectNext()
+    })
   }
 
-  return failures
+  return collectNext()
 }
 
-async function collectValidationFailuresAsync(
-  results: unknown,
-  ruleIsActive: (rule: RuntimeValidationRule) => boolean,
-): Promise<RuntimeValidationFailure[]> {
-  const failures: RuntimeValidationFailure[] = []
-  const validationStack = [results]
-  let validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
-
-  while (validationRule !== undefined) {
-    const activeValidationRule = validationRule
-
-    if (typeof activeValidationRule.function === 'function') {
-      const validationErrors = await evaluateValidationFunctionAsync(activeValidationRule)
-
-      validationErrors.forEach(validationError => {
-        failures.push({
-          rule: activeValidationRule,
-          message: validationError.message,
-          details: validationError.details,
-        })
-      })
-    } else {
-      const validationPassed = await evaluateValidationRule(activeValidationRule)
-
-      if (!validationPassed) {
-        const validationMessage = await resolveValidationRuleValue(
-          activeValidationRule,
-          activeValidationRule.message,
-          '',
-        )
-        const validationDetails = await resolveValidationRuleValue(
-          activeValidationRule,
-          activeValidationRule.details,
-          undefined,
-        )
-
-        failures.push({ rule: activeValidationRule, message: validationMessage, details: validationDetails })
-      }
-    }
-
-    validationRule = takeNextActiveValidationRule(validationStack, ruleIsActive)
+function collectValidationRuleFailures(rule: RuntimeValidationRule): MaybeAsync<RuntimeValidationFailure[]> {
+  if (typeof rule.function === 'function') {
+    return mapUnknownMaybeAsync(rule.function.call(rule), result =>
+      validateValidationFunctionResult(result).map(error => ({
+        rule,
+        message: error.message,
+        details: error.details,
+      })),
+    )
   }
 
-  return failures
+  return chainUnknownMaybeAsync(evaluateValidationRule(rule), validationPassed => {
+    if (validationPassed) {
+      return []
+    }
+
+    return chainUnknownMaybeAsync(resolveValidationRuleValue(rule, rule.message, ''), message =>
+      mapUnknownMaybeAsync(resolveValidationRuleValue(rule, rule.details, undefined), details => [
+        { rule, message, details },
+      ]),
+    )
+  })
 }
 
 function toFieldValidationFailure(
@@ -828,38 +704,6 @@ export function precheckShortCircuit(
   throw new TypeError(`${functionName}: value failed schema validation — ${parsedValue.error.message}`)
 }
 
-function evaluateWithDiagnostics(
-  diagnostics: RuntimeEvaluationDiagnostics | undefined,
-  diagnosticReference: number,
-  evaluate: () => unknown,
-): unknown {
-  const previous = enterDiagnostics(diagnostics, diagnosticReference)
-
-  try {
-    return evaluate()
-  } catch (error) {
-    throw wrapDiagnosticError(diagnostics, diagnosticReference, error)
-  } finally {
-    exitDiagnostics(diagnostics, previous)
-  }
-}
-
-async function evaluateWithDiagnosticsAsync(
-  diagnostics: RuntimeEvaluationDiagnostics | undefined,
-  diagnosticReference: number,
-  evaluate: () => Promise<unknown>,
-): Promise<unknown> {
-  const previous = enterDiagnostics(diagnostics, diagnosticReference)
-
-  try {
-    return await evaluate()
-  } catch (error) {
-    throw wrapDiagnosticError(diagnostics, diagnosticReference, error)
-  } finally {
-    exitDiagnostics(diagnostics, previous)
-  }
-}
-
 function enterDiagnostics(
   diagnostics: RuntimeEvaluationDiagnostics | undefined,
   diagnosticReference: number,
@@ -950,16 +794,6 @@ function evaluateValidationRule(rule: RuntimeValidationRule): unknown {
   return rule.passed
 }
 
-function evaluateValidationFunction(rule: RuntimeValidationRule): readonly RuntimeValidationFunctionError[] {
-  return validateValidationFunctionResult(rule.function?.call(rule))
-}
-
-async function evaluateValidationFunctionAsync(
-  rule: RuntimeValidationRule,
-): Promise<readonly RuntimeValidationFunctionError[]> {
-  return validateValidationFunctionResult(await rule.function?.call(rule))
-}
-
 function validateValidationFunctionResult(result: unknown): readonly RuntimeValidationFunctionError[] {
   if (result === undefined) {
     return []
@@ -994,6 +828,38 @@ function validateValidationFunctionError(error: unknown, index: number): Runtime
   }
 
   return { message: error.message, details: error.details }
+}
+
+export function isThenable(value: unknown): value is PromiseLike<unknown> {
+  return value !== null &&
+    value !== undefined &&
+    (typeof value === 'object' || typeof value === 'function') &&
+    typeof (value as { then?: unknown }).then === 'function'
+}
+
+function chainMaybeAsync<TInput, TOutput>(
+  value: MaybeAsync<TInput>,
+  next: (value: TInput) => MaybeAsync<TOutput>,
+): MaybeAsync<TOutput> {
+  return isThenable(value) ? Promise.resolve(value).then(next) : next(value)
+}
+
+function mapMaybeAsync<TInput, TOutput>(
+  value: MaybeAsync<TInput>,
+  map: (value: TInput) => TOutput,
+): MaybeAsync<TOutput> {
+  return isThenable(value) ? Promise.resolve(value).then(map) : map(value)
+}
+
+function chainUnknownMaybeAsync<TOutput>(
+  value: unknown,
+  next: (value: unknown) => MaybeAsync<TOutput>,
+): MaybeAsync<TOutput> {
+  return isThenable(value) ? Promise.resolve(value).then(next) : next(value)
+}
+
+function mapUnknownMaybeAsync<TOutput>(value: unknown, map: (value: unknown) => TOutput): MaybeAsync<TOutput> {
+  return isThenable(value) ? Promise.resolve(value).then(map) : map(value)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
