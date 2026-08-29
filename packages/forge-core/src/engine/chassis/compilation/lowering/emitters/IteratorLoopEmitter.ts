@@ -25,7 +25,7 @@ export default class IteratorLoopEmitter {
   constructor(private readonly expr: ExpressionDispatcher) {}
 
   compileLoop(input: unknown, generator: CodeGenerator, compileItem: (scope: IteratorEmitScope) => void): void {
-    const inputName = generator.let('iteratorInput', this.expr.compileOperandCode(input))
+    const inputName = generator.let('iteratorInput', this.expr.compileOperandCode(input, generator))
     const inputWasKeyedName = this.expr.compileNormalizeIteratorInput(inputName, generator)
 
     generator.if(code`Array.isArray(${inputName})`, () => {

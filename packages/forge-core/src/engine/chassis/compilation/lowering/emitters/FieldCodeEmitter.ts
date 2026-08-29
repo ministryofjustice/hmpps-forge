@@ -36,7 +36,7 @@ export default class FieldCodeEmitter {
 
     const variableName = isTemplateASTNode(fieldCode.node.node) ? 'templateCode' : 'fieldCode'
 
-    return generator.const(variableName, code`String(${this.expr.compileOperandCode(fieldCode.node.node)})`)
+    return generator.const(variableName, code`String(${this.expr.compileOperandCode(fieldCode.node.node, generator)})`)
   }
 
   /**
@@ -47,7 +47,7 @@ export default class FieldCodeEmitter {
     generator: CodeGenerator,
     variableName = 'fieldCode',
   ): CodeFragment | IdentifierName | undefined {
-    const codeExpression = this.compileRegisteredInlineExpression(fieldCode)
+    const codeExpression = this.compileRegisteredInlineExpression(fieldCode, generator)
 
     if (codeExpression === undefined) {
       return undefined
@@ -63,13 +63,13 @@ export default class FieldCodeEmitter {
   /**
    * Emits a registered field code as an inline expression, used when assigning block properties.
    */
-  compileRegisteredInlineExpression(fieldCode: unknown): CodeFragment | undefined {
+  compileRegisteredInlineExpression(fieldCode: unknown, generator?: CodeGenerator): CodeFragment | undefined {
     if (typeof fieldCode === 'string') {
       return literal(fieldCode)
     }
 
     if (this.expr.isCompilableNode(fieldCode)) {
-      return code`String(${this.expr.compileOperandCode(fieldCode)})`
+      return code`String(${this.expr.compileOperandCode(fieldCode, generator)})`
     }
 
     return undefined
@@ -93,7 +93,7 @@ export default class FieldCodeEmitter {
       return undefined
     }
 
-    return generator.const(variableName, code`String(${this.expr.compileExpressionCode(fieldCode)})`)
+    return generator.const(variableName, code`String(${this.expr.compileExpressionCode(fieldCode, generator)})`)
   }
 
   /**
@@ -106,7 +106,7 @@ export default class FieldCodeEmitter {
     key: string,
     preferredCodeExpression?: SafeCode,
   ): void {
-    const codeExpression = preferredCodeExpression ?? this.compileRegisteredInlineExpression(fieldCode)
+    const codeExpression = preferredCodeExpression ?? this.compileRegisteredInlineExpression(fieldCode, generator)
 
     if (codeExpression === undefined) {
       return

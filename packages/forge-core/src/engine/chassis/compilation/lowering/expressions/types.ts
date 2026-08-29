@@ -22,12 +22,6 @@ export interface NodeCompilationContext {
     source?: unknown,
     options?: FunctionCallCompileOptions,
   ): CodeFragment
-  /**
-   * Compiles a sub-expression with call hoisting disabled. Node compilers must
-   * use this for any position that evaluates conditionally or lands inside a
-   * nested function scope, so hoisted call statements cannot escape it.
-   */
-  withoutCallHoisting<T>(compile: () => T): T
   namespaceToCtxCode(namespace: string): CodeFragment
   readonly generator: CodeGenerator
   readonly iteratorStack: readonly IteratorScopeFrame[]

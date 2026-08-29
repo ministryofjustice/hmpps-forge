@@ -17,26 +17,30 @@ const sourceWithStack = (stack: string) => ({
 
 const render = (value: CodeFragment): RenderedSource => new SourceRenderer().renderCode(value)
 
-const wrapExpression = (emitter: DiagnosticEmitter, source: unknown, usesAwait: boolean): RenderedSource =>
-  render(emitter.wrapExpression(code`1 + 1`, source, usesAwait, new CodeGenerator()))
+const wrapExpression = (emitter: DiagnosticEmitter, source: unknown, _usesAwait: boolean): RenderedSource => {
+  const generator = CodeGenerator.forFunction([])
+  const expression = emitter.compileExpression(source, generator, () => code`1 + 1`)
+
+  generator.return(expression)
+
+  return new SourceRenderer().render(generator.toNodes())
+}
 
 describe('DiagnosticEmitter', () => {
-  describe('wrapExpression()', () => {
-    it('should map the helper call to the authored callsite', () => {
+  describe('compileExpression()', () => {
+    it('should map the generated diagnostic boundary to the authored callsite', () => {
       // Arrange
       const emitter = new DiagnosticEmitter()
 
       // Act
       const wrapped = wrapExpression(emitter, sourceWithStack(AUTHOR_STACK), false)
-      const callbackBodyLine = wrapped.source.split('\n').findIndex(line => line.includes('return (1 + 1);'))
-
       // Assert
-      expect(wrapped.source.startsWith('_forgeHelpers.evaluateTracked(')).toBe(true)
-      expect(wrapped.segmentsByLine[0]).toEqual([{ generatedColumn: 0, position: AUTHOR_POSITION }])
-      expect(wrapped.segmentsByLine[callbackBodyLine]).toEqual([{ generatedColumn: 4, position: AUTHOR_POSITION }])
+      expect(wrapped.source).toContain('try {')
+      expect(wrapped.source).toContain('_forgeRuntimeDiagnostics.wrap(error, 0)')
+      expect(wrapped.segmentsByLine.flat()).toContainEqual(expect.objectContaining({ position: AUTHOR_POSITION }))
     })
 
-    it('should map the await wrapper to the authored callsite', () => {
+    it('should not create a separate async diagnostic callback', () => {
       // Arrange
       const emitter = new DiagnosticEmitter()
 
@@ -44,8 +48,9 @@ describe('DiagnosticEmitter', () => {
       const wrapped = wrapExpression(emitter, sourceWithStack(AUTHOR_STACK), true)
 
       // Assert
-      expect(wrapped.source.startsWith('(await _forgeHelpers.evaluateTrackedAsync(')).toBe(true)
-      expect(wrapped.segmentsByLine[0]).toEqual([{ generatedColumn: 0, position: AUTHOR_POSITION }])
+      expect(wrapped.source).toContain('try {')
+      expect(wrapped.source).not.toContain('evaluateTracked')
+      expect(wrapped.source).not.toContain('async function')
     })
 
     it('should emit no source-map segment when the callsite is absent', () => {
@@ -57,7 +62,7 @@ describe('DiagnosticEmitter', () => {
       const wrapped = wrapExpression(emitter, source, false)
 
       // Assert
-      expect(wrapped.source.startsWith('_forgeHelpers.evaluateTracked(')).toBe(true)
+      expect(wrapped.source).toContain('_forgeRuntimeDiagnostics.wrap(error, 0)')
       expect(wrapped.segmentsByLine.flat()).toEqual([])
     })
 
@@ -85,7 +90,7 @@ describe('DiagnosticEmitter', () => {
       const wrapped = wrapExpression(emitter, sourceWithStack(chainStack), false)
 
       // Assert
-      expect(wrapped.segmentsByLine[0]).toEqual([
+      expect(wrapped.segmentsByLine.flat().slice(0, 2)).toEqual([
         {
           generatedColumn: 0,
           position: { file: '/app/server/journeys/guide/effects.ts', line: 56, column: 14 },
@@ -105,7 +110,7 @@ describe('DiagnosticEmitter', () => {
       const wrapped = wrapExpression(emitter, undefined, false)
 
       // Assert
-      expect(wrapped.source).toBe('1 + 1')
+      expect(wrapped.source).toBe('return 1 + 1;')
       expect(wrapped.segmentsByLine.flat()).toEqual([])
     })
 
@@ -119,7 +124,7 @@ describe('DiagnosticEmitter', () => {
       const catalogue = emitter.snapshot()
 
       // Assert
-      expect(wrapped).toContain('_forgeRuntimeDiagnostics,\n  0,')
+      expect(wrapped).toContain('_forgeRuntimeDiagnostics.wrap(error, 0)')
       expect(wrapped).not.toContain('node-1')
       expect(wrapped).not.toContain('journey.steps[0]')
       expect(catalogue).toEqual([{ nodeId: 'node-1', formattedPath: 'journey.steps[0]' }])
@@ -135,8 +140,8 @@ describe('DiagnosticEmitter', () => {
       const second = wrapExpression(emitter, source, false).source
 
       // Assert
-      expect(first).toContain('_forgeRuntimeDiagnostics,\n  0,')
-      expect(second).toContain('_forgeRuntimeDiagnostics,\n  0,')
+      expect(first).toContain('_forgeRuntimeDiagnostics.wrap(error, 0)')
+      expect(second).toContain('_forgeRuntimeDiagnostics.wrap(error, 0)')
       expect(emitter.snapshot()).toHaveLength(1)
     })
 
@@ -151,11 +156,11 @@ describe('DiagnosticEmitter', () => {
       const wrapped = wrapExpression(emitter, { id: 'node-2' }, false).source
 
       // Assert
-      expect(wrapped).toContain('_forgeRuntimeDiagnostics,\n  0,')
+      expect(wrapped).toContain('_forgeRuntimeDiagnostics.wrap(error, 0)')
       expect(emitter.snapshot()).toEqual([{ nodeId: 'node-2' }])
     })
 
-    it('should name and sanitise tracked callbacks from the formatted path tail', () => {
+    it('should emit no callback for a formatted path', () => {
       // Arrange
       const emitter = new DiagnosticEmitter()
       const source = {
@@ -167,7 +172,8 @@ describe('DiagnosticEmitter', () => {
       const wrapped = wrapExpression(emitter, source, false).source
 
       // Assert
-      expect(wrapped).toContain('function evaluate_effects_0_effect_Ping() {')
+      expect(wrapped).toContain('_forgeRuntimeDiagnostics.wrap(error, 0)')
+      expect(wrapped).not.toContain('function evaluate_effects_0_effect_Ping()')
     })
   })
 
