@@ -34,7 +34,7 @@ export const REQUEST_ANSWER_PREPARATION_WORK_HANDLER: WorkHandler<
   async begin(ctx: WorkContextContract<RequestState, RequestAnswerPreparationWorkProps>) {
     const answerPreparationContext = buildCompiledAnswerPreparationContext(
       ctx.state.context,
-      ctx.state.dependencies.functionRegistry,
+      ctx.state.functionRegistry,
       ctx.state.dependencies.componentRegistry,
     )
 

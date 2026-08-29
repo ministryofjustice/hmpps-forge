@@ -41,7 +41,7 @@ export default class RequestPipelineBootstrap {
 
   buildExecutionContext(): RequestState {
     const { node } = this.config
-    const { functionRegistry, componentRegistry } = node
+    const { functionBuilders, packageDependencies, componentRegistry } = node
 
     const context = {
       request: {},
@@ -56,7 +56,8 @@ export default class RequestPipelineBootstrap {
 
     return new RequestState(context, {
       responseBindings: this.config.responseBindings,
-      functionRegistry,
+      functionBuilders,
+      packageDependencies,
       componentRegistry,
       currentStepId: node.kind === 'step' ? node.nodeId : undefined,
       hasRenderer: this.config.renderer !== undefined,

@@ -49,7 +49,7 @@ export const CURRENT_STEP_VALIDATION_WORK_HANDLER: WorkHandler<
       compiledValidation,
       stepId,
       ctx.state.context,
-      ctx.state.dependencies.functionRegistry,
+      ctx.state.functionRegistry,
       { groups, includeSubmissionOnly },
     )
 

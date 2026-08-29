@@ -1,7 +1,7 @@
-import FunctionRegistry from '../../registries/FunctionRegistry'
+import type { FunctionDefinitionLookup } from '../../../../authoring/types/functions.type'
 import ComponentRegistry from '../../registries/ComponentRegistry'
 
 export interface CompilationDependencies {
-  readonly functionRegistry: FunctionRegistry
+  readonly functionRegistry: FunctionDefinitionLookup
   readonly componentRegistry: ComponentRegistry
 }

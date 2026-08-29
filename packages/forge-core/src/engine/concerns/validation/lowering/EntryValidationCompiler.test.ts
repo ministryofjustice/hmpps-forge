@@ -49,12 +49,13 @@ function entryModel(entries: StepEntryValidationAST[] | undefined): ValidationMo
 
 describe('EntryValidationCompiler', () => {
   let compiler: EntryValidationCompiler
+  const compilerFunctionRegistry = new FunctionRegistry()
   const dependencies: CompilationDependencies = {
-    functionRegistry: new FunctionRegistry(),
+    functionRegistry: compilerFunctionRegistry,
     componentRegistry: new ComponentRegistry(),
   }
 
-  dependencies.functionRegistry.register({
+  compilerFunctionRegistry.register({
     equals: { name: 'equals', evaluate: () => undefined },
   })
 

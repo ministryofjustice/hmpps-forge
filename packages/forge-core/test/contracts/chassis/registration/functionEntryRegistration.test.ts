@@ -120,16 +120,19 @@ describe('function entry registration contracts', () => {
       }
     })
 
-    it('should call the factory once when an entry is used in several positions', () => {
+    it('should call the factory once per request when an entry is used in several positions', async () => {
       // Arrange
       const factory = vi.fn(() => (value: unknown) => value === 'x')
       const OnlyX = condition('Test.OnlyX', { factory })
 
       // Act
-      createEntriesClient([
+      const client = createEntriesClient([
         fieldWithRule('first', Self().match(OnlyX()), 'Must be x'),
         fieldWithRule('second', Self().match(OnlyX()), 'Must be x'),
       ])
+
+      // Act
+      await client.post('/entries/step-one', { session: {}, body: { first: 'x', second: 'x' } })
 
       // Assert
       expect(factory).toHaveBeenCalledTimes(1)
@@ -291,12 +294,15 @@ describe('function entry registration contracts', () => {
       expect(act).toThrow('listed under the name "Test.Clash"')
     })
 
-    it('should reject a hand-written registry row without an evaluate function at registration', () => {
+    it('should reject a hand-written definition without a factory at registration', () => {
       // Arrange
       const pkg = createForgePackage({
         journey: journeyWithFields([]),
         components: [testInput],
-        functions: { build: () => ({ broken: { name: 'Test.Broken' } }) } as never,
+        functions: {
+          getDefinitions: () => ({ broken: { name: 'Test.Broken' } }),
+          build: () => ({}),
+        } as never,
       })
 
       // Act
@@ -304,8 +310,8 @@ describe('function entry registration contracts', () => {
 
       // Assert
       expect(act).toThrow(ForgeRegistrationError)
-      expect(act).toThrow('Function registration failed')
-      expect(act).toThrow('Function "Test.Broken" must have an evaluate function')
+      expect(act).toThrow('Function definition registration failed')
+      expect(act).toThrow('Function "Test.Broken" must have a factory function')
     })
 
     it('should reject a hand-written registry row without a name at registration', () => {
@@ -313,7 +319,10 @@ describe('function entry registration contracts', () => {
       const pkg = createForgePackage({
         journey: journeyWithFields([]),
         components: [testInput],
-        functions: { build: () => ({ broken: { evaluate: () => true } }) } as never,
+        functions: {
+          getDefinitions: () => ({ broken: { factory: () => () => true } }),
+          build: () => ({}),
+        } as never,
       })
 
       // Act
@@ -321,8 +330,8 @@ describe('function entry registration contracts', () => {
 
       // Assert
       expect(act).toThrow(ForgeRegistrationError)
-      expect(act).toThrow('Function registration failed')
-      expect(act).toThrow('Function must have a name property')
+      expect(act).toThrow('Function definition registration failed')
+      expect(act).toThrow('Function definition must have a name property')
     })
   })
 
@@ -537,36 +546,34 @@ describe('function entry registration contracts', () => {
   })
 
   describe('factory failures', () => {
-    it('should surface the function name, path, and callsite when an embedded factory throws', () => {
+    it('should surface the function name, path, and callsite when an embedded factory throws', async () => {
       // Arrange
       const Broken = condition('Test.Broken', {
         factory: (): (() => boolean) => {
           throw new Error('missing api client')
         },
       })
-      const pkg = createForgePackage({
-        journey: journeyWithFields([fieldWithRule('crn', Self().match(Broken()), 'Nope')]),
-        components: [testInput],
-      })
+      const client = createEntriesClient([fieldWithRule('crn', Self().match(Broken()), 'Nope')])
 
       // Act
-      const act = () => new ForgeTestHarness().registerPackage(pkg)
+      const result = await client.post('/entries/step-one', { session: {}, body: { crn: 'anything' } })
 
       // Assert
-      expect(act).toThrow(ForgeRegistrationError)
+      expect(result.type).toBe('error')
 
-      try {
-        act()
-      } catch (error) {
-        expect(error).toBeInstanceOf(ForgeRegistrationError)
+      if (result.type === 'error') {
+        const { error } = result
 
-        if (error instanceof ForgeRegistrationError) {
-          expect(error.message).toContain('Test.Broken')
-          expect(error.message).toContain('factory threw during registration')
-          expect(error.message).toContain('Path: ')
-          expect(error.message).toContain('Defined at: ')
-          expect(error.message).toContain('functionEntryRegistration.test.ts')
-          expect(error.message).toContain('missing api client')
+        expect(error).toBeInstanceOf(AggregateError)
+
+        if (error instanceof AggregateError) {
+          const [buildError] = error.errors
+
+          expect(buildError.message).toContain('Test.Broken')
+          expect(buildError.message).toContain('factory failed during request context preparation')
+          expect(buildError.formattedPath).toContain('validWhen')
+          expect(buildError.callsite?.stack).toContain('functionEntryRegistration.test.ts')
+          expect(buildError.cause?.message).toBe('missing api client')
         }
       }
     })

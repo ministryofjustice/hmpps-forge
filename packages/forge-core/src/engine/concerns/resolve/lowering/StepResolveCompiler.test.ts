@@ -168,12 +168,13 @@ function resolveModel(
 
 describe('StepResolveCompiler', () => {
   let compiler: StepResolveCompiler
+  const compilerFunctionRegistry = new FunctionRegistry()
   const dependencies: CompilationDependencies = {
-    functionRegistry: new FunctionRegistry(),
+    functionRegistry: compilerFunctionRegistry,
     componentRegistry: new ComponentRegistry(),
   }
 
-  dependencies.functionRegistry.register({
+  compilerFunctionRegistry.register({
     answerCode: { name: 'answerCode', evaluate: () => undefined },
     Equals: { name: 'Equals', evaluate: () => undefined },
     fieldCode: { name: 'fieldCode', evaluate: () => undefined },

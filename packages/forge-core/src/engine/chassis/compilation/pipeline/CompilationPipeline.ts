@@ -2,8 +2,8 @@ import type { JourneyDefinition } from '../../../../authoring/types/structures.t
 import type { CompiledPackage } from '../../contracts/plans/compilationArtefacts.type'
 import type { ForgeInstrumentation } from '../../tracing/ForgeTraceSinkDispatcher'
 import type TraceSpan from '../../tracing/TraceSpan'
-import FunctionRegistry from '../../registries/FunctionRegistry'
 import ComponentRegistry from '../../registries/ComponentRegistry'
+import type { FunctionDefinitionLookup } from '../../../../authoring/types/functions.type'
 import WorkExecutor from '../../work/WorkExecutor'
 import WorkContext from '../../work/WorkContext'
 import WorkExecutionError from '../../work/WorkExecutionError'
@@ -12,7 +12,7 @@ import CompilationState from './CompilationState'
 import CompilationPipelineBootstrap from './CompilationPipelineBootstrap'
 
 export interface CompilationPipelineOptions {
-  readonly functionRegistry: FunctionRegistry
+  readonly functionRegistry: FunctionDefinitionLookup
   readonly componentRegistry: ComponentRegistry
   readonly instrumentation?: ForgeInstrumentation
 }

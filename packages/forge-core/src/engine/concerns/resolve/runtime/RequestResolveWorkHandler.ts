@@ -41,7 +41,7 @@ export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', Reques
     )
     const compiledResolveContext = buildCompiledResolveContext(
       ctx.state.context,
-      ctx.state.dependencies.functionRegistry,
+      ctx.state.functionRegistry,
       ctx.state.dependencies.componentRegistry,
       fieldFailures,
       ctx.state.fieldFailureAnchors,

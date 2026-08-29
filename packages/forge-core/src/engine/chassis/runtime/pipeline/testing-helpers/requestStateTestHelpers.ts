@@ -4,16 +4,26 @@ import type { ComponentRegistry } from '../../../../../framework/types/adapter.t
 import type { ResponseBindings } from '../../../../../framework/types/responseBindings.type'
 import RequestState, { type RequestDependencies } from '../RequestState'
 
+type TestRequestDependencies = Partial<RequestDependencies> & {
+  readonly functionRegistry?: FunctionRegistry
+}
+
 export function createTestRequestState(
   context: RuntimeContext,
-  dependencyOverrides: Partial<RequestDependencies> = {},
+  dependencyOverrides: TestRequestDependencies = {},
 ): RequestState {
-  return new RequestState(context, {
+  const { functionRegistry = {} as FunctionRegistry, ...requestDependencyOverrides } = dependencyOverrides
+  const requestState = new RequestState(context, {
     responseBindings: {} as ResponseBindings,
-    functionRegistry: {} as FunctionRegistry,
+    functionBuilders: [],
+    packageDependencies: {},
     componentRegistry: {} as ComponentRegistry,
     hasRenderer: false,
     traceEnabled: false,
-    ...dependencyOverrides,
+    ...requestDependencyOverrides,
   })
+
+  requestState.recordFunctionRegistry(functionRegistry)
+
+  return requestState
 }

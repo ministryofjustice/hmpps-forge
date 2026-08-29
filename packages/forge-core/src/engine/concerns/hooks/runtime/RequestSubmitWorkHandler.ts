@@ -32,7 +32,7 @@ export const REQUEST_SUBMIT_WORK_HANDLER: WorkHandler<'request.submit', RequestS
   async begin(ctx: WorkContextContract<RequestState, RequestSubmitWorkProps>) {
     const hookLifecycleContext = buildCompiledSubmitHookLifecycleContext(
       ctx.state.context,
-      ctx.state.dependencies.functionRegistry,
+      ctx.state.functionRegistry,
       ctx.state.dependencies.responseBindings,
       ctx.props.stepId,
       ctx.props.compiledValidation,

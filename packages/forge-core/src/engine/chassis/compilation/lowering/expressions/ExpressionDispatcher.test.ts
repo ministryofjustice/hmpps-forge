@@ -27,12 +27,13 @@ type EvaluateFunction = (ctx: {
 
 describe('ExpressionDispatcher', () => {
   let compiler: ExpressionDispatcher
+  const compilerFunctionRegistry = new FunctionRegistry()
   const dependencies: CompilationDependencies = {
-    functionRegistry: new FunctionRegistry(),
+    functionRegistry: compilerFunctionRegistry,
     componentRegistry: new ComponentRegistry(),
   }
 
-  dependencies.functionRegistry.register({
+  compilerFunctionRegistry.register({
     buildCode: { name: 'buildCode', evaluate: () => undefined },
     isRequired: { name: 'isRequired', evaluate: () => undefined },
     GreaterThan: {
@@ -243,7 +244,7 @@ describe('ExpressionDispatcher', () => {
       const evaluateFind = compileEvaluator(findExpression)
       const ctx = {
         data: { values: { a: 10, b: 20 } },
-        conditions: dependencies.functionRegistry,
+        conditions: compilerFunctionRegistry,
         iteratorBudget: new IteratorBudget(),
       }
 
@@ -271,7 +272,7 @@ describe('ExpressionDispatcher', () => {
       const value = { '@key': 'literal-key', '@value': 'literal-value', name: 'Ada' }
       const ctx = {
         data: { values: [value] },
-        conditions: dependencies.functionRegistry,
+        conditions: compilerFunctionRegistry,
         iteratorBudget: new IteratorBudget(),
       }
 
@@ -300,7 +301,7 @@ describe('ExpressionDispatcher', () => {
       const evaluate = compileEvaluator(expression)
       const ctx = {
         data: { values: { a: 10, b: 20 } },
-        conditions: dependencies.functionRegistry,
+        conditions: compilerFunctionRegistry,
         iteratorBudget: new IteratorBudget(),
       }
 
@@ -331,7 +332,7 @@ describe('ExpressionDispatcher', () => {
       const value = { '@key': 'literal-key', name: 'Ada' }
       const ctx = {
         data: { groups: { staff: [value] } },
-        conditions: dependencies.functionRegistry,
+        conditions: compilerFunctionRegistry,
         iteratorBudget: new IteratorBudget(),
       }
 

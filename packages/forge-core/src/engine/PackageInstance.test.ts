@@ -9,7 +9,6 @@ import type { BlockDefinition } from '../components/types/structures.type'
 import type { CompiledPackage } from './chassis/contracts/plans/compilationArtefacts.type'
 import CompilationPipeline from './chassis/compilation/pipeline/CompilationPipeline'
 import ComponentRegistry from './chassis/registries/ComponentRegistry'
-import FunctionRegistry from './chassis/registries/FunctionRegistry'
 import ForgeTraceSinkDispatcher from './chassis/tracing/ForgeTraceSinkDispatcher'
 import PackageInstance from './PackageInstance'
 
@@ -19,7 +18,7 @@ describe('PackageInstance', () => {
       vi.restoreAllMocks()
     })
 
-    it('should create empty registries when the package has no registrations', () => {
+    it('should retain empty function builders when the package has no registrations', () => {
       // Arrange
       mockCompilation()
 
@@ -29,18 +28,22 @@ describe('PackageInstance', () => {
       })
 
       // Assert
-      expect(instance.getDependencies().functionRegistry).toBeInstanceOf(FunctionRegistry)
-      expect(instance.getDependencies().functionRegistry.size()).toBe(0)
+      expect(instance.getDependencies().functionBuilders).toEqual([])
+      expect(instance.getDependencies().packageDependencies).toEqual({})
       expect(instance.getDependencies().componentRegistry).toBeInstanceOf(ComponentRegistry)
       expect(instance.getDependencies().componentRegistry.size()).toBe(0)
     })
 
-    it('should build package functions with provided dependencies', () => {
+    it('should retain package functions and dependencies without invoking factories', () => {
       // Arrange
       mockCompilation()
 
-      const packageFunctions = new TransformerRegistry<{ prefix: string }>()
-      packageFunctions.register('WithPrefix', deps => (value: unknown) => `${deps.prefix}${String(value)}`)
+      const packageDependencies = { prefix: 'case-' }
+      const factory = vi.fn(
+        (dependencies: typeof packageDependencies) => (value: unknown) => `${dependencies.prefix}${String(value)}`,
+      )
+      const packageFunctions = new TransformerRegistry<typeof packageDependencies>()
+      packageFunctions.register('WithPrefix', factory)
 
       // Act
       const instance = new PackageInstance(
@@ -49,16 +52,38 @@ describe('PackageInstance', () => {
           functions: packageFunctions,
         }),
         {
-          functionDependencies: { prefix: 'case-' },
+          packageDependencies,
           instrumentation: new ForgeTraceSinkDispatcher(),
         },
       )
 
       // Assert
-      const functionRegistry = instance.getDependencies().functionRegistry
+      expect(instance.getDependencies().functionBuilders).toEqual([packageFunctions])
+      expect(instance.getDependencies().packageDependencies).toBe(packageDependencies)
+      expect(factory).not.toHaveBeenCalled()
+    })
 
-      expect(functionRegistry).toBeInstanceOf(FunctionRegistry)
-      expect(functionRegistry.get('WithPrefix')?.evaluate('123')).toBe('case-123')
+    it('should reject duplicate definitions across package function builders', () => {
+      // Arrange
+      mockCompilation()
+
+      const firstFunctions = new TransformerRegistry()
+      const secondFunctions = new TransformerRegistry()
+      firstFunctions.register('Duplicate', () => value => value)
+      secondFunctions.register('Duplicate', () => value => value)
+
+      // Act
+      const act = () =>
+        new PackageInstance(
+          createForgePackage({
+            journey: createJourneyDefinition(),
+            functions: [firstFunctions, secondFunctions],
+          }),
+          { instrumentation: new ForgeTraceSinkDispatcher() },
+        )
+
+      // Assert
+      expect(act).toThrow('Function definition registration failed')
     })
 
     it('should register package components', () => {
@@ -109,12 +134,15 @@ describe('PackageInstance', () => {
       )
 
       // Assert
-      expect(instance.getDependencies().functionRegistry.has('Test.Scoped')).toBe(true)
+      const [functionBuilder] = instance.getDependencies().functionBuilders
+
+      expect(functionBuilder.getDefinitions()).toHaveProperty('Test.Scoped')
     })
 
-    it('should register an async embedded entry evaluator', async () => {
+    it('should compile an async embedded entry without invoking its factory', () => {
       // Arrange
-      const IsOkAsync = condition('Test.IsOkAsync', { factory: () => async (value: unknown) => value === 'ok' })
+      const factory = vi.fn(() => async (value: unknown) => value === 'ok')
+      const IsOkAsync = condition('Test.IsOkAsync', { factory })
 
       // Act
       const instance = new PackageInstance(
@@ -126,9 +154,8 @@ describe('PackageInstance', () => {
       )
 
       // Assert
-      const registered = instance.getDependencies().functionRegistry.get('Test.IsOkAsync')
-
-      await expect(registered?.evaluate('ok')).resolves.toBe(true)
+      expect(instance.getDependencies().functionBuilders[0].getDefinitions()).toHaveProperty('Test.IsOkAsync')
+      expect(factory).not.toHaveBeenCalled()
     })
   })
 })

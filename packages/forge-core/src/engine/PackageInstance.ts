@@ -1,7 +1,7 @@
 import type { JourneyDefinition } from '../authoring/types/structures.type'
 import type { ForgePackageRegistration, PackageDependencies, NodeId } from './chassis/contracts/ast/engine.type'
 import ComponentRegistry from './chassis/registries/ComponentRegistry'
-import FunctionRegistry from './chassis/registries/FunctionRegistry'
+import FunctionDefinitionCatalog from './chassis/registries/FunctionDefinitionCatalog'
 import CompilationPipeline from './chassis/compilation/pipeline/CompilationPipeline'
 import type { ForgeInstrumentation } from './chassis/tracing/ForgeTraceSinkDispatcher'
 
@@ -12,9 +12,10 @@ import type {
 } from './chassis/contracts/plans/compilationArtefacts.type'
 import type { JourneyRouteIndex, StepRouteIndex } from './concerns/route/contracts/routeDescriptors.type'
 import ForgeInternalError from './errors/ForgeInternalError'
+import type { FunctionRegistryBuilder } from '../authoring/types/functions.type'
 
 export interface PackageInstanceOptions<TDeps> {
-  readonly functionDependencies?: TDeps
+  readonly packageDependencies?: TDeps
   readonly instrumentation: ForgeInstrumentation
 }
 
@@ -26,13 +27,17 @@ export default class PackageInstance {
   private readonly rawConfiguration: JourneyDefinition
 
   constructor(pkg: ForgePackageRegistration<any>, options: PackageInstanceOptions<any>) {
+    const functionBuilders = PackageInstance.resolveFunctionBuilders(pkg)
+    const functionDefinitions = PackageInstance.resolveFunctionDefinitions(functionBuilders)
+
     this.dependencies = {
-      functionRegistry: PackageInstance.resolveFunctionRegistry(pkg, options),
+      functionBuilders,
+      packageDependencies: options.packageDependencies ?? {},
       componentRegistry: PackageInstance.resolveComponentRegistry(pkg),
     }
 
     const pipeline = new CompilationPipeline({
-      functionRegistry: this.dependencies.functionRegistry,
+      functionRegistry: functionDefinitions,
       componentRegistry: this.dependencies.componentRegistry,
       instrumentation: options.instrumentation,
     })
@@ -81,28 +86,24 @@ export default class PackageInstance {
     return this.compilation.journeyCode
   }
 
-  private static resolveFunctionRegistry(
-    pkg: ForgePackageRegistration<any>,
-    options: PackageInstanceOptions<any>,
-  ): FunctionRegistry {
-    const functionRegistry = new FunctionRegistry()
-
+  private static resolveFunctionBuilders(pkg: ForgePackageRegistration<any>): readonly FunctionRegistryBuilder[] {
     if (!pkg.functions) {
-      return functionRegistry
+      return []
     }
 
-    const resolvedDeps = options.functionDependencies ?? {}
-    const { functions } = pkg
+    return Array.isArray(pkg.functions) ? pkg.functions : [pkg.functions]
+  }
 
-    if (Array.isArray(functions)) {
-      functions.forEach(registry => {
-        functionRegistry.register(registry.build(resolvedDeps))
-      })
-    } else {
-      functionRegistry.register(functions.build(resolvedDeps))
-    }
+  private static resolveFunctionDefinitions(
+    functionBuilders: readonly FunctionRegistryBuilder[],
+  ): FunctionDefinitionCatalog {
+    const functionDefinitions = new FunctionDefinitionCatalog()
 
-    return functionRegistry
+    functionBuilders.forEach(functionBuilder => {
+      functionDefinitions.register(functionBuilder.getDefinitions())
+    })
+
+    return functionDefinitions
   }
 
   private static resolveComponentRegistry(pkg: ForgePackageRegistration<any>): ComponentRegistry {

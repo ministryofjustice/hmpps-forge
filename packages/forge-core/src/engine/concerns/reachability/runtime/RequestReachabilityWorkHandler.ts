@@ -66,10 +66,7 @@ export const REQUEST_REACHABILITY_WORK_HANDLER: WorkHandler<'request.reachabilit
   ): Promise<WorkBegin<'request.reachability'>> {
     const { compiledReachabilityFacts, compiledReachabilityState } = ctx.props
 
-    const reachabilityContext = buildCompiledReachabilityContext(
-      ctx.state.context,
-      ctx.state.dependencies.functionRegistry,
-    )
+    const reachabilityContext = buildCompiledReachabilityContext(ctx.state.context, ctx.state.functionRegistry)
     const stepValidities = toReachabilityValidities(ctx.state.context.evaluation.reachabilityValidities)
     const params = ctx.state.context.request.params
 

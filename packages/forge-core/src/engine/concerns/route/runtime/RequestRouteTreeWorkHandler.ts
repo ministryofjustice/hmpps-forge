@@ -28,7 +28,7 @@ export const REQUEST_ROUTE_TREE_WORK_HANDLER: WorkHandler<'request.route-tree', 
 
   async complete(ctx: WorkContextContract<RequestState, RequestRouteTreeWorkProps>): Promise<PhaseWorkOutput> {
     const routeMetadata = await ctx.props.compiled(
-      buildCompiledRouteMetadataContext(ctx.state.context, ctx.state.dependencies.functionRegistry),
+      buildCompiledRouteMetadataContext(ctx.state.context, ctx.state.functionRegistry),
     )
 
     ctx.state.recordRouteTree(

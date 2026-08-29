@@ -4,6 +4,7 @@ import { createWorkTask } from '../../work/workTask'
 import type { RequestContextPreparationWorkProps } from '../../contracts/runtime/RequestPipelineWork.type'
 import type RequestState from './RequestState'
 import type { PhaseWorkOutput } from '../../contracts/runtime/requestPipelineOutput.type'
+import FunctionRegistry from '../../registries/FunctionRegistry'
 
 const REQUEST_CONTEXT_PREPARATION_KIND = 'request.context-preparation'
 
@@ -19,6 +20,14 @@ export const REQUEST_CONTEXT_PREPARATION_WORK_HANDLER: WorkHandler<
   kind: REQUEST_CONTEXT_PREPARATION_KIND,
 
   begin(ctx: WorkContextContract<RequestState, RequestContextPreparationWorkProps>) {
+    const functionRegistry = new FunctionRegistry()
+
+    ctx.state.dependencies.functionBuilders.forEach(functionBuilder => {
+      functionRegistry.register(functionBuilder.build(ctx.state.dependencies.packageDependencies))
+    })
+
+    ctx.state.recordFunctionRegistry(functionRegistry)
+
     const context = ctx.state.context
     const snapshot = ctx.props.snapshot
     const staticData = ctx.props.compiledStaticData()
