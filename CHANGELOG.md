@@ -101,6 +101,14 @@ enough.
 
 ### Changed
 
+- Forge now requires Zod 4.5 or later. Function and component schemas are compiled
+  once when registered and reused across requests, while boolean-only condition input
+  checks use Zod's allocation-free validation path. Component input schemas only validate
+  submitted values; passing values are retained unchanged ([#288])
+- Function schemas now match the kind of function: only conditions and transformers have
+  `inputSchema`, only value-returning functions have `outputSchema`, and effects have
+  neither because they receive a context and their return value is discarded ([#288])
+
 - Function factories now bind their package dependencies during each request's
   context-preparation phase instead of during package registration. Registration
   validates and compiles against unbound function metadata, while every request gets

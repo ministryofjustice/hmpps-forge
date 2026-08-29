@@ -83,7 +83,7 @@ renders the GOV.UK components, validates on submission, and redirects on success
 Forge runs on Node.js 20, 22, or 24. Install the package and peer dependencies:
 
 ```bash
-npm install @ministryofjustice/hmpps-forge express nunjucks express-session govuk-frontend
+npm install @ministryofjustice/hmpps-forge zod express nunjucks express-session govuk-frontend
 ```
 
 The bundled adapter and components work with [Express](https://expressjs.com/)

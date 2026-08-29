@@ -1,6 +1,6 @@
 import ForgeRegistryDuplicateError from '../../errors/ForgeRegistryDuplicateError'
 import ForgeRegistryValidationError from '../../errors/ForgeRegistryValidationError'
-import { FunctionRegistryEntry, FunctionRegistryObject } from '../../../authoring/types/functions.type'
+import type { FunctionRegistryEntry, FunctionRegistryObject } from '../../../authoring/types/functions.type'
 
 /**
  * Registry for managing functions (conditions, transformers, effects) in forge.

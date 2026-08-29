@@ -74,7 +74,7 @@ export interface FieldBlockProps extends BasicBlockProps {
 
   /**
    * Array of transformers to format/process the field value before rendering/storing.
-   * Transformers only affect submitted values, and run AFTER sanitization.
+   * Transformers only affect submitted values, and run after component input validation.
    *
    * @example [Transformer.String.Trim()] // Remove whitespace
    * @example [Transformer.String.Uppercase(), Transformer.String.SnakeCase()] // Convert to uppercase snake_case

@@ -13,8 +13,8 @@ import type { FunctionEntry } from '../types/functions.type'
 export type EffectContext = EffectFunctionContext<any, any, any, any>
 
 /**
- * The options `effect()` accepts. Effects receive the hook's context
- * object rather than a schema-validated value, so there is no `inputSchema`.
+ * The options `effect()` accepts. Effects receive the hook's context and their
+ * return value is discarded, so they have neither `inputSchema` nor `outputSchema`.
  *
  * @typeParam TDeps - The dependencies the factory receives at build time
  * @typeParam TEvaluatorArguments - The evaluator's trailing parameters, as the author annotates them
@@ -25,6 +25,9 @@ export interface EffectOptions<
   TEvaluatorArguments extends any[] = any[],
   TPrepareArguments extends any[] = TEvaluatorArguments,
 > extends BaseEntryOptions<TPrepareArguments> {
+  /** Effects discard their return value, so there is nothing to validate. */
+  outputSchema?: never
+
   /** Builds one request's evaluator from its resolved dependencies. */
   factory: (deps: TDeps) => (context: EffectContext, ...args: TEvaluatorArguments) => unknown
 }
@@ -40,7 +43,7 @@ export interface EffectOptions<
 export type EffectEntry<
   TDeps = Record<string, never>,
   TAuthoredArguments extends readonly unknown[] = ResolvableValue[],
-> = ((...args: TAuthoredArguments) => EffectFunctionExpr) & FunctionEntry<TDeps>
+> = ((...args: TAuthoredArguments) => EffectFunctionExpr) & Omit<FunctionEntry<TDeps>, 'inputSchema' | 'outputSchema'>
 
 const buildEffectExpr = buildExpression(FunctionCallType.EFFECT)
 

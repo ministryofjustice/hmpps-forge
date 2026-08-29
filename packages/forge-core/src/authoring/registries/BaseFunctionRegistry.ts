@@ -14,6 +14,9 @@ export interface RegistrationOptions {
   prepare?: (...args: any[]) => any[]
 }
 
+export type ReturningRegistrationOptions = Omit<RegistrationOptions, 'inputSchema'>
+export type EffectRegistrationOptions = Omit<RegistrationOptions, 'inputSchema' | 'outputSchema'>
+
 interface RegistrationWithFactory<TDeps = any> extends RegistrationOptions {
   factory: (deps: TDeps) => (...args: any[]) => any
 }
@@ -27,7 +30,7 @@ interface StoredRegistration {
   factory: (deps: any) => (...args: any[]) => any
 }
 
-export const CONDITION_OUTPUT_SCHEMA = z.boolean()
+export const CONDITION_OUTPUT_SCHEMA = z.compile(z.boolean())
 
 const ENTRY_TAGS: Record<FunctionCallType, FunctionEntryType> = {
   [FunctionCallType.CONDITION]: FunctionEntryType.CONDITION,
@@ -111,11 +114,15 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> implem
       })
     }
 
+    const inputSchema = this.compileSchema(options.inputSchema)
+    const argumentsSchema = this.compileSchema(options.argumentsSchema)
+    const outputSchema = this.compileOutputSchema(options.outputSchema)
+
     this.registrations.set(name, {
       name,
-      inputSchema: options.inputSchema,
-      argumentsSchema: options.argumentsSchema,
-      outputSchema: options.outputSchema ?? this.defaultOutputSchema,
+      inputSchema,
+      argumentsSchema,
+      outputSchema,
       prepare: options.prepare,
       factory,
     })
@@ -201,5 +208,21 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> implem
     }
 
     return registry
+  }
+
+  private compileSchema(schema: ZodType | undefined): ZodType | undefined {
+    if (schema === undefined) {
+      return undefined
+    }
+
+    return z.compile(schema)
+  }
+
+  private compileOutputSchema(schema: ZodType | undefined): ZodType | undefined {
+    if (schema === undefined) {
+      return this.defaultOutputSchema
+    }
+
+    return z.compile(schema)
   }
 }

@@ -25,7 +25,8 @@ export interface ComponentRegistryEntry<TProps extends object = object, TRenderO
   /**
    * The shape of the submitted (post-normalise) value this component can legitimately
    * produce - a rendered text input can only ever submit a string. Anything failing the
-   * schema did not come from the rendered form.
+   * schema did not come from the rendered form. The submitted value is retained unchanged,
+   * so schema coercions and transformations do not change it.
    */
   inputSchema?: ZodType
 
@@ -118,7 +119,8 @@ export interface FieldComponentOptions<TProps extends object, TOutput = string, 
   /**
    * The shape of the submitted (post-normalise) value this component can legitimately
    * produce - a rendered text input can only ever submit a string. Anything failing the
-   * schema did not come from the rendered form.
+   * schema did not come from the rendered form. The submitted value is retained unchanged,
+   * so schema coercions and transformations do not change it.
    */
   inputSchema?: ZodType
 

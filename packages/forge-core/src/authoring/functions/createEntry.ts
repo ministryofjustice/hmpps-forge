@@ -1,4 +1,4 @@
-import type { ZodType } from 'zod'
+import { z, type ZodType } from 'zod'
 import { FunctionCallType, FunctionEntryType } from '../../shared/taxonomy'
 import { captureCallsite, stampCallsite } from '../builders/utils/captureCallsite'
 import { stampEntry } from '../builders/utils/stampEntry'
@@ -53,6 +53,14 @@ const ENTRY_TAGS: Record<FunctionCallType, FunctionEntryType> = {
   [FunctionCallType.EFFECT]: FunctionEntryType.EFFECT,
 }
 
+function compileSchema(schema: ZodType | undefined): ZodType | undefined {
+  if (schema === undefined) {
+    return undefined
+  }
+
+  return z.compile(schema)
+}
+
 export const createEntry = (
   functionType: FunctionCallType,
   helperName: string,
@@ -81,9 +89,9 @@ export const createEntry = (
 
   const entry = Object.assign(handle, {
     _forge: ENTRY_TAGS[functionType],
-    inputSchema,
-    argumentsSchema,
-    outputSchema,
+    inputSchema: compileSchema(inputSchema),
+    argumentsSchema: compileSchema(argumentsSchema),
+    outputSchema: compileSchema(outputSchema),
     factory,
   }) as EntryHandle
 

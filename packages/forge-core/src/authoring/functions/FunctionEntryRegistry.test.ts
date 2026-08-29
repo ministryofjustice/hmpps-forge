@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { condition } from './condition'
 import { finaliseBuilders } from '../builders/utils/finaliseBuilders'
 import { CONDITION_OUTPUT_SCHEMA } from '../registries/BaseFunctionRegistry'
@@ -8,6 +9,34 @@ import type { ConditionFunctionExpr } from '../types/expressions.type'
 
 describe('FunctionEntryRegistry', () => {
   describe('collectEmbedded()', () => {
+    it('should retain compiled schemas for definitions and request rows', () => {
+      // Arrange
+      const inputSchema = z.object({ value: z.string() })
+      const argumentsSchema = z.tuple([z.string()])
+      const outputSchema = z.boolean()
+      const entry = condition('Test.Compiled', {
+        inputSchema,
+        argumentsSchema,
+        outputSchema,
+        factory: () => () => true,
+      })
+      const tree = finaliseBuilders({ check: entry() })
+      const registry = new FunctionEntryRegistry()
+
+      // Act
+      registry.collectEmbedded(tree)
+      const definition = registry.getDefinitions()['Test.Compiled']
+      const row = registry.build()['Test.Compiled']
+
+      // Assert
+      expect(definition.inputSchema).not.toBe(inputSchema)
+      expect(definition.argumentsSchema).not.toBe(argumentsSchema)
+      expect(definition.outputSchema).not.toBe(outputSchema)
+      expect(row.inputSchema).toBe(definition.inputSchema)
+      expect(row.argumentsSchema).toBe(definition.argumentsSchema)
+      expect(row.outputSchema).toBe(definition.outputSchema)
+    })
+
     it('should register a stamped expression under its author name with registry row fields', () => {
       // Arrange
       const entry = condition('Test.MinLength', {

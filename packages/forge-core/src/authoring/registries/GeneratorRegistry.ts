@@ -1,7 +1,11 @@
 import type { Resolvable } from '../types/expressions.type'
 import type { ChainableGenerator } from '../builders/types'
 import { FunctionCallType } from '../../shared/taxonomy'
-import { BaseFunctionRegistry, type RegistrationOptions } from './BaseFunctionRegistry'
+import {
+  BaseFunctionRegistry,
+  type RegistrationOptions,
+  type ReturningRegistrationOptions,
+} from './BaseFunctionRegistry'
 
 /**
  * @deprecated Use `generator()` to define each generator as a standalone entry:
@@ -25,12 +29,12 @@ export default class GeneratorRegistry<TDeps = Record<string, never>> extends Ba
 
   register<TArgs extends any[]>(
     name: string,
-    options: RegistrationOptions & { factory: (deps: TDeps) => (...args: TArgs) => any },
+    options: ReturningRegistrationOptions & { factory: (deps: TDeps) => (...args: TArgs) => any },
   ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => ChainableGenerator
 
   register<TArgs extends any[]>(
     name: string,
-    options: RegistrationOptions,
+    options: ReturningRegistrationOptions,
     factory: (deps: TDeps) => (...args: TArgs) => any,
   ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => ChainableGenerator
 
@@ -40,7 +44,7 @@ export default class GeneratorRegistry<TDeps = Record<string, never>> extends Ba
   ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => ChainableGenerator
 
   register<TArgs extends any[]>(
-    options: RegistrationOptions,
+    options: ReturningRegistrationOptions,
     factory: (deps: TDeps) => (...args: TArgs) => any,
   ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => ChainableGenerator
 

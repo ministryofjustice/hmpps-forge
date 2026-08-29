@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import type { ComponentRegistryEntry } from '../../../components/types/components.type'
 import ForgeRegistryDuplicateError from '../../errors/ForgeRegistryDuplicateError'
 import ForgeRegistryValidationError from '../../errors/ForgeRegistryValidationError'
@@ -38,6 +39,32 @@ describe('ComponentRegistry', () => {
       expect(registry.has('radio')).toBe(true)
       expect(registry.has('checkbox')).toBe(true)
       expect(registry.size()).toBe(3)
+    })
+
+    it('should compile a component input schema when registering it', () => {
+      // Arrange
+      const inputSchema = z.object({ value: z.string() })
+      const component = { ...createTestComponent('text'), inputSchema }
+
+      // Act
+      registry.registerMany([component])
+
+      // Assert
+      expect(registry.get('text')?.inputSchema).not.toBe(inputSchema)
+      expect(registry.get('text')?.inputSchema?.safeParse({ value: 'Ada' }).success).toBe(true)
+    })
+
+    it('should retain only the input side of a transforming component schema', () => {
+      // Arrange
+      const inputSchema = z.object({ value: z.string().transform(value => value.length) })
+      const component = { ...createTestComponent('text'), inputSchema }
+
+      // Act
+      registry.registerMany([component])
+      const parsed = registry.get('text')?.inputSchema?.safeParse({ value: 'Ada' })
+
+      // Assert
+      expect(parsed).toEqual({ success: true, data: { value: 'Ada' } })
     })
 
     it('should handle empty array without throwing', () => {
