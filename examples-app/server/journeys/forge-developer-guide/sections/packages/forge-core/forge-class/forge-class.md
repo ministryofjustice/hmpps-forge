@@ -33,8 +33,6 @@ const forge = new Forge({ logger })
 | `logger` | `Logger \| Console` | `console` | Logger instance for Forge output. Compatible with pino, bunyan, or any logger with `info`, `error`, `warn`, and `debug` methods. |
 | `basePath` | `string` | `''` | Base path prefix for all routes. When set, all routes are mounted under this path and the route tree includes the prefix. |
 | `strictRegistration` | `boolean` | `true` | When `true`, registration errors throw immediately. When `false`, errors are logged and the failing journey is skipped. |
-| `disableBuiltInFunctions` | `boolean` | `false` | Skip registering built-in conditions, transformers, and effects. |
-| `disableBuiltInComponents` | `boolean` | `false` | Skip registering built-in components (HtmlBlock, CollectionBlock, TemplateWrapper). |
 | `debug` | `boolean` | `false` | Enable debug logging for compilation and evaluation. |
 | `instrumentation` | `ForgeInstrumentationOptions` | `{}` | Trace sinks for request and compilation diagnostics, plus an opt-in flag to capture generated source on compilation traces. |
 
@@ -105,6 +103,20 @@ function a journey uses arrives through its package:
 - Journeys that reference a variant or function by string only
   (a JSON journey, for example) list what they need on the
   package's `components` and `functions` properties.
+
+Core exports `builtInFunctions` and `builtInComponents` for a
+name-only package that needs the complete built-in sets:
+
+```typescript
+import { builtInFunctions, createForgePackage } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { builtInComponents } from '@ministryofjustice/hmpps-forge/core/components'
+
+createForgePackage({
+  journey: jsonJourney,
+  functions: [...builtInFunctions],
+  components: [...builtInComponents],
+})
+```
 
 `registerPackage()` returns `this`, so registrations chain.
 

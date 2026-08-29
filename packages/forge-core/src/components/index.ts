@@ -1,5 +1,5 @@
 export { component, isForgeComponent } from './component'
-export { coreComponents, HtmlBlock, CollectionBlock, TemplateWrapper, Fragment } from '../built-ins/components'
+export { builtInComponents, HtmlBlock, CollectionBlock, TemplateWrapper, Fragment } from '../built-ins/components'
 export type {
   ComponentOptions,
   ComponentRegistryEntry,

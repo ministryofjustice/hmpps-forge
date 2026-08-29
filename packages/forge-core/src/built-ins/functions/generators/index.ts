@@ -1,6 +1,5 @@
 import { DateGenerators } from './dateGenerators'
 import { FormatGenerators } from './formatGenerators'
-import { FunctionEntryRegistry } from '../../../authoring/functions/FunctionEntryRegistry'
 
 // TypeScript declaration emit drops JSDoc when it structurally expands a type
 // imported from another file, so the built .d.ts would lose every per-function
@@ -22,11 +21,4 @@ export const Generator: GeneratorGroups = {
   Date: DateGenerators,
 }
 
-export const GeneratorsRegistry = (() => {
-  const entryRegistry = new FunctionEntryRegistry()
-  const generatorGroups = [FormatGenerators, DateGenerators]
-
-  generatorGroups.forEach(entries => Object.values(entries).forEach(entry => entryRegistry.collectListed(entry)))
-
-  return entryRegistry.build()
-})()
+export const builtInGenerators = [...Object.values(FormatGenerators), ...Object.values(DateGenerators)] as const

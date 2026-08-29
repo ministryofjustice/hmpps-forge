@@ -10,8 +10,6 @@ import type { CompiledPackage } from './chassis/contracts/plans/compilationArtef
 import CompilationPipeline from './chassis/compilation/pipeline/CompilationPipeline'
 import ComponentRegistry from './chassis/registries/ComponentRegistry'
 import FunctionRegistry from './chassis/registries/FunctionRegistry'
-import ScopedComponentRegistry from './chassis/registries/ScopedComponentRegistry'
-import ScopedFunctionRegistry from './chassis/registries/ScopedFunctionRegistry'
 import ForgeTraceSinkDispatcher from './chassis/tracing/ForgeTraceSinkDispatcher'
 import PackageInstance from './PackageInstance'
 
@@ -21,36 +19,24 @@ describe('PackageInstance', () => {
       vi.restoreAllMocks()
     })
 
-    it('should use global dependencies when package has no scoped registrations', () => {
+    it('should create empty registries when the package has no registrations', () => {
       // Arrange
-      const functionRegistry = new FunctionRegistry()
-      const componentRegistry = new ComponentRegistry()
-
       mockCompilation()
 
       // Act
       const instance = new PackageInstance(createForgePackage({ journey: createJourneyDefinition() }), {
-        functionRegistry,
-        componentRegistry,
         instrumentation: new ForgeTraceSinkDispatcher(),
       })
 
       // Assert
-      expect(instance.getDependencies().functionRegistry).toBe(functionRegistry)
-      expect(instance.getDependencies().componentRegistry).toBe(componentRegistry)
+      expect(instance.getDependencies().functionRegistry).toBeInstanceOf(FunctionRegistry)
+      expect(instance.getDependencies().functionRegistry.size()).toBe(0)
+      expect(instance.getDependencies().componentRegistry).toBeInstanceOf(ComponentRegistry)
+      expect(instance.getDependencies().componentRegistry.size()).toBe(0)
     })
 
-    it('should scope package functions with provided dependencies', () => {
+    it('should build package functions with provided dependencies', () => {
       // Arrange
-      const functionRegistry = new FunctionRegistry()
-      const componentRegistry = new ComponentRegistry()
-
-      functionRegistry.register({
-        GlobalFunction: {
-          name: 'GlobalFunction',
-          evaluate: () => true,
-        },
-      })
       mockCompilation()
 
       const packageFunctions = new TransformerRegistry<{ prefix: string }>()
@@ -63,30 +49,22 @@ describe('PackageInstance', () => {
           functions: packageFunctions,
         }),
         {
-          functionRegistry,
-          componentRegistry,
           functionDependencies: { prefix: 'case-' },
           instrumentation: new ForgeTraceSinkDispatcher(),
         },
       )
 
       // Assert
-      const scopedFunctionRegistry = instance.getDependencies().functionRegistry
+      const functionRegistry = instance.getDependencies().functionRegistry
 
-      expect(scopedFunctionRegistry).toBeInstanceOf(ScopedFunctionRegistry)
-      expect(scopedFunctionRegistry.has('GlobalFunction')).toBe(true)
-      expect(scopedFunctionRegistry.get('WithPrefix')?.evaluate('123')).toBe('case-123')
-      expect(functionRegistry.has('WithPrefix')).toBe(false)
+      expect(functionRegistry).toBeInstanceOf(FunctionRegistry)
+      expect(functionRegistry.get('WithPrefix')?.evaluate('123')).toBe('case-123')
     })
 
-    it('should scope package components without registering them globally', () => {
+    it('should register package components', () => {
       // Arrange
-      const functionRegistry = new FunctionRegistry()
-      const componentRegistry = new ComponentRegistry()
-      const globalComponent = component<object>('global-component', { render: () => '<div>Global</div>' })
       const packageComponent = component<object>('package-component', { render: () => '<div>Package</div>' })
 
-      componentRegistry.registerMany([globalComponent])
       mockCompilation()
 
       // Act
@@ -95,70 +73,56 @@ describe('PackageInstance', () => {
           journey: createJourneyDefinition(),
           components: [packageComponent],
         }),
-        { functionRegistry, componentRegistry, instrumentation: new ForgeTraceSinkDispatcher() },
+        { instrumentation: new ForgeTraceSinkDispatcher() },
       )
 
       // Assert
-      const scopedComponentRegistry = instance.getDependencies().componentRegistry
+      const componentRegistry = instance.getDependencies().componentRegistry
 
-      expect(scopedComponentRegistry).toBeInstanceOf(ScopedComponentRegistry)
-      expect(scopedComponentRegistry.get('global-component')).toBe(globalComponent)
-      expect(scopedComponentRegistry.get('package-component')).toBe(packageComponent)
-      expect(componentRegistry.has('package-component')).toBe(false)
+      expect(componentRegistry).toBeInstanceOf(ComponentRegistry)
+      expect(componentRegistry.get('package-component')).toBe(packageComponent)
     })
 
-    it('should scope an embedded component to the registering package', () => {
+    it('should register an embedded component', () => {
       // Arrange
-      const componentRegistry = new ComponentRegistry()
-
       // Act
       const instance = new PackageInstance(
         createForgePackage({ journey: journeyWithBlocks([TestCard({ title: 'Hello' })]) }),
-        {
-          functionRegistry: new FunctionRegistry(),
-          componentRegistry,
-          instrumentation: new ForgeTraceSinkDispatcher(),
-        },
+        { instrumentation: new ForgeTraceSinkDispatcher() },
       )
 
       // Assert
       expect(instance.getDependencies().componentRegistry.has('test-card')).toBe(true)
-      expect(componentRegistry.has('test-card')).toBe(false)
     })
 
-    it('should scope embedded function entries to the registering package', () => {
+    it('should register an embedded function entry', () => {
       // Arrange
       const Scoped = condition('Test.Scoped', { factory: () => () => true })
-      const functionRegistry = new FunctionRegistry()
-      const componentRegistry = new ComponentRegistry()
-
-      componentRegistry.registerMany([testInput])
 
       // Act
       const instance = new PackageInstance(
-        createForgePackage({ journey: journeyWithBlocks([fieldWithRule('crn', Self().match(Scoped()), 'Nope')]) }),
-        { functionRegistry, componentRegistry, instrumentation: new ForgeTraceSinkDispatcher() },
+        createForgePackage({
+          journey: journeyWithBlocks([fieldWithRule('crn', Self().match(Scoped()), 'Nope')]),
+          components: [testInput],
+        }),
+        { instrumentation: new ForgeTraceSinkDispatcher() },
       )
 
       // Assert
       expect(instance.getDependencies().functionRegistry.has('Test.Scoped')).toBe(true)
-      expect(functionRegistry.has('Test.Scoped')).toBe(false)
     })
 
     it('should register an async embedded entry evaluator', async () => {
       // Arrange
       const IsOkAsync = condition('Test.IsOkAsync', { factory: () => async (value: unknown) => value === 'ok' })
-      const functionRegistry = new FunctionRegistry()
-      const componentRegistry = new ComponentRegistry()
-
-      componentRegistry.registerMany([testInput])
 
       // Act
       const instance = new PackageInstance(
         createForgePackage({
           journey: journeyWithBlocks([fieldWithRule('status', Self().match(IsOkAsync()), 'Not ok')]),
+          components: [testInput],
         }),
-        { functionRegistry, componentRegistry, instrumentation: new ForgeTraceSinkDispatcher() },
+        { instrumentation: new ForgeTraceSinkDispatcher() },
       )
 
       // Assert

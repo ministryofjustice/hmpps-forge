@@ -9,6 +9,7 @@ import {
   step,
   submit,
   transformer,
+  builtInFunctions,
   FunctionCallType,
   Self,
 } from '../../../../src/authoring'
@@ -503,22 +504,35 @@ describe('function entry registration contracts', () => {
       }
     })
 
-    it('should reject a built-in condition reference when built-in functions are disabled', () => {
+    it('should register built-in functions explicitly for name-only references', () => {
       // Arrange
       const buildPackage = () =>
         createForgePackage({
           journey: journeyWithFields([fieldWithRule('crn', Self().match(nameOnlyReference('Equals')), 'Wrong value')]),
           components: [testInput],
+          functions: [...builtInFunctions],
         })
 
       // Act
-      const act = () => new ForgeTestHarness({ disableBuiltInFunctions: true }).registerPackage(buildPackage())
+      const act = () => new ForgeTestHarness().registerPackage(buildPackage())
+
+      // Assert
+      expect(act).not.toThrow()
+    })
+
+    it('should reject an unlisted built-in function name', () => {
+      // Arrange
+      const pkg = createForgePackage({
+        journey: journeyWithFields([fieldWithRule('crn', Self().match(nameOnlyReference('Equals')), 'Wrong value')]),
+        components: [testInput],
+      })
+
+      // Act
+      const act = () => new ForgeTestHarness().registerPackage(pkg)
 
       // Assert
       expect(act).toThrow(ForgeRegistrationError)
       expect(act).toThrow('Function "Equals" (function.call.condition) is not registered')
-      // Control: the same package registers when built-ins stay enabled.
-      expect(() => new ForgeTestHarness().registerPackage(buildPackage())).not.toThrow()
     })
   })
 

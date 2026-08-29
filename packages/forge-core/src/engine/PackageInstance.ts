@@ -2,8 +2,6 @@ import type { JourneyDefinition } from '../authoring/types/structures.type'
 import type { ForgePackageRegistration, PackageDependencies, NodeId } from './chassis/contracts/ast/engine.type'
 import ComponentRegistry from './chassis/registries/ComponentRegistry'
 import FunctionRegistry from './chassis/registries/FunctionRegistry'
-import ScopedComponentRegistry from './chassis/registries/ScopedComponentRegistry'
-import ScopedFunctionRegistry from './chassis/registries/ScopedFunctionRegistry'
 import CompilationPipeline from './chassis/compilation/pipeline/CompilationPipeline'
 import type { ForgeInstrumentation } from './chassis/tracing/ForgeTraceSinkDispatcher'
 
@@ -16,8 +14,6 @@ import type { JourneyRouteIndex, StepRouteIndex } from './concerns/route/contrac
 import ForgeInternalError from './errors/ForgeInternalError'
 
 export interface PackageInstanceOptions<TDeps> {
-  readonly functionRegistry: FunctionRegistry
-  readonly componentRegistry: ComponentRegistry
   readonly functionDependencies?: TDeps
   readonly instrumentation: ForgeInstrumentation
 }
@@ -32,7 +28,7 @@ export default class PackageInstance {
   constructor(pkg: ForgePackageRegistration<any>, options: PackageInstanceOptions<any>) {
     this.dependencies = {
       functionRegistry: PackageInstance.resolveFunctionRegistry(pkg, options),
-      componentRegistry: PackageInstance.resolveComponentRegistry(pkg, options.componentRegistry),
+      componentRegistry: PackageInstance.resolveComponentRegistry(pkg),
     }
 
     const pipeline = new CompilationPipeline({
@@ -89,38 +85,33 @@ export default class PackageInstance {
     pkg: ForgePackageRegistration<any>,
     options: PackageInstanceOptions<any>,
   ): FunctionRegistry {
+    const functionRegistry = new FunctionRegistry()
+
     if (!pkg.functions) {
-      return options.functionRegistry
+      return functionRegistry
     }
 
     const resolvedDeps = options.functionDependencies ?? {}
-    const scopedFunctionRegistry = new ScopedFunctionRegistry(options.functionRegistry)
-
     const { functions } = pkg
 
     if (Array.isArray(functions)) {
       functions.forEach(registry => {
-        scopedFunctionRegistry.register(registry.build(resolvedDeps))
+        functionRegistry.register(registry.build(resolvedDeps))
       })
     } else {
-      scopedFunctionRegistry.register(functions.build(resolvedDeps))
+      functionRegistry.register(functions.build(resolvedDeps))
     }
 
-    return scopedFunctionRegistry
+    return functionRegistry
   }
 
-  private static resolveComponentRegistry(
-    pkg: ForgePackageRegistration<any>,
-    componentRegistry: ComponentRegistry,
-  ): ComponentRegistry {
-    if (!pkg.components) {
-      return componentRegistry
+  private static resolveComponentRegistry(pkg: ForgePackageRegistration<any>): ComponentRegistry {
+    const componentRegistry = new ComponentRegistry()
+
+    if (pkg.components) {
+      componentRegistry.registerMany(pkg.components)
     }
 
-    const scopedComponentRegistry = new ScopedComponentRegistry(componentRegistry)
-
-    scopedComponentRegistry.registerMany(pkg.components)
-
-    return scopedComponentRegistry
+    return componentRegistry
   }
 }

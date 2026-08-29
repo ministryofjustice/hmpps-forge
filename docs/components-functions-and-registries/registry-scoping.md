@@ -4,9 +4,8 @@
 
 Registry scoping controls which functions and components a journey can see.
 
-Forge has built-in registries for functions and components. Package
-registration can create scoped registries for one package. A scoped registry
-can use package entries first, then fall back to the built-in registry.
+Every registered package owns its function and component registries. Forge has
+no global extension registries and does not install built-ins automatically.
 
 This lets packages bring their own functions and components without mutating
 the extension environment for every other journey.
@@ -32,52 +31,42 @@ the journey lifecycle:
 The important point is that validation, compilation, runtime, and rendering all
 use the same scoped view of extensions for a journey.
 
-## Built-in registries
+## Built-in entries
 
-A `Forge` instance owns one built-in function registry and one built-in
-component registry.
+Built-in functions and components are ordinary entries. A TypeScript journey
+registers an entry automatically when it uses its authoring handle.
 
-Built-in functions and components are visible to every journey registered with
-that `Forge` instance. They are registered at construction unless Forge is
-configured to exclude them (`disableBuiltInFunctions`,
-`disableBuiltInComponents`).
+Serialized and other name-only journeys cannot carry those handles. They can
+opt into the complete built-in sets explicitly:
 
-These registries are not open to application code. Everything an application
-adds arrives through a package - self-registered by use in the journey, or
-listed on the package's `functions` and `components` properties.
+```typescript
+import { builtInFunctions, createForgePackage } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { builtInComponents } from '@ministryofjustice/hmpps-forge/core/components'
+
+createForgePackage({
+  journey: serializedJourney,
+  functions: [...builtInFunctions],
+  components: [...builtInComponents],
+})
+```
+
+Packages can instead list only the individual entries they reference.
 
 ## Package-scoped registries
 
 A package can include its own functions, components, and journey definition.
 
-When package functions are present, Forge creates a `ScopedFunctionRegistry`.
-The package functions are registered into that scoped registry.
+Forge creates a `FunctionRegistry` for each package and registers the package's
+functions into it.
 
-When package components are present, Forge creates a `ScopedComponentRegistry`.
-The package components are registered into that scoped registry.
+Forge creates a `ComponentRegistry` for each package and registers the package's
+components into it.
 
 The journey is then registered with those scoped registries as part of its
 dependencies.
 
 This gives the package a local extension environment for validation,
 compilation, runtime evaluation, and rendering.
-
-## Fallback lookup
-
-Scoped registries use fallback lookup.
-
-For functions, lookup checks the scoped function registry first. If the function
-name is not found there, lookup falls back to the parent function registry.
-
-For components, lookup checks the scoped component registry first. If the
-variant is not found there, lookup falls back to the parent component registry.
-
-This means package entries take precedence over built-in entries with the same
-name or variant, while still inheriting the built-in registry.
-
-The same precedence applies when all entries are read from a scoped registry.
-Parent entries are read first, then scoped entries replace matching names or
-variants.
 
 ## Isolation between packages
 
@@ -98,16 +87,13 @@ them.
 
 Component scoping affects framework rendering as well as validation.
 
-When package components are registered, the package's `ScopedComponentRegistry`
+When package components are registered, the package's `ComponentRegistry`
 is stored in the package's dependencies. During registration `MountRegistry`
 copies it onto each route's `MountedNode` as `componentRegistry`, and render
 time resolves component variants through that per-route registry.
 
-Without this, validation could see a scoped component while rendering still
-used the built-in component registry.
-
 The framework adapter is constructed once and is never passed or rebuilt with a
-component registry. Each route renders through the scoped component registry on
+component registry. Each route renders through the package component registry on
 its `MountedNode`, derived from the package's dependencies, so there is no separate
 adapter-held registry to reconcile.
 
@@ -131,7 +117,7 @@ Important failure cases include:
 
 - a package function entry is malformed
 - a package component entry is malformed
-- a package registers duplicate names or variants inside its scoped registry
+- a package registers duplicate names or variants inside its registry
 - a journey references a function not visible in its active function registry
 - a journey references a variant not visible in its active component registry
 
@@ -142,16 +128,13 @@ registered function or component renderer.
 
 ## Rules to preserve
 
-Built-in extensions should be visible to all journeys registered with the same
-`Forge` instance.
-
 Package-scoped extensions should be visible to the package journey they are
 registered with.
 
 Package-scoped extensions should not become visible to unrelated journeys.
 
-Scoped registries should prefer local entries, then fall back to built-in
-entries.
+Built-in entries should be registered through the same package surface as every
+other extension.
 
 Validation, compilation, runtime evaluation, and rendering should use the same
 scoped view of functions and components for a journey.

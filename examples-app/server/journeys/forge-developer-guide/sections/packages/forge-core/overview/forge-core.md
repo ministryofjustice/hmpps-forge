@@ -50,11 +50,18 @@ import {
 ### `@ministryofjustice/hmpps-forge/core/components`
 
 The built-in component set that ships with core: `HtmlBlock`,
-`CollectionBlock`, and `TemplateWrapper`. These are available in
-every journey without registering a component library.
+`CollectionBlock`, `TemplateWrapper`, and `Fragment`. Calling one in a
+TypeScript journey registers it automatically. Name-only journeys can
+explicitly list `builtInComponents` on their package.
 
 ```typescript
-import { HtmlBlock, CollectionBlock, TemplateWrapper } from '@ministryofjustice/hmpps-forge/core/components'
+import {
+  builtInComponents,
+  HtmlBlock,
+  CollectionBlock,
+  TemplateWrapper,
+  Fragment,
+} from '@ministryofjustice/hmpps-forge/core/components'
 ```
 
 ### `@ministryofjustice/hmpps-forge/core/framework`

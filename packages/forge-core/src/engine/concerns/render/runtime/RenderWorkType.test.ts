@@ -9,7 +9,7 @@ import type {
   ResolvedBlock,
 } from '../../../../framework/types/rendering.type'
 import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
-import { coreComponents } from '../../../../built-ins/components'
+import { builtInComponents } from '../../../../built-ins/components'
 import { RENDER_BLOCK_BRAND } from '../contracts/renderBlock.brand'
 import WorkContext from '../../../chassis/work/WorkContext'
 import WorkExecutor from '../../../chassis/work/WorkExecutor'
@@ -260,7 +260,7 @@ describe('Render work handlers', () => {
       assemblePage: (_context, renderedBlocks) => renderedBlocks.join(''),
     }
     const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([...coreComponents])
+    componentRegistry.registerMany([...builtInComponents])
     componentRegistry.registerMany([component<{ text?: string }>('child', { render: props => `<p>${props.text}</p>` })])
     const fragment = createRenderBlock('fragment', {
       blocks: [

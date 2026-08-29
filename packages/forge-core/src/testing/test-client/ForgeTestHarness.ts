@@ -17,8 +17,6 @@ export interface ForgeTestHarnessOptions {
   readonly maxIteratorIterations?: number
   readonly strictRegistration?: boolean
   readonly logger?: Logger | Console
-  readonly disableBuiltInFunctions?: boolean
-  readonly disableBuiltInComponents?: boolean
   readonly basePath?: string
 }
 
@@ -47,8 +45,6 @@ export class ForgeTestHarness {
       instrumentation: options.instrumentation,
       maxIteratorIterations: options.maxIteratorIterations,
       strictRegistration: options.strictRegistration ?? true,
-      disableBuiltInFunctions: options.disableBuiltInFunctions ?? false,
-      disableBuiltInComponents: options.disableBuiltInComponents ?? false,
       basePath: options.basePath ?? '',
     })
   }

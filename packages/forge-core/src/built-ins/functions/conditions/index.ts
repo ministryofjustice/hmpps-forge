@@ -1,6 +1,5 @@
 import { GeneralConditions } from './generalConditions'
 import { StringConditions } from './stringConditions'
-import { FunctionEntryRegistry } from '../../../authoring/functions/FunctionEntryRegistry'
 import { AddressConditions } from './addressConditions'
 import { EmailConditions } from './emailConditions'
 import { DateConditions } from './dateConditions'
@@ -67,21 +66,14 @@ export const Condition: typeof GeneralConditions & ConditionGroups = {
   Object: ObjectConditions,
 }
 
-export const ConditionsRegistry = (() => {
-  const entryRegistry = new FunctionEntryRegistry()
-  const conditionGroups = [
-    GeneralConditions,
-    StringConditions,
-    EmailConditions,
-    PhoneConditions,
-    AddressConditions,
-    DateConditions,
-    NumberConditions,
-    ArrayConditions,
-    ObjectConditions,
-  ]
-
-  conditionGroups.forEach(entries => Object.values(entries).forEach(entry => entryRegistry.collectListed(entry)))
-
-  return entryRegistry.build()
-})()
+export const builtInConditions = [
+  ...Object.values(GeneralConditions),
+  ...Object.values(StringConditions),
+  ...Object.values(EmailConditions),
+  ...Object.values(PhoneConditions),
+  ...Object.values(AddressConditions),
+  ...Object.values(DateConditions),
+  ...Object.values(NumberConditions),
+  ...Object.values(ArrayConditions),
+  ...Object.values(ObjectConditions),
+] as const

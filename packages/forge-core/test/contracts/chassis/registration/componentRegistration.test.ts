@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createForgePackage } from '../../../../src/authoring'
-import { component } from '../../../../src/components'
+import { builtInComponents, component } from '../../../../src/components'
 import { HtmlBlock } from '../../../../src/built-ins/components/html'
 import { ForgeTestHarness } from '../../../../src/testing'
 import type { ForgeRenderer } from '../../../../src/framework/types/rendering.type'
@@ -97,7 +97,7 @@ describe('component registration contracts', () => {
     })
   })
 
-  describe('registry scoping', () => {
+  describe('built-in entries', () => {
     /** A JSON journey using the built-in `html` variant, so variant resolution is observable. */
     const htmlJourney = () => JSON.stringify(journeyWithBlocks([HtmlBlock({ content: '<b>built-in</b>' })]))
 
@@ -107,11 +107,10 @@ describe('component registration contracts', () => {
       assemblePage: (_context, renderedBlocks) => renderedBlocks.join(''),
     }
 
-    it('should prefer a journey component when it shares a variant with a built-in', async () => {
+    it('should render an explicitly registered built-in component from a name-only journey', async () => {
       // Arrange
-      const ShadowHtml = component<HtmlBlock>('html', { render: () => 'SHADOWED' })
       const client = new ForgeTestHarness()
-        .registerPackage(createForgePackage({ journey: htmlJourney(), components: [ShadowHtml] }))
+        .registerPackage(createForgePackage({ journey: htmlJourney(), components: [...builtInComponents] }))
         .createClient(passThroughRenderer)
 
       // Act
@@ -121,22 +120,8 @@ describe('component registration contracts', () => {
       expect(result.type).toBe('render')
 
       if (result.type === 'render') {
-        expect(result.output).toBe('SHADOWED')
+        expect(result.output).toBe('<b>built-in</b>')
       }
-    })
-
-    it('should reject a built-in component variant when built-in components are disabled', () => {
-      // Act
-      const act = () =>
-        new ForgeTestHarness({ disableBuiltInComponents: true }).registerPackage(
-          createForgePackage({ journey: htmlJourney() }),
-        )
-
-      // Assert
-      expect(act).toThrow(ForgeRegistrationError)
-      expect(act).toThrow('Component variant "html" is not registered')
-      // Control: the same journey registers when built-ins stay enabled.
-      expect(() => new ForgeTestHarness().registerPackage(createForgePackage({ journey: htmlJourney() }))).not.toThrow()
     })
   })
 })

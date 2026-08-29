@@ -89,12 +89,20 @@ enough.
   asynchronous application code ([#274])
 - `Transformer.Array.Compact()` - removes `null` and `undefined` elements from an
   array, keeping other falsy values like `0` and `""` ([#276])
+- `builtInFunctions` and `builtInComponents` - explicit entry arrays for serialized
+  or other name-only packages that want Forge's complete built-in sets
 - `ForgeTestHarness` options now cover engine configuration - `logger`,
-  `strictRegistration`, `basePath`, `disableBuiltInFunctions`, and
-  `disableBuiltInComponents` pass through to the underlying `Forge`, alongside the
-  existing `instrumentation` and `maxIteratorIterations` ([#277])
+  `strictRegistration`, and `basePath` pass through to the underlying `Forge`,
+  alongside the existing `instrumentation` and `maxIteratorIterations` ([#277])
 
 ### Changed
+
+- Forge no longer registers built-in functions or components globally. Every package
+  owns ordinary function and component registries; TypeScript journeys collect the
+  entries they use, while name-only packages list entries explicitly.
+- `disableBuiltInFunctions`, `disableBuiltInComponents`, `ConditionsRegistry`,
+  `TransformersRegistry`, `GeneratorsRegistry`, and `coreComponents` have been removed
+  with the global built-in registration path.
 
 - Authored nodes and builders now use one Forge-managed `_forge` discriminator with
   hierarchical taxonomy values, replacing the previous collection of broad types,

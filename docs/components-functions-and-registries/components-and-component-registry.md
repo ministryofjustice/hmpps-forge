@@ -122,10 +122,14 @@ registry entry shape and the uniqueness of variants.
 
 ## Built-in components
 
-`forge-core` registers a small set of built-in components.
+`forge-core` exports a small set of built-in components.
 
 These cover core rendering primitives such as HTML passthrough, collection
 blocks, and template wrappers.
+
+Calling a built-in component in a TypeScript journey registers it with that
+package. Name-only journeys can list individual entries or spread
+`builtInComponents` into the package's `components` array.
 
 Design-system components live outside the core. GOV.UK and MOJ component
 packages provide their own variants and renderers, and those components are
