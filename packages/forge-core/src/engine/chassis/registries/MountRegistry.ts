@@ -16,7 +16,7 @@ import type {
   CompiledValidationFunction,
 } from '../contracts/compiled/compiledFunctions.type'
 import type { CompiledFieldInventoryFunction } from '../../concerns/answer-cleardown/contracts/compiledFieldInventory.type'
-import type FunctionRegistry from './FunctionRegistry'
+import type { FunctionRegistryBuilder } from '../../../authoring/types/functions.type'
 import type { ComponentRegistry } from '../../../framework/types/adapter.type'
 import {
   createRouteTreeIndex,
@@ -38,7 +38,8 @@ interface MountedNodeBase {
   readonly path: string
   readonly templatePath: string
   readonly basePath: string
-  readonly functionRegistry: FunctionRegistry
+  readonly functionBuilders: readonly FunctionRegistryBuilder[]
+  readonly packageDependencies: unknown
   readonly componentRegistry: ComponentRegistry
   readonly compiledReachabilityFacts: CompiledReachabilityFactsFunction
   readonly compiledReachabilityState: CompiledReachabilityStateFunction
@@ -78,7 +79,7 @@ export default class MountRegistry {
   }
 
   register(packageInstance: PackageInstance): void {
-    const { functionRegistry, componentRegistry } = packageInstance.getDependencies()
+    const { functionBuilders, packageDependencies, componentRegistry } = packageInstance.getDependencies()
     const stepRouteIndex = packageInstance.getStepRouteIndex()
     const journeyRouteIndex = packageInstance.getJourneyRouteIndex()
     const journeyCode = packageInstance.getJourneyCode()
@@ -89,14 +90,23 @@ export default class MountRegistry {
       journeyRouteIndex,
     })
 
-    this.buildStepNodes(packageInstance, stepContexts, stepRouteIndex, journeyCode, functionRegistry, componentRegistry)
+    this.buildStepNodes(
+      packageInstance,
+      stepContexts,
+      stepRouteIndex,
+      journeyCode,
+      functionBuilders,
+      packageDependencies,
+      componentRegistry,
+    )
     this.buildJourneyNodes(
       packageInstance,
       journeyContexts,
       journeyRouteIndex,
       catalogsByBasePath,
       journeyCode,
-      functionRegistry,
+      functionBuilders,
+      packageDependencies,
       componentRegistry,
     )
   }
@@ -126,7 +136,8 @@ export default class MountRegistry {
     stepContexts: StepRouteContext[],
     stepRouteIndex: StepRouteIndex,
     journeyCode: string,
-    functionRegistry: FunctionRegistry,
+    functionBuilders: readonly FunctionRegistryBuilder[],
+    packageDependencies: unknown,
     componentRegistry: ComponentRegistry,
   ): void {
     stepContexts.forEach(ctx => {
@@ -142,7 +153,8 @@ export default class MountRegistry {
         path: mountInfo.path,
         templatePath: ctx.routeTemplatePath,
         basePath: ctx.journeyBasePath,
-        functionRegistry,
+        functionBuilders,
+        packageDependencies,
         componentRegistry,
         compiledReachabilityFacts: compiledStep.compiledReachabilityFacts,
         compiledReachabilityState: compiledStep.compiledReachabilityState,
@@ -168,7 +180,8 @@ export default class MountRegistry {
     journeyRouteIndex: JourneyRouteIndex,
     catalogsByBasePath: Map<string, JourneyRouteTemplateCatalog>,
     journeyCode: string,
-    functionRegistry: FunctionRegistry,
+    functionBuilders: readonly FunctionRegistryBuilder[],
+    packageDependencies: unknown,
     componentRegistry: ComponentRegistry,
   ): void {
     journeyContexts.forEach(({ journeyId, templatePath }) => {
@@ -190,7 +203,8 @@ export default class MountRegistry {
         path: mountInfo.path,
         templatePath,
         basePath: templatePath,
-        functionRegistry,
+        functionBuilders,
+        packageDependencies,
         componentRegistry,
         compiledReachabilityFacts: compiledJourney.compiledReachabilityFacts,
         compiledReachabilityState: compiledJourney.compiledReachabilityState,

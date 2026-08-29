@@ -259,12 +259,13 @@ function valModel(
 
 describe('StepValidationCompiler', () => {
   let compiler: StepValidationCompiler
+  const compilerFunctionRegistry = new FunctionRegistry()
   const dependencies: CompilationDependencies = {
-    functionRegistry: new FunctionRegistry(),
+    functionRegistry: compilerFunctionRegistry,
     componentRegistry: new ComponentRegistry(),
   }
 
-  dependencies.functionRegistry.register({
+  compilerFunctionRegistry.register({
     equals: { name: 'equals', evaluate: () => undefined },
     FormatString: { name: 'FormatString', evaluate: () => undefined },
     hasMaxLength: { name: 'hasMaxLength', evaluate: () => undefined },

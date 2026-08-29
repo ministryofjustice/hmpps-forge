@@ -95,9 +95,9 @@ Forge uses registered functions for conditions, transformers, generators, and
 effects. In the definition, these appear as typed function expressions with a
 name and arguments.
 
-The function registry maps each name to an evaluator. The registry entry also
-records whether the function is asynchronous, which lets generated functions
-preserve the correct evaluation flow.
+The package definition catalog maps each name to unbound function metadata.
+Context preparation builds a request-owned registry mapping those names to
+evaluators. Generated functions inspect each evaluator result for thenability.
 
 The engine does not inline application function code into generated source.
 Generated code keeps the decision about when a function should run. The
@@ -118,8 +118,8 @@ called. It does not prescribe what the effect does.
 
 Registries are lookup and validation boundaries.
 
-`FunctionRegistry` stores function entries by name. A function entry needs a
-name, an evaluator, and async metadata.
+`FunctionDefinitionCatalog` stores unbound function metadata by name during
+registration. `FunctionRegistry` stores request-bound evaluators by name.
 
 `ComponentRegistry` stores component entries by variant. A component entry
 needs a variant and a renderer.
@@ -127,9 +127,9 @@ needs a variant and a renderer.
 Registration fails if an entry is missing the required shape or if the same
 name or variant is registered twice in the same registry.
 
-Validation uses the registries to reject journey definitions that reference
-unknown function names or component variants. Runtime and rendering use the
-same registries to resolve the implementations.
+Validation uses the definition catalog and component registry to reject unknown
+names or variants. Runtime uses the request registry to resolve function
+implementations, while rendering uses the package component registry.
 
 This means a registry is not just a container. It defines the extension
 environment that a journey is allowed to use.
@@ -191,8 +191,8 @@ calling an application service or a component renderer throwing.
 The component registry doc explains component entries, block variants, built-in
 components, and render-facing contracts in more detail.
 
-The function registry doc explains function entries, sync and async metadata,
-function families, and generated-function call sites.
+The function registry doc explains function definitions, request-owned
+evaluators, thenable results, function families, and generated-function call sites.
 
 The registry scoping doc explains package registries, explicit built-in
 registration, and isolation rules.

@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest'
 import type { NodeId } from '../../../chassis/contracts/ast/ast.type'
 import type { CompiledValidationFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
-import type { RequestDependencies } from '../../../chassis/runtime/pipeline/RequestState'
 import type { RuntimeContext } from '../../../chassis/contracts/runtime/evaluationState.type'
 import { createTestRequestState } from '../../../chassis/runtime/pipeline/testing-helpers/requestStateTestHelpers'
 import type { StepValidityResult } from '../contracts/stepValidityResult.type'
@@ -11,7 +10,9 @@ import WorkExecutor from '../../../chassis/work/WorkExecutor'
 import { createReachabilityValiditiesTask } from './ReachabilityValiditiesWorkHandler'
 import { createStepValidationTask } from './StepValidationWorkHandler'
 
-function createRequestContext(overrides: Partial<RequestDependencies> = {}): WorkContext<RequestState> {
+function createRequestContext(
+  overrides: NonNullable<Parameters<typeof createTestRequestState>[1]> = {},
+): WorkContext<RequestState> {
   const context = { evaluation: {}, domain: { data: {}, answers: {} }, request: {} } as RuntimeContext
 
   return new WorkContext(createTestRequestState(context, overrides))

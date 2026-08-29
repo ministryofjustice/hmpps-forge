@@ -1,5 +1,4 @@
 import ComponentRegistry from '../../registries/ComponentRegistry'
-import FunctionRegistry from '../../registries/FunctionRegistry'
 import type { Logger } from '../../../../framework/types/adapter.type'
 import type { RegisteredForgePackage } from '../../../../authoring/types/package.type'
 import type { FunctionRegistryBuilder } from '../../../../authoring/types/functions.type'
@@ -19,8 +18,9 @@ export interface ForgeDependencies {
 }
 
 export interface PackageDependencies {
-  functionRegistry: FunctionRegistry
-  componentRegistry: ComponentRegistry
+  readonly functionBuilders: readonly FunctionRegistryBuilder[]
+  readonly packageDependencies: unknown
+  readonly componentRegistry: ComponentRegistry
 }
 
 export type ForgePackageFunctions<TDeps> = FunctionRegistryBuilder<TDeps> | FunctionRegistryBuilder<TDeps>[]

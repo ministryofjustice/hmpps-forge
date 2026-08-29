@@ -30,7 +30,7 @@ export const REQUEST_ACCESS_WORK_HANDLER: WorkHandler<'request.access', RequestA
   async begin(ctx: WorkContextContract<RequestState, RequestAccessWorkProps>) {
     const hookLifecycleContext = buildCompiledAccessHookLifecycleContext(
       ctx.state.context,
-      ctx.state.dependencies.functionRegistry,
+      ctx.state.functionRegistry,
       ctx.state.dependencies.responseBindings,
     )
 

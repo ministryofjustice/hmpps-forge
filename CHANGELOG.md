@@ -97,6 +97,10 @@ enough.
 
 ### Changed
 
+- Function factories now bind their package dependencies during each request's
+  context-preparation phase instead of during package registration. Registration
+  validates and compiles against unbound function metadata, while every request gets
+  an isolated ordinary function registry.
 - Forge no longer registers built-in functions or components globally. Every package
   owns ordinary function and component registries; TypeScript journeys collect the
   entries they use, while name-only packages list entries explicitly ([#284]).

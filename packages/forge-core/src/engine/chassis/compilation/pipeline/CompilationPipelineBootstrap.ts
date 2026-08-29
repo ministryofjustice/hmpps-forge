@@ -1,6 +1,6 @@
 import type { JourneyDefinition } from '../../../../authoring/types/structures.type'
-import type FunctionRegistry from '../../registries/FunctionRegistry'
 import type ComponentRegistry from '../../registries/ComponentRegistry'
+import type { FunctionDefinitionLookup } from '../../../../authoring/types/functions.type'
 import type { WorkTask } from '../../contracts/work/work.type'
 import CompilationState from './CompilationState'
 import { createCompilationPipelineTask } from './CompilationPipelineWorkHandler'
@@ -13,7 +13,7 @@ import { createCompilationRoutesTask } from '../../../concerns/route/analysis/Co
 
 export interface CompilationPipelineConfig {
   readonly journeyDefinition: JourneyDefinition
-  readonly functionRegistry: FunctionRegistry
+  readonly functionRegistry: FunctionDefinitionLookup
   readonly componentRegistry: ComponentRegistry
 }
 

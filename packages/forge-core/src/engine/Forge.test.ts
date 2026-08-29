@@ -2,7 +2,6 @@ import type { MockInstance } from 'vitest'
 import { component } from '../components/component'
 import { createForgePackage } from '../authoring/builders'
 import type ComponentRegistry from './chassis/registries/ComponentRegistry'
-import type FunctionRegistry from './chassis/registries/FunctionRegistry'
 import MountRegistry from './chassis/registries/MountRegistry'
 import type { MountedNode } from './chassis/registries/MountRegistry'
 import RequestPipeline from './chassis/runtime/pipeline/RequestPipeline'
@@ -36,7 +35,8 @@ describe('Forge', () => {
 
     mockPackageDependencies = {
       componentRegistry: {} as ComponentRegistry,
-      functionRegistry: {} as FunctionRegistry,
+      functionBuilders: [],
+      packageDependencies: {},
     }
 
     mockPackageInstance = {
@@ -106,7 +106,7 @@ describe('Forge', () => {
     it('should create and register a package instance', () => {
       // Arrange
       const mockComponent = component<object>('pkg-comp', { render: () => '<div />' })
-      const functionDependencies = { prefix: 'case-' }
+      const packageDependencies = { prefix: 'case-' }
       const pkg = createForgePackage<{ prefix: string }>({
         journey: mockJourneyDef,
         components: [mockComponent],
@@ -116,13 +116,13 @@ describe('Forge', () => {
       const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
 
       // Act
-      engine.registerPackage(pkg, functionDependencies)
+      engine.registerPackage(pkg, packageDependencies)
 
       // Assert
       expect(PackageInstance).toHaveBeenCalledWith(
         pkg,
         expect.objectContaining({
-          functionDependencies,
+          packageDependencies,
         }),
       )
       expect(mockMountRegistry.register).toHaveBeenCalledWith(mockPackageInstance)

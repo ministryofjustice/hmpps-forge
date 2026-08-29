@@ -45,6 +45,8 @@ export type {
   FunctionEntry,
   FunctionEvaluator,
   FunctionRegistryBuilder,
+  FunctionDefinition,
+  FunctionDefinitionObject,
   FunctionRegistryEntry,
   FunctionRegistryObject,
 } from './types/functions.type'

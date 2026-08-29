@@ -155,12 +155,13 @@ function createCtx(overrides: Partial<CompiledReachabilityContext> = {}): Compil
 
 describe('ReachabilityCompiler', () => {
   let compiler: ReachabilityCompiler
+  const compilerFunctionRegistry = new FunctionRegistry()
   const dependencies: CompilationDependencies = {
-    functionRegistry: new FunctionRegistry(),
+    functionRegistry: compilerFunctionRegistry,
     componentRegistry: new ComponentRegistry(),
   }
 
-  dependencies.functionRegistry.register({
+  compilerFunctionRegistry.register({
     equals: { name: 'equals', evaluate: () => undefined },
     throwingCondition: { name: 'throwingCondition', evaluate: () => undefined },
     nextStep: { name: 'nextStep', evaluate: () => undefined },

@@ -2,6 +2,7 @@ import type { NodeId } from '../../contracts/ast/ast.type'
 import type { ReachabilityEvaluation } from '../../../concerns/reachability/contracts/reachabilityEvaluation.type'
 import type { ValidationView } from '../../../concerns/validation/contracts/validationView.type'
 import type FunctionRegistry from '../../registries/FunctionRegistry'
+import type { FunctionRegistryBuilder } from '../../../../authoring/types/functions.type'
 import type { RuntimeContext } from '../../contracts/runtime/evaluationState.type'
 import type { ResponseBindings } from '../../../../framework/types/responseBindings.type'
 import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
@@ -12,7 +13,8 @@ import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 export interface RequestDependencies {
   readonly responseBindings: ResponseBindings
-  readonly functionRegistry: FunctionRegistry
+  readonly functionBuilders: readonly FunctionRegistryBuilder[]
+  readonly packageDependencies: unknown
   readonly componentRegistry: ComponentRegistry
   readonly currentStepId?: NodeId
   readonly hasRenderer: boolean
@@ -49,6 +51,8 @@ export default class RequestState {
 
   private mutablePipelineResult?: RequestPipelineResult
 
+  private mutableFunctionRegistry?: FunctionRegistry
+
   constructor(
     readonly context: RuntimeContext,
     readonly dependencies: RequestDependencies,
@@ -68,6 +72,16 @@ export default class RequestState {
     }
 
     return this.mutablePipelineResult
+  }
+
+  get functionRegistry(): FunctionRegistry {
+    if (this.mutableFunctionRegistry === undefined) {
+      throw new ForgeInternalError(
+        'Function registry read before request context preparation built the request-owned registry',
+      )
+    }
+
+    return this.mutableFunctionRegistry
   }
 
   /** Undefined until reachability has run - journey halts and error traces read it early. */
@@ -116,5 +130,9 @@ export default class RequestState {
 
   recordPipelineResult(result: RequestPipelineResult): void {
     this.mutablePipelineResult = result
+  }
+
+  recordFunctionRegistry(functionRegistry: FunctionRegistry): void {
+    this.mutableFunctionRegistry = functionRegistry
   }
 }

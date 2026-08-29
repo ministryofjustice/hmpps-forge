@@ -52,7 +52,7 @@ export const REACHABILITY_VALIDITIES_WORK_HANDLER: WorkHandler<'request.validiti
           compiledValidation,
           stepId,
           ctx.state.context,
-          ctx.state.dependencies.functionRegistry,
+          ctx.state.functionRegistry,
           REACHABILITY_VALIDATION_FILTER,
         ),
       ),

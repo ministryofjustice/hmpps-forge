@@ -119,4 +119,47 @@ describe('BaseFunctionRegistry', () => {
       expect(act).toThrow('A function.call.condition is already registered under the name "validate"')
     })
   })
+
+  describe('getDefinitions()', () => {
+    it('should expose function metadata without invoking the factory', () => {
+      // Arrange
+      const factory = vi.fn(() => (value: unknown) => value === 'yes')
+      registry.register('IsYes', factory)
+
+      // Act
+      const definitions = registry.getDefinitions()
+
+      // Assert
+      expect(definitions.IsYes).toMatchObject({
+        name: 'IsYes',
+        factory,
+      })
+      expect(factory).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('build()', () => {
+    it('should report the function when a factory returns a non-function value', () => {
+      // Arrange
+      const invalidFactory = (() => 'not an evaluator') as never
+      registry.register('Broken', invalidFactory)
+
+      // Act
+      const act = () => registry.build()
+
+      // Assert
+      expect(act).toThrow('Function preparation failed')
+
+      try {
+        act()
+      } catch (error) {
+        const [buildError] = (error as AggregateError).errors
+
+        expect(buildError).toMatchObject({
+          functionName: 'Broken',
+          functionType: 'function.entry.condition',
+        })
+      }
+    })
+  })
 })

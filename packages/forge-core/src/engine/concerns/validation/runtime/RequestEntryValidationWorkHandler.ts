@@ -36,7 +36,7 @@ export const REQUEST_ENTRY_VALIDATION_WORK_HANDLER: WorkHandler<
   kind: REQUEST_ENTRY_VALIDATION_KIND,
 
   async begin(ctx: WorkContextContract<RequestState, RequestEntryValidationWorkProps>) {
-    const validationContext = buildCompiledValidationContext(ctx.state.context, ctx.state.dependencies.functionRegistry)
+    const validationContext = buildCompiledValidationContext(ctx.state.context, ctx.state.functionRegistry)
     const groups = await ctx.props.compiled(validationContext)
 
     if (groups.length === 0) {

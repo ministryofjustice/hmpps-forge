@@ -21,7 +21,7 @@ export interface GeneratorOptions<
   TEvaluatorArguments extends any[] = any[],
   TPrepareArguments extends any[] = TEvaluatorArguments,
 > extends BaseEntryOptions<TPrepareArguments> {
-  /** Builds the evaluator from the dependencies supplied at registration time. */
+  /** Builds one request's evaluator from the package dependencies. */
   factory: (deps: TDeps) => (...args: TEvaluatorArguments) => unknown
 }
 

@@ -155,7 +155,7 @@ export default class Forge {
    * }))
    * ```
    */
-  registerPackage<TDeps>(pkg: ForgePackageRegistration<TDeps>, deps?: TDeps): this {
+  registerPackage<TDeps>(pkg: ForgePackageRegistration<TDeps>, packageDependencies?: TDeps): this {
     if (!pkg || (pkg as { forgePackage?: unknown }).forgePackage !== true) {
       this.handleRegistrationError(
         new ForgeRegistrationError(
@@ -173,7 +173,7 @@ export default class Forge {
 
     try {
       const packageInstance = new PackageInstance(pkg, {
-        functionDependencies: deps,
+        packageDependencies,
         instrumentation: this.instrumentation,
       })
 

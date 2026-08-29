@@ -14,8 +14,7 @@ interface ForgeFunctionEntryBuildErrorOptions {
 }
 
 /**
- * Raised when a function entry's factory throws while its evaluator is built
- * during registration.
+ * Raised when a function factory fails while its request evaluator is built.
  */
 export default class ForgeFunctionEntryBuildError extends ForgeBaseError {
   readonly functionName: string
@@ -25,7 +24,10 @@ export default class ForgeFunctionEntryBuildError extends ForgeBaseError {
   readonly cause: unknown
 
   constructor(options: ForgeFunctionEntryBuildErrorOptions) {
-    super(`Function "${options.functionName}" (${options.functionType}) factory threw during registration`, options)
+    super(
+      `Function "${options.functionName}" (${options.functionType}) factory failed during request context preparation`,
+      options,
+    )
     this.functionName = options.functionName
     this.functionType = options.functionType
     this.cause = options.cause
