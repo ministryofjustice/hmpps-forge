@@ -59,6 +59,32 @@ describe('createExpressRouter', () => {
   })
 
   describe('request handling', () => {
+    it('should defer request dependency resolution to Forge', async () => {
+      // Arrange
+      const resolvedDependencies = { authenticatedHttp: { user: 'user-1' } }
+      const requestDependencies = vi.fn(() => resolvedDependencies)
+      const router = createExpressRouter(createForge(), {
+        nunjucksEnv: createNunjucksEnv(),
+        requestDependencies,
+      })
+      const req = createRequest()
+      const res = createResponse()
+      const next = vi.fn()
+
+      // Act
+      dispatchRouter(router, req, res, next)
+      await vi.waitFor(() => expect(mocks.execute).toHaveBeenCalledOnce())
+
+      // Assert
+      expect(requestDependencies).not.toHaveBeenCalled()
+
+      const executionRequest = mocks.execute.mock.calls[0][0]
+      const result = executionRequest.requestDependencies()
+
+      expect(requestDependencies).toHaveBeenCalledWith(req)
+      expect(result).toBe(resolvedDependencies)
+    })
+
     it('should pass unexpected runtime errors to next', async () => {
       // Arrange
       const error = new Error('boom')

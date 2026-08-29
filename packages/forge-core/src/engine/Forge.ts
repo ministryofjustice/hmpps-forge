@@ -20,6 +20,9 @@ export interface ForgeExecutionRequest {
   readonly snapshot: RequestSnapshot
   readonly responseBindings?: ResponseBindings
   readonly renderer?: ForgeRenderer<unknown>
+
+  /** Resolves capabilities used only while preparing this request's function evaluators. */
+  readonly requestDependencies?: () => object | PromiseLike<object>
 }
 
 /**
@@ -138,7 +141,7 @@ export default class Forge {
    * in the correct order.
    *
    * @param pkg - The package containing journey, functions, and optional components
-   * @param deps - Dependencies required by the package's functions (optional for packages with no deps)
+   * @param packageDependencies - Application-wide dependencies required by the package's functions
    *
    * @example
    * ```typescript

@@ -350,7 +350,11 @@ describe('Forge', () => {
       // Arrange
       const engine = new Forge(createDefaultOptions())
       const mockNode = { mountKey: 'test::step-one', kind: 'step' } as MountedNode
-      const request = { snapshot: { nodeId: 'test::step-one', method: 'GET' } } as never
+      const requestDependencies = () => ({ requestService: 'ready' })
+      const request = {
+        snapshot: { nodeId: 'test::step-one', method: 'GET' },
+        requestDependencies,
+      } as never
       const outcome = { kind: 'navigate', url: '/next' }
 
       vi.mocked(mockMountRegistry.getNode).mockReturnValue(mockNode)
@@ -362,7 +366,9 @@ describe('Forge', () => {
       // Assert
       expect(result).toBe(outcome)
       expect(mockMountRegistry.getNode).toHaveBeenCalledWith('test::step-one')
-      expect(mockRequestPipeline.evaluate).toHaveBeenCalledWith(expect.objectContaining({ node: mockNode }))
+      expect(mockRequestPipeline.evaluate).toHaveBeenCalledWith(
+        expect.objectContaining({ node: mockNode, requestDependencies }),
+      )
     })
 
     it('should return an error outcome when no node is registered for the snapshot', async () => {

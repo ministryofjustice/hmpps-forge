@@ -33,6 +33,71 @@ describe('ExpressHandlerFactory', () => {
       expect(res.redirect).toHaveBeenCalledWith('/next')
     })
 
+    it('should give Forge a lazy request dependency callback bound to the Express request', async () => {
+      // Arrange
+      const forge = createForge()
+      const req = createRequest()
+      const res = createResponse()
+      const next = vi.fn()
+      const resolvedDependencies = { authenticatedHttp: { user: 'user-1' } }
+      const requestDependencies = vi.fn(() => resolvedDependencies)
+      const handler = ExpressHandlerFactory.create(forge, route, createLogger(), createRenderer(), requestDependencies)
+
+      // Act
+      await handler(req, res, next)
+
+      // Assert
+      expect(requestDependencies).not.toHaveBeenCalled()
+
+      const executionRequest = vi.mocked(forge.execute).mock.calls[0][0]
+      const result = executionRequest.requestDependencies?.()
+
+      expect(requestDependencies).toHaveBeenCalledOnce()
+      expect(requestDependencies).toHaveBeenCalledWith(req)
+      expect(result).toBe(resolvedDependencies)
+    })
+
+    it('should create a distinct request dependency closure for each Express request', async () => {
+      // Arrange
+      const forge = createForge()
+      const firstRequest = createRequest()
+      const secondRequest = createRequest()
+      const response = createResponse()
+      const requestDependencies = vi.fn((request: Request) => ({ request }))
+      const handler = ExpressHandlerFactory.create(forge, route, createLogger(), createRenderer(), requestDependencies)
+
+      // Act
+      await handler(firstRequest, response, vi.fn())
+      await handler(secondRequest, response, vi.fn())
+
+      // Assert
+      const firstResolver = vi.mocked(forge.execute).mock.calls[0][0].requestDependencies
+      const secondResolver = vi.mocked(forge.execute).mock.calls[1][0].requestDependencies
+
+      expect(firstResolver).not.toBe(secondResolver)
+      expect(firstResolver?.()).toEqual({ request: firstRequest })
+      expect(secondResolver?.()).toEqual({ request: secondRequest })
+    })
+
+    it('should pass through a thenable request dependency result without resolving it', async () => {
+      // Arrange
+      const forge = createForge()
+      const requestDependencies = vi.fn(async () => ({ authenticatedHttp: { user: 'user-1' } }))
+      const handler = ExpressHandlerFactory.create(forge, route, createLogger(), createRenderer(), requestDependencies)
+
+      // Act
+      await handler(createRequest(), createResponse(), vi.fn())
+
+      // Assert
+      expect(requestDependencies).not.toHaveBeenCalled()
+
+      const executionRequest = vi.mocked(forge.execute).mock.calls[0][0]
+      const result = executionRequest.requestDependencies?.()
+
+      expect(result).toBeInstanceOf(Promise)
+      await expect(result).resolves.toEqual({ authenticatedHttp: { user: 'user-1' } })
+    })
+
     it('should pass unexpected Forge errors to next', async () => {
       // Arrange
       const error = new Error('boom')

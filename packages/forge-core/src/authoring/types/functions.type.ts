@@ -61,7 +61,7 @@ export type FunctionRegistryObject = Record<string, FunctionRegistryEntry>
  */
 export interface FunctionDefinition<TDeps = unknown> {
   readonly name: string
-  readonly factory: (packageDependencies: TDeps) => FunctionEvaluator
+  readonly factory: (dependencies: TDeps) => FunctionEvaluator
   readonly inputSchema?: ZodType
   readonly argumentsSchema?: ZodType
   readonly outputSchema?: ZodType
@@ -80,13 +80,13 @@ export interface FunctionDefinitionLookup {
 /**
  * The contract the engine consumes custom functions through: anything that can
  * expose definitions for package compilation and build request-owned registry
- * rows from package dependencies. Satisfied by `BaseFunctionRegistry`
- * subclasses and by the entry registry that `createForgePackage()` assembles
- * from function entries.
+ * rows from the dependencies resolved for one request. Satisfied by
+ * `BaseFunctionRegistry` subclasses and by the entry registry that
+ * `createForgePackage()` assembles from function entries.
  */
 export interface FunctionRegistryBuilder<TDeps = any> {
   getDefinitions(): FunctionDefinitionObject<TDeps>
-  build(packageDependencies?: TDeps): FunctionRegistryObject
+  build(dependencies?: TDeps): FunctionRegistryObject
 }
 
 /**
@@ -111,6 +111,6 @@ export interface FunctionEntry<TDeps = any> {
   /** Validates the evaluator's result, where declared. */
   readonly outputSchema?: ZodType
 
-  /** Builds one request's evaluator from the package dependencies. */
-  readonly factory: (packageDependencies: TDeps) => FunctionEvaluator
+  /** Builds one request's evaluator from its resolved dependencies. */
+  readonly factory: (dependencies: TDeps) => FunctionEvaluator
 }

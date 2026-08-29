@@ -16,6 +16,7 @@ export default class ExpressHandlerFactory {
     route: ForgeRoute,
     logger: Logger | Console,
     renderer: ForgeRenderer<unknown>,
+    requestDependencies?: (request: express.Request) => object | PromiseLike<object>,
   ): express.RequestHandler {
     return async (req, res, next) => {
       const requestPath = extractPathname(req.originalUrl ?? req.path)
@@ -25,7 +26,12 @@ export default class ExpressHandlerFactory {
       try {
         const snapshot = ExpressSnapshotFactory.create(route, req, res)
         const responseBindings = this.createResponseBindings(res)
-        const outcome = await forge.execute({ snapshot, responseBindings, renderer })
+        const outcome = await forge.execute({
+          snapshot,
+          responseBindings,
+          renderer,
+          ...(requestDependencies === undefined ? {} : { requestDependencies: () => requestDependencies(req) }),
+        })
 
         this.commitOutcome(outcome, res, next)
       } catch (error) {

@@ -17,7 +17,10 @@
  *
  * const forge = new Forge({ logger }).registerPackage(myPackage)
  *
- * app.use(createExpressRouter(forge, { nunjucksEnv }))
+ * app.use(createExpressRouter(forge, {
+ *   nunjucksEnv,
+ *   requestDependencies: request => ({ authenticatedHttp: request.authenticatedHttp }),
+ * }))
  * ```
  */
 

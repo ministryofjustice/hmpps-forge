@@ -11,10 +11,11 @@ import type { RouteTree } from '../../../../framework/types/routeTree.type'
 import type { RequestPipelineResult } from '../../contracts/runtime/requestPipelineOutput.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
-export interface RequestDependencies {
+export interface RequestStateDependencies {
   readonly responseBindings: ResponseBindings
   readonly functionBuilders: readonly FunctionRegistryBuilder[]
   readonly packageDependencies: unknown
+  readonly requestDependencies?: () => object | PromiseLike<object>
   readonly componentRegistry: ComponentRegistry
   readonly currentStepId?: NodeId
   readonly hasRenderer: boolean
@@ -55,7 +56,7 @@ export default class RequestState {
 
   constructor(
     readonly context: RuntimeContext,
-    readonly dependencies: RequestDependencies,
+    readonly dependencies: RequestStateDependencies,
   ) {}
 
   get renderContext(): RenderContext {

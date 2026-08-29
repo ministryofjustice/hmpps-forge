@@ -58,7 +58,7 @@ The request registry contains the implementation. A function registry entry reco
 These shapes are deliberately separate.
 
 The definition stays declarative and inspectable. The request registry holds
-executable code with the package dependencies captured by that request's evaluator.
+executable code with that request's resolved dependencies captured by its evaluator.
 
 ## Function types
 
@@ -102,8 +102,10 @@ side effects.
 Function registration records named definitions for validation and compilation.
 
 Package or application code provides function factories. During context
-preparation Forge calls every factory with `packageDependencies` and stores the
-resulting evaluators in a new registry owned by that request.
+preparation Forge resolves the package's `packageDependencies` and the adapter's
+`requestDependencies`, rejects duplicate keys, and calls every factory with one
+flat merged object. The resulting evaluators are stored in a new registry owned
+by that request.
 
 This gives registered functions a dependency boundary. A function can depend on
 an application service, but the journey definition only sees the function name
@@ -119,6 +121,37 @@ Context preparation fails when a factory throws or does not return an evaluator.
 
 The registry does not decide where a function is allowed to appear. That is
 handled by validation rules over the journey definition.
+
+## Request dependencies
+
+Request adapters can provide capabilities that exist only for one request. The
+bundled Express adapter exposes a direct or thenable `requestDependencies`
+callback through `createExpressRouter()`:
+
+```typescript
+createExpressRouter(forge, {
+  nunjucksEnv,
+  requestDependencies: request => ({
+    authenticatedHttp: request.authenticatedHttp,
+  }),
+})
+```
+
+Forge resolves the callback once during context preparation. Neither dependency
+source is mutated or copied into request data, rendering, diagnostics, or traces.
+If both sources contain the same key, the request fails before any factory runs.
+
+Functions remain independent of packages and adapters. Authors can type the flat
+object locally where a function needs both sources:
+
+```typescript
+type Dependencies = PackageDependencies & RequestDependencies
+
+const LoadBooking = generator<Dependencies>('Booking.Load', {
+  factory: dependencies => bookingId =>
+    dependencies.authenticatedHttp.get(`/bookings/${bookingId}`),
+})
+```
 
 ## Direct and thenable results
 
@@ -191,8 +224,7 @@ The registry should remain the lookup boundary for executable function code.
 
 Effects should stay constrained to hook execution.
 
-Async metadata should remain accurate enough for generated functions to choose
-the correct evaluation flow.
+Generated functions should continue detecting thenables at each invocation.
 
 ## Connection to other docs
 

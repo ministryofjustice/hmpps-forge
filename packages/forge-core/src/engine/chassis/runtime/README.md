@@ -56,7 +56,10 @@ It accepts a `RequestEvaluationRequest` and returns a `ForgeOutcome`.
 - `renderer`, optional component rendering support.
 
 `MountedNode` is created by `MountRegistry`.
-It carries compiled functions, function builders and package dependencies, the component registry, route data, and static data for either a step or a journey.
+It carries compiled functions, function builders and package dependencies, the
+component registry, route data, and static data for either a step or a journey.
+A request adapter can add request dependencies when it executes one of those
+mounted nodes; they are never stored on the node itself.
 Both step and journey nodes carry the reachability pair `compiledReachabilityFacts` and `compiledReachabilityState`; step nodes add step-only functions such as `compiledSubmitHooks`, `compiledEntryValidation`, `compiledValidation`, and `compiledResolve`.
 Both node kinds also carry `compiledStepValidations`, the journey-scoped index of validating step ids to step-specific validation functions.
 When reachability checks are disabled for the journey, this index is empty because reachability does not need eager cross-step validities.

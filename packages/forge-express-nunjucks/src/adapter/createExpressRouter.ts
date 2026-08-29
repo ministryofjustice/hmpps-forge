@@ -5,11 +5,11 @@ import ExpressHandlerFactory from './ExpressHandlerFactory'
 import NunjucksRenderer from '../renderer/NunjucksRenderer'
 
 /**
- * Options for {@link createExpressRouter}. Passed through verbatim to the
- * `NunjucksRenderer` the router builds, so each mounted router gets its own
- * renderer configuration.
+ * Options for {@link createExpressRouter}. Rendering options configure the
+ * router's `NunjucksRenderer`; request dependencies connect native Express
+ * capabilities to Forge function factories.
  */
-export interface ExpressForgeRouterOptions {
+export interface ExpressForgeRouterOptions<TRequestDependencies extends object = Record<string, never>> {
   /**
    * Nunjucks environment used to load and render page templates. The same
    * environment is handed to components at render time via their `renderer`
@@ -35,15 +35,26 @@ export interface ExpressForgeRouterOptions {
    * @default false
    */
   includeBlockData?: boolean
+
+  /**
+   * Resolves capabilities that exist only for one Express request. Direct and
+   * thenable results are supported. Forge calls this once during request
+   * context preparation before binding function evaluators and rejects keys
+   * already supplied through package dependencies.
+   */
+  requestDependencies?: (request: express.Request) => TRequestDependencies | PromiseLike<TRequestDependencies>
 }
 
-export function createExpressRouter(forge: Forge, options: ExpressForgeRouterOptions): express.Router {
+export function createExpressRouter<TRequestDependencies extends object = Record<string, never>>(
+  forge: Forge,
+  options: ExpressForgeRouterOptions<TRequestDependencies>,
+): express.Router {
   const logger = forge.getLogger()
   const router = express.Router({ mergeParams: true })
   const renderer = new NunjucksRenderer(options)
 
   forge.getTopology().routes.forEach(route => {
-    const handler = ExpressHandlerFactory.create(forge, route, logger, renderer)
+    const handler = ExpressHandlerFactory.create(forge, route, logger, renderer, options.requestDependencies)
 
     route.methods.forEach(method => {
       if (method === 'GET') {

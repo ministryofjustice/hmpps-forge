@@ -101,6 +101,18 @@ const forge = new Forge({ logger }).registerPackage(myJourneyPackage)
 app.use(createExpressRouter(forge, { nunjucksEnv }))
 ```
 
+Request-scoped services can be supplied without copying them into Forge's
+request data:
+
+```typescript
+app.use(createExpressRouter(forge, {
+  nunjucksEnv,
+  requestDependencies: request => ({
+    authenticatedHttp: request.authenticatedHttp,
+  }),
+}))
+```
+
 ## Packages
 
 | Package                  | Import path | Purpose                                                                       |

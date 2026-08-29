@@ -2,9 +2,9 @@ import type FunctionRegistry from '../../../registries/FunctionRegistry'
 import type { RuntimeContext } from '../../../contracts/runtime/evaluationState.type'
 import type { ComponentRegistry } from '../../../../../framework/types/adapter.type'
 import type { ResponseBindings } from '../../../../../framework/types/responseBindings.type'
-import RequestState, { type RequestDependencies } from '../RequestState'
+import RequestState, { type RequestStateDependencies } from '../RequestState'
 
-type TestRequestDependencies = Partial<RequestDependencies> & {
+type TestRequestDependencies = Partial<RequestStateDependencies> & {
   readonly functionRegistry?: FunctionRegistry
 }
 
