@@ -56,10 +56,21 @@ export default class ReachabilityPathAnalyzer {
     defaultEntryRouteTemplatePath: string | undefined,
     resumeActive: boolean,
   ): ReachabilityPathAnalysis {
+    const stepByRouteTemplatePath = new Map(steps.map(step => [step.routeTemplatePath, step]))
     const progressExists = this.resolveProgressExists(steps)
-    const defaultPath = this.resolvePathFromAnchorRouteTemplatePath(defaultEntryRouteTemplatePath, steps)
-    const resumePath = this.resolveResumePath(steps)
-    const canonicalPath = this.resolveCanonicalPath(steps, currentStepId, resumeActive, defaultPath, resumePath)
+    const defaultPath = this.resolvePathFromAnchorRouteTemplatePath(
+      defaultEntryRouteTemplatePath,
+      stepByRouteTemplatePath,
+    )
+    const resumePath = this.resolveResumePath(steps, stepByRouteTemplatePath)
+    const canonicalPath = this.resolveCanonicalPath(
+      steps,
+      currentStepId,
+      resumeActive,
+      defaultPath,
+      resumePath,
+      stepByRouteTemplatePath,
+    )
 
     return {
       canonicalPathRouteTemplatePaths: canonicalPath.map(step => step.routeTemplatePath),
@@ -74,13 +85,14 @@ export default class ReachabilityPathAnalyzer {
     resumeActive: boolean,
     defaultPath: ReachabilityNode[],
     resumePath: ReachabilityNode[] | undefined,
+    stepByRouteTemplatePath: ReadonlyMap<string, ReachabilityNode>,
   ): ReachabilityNode[] {
     if (resumeActive && resumePath) {
       return resumePath
     }
 
     if (currentStepId !== undefined) {
-      const currentStepPath = this.resolvePathThroughCurrentStep(currentStepId, steps)
+      const currentStepPath = this.resolvePathThroughCurrentStep(currentStepId, steps, stepByRouteTemplatePath)
 
       if (currentStepPath.length > 0) {
         return currentStepPath
@@ -94,11 +106,14 @@ export default class ReachabilityPathAnalyzer {
     return steps.some(step => step.isReachable && step.hasValidation && step.isValid)
   }
 
-  private resolveResumePath(steps: ReachabilityNode[]): ReachabilityNode[] | undefined {
+  private resolveResumePath(
+    steps: ReachabilityNode[],
+    stepByRouteTemplatePath: ReadonlyMap<string, ReachabilityNode>,
+  ): ReachabilityNode[] | undefined {
     const candidates = steps
       .filter(step => this.isActiveEntry(step))
       .map(entry => {
-        const path = this.resolvePathFromAnchorStep(entry, steps)
+        const path = this.resolvePathFromAnchorStep(entry, stepByRouteTemplatePath)
 
         return {
           entry,
@@ -141,21 +156,27 @@ export default class ReachabilityPathAnalyzer {
     return lastProgressIndex
   }
 
-  private resolvePathThroughCurrentStep(currentStepId: NodeId, steps: ReachabilityNode[]): ReachabilityNode[] {
+  private resolvePathThroughCurrentStep(
+    currentStepId: NodeId,
+    steps: ReachabilityNode[],
+    stepByRouteTemplatePath: ReadonlyMap<string, ReachabilityNode>,
+  ): ReachabilityNode[] {
     const currentStep = steps.find(step => step.stepId === currentStepId)
 
     if (!currentStep?.isReachable) {
       return []
     }
 
-    const pathToCurrent = this.resolvePathToCurrentStep(currentStep, steps)
-    const pathFromCurrent = this.resolveForwardPath(currentStep, steps)
+    const pathToCurrent = this.resolvePathToCurrentStep(currentStep, stepByRouteTemplatePath)
+    const pathFromCurrent = this.resolveForwardPath(currentStep, stepByRouteTemplatePath)
 
     return [...pathToCurrent, ...pathFromCurrent.slice(1)]
   }
 
-  private resolvePathToCurrentStep(step: ReachabilityNode, steps: ReachabilityNode[]): ReachabilityNode[] {
-    const stepByRouteTemplatePath = new Map(steps.map(candidate => [candidate.routeTemplatePath, candidate]))
+  private resolvePathToCurrentStep(
+    step: ReachabilityNode,
+    stepByRouteTemplatePath: ReadonlyMap<string, ReachabilityNode>,
+  ): ReachabilityNode[] {
     const path = [step]
     const visited = new Set([step.routeTemplatePath])
     let current = step
@@ -181,13 +202,13 @@ export default class ReachabilityPathAnalyzer {
 
   private resolvePathFromAnchorRouteTemplatePath(
     anchorRouteTemplatePath: string | undefined,
-    steps: ReachabilityNode[],
+    stepByRouteTemplatePath: ReadonlyMap<string, ReachabilityNode>,
   ): ReachabilityNode[] {
     if (!anchorRouteTemplatePath) {
       return []
     }
 
-    const anchor = steps.find(step => step.routeTemplatePath === anchorRouteTemplatePath)
+    const anchor = stepByRouteTemplatePath.get(anchorRouteTemplatePath)
 
     if (!anchor) {
       return []
@@ -197,19 +218,24 @@ export default class ReachabilityPathAnalyzer {
       return [anchor]
     }
 
-    return this.resolvePathFromAnchorStep(anchor, steps)
+    return this.resolvePathFromAnchorStep(anchor, stepByRouteTemplatePath)
   }
 
-  private resolvePathFromAnchorStep(anchor: ReachabilityNode, steps: ReachabilityNode[]): ReachabilityNode[] {
+  private resolvePathFromAnchorStep(
+    anchor: ReachabilityNode,
+    stepByRouteTemplatePath: ReadonlyMap<string, ReachabilityNode>,
+  ): ReachabilityNode[] {
     if (!anchor.isReachable) {
       return [anchor]
     }
 
-    return this.resolveForwardPath(anchor, steps)
+    return this.resolveForwardPath(anchor, stepByRouteTemplatePath)
   }
 
-  private resolveForwardPath(start: ReachabilityNode, steps: ReachabilityNode[]): ReachabilityNode[] {
-    const stepByRouteTemplatePath = new Map(steps.map(step => [step.routeTemplatePath, step]))
+  private resolveForwardPath(
+    start: ReachabilityNode,
+    stepByRouteTemplatePath: ReadonlyMap<string, ReachabilityNode>,
+  ): ReachabilityNode[] {
     const path = [start]
     const visited = new Set([start.routeTemplatePath])
     let current = start
