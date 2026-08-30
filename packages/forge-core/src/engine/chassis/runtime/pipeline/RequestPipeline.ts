@@ -98,6 +98,8 @@ export default class RequestPipeline {
         snapshot,
         root: completed.traceSpan,
         result: pipelineResult,
+        redirectUrl:
+          pipelineResult.kind === 'redirect' ? this.resolveRedirectUrl(pipelineResult.target, snapshot) : undefined,
         node,
         routeTree: requestState.routeTree,
         reachabilityEvaluation: requestState.reachabilityEvaluation,
@@ -132,12 +134,9 @@ export default class RequestPipeline {
 
   private buildOutcome(result: RequestPipelineResult, snapshot: RequestSnapshot): ForgeOutcome<unknown> {
     if (result.kind === 'redirect') {
-      const withParams = resolvePathParams(result.target, snapshot.params)
-      const resolved = resolveRedirectTarget(withParams, snapshot.location)
-
       return {
         kind: 'navigate',
-        url: resolved.value,
+        url: this.resolveRedirectUrl(result.target, snapshot),
       }
     }
 
@@ -158,5 +157,11 @@ export default class RequestPipeline {
       context: result.context,
       output: result.output,
     }
+  }
+
+  private resolveRedirectUrl(target: string, snapshot: RequestSnapshot): string {
+    const withParams = resolvePathParams(target, snapshot.params)
+
+    return resolveRedirectTarget(withParams, snapshot.location).value
   }
 }

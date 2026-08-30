@@ -14,14 +14,15 @@ export default class ConditionalNodeCompiler {
    * Emits a lazy ternary so only the selected branch is evaluated at runtime.
    */
   compile(properties: Record<string, unknown>): CodeFragment {
-    // Only the selected branch evaluates, so call statements must not hoist
-    // out of the ternary.
-    return this.ctx.withoutCallHoisting(() => {
-      const predExpr = this.ctx.compileOperandCode(properties.predicate)
-      const thenExpr = this.ctx.compileOperandCode(properties.thenValue)
-      const elseExpr = this.ctx.compileOperandCode(properties.elseValue)
+    const result = this.ctx.generator.let('conditionalResult')
+    const predicate = this.ctx.compileOperandCode(properties.predicate)
 
-      return code`(${predExpr} ? ${thenExpr} : ${elseExpr})`
-    })
+    this.ctx.generator.if(
+      predicate,
+      () => this.ctx.generator.assign(result, this.ctx.compileOperandCode(properties.thenValue)),
+      () => this.ctx.generator.assign(result, this.ctx.compileOperandCode(properties.elseValue)),
+    )
+
+    return code`${result}`
   }
 }

@@ -141,6 +141,17 @@ describe('finaliseBuilders', () => {
     expect(result.value.label).toBe('not a builder')
   })
 
+  it('should preserve class instances for serialisation validation', () => {
+    // Arrange
+    const value = new Map([['answer', 42]])
+
+    // Act
+    const result = finaliseBuilders({ value }) as Record<string, unknown>
+
+    // Assert
+    expect(result.value).toBe(value)
+  })
+
   describe('callsite stamps', () => {
     it('should give field() output a callsite that names the calling file', () => {
       // Act

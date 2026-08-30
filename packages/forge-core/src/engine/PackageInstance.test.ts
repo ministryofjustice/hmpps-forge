@@ -45,7 +45,6 @@ describe('PackageInstance', () => {
         GlobalFunction: {
           name: 'GlobalFunction',
           evaluate: () => true,
-          isAsync: false,
         },
       })
       mockCompilation()

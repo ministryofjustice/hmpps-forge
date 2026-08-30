@@ -15,6 +15,7 @@ function createContext(): WorkContext<CompiledValidationContext> {
     session: {},
     params: {},
     query: {},
+    post: {},
     request: {},
     conditions: { get: vi.fn() } as unknown as CompiledValidationContext['conditions'],
     workTasks: {},

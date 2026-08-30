@@ -176,8 +176,8 @@ describe('Forge', () => {
 
       const mockFunctionRegistry = (FunctionRegistry as MockedClass<typeof FunctionRegistry>).mock.instances[0]
       expect(mockFunctionRegistry.register).toHaveBeenCalledWith({
-        Function1: { name: 'Function1', evaluate: expect.any(Function), isAsync: false },
-        Function2: { name: 'Function2', evaluate: expect.any(Function), isAsync: false },
+        Function1: { name: 'Function1', evaluate: expect.any(Function) },
+        Function2: { name: 'Function2', evaluate: expect.any(Function) },
       })
     })
 
@@ -235,6 +235,7 @@ describe('Forge', () => {
       const act = () => engine.registerPackage({ journey: mockJourneyDef } as any)
 
       // Assert
+      expect(act).toThrow(ForgeRegistrationError)
       expect(act).toThrow('Packages must be created with createForgePackage(...) before registration')
       expect(PackageInstance).not.toHaveBeenCalled()
     })
@@ -478,7 +479,7 @@ describe('Forge', () => {
 
       expect(mockComponentRegistry.registerMany).toHaveBeenCalledWith([customComponent])
       expect(mockFunctionRegistry.register).toHaveBeenCalledWith({
-        CustomValidator: { name: 'CustomValidator', evaluate: expect.any(Function), isAsync: false },
+        CustomValidator: { name: 'CustomValidator', evaluate: expect.any(Function) },
       })
       expect(mockMountRegistry.register).toHaveBeenCalledWith(mockPackageInstance)
     })

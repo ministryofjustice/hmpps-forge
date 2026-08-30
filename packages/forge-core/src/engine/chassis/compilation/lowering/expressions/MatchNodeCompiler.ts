@@ -1,4 +1,5 @@
 import { CodeFragment, code, literal } from '../codegen/fragments/CodeFragment'
+import IdentifierName from '../codegen/fragments/IdentifierName'
 import { NodeCompilationContext } from './types'
 
 /**
@@ -15,18 +16,35 @@ export default class MatchNodeCompiler {
   compile(properties: Record<string, unknown>): CodeFragment {
     const branches = (properties.branches ?? []) as Array<Record<string, unknown>>
     const otherwise = properties.otherwise
+    const result = this.ctx.generator.let('matchResult')
 
-    // Only the first matching branch evaluates, so call statements must not
-    // hoist out of the ternary chain.
-    return this.ctx.withoutCallHoisting(() => {
-      const fallbackExpr = otherwise !== undefined ? this.ctx.compileOperandCode(otherwise) : literal(undefined)
+    this.compileBranch(branches, otherwise, result)
 
-      return branches.reduceRight<CodeFragment>((nextExpr, branch) => {
-        const predicateExpr = this.ctx.compileOperandCode(branch.predicate)
-        const valueExpr = this.ctx.compileOperandCode(branch.value)
+    return code`${result}`
+  }
 
-        return code`(${predicateExpr} ? ${valueExpr} : ${nextExpr})`
-      }, fallbackExpr)
-    })
+  private compileBranch(
+    branches: readonly Record<string, unknown>[],
+    otherwise: unknown,
+    result: IdentifierName,
+  ): void {
+    const [branch, ...remainingBranches] = branches
+
+    if (branch === undefined) {
+      this.ctx.generator.assign(
+        result,
+        otherwise === undefined ? literal(undefined) : this.ctx.compileOperandCode(otherwise),
+      )
+
+      return
+    }
+
+    const predicate = this.ctx.compileOperandCode(branch.predicate)
+
+    this.ctx.generator.if(
+      predicate,
+      () => this.ctx.generator.assign(result, this.ctx.compileOperandCode(branch.value)),
+      () => this.compileBranch(remainingBranches, otherwise, result),
+    )
   }
 }

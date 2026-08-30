@@ -53,6 +53,57 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.4.2
+
+A correctness-focused release improving invalid-reference detection, request-time
+expression inputs, definition serialisation, redirect tracing, test harness
+configuration, function evaluation, and reachability traversal.
+
+### Added
+
+- `ForgeTestHarness` options now cover engine configuration: `logger`,
+  `strictRegistration`, `basePath`, `disableBuiltInFunctions`, and
+  `disableBuiltInComponents` pass through to the underlying `Forge` alongside the
+  existing `instrumentation` and `maxIteratorIterations` options ([#277])
+
+### Changed
+
+- Forge now requires Zod 4.5 or later. Function and component schemas are compiled
+  once when registered and reused across requests, while boolean-only condition input
+  checks use Zod's allocation-free validation path. Component schemas retain their
+  existing parsing and sanitisation behaviour ([#288])
+
+### Fixed
+
+- `Answer()` inside an `onAccess` hook now fails compilation with its source location.
+  Answer preparation runs after access hooks, so the reference could only read
+  unprepared state previously ([#272])
+- `Post()` now resolves the submitted body in every expression position. Previously
+  validation and reachability expressions received `undefined` even during a POST
+  request ([#278])
+- Class instances in definitions now reach serialisation validation instead of being
+  silently flattened into plain objects, producing an error that identifies the
+  offending path ([#278])
+- Registering an object that was not created with `createForgePackage()` now throws a
+  `ForgeRegistrationError`, matching other package registration failures ([#278])
+- Request traces now record the same fully resolved redirect URL carried by the
+  navigation outcome ([#278])
+- Forge functions now detect asynchronous work from their returned value. Promises
+  and custom thenables are awaited even when the evaluator is not declared with
+  `async`, while direct values remain direct until asynchronous work is encountered.
+  Registration no longer relies on fragile function constructor inspection ([#283])
+- Reachability graph traversal now avoids repeated queue scans and duplicate visits,
+  including when forward outcomes contain a cycle ([#289])
+
+[#272]: https://github.com/ministryofjustice/hmpps-forge/pull/272
+[#277]: https://github.com/ministryofjustice/hmpps-forge/pull/277
+[#278]: https://github.com/ministryofjustice/hmpps-forge/pull/278
+[#283]: https://github.com/ministryofjustice/hmpps-forge/pull/283
+[#288]: https://github.com/ministryofjustice/hmpps-forge/pull/288
+[#289]: https://github.com/ministryofjustice/hmpps-forge/pull/289
+
+---
+
 ## 0.4.1
 
 Release focused mainly on internal engine cleanup plus a few bug fixes/security improvements 

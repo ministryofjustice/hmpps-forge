@@ -85,7 +85,7 @@ interface ConditionalOptions {
   when: PredicateExpr | PredicateTestExpr
   /** Value to return when predicate is true */
   then: BranchValue
-  /** Value to return when predicate is false (optional, defaults to undefined) */
+  /** Value to return when predicate is false (optional, defaults to false) */
   else?: BranchValue
 }
 
@@ -104,7 +104,7 @@ interface ConditionalOptions {
  *   else: 'ZIP Code',
  * })
  *
- * // Without else (returns undefined when false)
+ * // Without else (returns false when the predicate is false)
  * Conditional({
  *   when: Answer('isPremium').match(Condition.Equals(true)),
  *   then: 'Premium Support',

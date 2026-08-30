@@ -336,6 +336,32 @@ describe('evaluateReachabilityState', () => {
     ])
   })
 
+  it('should visit each reachable step once when forward outcomes contain a cycle', () => {
+    // Arrange
+    const plan: ReachabilityStateTable = {
+      entries: [
+        createEntry({ stepId: 'compile_ast:500', path: 'entry', isEntryPoint: true }),
+        createEntry({ stepId: 'compile_ast:501', path: 'middle' }),
+      ],
+      unreachableRedirect: 'entry',
+      reachabilityDisabled: false,
+    }
+    const routeTemplateCatalog = createRouteTemplateCatalog(plan.entries)
+    const facts = createFacts(plan, { outcomeValues: { 0: ['middle'], 1: ['entry'] } })
+
+    // Act
+    const { evaluation } = evaluateReachabilityState(plan, {
+      facts,
+      currentStepId: undefined,
+      routeTemplateCatalog,
+      stepValidities,
+    })
+
+    // Assert
+    expect(evaluation.steps.every(step => step.isReachable)).toBe(true)
+    expect(evaluation.canonicalPathRouteTemplatePaths).toEqual(['/journey/entry', '/journey/middle'])
+  })
+
   it('should project reachable and unreachable steps when field inventory and params are supplied', () => {
     // Arrange
     const plan: ReachabilityStateTable = {

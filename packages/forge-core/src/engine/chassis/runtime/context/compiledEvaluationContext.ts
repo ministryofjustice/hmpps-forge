@@ -71,6 +71,7 @@ function buildCompiledBaseContext(context: RuntimeContext, functionRegistry: Fun
     session: context.request.session,
     params: context.request.params,
     query: context.request.query,
+    post: context.request.post,
     request: { ...context.request },
     conditions: functionRegistry,
     workTasks: workTaskBuilders,
@@ -91,7 +92,6 @@ export function buildCompiledAnswerPreparationContext(
   return {
     ...buildCompiledBaseContext(context, functionRegistry),
     answers: context.domain.answers,
-    post: context.request.post,
     components: componentRegistry,
   }
 }
@@ -105,7 +105,6 @@ export function buildCompiledResolveContext(
 ): CompiledResolveContext {
   return {
     ...buildCompiledBaseContext(context, functionRegistry),
-    post: context.request.post,
     fieldFailures,
     fieldFailureAnchors,
     components: componentRegistry,
@@ -148,7 +147,6 @@ export function buildCompiledHookLifecycleContext(
   return {
     ...buildCompiledBaseContext(context, functionRegistry),
     answers: context.domain.answers,
-    post: context.request.post,
     effectFunctionContext: new EffectFunctionContextImpl(context, responseBindings, hookType),
   }
 }

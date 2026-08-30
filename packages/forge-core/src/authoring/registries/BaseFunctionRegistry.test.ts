@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import ConditionRegistry from './ConditionRegistry'
 
 describe('BaseFunctionRegistry', () => {
@@ -94,6 +95,28 @@ describe('BaseFunctionRegistry', () => {
   })
 
   describe('store()', () => {
+    it('should compile schemas when registering a function', () => {
+      // Arrange
+      const inputSchema = z.object({ value: z.string() })
+      const argumentsSchema = z.tuple([z.string()])
+      const outputSchema = z.boolean()
+
+      // Act
+      registry.register('Compiled', {
+        inputSchema,
+        argumentsSchema,
+        outputSchema,
+        factory: () => () => true,
+      })
+      const registeredFunction = registry.build().Compiled
+
+      // Assert
+      expect(registeredFunction.inputSchema).not.toBe(inputSchema)
+      expect(registeredFunction.argumentsSchema).not.toBe(argumentsSchema)
+      expect(registeredFunction.outputSchema).not.toBe(outputSchema)
+      expect(registeredFunction.inputSchema?.safeParse({ value: 'Ada' }).success).toBe(true)
+    })
+
     it('should throw when the same explicit name is registered twice', () => {
       // Arrange
       registry.register('IsAdult', () => (value: any) => value >= 18)

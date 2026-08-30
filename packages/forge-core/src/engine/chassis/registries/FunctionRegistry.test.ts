@@ -14,7 +14,6 @@ describe('FunctionRegistry', () => {
         IsTest: {
           name: 'IsTest',
           evaluate: (value: any) => value === 'test',
-          isAsync: false,
         },
       }
 
@@ -24,9 +23,9 @@ describe('FunctionRegistry', () => {
 
     it('should register multiple functions successfully', () => {
       const mockRegistry = {
-        IsTest: { name: 'IsTest', evaluate: (value: any) => value === 'test', isAsync: false },
-        IsValid: { name: 'IsValid', evaluate: (value: any) => value !== null, isAsync: false },
-        ToUpper: { name: 'ToUpper', evaluate: (value: any) => String(value).toUpperCase(), isAsync: false },
+        IsTest: { name: 'IsTest', evaluate: (value: any) => value === 'test' },
+        IsValid: { name: 'IsValid', evaluate: (value: any) => value !== null },
+        ToUpper: { name: 'ToUpper', evaluate: (value: any) => String(value).toUpperCase() },
       }
 
       registry.register(mockRegistry)
@@ -129,7 +128,7 @@ describe('FunctionRegistry', () => {
   describe('get', () => {
     it('should return function when it exists', () => {
       const mockRegistry = {
-        IsTest: { name: 'IsTest', evaluate: (value: any) => value === 'test', isAsync: false },
+        IsTest: { name: 'IsTest', evaluate: (value: any) => value === 'test' },
       }
       registry.register(mockRegistry)
 
@@ -148,7 +147,7 @@ describe('FunctionRegistry', () => {
   describe('has', () => {
     it('should return true for registered function', () => {
       const mockRegistry = {
-        IsTest: { name: 'IsTest', evaluate: (value: any) => value === 'test', isAsync: false },
+        IsTest: { name: 'IsTest', evaluate: (value: any) => value === 'test' },
       }
       registry.register(mockRegistry)
 
@@ -163,8 +162,8 @@ describe('FunctionRegistry', () => {
   describe('getAll', () => {
     it('should return all registered functions', () => {
       const mockRegistry = {
-        Test1: { name: 'Test1', evaluate: (_value: any) => true, isAsync: false },
-        Test2: { name: 'Test2', evaluate: (_value: any) => false, isAsync: false },
+        Test1: { name: 'Test1', evaluate: (_value: any) => true },
+        Test2: { name: 'Test2', evaluate: (_value: any) => false },
       }
 
       registry.register(mockRegistry)
@@ -182,7 +181,7 @@ describe('FunctionRegistry', () => {
 
     it('should return a copy of the internal map', () => {
       const mockRegistry = {
-        Test: { name: 'Test', evaluate: (_value: any) => true, isAsync: false },
+        Test: { name: 'Test', evaluate: (_value: any) => true },
       }
       registry.register(mockRegistry)
 
@@ -198,14 +197,14 @@ describe('FunctionRegistry', () => {
       expect(registry.size()).toBe(0)
 
       const registry1 = {
-        Test1: { name: 'Test1', evaluate: (_value: any) => true, isAsync: false },
+        Test1: { name: 'Test1', evaluate: (_value: any) => true },
       }
       registry.register(registry1)
       expect(registry.size()).toBe(1)
 
       const registry2 = {
-        Test2: { name: 'Test2', evaluate: (_value: any) => false, isAsync: false },
-        Test3: { name: 'Test3', evaluate: (_value: any) => false, isAsync: false },
+        Test2: { name: 'Test2', evaluate: (_value: any) => false },
+        Test3: { name: 'Test3', evaluate: (_value: any) => false },
       }
       registry.register(registry2)
       expect(registry.size()).toBe(3)
