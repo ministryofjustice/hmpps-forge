@@ -176,6 +176,9 @@ generators directly when a predicate and single static message are not enough.
 
 ### Removed
 
+- `frameworkAdapter` from `ForgeOptions`, `Forge.getRouter()`, `ForgeRouterAdapter`,
+  `ExpressFrameworkAdapter`, and `ExpressForgeAdapter`. Build Express routers directly
+  with `createExpressRouter(forge, options)`.
 - `buildComponent`, `buildNunjucksComponent`, and their renderer aliases - component
   declarations now use `component()` or `nunjucksComponent()` directly ([#270], [#282])
 - `EvaluatedBlock`, `ResolvedPropsOf`, `PropsOf`, `ResolvableBlockProps`, and

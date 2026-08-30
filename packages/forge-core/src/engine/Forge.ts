@@ -1,6 +1,5 @@
 import PackageInstance from './PackageInstance'
 import type { ForgeDependencies, ForgePackageRegistration } from './chassis/contracts/ast/engine.type'
-import { ForgeDeprecations } from '../shared/ForgeDeprecations'
 import type { Logger } from '../framework/types/adapter.type'
 import type { ForgeRenderer } from '../framework/types/rendering.type'
 import type { ForgeError, ForgeOutcome } from '../framework/types/outcome.type'
@@ -26,13 +25,6 @@ export interface ForgeExecutionRequest {
 
   /** Resolves capabilities used only while preparing this request's function evaluators. */
   readonly requestDependencies?: () => object | PromiseLike<object>
-}
-
-/**
- * @deprecated Build framework routers directly, for example `createExpressRouter(forge, options)`.
- */
-export interface ForgeRouterAdapter {
-  build(forge: Forge): unknown
 }
 
 export interface ForgeOptions {
@@ -75,15 +67,10 @@ export interface ForgeOptions {
 
   /** Maximum cumulative iterator iterations allowed during one request. Default: 10,000 */
   maxIteratorIterations?: number
-
-  /**
-   * @deprecated Build framework routers directly, for example `createExpressRouter(forge, options)`.
-   */
-  frameworkAdapter?: ForgeRouterAdapter
 }
 
 export default class Forge {
-  private readonly options: Required<Omit<ForgeOptions, 'frameworkAdapter'>> & Pick<ForgeOptions, 'frameworkAdapter'>
+  private readonly options: Required<ForgeOptions>
 
   private readonly dependencies: ForgeDependencies
 
@@ -230,25 +217,6 @@ export default class Forge {
 
   getInstrumentation(): ForgeInstrumentation {
     return this.instrumentation
-  }
-
-  /**
-   * @deprecated Build framework routers directly, for example `createExpressRouter(forge, options)`.
-   */
-  getRouter(): unknown {
-    ForgeDeprecations.warn(
-      'FORGE_DEP_getRouter',
-      'frameworkAdapter and getRouter() are deprecated - build framework routers directly, for example createExpressRouter(forge, options).',
-    )
-
-    if (!this.options.frameworkAdapter) {
-      throw new Error(
-        'getRouter() requires a frameworkAdapter. Pass one to new Forge({ frameworkAdapter }), ' +
-          'or build the router directly (e.g. createExpressRouter(forge, options)).',
-      )
-    }
-
-    return this.options.frameworkAdapter.build(this)
   }
 
   async execute(request: ForgeExecutionRequest): Promise<ForgeOutcome<unknown>> {
