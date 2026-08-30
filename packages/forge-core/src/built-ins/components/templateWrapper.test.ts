@@ -1,6 +1,6 @@
 import { TemplateWrapper } from './templateWrapper'
 import { component } from '../../components/presentation'
-import { ComponentTestHarness } from '../../testing/components/ComponentTestHarness'
+import { FunctionRegistryTestHarness } from '../../testing/functions/FunctionRegistryTestHarness'
 
 const TestChild = component<{ html: string }>('testChild', {
   factory:
@@ -10,7 +10,7 @@ const TestChild = component<{ html: string }>('testChild', {
 })
 
 describe('templateWrapper component', () => {
-  const harness = new ComponentTestHarness([TemplateWrapper, TestChild])
+  const harness = new FunctionRegistryTestHarness([TemplateWrapper, TestChild])
 
   const mockBlock = (overrides?: Partial<TemplateWrapper>) =>
     TemplateWrapper({

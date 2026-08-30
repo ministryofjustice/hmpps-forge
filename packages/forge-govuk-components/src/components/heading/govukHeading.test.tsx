@@ -1,8 +1,8 @@
 
-import { ComponentTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
+import { FunctionRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 import { GovUKHeading } from './govukHeading'
 
-const harness = new ComponentTestHarness(GovUKHeading)
+const harness = new FunctionRegistryTestHarness(GovUKHeading)
 
 const render = (props: GovUKHeading) => harness.render(GovUKHeading(props))
 

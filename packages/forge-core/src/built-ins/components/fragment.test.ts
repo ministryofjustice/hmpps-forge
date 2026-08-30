@@ -1,6 +1,6 @@
 import { Fragment } from './fragment'
 import { component as declareComponent } from '../../components/presentation'
-import { ComponentTestHarness } from '../../testing/components/ComponentTestHarness'
+import { FunctionRegistryTestHarness } from '../../testing/functions/FunctionRegistryTestHarness'
 
 const TestBlock = declareComponent<{ html: string }>('testBlock', {
   factory:
@@ -9,7 +9,7 @@ const TestBlock = declareComponent<{ html: string }>('testBlock', {
       props.html,
 })
 
-const harness = new ComponentTestHarness([Fragment, TestBlock])
+const harness = new FunctionRegistryTestHarness([Fragment, TestBlock])
 
 const renderedBlock = (_variant: string, html: string) => TestBlock({ html })
 

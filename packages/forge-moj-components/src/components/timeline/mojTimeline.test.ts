@@ -1,5 +1,5 @@
 import { component as declareComponent } from '@ministryofjustice/hmpps-forge/core/components'
-import { ComponentTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
+import { FunctionRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
@@ -131,7 +131,7 @@ describe('mojTimeline', () => {
     it('should use blocks over text and html when provided', async () => {
       // Arrange
       const render = vi.fn().mockReturnValue('<div>Mocked HTML</div>')
-      const harness = new ComponentTestHarness([MOJTimeline, TestBlock], { nunjucksEnv: { render } })
+      const harness = new FunctionRegistryTestHarness([MOJTimeline, TestBlock], { nunjucksEnv: { render } })
       const items = [
         {
           label: { text: 'Event' },

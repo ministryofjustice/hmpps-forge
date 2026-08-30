@@ -2,7 +2,7 @@
 title: Custom components
 section: building-functions-and-components
 path: building-functions-and-components/custom-components
-teaches: [component, nunjucksComponent, ComponentTestHarness, plain-component-props, RenderedBlock, custom-component-variant, field-value, field-errors]
+teaches: [component, nunjucksComponent, FunctionRegistryTestHarness, plain-component-props, RenderedBlock, custom-component-variant, field-value, field-errors]
 prerequisites: [block, field, createForgePackage]
 ---
 
@@ -441,20 +441,20 @@ Forge resolves them before calling the renderer.
 
 ## Testing
 
-`ComponentTestHarness` tests the same author-facing component call used in
+`FunctionRegistryTestHarness` tests the same author-facing component call used in
 a journey. It looks up the registered component function, renders nested blocks first,
 and invokes it through Forge's rendering boundary. Tests do not need
 to construct internal render props:
 
 ```typescript
-import { ComponentTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
+import { FunctionRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 import { MyCard } from './myCard'
 
 describe('MyCard', () => {
   describe('component()', () => {
     it('should include the heading text', async () => {
       // Arrange
-      const harness = new ComponentTestHarness(MyCard)
+      const harness = new FunctionRegistryTestHarness(MyCard)
       const block = MyCard({
         heading: 'Hello',
         content: 'Body text',
@@ -472,14 +472,14 @@ describe('MyCard', () => {
 })
 ```
 
-For a `nunjucksComponent`, pass the Nunjucks environment as the harness's
-adapter renderer and assert on its template call:
+For a `nunjucksComponent`, pass the Nunjucks environment in the harness's
+dependency object and assert on its template call:
 
 ```typescript
 it('should pass heading to the template', async () => {
   // Arrange
   const nunjucksEnv = { render: jest.fn().mockReturnValue('<div></div>') }
-  const harness = new ComponentTestHarness(MyCard, nunjucksEnv)
+  const harness = new FunctionRegistryTestHarness(MyCard, { nunjucksEnv })
 
   // Act
   await harness.render(MyCard({ heading: 'Hello' }))
@@ -496,7 +496,7 @@ Field runtime values and errors use the same injected-input shape as the
 function harness:
 
 ```typescript
-const harness = new ComponentTestHarness(MyInput, nunjucksEnv)
+const harness = new FunctionRegistryTestHarness(MyInput, { nunjucksEnv })
 
 await harness
   .render(MyInput({ code: 'name', label: 'Name' }))
