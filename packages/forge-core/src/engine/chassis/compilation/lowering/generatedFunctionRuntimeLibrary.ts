@@ -1,4 +1,4 @@
-import type { ZodType } from 'zod'
+import { z, type ZodType } from 'zod'
 import { RENDER_BLOCK_BRAND } from '../../../concerns/render/contracts/renderBlock.brand'
 import { FunctionType } from '../../../../authoring/types/enums'
 import type { IteratorBudgetContract } from '../../contracts/runtime/iteratorBudget.type'
@@ -771,14 +771,18 @@ export function precheckShortCircuit(
     return undefined
   }
 
+  if (entry.functionType === FunctionType.CONDITION) {
+    if (z.validate(entry.inputSchema, args[0])) {
+      return undefined
+    }
+
+    return { value: false }
+  }
+
   const parsedValue = entry.inputSchema.safeParse(args[0])
 
   if (parsedValue.success) {
     return undefined
-  }
-
-  if (entry.functionType === FunctionType.CONDITION) {
-    return { value: false }
   }
 
   throw new TypeError(`${functionName}: value failed schema validation — ${parsedValue.error.message}`)

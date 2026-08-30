@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { buildComponent } from '../../../components/utils/buildComponent'
 import ForgeRegistryDuplicateError from '../../errors/ForgeRegistryDuplicateError'
 import ForgeRegistryValidationError from '../../errors/ForgeRegistryValidationError'
@@ -12,6 +13,20 @@ describe('ComponentRegistry', () => {
   })
 
   describe('registerMany', () => {
+    it('should compile component input schemas while preserving their parsed output', () => {
+      // Arrange
+      const inputSchema = z.object({ value: z.string().transform(value => value.length) })
+      const component = buildComponent('text', () => '<input />', { inputSchema })
+
+      // Act
+      registry.registerMany([component])
+      const registeredSchema = registry.get('text')?.inputSchema
+
+      // Assert
+      expect(registeredSchema).not.toBe(inputSchema)
+      expect(registeredSchema?.safeParse({ value: 'Ada' })).toEqual({ success: true, data: { value: 3 } })
+    })
+
     it('should register a single component successfully', () => {
       const mockComponent = buildComponent('text-input', (_block: EvaluatedBlock<BlockDefinition>) => {
         return `<input type="text" />`

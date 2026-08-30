@@ -66,6 +66,13 @@ configuration, and reachability traversal.
   `disableBuiltInComponents` pass through to the underlying `Forge` alongside the
   existing `instrumentation` and `maxIteratorIterations` options ([#277])
 
+### Changed
+
+- Forge now requires Zod 4.5 or later. Function and component schemas are compiled
+  once when registered and reused across requests, while boolean-only condition input
+  checks use Zod's allocation-free validation path. Component schemas retain their
+  existing parsing and sanitisation behaviour ([#288])
+
 ### Fixed
 
 - `Answer()` inside an `onAccess` hook now fails compilation with its source location.
@@ -87,6 +94,7 @@ configuration, and reachability traversal.
 [#272]: https://github.com/ministryofjustice/hmpps-forge/pull/272
 [#277]: https://github.com/ministryofjustice/hmpps-forge/pull/277
 [#278]: https://github.com/ministryofjustice/hmpps-forge/pull/278
+[#288]: https://github.com/ministryofjustice/hmpps-forge/pull/288
 [#289]: https://github.com/ministryofjustice/hmpps-forge/pull/289
 
 ---

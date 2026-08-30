@@ -1,7 +1,8 @@
+import { z } from 'zod'
 import type { BlockDefinition } from '../../../components/types/structures.type'
 import ForgeRegistryDuplicateError from '../../errors/ForgeRegistryDuplicateError'
 import ForgeRegistryValidationError from '../../errors/ForgeRegistryValidationError'
-import { ComponentRegistryEntry } from '../../../components/types/components.type'
+import type { ComponentRegistryEntry } from '../../../components/types/components.type'
 
 /**
  * Registry for managing UI components in forge.
@@ -52,7 +53,16 @@ export default class ComponentRegistry {
           }),
         )
       } else {
-        this.components.set(component.variant, component)
+        if (component.inputSchema === undefined) {
+          this.components.set(component.variant, component)
+
+          return
+        }
+
+        this.components.set(component.variant, {
+          ...component,
+          inputSchema: z.compile(component.inputSchema),
+        })
       }
     })
 

@@ -26,7 +26,7 @@ interface StoredRegistration {
   factory: (deps: any) => (...args: any[]) => any
 }
 
-export const CONDITION_OUTPUT_SCHEMA = z.boolean()
+export const CONDITION_OUTPUT_SCHEMA = z.compile(z.boolean())
 
 // Each rolldown entry point (core, core/authoring) inlines its own copy of this class, so
 // `instanceof` fails when an instance from one bundle reaches a check in another. The
@@ -102,11 +102,15 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> {
       })
     }
 
+    const inputSchema = this.compileSchema(options.inputSchema)
+    const argumentsSchema = this.compileSchema(options.argumentsSchema)
+    const outputSchema = this.compileOutputSchema(options.outputSchema)
+
     this.registrations.set(name, {
       name,
-      inputSchema: options.inputSchema,
-      argumentsSchema: options.argumentsSchema,
-      outputSchema: options.outputSchema ?? this.defaultOutputSchema,
+      inputSchema,
+      argumentsSchema,
+      outputSchema,
       prepare: options.prepare,
       factory,
     })
@@ -157,5 +161,21 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> {
     })
 
     return registry
+  }
+
+  private compileSchema(schema: ZodType | undefined): ZodType | undefined {
+    if (schema === undefined) {
+      return undefined
+    }
+
+    return z.compile(schema)
+  }
+
+  private compileOutputSchema(schema: ZodType | undefined): ZodType | undefined {
+    if (schema === undefined) {
+      return this.defaultOutputSchema
+    }
+
+    return z.compile(schema)
   }
 }
