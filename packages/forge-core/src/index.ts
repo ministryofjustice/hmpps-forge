@@ -21,7 +21,7 @@ export { default as ForgeRegistryValidationError } from './engine/errors/ForgeRe
 export { default as ForgeUnknownNodeTypeError } from './engine/errors/ForgeUnknownNodeTypeError'
 export { default as ForgeUnregisteredComponentError } from './engine/errors/ForgeUnregisteredComponentError'
 export { default as ForgeUnregisteredFunctionError } from './engine/errors/ForgeUnregisteredFunctionError'
-export type { ForgeExecutionRequest, ForgeOptions, ForgeRouterAdapter } from './engine/Forge'
+export type { ForgeExecutionRequest, ForgeOptions } from './engine/Forge'
 export type {
   ForgeInstrumentation,
   ForgeInstrumentationOptions,

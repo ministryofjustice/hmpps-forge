@@ -1,4 +1,3 @@
-import type { MockInstance } from 'vitest'
 import { component } from '../components/presentation'
 import { createForgePackage } from '../authoring/builders'
 import MountRegistry from './chassis/registries/MountRegistry'
@@ -243,57 +242,6 @@ describe('Forge', () => {
 
       expect(topology).toEqual({ routes: [] })
       expect(mockMountRegistry.getTopology).toHaveBeenCalledTimes(1)
-    })
-  })
-
-  describe('getRouter()', () => {
-    const SEEN_CODES = Symbol.for('forge:deprecations')
-    const deprecationMessage =
-      'frameworkAdapter and getRouter() are deprecated - build framework routers directly, ' +
-      'for example createExpressRouter(forge, options).'
-    let emitWarning: MockInstance<typeof process.emitWarning>
-
-    beforeEach(() => {
-      // Reset the process-global dedup set so each case observes the once-only warning.
-      delete (globalThis as Record<symbol, unknown>)[SEEN_CODES]
-      emitWarning = vi.spyOn(process, 'emitWarning').mockImplementation(() => {})
-    })
-
-    afterEach(() => {
-      emitWarning.mockRestore()
-    })
-
-    it('should build the router through the deprecated framework adapter', () => {
-      // Arrange
-      const router = { kind: 'router' }
-      const frameworkAdapter = { build: vi.fn().mockReturnValue(router) }
-      const engine = new Forge(createDefaultOptions({ frameworkAdapter, logger: mockLogger }))
-
-      // Act
-      const result = engine.getRouter()
-
-      // Assert
-      expect(result).toBe(router)
-      expect(frameworkAdapter.build).toHaveBeenCalledWith(engine)
-      expect(emitWarning).toHaveBeenCalledWith(deprecationMessage, {
-        type: 'DeprecationWarning',
-        code: 'FORGE_DEP_getRouter',
-      })
-    })
-
-    it('should throw when no framework adapter is configured', () => {
-      // Arrange
-      const engine = new Forge(createDefaultOptions({ logger: mockLogger }))
-
-      // Act
-      const act = () => engine.getRouter()
-
-      // Assert
-      expect(act).toThrow('getRouter() requires a frameworkAdapter')
-      expect(emitWarning).toHaveBeenCalledWith(deprecationMessage, {
-        type: 'DeprecationWarning',
-        code: 'FORGE_DEP_getRouter',
-      })
     })
   })
 
