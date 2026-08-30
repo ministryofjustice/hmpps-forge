@@ -216,15 +216,17 @@ export interface MOJButtonMenu {
  * ```
  */
 export const MOJButtonMenu = nunjucksComponent<MOJButtonMenu>('mojButtonMenu', {
-  render: (props, nunjucksEnv) => {
-    const params = {
-      button: props.button,
-      alignMenu: props.alignMenu,
-      items: props.items.filter(item => item.visibleWhen !== false),
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params = {
+        button: props.button,
+        alignMenu: props.alignMenu,
+        items: props.items.filter(item => item.visibleWhen !== false),
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('moj/components/button-menu/template.njk', { params })
-  },
+      return nunjucksEnv.render('moj/components/button-menu/template.njk', { params })
+    },
 })

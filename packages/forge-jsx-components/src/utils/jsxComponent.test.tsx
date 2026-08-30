@@ -11,7 +11,10 @@ interface TestBadgeProps {
 }
 
 const TestBadge = jsxComponent<TestBadgeProps>('testBadge', {
-  render: props => <strong class="badge">{props.text}</strong>,
+  factory:
+    () =>
+    ({ props }) =>
+      <strong class="badge">{props.text}</strong>,
 })
 
 interface TestTextInputProps {
@@ -21,12 +24,14 @@ interface TestTextInputProps {
 
 const TestTextInput = jsxComponent<TestTextInputProps>('testTextInput', {
   field: true,
-  render: props => (
-    <div class="form-group">
-      <label for={props.code}>{props.label}</label>
-      <input type="text" id={props.code} name={props.code} value={props.value as string} />
-    </div>
-  ),
+  factory:
+    () =>
+    ({ props }) => (
+      <div class="form-group">
+        <label for={props.code}>{props.label}</label>
+        <input type="text" id={props.code} name={props.code} value={props.value as string} />
+      </div>
+    ),
   inputSchema: z.string(),
 })
 
@@ -58,6 +63,26 @@ describe('jsxComponent()', () => {
   })
 
   describe('registry entry', () => {
+    it('should pass package dependencies and stringify an asynchronous result', async () => {
+      // Arrange
+      const Greeting = jsxComponent<{ name: string }, { loadGreeting: () => Promise<string> }>('greeting', {
+        factory:
+          ({ loadGreeting }) =>
+          async ({ props }) => {
+            const greeting = await loadGreeting()
+
+            return <p>{`${greeting}, ${props.name}`}</p>
+          },
+      })
+      const harness = new FunctionRegistryTestHarness(Greeting, { loadGreeting: async () => 'Hello' })
+
+      // Act
+      const output = await harness.render(Greeting({ name: 'Ada' }))
+
+      // Assert
+      expect(output).toBe('<p>Hello, Ada</p>')
+    })
+
     it('should render to a plain string when the registry render is invoked', async () => {
       // Arrange & Act
       const output = await badgeHarness.render(TestBadge({ text: 'New' }))
@@ -102,7 +127,10 @@ describe('jsxComponent()', () => {
       }
 
       const TestCard = jsxComponent<TestCardProps>('testCard', {
-        render: props => <div class="card">{raw(props.childHtml)}</div>,
+        factory:
+          () =>
+          ({ props }) =>
+            <div class="card">{raw(props.childHtml)}</div>,
       })
 
       const harness = new FunctionRegistryTestHarness(TestCard)

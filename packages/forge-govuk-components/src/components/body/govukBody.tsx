@@ -44,15 +44,17 @@ export interface GovUKBody {
  * ```
  */
 export const GovUKBody = jsxComponent<GovUKBody>('govukBody', {
-  render: props => {
-    const className = [props.size ? `govuk-body-${props.size}` : 'govuk-body', props.classes]
-      .filter(Boolean)
-      .join(' ')
+  factory:
+    () =>
+    ({ props }) => {
+      const className = [props.size ? `govuk-body-${props.size}` : 'govuk-body', props.classes]
+        .filter(Boolean)
+        .join(' ')
 
-    return (
-      <p class={className} {...props.attributes}>
-        {raw(props.text)}
-      </p>
-    )
-  },
+      return (
+        <p class={className} {...props.attributes}>
+          {raw(props.text)}
+        </p>
+      )
+    },
 })

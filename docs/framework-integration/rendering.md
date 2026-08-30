@@ -225,12 +225,13 @@ template.
 
 Component and renderer functions are registered by variant.
 
-Each component receives its resolved props and an optional renderer object. The
-renderer object lets a framework integration pass template-engine support to
-component packages without making `forge-core` depend on that template engine.
+Each component factory receives the package's merged dependencies. This lets a
+framework integration supply template-engine support without making `forge-core`
+depend on that template engine.
 
-For Nunjucks components, `nunjucksComponent` pins that renderer object to a typed
-Nunjucks environment while retaining the component's plain props.
+For Nunjucks components, `nunjucksComponent` types those dependencies with the
+Nunjucks environment supplied by the adapter. Its evaluator receives the resolved
+component props through `{ props, context }`, like every other component.
 
 ### GOV.UK and MOJ components
 

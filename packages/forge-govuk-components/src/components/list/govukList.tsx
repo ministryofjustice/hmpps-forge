@@ -52,20 +52,22 @@ export interface GovUKList {
  * ```
  */
 export const GovUKList = jsxComponent<GovUKList>('govukList', {
-  render: props => {
-    // Evaluation widens the literal prop types, so pin the type back to the union
-    const style = props.style as ListType | undefined
-    const Tag = style === 'number' ? 'ol' : 'ul'
-    const className = ['govuk-list', style && `govuk-list--${style}`, props.spaced && 'govuk-list--spaced', props.classes]
-      .filter(Boolean)
-      .join(' ')
+  factory:
+    () =>
+    ({ props }) => {
+      // Evaluation widens the literal prop types, so pin the type back to the union
+      const style = props.style as ListType | undefined
+      const Tag = style === 'number' ? 'ol' : 'ul'
+      const className = ['govuk-list', style && `govuk-list--${style}`, props.spaced && 'govuk-list--spaced', props.classes]
+        .filter(Boolean)
+        .join(' ')
 
-    return (
-      <Tag class={className} {...props.attributes}>
-        {props.items.map(item => (
-          <li>{raw(typeof item === 'object' && item !== null ? item.html : item)}</li>
-        ))}
-      </Tag>
-    )
-  },
+      return (
+        <Tag class={className} {...props.attributes}>
+          {props.items.map(item => (
+            <li>{raw(typeof item === 'object' && item !== null ? item.html : item)}</li>
+          ))}
+        </Tag>
+      )
+    },
 })

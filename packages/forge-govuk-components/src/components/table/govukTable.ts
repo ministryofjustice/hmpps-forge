@@ -152,17 +152,19 @@ function normaliseTableCell(cell: RuntimeTableCell) {
  * ```
  */
 export const GovUKTable = nunjucksComponent<GovUKTable>('govukTable', {
-  render: (props, nunjucksEnv) => {
-    const params: Record<string, any> = {
-      rows: props.rows.map(row => row.map(normaliseTableCell)),
-      head: props.head,
-      caption: props.caption,
-      captionClasses: props.captionClasses,
-      firstCellIsHeader: props.firstCellIsHeader,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params: Record<string, any> = {
+        rows: props.rows.map(row => row.map(normaliseTableCell)),
+        head: props.head,
+        caption: props.caption,
+        captionClasses: props.captionClasses,
+        firstCellIsHeader: props.firstCellIsHeader,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('govuk/components/table/template.njk', { params })
-  },
+      return nunjucksEnv.render('govuk/components/table/template.njk', { params })
+    },
 })

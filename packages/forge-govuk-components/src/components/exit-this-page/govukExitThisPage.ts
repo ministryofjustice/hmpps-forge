@@ -118,20 +118,22 @@ export interface GovUKExitThisPage {
  * ```
  */
 export const GovUKExitThisPage = nunjucksComponent<GovUKExitThisPage>('govukExitThisPage', {
-  render: (props, nunjucksEnv) => {
-    const params: Record<string, any> = {
-      id: props.id,
-      text: props.html ? undefined : props.text,
-      html: props.html,
-      redirectUrl: props.redirectUrl,
-      classes: props.classes,
-      attributes: props.attributes,
-      activatedText: props.activatedText,
-      timedOutText: props.timedOutText,
-      pressTwoMoreTimesText: props.pressTwoMoreTimesText,
-      pressOneMoreTimeText: props.pressOneMoreTimeText,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params: Record<string, any> = {
+        id: props.id,
+        text: props.html ? undefined : props.text,
+        html: props.html,
+        redirectUrl: props.redirectUrl,
+        classes: props.classes,
+        attributes: props.attributes,
+        activatedText: props.activatedText,
+        timedOutText: props.timedOutText,
+        pressTwoMoreTimesText: props.pressTwoMoreTimesText,
+        pressOneMoreTimeText: props.pressOneMoreTimeText,
+      }
 
-    return nunjucksEnv.render('govuk/components/exit-this-page/template.njk', { params })
-  },
+      return nunjucksEnv.render('govuk/components/exit-this-page/template.njk', { params })
+    },
 })

@@ -160,14 +160,16 @@ function isHeadingLevel(value: number | undefined): value is NonNullable<MOJCard
  * ```
  */
 export const MOJCardGroup = nunjucksComponent<MOJCardGroup>('mojCardGroup', {
-  render: (props, nunjucksEnv) => {
-    const params = {
-      items: props.items.filter(item => item.visibleWhen !== false).map(normalizeCardItem),
-      columns: props.columns,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params = {
+        items: props.items.filter(item => item.visibleWhen !== false).map(normalizeCardItem),
+        columns: props.columns,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('components/card-group/template.njk', { params })
-  },
+      return nunjucksEnv.render('components/card-group/template.njk', { params })
+    },
 })

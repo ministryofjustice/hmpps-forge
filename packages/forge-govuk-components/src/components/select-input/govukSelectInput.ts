@@ -171,24 +171,26 @@ export const GovUKSelectInput = nunjucksComponent<GovUKSelectInput>('govukSelect
   inputSchema: z.string(),
   // The rendered select's id matches the render params below, so error summary links land on it.
   errorAnchor: props => props.id ?? props.code,
-  render: (props, nunjucksEnv) => {
-    const params = {
-      id: props.id ?? props.code,
-      name: props.code,
-      items: props.items.filter(item => item.visibleWhen !== false),
-      label: normaliseGovukTextParam(props.label),
-      hint: normaliseGovukTextParam(props.hint),
-      value: props.value,
-      disabled: props.disabled,
-      describedBy: props.describedBy,
-      formGroup: props.formGroup,
-      classes: props.classes,
-      attributes: props.attributes,
-      errorMessage: normaliseGovukErrorMessage(props.errors),
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params = {
+        id: props.id ?? props.code,
+        name: props.code,
+        items: props.items.filter(item => item.visibleWhen !== false),
+        label: normaliseGovukTextParam(props.label),
+        hint: normaliseGovukTextParam(props.hint),
+        value: props.value,
+        disabled: props.disabled,
+        describedBy: props.describedBy,
+        formGroup: props.formGroup,
+        classes: props.classes,
+        attributes: props.attributes,
+        errorMessage: normaliseGovukErrorMessage(props.errors),
+      }
 
-    return nunjucksEnv.render('govuk/components/select/template.njk', {
-      params,
-    })
-  },
+      return nunjucksEnv.render('govuk/components/select/template.njk', {
+        params,
+      })
+    },
 })

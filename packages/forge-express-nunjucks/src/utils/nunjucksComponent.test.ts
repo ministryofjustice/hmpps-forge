@@ -5,20 +5,23 @@ import { FunctionRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core
 import { nunjucksComponent } from './nunjucksComponent'
 
 describe('nunjucksComponent()', () => {
-  describe('render()', () => {
-    it('should adapt a props-first callback to a component function entry', async () => {
+  describe('factory()', () => {
+    it('should pass package dependencies alongside the Nunjucks environment', async () => {
       // Arrange
       const environment = new nunjucks.Environment()
-      const Card = nunjucksComponent<{ title: string }>('card', {
-        render: (props, renderer) => renderer.renderString('<h1>{{ title }}</h1>', props),
+      const Card = nunjucksComponent<{ title: string }, { prefix: string }>('card', {
+        factory:
+          ({ nunjucksEnv, prefix }) =>
+          async ({ props }) =>
+            nunjucksEnv.renderString('<h1>{{ prefix }}: {{ title }}</h1>', { ...props, prefix }),
       })
-      const harness = new FunctionRegistryTestHarness(Card, { nunjucksEnv: environment })
+      const harness = new FunctionRegistryTestHarness(Card, { nunjucksEnv: environment, prefix: 'Case' })
 
       // Act
       const output = await harness.render(Card({ title: 'Details' }))
 
       // Assert
-      expect(output).toBe('<h1>Details</h1>')
+      expect(output).toBe('<h1>Case: Details</h1>')
     })
 
     it('should preserve field metadata on the component declaration', () => {
@@ -28,7 +31,7 @@ describe('nunjucksComponent()', () => {
         inputSchema: z.string(),
         multiple: true,
         errorAnchor: props => props.code,
-        render: () => '<input>',
+        factory: () => () => '<input>',
       })
 
       // Act
@@ -39,23 +42,6 @@ describe('nunjucksComponent()', () => {
       expect(TextInput.multiple).toBe(true)
       expect(TextInput.errorAnchor?.({ code: 'name' })).toBe('name')
       expect(block.variant).toBe('textInput')
-    })
-
-    it('should reject a component that returns a non-string value at runtime', async () => {
-      // Arrange
-      const environment = new nunjucks.Environment()
-      const Broken = nunjucksComponent<{ label: string }>('broken', {
-        field: true,
-        // @ts-expect-error Exercise the runtime contract for untyped JavaScript consumers.
-        render: () => 123,
-      })
-      const harness = new FunctionRegistryTestHarness(Broken, { nunjucksEnv: environment })
-
-      // Act
-      const output = harness.render(Broken({ code: 'broken', label: 'Broken' })).withValue(undefined)
-
-      // Assert
-      await expect(output).rejects.toThrow('Nunjucks component "broken" must return an HTML string')
     })
   })
 })

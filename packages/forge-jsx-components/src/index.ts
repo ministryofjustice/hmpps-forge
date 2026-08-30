@@ -21,7 +21,7 @@
  * import { jsxComponent } from '@ministryofjustice/hmpps-forge/jsx-components'
  *
  * export const MyBadge = jsxComponent<MyBadge>('myBadge', {
- *   render: props => <strong class="moj-badge">{props.text}</strong>,
+ *   factory: () => ({ props }) => <strong class="moj-badge">{props.text}</strong>,
  * })
  * ```
  */

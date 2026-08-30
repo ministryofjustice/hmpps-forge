@@ -32,47 +32,49 @@ export interface RichTextEditor {
 
 export const RichTextEditor = nunjucksComponent<RichTextEditor>('richTextEditor', {
   field: true,
-  render: (block, nunjucksEnv) => {
-    const toolbar = block.toolbar ?? {
-      bold: true,
-      italic: true,
-      underline: true,
-      bullets: true,
-      numbers: true,
-    }
-
-    const toolbarAttributes: Record<string, string> = {
-      'data-module': 'moj-rich-text-editor',
-    }
-
-    for (const [key, enabled] of Object.entries(toolbar)) {
-      if (enabled) {
-        toolbarAttributes[`data-toolbar.${key}`] = 'true'
-      }
-    }
-
-    const normaliseStringOrObject = (value: unknown) => {
-      if (!value) {
-        return undefined
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const toolbar = props.toolbar ?? {
+        bold: true,
+        italic: true,
+        underline: true,
+        bullets: true,
+        numbers: true,
       }
 
-      return typeof value === 'object' ? value : { text: value }
-    }
+      const toolbarAttributes: Record<string, string> = {
+        'data-module': 'moj-rich-text-editor',
+      }
 
-    const params = {
-      id: block.id ?? block.code,
-      name: block.code,
-      rows: block.rows || '8',
-      value: block.value,
-      label: normaliseStringOrObject(block.label),
-      hint: normaliseStringOrObject(block.hint),
-      errorMessage: block.errors?.length && { text: block.errors[0].message },
-      formGroup: {
-        attributes: toolbarAttributes,
-      },
-      classes: block.classes,
-    }
+      for (const [key, enabled] of Object.entries(toolbar)) {
+        if (enabled) {
+          toolbarAttributes[`data-toolbar.${key}`] = 'true'
+        }
+      }
 
-    return nunjucksEnv.render('govuk/components/textarea/template.njk', { params })
-  },
+      const normaliseStringOrObject = (value: unknown) => {
+        if (!value) {
+          return undefined
+        }
+
+        return typeof value === 'object' ? value : { text: value }
+      }
+
+      const params = {
+        id: props.id ?? props.code,
+        name: props.code,
+        rows: props.rows || '8',
+        value: props.value,
+        label: normaliseStringOrObject(props.label),
+        hint: normaliseStringOrObject(props.hint),
+        errorMessage: props.errors?.length && { text: props.errors[0].message },
+        formGroup: {
+          attributes: toolbarAttributes,
+        },
+        classes: props.classes,
+      }
+
+      return nunjucksEnv.render('govuk/components/textarea/template.njk', { params })
+    },
 })

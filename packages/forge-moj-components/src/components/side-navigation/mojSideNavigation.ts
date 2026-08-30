@@ -172,23 +172,25 @@ export interface MOJSideNavigation {
  * ```
  */
 export const MOJSideNavigation = nunjucksComponent<MOJSideNavigation>('mojSideNavigation', {
-  render: (props, nunjucksEnv) => {
-    const items = props.items?.filter(item => item.visibleWhen !== false)
-    const sections = props.sections
-      ?.filter(section => section.visibleWhen !== false)
-      .map(section => ({
-        ...section,
-        items: section.items.filter(item => item.visibleWhen !== false),
-      }))
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const items = props.items?.filter(item => item.visibleWhen !== false)
+      const sections = props.sections
+        ?.filter(section => section.visibleWhen !== false)
+        .map(section => ({
+          ...section,
+          items: section.items.filter(item => item.visibleWhen !== false),
+        }))
 
-    const params = {
-      label: props.label,
-      items,
-      sections,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+      const params = {
+        label: props.label,
+        items,
+        sections,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('moj/components/side-navigation/template.njk', { params })
-  },
+      return nunjucksEnv.render('moj/components/side-navigation/template.njk', { params })
+    },
 })

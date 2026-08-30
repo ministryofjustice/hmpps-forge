@@ -106,14 +106,16 @@ export interface GovUKTag {
  * ```
  */
 export const GovUKTag = nunjucksComponent<GovUKTag>('govukTag', {
-  render: (props, nunjucksEnv) => {
-    const params: Record<string, any> = {
-      text: props.html ? undefined : props.text,
-      html: props.html,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params: Record<string, any> = {
+        text: props.html ? undefined : props.text,
+        html: props.html,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('govuk/components/tag/template.njk', { params })
-  },
+      return nunjucksEnv.render('govuk/components/tag/template.njk', { params })
+    },
 })

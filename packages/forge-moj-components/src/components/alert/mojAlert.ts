@@ -161,28 +161,30 @@ export interface MOJAlert {
  * ```
  */
 export const MOJAlert = nunjucksComponent<MOJAlert>('mojAlert', {
-  render: (props, nunjucksEnv) => {
-    const content = normaliseMojTextHtmlContent({
-      text: props.text,
-      html: props.html,
-      blocks: props.blocks,
-    })
-    const params = {
-      variant: props.alertVariant,
-      title: props.title,
-      text: content.text,
-      html: content.html,
-      showTitleAsHeading: props.showTitleAsHeading,
-      headingTag: props.headingTag,
-      dismissible: props.dismissible,
-      dismissText: props.dismissText,
-      disableAutoFocus: props.disableAutoFocus,
-      focusOnDismissSelector: props.focusOnDismissSelector,
-      role: props.role,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const content = normaliseMojTextHtmlContent({
+        text: props.text,
+        html: props.html,
+        blocks: props.blocks,
+      })
+      const params = {
+        variant: props.alertVariant,
+        title: props.title,
+        text: content.text,
+        html: content.html,
+        showTitleAsHeading: props.showTitleAsHeading,
+        headingTag: props.headingTag,
+        dismissible: props.dismissible,
+        dismissText: props.dismissText,
+        disableAutoFocus: props.disableAutoFocus,
+        focusOnDismissSelector: props.focusOnDismissSelector,
+        role: props.role,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('moj/components/alert/template.njk', { params })
-  },
+      return nunjucksEnv.render('moj/components/alert/template.njk', { params })
+    },
 })

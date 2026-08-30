@@ -204,15 +204,17 @@ function normaliseMessageItem(item: RuntimeMOJMessageItem) {
  * ```
  */
 export const MOJMessages = nunjucksComponent<MOJMessages>('mojMessages', {
-  render: (props, nunjucksEnv) => {
-    const params = {
-      items: props.items.filter(item => item.visibleWhen !== false).map(normaliseMessageItem),
-      id: props.id,
-      label: props.label,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params = {
+        items: props.items.filter(item => item.visibleWhen !== false).map(normaliseMessageItem),
+        id: props.id,
+        label: props.label,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('moj/components/messages/template.njk', { params })
-  },
+      return nunjucksEnv.render('moj/components/messages/template.njk', { params })
+    },
 })

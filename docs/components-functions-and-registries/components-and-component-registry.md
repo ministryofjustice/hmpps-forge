@@ -22,8 +22,8 @@ const MyCard = component<MyCardProps>('myCard', {
 })
 ```
 
-Renderer-specific helpers such as `nunjucksComponent()` and `jsxComponent()` keep
-their props-first authoring signatures, but they are only wrappers around
+Renderer-specific helpers such as `nunjucksComponent()` and `jsxComponent()` use
+the same `factory(dependencies) => evaluator({ props, context })` shape as
 `component()`. Their results are ordinary component entries.
 
 `renderer()` declares step composition separately. Its evaluator receives the
@@ -71,9 +71,13 @@ ordering. The framework adapter supplies any stable capabilities those factories
 need, wraps nested output, and assembles the final page.
 
 The Express/Nunjucks adapter supplies its environment through adapter dependencies.
-`nunjucksComponent()` captures that dependency and preserves the existing
-`(props, nunjucksEnv)` authoring callback. Forge core treats the dependency object
-and presentation output as opaque values.
+`nunjucksComponent()` exposes `nunjucksEnv` alongside the package dependencies passed
+to its factory. Forge core treats the dependency object and presentation output as
+opaque values.
+
+`jsxComponent()` passes package dependencies to its factory and accepts `RawHtml`
+from its evaluator. It converts that value to a string at the boundary expected by
+Forge core.
 
 This keeps template-engine assumptions outside `forge-core` without inventing a
 second registry contract.
@@ -110,7 +114,7 @@ Important failure cases include:
 - a block variant that does not resolve to a component definition
 - a component used in `renderer`, or a renderer used in `blocks`
 - a component or renderer factory or evaluator throwing
-- a renderer-specific compatibility wrapper rejecting the evaluator's output
+- a renderer-specific helper receiving invalid dependencies or output
 - unsupported nested render output
 
 Missing and wrongly typed entries should fail during registration or semantic
