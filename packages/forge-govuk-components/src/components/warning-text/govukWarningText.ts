@@ -51,20 +51,22 @@ export interface GovUKWarningText {
  * ```
  */
 export const GovUKWarningText = nunjucksComponent<GovUKWarningText>('govukWarningText', {
-  render: (props, nunjucksEnv) => {
-    const content = normaliseGovukTextHtmlContent({
-      text: props.text,
-      html: props.html,
-      blocks: props.blocks,
-    })
-    const params: Record<string, any> = {
-      text: content.text,
-      html: content.html,
-      iconFallbackText: props.iconFallbackText,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const content = normaliseGovukTextHtmlContent({
+        text: props.text,
+        html: props.html,
+        blocks: props.blocks,
+      })
+      const params: Record<string, any> = {
+        text: content.text,
+        html: content.html,
+        iconFallbackText: props.iconFallbackText,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('govuk/components/warning-text/template.njk', { params })
-  },
+      return nunjucksEnv.render('govuk/components/warning-text/template.njk', { params })
+    },
 })

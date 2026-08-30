@@ -38,16 +38,18 @@ export interface GovUKSectionBreak {
  * ```
  */
 export const GovUKSectionBreak = jsxComponent<GovUKSectionBreak>('govukSectionBreak', {
-  render: props => {
-    const className = [
-      'govuk-section-break',
-      props.size && `govuk-section-break--${props.size}`,
-      props.visible && 'govuk-section-break--visible',
-      props.classes,
-    ]
-      .filter(Boolean)
-      .join(' ')
+  factory:
+    () =>
+    ({ props }) => {
+      const className = [
+        'govuk-section-break',
+        props.size && `govuk-section-break--${props.size}`,
+        props.visible && 'govuk-section-break--visible',
+        props.classes,
+      ]
+        .filter(Boolean)
+        .join(' ')
 
-    return <hr class={className} {...props.attributes} />
-  },
+      return <hr class={className} {...props.attributes} />
+    },
 })

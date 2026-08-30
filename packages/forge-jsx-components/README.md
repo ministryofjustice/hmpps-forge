@@ -29,10 +29,9 @@ JavaScript, so nothing downstream needs to know JSX was involved.
 
 ## Writing a component
 
-`jsxComponent()` is a compatibility wrapper around `component()`. It keeps the props-first callback,
-pins its output to the runtime's `RawHtml`, and stringifies that output at the boundary. Unlike
-`nunjucksComponent` there is no renderer argument - JSX compiles to direct string building, so there
-is no environment to inject.
+`jsxComponent()` uses the same factory shape as the rest of Forge's function family. The factory
+receives the package dependencies and returns an evaluator that receives the resolved component
+props. JSX compiles to direct string building, so there is no renderer environment to inject.
 
 ```tsx
 import type { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
@@ -43,12 +42,13 @@ export interface MyBadge extends BlockDefinition {
 }
 
 export const MyBadge = jsxComponent<MyBadge>('myBadge', {
-  render: props => <strong class="moj-badge">{props.text}</strong>,
+  factory: () => ({ props }) => <strong class="moj-badge">{props.text}</strong>,
 })
 ```
 
-The result is an ordinary component entry producing plain HTML strings - register it and use it in
-journeys exactly as you would any other component.
+The evaluator produces `RawHtml`, which `jsxComponent()` converts to the plain HTML string Forge
+expects at the component boundary. The result is an ordinary component entry: use it in journeys
+exactly as you would any other component.
 
 ## Project setup
 

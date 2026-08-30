@@ -329,28 +329,30 @@ export const GovUKCheckboxInput = nunjucksComponent<GovUKCheckboxInput>('govukCh
   multiple: true,
   // The first rendered checkbox's id is the idPrefix, so error summary links land there.
   errorAnchor: props => props.idPrefix || props.code,
-  render: (props, nunjucksEnv) => {
-    const items = props.items
-      .filter(option => option.visibleWhen !== false)
-      .map(option => makeOption(option, props.value))
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const items = props.items
+        .filter(option => option.visibleWhen !== false)
+        .map(option => makeOption(option, props.value))
 
-    const params = {
-      fieldset: normaliseGovukFieldset(props.fieldset, props.label),
-      idPrefix: props.idPrefix || props.code,
-      name: props.name || props.code,
-      describedBy: props.describedBy,
-      formGroup: props.formGroup,
-      hint: normaliseGovukTextParam(props.hint),
-      items,
-      classes: props.classes,
-      attributes: props.attributes,
-      errorMessage: normaliseGovukErrorMessage(props.errors),
-    }
+      const params = {
+        fieldset: normaliseGovukFieldset(props.fieldset, props.label),
+        idPrefix: props.idPrefix || props.code,
+        name: props.name || props.code,
+        describedBy: props.describedBy,
+        formGroup: props.formGroup,
+        hint: normaliseGovukTextParam(props.hint),
+        items,
+        classes: props.classes,
+        attributes: props.attributes,
+        errorMessage: normaliseGovukErrorMessage(props.errors),
+      }
 
-    return nunjucksEnv.render('govuk/components/checkboxes/template.njk', {
-      params,
-    })
-  },
+      return nunjucksEnv.render('govuk/components/checkboxes/template.njk', {
+        params,
+      })
+    },
 })
 
 type RenderedCheckboxInputItem = ComponentRenderProps<GovUKCheckboxInput>['items'][number]

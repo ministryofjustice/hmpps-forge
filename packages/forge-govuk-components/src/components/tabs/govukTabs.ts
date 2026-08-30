@@ -163,37 +163,39 @@ export interface GovUKTabs {
  * ```
  */
 export const GovUKTabs = nunjucksComponent<GovUKTabs>('govukTabs', {
-  render: (props, nunjucksEnv) => {
-    // Process items, handling child blocks in panel content
-    const processedItems = props.items
-      .filter(item => item.visibleWhen !== false)
-      .map(item => {
-        const panel = normaliseGovukTextHtmlContent({
-          text: item.panel.text,
-          html: item.panel.html,
-          blocks: item.panel.blocks,
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      // Process items, handling child blocks in panel content
+      const processedItems = props.items
+        .filter(item => item.visibleWhen !== false)
+        .map(item => {
+          const panel = normaliseGovukTextHtmlContent({
+            text: item.panel.text,
+            html: item.panel.html,
+            blocks: item.panel.blocks,
+          })
+
+          return {
+            id: item.id,
+            label: item.label,
+            attributes: item.attributes,
+            panel: {
+              text: panel.text,
+              html: panel.html,
+              attributes: item.panel.attributes,
+            },
+          }
         })
 
-        return {
-          id: item.id,
-          label: item.label,
-          attributes: item.attributes,
-          panel: {
-            text: panel.text,
-            html: panel.html,
-            attributes: item.panel.attributes,
-          },
-        }
-      })
+      const params: Record<string, any> = {
+        id: props.id,
+        title: props.title,
+        items: processedItems,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    const params: Record<string, any> = {
-      id: props.id,
-      title: props.title,
-      items: processedItems,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
-
-    return nunjucksEnv.render('govuk/components/tabs/template.njk', { params })
-  },
+      return nunjucksEnv.render('govuk/components/tabs/template.njk', { params })
+    },
 })

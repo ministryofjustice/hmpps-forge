@@ -38,13 +38,15 @@ export interface GovUKButtonGroup {
  * ```
  */
 export const GovUKButtonGroup = jsxComponent<GovUKButtonGroup>('govukButtonGroup', {
-  render: props => {
-    const className = props.classes ? `govuk-button-group ${props.classes}` : 'govuk-button-group'
+  factory:
+    () =>
+    ({ props }) => {
+      const className = props.classes ? `govuk-button-group ${props.classes}` : 'govuk-button-group'
 
-    return (
-      <div class={className} {...props.attributes}>
-        {props.buttons.map(button => raw(button.html))}
-      </div>
-    )
-  },
+      return (
+        <div class={className} {...props.attributes}>
+          {props.buttons.map(button => raw(button.html))}
+        </div>
+      )
+    },
 })

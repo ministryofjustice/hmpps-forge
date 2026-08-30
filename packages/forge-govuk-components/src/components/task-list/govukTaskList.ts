@@ -243,14 +243,16 @@ export interface GovUKTaskList {
  * ```
  */
 export const GovUKTaskList = nunjucksComponent<GovUKTaskList>('govukTaskList', {
-  render: (props, nunjucksEnv) => {
-    const params: Record<string, any> = {
-      items: props.items.filter(item => item.visibleWhen !== false),
-      classes: props.classes,
-      attributes: props.attributes,
-      idPrefix: props.idPrefix,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params: Record<string, any> = {
+        items: props.items.filter(item => item.visibleWhen !== false),
+        classes: props.classes,
+        attributes: props.attributes,
+        idPrefix: props.idPrefix,
+      }
 
-    return nunjucksEnv.render('govuk/components/task-list/template.njk', { params })
-  },
+      return nunjucksEnv.render('govuk/components/task-list/template.njk', { params })
+    },
 })

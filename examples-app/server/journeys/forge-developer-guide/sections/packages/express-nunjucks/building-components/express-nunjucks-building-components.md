@@ -34,32 +34,63 @@ interface MyInputProps {
 
 export const MyInput = nunjucksComponent<MyInputProps>('my-input', {
   field: true,
-  render: (block, nunjucksEnv) => {
-    return nunjucksEnv.render('components/my-input.njk', {
-      params: {
-        id: block.id ?? block.code,
-        name: block.code,
-        label: { text: block.label },
-        value: block.value,
-        errorMessage: block.errors?.[0]
-          ? { text: block.errors[0].message }
-          : undefined,
-      },
-    })
-  },
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) =>
+      nunjucksEnv.render('components/my-input.njk', {
+        params: {
+          id: props.id ?? props.code,
+          name: props.code,
+          label: { text: props.label },
+          value: props.value,
+          errorMessage: props.errors?.[0]
+            ? { text: props.errors[0].message }
+            : undefined,
+        },
+      }),
 })
 ```
 
-The render function receives two arguments:
+The component is built in two stages:
 
-1. **`block`** - the resolved props. The plain interface supplied as
-   the generic parameter shapes these values; fields also receive
-   `code`, `value`, and `errors` from Forge.
-2. **`nunjucksEnv`** - the Nunjucks environment, backed by an
-   internal template cache so repeated renders of the same
-   template don't recompile.
+1. **`factory` receives the dependencies.** These include `nunjucksEnv`
+   from the adapter and any dependencies registered with the package.
+2. **The evaluator receives `{ props, context }`.** The plain interface supplied
+   as the generic parameter shapes `props`; fields also receive `code`, `value`,
+   and `errors` from Forge.
 
-The function must return an HTML string.
+The evaluator must return an HTML string, either directly or through a promise.
+
+Because the factory receives package dependencies, a component can load the data it
+needs instead of requiring every caller to supply fully prepared display props. For
+example, a case summary can accept only a reference:
+
+```typescript
+interface CaseSummaryProps {
+  caseReference: string
+}
+
+interface CaseSummaryDependencies {
+  cases: CaseService
+}
+
+export const CaseSummary = nunjucksComponent<CaseSummaryProps, CaseSummaryDependencies>(
+  'case-summary',
+  {
+    factory:
+      ({ cases, nunjucksEnv }) =>
+      async ({ props }) => {
+        const summary = await cases.getSummary(props.caseReference)
+
+        return nunjucksEnv.render('components/case-summary.njk', { params: summary })
+      },
+  },
+)
+```
+
+This keeps loading and fallback behaviour with the component that understands it.
+Forge evaluates independent components concurrently, so components on the same page
+can make independent data calls in parallel.
 
 ---
 
@@ -101,7 +132,7 @@ field's render props:
 
 ```typescript
 // Each error has a message and optional details
-block.errors
+props.errors
 // [{ message: 'Enter a valid date', details?: { ... } }]
 ```
 
@@ -110,7 +141,7 @@ alongside form fields. When any field on the step has failed,
 every field carries `errors` - its own failures, or an empty
 array if it passed. When nothing failed, or the step has not
 been submitted yet, the `errors` property is absent, so read
-it defensively (`block.errors?.[0]`).
+it defensively (`props.errors?.[0]`).
 
 Only failed validations are included - passing validations
 are filtered out.

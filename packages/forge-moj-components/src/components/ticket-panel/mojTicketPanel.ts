@@ -163,13 +163,15 @@ function normaliseTicketPanelItem(item: RuntimeMOJTicketPanelItem) {
  * ```
  */
 export const MOJTicketPanel = nunjucksComponent<MOJTicketPanel>('mojTicketPanel', {
-  render: (props, nunjucksEnv) => {
-    const params = {
-      items: props.items.filter(item => item.visibleWhen !== false).map(normaliseTicketPanelItem),
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params = {
+        items: props.items.filter(item => item.visibleWhen !== false).map(normaliseTicketPanelItem),
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('moj/components/ticket-panel/template.njk', { params })
-  },
+      return nunjucksEnv.render('moj/components/ticket-panel/template.njk', { params })
+    },
 })

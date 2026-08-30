@@ -45,8 +45,8 @@ builds the invocation used by a journey or step to compose its rendered blocks.
 
 `component()` and `renderer()` are separate authoring primitives because they have
 different contracts and valid placements. Helpers such as `nunjucksComponent()` and
-`jsxComponent()` adapt renderer-specific callback ergonomics into `component()`.
-There is no component-specific registry.
+`jsxComponent()` keep the component factory contract while adapting its dependencies
+or output for a rendering technology. There is no component-specific registry.
 
 Component declarations retain field metadata that must be inspected statically,
 including the input schema, `multiple`, and error anchoring. Component evaluators

@@ -265,14 +265,16 @@ function normaliseSummaryListValue(value: RuntimeSummaryListRow['value'] | undef
  * ```
  */
 export const GovUKSummaryList = nunjucksComponent<GovUKSummaryList>('govukSummaryList', {
-  render: (props, nunjucksEnv) => {
-    const params: Record<string, any> = {
-      rows: props.rows.filter(row => row.visibleWhen !== false).map(normaliseSummaryListRow),
-      card: props.card,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params: Record<string, any> = {
+        rows: props.rows.filter(row => row.visibleWhen !== false).map(normaliseSummaryListRow),
+        card: props.card,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('govuk/components/summary-list/template.njk', { params })
-  },
+      return nunjucksEnv.render('govuk/components/summary-list/template.njk', { params })
+    },
 })

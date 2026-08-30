@@ -3,9 +3,7 @@ import type nunjucks from 'nunjucks'
 import { component } from '@ministryofjustice/hmpps-forge/core/components'
 import type {
   ComponentOptions,
-  ComponentRenderProps,
   FieldComponentOptions,
-  FieldComponentRenderProps,
   ForgeComponent,
   ForgeFieldComponent,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -14,75 +12,35 @@ export interface NunjucksComponentDependencies {
   readonly nunjucksEnv: nunjucks.Environment
 }
 
-type NunjucksComponentOptions<TProps extends object> = Omit<
-  ComponentOptions<TProps, NunjucksComponentDependencies, string>,
-  'factory'
-> & {
-  readonly render: (props: ComponentRenderProps<TProps>, renderer: nunjucks.Environment) => string
-}
-
-type NunjucksFieldComponentOptions<TProps extends object> = Omit<
-  FieldComponentOptions<TProps, NunjucksComponentDependencies, string>,
-  'factory'
-> & {
-  readonly render: (props: FieldComponentRenderProps<TProps>, renderer: nunjucks.Environment) => string
-}
+type NunjucksDependencies<TDependencies> = TDependencies & NunjucksComponentDependencies
 
 /**
- * Defines a Nunjucks component from plain props. This compatibility wrapper keeps
- * the props-first callback while declaring an ordinary component function.
+ * Defines a Nunjucks component as a Forge function, with the Nunjucks environment
+ * available alongside its package dependencies.
  *
  * A local copy of the express-nunjucks helper: importing it from that package would
  * pull the express adapter (and express itself) into every browser bundle that uses
  * these components.
  */
-export function nunjucksComponent<TProps extends object>(
+export function nunjucksComponent<TProps extends object, TDependencies extends object = object>(
   variant: string,
-  options: NunjucksFieldComponentOptions<TProps>,
-): ForgeFieldComponent<TProps, NunjucksComponentDependencies, string>
-export function nunjucksComponent<TProps extends object>(
+  options: FieldComponentOptions<TProps, NunjucksDependencies<TDependencies>, string>,
+): ForgeFieldComponent<TProps, NunjucksDependencies<TDependencies>, string>
+export function nunjucksComponent<TProps extends object, TDependencies extends object = object>(
   variant: string,
-  options: NunjucksComponentOptions<TProps>,
-): ForgeComponent<TProps, NunjucksComponentDependencies, string>
-export function nunjucksComponent<TProps extends object>(
+  options: ComponentOptions<TProps, NunjucksDependencies<TDependencies>, string>,
+): ForgeComponent<TProps, NunjucksDependencies<TDependencies>, string>
+export function nunjucksComponent<TProps extends object, TDependencies extends object = object>(
   variant: string,
-  options: NunjucksComponentOptions<TProps> | NunjucksFieldComponentOptions<TProps>,
+  options:
+    | ComponentOptions<TProps, NunjucksDependencies<TDependencies>, string>
+    | FieldComponentOptions<TProps, NunjucksDependencies<TDependencies>, string>,
 ):
-  | ForgeComponent<TProps, NunjucksComponentDependencies, string>
-  | ForgeFieldComponent<TProps, NunjucksComponentDependencies, string> {
+  | ForgeComponent<TProps, NunjucksDependencies<TDependencies>, string>
+  | ForgeFieldComponent<TProps, NunjucksDependencies<TDependencies>, string> {
   if ('field' in options) {
-    const { render: renderComponent, ...renderOptions } = options
-
-    return component<TProps, NunjucksComponentDependencies, string>(variant, {
-      ...renderOptions,
-      factory:
-        ({ nunjucksEnv }) =>
-        ({ props }) => {
-          const output = renderComponent(props, nunjucksEnv)
-
-          if (typeof output !== 'string') {
-            throw new TypeError(`Nunjucks component "${variant}" must return an HTML string`)
-          }
-
-          return output
-        },
-    })
+    return component<TProps, NunjucksDependencies<TDependencies>, string>(variant, options)
   }
 
-  const { render: renderComponent, ...renderOptions } = options
-
-  return component<TProps, NunjucksComponentDependencies, string>(variant, {
-    ...renderOptions,
-    factory:
-      ({ nunjucksEnv }) =>
-      ({ props }) => {
-        const output = renderComponent(props, nunjucksEnv)
-
-        if (typeof output !== 'string') {
-          throw new TypeError(`Nunjucks component "${variant}" must return an HTML string`)
-        }
-
-        return output
-      },
-  })
+  return component<TProps, NunjucksDependencies<TDependencies>, string>(variant, options)
 }

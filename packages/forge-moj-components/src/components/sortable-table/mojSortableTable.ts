@@ -133,20 +133,22 @@ export interface MOJSortableTable {
  * ```
  */
 export const MOJSortableTable = nunjucksComponent<MOJSortableTable>('mojSortableTable', {
-  render: (props, nunjucksEnv) => {
-    const params: Record<string, any> = {
-      rows: props.rows,
-      head: props.head,
-      caption: props.caption,
-      captionClasses: props.captionClasses,
-      firstCellIsHeader: props.firstCellIsHeader,
-      classes: props.classes,
-      attributes: {
-        ...props.attributes,
-        'data-module': 'moj-sortable-table',
-      },
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params: Record<string, any> = {
+        rows: props.rows,
+        head: props.head,
+        caption: props.caption,
+        captionClasses: props.captionClasses,
+        firstCellIsHeader: props.firstCellIsHeader,
+        classes: props.classes,
+        attributes: {
+          ...props.attributes,
+          'data-module': 'moj-sortable-table',
+        },
+      }
 
-    return nunjucksEnv.render('govuk/components/table/template.njk', { params })
-  },
+      return nunjucksEnv.render('govuk/components/table/template.njk', { params })
+    },
 })

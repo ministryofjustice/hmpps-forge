@@ -238,36 +238,38 @@ export const GovUKCharacterCount = nunjucksComponent<GovUKCharacterCount>('govuk
   inputSchema: z.string(),
   // The rendered textarea's id matches the render params below, so error summary links land on it.
   errorAnchor: props => props.id ?? props.code,
-  render: (props, nunjucksEnv) => {
-    const id = props.id ?? props.code
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const id = props.id ?? props.code
 
-    const params = {
-      id,
-      name: props.code,
-      rows: props.rows || '5',
-      value: props.value,
-      maxlength: props.maxWords ? undefined : props.maxLength,
-      maxwords: props.maxWords,
-      threshold: props.threshold,
-      label: normaliseGovukTextParam(props.label),
-      hint: normaliseGovukTextParam(props.hint),
-      errorMessage: normaliseGovukErrorMessage(props.errors),
-      formGroup: props.formGroup,
-      classes: props.classes,
-      attributes: props.attributes,
-      spellcheck: props.spellcheck,
-      countMessage: props.countMessage,
-      textareaDescriptionText: props.textareaDescriptionText,
-      charactersUnderLimitText: props.charactersUnderLimitText,
-      charactersAtLimitText: props.charactersAtLimitText,
-      charactersOverLimitText: props.charactersOverLimitText,
-      wordsUnderLimitText: props.wordsUnderLimitText,
-      wordsAtLimitText: props.wordsAtLimitText,
-      wordsOverLimitText: props.wordsOverLimitText,
-    }
+      const params = {
+        id,
+        name: props.code,
+        rows: props.rows || '5',
+        value: props.value,
+        maxlength: props.maxWords ? undefined : props.maxLength,
+        maxwords: props.maxWords,
+        threshold: props.threshold,
+        label: normaliseGovukTextParam(props.label),
+        hint: normaliseGovukTextParam(props.hint),
+        errorMessage: normaliseGovukErrorMessage(props.errors),
+        formGroup: props.formGroup,
+        classes: props.classes,
+        attributes: props.attributes,
+        spellcheck: props.spellcheck,
+        countMessage: props.countMessage,
+        textareaDescriptionText: props.textareaDescriptionText,
+        charactersUnderLimitText: props.charactersUnderLimitText,
+        charactersAtLimitText: props.charactersAtLimitText,
+        charactersOverLimitText: props.charactersOverLimitText,
+        wordsUnderLimitText: props.wordsUnderLimitText,
+        wordsAtLimitText: props.wordsAtLimitText,
+        wordsOverLimitText: props.wordsOverLimitText,
+      }
 
-    return nunjucksEnv.render('govuk/components/character-count/template.njk', {
-      params,
-    })
-  },
+      return nunjucksEnv.render('govuk/components/character-count/template.njk', {
+        params,
+      })
+    },
 })

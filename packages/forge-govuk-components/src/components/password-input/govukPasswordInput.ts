@@ -252,31 +252,33 @@ export const GovUKPasswordInput = nunjucksComponent<GovUKPasswordInput>('govukPa
   inputSchema: z.string(),
   // The rendered input's id matches the render params below, so error summary links land on it.
   errorAnchor: props => props.id ?? props.code,
-  render: (props, nunjucksEnv) => {
-    const params = {
-      id: props.id ?? props.code,
-      name: props.code,
-      label: normaliseGovukTextParam(props.label),
-      hint: normaliseGovukTextParam(props.hint),
-      value: props.value,
-      disabled: props.disabled,
-      autocomplete: props.autocomplete,
-      describedBy: props.describedBy,
-      formGroup: props.formGroup,
-      classes: props.classes,
-      attributes: props.attributes,
-      showPasswordText: props.showPasswordText,
-      hidePasswordText: props.hidePasswordText,
-      showPasswordAriaLabelText: props.showPasswordAriaLabelText,
-      hidePasswordAriaLabelText: props.hidePasswordAriaLabelText,
-      passwordShownAnnouncementText: props.passwordShownAnnouncementText,
-      passwordHiddenAnnouncementText: props.passwordHiddenAnnouncementText,
-      button: props.button,
-      errorMessage: normaliseGovukErrorMessage(props.errors),
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params = {
+        id: props.id ?? props.code,
+        name: props.code,
+        label: normaliseGovukTextParam(props.label),
+        hint: normaliseGovukTextParam(props.hint),
+        value: props.value,
+        disabled: props.disabled,
+        autocomplete: props.autocomplete,
+        describedBy: props.describedBy,
+        formGroup: props.formGroup,
+        classes: props.classes,
+        attributes: props.attributes,
+        showPasswordText: props.showPasswordText,
+        hidePasswordText: props.hidePasswordText,
+        showPasswordAriaLabelText: props.showPasswordAriaLabelText,
+        hidePasswordAriaLabelText: props.hidePasswordAriaLabelText,
+        passwordShownAnnouncementText: props.passwordShownAnnouncementText,
+        passwordHiddenAnnouncementText: props.passwordHiddenAnnouncementText,
+        button: props.button,
+        errorMessage: normaliseGovukErrorMessage(props.errors),
+      }
 
-    return nunjucksEnv.render('govuk/components/password-input/template.njk', {
-      params,
-    })
-  },
+      return nunjucksEnv.render('govuk/components/password-input/template.njk', {
+        params,
+      })
+    },
 })

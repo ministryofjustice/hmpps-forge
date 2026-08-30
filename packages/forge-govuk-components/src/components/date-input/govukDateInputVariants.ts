@@ -235,25 +235,27 @@ export const GovUKDateInputFull = nunjucksComponent<GovUKDateInputFull>('govukDa
     formatters: [Transformer.Object.ToISO(fullDatePaths), ...(props.formatters ?? [])],
     parsers: [Transformer.Object.FromISO(fullDatePaths), ...(props.parsers ?? [])],
   }),
-  render: (props, nunjucksEnv) => {
-    const dateParts = (props.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
-    const errorDetails = props.errors?.[0]?.details
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const dateParts = (props.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
+      const errorDetails = props.errors?.[0]?.details
 
-    const items = buildItems(
-      [
-        { name: 'day', label: 'Day', classes: 'govuk-input--width-2' },
-        { name: 'month', label: 'Month', classes: 'govuk-input--width-2' },
-        { name: 'year', label: 'Year', classes: 'govuk-input--width-4' },
-      ],
-      props,
-      dateParts,
-      errorDetails,
-    )
+      const items = buildItems(
+        [
+          { name: 'day', label: 'Day', classes: 'govuk-input--width-2' },
+          { name: 'month', label: 'Month', classes: 'govuk-input--width-2' },
+          { name: 'year', label: 'Year', classes: 'govuk-input--width-4' },
+        ],
+        props,
+        dateParts,
+        errorDetails,
+      )
 
-    const params = buildParams(props, items)
+      const params = buildParams(props, items)
 
-    return nunjucksEnv.render('govuk/components/date-input/template.njk', { params })
-  },
+      return nunjucksEnv.render('govuk/components/date-input/template.njk', { params })
+    },
 })
 
 /**
@@ -282,24 +284,26 @@ export const GovUKDateInputYearMonth = nunjucksComponent<GovUKDateInputYearMonth
     formatters: [Transformer.Object.ToISO(yearMonthPaths), ...(props.formatters ?? [])],
     parsers: [Transformer.Object.FromISO(yearMonthPaths), ...(props.parsers ?? [])],
   }),
-  render: (props, nunjucksEnv) => {
-    const dateParts = (props.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
-    const errorDetails = props.errors?.[0]?.details
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const dateParts = (props.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
+      const errorDetails = props.errors?.[0]?.details
 
-    const items = buildItems(
-      [
-        { name: 'month', label: 'Month', classes: 'govuk-input--width-2' },
-        { name: 'year', label: 'Year', classes: 'govuk-input--width-4' },
-      ],
-      props,
-      dateParts,
-      errorDetails,
-    )
+      const items = buildItems(
+        [
+          { name: 'month', label: 'Month', classes: 'govuk-input--width-2' },
+          { name: 'year', label: 'Year', classes: 'govuk-input--width-4' },
+        ],
+        props,
+        dateParts,
+        errorDetails,
+      )
 
-    const params = buildParams(props, items)
+      const params = buildParams(props, items)
 
-    return nunjucksEnv.render('govuk/components/date-input/template.njk', { params })
-  },
+      return nunjucksEnv.render('govuk/components/date-input/template.njk', { params })
+    },
 })
 
 /**
@@ -328,22 +332,24 @@ export const GovUKDateInputMonthDay = nunjucksComponent<GovUKDateInputMonthDay>(
     formatters: [Transformer.Object.ToISO(monthDayPaths), ...(props.formatters ?? [])],
     parsers: [Transformer.Object.FromISO(monthDayPaths), ...(props.parsers ?? [])],
   }),
-  render: (props, nunjucksEnv) => {
-    const dateParts = (props.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
-    const errorDetails = props.errors?.[0]?.details
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const dateParts = (props.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
+      const errorDetails = props.errors?.[0]?.details
 
-    const items = buildItems(
-      [
-        { name: 'day', label: 'Day', classes: 'govuk-input--width-2' },
-        { name: 'month', label: 'Month', classes: 'govuk-input--width-2' },
-      ],
-      props,
-      dateParts,
-      errorDetails,
-    )
+      const items = buildItems(
+        [
+          { name: 'day', label: 'Day', classes: 'govuk-input--width-2' },
+          { name: 'month', label: 'Month', classes: 'govuk-input--width-2' },
+        ],
+        props,
+        dateParts,
+        errorDetails,
+      )
 
-    const params = buildParams(props, items)
+      const params = buildParams(props, items)
 
-    return nunjucksEnv.render('govuk/components/date-input/template.njk', { params })
-  },
+      return nunjucksEnv.render('govuk/components/date-input/template.njk', { params })
+    },
 })

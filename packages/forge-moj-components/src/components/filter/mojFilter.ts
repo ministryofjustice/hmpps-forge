@@ -194,28 +194,30 @@ export interface MOJFilter {
  * ```
  */
 export const MOJFilter = nunjucksComponent<MOJFilter>('mojFilter', {
-  render: (props, nunjucksEnv) => {
-    const selectedFilters = props.selectedFilters
-      ? {
-          ...props.selectedFilters,
-          categories: props.selectedFilters.categories
-            .filter(category => category.visibleWhen !== false)
-            .map(category => ({
-              ...category,
-              items: category.items.filter(item => item.visibleWhen !== false),
-            })),
-        }
-      : undefined
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const selectedFilters = props.selectedFilters
+        ? {
+            ...props.selectedFilters,
+            categories: props.selectedFilters.categories
+              .filter(category => category.visibleWhen !== false)
+              .map(category => ({
+                ...category,
+                items: category.items.filter(item => item.visibleWhen !== false),
+              })),
+          }
+        : undefined
 
-    const params = {
-      heading: props.heading,
-      selectedFilters,
-      submit: props.submit,
-      optionsHtml: props.optionsHtml,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+      const params = {
+        heading: props.heading,
+        selectedFilters,
+        submit: props.submit,
+        optionsHtml: props.optionsHtml,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('moj/components/filter/template.njk', { params })
-  },
+      return nunjucksEnv.render('moj/components/filter/template.njk', { params })
+    },
 })

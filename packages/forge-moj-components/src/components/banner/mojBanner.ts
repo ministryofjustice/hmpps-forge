@@ -96,21 +96,23 @@ export interface MOJBanner {
  * ```
  */
 export const MOJBanner = nunjucksComponent<MOJBanner>('mojBanner', {
-  render: (props, nunjucksEnv) => {
-    const content = normaliseMojTextHtmlContent({
-      text: props.text,
-      html: props.html,
-      blocks: props.blocks,
-    })
-    const params = {
-      type: props.bannerType,
-      text: content.text,
-      html: content.html,
-      iconFallbackText: props.iconFallbackText,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const content = normaliseMojTextHtmlContent({
+        text: props.text,
+        html: props.html,
+        blocks: props.blocks,
+      })
+      const params = {
+        type: props.bannerType,
+        text: content.text,
+        html: content.html,
+        iconFallbackText: props.iconFallbackText,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('moj/components/banner/template.njk', { params })
-  },
+      return nunjucksEnv.render('moj/components/banner/template.njk', { params })
+    },
 })

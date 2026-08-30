@@ -215,14 +215,16 @@ function normaliseTimelineItem(item: RuntimeMOJTimelineItem) {
  * ```
  */
 export const MOJTimeline = nunjucksComponent<MOJTimeline>('mojTimeline', {
-  render: (props, nunjucksEnv) => {
-    const params = {
-      items: props.items.filter(item => item.visibleWhen !== false).map(normaliseTimelineItem),
-      headingLevel: props.headingLevel,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params = {
+        items: props.items.filter(item => item.visibleWhen !== false).map(normaliseTimelineItem),
+        headingLevel: props.headingLevel,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('moj/components/timeline/template.njk', { params })
-  },
+      return nunjucksEnv.render('moj/components/timeline/template.njk', { params })
+    },
 })
