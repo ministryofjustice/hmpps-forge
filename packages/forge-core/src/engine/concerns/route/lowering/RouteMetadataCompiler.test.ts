@@ -18,6 +18,7 @@ function createCtx(overrides: Partial<CompiledRouteMetadataContext> = {}): Compi
     session: {},
     params: {},
     query: {},
+    post: {},
     request: {},
     workTasks: undefined,
     conditions: new FunctionRegistry(),

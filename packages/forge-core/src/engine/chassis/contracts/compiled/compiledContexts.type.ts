@@ -41,6 +41,7 @@ export interface CompiledBaseContext {
   session: Record<string, unknown>
   params: Record<string, unknown>
   query: Record<string, unknown>
+  post: Record<string, unknown>
   request: Record<string, unknown>
   conditions: FunctionRegistry
   workTasks: unknown
@@ -62,7 +63,6 @@ export type CompiledValidationContext = CompiledBaseContext
  * the failing block's registry entry declares where focus should land.
  */
 export interface CompiledResolveContext extends CompiledBaseContext {
-  post: Record<string, unknown>
   fieldFailures: Record<string, ValidationResult[]>
   fieldFailureAnchors: Record<string, string>
   components: ComponentRegistry
@@ -77,7 +77,6 @@ export interface CompiledResolveContext extends CompiledBaseContext {
  */
 export interface CompiledAnswerPreparationContext extends CompiledBaseContext {
   answers: Record<string, CompiledPreparedAnswer>
-  post: Record<string, unknown>
   components: ComponentRegistry
 }
 

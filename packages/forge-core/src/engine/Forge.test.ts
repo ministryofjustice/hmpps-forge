@@ -235,6 +235,7 @@ describe('Forge', () => {
       const act = () => engine.registerPackage({ journey: mockJourneyDef } as any)
 
       // Assert
+      expect(act).toThrow(ForgeRegistrationError)
       expect(act).toThrow('Packages must be created with createForgePackage(...) before registration')
       expect(PackageInstance).not.toHaveBeenCalled()
     })

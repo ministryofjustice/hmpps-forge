@@ -161,6 +161,7 @@ describe('RequestPipelineTraceProjector', () => {
         snapshot: createSnapshot(),
         instrumentation: createInstrumentation(emitted),
         result: { kind: 'redirect', target: '/journey/next' },
+        redirectUrl: '/journey/resolved-next',
         root,
         node: createMountedNode(),
         routeTree: undefined,
@@ -169,7 +170,7 @@ describe('RequestPipelineTraceProjector', () => {
 
       // Assert
       expect(emitted[0].trace.outcome).toBe('redirect')
-      expect(emitted[0].trace.redirect).toEqual({ target: '/journey/next' })
+      expect(emitted[0].trace.redirect).toEqual({ target: '/journey/resolved-next' })
     })
 
     it('should carry the status and message when the pipeline result is a halt error', () => {

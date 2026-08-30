@@ -3,7 +3,6 @@ import type { AnswerHistory } from '../../../chassis/contracts/runtime/answerHis
 
 export interface CompiledHookLifecycleContext extends CompiledBaseContext {
   answers: Record<string, AnswerHistory>
-  post: Record<string, unknown>
   effectFunctionContext: unknown
 }
 

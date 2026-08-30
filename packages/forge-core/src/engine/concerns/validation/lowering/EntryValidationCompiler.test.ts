@@ -30,6 +30,7 @@ function createCtx(overrides: Partial<CompiledValidationContext> = {}): Compiled
     session: {},
     params: {},
     query: {},
+    post: {},
     request: {},
     workTasks: workTaskBuilders,
     conditions: new FunctionRegistry(),

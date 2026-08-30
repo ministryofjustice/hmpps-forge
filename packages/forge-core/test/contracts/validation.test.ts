@@ -3,6 +3,7 @@ import { createClient, createTracedClient, type ContractSession } from './contra
 import type { RequestTraceEvent } from '../../src/testing'
 import {
   requiredFieldJourney,
+  postValidationJourney,
   multipleRulesJourney,
   dependentValidationJourney,
   crossFieldJourney,
@@ -35,6 +36,40 @@ import {
 
 describe('validation contracts', () => {
   describe('field validation', () => {
+    it('should resolve Post references in validation rules', async () => {
+      // Arrange
+      const client = createClient(postValidationJourney)
+
+      // Act
+      const result = await client.post('/post-validation/name', {
+        session: {},
+        body: { name: 'Jo', gate: 'open' },
+      })
+
+      // Assert
+      expect(result.type).toBe('redirect')
+    })
+
+    it('should fail validation when the submitted Post value does not match', async () => {
+      // Arrange
+      const client = createClient(postValidationJourney)
+
+      // Act
+      const result = await client.post('/post-validation/name', {
+        session: {},
+        body: { name: 'Jo' },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.getValidationErrorsByFieldCode('name')).toEqual([
+          expect.objectContaining({ message: 'The gate must be open' }),
+        ])
+      }
+    })
+
     it('should fail validation when required field is empty', async () => {
       // Arrange
       const client = createClient(requiredFieldJourney)

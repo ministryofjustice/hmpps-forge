@@ -33,7 +33,8 @@ describe('navigation contracts', () => {
   describe('POST outcomes', () => {
     it('should redirect to goto target on POST', async () => {
       // Arrange
-      const client = createClient(basicRedirectJourney)
+      const traces: RequestTraceEvent[] = []
+      const client = createTracedClient(basicRedirectJourney, traces)
 
       // Act
       const result = await client.post('/basic-redirect/form', {
@@ -47,6 +48,8 @@ describe('navigation contracts', () => {
       if (result.type === 'redirect') {
         expect(result.url).toBe('/basic-redirect/done')
       }
+
+      expect(traces[0].trace.redirect?.target).toBe('/basic-redirect/done')
     })
 
     it('should redirect to onValid target when validation passes', async () => {

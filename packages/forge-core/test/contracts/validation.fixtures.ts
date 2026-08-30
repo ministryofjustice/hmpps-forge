@@ -76,6 +76,41 @@ export const requiredFieldJourney = journey({
   ],
 })
 
+export const postValidationJourney = journey({
+  code: 'post-validation',
+  path: '/post-validation',
+  title: 'Post validation',
+  steps: [
+    step({
+      path: '/name',
+      title: 'Name',
+      reachability: { entryWhen: true },
+      blocks: [
+        GovUKTextInput({
+          code: 'name',
+          label: 'Name',
+          validWhen: [
+            validation({
+              condition: Post('gate').match(Condition.Equals('open')),
+              message: 'The gate must be open',
+            }),
+          ],
+        }),
+        GovUKButton({ text: 'Continue' }),
+      ],
+      onSubmission: [
+        submit({
+          validate: true,
+          onValid: {
+            next: [redirect({ goto: 'done' })],
+          },
+        }),
+      ],
+    }),
+    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
+  ],
+})
+
 export const reachabilityDisabledValidationJourney = journey({
   code: 'reach-disabled-validation',
   path: '/reach-disabled-validation',
