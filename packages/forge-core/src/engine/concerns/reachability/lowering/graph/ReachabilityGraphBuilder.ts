@@ -119,31 +119,22 @@ export default class ReachabilityGraphBuilder {
       return
     }
 
-    const visited = new Set<string>()
     const queue = this.steps.filter(step => step.isReachable).map(step => step.routeTemplatePath)
+    const enqueued = new Set(queue)
+    let queueIndex = 0
 
-    while (queue.length > 0) {
-      const current = this.dequeueNextStep(queue, visited)
+    while (queueIndex < queue.length) {
+      const current = this.stateByRouteTemplatePath.get(queue[queueIndex])
+
+      queueIndex += 1
 
       if (!current) {
         continue
       }
 
       this.evaluateStepReachability(current)
-      this.propagateToSuccessors(current, queue, visited)
+      this.propagateToSuccessors(current, queue, enqueued)
     }
-  }
-
-  private dequeueNextStep(queue: string[], visited: Set<string>): ReachabilityNode | undefined {
-    const routeTemplatePath = queue.shift()
-
-    if (routeTemplatePath === undefined || visited.has(routeTemplatePath)) {
-      return undefined
-    }
-
-    visited.add(routeTemplatePath)
-
-    return this.stateByRouteTemplatePath.get(routeTemplatePath)
   }
 
   private evaluateStepReachability(step: ReachabilityNode): void {
@@ -158,7 +149,7 @@ export default class ReachabilityGraphBuilder {
     step.forwardRouteTemplatePaths = this.resolveForwardPaths(step.routeTemplatePath, entryIndex)
   }
 
-  private propagateToSuccessors(current: ReachabilityNode, queue: string[], visited: Set<string>): void {
+  private propagateToSuccessors(current: ReachabilityNode, queue: string[], enqueued: Set<string>): void {
     current.forwardRouteTemplatePaths.forEach(forwardRouteTemplatePath => {
       const next = this.stateByRouteTemplatePath.get(forwardRouteTemplatePath)
 
@@ -178,9 +169,12 @@ export default class ReachabilityGraphBuilder {
         next.isReachable = true
       }
 
-      if (!visited.has(next.routeTemplatePath)) {
-        queue.push(next.routeTemplatePath)
+      if (enqueued.has(next.routeTemplatePath)) {
+        return
       }
+
+      enqueued.add(next.routeTemplatePath)
+      queue.push(next.routeTemplatePath)
     })
   }
 
@@ -204,7 +198,7 @@ export default class ReachabilityGraphBuilder {
     outcomeStrings: readonly (string | undefined)[],
     currentRouteTemplatePath: string,
   ): string[] {
-    const routeTemplatePaths: string[] = []
+    const routeTemplatePaths = new Set<string>()
 
     outcomeStrings.forEach(outcomeStr => {
       if (outcomeStr === undefined) {
@@ -220,12 +214,10 @@ export default class ReachabilityGraphBuilder {
         return
       }
 
-      if (!routeTemplatePaths.includes(routeTemplatePath)) {
-        routeTemplatePaths.push(routeTemplatePath)
-      }
+      routeTemplatePaths.add(routeTemplatePath)
     })
 
-    return routeTemplatePaths
+    return [...routeTemplatePaths]
   }
 
   private populateUnvisitedForwardPaths(): void {
