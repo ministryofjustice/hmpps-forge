@@ -1,11 +1,4 @@
 import {
-  GovUKTextInput,
-  GovUKButton,
-  GovUKRadioInput,
-  GovUKInsetText,
-} from '@ministryofjustice/hmpps-forge/govuk-components'
-
-import {
   journey,
   step,
   access,
@@ -25,9 +18,10 @@ import {
   and,
   or,
   not,
-} from '../../src/authoring'
-import { CollectionBlock } from '../../src/components'
-import { Effects } from './contractHelpers'
+} from '../../../../src/authoring'
+import { CollectionBlock } from '../../../../src/components'
+import { Effects } from '../../contractHelpers'
+import { TextField, StaticText, RadioField } from '../../testComponents'
 
 export const basicBlocksJourney = journey({
   code: 'basic-blocks',
@@ -39,7 +33,7 @@ export const basicBlocksJourney = journey({
       path: '/form',
       title: 'Form Step',
       reachability: { entryWhen: true },
-      blocks: [GovUKTextInput({ code: 'fullName', label: 'Full name' }), GovUKButton({ text: 'Continue' })],
+      blocks: [TextField({ code: 'fullName', label: 'Full name' }), StaticText({ text: 'Continue' })],
       onSubmission: [
         submit({
           validate: false,
@@ -64,12 +58,7 @@ export const blockOrderingJourney = journey({
       path: '/form',
       title: 'Ordered Form',
       reachability: { entryWhen: true },
-      blocks: [
-        GovUKTextInput({ code: 'firstName', label: 'First name' }),
-        GovUKTextInput({ code: 'lastName', label: 'Last name' }),
-        GovUKTextInput({ code: 'email', label: 'Email address' }),
-        GovUKButton({ text: 'Continue' }),
-      ],
+      blocks: [TextField({ code: 'firstName' }), TextField({ code: 'lastName' }), TextField({ code: 'email' })],
       onSubmission: [
         submit({
           validate: false,
@@ -94,11 +83,7 @@ export const visibleWhenFalseJourney = journey({
       path: '/form',
       title: 'Form',
       reachability: { entryWhen: true },
-      blocks: [
-        GovUKTextInput({ code: 'shown', label: 'Shown field' }),
-        GovUKTextInput({ code: 'hidden', label: 'Hidden field', visibleWhen: false }),
-        GovUKButton({ text: 'Continue' }),
-      ],
+      blocks: [TextField({ code: 'shown' }), TextField({ code: 'hidden', visibleWhen: false })],
       onSubmission: [
         submit({
           validate: false,
@@ -124,20 +109,17 @@ export const visibleWhenDynamicJourney = journey({
       title: 'Contact',
       reachability: { entryWhen: true },
       blocks: [
-        GovUKRadioInput({
+        RadioField({
           code: 'contactMethod',
-          fieldset: { legend: { text: 'How should we contact you?' } },
           items: [
             { value: 'email', text: 'Email' },
             { value: 'phone', text: 'Phone' },
           ],
         }),
-        GovUKTextInput({
+        TextField({
           code: 'emailAddress',
-          label: 'Email address',
           visibleWhen: Answer('contactMethod').match(Condition.Equals('email')),
         }),
-        GovUKButton({ text: 'Continue' }),
       ],
       onSubmission: [
         submit({
@@ -164,20 +146,17 @@ export const visibleWhenPreservesAnswerJourney = journey({
       title: 'Form',
       reachability: { entryWhen: true },
       blocks: [
-        GovUKRadioInput({
+        RadioField({
           code: 'toggle',
-          fieldset: { legend: { text: 'Show details?' } },
           items: [
             { value: 'yes', text: 'Yes' },
             { value: 'no', text: 'No' },
           ],
         }),
-        GovUKTextInput({
+        TextField({
           code: 'detail',
-          label: 'Detail',
           visibleWhen: Answer('toggle').match(Condition.Equals('yes')),
         }),
-        GovUKButton({ text: 'Continue' }),
       ],
       onSubmission: [
         submit({
@@ -193,6 +172,27 @@ export const visibleWhenPreservesAnswerJourney = journey({
   ],
 })
 
+export const visibleWhenNonFieldBlockJourney = journey({
+  code: 'visible-nonfield',
+  path: '/visible-nonfield',
+  title: 'VisibleWhen on Non-Field Block',
+  onAccess: [access({ effects: [Effects.LoadData()] })],
+  steps: [
+    step({
+      path: '/info',
+      title: 'Info',
+      reachability: { entryWhen: true },
+      blocks: [
+        StaticText({
+          text: 'Conditional message',
+          visibleWhen: Data('showMessage').match(Condition.Equals(true)),
+        }),
+        TextField({ code: 'name' }),
+      ],
+    }),
+  ],
+})
+
 export const dynamicPropertyJourney = journey({
   code: 'dynamic-prop',
   path: '/dynamic-prop',
@@ -203,7 +203,7 @@ export const dynamicPropertyJourney = journey({
       path: '/info',
       title: 'Info',
       reachability: { entryWhen: true },
-      blocks: [GovUKInsetText({ text: Data('message') }), GovUKButton({ text: 'Continue' })],
+      blocks: [StaticText({ text: Data('message') })],
       onSubmission: [
         submit({
           validate: false,
@@ -226,7 +226,7 @@ export const stepMetadataJourney = journey({
       title: 'Step Title',
       metadata: { section: 'personal-details' },
       reachability: { entryWhen: true },
-      blocks: [GovUKTextInput({ code: 'fullName', label: 'Full name' }), GovUKButton({ text: 'Continue' })],
+      blocks: [TextField({ code: 'fullName' })],
       onSubmission: [
         submit({
           validate: false,
@@ -248,7 +248,7 @@ export const answerDisplayJourney = journey({
       path: '/name',
       title: 'Name',
       reachability: { entryWhen: true },
-      blocks: [GovUKTextInput({ code: 'fullName', label: 'Full name' }), GovUKButton({ text: 'Continue' })],
+      blocks: [TextField({ code: 'fullName' })],
       onSubmission: [
         submit({
           validate: false,
@@ -273,7 +273,7 @@ export const matchCombinatorJourney = journey({
       path: '/reference',
       title: 'Reference',
       reachability: { entryWhen: true },
-      blocks: [GovUKTextInput({ code: 'referenceCode', label: 'Reference code' }), GovUKButton({ text: 'Continue' })],
+      blocks: [TextField({ code: 'referenceCode' })],
       onSubmission: [
         submit({
           validate: false,
@@ -289,7 +289,7 @@ export const matchCombinatorJourney = journey({
       path: '/summary',
       title: 'Summary',
       blocks: [
-        GovUKInsetText({
+        StaticText({
           text: match(Answer('referenceCode'))
             .branch(
               or(
@@ -317,9 +317,8 @@ export const validationDisplayJourney = journey({
       title: 'Form',
       reachability: { entryWhen: true },
       blocks: [
-        GovUKTextInput({
+        TextField({
           code: 'fullName',
-          label: 'Full name',
           validWhen: [
             validation({
               condition: Self().match(Condition.IsRequired()),
@@ -327,9 +326,8 @@ export const validationDisplayJourney = journey({
             }),
           ],
         }),
-        GovUKTextInput({
+        TextField({
           code: 'email',
-          label: 'Email',
           validWhen: [
             validation({
               condition: Self().match(Condition.IsRequired()),
@@ -337,7 +335,6 @@ export const validationDisplayJourney = journey({
             }),
           ],
         }),
-        GovUKButton({ text: 'Continue' }),
       ],
       onSubmission: [
         submit({
@@ -367,14 +364,13 @@ export const iteratorRenderJourney = journey({
         CollectionBlock({
           collection: Data('members').each(
             Iterator.Map([
-              GovUKTextInput({
+              TextField({
                 code: Format('memberName_%1', Loop.Index0()),
                 label: Format('Member %1 name', Loop.Index()),
               }),
             ]),
           ),
         }),
-        GovUKButton({ text: 'Continue' }),
       ],
       onSubmission: [
         submit({
@@ -401,7 +397,7 @@ export const nestedExpressionIteratorJourney = journey({
       title: 'Teams',
       reachability: { entryWhen: true },
       blocks: [
-        GovUKInsetText({
+        StaticText({
           text: Format(
             '%1',
             Data('teams').each(
@@ -439,7 +435,7 @@ export const dataDisplayJourney = journey({
       path: '/info',
       title: 'Info',
       reachability: { entryWhen: true },
-      blocks: [GovUKInsetText({ text: 'Some info' }), GovUKButton({ text: 'Continue' })],
+      blocks: [StaticText({ text: 'Some info' })],
       onSubmission: [
         submit({
           validate: false,
@@ -460,11 +456,7 @@ export const domainValidationRenderJourney = journey({
       path: '/range',
       title: 'Range',
       reachability: { entryWhen: true },
-      blocks: [
-        GovUKTextInput({ code: 'minValue', label: 'Minimum' }),
-        GovUKTextInput({ code: 'maxValue', label: 'Maximum' }),
-        GovUKButton({ text: 'Continue' }),
-      ],
+      blocks: [TextField({ code: 'minValue' }), TextField({ code: 'maxValue' })],
       validWhen: [
         validation({
           condition: Answer('minValue').not.match(Condition.Equals(Answer('maxValue'))),
@@ -491,7 +483,7 @@ export const backlinkJourney = journey({
       path: '/step-one',
       title: 'Step One',
       reachability: { entryWhen: true },
-      blocks: [GovUKTextInput({ code: 'fullName', label: 'Full name' }), GovUKButton({ text: 'Continue' })],
+      blocks: [TextField({ code: 'fullName' })],
       onSubmission: [
         submit({
           validate: false,
@@ -504,7 +496,7 @@ export const backlinkJourney = journey({
       path: '/step-two',
       title: 'Step Two',
       backlink: '/backlink/step-one',
-      blocks: [GovUKTextInput({ code: 'email', label: 'Email' }), GovUKButton({ text: 'Continue' })],
+      blocks: [TextField({ code: 'email' })],
       onSubmission: [
         submit({
           validate: false,
@@ -531,7 +523,7 @@ export const ancestorJourney = journey({
           path: '/form',
           title: 'Child Form',
           reachability: { entryWhen: true },
-          blocks: [GovUKTextInput({ code: 'fullName', label: 'Full name' }), GovUKButton({ text: 'Continue' })],
+          blocks: [TextField({ code: 'fullName' })],
           onSubmission: [
             submit({
               validate: false,
@@ -556,12 +548,10 @@ export const autoDerivedBacklinkJourney = journey({
       title: 'Step One',
       reachability: { entryWhen: true },
       blocks: [
-        GovUKTextInput({
+        TextField({
           code: 'firstName',
-          label: 'First name',
           validWhen: [validation({ condition: Self().match(Condition.IsRequired()), message: 'Required' })],
         }),
-        GovUKButton({ text: 'Continue' }),
       ],
       onSubmission: [
         submit({
@@ -577,7 +567,7 @@ export const autoDerivedBacklinkJourney = journey({
       code: 'step-two',
       path: '/step-two',
       title: 'Step Two',
-      blocks: [GovUKTextInput({ code: 'lastName', label: 'Last name' }), GovUKButton({ text: 'Continue' })],
+      blocks: [TextField({ code: 'lastName' })],
       onSubmission: [
         submit({
           validate: false,
@@ -602,7 +592,7 @@ export const stepViewJourney = journey({
       title: 'Form',
       view: { template: 'custom-layout.njk', locals: { sidebar: 'enabled' } },
       reachability: { entryWhen: true },
-      blocks: [GovUKTextInput({ code: 'fullName', label: 'Full name' }), GovUKButton({ text: 'Continue' })],
+      blocks: [TextField({ code: 'fullName' })],
       onSubmission: [
         submit({
           validate: false,
@@ -663,9 +653,8 @@ export const blockSkipPropsJourney = journey({
       title: 'Form',
       reachability: { entryWhen: true },
       blocks: [
-        GovUKTextInput({
+        TextField({
           code: 'trimmedField',
-          label: 'Trimmed field',
           formatters: [Transformer.String.Trim()],
           parsers: [Transformer.String.Trim()],
           validWhen: [
@@ -675,7 +664,6 @@ export const blockSkipPropsJourney = journey({
             }),
           ],
         }),
-        GovUKButton({ text: 'Continue' }),
       ],
       onSubmission: [
         submit({
@@ -684,39 +672,6 @@ export const blockSkipPropsJourney = journey({
             effects: [Effects.SaveAnswers('block-skip')],
             next: [redirect({ goto: 'done' })],
           },
-        }),
-      ],
-    }),
-    step({ code: 'done', path: '/done', title: 'Done', blocks: [] }),
-  ],
-})
-
-export const routeTreeJourney = journey({
-  code: 'route-tree',
-  path: '/route-tree',
-  title: 'Route Tree',
-  steps: [
-    step({
-      path: '/step-one',
-      title: 'Step One',
-      reachability: { entryWhen: true },
-      blocks: [GovUKTextInput({ code: 'firstName', label: 'First name' }), GovUKButton({ text: 'Continue' })],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: { next: [redirect({ goto: 'step-two' })] },
-        }),
-      ],
-    }),
-    step({
-      code: 'step-two',
-      path: '/step-two',
-      title: 'Step Two',
-      blocks: [GovUKTextInput({ code: 'lastName', label: 'Last name' }), GovUKButton({ text: 'Continue' })],
-      onSubmission: [
-        submit({
-          validate: false,
-          onAlways: { next: [redirect({ goto: 'done' })] },
         }),
       ],
     }),
@@ -735,12 +690,10 @@ export const parsedValueRenderJourney = journey({
       title: 'Name',
       reachability: { entryWhen: true },
       blocks: [
-        GovUKTextInput({
+        TextField({
           code: 'fullName',
-          label: 'Full name',
           parsers: [Transformer.String.ToUpperCase()],
         }),
-        GovUKButton({ text: 'Continue' }),
       ],
       onSubmission: [
         submit({
@@ -767,22 +720,19 @@ export const postBlockValueAfterDependentWhenJourney = journey({
       title: 'Form',
       reachability: { entryWhen: true },
       blocks: [
-        GovUKRadioInput({
+        RadioField({
           code: 'contactMethod',
-          fieldset: { legend: { text: 'How should we contact you?' } },
           items: [
             { value: 'email', text: 'Email' },
             { value: 'phone', text: 'Phone' },
           ],
         }),
-        GovUKTextInput({
+        TextField({
           code: 'emailAddress',
-          label: 'Email address',
           dependentWhen: Answer('contactMethod').match(Condition.Equals('email')),
         }),
-        GovUKTextInput({
+        TextField({
           code: 'fullName',
-          label: 'Full name',
           validWhen: [
             validation({
               condition: Self().match(Condition.IsRequired()),
@@ -790,7 +740,6 @@ export const postBlockValueAfterDependentWhenJourney = journey({
             }),
           ],
         }),
-        GovUKButton({ text: 'Continue' }),
       ],
       onSubmission: [
         submit({
@@ -815,10 +764,7 @@ export const transformerOverUnansweredJourney = journey({
       path: '/info',
       title: 'Info',
       reachability: { entryWhen: true },
-      blocks: [
-        GovUKInsetText({ text: Answer('missingField').pipe(Transformer.String.ToUpperCase()) }),
-        GovUKButton({ text: 'Continue' }),
-      ],
+      blocks: [StaticText({ text: Answer('missingField').pipe(Transformer.String.ToUpperCase()) })],
       onSubmission: [
         submit({
           validate: false,
@@ -840,16 +786,14 @@ export const nestedBlockValidationJourney = journey({
       title: 'Form',
       reachability: { entryWhen: true },
       blocks: [
-        GovUKRadioInput({
+        RadioField({
           code: 'choice',
-          fieldset: { legend: { text: 'Choose' } },
           items: [
             {
               value: 'yes',
               text: 'Yes',
-              block: GovUKTextInput({
+              block: TextField({
                 code: 'detail',
-                label: 'Detail',
                 validWhen: [
                   validation({
                     condition: Self().match(Condition.IsRequired()),
@@ -861,7 +805,6 @@ export const nestedBlockValidationJourney = journey({
             { value: 'no', text: 'No' },
           ],
         }),
-        GovUKButton({ text: 'Continue' }),
       ],
       onSubmission: [
         submit({
@@ -884,13 +827,12 @@ export const unusualNestedBlockCodesJourney = journey({
       title: 'Form',
       reachability: { entryWhen: true },
       blocks: [
-        GovUKRadioInput({
+        RadioField({
           code: 'choice',
-          fieldset: { legend: { text: 'Choose' } },
           items: [
-            { value: 'reserved', text: 'Reserved', block: GovUKTextInput({ code: 'class', label: 'Class' }) },
-            { value: 'punctuated', text: 'Punctuated', block: GovUKTextInput({ code: 'audit.log', label: 'Audit' }) },
-            { value: 'numeric', text: 'Numeric', block: GovUKTextInput({ code: '123 detail', label: 'Detail' }) },
+            { value: 'reserved', text: 'Reserved', block: TextField({ code: 'class' }) },
+            { value: 'punctuated', text: 'Punctuated', block: TextField({ code: 'audit.log' }) },
+            { value: 'numeric', text: 'Numeric', block: TextField({ code: '123 detail' }) },
           ],
         }),
       ],

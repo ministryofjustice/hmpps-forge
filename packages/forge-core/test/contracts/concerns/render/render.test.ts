@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import type { ComponentRegistryEntry } from '../../src/components/types/components.type'
-import type { BlockDefinition, EvaluatedBlock } from '../../src/components'
-import type { ForgeRenderer, RenderContext } from '../../src/framework/types/rendering.type'
-import { createForgePackage } from '../../src/authoring'
-import { ForgeTestHarness, type RequestTraceEvent } from '../../src/testing'
-import type { SerializedTraceSpan } from '../../src/engine/chassis/tracing/traceSpan.type'
-import { createRenderClient, createTracedRenderClient } from './contractHelpers'
+import type { ComponentRegistryEntry } from '../../../../src/components/types/components.type'
+import type { BlockDefinition, EvaluatedBlock } from '../../../../src/components'
+import type { ForgeRenderer, RenderContext } from '../../../../src/framework/types/rendering.type'
+import { createForgePackage } from '../../../../src/authoring'
+import { ForgeTestHarness, type RequestTraceEvent } from '../../../../src/testing'
+import type { SerializedTraceSpan } from '../../../../src/engine/chassis/tracing/traceSpan.type'
+import { createRenderClient, createTracedRenderClient } from '../../contractHelpers'
 import {
   basicRenderJourney,
   orderedRenderJourney,
@@ -14,10 +14,9 @@ import {
   nestedFieldMetadataRenderJourney,
   multiNestedRenderJourney,
   scopedOverrideRenderJourney,
-  renderingContractComponents,
-  contractScopedGlobalComponent,
-  contractScopedPackageComponent,
-} from './rendering.fixtures'
+  renderContractComponents,
+  contractScopedHtmlComponent,
+} from './render.fixtures'
 
 interface RecordedAssemblePage {
   context: RenderContext
@@ -70,12 +69,12 @@ function renderBlockUnits(traces: RequestTraceEvent[]): readonly SerializedTrace
   return renderBlocksUnit?.children ?? []
 }
 
-describe('rendering contracts', () => {
+describe('render contracts', () => {
   describe('render output', () => {
     it('should assemble the rendered output for a visible block', async () => {
       // Arrange
       const { renderer } = createRecordingRenderer()
-      const client = createRenderClient(basicRenderJourney, renderer, renderingContractComponents)
+      const client = createRenderClient(basicRenderJourney, renderer, renderContractComponents)
 
       // Act
       const result = await client.get('/basic-render/form', { session: {} })
@@ -91,7 +90,7 @@ describe('rendering contracts', () => {
     it('should pass the render context and request state to assemblePage', async () => {
       // Arrange
       const { renderer, calls } = createRecordingRenderer()
-      const client = createRenderClient(basicRenderJourney, renderer, renderingContractComponents)
+      const client = createRenderClient(basicRenderJourney, renderer, renderContractComponents)
 
       // Act
       await client.get('/basic-render/form', { session: {}, state: { requestId: 'req-1' } })
@@ -107,8 +106,7 @@ describe('rendering contracts', () => {
     it('should leave output undefined when no renderer is supplied', async () => {
       // Arrange
       const client = new ForgeTestHarness()
-        .registerGlobalComponents(renderingContractComponents)
-        .registerPackage(createForgePackage({ journey: basicRenderJourney }))
+        .registerPackage(createForgePackage({ journey: basicRenderJourney, components: renderContractComponents }))
         .createClient()
 
       // Act
@@ -127,7 +125,7 @@ describe('rendering contracts', () => {
     it('should render an invisible block as empty and omit it from the assembled output', async () => {
       // Arrange
       const { renderer, calls } = createRecordingRenderer()
-      const client = createRenderClient(invisibleBlockRenderJourney, renderer, renderingContractComponents)
+      const client = createRenderClient(invisibleBlockRenderJourney, renderer, renderContractComponents)
 
       // Act
       const result = await client.get('/invisible-render/form', { session: {} })
@@ -148,12 +146,7 @@ describe('rendering contracts', () => {
       // Arrange
       const { renderer } = createRecordingRenderer()
       const traces: RequestTraceEvent[] = []
-      const client = createTracedRenderClient(
-        invisibleBlockRenderJourney,
-        renderer,
-        traces,
-        renderingContractComponents,
-      )
+      const client = createTracedRenderClient(invisibleBlockRenderJourney, renderer, traces, renderContractComponents)
 
       // Act
       await client.get('/invisible-render/form', { session: {} })
@@ -170,7 +163,7 @@ describe('rendering contracts', () => {
     it('should render each visible block exactly once', async () => {
       // Arrange
       const { renderer, calls } = createRecordingRenderer()
-      const client = createRenderClient(orderedRenderJourney, renderer, renderingContractComponents)
+      const client = createRenderClient(orderedRenderJourney, renderer, renderContractComponents)
 
       // Act
       await client.get('/ordered-render/form', { session: {} })
@@ -183,7 +176,7 @@ describe('rendering contracts', () => {
     it('should not invoke the renderer for a block hidden by visibleWhen', async () => {
       // Arrange
       const { renderer, calls } = createRecordingRenderer()
-      const client = createRenderClient(invisibleBlockRenderJourney, renderer, renderingContractComponents)
+      const client = createRenderClient(invisibleBlockRenderJourney, renderer, renderContractComponents)
 
       // Act
       await client.get('/invisible-render/form', { session: {} })
@@ -197,7 +190,7 @@ describe('rendering contracts', () => {
     it('should await an async component render before assembling', async () => {
       // Arrange
       const { renderer } = createRecordingRenderer()
-      const client = createRenderClient(asyncRenderJourney, renderer, renderingContractComponents)
+      const client = createRenderClient(asyncRenderJourney, renderer, renderContractComponents)
 
       // Act
       const result = await client.get('/async-render/form', { session: {} })
@@ -214,7 +207,7 @@ describe('rendering contracts', () => {
     it('should await an async assemblePage before returning output', async () => {
       // Arrange
       const { renderer } = createRecordingRenderer({ asyncAssemble: true })
-      const client = createRenderClient(basicRenderJourney, renderer, renderingContractComponents)
+      const client = createRenderClient(basicRenderJourney, renderer, renderContractComponents)
 
       // Act
       const result = await client.get('/basic-render/form', { session: {} })
@@ -232,7 +225,7 @@ describe('rendering contracts', () => {
     it('should wrap a nested block and expose it to the parent component', async () => {
       // Arrange
       const { renderer, calls } = createRecordingRenderer()
-      const client = createRenderClient(nestedFieldMetadataRenderJourney, renderer, renderingContractComponents)
+      const client = createRenderClient(nestedFieldMetadataRenderJourney, renderer, renderContractComponents)
 
       // Act
       const result = await client.get('/nested-field-meta/form', { session: {} })
@@ -252,7 +245,7 @@ describe('rendering contracts', () => {
     it('should wrap multiple nested blocks in authored order', async () => {
       // Arrange
       const { renderer, calls } = createRecordingRenderer()
-      const client = createRenderClient(multiNestedRenderJourney, renderer, renderingContractComponents)
+      const client = createRenderClient(multiNestedRenderJourney, renderer, renderContractComponents)
 
       // Act
       const result = await client.get('/multi-nested-render/form', { session: {} })
@@ -269,84 +262,77 @@ describe('rendering contracts', () => {
     })
   })
 
-  describe('component registry', () => {
-    it('should render a package-scoped component in preference to a global one of the same variant', async () => {
-      // Arrange
-      const { renderer } = createRecordingRenderer()
-      const client = new ForgeTestHarness()
-        .registerGlobalComponents([contractScopedGlobalComponent])
-        .registerPackage(
-          createForgePackage({
-            journey: scopedOverrideRenderJourney,
-            components: [contractScopedPackageComponent],
-          }),
-        )
-        .createClient(renderer)
-
-      // Act
-      const result = await client.get('/scoped-override-render/form', { session: {} })
-
-      // Assert
-      expect(result.type).toBe('render')
-
-      if (result.type === 'render') {
-        expect(result.output).toBe('<scoped id="scopedField">')
-      }
-    })
-  })
-
-  describe('block ordering', () => {
-    it('should preserve authored block order in the assembled output', async () => {
-      // Arrange
-      const { renderer, calls } = createRecordingRenderer()
-      const client = createRenderClient(orderedRenderJourney, renderer, renderingContractComponents)
-
-      // Act
-      const result = await client.get('/ordered-render/form', { session: {} })
-
-      // Assert
-      expect(calls.assemblePage[0].renderedBlocks).toHaveLength(3)
-
-      if (result.type === 'render') {
-        const output = result.output as string
-
-        expect(output.indexOf('id="firstName"')).toBeLessThan(output.indexOf('id="lastName"'))
-        expect(output.indexOf('id="lastName"')).toBeLessThan(output.indexOf('id="email"'))
-      }
-    })
-  })
-
-  describe('render trace', () => {
-    it('should emit render-blocks and assemble-page work units', async () => {
-      // Arrange
-      const { renderer } = createRecordingRenderer()
-      const traces: RequestTraceEvent[] = []
-      const client = createTracedRenderClient(basicRenderJourney, renderer, traces, renderingContractComponents)
-
-      // Act
-      await client.get('/basic-render/form', { session: {} })
-
-      // Assert
-      expect(traces).toHaveLength(1)
-      expect(traces[0].trace.phases).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            phase: 'render',
-            units: expect.arrayContaining([
-              expect.objectContaining({
-                kind: 'render.render-blocks',
-                children: expect.arrayContaining([
-                  expect.objectContaining({
-                    kind: 'render.render-blocks.block',
-                    beginFields: expect.objectContaining({ variant: 'contractField' }),
-                  }),
-                ]),
-              }),
-              expect.objectContaining({ kind: 'render.assemble-page' }),
-            ]),
-          }),
-        ]),
+  it('should render a package-scoped component in preference to the built-in of the same variant', async () => {
+    // Arrange
+    const { renderer } = createRecordingRenderer()
+    const client = new ForgeTestHarness()
+      .registerPackage(
+        createForgePackage({
+          journey: scopedOverrideRenderJourney,
+          components: [contractScopedHtmlComponent],
+        }),
       )
-    })
+      .createClient(renderer)
+
+    // Act
+    const result = await client.get('/scoped-override-render/form', { session: {} })
+
+    // Assert
+    expect(result.type).toBe('render')
+
+    if (result.type === 'render') {
+      expect(result.output).toBe('<scoped>shadowed</scoped>')
+    }
+  })
+
+  it('should preserve authored block order in the assembled output', async () => {
+    // Arrange
+    const { renderer, calls } = createRecordingRenderer()
+    const client = createRenderClient(orderedRenderJourney, renderer, renderContractComponents)
+
+    // Act
+    const result = await client.get('/ordered-render/form', { session: {} })
+
+    // Assert
+    expect(calls.assemblePage[0].renderedBlocks).toHaveLength(3)
+
+    if (result.type === 'render') {
+      const output = result.output as string
+
+      expect(output.indexOf('id="firstName"')).toBeLessThan(output.indexOf('id="lastName"'))
+      expect(output.indexOf('id="lastName"')).toBeLessThan(output.indexOf('id="email"'))
+    }
+  })
+
+  it('should emit render-blocks and assemble-page work units', async () => {
+    // Arrange
+    const { renderer } = createRecordingRenderer()
+    const traces: RequestTraceEvent[] = []
+    const client = createTracedRenderClient(basicRenderJourney, renderer, traces, renderContractComponents)
+
+    // Act
+    await client.get('/basic-render/form', { session: {} })
+
+    // Assert
+    expect(traces).toHaveLength(1)
+    expect(traces[0].trace.phases).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          phase: 'render',
+          units: expect.arrayContaining([
+            expect.objectContaining({
+              kind: 'render.render-blocks',
+              children: expect.arrayContaining([
+                expect.objectContaining({
+                  kind: 'render.render-blocks.block',
+                  beginFields: expect.objectContaining({ variant: 'contractField' }),
+                }),
+              ]),
+            }),
+            expect.objectContaining({ kind: 'render.assemble-page' }),
+          ]),
+        }),
+      ]),
+    )
   })
 })

@@ -1,30 +1,29 @@
 import { describe, expect, it } from 'vitest'
-import { BlockType } from '../../src/authoring/types/enums'
-import type { RenderBlock } from '../../src/framework/types/rendering.type'
-import { createClient, createTracedClient, answerOf, type ContractSession } from './contractHelpers'
-import type { RequestTraceEvent } from '../../src/testing'
+import { BlockType } from '../../../../src/authoring/types/enums'
+import type { RenderBlock } from '../../../../src/framework/types/rendering.type'
+import { createClient, createTracedClient, answerOf, type ContractSession } from '../../contractHelpers'
+import type { RequestTraceEvent } from '../../../../src/testing'
+import { runJourneyCases } from '../../contractRunner'
+import { cases } from './resolve.cases'
 import {
   basicBlocksJourney,
   blockOrderingJourney,
   visibleWhenFalseJourney,
   visibleWhenDynamicJourney,
   visibleWhenPreservesAnswerJourney,
+  visibleWhenNonFieldBlockJourney,
   dynamicPropertyJourney,
   stepMetadataJourney,
-  answerDisplayJourney,
   matchCombinatorJourney,
   validationDisplayJourney,
   iteratorRenderJourney,
   nestedExpressionIteratorJourney,
-  dataDisplayJourney,
-  domainValidationRenderJourney,
   backlinkJourney,
   ancestorJourney,
   autoDerivedBacklinkJourney,
   stepViewJourney,
   inheritedViewJourney,
   blockSkipPropsJourney,
-  routeTreeJourney,
   parsedValueRenderJourney,
   postBlockValueAfterDependentWhenJourney,
   nestedBlockValidationJourney,
@@ -40,6 +39,8 @@ function iteratorBlocks(blocks: RenderBlock[]): RenderBlock[] {
 }
 
 describe('resolve contracts', () => {
+  runJourneyCases(cases)
+
   describe('block evaluation', () => {
     it('should render field blocks with correct variant and blockType', async () => {
       // Arrange
@@ -52,7 +53,7 @@ describe('resolve contracts', () => {
       expect(result.type).toBe('render')
 
       if (result.type === 'render') {
-        const textInputs = result.getBlocksByVariant('govukTextInput')
+        const textInputs = result.getBlocksByVariant('testTextField')
 
         expect(textInputs).toHaveLength(1)
         expect(textInputs[0].blockType).toBe(BlockType.FIELD)
@@ -72,7 +73,7 @@ describe('resolve contracts', () => {
       expect(result.type).toBe('render')
 
       if (result.type === 'render') {
-        const buttons = result.getBlocksByVariant('govukButton')
+        const buttons = result.getBlocksByVariant('testStaticText')
 
         expect(buttons).toHaveLength(1)
         expect(buttons[0].blockType).toBe(BlockType.BASIC)
@@ -161,11 +162,11 @@ describe('resolve contracts', () => {
                 children: expect.arrayContaining([
                   expect.objectContaining({
                     kind: 'resolve.block',
-                    beginFields: expect.objectContaining({ variant: 'govukTextInput' }),
+                    beginFields: expect.objectContaining({ variant: 'testTextField' }),
                   }),
                   expect.objectContaining({
                     kind: 'resolve.block',
-                    beginFields: expect.objectContaining({ variant: 'govukButton' }),
+                    beginFields: expect.objectContaining({ variant: 'testStaticText' }),
                   }),
                 ]),
               }),
@@ -191,7 +192,7 @@ describe('resolve contracts', () => {
       expect(result.type).toBe('render')
 
       if (result.type === 'render') {
-        const insetBlocks = result.getBlocksByVariant('govukInsetText')
+        const insetBlocks = result.getBlocksByVariant('testStaticText')
 
         expect(insetBlocks).toHaveLength(1)
         expect(insetBlocks[0].properties.text).toBe('Important notice')
@@ -230,7 +231,7 @@ describe('resolve contracts', () => {
       expect(result.type).toBe('render')
 
       if (result.type === 'render') {
-        const insetBlocks = result.getBlocksByVariant('govukInsetText')
+        const insetBlocks = result.getBlocksByVariant('testStaticText')
 
         expect(insetBlocks).toHaveLength(1)
         expect(insetBlocks[0].properties.text).toBeUndefined()
@@ -253,7 +254,7 @@ describe('resolve contracts', () => {
       expect(result.type).toBe('render')
 
       if (result.type === 'render') {
-        const insetBlocks = result.getBlocksByVariant('govukInsetText')
+        const insetBlocks = result.getBlocksByVariant('testStaticText')
 
         expect(insetBlocks[0].properties.text).toBe('Fast track referral')
       }
@@ -273,7 +274,7 @@ describe('resolve contracts', () => {
       expect(result.type).toBe('render')
 
       if (result.type === 'render') {
-        const insetBlocks = result.getBlocksByVariant('govukInsetText')
+        const insetBlocks = result.getBlocksByVariant('testStaticText')
 
         expect(insetBlocks[0].properties.text).toBe('Standard referral')
       }
@@ -293,7 +294,7 @@ describe('resolve contracts', () => {
       expect(result.type).toBe('render')
 
       if (result.type === 'render') {
-        const insetBlocks = result.getBlocksByVariant('govukInsetText')
+        const insetBlocks = result.getBlocksByVariant('testStaticText')
 
         expect(insetBlocks[0].properties.text).toBe('Unrecognised referral')
       }
@@ -313,7 +314,7 @@ describe('resolve contracts', () => {
       expect(result.type).toBe('render')
 
       if (result.type === 'render') {
-        const insetBlocks = result.getBlocksByVariant('govukInsetText')
+        const insetBlocks = result.getBlocksByVariant('testStaticText')
 
         expect(insetBlocks[0].properties.text).toBe('Fast track referral')
       }
@@ -401,6 +402,44 @@ describe('resolve contracts', () => {
         expect(answerOf(result.context.answers, 'detail').current).toBe('some value')
       }
     })
+
+    it('should mark non-field block as hidden when visibleWhen is false', async () => {
+      // Arrange
+      const client = createClient(visibleWhenNonFieldBlockJourney)
+
+      // Act
+      const result = await client.get('/visible-nonfield/info', {
+        session: { data: { showMessage: false } },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const staticBlock = result.context.blocks.find(b => b.variant === 'testStaticText')
+
+        expect(staticBlock?.properties.visibleWhen).toBe(false)
+      }
+    })
+
+    it('should mark non-field block as visible when visibleWhen is true', async () => {
+      // Arrange
+      const client = createClient(visibleWhenNonFieldBlockJourney)
+
+      // Act
+      const result = await client.get('/visible-nonfield/info', {
+        session: { data: { showMessage: true } },
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        const staticBlock = result.context.blocks.find(b => b.variant === 'testStaticText')
+
+        expect(staticBlock?.properties.visibleWhen).not.toBe(false)
+      }
+    })
   })
 
   describe('iterator rendering', () => {
@@ -421,7 +460,7 @@ describe('resolve contracts', () => {
         const expanded = iteratorBlocks(result.context.blocks)
 
         expect(expanded).toHaveLength(3)
-        expect(expanded.every(b => b.variant === 'govukTextInput')).toBe(true)
+        expect(expanded.every(b => b.variant === 'testTextField')).toBe(true)
       }
     })
 
@@ -485,7 +524,7 @@ describe('resolve contracts', () => {
       expect(result.type).toBe('render')
 
       if (result.type === 'render') {
-        const [insetText] = result.getBlocksByVariant('govukInsetText')
+        const [insetText] = result.getBlocksByVariant('testStaticText')
 
         expect(insetText.properties.text).toBe('0:0:Alpha:Ada|0:1:Alpha:Grace,1:0:Beta:Linus')
       }
@@ -524,42 +563,6 @@ describe('resolve contracts', () => {
         expect(result.context.step).not.toHaveProperty('onSubmission')
         expect(result.context.step).not.toHaveProperty('blocks')
         expect(result.context.step).not.toHaveProperty('reachability')
-      }
-    })
-
-    it('should include stored answers in render context on GET', async () => {
-      // Arrange
-      const client = createClient(answerDisplayJourney)
-      const session: ContractSession = {
-        answers: { 'answer-display': { fullName: 'Ada Lovelace' } },
-      }
-
-      // Act
-      const result = await client.get('/answer-display/name', { session })
-
-      // Assert
-      expect(result.type).toBe('render')
-
-      if (result.type === 'render') {
-        expect(answerOf(result.context.answers, 'fullName').current).toBe('Ada Lovelace')
-      }
-    })
-
-    it('should include loaded data in render context on GET', async () => {
-      // Arrange
-      const client = createClient(dataDisplayJourney)
-      const session: ContractSession = {
-        data: { userName: 'Ada Lovelace' },
-      }
-
-      // Act
-      const result = await client.get('/data-display/info', { session })
-
-      // Assert
-      expect(result.type).toBe('render')
-
-      if (result.type === 'render') {
-        expect(result.context.data.userName).toBe('Ada Lovelace')
       }
     })
 
@@ -809,110 +812,9 @@ describe('resolve contracts', () => {
       }
     })
 
-    it('should expose routeTree with resolved paths and active state', async () => {
-      // Arrange
-      const client = createClient(routeTreeJourney)
-
-      // Act
-      const result = await client.get('/route-tree/step-one', { session: {} })
-
-      // Assert
-      expect(result.type).toBe('render')
-
-      if (result.type === 'render') {
-        const routeTree = result.context.routeTree
-
-        expect(routeTree).toBeDefined()
-        expect(routeTree.length).toBeGreaterThan(0)
-
-        const journeyNode = routeTree.find(n => n.segment === 'route-tree')
-
-        expect(journeyNode).toBeDefined()
-
-        if (journeyNode) {
-          expect(journeyNode.path).toBe('/route-tree')
-          expect(journeyNode.active).toBe(true)
-
-          const stepOneNode = journeyNode.children.find(n => n.segment === 'step-one')
-          const stepTwoNode = journeyNode.children.find(n => n.segment === 'step-two')
-
-          expect(stepOneNode).toBeDefined()
-          expect(stepOneNode?.active).toBe(true)
-          expect(stepOneNode?.path).toBe('/route-tree/step-one')
-
-          expect(stepTwoNode).toBeDefined()
-          expect(stepTwoNode?.active).toBe(false)
-          expect(stepTwoNode?.path).toBe('/route-tree/step-two')
-        }
-      }
-    })
   })
 
   describe('validation display', () => {
-    it('should attach validation errors to blocks on failed POST', async () => {
-      // Arrange
-      const client = createClient(validationDisplayJourney)
-
-      // Act
-      const result = await client.post('/validation-display/form', {
-        session: {},
-        body: { fullName: '', email: '' },
-      })
-
-      // Assert
-      expect(result.type).toBe('render')
-
-      if (result.type === 'render') {
-        expect(result.context.showValidationFailures).toBe(true)
-
-        const nameErrors = result.getValidationErrorsByFieldCode('fullName')
-        const emailErrors = result.getValidationErrorsByFieldCode('email')
-
-        expect(nameErrors).toHaveLength(1)
-        expect(nameErrors[0].message).toBe('Enter your full name')
-        expect(emailErrors).toHaveLength(1)
-        expect(emailErrors[0].message).toBe('Enter your email')
-      }
-    })
-
-    it('should not show validation errors on initial GET', async () => {
-      // Arrange
-      const client = createClient(validationDisplayJourney)
-
-      // Act
-      const result = await client.get('/validation-display/form', { session: {} })
-
-      // Assert
-      expect(result.type).toBe('render')
-
-      if (result.type === 'render') {
-        expect(result.context.showValidationFailures).toBe(false)
-        expect(result.context.fieldValidationErrors).toHaveLength(0)
-      }
-    })
-
-    it('should include domain validation errors in render context', async () => {
-      // Arrange
-      const client = createClient(domainValidationRenderJourney)
-
-      // Act
-      const result = await client.post('/domain-render/range', {
-        session: {},
-        body: { minValue: '10', maxValue: '10' },
-      })
-
-      // Assert
-      expect(result.type).toBe('render')
-
-      if (result.type === 'render') {
-        expect(result.context.showValidationFailures).toBe(true)
-        expect(result.context.domainValidationErrors).toEqual([
-          expect.objectContaining({ message: 'Minimum and maximum must be different' }),
-        ])
-        expect(result.context.fieldValidationErrors).toHaveLength(0)
-      }
-    })
-
     it('should attach validation results to block properties', async () => {
       // Arrange
       const client = createClient(validationDisplayJourney)
