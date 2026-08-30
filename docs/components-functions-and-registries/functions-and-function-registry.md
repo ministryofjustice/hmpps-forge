@@ -102,10 +102,10 @@ side effects.
 Function registration records named definitions for validation and compilation.
 
 Package or application code provides function factories. During context
-preparation Forge resolves the package's `packageDependencies` and the adapter's
-`requestDependencies`, rejects duplicate keys, and calls every factory with one
-flat merged object. The resulting evaluators are stored in a new registry owned
-by that request.
+preparation Forge combines the package's `packageDependencies`, the adapter's stable
+`adapterDependencies`, and the adapter's lazy `requestDependencies`. It rejects
+duplicate keys between any sources and calls every factory with one flat merged
+object. The resulting evaluators are stored in a new registry owned by that request.
 
 This gives registered functions a dependency boundary. A function can depend on
 an application service, but the journey definition only sees the function name
@@ -122,11 +122,12 @@ Context preparation fails when a factory throws or does not return an evaluator.
 The registry does not decide where a function is allowed to appear. That is
 handled by validation rules over the journey definition.
 
-## Request dependencies
+## Adapter and request dependencies
 
-Request adapters can provide capabilities that exist only for one request. The
-bundled Express adapter exposes a direct or thenable `requestDependencies`
-callback through `createExpressRouter()`:
+Adapters can provide stable capabilities for all their requests and capabilities
+that exist only for one request. The Express/Nunjucks adapter always supplies its
+configured `nunjucksEnv` as an adapter dependency and exposes a direct or thenable
+`requestDependencies` callback through `createExpressRouter()`:
 
 ```typescript
 createExpressRouter(forge, {
@@ -137,15 +138,15 @@ createExpressRouter(forge, {
 })
 ```
 
-Forge resolves the callback once during context preparation. Neither dependency
-source is mutated or copied into request data, rendering, diagnostics, or traces.
-If both sources contain the same key, the request fails before any factory runs.
+Forge resolves the callback once during context preparation. None of the dependency
+sources is mutated or copied into request data, rendering, diagnostics, or traces.
+If any two sources contain the same key, the request fails before any factory runs.
 
 Functions remain independent of packages and adapters. Authors can type the flat
 object locally where a function needs both sources:
 
 ```typescript
-type Dependencies = PackageDependencies & RequestDependencies
+type Dependencies = PackageDependencies & AdapterDependencies & RequestDependencies
 
 const LoadBooking = generator<Dependencies>('Booking.Load', {
   factory: dependencies => bookingId =>

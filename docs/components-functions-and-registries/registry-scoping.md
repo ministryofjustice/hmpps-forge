@@ -2,45 +2,32 @@
 
 ## Purpose
 
-Registry scoping controls which functions and components a journey can see.
+Registry scoping controls which function entries a journey can see. Render entries
+use this same scope, so component variants require no parallel registry.
 
-Every registered package owns its function definitions, builders, dependencies,
-and component registry. Each request gets an isolated function registry. Forge
-has no global extension registries and does not install built-ins automatically.
+Every registered package owns its function builders and package dependencies. Each
+request builds an isolated `FunctionRegistry`. Forge has no global extension
+registry and does not install built-ins automatically.
 
-This lets packages bring their own functions and components without mutating
-the extension environment for every other journey.
+## Lifecycle
 
-## Where this sits in the pipeline
+1. Package finalisation collects embedded and explicitly listed function entries.
+2. Registration builds a package-scoped `FunctionDefinitionCatalog` containing
+   unbound metadata for all function kinds, including render.
+3. Validation and compilation resolve names against that catalog.
+4. Request preparation combines package, adapter, and request dependencies and asks each
+   retained builder for its request-bound rows.
+5. Conditions, transformers, generators, effects, and render work all resolve their
+   evaluators from the resulting request `FunctionRegistry`.
 
-Registry scoping is decided during registration.
-
-The selected function and component registries are then used across the rest of
-the journey lifecycle:
-
-1. Validation checks function names and component variants against the active
-   registries.
-
-2. Compilation uses the package's unbound function metadata.
-
-3. Context preparation builds the active request function registry.
-
-4. Runtime evaluation calls functions through that request registry.
-
-5. Framework rendering resolves component variants through the active component
-   registry.
-
-The important point is that validation, compilation, runtime, and rendering all
-use the same package-scoped names, while executable function evaluators remain
-request-owned.
+The same package-scoped name therefore drives compilation and request execution,
+while executable evaluators remain request-owned.
 
 ## Built-in entries
 
-Built-in functions and components are ordinary entries. A TypeScript journey
-registers an entry automatically when it uses its authoring handle.
-
-Serialized and other name-only journeys cannot carry those handles. They can
-opt into the complete built-in sets explicitly:
+Built-ins are ordinary entries. TypeScript journeys collect an entry automatically
+when they use its callable authoring handle. Name-only journeys list the entries
+they need:
 
 ```typescript
 import { builtInFunctions, createForgePackage } from '@ministryofjustice/hmpps-forge/core/authoring'
@@ -48,111 +35,50 @@ import { builtInComponents } from '@ministryofjustice/hmpps-forge/core/component
 
 createForgePackage({
   journey: serializedJourney,
-  functions: [...builtInFunctions],
-  components: [...builtInComponents],
+  functions: [...builtInFunctions, ...builtInComponents],
 })
 ```
 
-Packages can instead list only the individual entries they reference.
+`builtInComponents` is a convenience collection of component entries; it is not a
+different registry type.
 
-## Package-scoped registries
+## Package, adapter, and request dependencies
 
-A package can include its own functions, components, and journey definition.
+A package retains its long-lived `packageDependencies`. A framework adapter may
+provide stable `adapterDependencies` and lazy `requestDependencies` for one request.
+Forge rejects collisions between any two sources and builds a fresh merged dependency
+object without mutating them.
 
-Forge catalogs each package's unbound function definitions for compilation and
-retains its builders and `packageDependencies` for request preparation. A
-request adapter can additionally provide `requestDependencies` for one request.
-
-Forge creates a `ComponentRegistry` for each package and registers the package's
-components into it.
-
-At the start of each request Forge rejects collisions between the two dependency
-sources, merges them without mutation, and builds a new `FunctionRegistry` from
-the retained builders and the resulting flat object.
-
-This gives the package a local extension environment for validation,
-compilation, runtime evaluation, and rendering.
+Each function builder receives that merged object once per request. Render factories
+therefore get the same dependency lifecycle as every other function factory.
 
 ## Isolation between packages
 
-Scoped registration isolates package extensions from unrelated journeys.
+An entry registered for package A is invisible to package B unless package B also
+registers it. Reusing the same declaration in two journeys registers it independently
+for both packages.
 
-If package A registers a custom function or component, package B should not see
-it. Sharing an extension means each package registers it - the same handle used
-in two journeys registers for both packages.
-
-This matters when different packages use the same local names. It also matters
-when a package depends on services or renderers that should not be available to
-other journeys.
-
-Scoping keeps package-local extension decisions close to the package that needs
-them.
-
-## Component scoping and framework adapters
-
-Component scoping affects framework rendering as well as validation.
-
-When package components are registered, the package's `ComponentRegistry`
-is stored in the package's dependencies. During registration `MountRegistry`
-copies it onto each route's `MountedNode` as `componentRegistry`, and render
-time resolves component variants through that per-route registry.
-
-The framework adapter is constructed once and is never passed or rebuilt with a
-component registry. Each route renders through the package component registry on
-its `MountedNode`, derived from the package's dependencies, so there is no separate
-adapter-held registry to reconcile.
-
-## Function scoping and generated code
-
-Function scoping affects both compilation and runtime evaluation.
-
-Compilation reads unbound function metadata from the package definition catalog.
-
-Runtime evaluation receives the request-owned function registry through the
-compiled evaluation context. Each returned value is inspected for thenability at
-the generated call site.
-
-The function name that validates and compiles should resolve to the same
-evaluator when the generated function runs.
+This permits local names and local dependencies without mutating a process-wide
+environment. A route's mounted state retains the package's function builders and
+dependencies; it does not carry a component registry.
 
 ## What can fail
 
 Important failure cases include:
 
-- a package function entry is malformed
-- a package component entry is malformed
-- a package registers duplicate names or variants inside its registry
-- a journey references a function not visible in its active function registry
-- a journey references a variant not visible in its active component registry
+- malformed or duplicate package entries
+- dependency-name collisions between package, adapter, or request dependencies
+- a referenced function name not visible to the active package
+- a block variant not resolving to a render entry in that package
+- a factory failing while the request registry is built
 
-Most of these should fail during registration or validation.
-
-Runtime failures should be reserved for cases that depend on executing the
-registered function or component renderer.
+Name and shape failures should surface during registration or compilation. Factory
+and evaluator failures remain request-time failures.
 
 ## Rules to preserve
 
-Package-scoped extensions should be visible to the package journey they are
-registered with.
-
-Package-scoped extensions should not become visible to unrelated journeys.
-
-Built-in entries should be registered through the same package surface as every
-other extension.
-
-Validation, compilation, runtime evaluation, and rendering should use the same
-scoped view of functions and components for a journey.
-
-## Connection to other docs
-
-The extension model doc explains why functions, components, and registries form
-Forge's extension surface.
-
-The functions and function registry doc explains function entries and generated
-function call sites.
-
-The components and component registry doc explains component variants and
-render-facing component contracts.
-
-The framework adapter docs explain why component registry selection affects
-rendering, through the per-route `MountedNode` rather than adapter construction.
+- Every extension visible to a journey arrives through its package.
+- Render entries follow the same package, adapter, and request scope as other functions.
+- Compilation uses unbound metadata; runtime uses request-bound evaluators.
+- Built-ins use the same registration surface as application entries.
+- No adapter-held or route-held component registry should be reintroduced.

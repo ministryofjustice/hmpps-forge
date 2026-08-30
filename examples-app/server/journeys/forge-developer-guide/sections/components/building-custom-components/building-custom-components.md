@@ -2,7 +2,7 @@
 title: Custom components
 section: building-functions-and-components
 path: building-functions-and-components/custom-components
-teaches: [component, nunjucksComponent, ComponentRegistryTestHarness, plain-component-props, RenderedBlock, custom-component-variant, field-value, field-errors]
+teaches: [component, nunjucksComponent, ComponentTestHarness, plain-component-props, RenderedBlock, custom-component-variant, field-value, field-errors]
 prerequisites: [block, field, createForgePackage]
 ---
 
@@ -15,7 +15,8 @@ are the renderers that turn those blocks into HTML. Forge ships with
 components for the GOV.UK and MOJ design systems, plus a small core set
 (`HtmlBlock`, `CollectionBlock`, `TemplateWrapper`). When your service
 needs a visual that the built-in set does not cover, declare your own
-with `component()`. Using it in a journey registers it automatically.
+with `component()` or a renderer-specific helper. Using it in a journey
+registers it automatically.
 
 {{slot:toc}}
 
@@ -26,16 +27,16 @@ with `component()`. Using it in a journey registers it automatically.
 A block definition is data. A component is the function that renders
 that data. The two are linked by a `variant` string: every block the
 component builds carries `variant: 'myCard'`, and the component is
-registered under the same variant, so Forge knows which renderer to
-call. With `component()` one declaration covers both sides - it
-returns the block builder, and the same value is the renderer entry.
+registered under the same variant, so Forge knows which component to
+call. One component declaration covers both sides: it returns the block
+builder, and the same value is the component entry.
 
 ```
 block:       { variant: 'myCard', heading: 'Title', ... }
                                       |
                              variant lookup
                                       v
-component:   render(block) -> '<div class="my-card">...</div>'
+component:   evaluate(block) -> '<div class="my-card">...</div>'
 ```
 
 By the time a component is called, every expression in the block has
@@ -62,19 +63,19 @@ export interface MyCardProps {
 }
 ```
 
-`component()` derives the journey-authoring side from this interface. A plain
-`string` prop therefore accepts either a string or an expression that resolves
-to one when an author calls the component. The render implementation still sees
-the original `string` type. Forge also adds `visibleWhen` and `metadata` to the
-builder automatically.
+`component()` and the renderer-specific helpers derive the journey-authoring side
+from this interface. A plain `string` prop therefore accepts either a string or
+an expression that resolves to one when an author calls the component. The render
+implementation still sees the original `string` type. Forge also adds `visibleWhen`
+and `metadata` to the builder automatically.
 
 ---
 
 ## Declaring the component
 
-Pass the props interface directly to `component()`. The result is a callable
-block builder - authors call it with expression-aware props and never set the
-variant themselves - and the same value carries the renderer.
+Pass the props interface directly to `component()`. The result is a callable block
+builder - authors call it with expression-aware props and never set the variant
+themselves - and the same value carries the component entry.
 
 For a display block:
 
@@ -82,13 +83,13 @@ For a display block:
 import { component } from '@ministryofjustice/hmpps-forge/core/components'
 
 export const MyCard = component<MyCardProps>('myCard', {
-  render: block => {
-    const border = block.outlined ? ' my-card--outlined' : ''
+  factory: () => ({ props }) => {
+    const border = props.outlined ? ' my-card--outlined' : ''
 
     return `
       <div class="my-card${border}">
-        <h2 class="govuk-heading-m">${block.heading}</h2>
-        ${block.content ? `<p class="govuk-body">${block.content}</p>` : ''}
+        <h2 class="govuk-heading-m">${props.heading}</h2>
+        ${props.content ? `<p class="govuk-body">${props.content}</p>` : ''}
       </div>
     `
   },
@@ -109,7 +110,7 @@ export interface MyStarRatingProps {
 
 export const MyStarRating = component<MyStarRatingProps>('myStarRating', {
   field: true,
-  render: block => { ... },
+  factory: () => ({ props }) => { ... },
 })
 ```
 
@@ -117,23 +118,21 @@ export const MyStarRating = component<MyStarRatingProps>('myStarRating', {
 
 ## The renderer
 
-The `render` option is a function that receives the resolved props
-and returns an HTML string. There are two ways to produce that HTML.
+The function returned by `factory` receives `{ props, context }` and returns
+rendered output. Renderer-specific helpers keep a simpler props-first callback.
 
 ### Pure function components
 
-The plain `component()` form shown above is the simpler of the two:
-the render function takes the resolved props and returns HTML
-directly. Use this when the output is short, self-contained, and
-does not need a template engine.
+The plain `component()` form shown above is framework-independent. Its factory
+creates the evaluator that receives the resolved props. Use it when the output
+is short, self-contained, and does not need a template engine.
 
 ### Template-based components
 
 `nunjucksComponent` (from `@ministryofjustice/hmpps-forge/express-nunjucks`)
 is the right choice when you want to render through a Nunjucks
-template. It is `component()` with the render signature pinned: the
-render function receives the resolved props and a Nunjucks
-environment supplied by Forge.
+template. It is a compatibility wrapper around `component()`: the render callback
+receives the resolved props and a Nunjucks environment supplied by Forge.
 
 ```typescript
 import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
@@ -365,8 +364,8 @@ const escapeHtml = (value: string): string =>
     .replace(/'/g, '&#39;')
 
 export const MyBadge = component<MyBadge>('myBadge', {
-  render: block => {
-    const label = escapeHtml(String(block.label ?? ''))
+  factory: () => ({ props }) => {
+    const label = escapeHtml(String(props.label ?? ''))
 
     return `<span class="my-badge">${label}</span>`
   },
@@ -398,7 +397,7 @@ without clashing.
 If a journey refers to a component only by variant string - a
 journey defined in JSON, or blocks authored as plain objects -
 nothing builds blocks through the component, so there is nothing to
-collect. List the component on the package's `components` property
+collect. List the component declaration on the package's `functions` property
 to register it regardless:
 
 ```typescript
@@ -407,7 +406,7 @@ import { MyCard } from './components/myCard'
 
 export default createForgePackage({
   journey: myJourney,
-  components: [MyCard],
+  functions: [MyCard],
 })
 ```
 
@@ -442,20 +441,20 @@ Forge resolves them before calling the renderer.
 
 ## Testing
 
-`ComponentRegistryTestHarness` tests the same author-facing component call used
-in a journey. It looks up the registered component, renders nested blocks first,
-and invokes the component through Forge's rendering boundary. Tests do not need
+`ComponentTestHarness` tests the same author-facing component call used in
+a journey. It looks up the registered component function, renders nested blocks first,
+and invokes it through Forge's rendering boundary. Tests do not need
 to construct internal render props:
 
 ```typescript
-import { ComponentRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
+import { ComponentTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 import { MyCard } from './myCard'
 
 describe('MyCard', () => {
-  describe('render()', () => {
+  describe('component()', () => {
     it('should include the heading text', async () => {
       // Arrange
-      const harness = new ComponentRegistryTestHarness(MyCard)
+      const harness = new ComponentTestHarness(MyCard)
       const block = MyCard({
         heading: 'Hello',
         content: 'Body text',
@@ -474,13 +473,13 @@ describe('MyCard', () => {
 ```
 
 For a `nunjucksComponent`, pass the Nunjucks environment as the harness's
-component renderer and assert on its template call:
+adapter renderer and assert on its template call:
 
 ```typescript
 it('should pass heading to the template', async () => {
   // Arrange
   const nunjucksEnv = { render: jest.fn().mockReturnValue('<div></div>') }
-  const harness = new ComponentRegistryTestHarness(MyCard, nunjucksEnv)
+  const harness = new ComponentTestHarness(MyCard, nunjucksEnv)
 
   // Act
   await harness.render(MyCard({ heading: 'Hello' }))
@@ -497,7 +496,7 @@ Field runtime values and errors use the same injected-input shape as the
 function harness:
 
 ```typescript
-const harness = new ComponentRegistryTestHarness(MyInput, nunjucksEnv)
+const harness = new ComponentTestHarness(MyInput, nunjucksEnv)
 
 await harness
   .render(MyInput({ code: 'name', label: 'Name' }))

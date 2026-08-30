@@ -9,8 +9,8 @@ Everything in this package is experimental. It may change or be removed in a min
 
 ## Why JSX instead of string building?
 
-A `component()` render built from template literals has to remember to escape every interpolated
-value itself, and the markup structure disappears into string concatenation. A Nunjucks wrapper
+A render function built from template literals has to remember to escape every interpolated value
+itself, and the markup structure disappears into string concatenation. A Nunjucks wrapper
 avoids that but drags a renderer environment along with it.
 
 JSX gives you the markup as markup - checked by the compiler against typed element and attribute
@@ -29,9 +29,10 @@ JavaScript, so nothing downstream needs to know JSX was involved.
 
 ## Writing a component
 
-`jsxComponent()` is `component()` with the render output pinned to the runtime's `RawHtml` and
-stringified at the boundary. Unlike `nunjucksComponent` there is no renderer argument - JSX compiles
-to direct string building, so there is no environment to inject.
+`jsxComponent()` is a compatibility wrapper around `component()`. It keeps the props-first callback,
+pins its output to the runtime's `RawHtml`, and stringifies that output at the boundary. Unlike
+`nunjucksComponent` there is no renderer argument - JSX compiles to direct string building, so there
+is no environment to inject.
 
 ```tsx
 import type { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
@@ -46,7 +47,7 @@ export const MyBadge = jsxComponent<MyBadge>('myBadge', {
 })
 ```
 
-The result is an ordinary `ForgeComponent` producing plain HTML strings - register it and use it in
+The result is an ordinary component entry producing plain HTML strings - register it and use it in
 journeys exactly as you would any other component.
 
 ## Project setup

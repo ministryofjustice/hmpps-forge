@@ -1,208 +1,127 @@
-# Components and component registry
+# Components and renderers
 
 ## Purpose
 
-Components are how Forge turns evaluated blocks into renderable output.
+Components build authored block invocations. A block carries a `variant`; the
+request-owned function registry maps that variant to a component evaluator.
 
-A journey definition contains blocks. Each block has a `variant`. The component
-registry maps that variant to a component renderer.
+There is no separate component registry or component execution lifecycle. Component
+entries use the same declaration, package collection, request binding, and lookup
+model as conditions, transformers, generators, and effects.
 
-This keeps the definition and the rendering implementation separate. The
-definition says what kind of block should appear. The registry provides the
-renderer that knows how to turn that evaluated block into output for a
-framework integration.
+## Declaring components
+
+`component()` is the core declaration primitive. It returns a callable handle that is
+both a block builder and a function entry:
+
+```typescript
+const MyCard = component<MyCardProps>('myCard', {
+  factory: dependencies => ({ props, context }) => {
+    return dependencies.templates.renderCard(props, context)
+  },
+})
+```
+
+Renderer-specific helpers such as `nunjucksComponent()` and `jsxComponent()` keep
+their props-first authoring signatures, but they are only wrappers around
+`component()`. Their results are ordinary component entries.
+
+`renderer()` declares step composition separately. Its evaluator receives the
+resolved step, route context, validation state, and ordered rendered children. A
+journey supplies a default through `renderer`, and a step may replace it.
 
 ## Where this sits in the pipeline
 
-Components are registered before a journey is validated and compiled.
+1. Calling a component handle creates a basic or field block carrying its variant and
+   an embedded entry stamp.
+2. Package finalisation collects embedded entries and any entries explicitly listed
+   in `functions`.
+3. Semantic analysis checks that each block variant resolves to a component definition.
+4. Compilation reads static component metadata without running its factory.
+5. Request context preparation calls the factory once and stores the evaluator in
+   the request's `FunctionRegistry`.
+6. Render work resolves that request-bound entry and calls its evaluator with
+   `{ props, context }`.
 
-The component model is then used across the pipeline:
+The variant remains the stable link between the declarative block and its executable
+component function.
 
-1. Authoring creates block definitions with a block type, variant, and
-   properties.
+## Static and request-bound shapes
 
-2. Validation checks that each block variant exists in the component registry.
+The unbound component definition carries the variant, factory, and any
+field metadata. This is sufficient for validation and compilation.
 
-3. Intermediate representation keeps block variants as part of block nodes.
+The request-bound registry row adds `evaluate`, produced by applying the current
+package, adapter, and request dependencies to the factory. Evaluators are therefore isolated
+to a request while the declaration remains reusable across packages.
 
-4. Compilation emits resolve functions that evaluate block properties.
+## Basic and field blocks
 
-5. Runtime builds a render context containing evaluated blocks.
+Basic blocks represent content and layout. Field blocks additionally participate in
+answer capture and validation.
 
-6. forge-core's runtime resolves each block variant to its registered
-   component entry, then framework rendering calls that entry's renderer.
-
-This means the component variant is the stable link between the authored block
-and the render implementation.
-
-## Block definitions and component entries
-
-A block definition belongs to the journey.
-
-It records:
-
-- the block structure type
-- whether the block is a field block or a basic block
-- the component variant
-- the authored properties for that block
-
-A component registry entry belongs to the rendering boundary.
-
-It records:
-
-- the variant it handles
-- the renderer for evaluated blocks with that variant
-
-These shapes are deliberately separate.
-
-The block definition stays declarative. The component entry holds executable
-rendering behaviour and any template-engine assumptions made by the component
-package or framework integration.
-
-## Component variants
-
-The variant is the name that connects a block to a component renderer.
-
-For example, a GOV.UK input wrapper can produce a block with a GOV.UK input
-variant. The registry then needs a component entry for that same variant.
-
-Variants are checked during semantic analysis. If a block references a variant
-that is not registered for that journey, compilation fails before routes are
-mounted.
-
-This protects rendering from discovering missing components late in the request
-path.
-
-## Field blocks and basic blocks
-
-Forge distinguishes field blocks from basic blocks.
-
-Field blocks represent user input. They can have field codes, values,
-formatters, parsers, validation rules, dependency rules, and field errors.
-
-Basic blocks represent non-field content or layout. They can still have
-dynamic properties and visibility rules, but they do not store submitted
-answers in the same way field blocks do.
-
-Both kinds of block use the same component registry boundary. The renderer
-receives an evaluated block for its variant.
-
-## Evaluated blocks
-
-Forge does not pass authored block definitions directly to component renderers.
-
-During runtime, compiled render functions evaluate block properties against the
-current request context. References, conditions, generated values, validation
-results, and nested structures are resolved before the framework integration
-calls component renderers.
-
-The renderer receives component-facing block data. That data keeps the block
-variant and evaluated properties, and can include runtime additions such as
-field values or validation errors.
-
-This lets component renderers focus on presentation. They do not need to know
-how to evaluate Forge expressions.
-
-## Component registry
-
-`ComponentRegistry` stores component entries by variant.
-
-It is used by validation to check that authored block variants are available.
-It is also used by framework rendering to resolve a renderer for each evaluated
-block.
-
-Registration should fail when:
-
-- a component entry has no variant
-- a component entry has no render function
-- a variant is registered twice in the same registry
-
-The registry does not validate component-specific props. It only validates the
-registry entry shape and the uniqueness of variants.
-
-## Built-in components
-
-`forge-core` exports a small set of built-in components.
-
-These cover core rendering primitives such as HTML passthrough, collection
-blocks, and template wrappers.
-
-Calling a built-in component in a TypeScript journey registers it with that
-package. Name-only journeys can list individual entries or spread
-`builtInComponents` into the package's `components` array.
-
-Design-system components live outside the core. GOV.UK and MOJ component
-packages provide their own variants and renderers, and those components are
-registered through the same registry contract.
+A field component declaration can expose static `inputSchema`, `multiple`, and
+`errorAnchor` metadata. Its evaluator receives resolved `code`, `value`, and
+`errors` in `props`. Forge can inspect the metadata without executing the factory.
 
 ## Framework rendering
 
-`forge-core` prepares render data, but framework integrations perform the final
-rendering.
+Forge owns function lookup, component and renderer evaluation, and nested render
+ordering. The framework adapter supplies any stable capabilities those factories
+need, wraps nested output, and assembles the final page.
 
-For the Express/Nunjucks integration, forge-core's runtime resolves each evaluated block's variant to its component
-entry in the component registry and hands that entry to the page renderer, which
-calls the component's render function with the evaluated block and a Nunjucks
-renderer.
+The Express/Nunjucks adapter supplies its environment through adapter dependencies.
+`nunjucksComponent()` captures that dependency and preserves the existing
+`(props, nunjucksEnv)` authoring callback. Forge core treats the dependency object
+and presentation output as opaque values.
 
-Other framework integrations can use the same core contract differently. The
-important contract is that the adapter receives evaluated blocks and resolves
-their variants through the component registry.
+This keeps template-engine assumptions outside `forge-core` without inventing a
+second registry contract.
 
 ## Nested blocks
 
-Blocks can appear inside component properties.
+Blocks can occur inside component props. Forge renders those children first and
+asks the adapter to wrap each result. The parent receives those wrapped values in
+its resolved props, so it never needs to call the rendering pipeline itself.
 
-When a framework integration supports nested block rendering, it can render
-those child blocks before passing data to the parent component. The
-component-facing shape for nested blocks is different from the top-level render
-context because nested blocks have already crossed part of the rendering
-boundary.
+Nested and top-level blocks resolve through the same request `FunctionRegistry` and
+execute the same component evaluator shape.
 
-The rendering docs cover this shape in more detail. The important point here is
-that nested blocks still resolve through component variants and the component
-registry.
+## Built-in and name-only entries
+
+Using a component handle in a TypeScript journey registers it automatically. Serialized
+or otherwise name-only journeys must list the entries explicitly:
+
+```typescript
+createForgePackage({
+  journey: serializedJourney,
+  functions: [...builtInComponents, MyCard],
+})
+```
+
+The deprecated `components` package field accepts those same component entries and is
+only a compatibility spelling for listing them.
 
 ## What can fail
 
 Important failure cases include:
 
-- a component entry is registered without the required shape
-- a component variant is registered twice in the same registry
-- a journey definition references an unregistered component variant
-- a framework integration cannot find a component renderer for a block
-- a component renderer throws while rendering
-- nested block rendering receives data it cannot render
+- duplicate function names within one package
+- a block variant that does not resolve to a component definition
+- a component used in `renderer`, or a renderer used in `blocks`
+- a component or renderer factory or evaluator throwing
+- a renderer-specific compatibility wrapper rejecting the evaluator's output
+- unsupported nested render output
 
-Registration and validation should catch missing or malformed component
-registration before routes are mounted.
-
-Renderer failures can still happen at runtime because they depend on evaluated
-request data, template availability, and framework integration behaviour.
+Missing and wrongly typed entries should fail during registration or semantic
+analysis. Failures that depend on request data or templates remain runtime errors.
 
 ## Rules to preserve
 
-Component variants are the stable link between authored blocks and renderers.
-
-`forge-core` should own block evaluation and render-context construction.
-
-Framework and component packages should own final rendering.
-
-Component renderers should receive evaluated block data, not raw authored
-expressions.
-
-The component registry should remain a lookup and validation boundary, not a
-component-specific props validator.
-
-## Connection to other docs
-
-The extension model doc explains how components fit alongside functions and
-registries as Forge's extension surface.
-
-The registry scoping doc explains how global and package-scoped component
-registries affect which variants a journey can see.
-
-The render context doc explains how `forge-core` builds evaluated render data.
-
-The framework rendering doc explains how framework integrations turn evaluated
-blocks into a response.
+- Components are function entries, not a parallel extension system.
+- Variants resolve through the package-scoped definition catalog and request-owned
+  function registry.
+- Factories run during request preparation, not registration or compilation.
+- Forge owns evaluation and ordering; adapters own concrete rendering.
+- Renderer-specific component helpers may adapt authoring ergonomics but must return
+  ordinary component entries.

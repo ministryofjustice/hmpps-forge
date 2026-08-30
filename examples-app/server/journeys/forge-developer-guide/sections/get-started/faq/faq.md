@@ -338,11 +338,10 @@ registrations that provide pre-built block variants mapped to
 those design systems. If you do not register them, Forge will
 not use them.
 
-You can build your own components using `component()` from
-`@ministryofjustice/hmpps-forge/core/components` with your own
-variants - using one in a journey registers it automatically.
-The framework adapter handles rendering - if you write a custom
-adapter, you can target any templating system.
+You can build your own components with `component()` or a renderer-specific
+helper such as `nunjucksComponent()` or `jsxComponent()`. Using one in a
+journey registers it automatically. The framework adapter handles rendering,
+so a custom adapter can target any templating system.
 
 See [Building custom components](../building-functions-and-components/custom-components)
 for the full component authoring guide.
