@@ -53,6 +53,44 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.4.2
+
+A correctness-focused release improving invalid-reference detection, request-time
+expression inputs, definition serialisation, redirect tracing, test harness
+configuration, and reachability traversal.
+
+### Added
+
+- `ForgeTestHarness` options now cover engine configuration: `logger`,
+  `strictRegistration`, `basePath`, `disableBuiltInFunctions`, and
+  `disableBuiltInComponents` pass through to the underlying `Forge` alongside the
+  existing `instrumentation` and `maxIteratorIterations` options ([#277])
+
+### Fixed
+
+- `Answer()` inside an `onAccess` hook now fails compilation with its source location.
+  Answer preparation runs after access hooks, so the reference could only read
+  unprepared state previously ([#272])
+- `Post()` now resolves the submitted body in every expression position. Previously
+  validation and reachability expressions received `undefined` even during a POST
+  request ([#278])
+- Class instances in definitions now reach serialisation validation instead of being
+  silently flattened into plain objects, producing an error that identifies the
+  offending path ([#278])
+- Registering an object that was not created with `createForgePackage()` now throws a
+  `ForgeRegistrationError`, matching other package registration failures ([#278])
+- Request traces now record the same fully resolved redirect URL carried by the
+  navigation outcome ([#278])
+- Reachability graph traversal now avoids repeated queue scans and duplicate visits,
+  including when forward outcomes contain a cycle ([#289])
+
+[#272]: https://github.com/ministryofjustice/hmpps-forge/pull/272
+[#277]: https://github.com/ministryofjustice/hmpps-forge/pull/277
+[#278]: https://github.com/ministryofjustice/hmpps-forge/pull/278
+[#289]: https://github.com/ministryofjustice/hmpps-forge/pull/289
+
+---
+
 ## 0.4.1
 
 Release focused mainly on internal engine cleanup plus a few bug fixes/security improvements 
