@@ -98,6 +98,10 @@ enough.
   request. Forge resolves them during context preparation, rejects collisions with
   `packageDependencies`, and passes the flat merged object to function factories.
   The bundled Express adapter exposes this through `createExpressRouter()`.
+- Framework adapters can provide stable `adapterDependencies` alongside package and
+  request dependencies. Forge rejects collisions between all three sources, the
+  bundled Express adapter supplies its configured Nunjucks environment, and the test
+  client accepts equivalent dependencies for adapter-level tests ([#290]).
 
 ### Changed
 
@@ -301,6 +305,7 @@ use returned error items for expected invalid input. ([#274])
 [#281]: https://github.com/ministryofjustice/hmpps-forge/pull/281
 [#282]: https://github.com/ministryofjustice/hmpps-forge/pull/282
 [#283]: https://github.com/ministryofjustice/hmpps-forge/pull/283
+[#290]: https://github.com/ministryofjustice/hmpps-forge/pull/290
 
 ---
 

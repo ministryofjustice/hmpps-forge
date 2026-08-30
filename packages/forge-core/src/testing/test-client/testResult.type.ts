@@ -12,6 +12,7 @@ export interface TestRequestOptions {
   body?: Record<string, unknown>
   session?: unknown
   state?: Record<string, unknown>
+  requestDependencies?: () => object | PromiseLike<object>
 }
 
 /** Result returned when the engine renders a step. */

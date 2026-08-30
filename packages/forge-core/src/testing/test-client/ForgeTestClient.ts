@@ -22,6 +22,7 @@ export class ForgeTestClient {
   constructor(
     private readonly forge: TestClientForge,
     private readonly renderer?: ForgeRenderer<unknown>,
+    private readonly adapterDependencies?: object,
   ) {}
 
   async get(path: string, options?: TestRequestOptions): Promise<TestResult> {
@@ -36,7 +37,13 @@ export class ForgeTestClient {
     const resolved = TestRouteResolver.resolve(path, method, this.forge.getTopology())
     const responseBindings = this.createResponseBindings()
     const snapshot = TestSnapshotFactory.create(method, path, resolved, options)
-    const outcome = await this.forge.execute({ snapshot, responseBindings, renderer: this.renderer })
+    const outcome = await this.forge.execute({
+      snapshot,
+      responseBindings,
+      renderer: this.renderer,
+      adapterDependencies: this.adapterDependencies,
+      requestDependencies: options?.requestDependencies,
+    })
 
     return this.buildResult(outcome)
   }

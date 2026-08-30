@@ -21,6 +21,9 @@ export interface ForgeExecutionRequest {
   readonly responseBindings?: ResponseBindings
   readonly renderer?: ForgeRenderer<unknown>
 
+  /** Stable capabilities supplied by the active framework adapter. */
+  readonly adapterDependencies?: object
+
   /** Resolves capabilities used only while preparing this request's function evaluators. */
   readonly requestDependencies?: () => object | PromiseLike<object>
 }

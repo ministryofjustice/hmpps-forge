@@ -42,7 +42,11 @@ function prepareRequestContext(
   requestDependencies: unknown,
 ) {
   const functionRegistry = new FunctionRegistry()
-  const dependencies = resolveDependencies(ctx.state.dependencies.packageDependencies, requestDependencies)
+  const dependencies = resolveDependencies(
+    ctx.state.dependencies.packageDependencies,
+    ctx.state.dependencies.adapterDependencies,
+    requestDependencies,
+  )
 
   ctx.state.dependencies.functionBuilders.forEach(functionBuilder => {
     functionRegistry.register(functionBuilder.build(dependencies))
@@ -73,25 +77,61 @@ function prepareRequestContext(
   return { output: { action: 'continue' as const } }
 }
 
-function resolveDependencies(packageDependencies: unknown, requestDependencies: unknown): unknown {
-  if (requestDependencies === NO_REQUEST_DEPENDENCIES) {
+interface DependencySource {
+  readonly name: 'packageDependencies' | 'adapterDependencies' | 'requestDependencies'
+  readonly dependencies: unknown
+}
+
+function resolveDependencies(
+  packageDependencies: unknown,
+  adapterDependencies: object | undefined,
+  requestDependencies: unknown,
+): unknown {
+  const sources: DependencySource[] = [{ name: 'packageDependencies', dependencies: packageDependencies ?? {} }]
+
+  if (adapterDependencies !== undefined) {
+    sources.push({ name: 'adapterDependencies', dependencies: adapterDependencies })
+  }
+
+  if (requestDependencies !== NO_REQUEST_DEPENDENCIES) {
+    sources.push({ name: 'requestDependencies', dependencies: requestDependencies })
+  }
+
+  if (sources.length === 1) {
     return packageDependencies
   }
 
-  if (requestDependencies === null || typeof requestDependencies !== 'object') {
-    throw new TypeError('requestDependencies must resolve to an object')
+  const mergedDependencies: Record<string, unknown> = {}
+  const sourceByKey = new Map<string, DependencySource['name']>()
+
+  sources.forEach(source => {
+    assertDependencyObject(source)
+    const keys = Object.keys(source.dependencies)
+    const collisions = keys.filter(key => sourceByKey.has(key))
+
+    if (collisions.length > 0) {
+      const existingSources = [...new Set(collisions.map(key => sourceByKey.get(key)))].join(' and ')
+
+      throw new TypeError(
+        `${source.name} contains keys already provided by ${existingSources}: ${collisions.join(', ')}`,
+      )
+    }
+
+    Object.assign(mergedDependencies, source.dependencies)
+    keys.forEach(key => sourceByKey.set(key, source.name))
+  })
+
+  return mergedDependencies
+}
+
+function assertDependencyObject(
+  source: DependencySource,
+): asserts source is DependencySource & { readonly dependencies: object } {
+  if (source.dependencies === null || typeof source.dependencies !== 'object') {
+    const verb = source.name === 'requestDependencies' ? 'resolve to' : 'be'
+
+    throw new TypeError(`${source.name} must ${verb} an object`)
   }
-
-  const packageDependencyKeys = new Set(Object.keys(packageDependencies ?? {}))
-  const collisions = Object.keys(requestDependencies).filter(key => packageDependencyKeys.has(key))
-
-  if (collisions.length > 0) {
-    throw new TypeError(
-      `requestDependencies contains keys already provided by packageDependencies: ${collisions.join(', ')}`,
-    )
-  }
-
-  return { ...(packageDependencies as object), ...requestDependencies }
 }
 
 function isThenable(value: unknown): value is PromiseLike<object> {

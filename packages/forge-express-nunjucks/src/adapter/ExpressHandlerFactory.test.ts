@@ -19,7 +19,8 @@ describe('ExpressHandlerFactory', () => {
       const req = createRequest()
       const res = createResponse()
       const next = vi.fn()
-      const handler = ExpressHandlerFactory.create(forge, route, createLogger(), createRenderer())
+      const adapterDependencies = { nunjucksEnv: {} }
+      const handler = ExpressHandlerFactory.create(forge, route, createLogger(), createRenderer(), adapterDependencies)
 
       // Act
       await handler(req, res, next)
@@ -29,6 +30,7 @@ describe('ExpressHandlerFactory', () => {
         snapshot: expect.objectContaining({ nodeId: route.nodeId, method: 'GET' }),
         responseBindings: expect.any(Object),
         renderer: expect.any(Object),
+        adapterDependencies,
       })
       expect(res.redirect).toHaveBeenCalledWith('/next')
     })
@@ -41,7 +43,14 @@ describe('ExpressHandlerFactory', () => {
       const next = vi.fn()
       const resolvedDependencies = { authenticatedHttp: { user: 'user-1' } }
       const requestDependencies = vi.fn(() => resolvedDependencies)
-      const handler = ExpressHandlerFactory.create(forge, route, createLogger(), createRenderer(), requestDependencies)
+      const handler = ExpressHandlerFactory.create(
+        forge,
+        route,
+        createLogger(),
+        createRenderer(),
+        undefined,
+        requestDependencies,
+      )
 
       // Act
       await handler(req, res, next)
@@ -64,7 +73,14 @@ describe('ExpressHandlerFactory', () => {
       const secondRequest = createRequest()
       const response = createResponse()
       const requestDependencies = vi.fn((request: Request) => ({ request }))
-      const handler = ExpressHandlerFactory.create(forge, route, createLogger(), createRenderer(), requestDependencies)
+      const handler = ExpressHandlerFactory.create(
+        forge,
+        route,
+        createLogger(),
+        createRenderer(),
+        undefined,
+        requestDependencies,
+      )
 
       // Act
       await handler(firstRequest, response, vi.fn())
@@ -83,7 +99,14 @@ describe('ExpressHandlerFactory', () => {
       // Arrange
       const forge = createForge()
       const requestDependencies = vi.fn(async () => ({ authenticatedHttp: { user: 'user-1' } }))
-      const handler = ExpressHandlerFactory.create(forge, route, createLogger(), createRenderer(), requestDependencies)
+      const handler = ExpressHandlerFactory.create(
+        forge,
+        route,
+        createLogger(),
+        createRenderer(),
+        undefined,
+        requestDependencies,
+      )
 
       // Act
       await handler(createRequest(), createResponse(), vi.fn())

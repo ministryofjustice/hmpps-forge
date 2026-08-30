@@ -16,6 +16,7 @@ export default class ExpressHandlerFactory {
     route: ForgeRoute,
     logger: Logger | Console,
     renderer: ForgeRenderer<unknown>,
+    adapterDependencies?: object,
     requestDependencies?: (request: express.Request) => object | PromiseLike<object>,
   ): express.RequestHandler {
     return async (req, res, next) => {
@@ -30,6 +31,7 @@ export default class ExpressHandlerFactory {
           snapshot,
           responseBindings,
           renderer,
+          ...(adapterDependencies === undefined ? {} : { adapterDependencies }),
           ...(requestDependencies === undefined ? {} : { requestDependencies: () => requestDependencies(req) }),
         })
 

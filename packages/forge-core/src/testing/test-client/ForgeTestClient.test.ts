@@ -1,4 +1,5 @@
 import { createForgePackage, journey, step } from '../../authoring/builders'
+import { condition } from '../../authoring/functions/condition'
 import { ForgeTestHarness } from './ForgeTestHarness'
 
 const testJourney = journey({
@@ -50,6 +51,23 @@ describe('ForgeTestClient', () => {
   })
 
   describe('dispatch()', () => {
+    it('should supply adapter and request dependencies when binding functions', async () => {
+      // Arrange
+      const factory = vi.fn(() => () => true)
+      const HasDependencies = condition('HasDependencies', { factory })
+      const adapterDependencies = { adapterValue: 'adapter' }
+      const requestDependencies = { requestValue: 'request' }
+      const client = new ForgeTestHarness()
+        .registerPackage(createForgePackage({ journey: testJourney, functions: [HasDependencies] }))
+        .createClient(undefined, adapterDependencies)
+
+      // Act
+      await client.get('/test/step-one', { session: {}, requestDependencies: () => requestDependencies })
+
+      // Assert
+      expect(factory).toHaveBeenCalledWith({ ...adapterDependencies, ...requestDependencies })
+    })
+
     it('should throw when no route matches', async () => {
       // Arrange
       const client = createClient()

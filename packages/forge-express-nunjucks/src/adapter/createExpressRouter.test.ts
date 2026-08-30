@@ -35,7 +35,8 @@ describe('createExpressRouter', () => {
     it('should dispatch request snapshots through Forge', async () => {
       // Arrange
       const forge = createForge()
-      const router = createExpressRouter(forge, { nunjucksEnv: createNunjucksEnv() })
+      const nunjucksEnv = createNunjucksEnv()
+      const router = createExpressRouter(forge, { nunjucksEnv })
       const req = createRequest()
       const res = createResponse()
       const next = vi.fn()
@@ -53,6 +54,7 @@ describe('createExpressRouter', () => {
           }),
           responseBindings: expect.any(Object),
           renderer: expect.any(Object),
+          adapterDependencies: { nunjucksEnv },
         }),
       )
     })
