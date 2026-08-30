@@ -1,14 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ComponentCallType } from '../../../../shared/taxonomy'
-import { component } from '../../../../components/component'
+import { ComponentCallType, FunctionEntryType } from '../../../../shared/taxonomy'
+import { component } from '../../../../components/presentation'
 import type { BlockDefinition } from '../../../../components/types/structures.type'
-import type {
-  ForgeRenderer,
-  RenderBlock,
-  RenderContext,
-  ResolvedBlock,
-} from '../../../../framework/types/rendering.type'
-import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
+import type { ForgeRenderer, RenderBlock, RenderContext } from '../../../../framework/types/rendering.type'
 import { builtInComponents } from '../../../../built-ins/components'
 import { RENDER_BLOCK_BRAND } from '../contracts/renderBlock.brand'
 import WorkContext from '../../../chassis/work/WorkContext'
@@ -16,7 +10,9 @@ import WorkExecutor from '../../../chassis/work/WorkExecutor'
 import { createRenderBlocksTask } from './RenderBlocksWorkHandler'
 import { createAssemblePageTask } from './RenderAssemblePageWorkHandler'
 import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
-import type FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
+import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
+import type { FunctionEntry } from '../../../../authoring/types/functions.type'
+import type { ComponentFunctionInput } from '../../../../components/types/renderFunctions.type'
 import { createTestRequestState } from '../../../chassis/runtime/pipeline/testing-helpers/requestStateTestHelpers'
 
 function createRenderBlock(
@@ -33,27 +29,33 @@ function createRenderBlock(
   } as RenderBlock
 }
 
-function createComponentRegistry(...variants: string[]): ComponentRegistry {
-  const registry = new ComponentRegistry()
+function createRenderFunctionRegistry(...variants: string[]): FunctionRegistry {
+  const registry = new FunctionRegistry()
 
-  registry.registerMany(variants.map(variant => component<object>(variant, { render: () => `<${variant} />` })))
+  registry.register(
+    Object.fromEntries(
+      variants.map(name => [
+        name,
+        {
+          name,
+          _forge: FunctionEntryType.COMPONENT,
+          evaluate: ({ props }: ComponentFunctionInput<Record<string, unknown>>) => `<${name}>${props.content ?? ''}`,
+        },
+      ]),
+    ),
+  )
 
   return registry
 }
 
 function createRenderer(): ForgeRenderer<string> {
   return {
-    renderBlock: vi.fn((_entry, block: ResolvedBlock) => {
-      const content = 'content' in block ? block.content : ''
-
-      return `<${block.variant}>${content ?? ''}`
-    }),
     wrapNestedBlock: vi.fn((block: BlockDefinition, output: string) => `<wrapped ${block.variant}>${output}</wrapped>`),
     assemblePage: vi.fn((_context, renderedBlocks) => renderedBlocks.join('')),
   }
 }
 
-function createRequestContext(traceEnabled = false): RequestState {
+function createRequestContext(traceEnabled = false, functionRegistry = new FunctionRegistry()): RequestState {
   return createTestRequestState(
     {
       request: {
@@ -82,8 +84,7 @@ function createRequestContext(traceEnabled = false): RequestState {
         setHeader: vi.fn(),
         setCookie: vi.fn(),
       },
-      functionRegistry: { get: vi.fn() } as unknown as FunctionRegistry,
-      componentRegistry: new ComponentRegistry(),
+      functionRegistry,
       hasRenderer: true,
       traceEnabled,
     },
@@ -116,40 +117,40 @@ describe('Render work handlers', () => {
     // Arrange
     const executor = new WorkExecutor()
     const renderer = createRenderer()
-    const componentRegistry = createComponentRegistry('known')
-    const task = createRenderBlocksTask([createRenderBlock('missing')], renderer, componentRegistry)
+    const functionRegistry = createRenderFunctionRegistry('known')
+    const task = createRenderBlocksTask([createRenderBlock('missing')], renderer)
 
     // Act / Assert
-    await expect(executor.execute(task, new WorkContext(createRequestContext()))).rejects.toThrow(
-      'Component variant "missing" is not registered',
-    )
+    await expect(
+      executor.execute(task, new WorkContext(createRequestContext(false, functionRegistry))),
+    ).rejects.toThrow('Component variant "missing" is not registered')
   })
 
   it('should throw when a nested block component is not registered', async () => {
     // Arrange
     const executor = new WorkExecutor()
     const renderer = createRenderer()
-    const componentRegistry = createComponentRegistry('parent')
+    const functionRegistry = createRenderFunctionRegistry('parent')
     const parent = createRenderBlock('parent', {
       content: createRenderBlock('missing', {}, 'compile_ast:nested'),
     })
-    const task = createRenderBlocksTask([parent], renderer, componentRegistry)
+    const task = createRenderBlocksTask([parent], renderer)
 
     // Act / Assert
-    await expect(executor.execute(task, new WorkContext(createRequestContext()))).rejects.toThrow(
-      'Component variant "missing" is not registered',
-    )
+    await expect(
+      executor.execute(task, new WorkContext(createRequestContext(false, functionRegistry))),
+    ).rejects.toThrow('Component variant "missing" is not registered')
   })
 
   it('should render nested blocks before rendering the parent block', async () => {
     // Arrange
     const executor = new WorkExecutor()
     const renderer = createRenderer()
-    const componentRegistry = createComponentRegistry('parent', 'child')
+    const functionRegistry = createRenderFunctionRegistry('parent', 'child')
     const child = createRenderBlock('child', {}, 'compile_ast:child')
     const parent = createRenderBlock('parent', { content: child }, 'compile_ast:parent')
-    const task = createRenderBlocksTask([parent], renderer, componentRegistry)
-    const requestContext = createRequestContext()
+    const task = createRenderBlocksTask([parent], renderer)
+    const requestContext = createRequestContext(false, functionRegistry)
 
     // Act
     const result = await executor.execute(task, new WorkContext(requestContext))
@@ -167,16 +168,16 @@ describe('Render work handlers', () => {
     // Arrange
     const executor = new WorkExecutor()
     const renderer = createRenderer()
-    const componentRegistry = createComponentRegistry('parent', 'child')
+    const functionRegistry = createRenderFunctionRegistry('parent', 'child')
     const child = {
       ...createRenderBlock('child', { code: 'goal_title' }, 'compile_ast:child'),
       blockType: ComponentCallType.FIELD,
     }
     const parent = createRenderBlock('parent', { content: child }, 'compile_ast:parent')
-    const task = createRenderBlocksTask([parent], renderer, componentRegistry)
+    const task = createRenderBlocksTask([parent], renderer)
 
     // Act
-    await executor.execute(task, new WorkContext(createRequestContext()))
+    await executor.execute(task, new WorkContext(createRequestContext(false, functionRegistry)))
 
     // Assert
     expect(renderer.wrapNestedBlock).toHaveBeenCalledWith(
@@ -210,11 +211,11 @@ describe('Render work handlers', () => {
     // Arrange
     const executor = new WorkExecutor()
     const renderer = createMarkingRenderer()
-    const componentRegistry = createComponentRegistry('known')
-    const task = createRenderBlocksTask([createRenderBlock('known')], renderer, componentRegistry)
+    const functionRegistry = createRenderFunctionRegistry('known')
+    const task = createRenderBlocksTask([createRenderBlock('known')], renderer)
 
     // Act
-    const result = await executor.execute(task, new WorkContext(createRequestContext(true)))
+    const result = await executor.execute(task, new WorkContext(createRequestContext(true, functionRegistry)))
 
     // Assert
     expect(result.output).toEqual(['<!--forge:compile_ast:known--><known><!--/forge:compile_ast:known-->'])
@@ -225,11 +226,11 @@ describe('Render work handlers', () => {
     // Arrange
     const executor = new WorkExecutor()
     const renderer = createMarkingRenderer()
-    const componentRegistry = createComponentRegistry('known')
-    const task = createRenderBlocksTask([createRenderBlock('known')], renderer, componentRegistry)
+    const functionRegistry = createRenderFunctionRegistry('known')
+    const task = createRenderBlocksTask([createRenderBlock('known')], renderer)
 
     // Act
-    const result = await executor.execute(task, new WorkContext(createRequestContext(false)))
+    const result = await executor.execute(task, new WorkContext(createRequestContext(false, functionRegistry)))
 
     // Assert
     expect(result.output).toEqual(['<known>'])
@@ -240,11 +241,11 @@ describe('Render work handlers', () => {
     // Arrange
     const executor = new WorkExecutor()
     const renderer = createRenderer()
-    const componentRegistry = createComponentRegistry('known')
-    const task = createRenderBlocksTask([createRenderBlock('known')], renderer, componentRegistry)
+    const functionRegistry = createRenderFunctionRegistry('known')
+    const task = createRenderBlocksTask([createRenderBlock('known')], renderer)
 
     // Act
-    const result = await executor.execute(task, new WorkContext(createRequestContext(true)))
+    const result = await executor.execute(task, new WorkContext(createRequestContext(true, functionRegistry)))
 
     // Assert
     expect(result.output).toEqual(['<known>'])
@@ -255,25 +256,50 @@ describe('Render work handlers', () => {
     // component's own render, wrapNestedBlock produces a RenderedBlock
     const executor = new WorkExecutor()
     const renderer: ForgeRenderer<string> = {
-      renderBlock: (entry, block) => entry.render(block) as string,
       wrapNestedBlock: (block: BlockDefinition, output: string) => ({ block, html: output }),
       assemblePage: (_context, renderedBlocks) => renderedBlocks.join(''),
     }
-    const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([...builtInComponents])
-    componentRegistry.registerMany([component<{ text?: string }>('child', { render: props => `<p>${props.text}</p>` })])
+    const Child = component<{ text?: string }>('child', {
+      factory:
+        () =>
+        ({ props }) =>
+          `<p>${props.text}</p>`,
+    })
+    const functionRegistry = createFunctionRegistry([...builtInComponents, Child])
     const fragment = createRenderBlock('fragment', {
       blocks: [
         createRenderBlock('child', { text: 'one' }, 'compile_ast:child1'),
         createRenderBlock('child', { text: 'two' }, 'compile_ast:child2'),
       ],
     })
-    const task = createRenderBlocksTask([fragment], renderer, componentRegistry)
+    const task = createRenderBlocksTask([fragment], renderer)
 
     // Act
-    const result = await executor.execute(task, new WorkContext(createRequestContext()))
+    const result = await executor.execute(task, new WorkContext(createRequestContext(false, functionRegistry)))
 
     // Assert
     expect(result.output).toEqual(['<p>one</p><p>two</p>'])
   })
 })
+
+function createFunctionRegistry(entries: readonly FunctionEntry[]): FunctionRegistry {
+  const registry = new FunctionRegistry()
+
+  entries.forEach(entry => {
+    if (entry.name === undefined) {
+      throw new TypeError('Render function entry requires a name')
+    }
+
+    const name = entry.name
+
+    registry.register({
+      [name]: {
+        ...entry,
+        name,
+        evaluate: entry.factory({}),
+      },
+    })
+  })
+
+  return registry
+}

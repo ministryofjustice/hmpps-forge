@@ -1,11 +1,16 @@
 import { TemplateWrapper } from './templateWrapper'
-import { component } from '../../components/component'
-import { ComponentRegistryTestHarness } from '../../testing/components/ComponentRegistryTestHarness'
+import { component } from '../../components/presentation'
+import { ComponentTestHarness } from '../../testing/components/ComponentTestHarness'
 
-const TestChild = component<{ html: string }>('testChild', { render: props => props.html })
+const TestChild = component<{ html: string }>('testChild', {
+  factory:
+    () =>
+    ({ props }) =>
+      props.html,
+})
 
 describe('templateWrapper component', () => {
-  const harness = new ComponentRegistryTestHarness([TemplateWrapper, TestChild])
+  const harness = new ComponentTestHarness([TemplateWrapper, TestChild])
 
   const mockBlock = (overrides?: Partial<TemplateWrapper>) =>
     TemplateWrapper({
@@ -15,7 +20,7 @@ describe('templateWrapper component', () => {
 
   const child = (html: string) => TestChild({ html })
 
-  describe('render()', () => {
+  describe('component()', () => {
     it('should render template with slot content', async () => {
       // Arrange
       const block = mockBlock({

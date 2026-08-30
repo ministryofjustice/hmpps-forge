@@ -10,7 +10,6 @@ import type {
 import type { CompiledHookLifecycleContext } from '../../../concerns/hooks/contracts/hookLifecycle.type'
 import type { ValidationResult } from '../../../concerns/validation/contracts/validationResult.type'
 import type { HookType } from '../../contracts/runtime/answerHistory.type'
-import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import type { RuntimeContext } from '../../contracts/runtime/evaluationState.type'
 import EffectFunctionContextImpl from './EffectFunctionContext'
@@ -93,19 +92,16 @@ function resolveIteratorBudget(context: RuntimeContext): IteratorBudgetContract 
 export function buildCompiledAnswerPreparationContext(
   context: RuntimeContext,
   functionRegistry: FunctionRegistry,
-  componentRegistry: ComponentRegistry,
 ): CompiledAnswerPreparationContext {
   return {
     ...buildCompiledBaseContext(context, functionRegistry),
     answers: context.domain.answers,
-    components: componentRegistry,
   }
 }
 
 export function buildCompiledResolveContext(
   context: RuntimeContext,
   functionRegistry: FunctionRegistry,
-  componentRegistry: ComponentRegistry,
   fieldFailures: Record<string, ValidationResult[]>,
   fieldFailureAnchors: Record<string, string>,
 ): CompiledResolveContext {
@@ -113,7 +109,6 @@ export function buildCompiledResolveContext(
     ...buildCompiledBaseContext(context, functionRegistry),
     fieldFailures,
     fieldFailureAnchors,
-    components: componentRegistry,
   }
 }
 

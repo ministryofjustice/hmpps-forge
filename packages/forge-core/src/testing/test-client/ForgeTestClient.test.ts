@@ -1,5 +1,7 @@
 import { createForgePackage, journey, step } from '../../authoring/builders'
 import { condition } from '../../authoring/functions/condition'
+import { component } from '../../components/presentation'
+import type { ForgeRenderer } from '../../framework/types/rendering.type'
 import { ForgeTestHarness } from './ForgeTestHarness'
 
 const testJourney = journey({
@@ -66,6 +68,47 @@ describe('ForgeTestClient', () => {
 
       // Assert
       expect(factory).toHaveBeenCalledWith({ ...adapterDependencies, ...requestDependencies })
+    })
+
+    it('should supply client adapter dependencies when binding presentation functions', async () => {
+      // Arrange
+      const AdapterBlock = component<object, { adapterValue: string }>('adapterBlock', {
+        factory:
+          ({ adapterValue }) =>
+          () =>
+            adapterValue,
+      })
+      const adapterJourney = journey({
+        code: 'adapter-test',
+        title: 'Adapter Test Journey',
+        path: '/adapter-test',
+        reachability: { disableReachabilityChecks: true },
+        steps: [
+          step({
+            code: 'step-one',
+            title: 'Step One',
+            path: '/step-one',
+            blocks: [AdapterBlock({})],
+          }),
+        ],
+      })
+      const renderer: ForgeRenderer<unknown> = {
+        wrapNestedBlock: (_block, output) => output,
+        assemblePage: (_context, renderedBlocks) => renderedBlocks[0],
+      }
+      const client = new ForgeTestHarness()
+        .registerPackage(createForgePackage({ journey: adapterJourney }))
+        .createClient(renderer, { adapterValue: 'adapter-ready' })
+
+      // Act
+      const result = await client.get('/adapter-test/step-one', { session: {} })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.output).toBe('adapter-ready')
+      }
     })
 
     it('should throw when no route matches', async () => {

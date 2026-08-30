@@ -8,7 +8,6 @@ import {
 import { ASTNode } from '../../../contracts/ast/ast.type'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
-import ComponentRegistry from '../../../registries/ComponentRegistry'
 import type { CompilationDependencies } from '../compilationDependencies.type'
 import CodeGenerator from '../codegen/CodeGenerator'
 import SourceRenderer from '../codegen/rendering/SourceRenderer'
@@ -30,7 +29,6 @@ describe('ExpressionDispatcher', () => {
   const compilerFunctionRegistry = new FunctionRegistry()
   const dependencies: CompilationDependencies = {
     functionRegistry: compilerFunctionRegistry,
-    componentRegistry: new ComponentRegistry(),
   }
 
   compilerFunctionRegistry.register({
@@ -155,7 +153,6 @@ describe('ExpressionDispatcher', () => {
 
       const dynamicCompiler = new ExpressionDispatcher({
         functionRegistry,
-        componentRegistry: new ComponentRegistry(),
       })
       const expression = ASTTestFactory.functionExpression(FunctionCallType.GENERATOR, 'maybeDeferred', [
         ASTTestFactory.reference(['data', 'defer']),

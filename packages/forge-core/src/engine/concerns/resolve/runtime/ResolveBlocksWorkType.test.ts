@@ -1,6 +1,5 @@
 import { ComponentCallType } from '../../../../shared/taxonomy'
 import type { CompiledResolveContext } from '../../../chassis/contracts/compiled/compiledContexts.type'
-import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import WorkContext from '../../../chassis/work/WorkContext'
 import WorkExecutor from '../../../chassis/work/WorkExecutor'
 import { createWorkTask } from '../../../chassis/work/workTask'
@@ -18,7 +17,6 @@ function createContext(): WorkContext<CompiledResolveContext> {
     post: {},
     fieldFailures: {},
     fieldFailureAnchors: {},
-    components: new ComponentRegistry(),
     request: {},
     workTasks: {},
     conditions: {

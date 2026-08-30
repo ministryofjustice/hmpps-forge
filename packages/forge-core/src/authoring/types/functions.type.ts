@@ -47,6 +47,17 @@ export interface FunctionRegistryEntry {
    */
   /** Internal Forge discriminator. Do not set or override this property. */
   _forge?: FunctionEntryType
+
+  /** Field metadata carried by component entries. */
+  multiple?: boolean
+
+  /** Field metadata carried by component entries. */
+  errorAnchor?: FunctionEvaluator<string | undefined>
+}
+
+/** A request-bound presentation evaluator, narrowed after registry lookup. */
+export interface PresentationFunctionRegistryEntry extends FunctionRegistryEntry {
+  readonly _forge: FunctionEntryType.COMPONENT | FunctionEntryType.RENDERER
 }
 
 /**
@@ -66,6 +77,8 @@ export interface FunctionDefinition<TDeps = unknown> {
   readonly argumentsSchema?: ZodType
   readonly outputSchema?: ZodType
   readonly _forge?: FunctionEntryType
+  readonly multiple?: boolean
+  readonly errorAnchor?: FunctionEvaluator<string | undefined>
 }
 
 /** Function definitions keyed by their package-scoped registry name. */
@@ -110,6 +123,12 @@ export interface FunctionEntry<TDeps = any> {
 
   /** Validates the evaluator's result, where declared. */
   readonly outputSchema?: ZodType
+
+  /** Field metadata carried by component entries. */
+  readonly multiple?: boolean
+
+  /** Field metadata carried by component entries. */
+  readonly errorAnchor?: FunctionEvaluator<string | undefined>
 
   /** Builds one request's evaluator from its resolved dependencies. */
   readonly factory: (dependencies: TDeps) => FunctionEvaluator

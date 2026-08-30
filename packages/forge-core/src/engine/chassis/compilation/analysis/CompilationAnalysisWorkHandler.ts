@@ -14,7 +14,6 @@ export const COMPILATION_ANALYSIS_WORK_HANDLER: WorkHandler<'compilation.analysi
     const stepIndex = new Map(stepNodes.map(stepNode => [stepNode.id, stepNode]))
 
     const modelBuilder = new CompilationModelBuilder(state.ast.nodeIndex, {
-      componentRegistry: state.dependencies.componentRegistry,
       functionRegistry: state.dependencies.functionRegistry,
     })
 

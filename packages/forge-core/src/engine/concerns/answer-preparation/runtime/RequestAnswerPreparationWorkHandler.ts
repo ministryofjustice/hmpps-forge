@@ -35,7 +35,6 @@ export const REQUEST_ANSWER_PREPARATION_WORK_HANDLER: WorkHandler<
     const answerPreparationContext = buildCompiledAnswerPreparationContext(
       ctx.state.context,
       ctx.state.functionRegistry,
-      ctx.state.dependencies.componentRegistry,
     )
 
     const resolved = await ctx.props.compiled(answerPreparationContext)

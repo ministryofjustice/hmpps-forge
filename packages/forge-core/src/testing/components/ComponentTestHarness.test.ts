@@ -1,17 +1,20 @@
 import { Data } from '../../authoring'
-import { component } from '../../components/component'
+import { component } from '../../components/presentation'
 import type { BlockDefinition } from '../../components/types/structures.type'
-import { ComponentRegistryTestHarness } from './ComponentRegistryTestHarness'
+import { ComponentTestHarness } from './ComponentTestHarness'
 
-describe('ComponentRegistryTestHarness', () => {
-  describe('render()', () => {
+describe('ComponentTestHarness', () => {
+  describe('component()', () => {
     it('should render an author-facing component call through its registered entry', async () => {
       // Arrange
-      const renderer = { prefix: 'Rendered: ' }
-      const Card = component<{ title: string }, string, typeof renderer>('card', {
-        render: (props, componentRenderer) => `${componentRenderer.prefix}${props.title}`,
+      const dependencies = { prefix: 'Rendered: ' }
+      const Card = component<{ title: string }, typeof dependencies, string>('card', {
+        factory:
+          ({ prefix }) =>
+          ({ props }) =>
+            `${prefix}${props.title}`,
       })
-      const harness = new ComponentRegistryTestHarness(Card, renderer)
+      const harness = new ComponentTestHarness(Card, dependencies)
 
       // Act
       const output = await harness.render(Card({ title: 'Details' }))
@@ -24,9 +27,12 @@ describe('ComponentRegistryTestHarness', () => {
       // Arrange
       const TextInput = component<{ label: string }>('textInput', {
         field: true,
-        render: props => `${props.code}:${props.label}:${String(props.value)}:${props.errors?.[0]?.message}`,
+        factory:
+          () =>
+          ({ props }) =>
+            `${props.code}:${props.label}:${String(props.value)}:${props.errors?.[0]?.message}`,
       })
-      const harness = new ComponentRegistryTestHarness(TextInput)
+      const harness = new ComponentTestHarness(TextInput)
 
       // Act
       const output = await harness
@@ -40,12 +46,18 @@ describe('ComponentRegistryTestHarness', () => {
     it('should render and wrap nested authored component calls before their parent', async () => {
       // Arrange
       const Child = component<{ text: string }>('child', {
-        render: props => `<p>${props.text}</p>`,
+        factory:
+          () =>
+          ({ props }) =>
+            `<p>${props.text}</p>`,
       })
       const Parent = component<{ child: BlockDefinition }>('parent', {
-        render: props => `<main>${props.child.html}</main>`,
+        factory:
+          () =>
+          ({ props }) =>
+            `<main>${props.child.html}</main>`,
       })
-      const harness = new ComponentRegistryTestHarness([Parent, Child])
+      const harness = new ComponentTestHarness([Parent, Child])
 
       // Act
       const output = await harness.render(Parent({ child: Child({ text: 'Hello' }) }))
@@ -56,9 +68,9 @@ describe('ComponentRegistryTestHarness', () => {
 
     it('should reject an authored call whose component is not registered', async () => {
       // Arrange
-      const Registered = component<object>('registered', { render: () => 'registered' })
-      const Missing = component<object>('missing', { render: () => 'missing' })
-      const harness = new ComponentRegistryTestHarness(Registered)
+      const Registered = component<object>('registered', { factory: () => () => 'registered' })
+      const Missing = component<object>('missing', { factory: () => () => 'missing' })
+      const harness = new ComponentTestHarness(Registered)
 
       // Act
       const output = harness.render(Missing())
@@ -69,8 +81,13 @@ describe('ComponentRegistryTestHarness', () => {
 
     it('should direct expression evaluation tests to ForgeTestHarness', async () => {
       // Arrange
-      const Card = component<{ title: string }>('card', { render: props => props.title })
-      const harness = new ComponentRegistryTestHarness(Card)
+      const Card = component<{ title: string }>('card', {
+        factory:
+          () =>
+          ({ props }) =>
+            props.title,
+      })
+      const harness = new ComponentTestHarness(Card)
 
       // Act
       const output = harness.render(Card({ title: Data('title') }))

@@ -2,7 +2,7 @@ import ForgeAuthoringError from '../../../engine/errors/ForgeAuthoringError'
 import DSLSourceLocator from '../../../shared/diagnostics/DSLSourceLocator'
 import type { DSLPathSegment } from '../../../shared/diagnostics/sourceLocation.type'
 import { stampCallsite } from './captureCallsite'
-import { getComponentStamp, getEntryStamp, stampComponent, stampEntry } from './stampEntry'
+import { getEntryStamp, stampEntry } from './stampEntry'
 
 const carryStamps = (from: object, to: unknown): void => {
   const callsite = Object.getOwnPropertyDescriptor(from, '__callsite')?.value
@@ -15,12 +15,6 @@ const carryStamps = (from: object, to: unknown): void => {
 
   if (entry) {
     stampEntry(to, entry)
-  }
-
-  const component = getComponentStamp(from)
-
-  if (component) {
-    stampComponent(to, component)
   }
 }
 

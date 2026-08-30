@@ -1,15 +1,22 @@
-export { component, isForgeComponent } from './component'
+export { component, renderer } from './presentation'
 export { builtInComponents, HtmlBlock, CollectionBlock, TemplateWrapper, Fragment } from '../built-ins/components'
+export type { ComponentRenderProps, FieldComponentRenderProps, RendererProps } from './types/components.type'
 export type {
+  ComponentFunctionContext,
+  ComponentFunctionInput,
   ComponentOptions,
-  ComponentRegistryEntry,
-  ComponentRenderProps,
-  ComponentFactory,
+  FieldComponentFunctionInput,
   FieldComponentOptions,
-  FieldComponentRenderProps,
   ForgeComponent,
   ForgeFieldComponent,
-} from './types/components.type'
+  ForgeStepRenderer,
+  RenderedChild,
+  RenderFunctionEvaluator,
+  RendererFunctionContext,
+  RendererFunctionInput,
+  RendererInvocation,
+  RendererOptions,
+} from './types/renderFunctions.type'
 export type {
   BasicBlockProps,
   BlockDefinition,

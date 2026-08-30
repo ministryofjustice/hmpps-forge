@@ -3,6 +3,7 @@ import type { BlockASTNode } from '../../../chassis/contracts/ast/structures.typ
 import ForgeUnregisteredComponentError from '../../../errors/ForgeUnregisteredComponentError'
 import type { ASTNodeDiagnostics } from '../../../../shared/diagnostics/sourceLocation.type'
 import type { ASTValidationContext, ASTValidationRule } from './types'
+import { FunctionEntryType } from '../../../../shared/taxonomy'
 
 function buildError(variant: string, diagnostics: ASTNodeDiagnostics | undefined): ForgeUnregisteredComponentError {
   const source = diagnostics?.source
@@ -15,11 +16,13 @@ function buildError(variant: string, diagnostics: ASTNodeDiagnostics | undefined
 }
 
 export const validateRegisteredComponents: ASTValidationRule = (context: ASTValidationContext): readonly Error[] => {
-  const { nodeIndex, templateNodeIndex, componentRegistry } = context
+  const { nodeIndex, templateNodeIndex, functionRegistry } = context
   const errors: Error[] = []
 
   nodeIndex.findByFamily<BlockASTNode>(ASTNodeFamily.COMPONENT_CALL).forEach(node => {
-    if (componentRegistry.has(node.variant)) {
+    const entryType = functionRegistry.get(node.variant)?._forge
+
+    if (entryType === FunctionEntryType.COMPONENT || entryType === FunctionEntryType.RENDERER) {
       return
     }
 
@@ -33,7 +36,9 @@ export const validateRegisteredComponents: ASTValidationRule = (context: ASTVali
       return
     }
 
-    if (!componentRegistry.has(variant)) {
+    const entryType = functionRegistry.get(variant)?._forge
+
+    if (entryType !== FunctionEntryType.COMPONENT && entryType !== FunctionEntryType.RENDERER) {
       errors.push(buildError(variant, node.diagnostics))
     }
   })

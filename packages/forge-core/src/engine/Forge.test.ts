@@ -1,7 +1,6 @@
 import type { MockInstance } from 'vitest'
-import { component } from '../components/component'
+import { component } from '../components/presentation'
 import { createForgePackage } from '../authoring/builders'
-import type ComponentRegistry from './chassis/registries/ComponentRegistry'
 import MountRegistry from './chassis/registries/MountRegistry'
 import type { MountedNode } from './chassis/registries/MountRegistry'
 import RequestPipeline from './chassis/runtime/pipeline/RequestPipeline'
@@ -34,7 +33,6 @@ describe('Forge', () => {
     } as any
 
     mockPackageDependencies = {
-      componentRegistry: {} as ComponentRegistry,
       functionBuilders: [],
       packageDependencies: {},
     }
@@ -105,7 +103,7 @@ describe('Forge', () => {
 
     it('should create and register a package instance', () => {
       // Arrange
-      const mockComponent = component<object>('pkg-comp', { render: () => '<div />' })
+      const mockComponent = component<object>('pkg-comp', { factory: () => () => '<div />' })
       const packageDependencies = { prefix: 'case-' }
       const pkg = createForgePackage<{ prefix: string }>({
         journey: mockJourneyDef,

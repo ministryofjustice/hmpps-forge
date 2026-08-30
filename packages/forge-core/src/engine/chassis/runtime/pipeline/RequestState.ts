@@ -5,7 +5,6 @@ import type FunctionRegistry from '../../registries/FunctionRegistry'
 import type { FunctionRegistryBuilder } from '../../../../authoring/types/functions.type'
 import type { RuntimeContext } from '../../contracts/runtime/evaluationState.type'
 import type { ResponseBindings } from '../../../../framework/types/responseBindings.type'
-import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
 import type { RenderContext } from '../../../../framework/types/rendering.type'
 import type { RouteTree } from '../../../../framework/types/routeTree.type'
 import type { RequestPipelineResult } from '../../contracts/runtime/requestPipelineOutput.type'
@@ -17,7 +16,6 @@ export interface RequestStateDependencies {
   readonly packageDependencies: unknown
   readonly adapterDependencies?: object
   readonly requestDependencies?: () => object | PromiseLike<object>
-  readonly componentRegistry: ComponentRegistry
   readonly currentStepId?: NodeId
   readonly hasRenderer: boolean
   readonly traceEnabled: boolean

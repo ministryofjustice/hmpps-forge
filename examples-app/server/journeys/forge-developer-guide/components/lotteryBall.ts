@@ -7,13 +7,15 @@ export interface LotteryBall {
 }
 
 export const LotteryBall = component<LotteryBall>('lotteryBall', {
-  render: block => {
-    const num = String(block.number ?? '')
-    const colorClass = `lottery-ball--${block.color ?? 'blue'}`
-    const extraClasses = block.classes ? ` ${block.classes}` : ''
+  factory:
+    () =>
+    ({ props }) => {
+      const num = String(props.number ?? '')
+      const colorClass = `lottery-ball--${props.color ?? 'blue'}`
+      const extraClasses = props.classes ? ` ${props.classes}` : ''
 
-    return `<div class="lottery-ball ${colorClass}${extraClasses}">
+      return `<div class="lottery-ball ${colorClass}${extraClasses}">
     <span class="lottery-ball__number">${num}</span>
   </div>`
-  },
+    },
 })

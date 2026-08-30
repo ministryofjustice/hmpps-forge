@@ -5,6 +5,7 @@ import {
   ComponentCallType,
   ExpressionType,
   FunctionCallType,
+  FunctionEntryType,
   IteratorType,
   PredicateType,
 } from '../../../../shared/taxonomy'
@@ -20,7 +21,6 @@ import { TemplateValue } from '../../../chassis/contracts/ast/template.type'
 import { compileTemplate } from '../../../chassis/compilation/ast/nodes/template'
 import { NodeIDGenerator } from '../../../chassis/compilation/ast/ast-state/NodeIDGenerator'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
-import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import { generatedFunctionRuntimeLibrary } from '../../../chassis/compilation/lowering/generatedFunctionRuntimeLibrary'
 import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
@@ -50,39 +50,48 @@ function createSyncRegistry(...funcNames: string[]): FunctionRegistry {
 function createSyncCompiler(...funcNames: string[]): StepAnswerPreparationCompiler {
   return new StepAnswerPreparationCompiler({
     functionRegistry: createSyncRegistry(...funcNames),
-    componentRegistry: new ComponentRegistry(),
   })
 }
 
-interface TestComponentEntry {
+interface TestRenderEntry {
   readonly variant: string
   readonly inputSchema?: ZodType
   readonly multiple?: boolean
 }
 
-function createComponentRegistry(...entries: TestComponentEntry[]): ComponentRegistry {
-  const registry = new ComponentRegistry()
+function createRenderFunctionRegistry(...entries: TestRenderEntry[]): FunctionRegistry {
+  const registry = new FunctionRegistry()
 
-  registry.registerMany(entries.map(entry => ({ ...entry, render: () => '' })))
+  registry.register(
+    Object.fromEntries(
+      entries.map(entry => [
+        entry.variant,
+        {
+          name: entry.variant,
+          _forge: FunctionEntryType.COMPONENT,
+          evaluate: () => '',
+          inputSchema: entry.inputSchema,
+          multiple: entry.multiple,
+        },
+      ]),
+    ),
+  )
 
   return registry
 }
 
-let modelComponentRegistry: ComponentRegistry | undefined
+let modelFunctionRegistry: FunctionRegistry | undefined
 
-function createComponentCompiler(componentRegistry: ComponentRegistry): StepAnswerPreparationCompiler {
-  modelComponentRegistry = componentRegistry
+function createRenderFunctionCompiler(functionRegistry: FunctionRegistry): StepAnswerPreparationCompiler {
+  modelFunctionRegistry = functionRegistry
 
-  return new StepAnswerPreparationCompiler({
-    functionRegistry: new FunctionRegistry(),
-    componentRegistry,
-  })
+  return new StepAnswerPreparationCompiler({ functionRegistry })
 }
 
 function prepModel(fieldBlocks: FieldBlockASTNode[], iterateNodes: IterateASTNode[] = []): AnswerPreparationModel {
   return {
     label: undefined,
-    fields: buildStepFieldModels({ fieldBlocks, iterateNodes, componentRegistry: modelComponentRegistry }),
+    fields: buildStepFieldModels({ fieldBlocks, iterateNodes, functionRegistry: modelFunctionRegistry }),
   }
 }
 
@@ -199,7 +208,6 @@ function createCtx(overrides: Partial<CompiledAnswerPreparationContext> = {}): C
       }),
     } as unknown as CompiledAnswerPreparationContext['conditions'],
     post: {},
-    components: new ComponentRegistry(),
     workTasks: workTaskBuilders,
     ...overrides,
   }
@@ -261,12 +269,11 @@ describe('StepAnswerPreparationCompiler', () => {
   let compiler: StepAnswerPreparationCompiler
   const dependencies: CompilationDependencies = {
     functionRegistry: new FunctionRegistry(),
-    componentRegistry: new ComponentRegistry(),
   }
 
   beforeEach(() => {
     ASTTestFactory.resetIds()
-    modelComponentRegistry = undefined
+    modelFunctionRegistry = undefined
     compiler = new StepAnswerPreparationCompiler(dependencies)
   })
 
@@ -306,7 +313,6 @@ describe('StepAnswerPreparationCompiler', () => {
 
       const localCompiler = new StepAnswerPreparationCompiler({
         functionRegistry,
-        componentRegistry: new ComponentRegistry(),
       })
 
       // Act
@@ -343,7 +349,6 @@ describe('StepAnswerPreparationCompiler', () => {
 
       const localCompiler = new StepAnswerPreparationCompiler({
         functionRegistry,
-        componentRegistry: new ComponentRegistry(),
       })
 
       // Act
@@ -382,7 +387,6 @@ describe('StepAnswerPreparationCompiler', () => {
 
       const localCompiler = new StepAnswerPreparationCompiler({
         functionRegistry,
-        componentRegistry: new ComponentRegistry(),
       })
 
       // Act
@@ -417,7 +421,6 @@ describe('StepAnswerPreparationCompiler', () => {
 
       const localCompiler = new StepAnswerPreparationCompiler({
         functionRegistry,
-        componentRegistry: new ComponentRegistry(),
       })
 
       // Act
@@ -546,10 +549,13 @@ describe('StepAnswerPreparationCompiler', () => {
   describe('component input schema', () => {
     it('should keep the full array when the component entry declares multiple', async () => {
       // Arrange
-      const componentRegistry = createComponentRegistry({ variant: 'checkbox', multiple: true })
-      const localCompiler = createComponentCompiler(componentRegistry)
+      const functionRegistry = createRenderFunctionRegistry({ variant: 'checkbox', multiple: true })
+      const localCompiler = createRenderFunctionCompiler(functionRegistry)
       const block = createFieldBlock('tags', {}, 'checkbox')
-      const ctx = createCtx({ post: { tags: ['a', 'b', 'c'] as unknown as string }, components: componentRegistry })
+      const ctx = createCtx({
+        post: { tags: ['a', 'b', 'c'] as unknown as string },
+        conditions: functionRegistry,
+      })
 
       // Act
       const source = localCompiler.generateSource(prepModel([block]))
@@ -561,10 +567,10 @@ describe('StepAnswerPreparationCompiler', () => {
 
     it('should normalize a single value to an array when the component entry declares multiple', async () => {
       // Arrange
-      const componentRegistry = createComponentRegistry({ variant: 'checkbox', multiple: true })
-      const localCompiler = createComponentCompiler(componentRegistry)
+      const functionRegistry = createRenderFunctionRegistry({ variant: 'checkbox', multiple: true })
+      const localCompiler = createRenderFunctionCompiler(functionRegistry)
       const block = createFieldBlock('tags', {}, 'checkbox')
-      const ctx = createCtx({ post: { tags: 'single' }, components: componentRegistry })
+      const ctx = createCtx({ post: { tags: 'single' }, conditions: functionRegistry })
 
       // Act
       const source = localCompiler.generateSource(prepModel([block]))
@@ -576,8 +582,8 @@ describe('StepAnswerPreparationCompiler', () => {
 
     it('should mark the field definition as validating input for a variant that declares an input schema', () => {
       // Arrange
-      const componentRegistry = createComponentRegistry({ variant: 'text-input', inputSchema: z.string() })
-      const localCompiler = createComponentCompiler(componentRegistry)
+      const functionRegistry = createRenderFunctionRegistry({ variant: 'text-input', inputSchema: z.string() })
+      const localCompiler = createRenderFunctionCompiler(functionRegistry)
       const block = createFieldBlock('name', {}, 'text-input')
 
       // Act
@@ -590,8 +596,8 @@ describe('StepAnswerPreparationCompiler', () => {
 
     it('should mark the field definition as not validating input for a variant without an input schema', () => {
       // Arrange
-      const componentRegistry = createComponentRegistry({ variant: 'text-input' })
-      const localCompiler = createComponentCompiler(componentRegistry)
+      const functionRegistry = createRenderFunctionRegistry({ variant: 'text-input' })
+      const localCompiler = createRenderFunctionCompiler(functionRegistry)
       const block = createFieldBlock('name', {}, 'text-input')
 
       // Act
@@ -603,12 +609,12 @@ describe('StepAnswerPreparationCompiler', () => {
 
     it('should drop a value that fails the input schema to undefined before the post mutation', async () => {
       // Arrange
-      const componentRegistry = createComponentRegistry({ variant: 'text-input', inputSchema: z.string() })
-      const localCompiler = createComponentCompiler(componentRegistry)
+      const functionRegistry = createRenderFunctionRegistry({ variant: 'text-input', inputSchema: z.string() })
+      const localCompiler = createRenderFunctionCompiler(functionRegistry)
       const block = createFieldBlock('name', {}, 'text-input')
       const ctx = createCtx({
         post: { name: { nested: 'object' } as unknown as string },
-        components: componentRegistry,
+        conditions: functionRegistry,
       })
 
       // Act
@@ -622,16 +628,16 @@ describe('StepAnswerPreparationCompiler', () => {
 
     it('should drop a bad shape to an empty array when the entry declares multiple', async () => {
       // Arrange
-      const componentRegistry = createComponentRegistry({
+      const functionRegistry = createRenderFunctionRegistry({
         variant: 'checkbox',
         inputSchema: z.array(z.string()),
         multiple: true,
       })
-      const localCompiler = createComponentCompiler(componentRegistry)
+      const localCompiler = createRenderFunctionCompiler(functionRegistry)
       const block = createFieldBlock('tags', {}, 'checkbox')
       const ctx = createCtx({
         post: { tags: { nested: 'object' } as unknown as string },
-        components: componentRegistry,
+        conditions: functionRegistry,
       })
 
       // Act
@@ -645,10 +651,10 @@ describe('StepAnswerPreparationCompiler', () => {
 
     it('should keep a value that passes the input schema unchanged', async () => {
       // Arrange
-      const componentRegistry = createComponentRegistry({ variant: 'text-input', inputSchema: z.string() })
-      const localCompiler = createComponentCompiler(componentRegistry)
+      const functionRegistry = createRenderFunctionRegistry({ variant: 'text-input', inputSchema: z.string() })
+      const localCompiler = createRenderFunctionCompiler(functionRegistry)
       const block = createFieldBlock('name', {}, 'text-input')
-      const ctx = createCtx({ post: { name: 'Ada' }, components: componentRegistry })
+      const ctx = createCtx({ post: { name: 'Ada' }, conditions: functionRegistry })
 
       // Act
       const source = localCompiler.generateSource(prepModel([block]))
@@ -1334,7 +1340,6 @@ describe('StepAnswerPreparationCompiler', () => {
 
       const localCompiler = new StepAnswerPreparationCompiler({
         functionRegistry,
-        componentRegistry: new ComponentRegistry(),
       })
       const ctx = createCtx({
         request: { method: 'GET' },

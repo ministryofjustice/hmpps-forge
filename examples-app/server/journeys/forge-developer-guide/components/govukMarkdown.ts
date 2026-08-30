@@ -241,18 +241,20 @@ function replaceSlotPlaceholders(html: string, slots: Record<string, RenderedBlo
 }
 
 export const GovUKMarkdownBlock = component<GovUKMarkdownBlock>('govukMarkdown', {
-  render: block => {
-    if (!block.content) {
-      return ''
-    }
+  factory:
+    () =>
+    ({ props }) => {
+      if (!props.content) {
+        return ''
+      }
 
-    const markdown = block.slots ? replaceSlotMarkers(block.content) : block.content
-    let html = renderGovUKMarkdown(markdown)
+      const markdown = props.slots ? replaceSlotMarkers(props.content) : props.content
+      let html = renderGovUKMarkdown(markdown)
 
-    if (block.slots) {
-      html = replaceSlotPlaceholders(html, block.slots)
-    }
+      if (props.slots) {
+        html = replaceSlotPlaceholders(html, props.slots)
+      }
 
-    return html
-  },
+      return html
+    },
 })

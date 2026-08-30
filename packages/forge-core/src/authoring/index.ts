@@ -8,6 +8,7 @@ export { condition } from './functions/condition'
 export { transformer } from './functions/transformer'
 export { generator } from './functions/generator'
 export { effect } from './functions/effect'
+export { component, renderer } from '../components/presentation'
 export { isFunctionEntry } from './functions/createEntry'
 export type { ConditionEntry, ConditionOptions } from './functions/condition'
 export type { TransformerEntry, TransformerOptions } from './functions/transformer'
@@ -33,7 +34,7 @@ export { EffectFunctionContext } from '../engine/chassis/runtime/context/EffectF
 export {
   StructureType,
   ComponentCallType,
-  ComponentEntryType,
+  FunctionEntryType,
   FunctionCallType,
   ExpressionType,
   PolicyType,
@@ -48,6 +49,7 @@ export type {
   FunctionDefinition,
   FunctionDefinitionObject,
   FunctionRegistryEntry,
+  PresentationFunctionRegistryEntry,
   FunctionRegistryObject,
 } from './types/functions.type'
 export type {

@@ -1,10 +1,9 @@
-import { HookType, ComponentCallType } from '../../../../shared/taxonomy'
+import { HookType, ComponentCallType, FunctionEntryType } from '../../../../shared/taxonomy'
 import type { MaterialisedASTNode, NodeId } from '../../../chassis/contracts/ast/engine.type'
 import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeIndex'
 import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
-import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTValidationContext } from './types'
 import { validateBlockScope } from './validateBlockScope'
@@ -12,6 +11,7 @@ import { validateBlockScope } from './validateBlockScope'
 const createContext = (
   nodes: readonly MaterialisedASTNode[],
   edges: ReadonlyArray<[NodeId, NodeId]>,
+  functionRegistry: FunctionRegistry = new FunctionRegistry(),
 ): ASTValidationContext => {
   const byId = new Map<NodeId, MaterialisedASTNode>(nodes.map(node => [node.id, node]))
 
@@ -30,8 +30,7 @@ const createContext = (
   return {
     nodeIndex,
     templateNodeIndex: new TemplateNodeIndex(),
-    functionRegistry: new FunctionRegistry(),
-    componentRegistry: new ComponentRegistry(),
+    functionRegistry,
   }
 }
 
@@ -57,6 +56,24 @@ describe('validateBlockScope', () => {
       expect(errors).toHaveLength(0)
     })
 
+    it('should return an error when a renderer declaration is used in step blocks', () => {
+      // Arrange
+      const block = ASTTestFactory.block('page', ComponentCallType.BASIC).build()
+      const step = ASTTestFactory.step().withProperty('blocks', [block]).build()
+      const functionRegistry = new FunctionRegistry()
+
+      functionRegistry.register({
+        page: { name: 'page', _forge: FunctionEntryType.RENDERER, evaluate: () => '' },
+      })
+      const context = createContext([block, step], [[block.id, step.id]], functionRegistry)
+
+      // Act
+      const errors = validateBlockScope(context)
+
+      // Assert
+      expect(errorMessages(errors)).toEqual(['Blocks must use a declaration created with component()'])
+    })
+
     it('should return no errors when a block is nested inside another block', () => {
       // Arrange
       const childBlock = ASTTestFactory.block('text', ComponentCallType.FIELD).build()
@@ -77,6 +94,50 @@ describe('validateBlockScope', () => {
 
       // Assert
       expect(errors).toHaveLength(0)
+    })
+
+    it('should return no errors when a block is the journey step renderer', () => {
+      // Arrange
+      const renderer = ASTTestFactory.block('page', ComponentCallType.BASIC).build()
+      const journey = ASTTestFactory.journey().withProperty('renderer', renderer).build()
+      const context = createContext([renderer, journey], [[renderer.id, journey.id]])
+
+      // Act
+      const errors = validateBlockScope(context)
+
+      // Assert
+      expect(errors).toHaveLength(0)
+    })
+
+    it('should return no errors when a block is the step renderer', () => {
+      // Arrange
+      const renderer = ASTTestFactory.block('page', ComponentCallType.BASIC).build()
+      const step = ASTTestFactory.step().withProperty('renderer', renderer).build()
+      const context = createContext([renderer, step], [[renderer.id, step.id]])
+
+      // Act
+      const errors = validateBlockScope(context)
+
+      // Assert
+      expect(errors).toHaveLength(0)
+    })
+
+    it('should return an error when a component declaration is used as the step renderer', () => {
+      // Arrange
+      const renderer = ASTTestFactory.block('page', ComponentCallType.BASIC).build()
+      const step = ASTTestFactory.step().withProperty('renderer', renderer).build()
+      const functionRegistry = new FunctionRegistry()
+
+      functionRegistry.register({
+        page: { name: 'page', _forge: FunctionEntryType.COMPONENT, evaluate: () => '' },
+      })
+      const context = createContext([renderer, step], [[renderer.id, step.id]], functionRegistry)
+
+      // Act
+      const errors = validateBlockScope(context)
+
+      // Assert
+      expect(errorMessages(errors)).toEqual(['renderer must use a declaration created with renderer()'])
     })
 
     it('should return an error when the parent is neither a step nor a block', () => {

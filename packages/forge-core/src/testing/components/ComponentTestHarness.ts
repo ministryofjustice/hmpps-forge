@@ -1,15 +1,15 @@
-import type { ComponentRegistryEntry } from '../../components/types/components.type'
 import type { BlockDefinition, FieldBlockDefinition } from '../../components/types/structures.type'
 import type { NodeId } from '../../engine/chassis/contracts/ast/ast.type'
 import type { RuntimeContext } from '../../engine/chassis/contracts/runtime/evaluationState.type'
-import ComponentRegistry from '../../engine/chassis/registries/ComponentRegistry'
 import WorkContext from '../../engine/chassis/work/WorkContext'
 import WorkExecutor from '../../engine/chassis/work/WorkExecutor'
 import { createTestRequestState } from '../../engine/chassis/runtime/pipeline/testing-helpers/requestStateTestHelpers'
 import { RENDER_BLOCK_BRAND } from '../../engine/concerns/render/contracts/renderBlock.brand'
 import { createRenderBlocksTask } from '../../engine/concerns/render/runtime/RenderBlocksWorkHandler'
-import type { ForgeRenderer, RenderBlock, RenderContext, ResolvedBlock } from '../../framework/types/rendering.type'
-import { ComponentCallType } from '../../shared/taxonomy'
+import type { ForgeRenderer, RenderBlock, RenderContext } from '../../framework/types/rendering.type'
+import { ComponentCallType, FunctionEntryType } from '../../shared/taxonomy'
+import type { FunctionEntry } from '../../authoring/types/functions.type'
+import FunctionRegistry from '../../engine/chassis/registries/FunctionRegistry'
 
 const COMPONENT_ENVELOPE_KEYS = new Set(['_forge', 'variant'])
 
@@ -41,7 +41,7 @@ interface FieldRuntimeProps {
  *
  * @example
  * ```typescript
- * const harness = new ComponentRegistryTestHarness(MyCard, renderer)
+ * const harness = new ComponentTestHarness(MyCard, dependencies)
  * const output = await harness.render(MyCard({ title: 'Details' }))
  * ```
  *
@@ -54,20 +54,28 @@ interface FieldRuntimeProps {
  *   .withValue('Ada')
  * ```
  */
-export class ComponentRegistryTestHarness {
-  private readonly componentRegistry: ComponentRegistry
+export class ComponentTestHarness {
+  private readonly functionRegistry: FunctionRegistry
 
   private readonly renderer: ForgeRenderer<unknown>
 
   private nextBlockNumber = 1
 
-  constructor(
-    components: ComponentRegistryEntry<object, unknown> | readonly ComponentRegistryEntry<object, unknown>[],
-    componentRenderer?: unknown,
-  ) {
-    this.componentRegistry = new ComponentRegistry()
-    this.componentRegistry.registerMany(Array.isArray(components) ? [...components] : [components])
-    this.renderer = this.createRenderer(componentRenderer)
+  constructor(components: FunctionEntry | readonly FunctionEntry[], dependencies?: object) {
+    this.functionRegistry = new FunctionRegistry()
+    const entries = Array.isArray(components) ? [...components] : [components]
+    const renderDefinitions = entries.filter(isRenderDefinition)
+
+    renderDefinitions.forEach(definition => {
+      this.functionRegistry.register({
+        [definition.name]: {
+          ...definition,
+          name: definition.name,
+          evaluate: definition.factory(dependencies ?? {}),
+        },
+      })
+    })
+    this.renderer = this.createRenderer()
   }
 
   render(block: FieldBlockDefinition): FieldComponentTestInvocation
@@ -86,7 +94,7 @@ export class ComponentRegistryTestHarness {
 
   private async execute(block: BlockDefinition, fieldRuntimeProps?: FieldRuntimeProps): Promise<unknown> {
     const renderBlock = this.toRenderBlock(block, fieldRuntimeProps)
-    const task = createRenderBlocksTask([renderBlock], this.renderer, this.componentRegistry)
+    const task = createRenderBlocksTask([renderBlock], this.renderer)
     const result = await new WorkExecutor(false).execute(task, new WorkContext(this.createRequestState()))
 
     if (!Array.isArray(result.output)) {
@@ -140,7 +148,7 @@ export class ComponentRegistryTestHarness {
 
     if (typeof value._forge === 'string') {
       throw new TypeError(
-        'ComponentRegistryTestHarness requires concrete component props. ' +
+        'ComponentTestHarness requires concrete component props. ' +
           'Use ForgeTestHarness when testing expression evaluation.',
       )
     }
@@ -180,15 +188,13 @@ export class ComponentRegistryTestHarness {
     }
 
     return createTestRequestState(context, {
-      componentRegistry: this.componentRegistry,
+      functionRegistry: this.functionRegistry,
       hasRenderer: true,
     })
   }
 
-  private createRenderer(componentRenderer?: unknown): ForgeRenderer<unknown> {
+  private createRenderer(): ForgeRenderer<unknown> {
     return {
-      renderBlock: (entry: ComponentRegistryEntry<object, unknown>, block: ResolvedBlock) =>
-        entry.render(block, componentRenderer),
       wrapNestedBlock: (block: BlockDefinition, output: unknown) => {
         if (typeof output === 'string') {
           return { block, html: output }
@@ -199,6 +205,12 @@ export class ComponentRegistryTestHarness {
       assemblePage: (_context: RenderContext, renderedBlocks: readonly unknown[]) => renderedBlocks[0],
     }
   }
+}
+
+function isRenderDefinition(value: FunctionEntry): value is FunctionEntry & { readonly name: string } {
+  return value._forge === FunctionEntryType.COMPONENT &&
+    typeof value.factory === 'function' &&
+    typeof value.name === 'string'
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

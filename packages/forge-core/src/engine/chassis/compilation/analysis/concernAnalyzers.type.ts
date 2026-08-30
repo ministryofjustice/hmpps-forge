@@ -1,7 +1,6 @@
 import type { NodeId } from '../../contracts/ast/ast.type'
 import type { JourneyASTNode, StepASTNode } from '../../contracts/ast/structures.type'
 import type { FieldModel } from '../../contracts/models/fieldModel.type'
-import type ComponentRegistry from '../../registries/ComponentRegistry'
 import type { FunctionDefinitionLookup } from '../../../../authoring/types/functions.type'
 import type Ancestry from './shared/Ancestry'
 import type AuthoredValueClassifier from './shared/AuthoredValueClassifier'
@@ -27,7 +26,6 @@ export interface JourneyModelAnalyzer<TModel> {
 }
 
 export interface AnalysisRegistries {
-  readonly componentRegistry: ComponentRegistry
   readonly functionRegistry: FunctionDefinitionLookup
 }
 

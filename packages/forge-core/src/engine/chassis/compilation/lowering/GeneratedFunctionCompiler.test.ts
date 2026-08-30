@@ -3,7 +3,6 @@ import ForgeRuntimeEvaluationError, {
   getForgeRuntimeEvaluationDiagnostics,
 } from '../../../errors/ForgeRuntimeEvaluationError'
 import FunctionRegistry from '../../registries/FunctionRegistry'
-import ComponentRegistry from '../../registries/ComponentRegistry'
 import type { CompilationDependencies } from './compilationDependencies.type'
 import { CodeFragment, code, positionedCode } from './codegen/fragments/CodeFragment'
 import CodeGenerator from './codegen/CodeGenerator'
@@ -14,7 +13,6 @@ import { FunctionCallType } from '../../../../shared/taxonomy'
 
 const dependencies: CompilationDependencies = {
   functionRegistry: new FunctionRegistry(),
-  componentRegistry: new ComponentRegistry(),
 }
 
 const trustedGeneratedSource = (source: string): CodeGenerator => {
@@ -134,7 +132,7 @@ describe('GeneratedFunctionCompiler', () => {
         },
       })
 
-      const expr = new ExpressionDispatcher({ functionRegistry, componentRegistry: new ComponentRegistry() })
+      const expr = new ExpressionDispatcher({ functionRegistry })
       const expression: FunctionASTNode = {
         kind: FunctionCallType.GENERATOR,
         isTemplate: false,

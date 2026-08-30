@@ -6,7 +6,6 @@ import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../../contr
 import { buildStepFieldModels } from '../analysis/testing-helpers/analysisContexts'
 import ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import CompilationModelBuilder from '../analysis/CompilationModelBuilder'
-import ComponentRegistry from '../../registries/ComponentRegistry'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import type { JourneyDefinition } from '../../../../authoring/types/structures.type'
 import type { CompilationDependencies } from './compilationDependencies.type'
@@ -68,7 +67,6 @@ describe('CompilationLoweringWorkHandler', () => {
       // Act
       const { state } = runLowering(model, {
         functionRegistry: new FunctionRegistry(),
-        componentRegistry: new ComponentRegistry(),
       })
 
       // Assert
@@ -123,7 +121,6 @@ describe('CompilationLoweringWorkHandler', () => {
       ])
       const { state } = runLowering(model, {
         functionRegistry: new FunctionRegistry(),
-        componentRegistry: new ComponentRegistry(),
       })
       const compiledStaticData = state.steps.get(stepNode.id)?.compiledStaticData
 
@@ -173,7 +170,6 @@ describe('CompilationLoweringWorkHandler', () => {
       // Act
       const { state } = runLowering(model, {
         functionRegistry: new FunctionRegistry(),
-        componentRegistry: new ComponentRegistry(),
       })
 
       // Assert
@@ -203,7 +199,6 @@ describe('CompilationLoweringWorkHandler', () => {
         model,
         {
           functionRegistry: new FunctionRegistry(),
-          componentRegistry: new ComponentRegistry(),
         },
         { traceEnabled: true },
       )
@@ -231,7 +226,6 @@ describe('CompilationLoweringWorkHandler', () => {
       nodeIndex.register(stepNode.id, stepNode)
 
       const registries = {
-        componentRegistry: new ComponentRegistry(),
         functionRegistry: new FunctionRegistry(),
       }
       const model = new CompilationModelBuilder(nodeIndex, registries).build(new Map([[stepNode.id, stepNode]]))

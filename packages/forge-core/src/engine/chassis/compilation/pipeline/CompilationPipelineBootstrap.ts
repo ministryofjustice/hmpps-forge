@@ -1,5 +1,4 @@
 import type { JourneyDefinition } from '../../../../authoring/types/structures.type'
-import type ComponentRegistry from '../../registries/ComponentRegistry'
 import type { FunctionDefinitionLookup } from '../../../../authoring/types/functions.type'
 import type { WorkTask } from '../../contracts/work/work.type'
 import CompilationState from './CompilationState'
@@ -14,7 +13,6 @@ import { createCompilationRoutesTask } from '../../../concerns/route/analysis/Co
 export interface CompilationPipelineConfig {
   readonly journeyDefinition: JourneyDefinition
   readonly functionRegistry: FunctionDefinitionLookup
-  readonly componentRegistry: ComponentRegistry
 }
 
 /**
@@ -31,9 +29,9 @@ export default class CompilationPipelineBootstrap {
   }
 
   buildExecutionContext(): CompilationState {
-    const { journeyDefinition, functionRegistry, componentRegistry } = this.config
+    const { journeyDefinition, functionRegistry } = this.config
 
-    return new CompilationState(journeyDefinition, { functionRegistry, componentRegistry })
+    return new CompilationState(journeyDefinition, { functionRegistry })
   }
 
   private buildPhases(): readonly WorkTask[] {

@@ -1,4 +1,4 @@
-import { ComponentCallType, ExpressionType, IteratorType } from '../../../../shared/taxonomy'
+import { ComponentCallType, ExpressionType, FunctionEntryType, IteratorType } from '../../../../shared/taxonomy'
 import type { MaterialisedASTNode } from '../../../chassis/contracts/ast/engine.type'
 import type { IterateASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { TemplateValue } from '../../../chassis/contracts/ast/template.type'
@@ -7,10 +7,8 @@ import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/Templa
 import { NodeIDGenerator } from '../../../chassis/compilation/ast/ast-state/NodeIDGenerator'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { compileTemplate } from '../../../chassis/compilation/ast/nodes/template'
-import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
 import ForgeUnregisteredComponentError from '../../../errors/ForgeUnregisteredComponentError'
-import { component } from '../../../../components/component'
 import { validateRegisteredComponents } from './validateRegisteredComponents'
 import type { ASTValidationContext } from './types'
 
@@ -28,19 +26,23 @@ function buildContext(nodes: MaterialisedASTNode[], registeredVariants: string[]
     }
   })
 
-  const componentRegistry = new ComponentRegistry()
+  const functionRegistry = new FunctionRegistry()
 
   if (registeredVariants.length > 0) {
-    componentRegistry.registerMany(
-      registeredVariants.map(variant => component<object>(variant, { render: () => `<${variant} />` })),
+    functionRegistry.register(
+      Object.fromEntries(
+        registeredVariants.map(name => [
+          name,
+          { name, _forge: FunctionEntryType.COMPONENT, evaluate: () => `<${name} />` },
+        ]),
+      ),
     )
   }
 
   return {
     nodeIndex,
     templateNodeIndex,
-    functionRegistry: new FunctionRegistry(),
-    componentRegistry,
+    functionRegistry,
   }
 }
 

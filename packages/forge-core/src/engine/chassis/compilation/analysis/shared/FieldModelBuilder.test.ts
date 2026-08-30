@@ -5,6 +5,7 @@ import {
   ComponentCallType,
   ExpressionType,
   FunctionCallType,
+  FunctionEntryType,
   IteratorType,
 } from '../../../../../shared/taxonomy'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
@@ -13,16 +14,29 @@ import type { TemplateASTNode } from '../../../contracts/ast/ast.type'
 import type { TemplateValue } from '../../../contracts/ast/template.type'
 import { FieldCodeKind, ValidationRulesKind } from '../../../contracts/models/fieldModel.type'
 import ForgeInternalError from '../../../../errors/ForgeInternalError'
-import ComponentRegistry from '../../../registries/ComponentRegistry'
+import FunctionRegistry from '../../../registries/FunctionRegistry'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import FieldModelBuilder from './FieldModelBuilder'
 
-function createComponentRegistry(
+function createRenderFunctionRegistry(
   ...entries: { variant: string; multiple?: boolean; inputSchema?: z.ZodType }[]
-): ComponentRegistry {
-  const registry = new ComponentRegistry()
+): FunctionRegistry {
+  const registry = new FunctionRegistry()
 
-  registry.registerMany(entries.map(entry => ({ ...entry, render: () => '' })))
+  registry.register(
+    Object.fromEntries(
+      entries.map(entry => [
+        entry.variant,
+        {
+          name: entry.variant,
+          _forge: FunctionEntryType.COMPONENT,
+          evaluate: () => '',
+          multiple: entry.multiple,
+          inputSchema: entry.inputSchema,
+        },
+      ]),
+    ),
+  )
 
   return registry
 }
@@ -100,7 +114,7 @@ describe('FieldModelBuilder', () => {
   describe('buildStepFields()', () => {
     it('should classify a registered field with component facts when the variant is registered', () => {
       // Arrange
-      const registry = createComponentRegistry({ variant: 'multi-input', multiple: true, inputSchema: z.string() })
+      const registry = createRenderFunctionRegistry({ variant: 'multi-input', multiple: true, inputSchema: z.string() })
       const block = createFieldBlock('emails', {}, 'multi-input')
       const builder = new FieldModelBuilder(registry)
 
@@ -117,7 +131,7 @@ describe('FieldModelBuilder', () => {
 
     it('should classify a dynamic code as an expression leaf when the code is an AST node', () => {
       // Arrange
-      const registry = createComponentRegistry({ variant: 'text-input' })
+      const registry = createRenderFunctionRegistry({ variant: 'text-input' })
       const codeNode = ASTTestFactory.reference(['params', 'code'])
       const block = createFieldBlock(codeNode)
       const builder = new FieldModelBuilder(registry)
@@ -130,10 +144,10 @@ describe('FieldModelBuilder', () => {
       expect(fields[0].label).toBe('text-input (dynamic code)')
     })
 
-    it('should throw when a registered variant is missing from the component registry', () => {
+    it('should throw when a registered variant is missing from the render-function registry', () => {
       // Arrange
       const block = createFieldBlock('name', {}, 'unregistered')
-      const builder = new FieldModelBuilder(new ComponentRegistry())
+      const builder = new FieldModelBuilder(new FunctionRegistry())
 
       // Act / Assert
       expect(() => builder.buildStepFields([block], [])).toThrow(ForgeInternalError)
@@ -141,7 +155,7 @@ describe('FieldModelBuilder', () => {
 
     it('should classify transformer pipelines and skip non-node entries when formatters mix shapes', () => {
       // Arrange
-      const registry = createComponentRegistry({ variant: 'text-input' })
+      const registry = createRenderFunctionRegistry({ variant: 'text-input' })
       const block = createFieldBlock('name', {
         formatters: [createTransformer('trim'), 'not-a-node', createTransformer('truncate', [5])],
       })
@@ -157,7 +171,7 @@ describe('FieldModelBuilder', () => {
 
     it('should throw when a formatter node is not a transformer call', () => {
       // Arrange
-      const registry = createComponentRegistry({ variant: 'text-input' })
+      const registry = createRenderFunctionRegistry({ variant: 'text-input' })
       const block = createFieldBlock('name', { formatters: [ASTTestFactory.reference(['answers', 'other'])] })
       const builder = new FieldModelBuilder(registry)
 
@@ -167,7 +181,7 @@ describe('FieldModelBuilder', () => {
 
     it('should classify direct rules when validWhen is an array of validation expressions', () => {
       // Arrange
-      const registry = createComponentRegistry({ variant: 'text-input' })
+      const registry = createRenderFunctionRegistry({ variant: 'text-input' })
       const rule = ASTTestFactory.expression(PolicyType.VALIDATION_RULE).build()
       const block = createFieldBlock('name', { validWhen: [rule] })
       const builder = new FieldModelBuilder(registry)
@@ -181,7 +195,7 @@ describe('FieldModelBuilder', () => {
 
     it('should classify dynamic rules when validWhen is not an array of validation expressions', () => {
       // Arrange
-      const registry = createComponentRegistry({ variant: 'text-input' })
+      const registry = createRenderFunctionRegistry({ variant: 'text-input' })
       const block = createFieldBlock('name', { validWhen: { message: 'Broken' } })
       const builder = new FieldModelBuilder(registry)
 
@@ -194,7 +208,7 @@ describe('FieldModelBuilder', () => {
 
     it('should omit validation when validWhen is an empty array', () => {
       // Arrange
-      const registry = createComponentRegistry({ variant: 'text-input' })
+      const registry = createRenderFunctionRegistry({ variant: 'text-input' })
       const block = createFieldBlock('name', { validWhen: [] })
       const builder = new FieldModelBuilder(registry)
 
@@ -207,7 +221,7 @@ describe('FieldModelBuilder', () => {
 
     it('should model template occurrences with nested iterator paths when MAP iterators nest', () => {
       // Arrange
-      const registry = createComponentRegistry({ variant: 'text-input' })
+      const registry = createRenderFunctionRegistry({ variant: 'text-input' })
       const innerField = createTemplateField('inner')
       const innerIterate = createTemplateIterate('items', { wrapper: innerField })
       const outerField = createTemplateField('outer')
@@ -226,7 +240,7 @@ describe('FieldModelBuilder', () => {
 
     it('should skip non-MAP iterators when collecting template occurrences', () => {
       // Arrange
-      const registry = createComponentRegistry({ variant: 'text-input' })
+      const registry = createRenderFunctionRegistry({ variant: 'text-input' })
       const templateField = createTemplateField('skipped')
       const filterIterate = createIterateNode(templateField, IteratorType.FILTER)
       const builder = new FieldModelBuilder(registry)
@@ -247,7 +261,7 @@ describe('FieldModelBuilder', () => {
         properties: { code: 'dynamic' },
       } as unknown as TemplateASTNode
       const iterateNode = createIterateNode(templateField)
-      const builder = new FieldModelBuilder(new ComponentRegistry())
+      const builder = new FieldModelBuilder(new FunctionRegistry())
 
       // Act
       const fields = builder.buildStepFields([], [iterateNode])

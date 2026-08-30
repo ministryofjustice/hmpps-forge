@@ -9,6 +9,7 @@ import {
 import { PolicyType, StructureType } from '../../shared/taxonomy'
 import type { ChainableGenerator, ChainableIterable } from '../builders/types'
 import type { BlockDefinition, ResolvableBoolean, ResolvableString } from '../../components/types/structures.type'
+import type { RendererInvocation } from '../../components/types/renderFunctions.type'
 
 /**
  * View configuration for journeys and steps.
@@ -174,6 +175,9 @@ export interface JourneyDefinition {
    * title: Format('Visit for %1', Data('prisonerName'))
    */
   title: ResolvableString
+
+  /** Default page renderer inherited unchanged by descendant steps. */
+  renderer?: RendererInvocation
 
   /**
    * Optional display description, surfaced alongside {@link title} on the
@@ -415,6 +419,9 @@ export interface StepDefinition {
    * title: Format('Edit goal %1', Params('goalId'))
    */
   title: ResolvableString
+
+  /** Page renderer for this step. Replaces an inherited journey renderer as a whole. */
+  renderer?: RendererInvocation
 
   /**
    * Optional display description, surfaced alongside {@link title} on the

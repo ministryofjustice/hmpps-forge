@@ -1,12 +1,12 @@
 
-import { component } from '@ministryofjustice/hmpps-forge/core/components'
-import { ComponentRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
+import { component as declareComponent } from '@ministryofjustice/hmpps-forge/core/components'
+import { ComponentTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 import { GovUKGridRow } from './govukGridRow'
 import type { GovUKGridColumn } from './govukGridRow'
 
-const TestBlock = component<{ html: string }>('testBlock', { render: props => props.html })
+const TestBlock = declareComponent<{ html: string }>('testBlock', { factory: () => ({ props }) => props.html })
 
-const harness = new ComponentRegistryTestHarness([GovUKGridRow, TestBlock])
+const harness = new ComponentTestHarness([GovUKGridRow, TestBlock])
 
 const render = (props: GovUKGridRow) => harness.render(GovUKGridRow(props))
 

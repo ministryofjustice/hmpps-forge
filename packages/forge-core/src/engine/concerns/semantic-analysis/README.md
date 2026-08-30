@@ -53,8 +53,7 @@ Semantic analysis has a small data model.
 `ASTValidationContext` contains:
 - `nodeIndex`, an `ASTNodeIndex` used to find registered nodes by broad type or subtype.
 - `templateNodeIndex`, a `TemplateNodeIndex` used to find template contents by the same types.
-- `functionRegistry`, a `FunctionRegistry` used to check function names.
-- `componentRegistry`, a `ComponentRegistry` used to check block variants.
+- `functionRegistry`, a function-definition lookup used to check every function name, including render variants.
 
 Parent and ancestor relationships are inspected through the `parent` link on each registered node.
 A `TemplateNodeEntry` carries `owningNode`, the registered node that holds the template, so a rule can also inspect the ancestry of template contents.
@@ -146,7 +145,7 @@ flowchart TD
 - [rules/validateEffectScope.ts](rules/validateEffectScope.ts), [rules/validateOutcomeScope.ts](rules/validateOutcomeScope.ts), [rules/validateHookScope.ts](rules/validateHookScope.ts), [rules/validateTieBreakerScope.ts](rules/validateTieBreakerScope.ts), [rules/validateValidationScope.ts](rules/validateValidationScope.ts), [rules/validateStructureScope.ts](rules/validateStructureScope.ts), [rules/validateBlockScope.ts](rules/validateBlockScope.ts), and [rules/validateFunctionArguments.ts](rules/validateFunctionArguments.ts) validate where AST node families are allowed to appear.
 - [rules/validateRegisteredFunctions.ts](rules/validateRegisteredFunctions.ts) checks all `FunctionType` expression nodes and function template nodes against `FunctionRegistry`.
 - [rules/validateFunctionArity.ts](rules/validateFunctionArity.ts) checks each function expression's authored argument count against the arity of its registered `argumentsSchema` tuple.
-- [rules/validateRegisteredComponents.ts](rules/validateRegisteredComponents.ts) checks all block variants against `ComponentRegistry`.
+- [rules/validateRegisteredComponents.ts](rules/validateRegisteredComponents.ts) checks that every block variant resolves to a render-function definition.
 - [rules/validateFieldCodeUniqueness.ts](rules/validateFieldCodeUniqueness.ts) checks that field blocks sharing a code on one step each declare `dependentWhen`.
 - [rules/validateContainerTypes.ts](rules/validateContainerTypes.ts) checks arrays such as `onAccess`, `onSubmission`, `blocks`, `effects`, and `next` for the node types later phases expect.
 
@@ -158,8 +157,8 @@ flowchart TD
   They should return errors and should not throw unless the error is an unexpected programming failure.
 - Semantic analysis reads `ASTNodeIndex`, `TemplateNodeIndex`, and node `parent` links.
   It should not create nodes, register nodes, index nodes, or mutate nodes.
-- Registry validation reads `FunctionRegistry` and `ComponentRegistry`.
-  It should not register missing functions or components.
+- Registry validation reads the function-definition lookup.
+  It should not register missing functions.
 - Scope rules own compile-time placement checks.
   Runtime evaluation should not need to re-check whether an effect, outcome, hook, validation, or tie-breaker was legal.
 - Template checks read `TemplateNodeIndex`, which the AST phase builds during registration.
@@ -217,7 +216,7 @@ flowchart TD
   Fall back to a local walk only when the check depends on template structure the flat index cannot express, as `validateReferenceScopes()` does for iterator depth.
 - To add a new function subtype, make sure `validateRegisteredFunctions()` sees it through `Object.values(FunctionType)`.
   If the subtype has special placement rules, add a separate scope rule.
-- To add a new component-like structure, decide whether it is a block variant checked by `ComponentRegistry`.
+- To add a new component-like structure, decide whether it is a block variant checked against render-function definitions.
   If it is not a block, do not add it to `validateRegisteredComponents()` by shape alone.
 - To add a new array property that accepts only one kind of node, update `validateContainerTypes()`.
   This protects later phases from receiving valid AST nodes in the wrong container.

@@ -1,11 +1,11 @@
 
-import { component } from '@ministryofjustice/hmpps-forge/core/components'
-import { ComponentRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
+import { component as declareComponent } from '@ministryofjustice/hmpps-forge/core/components'
+import { ComponentTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 import { GovUKList } from './govukList'
 
-const TestBlock = component<{ html: string }>('testBlock', { render: props => props.html })
+const TestBlock = declareComponent<{ html: string }>('testBlock', { factory: () => ({ props }) => props.html })
 
-const harness = new ComponentRegistryTestHarness([GovUKList, TestBlock])
+const harness = new ComponentTestHarness([GovUKList, TestBlock])
 
 const render = (props: GovUKList) => harness.render(GovUKList(props))
 

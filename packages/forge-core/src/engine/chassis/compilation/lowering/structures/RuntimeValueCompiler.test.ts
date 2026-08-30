@@ -4,7 +4,6 @@ import AuthoredValueClassifier from '../../analysis/shared/AuthoredValueClassifi
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import { code, literal } from '../codegen/fragments/CodeFragment'
 import CodeGenerator from '../codegen/CodeGenerator'
-import ComponentRegistry from '../../../registries/ComponentRegistry'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ForgeInternalError from '../../../../errors/ForgeInternalError'
 import type { CompilationDependencies } from '../compilationDependencies.type'
@@ -19,7 +18,6 @@ describe('RuntimeValueCompiler', () => {
   let classifier: AuthoredValueClassifier
   const dependencies: CompilationDependencies = {
     functionRegistry: new FunctionRegistry(),
-    componentRegistry: new ComponentRegistry(),
   }
 
   beforeEach(() => {

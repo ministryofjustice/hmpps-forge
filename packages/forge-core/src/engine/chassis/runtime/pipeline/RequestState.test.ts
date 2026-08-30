@@ -1,4 +1,3 @@
-import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
 import type { ResponseBindings } from '../../../../framework/types/responseBindings.type'
 import RequestState from './RequestState'
 import type { RuntimeContext } from '../../contracts/runtime/evaluationState.type'
@@ -11,7 +10,6 @@ describe('RequestState', () => {
         responseBindings: {} as ResponseBindings,
         functionBuilders: [],
         packageDependencies: {},
-        componentRegistry: {} as ComponentRegistry,
         hasRenderer: false,
         traceEnabled: false,
       })

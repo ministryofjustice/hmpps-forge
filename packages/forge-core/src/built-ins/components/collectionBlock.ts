@@ -1,4 +1,4 @@
-import { component } from '../../components/component'
+import { component } from '../../components/presentation'
 import { isRenderedBlock } from '../../components/typeguards'
 import { escapeHtmlEntities } from '../sanitize'
 import type { ComponentRenderProps } from '../../components/types/components.type'
@@ -121,5 +121,8 @@ const renderCollectionBlock = (block: ComponentRenderProps<CollectionBlock>): st
  * ```
  */
 export const CollectionBlock = component<CollectionBlock>('collection-block', {
-  render: renderCollectionBlock,
+  factory:
+    () =>
+    ({ props }) =>
+      renderCollectionBlock(props),
 })

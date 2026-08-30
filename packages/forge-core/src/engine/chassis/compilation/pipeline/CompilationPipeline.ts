@@ -2,7 +2,6 @@ import type { JourneyDefinition } from '../../../../authoring/types/structures.t
 import type { CompiledPackage } from '../../contracts/plans/compilationArtefacts.type'
 import type { ForgeInstrumentation } from '../../tracing/ForgeTraceSinkDispatcher'
 import type TraceSpan from '../../tracing/TraceSpan'
-import ComponentRegistry from '../../registries/ComponentRegistry'
 import type { FunctionDefinitionLookup } from '../../../../authoring/types/functions.type'
 import WorkExecutor from '../../work/WorkExecutor'
 import WorkContext from '../../work/WorkContext'
@@ -13,7 +12,6 @@ import CompilationPipelineBootstrap from './CompilationPipelineBootstrap'
 
 export interface CompilationPipelineOptions {
   readonly functionRegistry: FunctionDefinitionLookup
-  readonly componentRegistry: ComponentRegistry
   readonly instrumentation?: ForgeInstrumentation
 }
 
@@ -33,7 +31,6 @@ export default class CompilationPipeline {
     const bootstrap = new CompilationPipelineBootstrap({
       journeyDefinition,
       functionRegistry: this.options.functionRegistry,
-      componentRegistry: this.options.componentRegistry,
     })
     const state = bootstrap.buildExecutionContext()
     const executor = new WorkExecutor(traceEnabled)

@@ -1,4 +1,4 @@
-import { component } from '../../components/component'
+import { component } from '../../components/presentation'
 import { isRenderedBlock } from '../../components/typeguards'
 import type { BlockDefinition } from '../../components/types/structures.type'
 
@@ -61,5 +61,8 @@ const renderChild = (child: unknown): string => {
  * ```
  */
 export const Fragment = component<Fragment>('fragment', {
-  render: props => props.blocks.map(renderChild).join(''),
+  factory:
+    () =>
+    ({ props }) =>
+      props.blocks.map(renderChild).join(''),
 })

@@ -55,7 +55,7 @@ export default class CompilationModelBuilder {
     private readonly registries: AnalysisRegistries,
   ) {
     this.ownershipIndex = new OwnershipIndex(nodeIndex, this.ancestry)
-    this.fieldModelBuilder = new FieldModelBuilder(registries.componentRegistry)
+    this.fieldModelBuilder = new FieldModelBuilder(registries.functionRegistry)
     this.mountInfoAnalyzer = new MountInfoAnalyzer(this.ancestry)
   }
 

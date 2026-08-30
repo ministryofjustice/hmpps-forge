@@ -4,7 +4,6 @@ import { ExpressionType, FunctionCallType, PredicateType } from '../../../../sha
 import { StepEntryValidationAST } from '../../../chassis/contracts/ast/structures.type'
 import { ReferenceASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
-import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
 import type { ValidationModel } from '../contracts/validationModel.type'
 import EntryValidationCompiler from './EntryValidationCompiler'
@@ -52,7 +51,6 @@ describe('EntryValidationCompiler', () => {
   const compilerFunctionRegistry = new FunctionRegistry()
   const dependencies: CompilationDependencies = {
     functionRegistry: compilerFunctionRegistry,
-    componentRegistry: new ComponentRegistry(),
   }
 
   compilerFunctionRegistry.register({
@@ -110,7 +108,6 @@ describe('EntryValidationCompiler', () => {
 
       const localCompiler = new EntryValidationCompiler({
         functionRegistry,
-        componentRegistry: new ComponentRegistry(),
       })
       const fn = localCompiler.compileOnEntryValidation(entryModel(entries))
 
@@ -146,7 +143,6 @@ describe('EntryValidationCompiler', () => {
 
       const localCompiler = new EntryValidationCompiler({
         functionRegistry,
-        componentRegistry: new ComponentRegistry(),
       })
       const fn = localCompiler.compileOnEntryValidation(entryModel(entries))
 

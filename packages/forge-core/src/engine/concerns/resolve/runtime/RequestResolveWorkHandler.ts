@@ -2,7 +2,7 @@ import type { ReachabilityEvaluation } from '../../reachability/contracts/reacha
 import type { StepValidationFailure } from '../../../chassis/contracts/runtime/evaluationState.type'
 import type { ValidationResult } from '../../validation/contracts/validationResult.type'
 import { resolvePathParams } from '../../../../shared/routePath'
-import type { RenderContext, RenderValidationError } from '../../../../framework/types/rendering.type'
+import type { RenderBlock, RenderContext, RenderValidationError } from '../../../../framework/types/rendering.type'
 import type { ViewConfig } from '../../../../authoring/types/structures.type'
 import { buildCompiledResolveContext } from '../../../chassis/runtime/context/compiledEvaluationContext'
 import { resolveBacklinkRouteTemplatePath } from '../../reachability/runtime/reachabilityRedirects'
@@ -19,6 +19,7 @@ import type { RequestResolveWorkProps } from '../../../chassis/contracts/runtime
 import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
 import type { PhaseWorkOutput } from '../../../chassis/contracts/runtime/requestPipelineOutput.type'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
+import { isRenderBlock } from './typeguards'
 
 const REQUEST_RESOLVE_KIND = 'request.resolve'
 
@@ -42,7 +43,6 @@ export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', Reques
     const compiledResolveContext = buildCompiledResolveContext(
       ctx.state.context,
       ctx.state.functionRegistry,
-      ctx.state.dependencies.componentRegistry,
       fieldFailures,
       ctx.state.fieldFailureAnchors,
     )
@@ -66,14 +66,15 @@ export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', Reques
       throw new ForgeInternalError('Resolve work task completed with an invalid render result')
     }
 
-    const ancestors = output.ancestors as RenderContext['ancestors']
+    const resolvedAncestors = output.ancestors as RenderContext['ancestors']
     const stepMetadata = resolveStepMetadata(
       output.step as RenderContext['step'],
       ctx.state.context.request.params,
       ctx.state.reachabilityEvaluation,
     )
-    const view = resolveView(ancestors, stepMetadata.view)
-    const step = view === undefined ? stepMetadata : { ...stepMetadata, view }
+    const { ancestors, step: stepWithoutRenderer, renderer } = resolveRenderer(resolvedAncestors, stepMetadata)
+    const view = resolveView(ancestors, stepWithoutRenderer.view)
+    const step = view === undefined ? stepWithoutRenderer : { ...stepWithoutRenderer, view }
 
     // The presence of a current-page result is the display signal: present means
     // validation ran (possibly passing with no failures), absent means it never ran.
@@ -88,6 +89,7 @@ export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', Reques
       step,
       ancestors,
       blocks: [...output.blocks],
+      ...(renderer === undefined ? {} : { renderer }),
       showValidationFailures,
       fieldValidationErrors: fieldFailures.map(failure =>
         toRenderValidationError(failure, ctx.state.fieldFailureAnchors),
@@ -105,6 +107,32 @@ export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', Reques
 
     return { action: 'render', renderContext }
   },
+}
+
+function resolveRenderer(
+  ancestors: RenderContext['ancestors'],
+  step: RenderContext['step'],
+): {
+  readonly ancestors: RenderContext['ancestors']
+  readonly step: RenderContext['step']
+  readonly renderer?: RenderContext['renderer']
+} {
+  const inheritedRenderer = ancestors.reduce<RenderBlock | undefined>((renderer, ancestor) => {
+    return isRenderBlock(ancestor.renderer) ? ancestor.renderer : renderer
+  }, undefined)
+  const renderer = isRenderBlock(step.renderer) ? step.renderer : inheritedRenderer
+
+  return {
+    ancestors: ancestors.map(({ renderer: _, ...ancestor }) => ancestor),
+    step: stripRenderer(step),
+    ...(renderer === undefined ? {} : { renderer }),
+  }
+}
+
+function stripRenderer(step: RenderContext['step']): RenderContext['step'] {
+  const { renderer: _, ...stepWithoutRenderer } = step
+
+  return stepWithoutRenderer
 }
 
 function resolveView(ancestors: RenderContext['ancestors'], stepView: ViewConfig | undefined): ViewConfig | undefined {

@@ -8,7 +8,6 @@ import { NodeIDGenerator } from '../../../chassis/compilation/ast/ast-state/Node
 import { compileTemplate } from '../../../chassis/compilation/ast/nodes/template'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
-import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTValidationContext } from './types'
 import { validateSelfScope } from './validateSelfScope'
@@ -45,7 +44,6 @@ const createContext = (
     nodeIndex,
     templateNodeIndex,
     functionRegistry: new FunctionRegistry(),
-    componentRegistry: new ComponentRegistry(),
   }
 }
 

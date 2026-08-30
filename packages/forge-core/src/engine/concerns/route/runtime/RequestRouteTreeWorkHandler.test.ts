@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { NO_OP_RESPONSE_BINDINGS } from '../../../../framework/types/responseBindings.type'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
-import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import { REQUEST_ROUTE_TREE_WORK_HANDLER } from './RequestRouteTreeWorkHandler'
 import type { CompiledRouteMetadataFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
@@ -56,7 +55,6 @@ function createContext(
     {
       responseBindings: NO_OP_RESPONSE_BINDINGS,
       functionRegistry: new FunctionRegistry(),
-      componentRegistry: new ComponentRegistry(),
     },
   )
 

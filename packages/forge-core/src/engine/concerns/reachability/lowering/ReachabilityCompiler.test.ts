@@ -14,7 +14,6 @@ import type {
 } from '../contracts/reachabilityModel.type'
 import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/ast.type'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
-import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import ReachabilityCompiler from './ReachabilityCompiler'
@@ -158,7 +157,6 @@ describe('ReachabilityCompiler', () => {
   const compilerFunctionRegistry = new FunctionRegistry()
   const dependencies: CompilationDependencies = {
     functionRegistry: compilerFunctionRegistry,
-    componentRegistry: new ComponentRegistry(),
   }
 
   compilerFunctionRegistry.register({
@@ -192,7 +190,7 @@ describe('ReachabilityCompiler', () => {
         },
       })
 
-      const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
+      const localCompiler = new ReachabilityCompiler({ functionRegistry })
 
       // Act
       const source = localCompiler.generateFactsSource(plan)
@@ -229,7 +227,7 @@ describe('ReachabilityCompiler', () => {
         },
       })
 
-      const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
+      const localCompiler = new ReachabilityCompiler({ functionRegistry })
 
       // Act
       const source = localCompiler.generateFactsSource(plan)
@@ -262,7 +260,7 @@ describe('ReachabilityCompiler', () => {
         },
       })
 
-      const localCompiler = new ReachabilityCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
+      const localCompiler = new ReachabilityCompiler({ functionRegistry })
 
       // Act
       const source = localCompiler.generateFactsSource(plan)

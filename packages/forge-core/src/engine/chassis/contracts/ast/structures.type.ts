@@ -29,6 +29,7 @@ export interface JourneyASTNode extends MaterialisedASTNode {
     steps?: StepASTNode[]
     children?: JourneyASTNode[]
     title: ResolvableString
+    renderer?: BasicBlockASTNode
     description?: ResolvableString
     version?: string
     view?: ViewConfig
@@ -48,6 +49,7 @@ export interface StepASTNode extends MaterialisedASTNode {
     validateOnEntry?: StepEntryValidationAST[]
     blocks?: BlockASTNode[]
     title: ResolvableString
+    renderer?: BasicBlockASTNode
     description?: ResolvableString
     view?: ViewConfig
     reachability?: StepReachabilityAST

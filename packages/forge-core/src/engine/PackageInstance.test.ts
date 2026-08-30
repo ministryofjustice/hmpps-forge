@@ -1,4 +1,4 @@
-import { component } from '../components/component'
+import { component } from '../components/presentation'
 import { createForgePackage, field, journey, step, submit, validation, Self } from '../authoring/builders'
 import { condition } from '../authoring/functions/condition'
 import TransformerRegistry from '../authoring/registries/TransformerRegistry'
@@ -8,7 +8,6 @@ import type { PredicateExpr } from '../authoring/types/expressions.type'
 import type { BlockDefinition } from '../components/types/structures.type'
 import type { CompiledPackage } from './chassis/contracts/plans/compilationArtefacts.type'
 import CompilationPipeline from './chassis/compilation/pipeline/CompilationPipeline'
-import ComponentRegistry from './chassis/registries/ComponentRegistry'
 import ForgeTraceSinkDispatcher from './chassis/tracing/ForgeTraceSinkDispatcher'
 import PackageInstance from './PackageInstance'
 
@@ -30,8 +29,6 @@ describe('PackageInstance', () => {
       // Assert
       expect(instance.getDependencies().functionBuilders).toEqual([])
       expect(instance.getDependencies().packageDependencies).toEqual({})
-      expect(instance.getDependencies().componentRegistry).toBeInstanceOf(ComponentRegistry)
-      expect(instance.getDependencies().componentRegistry.size()).toBe(0)
     })
 
     it('should retain package functions and dependencies without invoking factories', () => {
@@ -88,7 +85,7 @@ describe('PackageInstance', () => {
 
     it('should register package components', () => {
       // Arrange
-      const packageComponent = component<object>('package-component', { render: () => '<div>Package</div>' })
+      const packageComponent = component<object>('package-component', { factory: () => () => '<div>Package</div>' })
 
       mockCompilation()
 
@@ -102,10 +99,10 @@ describe('PackageInstance', () => {
       )
 
       // Assert
-      const componentRegistry = instance.getDependencies().componentRegistry
+      const [componentFunctions] = instance.getDependencies().functionBuilders
+      const componentDefinitions = componentFunctions.getDefinitions()
 
-      expect(componentRegistry).toBeInstanceOf(ComponentRegistry)
-      expect(componentRegistry.get('package-component')).toBe(packageComponent)
+      expect(componentDefinitions['package-component']?._forge).toBe(packageComponent._forge)
     })
 
     it('should register an embedded component', () => {
@@ -117,7 +114,7 @@ describe('PackageInstance', () => {
       )
 
       // Assert
-      expect(instance.getDependencies().componentRegistry.has('test-card')).toBe(true)
+      expect(instance.getDependencies().functionBuilders[0].getDefinitions()).toHaveProperty('test-card')
     })
 
     it('should register an embedded function entry', () => {
@@ -164,8 +161,13 @@ interface TestCardBlock {
   title: string
 }
 
-const TestCard = component<TestCardBlock>('test-card', { render: card => `<h2>${card.title}</h2>` })
-const testInput = component<object>('test-input', { render: () => '<input />' })
+const TestCard = component<TestCardBlock>('test-card', {
+  factory:
+    () =>
+    ({ props }) =>
+      `<h2>${props.title}</h2>`,
+})
+const testInput = component<object>('test-input', { factory: () => () => '<input />' })
 
 function fieldWithRule(code: string, rule: PredicateExpr, message: string) {
   return field({

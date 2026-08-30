@@ -1,5 +1,4 @@
 import type FunctionRegistry from '../../registries/FunctionRegistry'
-import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
 import type { ValidationResult } from '../../../concerns/validation/contracts/validationResult.type'
 import type { IteratorBudgetContract } from '../runtime/iteratorBudget.type'
 
@@ -59,13 +58,12 @@ export type CompiledValidationContext = CompiledBaseContext
  * Block resolution records each failing field block's document anchor (the
  * component's declared `errorAnchor`, or the field code) into
  * `fieldFailureAnchors`, also keyed by render block ID, so the error summary can
- * link to the right block instance. `components` is how the anchor is derived -
- * the failing block's registry entry declares where focus should land.
+ * link to the right block instance. The render function row declares how the
+ * anchor is derived.
  */
 export interface CompiledResolveContext extends CompiledBaseContext {
   fieldFailures: Record<string, ValidationResult[]>
   fieldFailureAnchors: Record<string, string>
-  components: ComponentRegistry
 }
 
 /**
@@ -77,7 +75,6 @@ export interface CompiledResolveContext extends CompiledBaseContext {
  */
 export interface CompiledAnswerPreparationContext extends CompiledBaseContext {
   answers: Record<string, CompiledPreparedAnswer>
-  components: ComponentRegistry
 }
 
 /**
