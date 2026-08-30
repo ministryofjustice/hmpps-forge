@@ -174,26 +174,28 @@ export const GovUKTextareaInput = nunjucksComponent<GovUKTextareaInput>('govukTe
   inputSchema: z.string(),
   // The rendered textarea's id matches the render params below, so error summary links land on it.
   errorAnchor: props => props.id ?? props.code,
-  render: (props, nunjucksEnv) => {
-    const params = {
-      id: props.id ?? props.code,
-      name: props.code,
-      spellcheck: props.spellcheck,
-      rows: props.rows || '5',
-      value: props.value,
-      disabled: props.disabled,
-      label: normaliseGovukTextParam(props.label),
-      hint: normaliseGovukTextParam(props.hint),
-      errorMessage: normaliseGovukErrorMessage(props.errors),
-      formGroup: props.formGroup,
-      classes: props.classes,
-      autocomplete: props.autocomplete,
-      describedBy: props.describedBy,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params = {
+        id: props.id ?? props.code,
+        name: props.code,
+        spellcheck: props.spellcheck,
+        rows: props.rows || '5',
+        value: props.value,
+        disabled: props.disabled,
+        label: normaliseGovukTextParam(props.label),
+        hint: normaliseGovukTextParam(props.hint),
+        errorMessage: normaliseGovukErrorMessage(props.errors),
+        formGroup: props.formGroup,
+        classes: props.classes,
+        autocomplete: props.autocomplete,
+        describedBy: props.describedBy,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('govuk/components/textarea/template.njk', {
-      params,
-    })
-  },
+      return nunjucksEnv.render('govuk/components/textarea/template.njk', {
+        params,
+      })
+    },
 })

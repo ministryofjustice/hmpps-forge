@@ -6,7 +6,8 @@
  * This package provides `createExpressRouter`, which builds an Express router
  * around a configured Forge instance — owning Express routing and Nunjucks page
  * rendering. The adapter supplies `nunjucksEnv` as a function dependency;
- * `nunjucksComponent()` preserves the existing props-first callback API.
+ * `nunjucksComponent()` makes it available to component factories alongside package
+ * dependencies.
  *
  * @example
  * ```typescript

@@ -115,15 +115,17 @@ export interface MOJBadge {
  * ```
  */
 export const MOJBadge = nunjucksComponent<MOJBadge>('mojBadge', {
-  render: (props, nunjucksEnv) => {
-    const params = {
-      text: props.text,
-      html: props.html,
-      classes: props.classes,
-      label: props.label,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params = {
+        text: props.text,
+        html: props.html,
+        classes: props.classes,
+        label: props.label,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('moj/components/badge/template.njk', { params })
-  },
+      return nunjucksEnv.render('moj/components/badge/template.njk', { params })
+    },
 })

@@ -118,16 +118,18 @@ export interface GovUKPagination {
  * ```
  */
 export const GovUKPagination = nunjucksComponent<GovUKPagination>('govukPagination', {
-  render: (props, nunjucksEnv) => {
-    const params: Record<string, any> = {
-      previous: props.previous?.visibleWhen === false ? undefined : props.previous,
-      next: props.next?.visibleWhen === false ? undefined : props.next,
-      items: props.items?.filter(item => item.visibleWhen !== false),
-      landmarkLabel: props.landmarkLabel,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params: Record<string, any> = {
+        previous: props.previous?.visibleWhen === false ? undefined : props.previous,
+        next: props.next?.visibleWhen === false ? undefined : props.next,
+        items: props.items?.filter(item => item.visibleWhen !== false),
+        landmarkLabel: props.landmarkLabel,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('govuk/components/pagination/template.njk', { params })
-  },
+      return nunjucksEnv.render('govuk/components/pagination/template.njk', { params })
+    },
 })

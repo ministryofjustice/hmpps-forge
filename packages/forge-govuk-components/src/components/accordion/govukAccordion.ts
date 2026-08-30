@@ -200,50 +200,52 @@ export interface GovUKAccordion {
  * ```
  */
 export const GovUKAccordion = nunjucksComponent<GovUKAccordion>('govukAccordion', {
-  render: (props, nunjucksEnv) => {
-    const processedItems = props.items
-      .filter(item => item.visibleWhen !== false)
-      .map(item => {
-        const content = normaliseGovukTextHtmlContent({
-          text: item.content.text,
-          html: item.content.html,
-          blocks: item.content.blocks,
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const processedItems = props.items
+        .filter(item => item.visibleWhen !== false)
+        .map(item => {
+          const content = normaliseGovukTextHtmlContent({
+            text: item.content.text,
+            html: item.content.html,
+            blocks: item.content.blocks,
+          })
+
+          return {
+            heading: {
+              text: item.heading.html ? undefined : item.heading.text,
+              html: item.heading.html,
+            },
+            summary: item.summary
+              ? {
+                  text: item.summary.html ? undefined : item.summary.text,
+                  html: item.summary.html,
+                }
+              : undefined,
+            content: {
+              text: content.text,
+              html: content.html,
+            },
+            expanded: item.expanded,
+          }
         })
 
-        return {
-          heading: {
-            text: item.heading.html ? undefined : item.heading.text,
-            html: item.heading.html,
-          },
-          summary: item.summary
-            ? {
-                text: item.summary.html ? undefined : item.summary.text,
-                html: item.summary.html,
-              }
-            : undefined,
-          content: {
-            text: content.text,
-            html: content.html,
-          },
-          expanded: item.expanded,
-        }
-      })
+      const params: Record<string, any> = {
+        id: props.id,
+        items: processedItems,
+        headingLevel: props.headingLevel,
+        rememberExpanded: props.rememberExpanded,
+        hideAllSectionsText: props.hideAllSectionsText,
+        showAllSectionsText: props.showAllSectionsText,
+        hideSectionText: props.hideSectionText,
+        showSectionText: props.showSectionText,
+        hideSectionAriaLabelText: props.hideSectionAriaLabelText,
+        showSectionAriaLabelText: props.showSectionAriaLabelText,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    const params: Record<string, any> = {
-      id: props.id,
-      items: processedItems,
-      headingLevel: props.headingLevel,
-      rememberExpanded: props.rememberExpanded,
-      hideAllSectionsText: props.hideAllSectionsText,
-      showAllSectionsText: props.showAllSectionsText,
-      hideSectionText: props.hideSectionText,
-      showSectionText: props.showSectionText,
-      hideSectionAriaLabelText: props.hideSectionAriaLabelText,
-      showSectionAriaLabelText: props.showSectionAriaLabelText,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
-
-    return nunjucksEnv.render('govuk/components/accordion/template.njk', { params })
-  },
+      return nunjucksEnv.render('govuk/components/accordion/template.njk', { params })
+    },
 })

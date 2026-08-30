@@ -277,28 +277,30 @@ export const GovUKRadioInput = nunjucksComponent<GovUKRadioInput>('govukRadioInp
   inputSchema: z.string(),
   // The first rendered radio's id is the idPrefix, so error summary links land there.
   errorAnchor: props => props.idPrefix || props.code,
-  render: (props, nunjucksEnv) => {
-    const items = props.items
-      .filter(option => option.visibleWhen !== false)
-      .map(option => makeOption(option, props.value as string))
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const items = props.items
+        .filter(option => option.visibleWhen !== false)
+        .map(option => makeOption(option, props.value as string))
 
-    const params = {
-      fieldset: normaliseGovukFieldset(props.fieldset, props.label),
-      idPrefix: props.idPrefix || props.code,
-      name: props.code,
-      value: props.value,
-      formGroup: props.formGroup,
-      hint: normaliseGovukTextParam(props.hint),
-      items,
-      classes: props.classes,
-      attributes: props.attributes,
-      errorMessage: normaliseGovukErrorMessage(props.errors),
-    }
+      const params = {
+        fieldset: normaliseGovukFieldset(props.fieldset, props.label),
+        idPrefix: props.idPrefix || props.code,
+        name: props.code,
+        value: props.value,
+        formGroup: props.formGroup,
+        hint: normaliseGovukTextParam(props.hint),
+        items,
+        classes: props.classes,
+        attributes: props.attributes,
+        errorMessage: normaliseGovukErrorMessage(props.errors),
+      }
 
-    return nunjucksEnv.render('govuk/components/radios/template.njk', {
-      params,
-    })
-  },
+      return nunjucksEnv.render('govuk/components/radios/template.njk', {
+        params,
+      })
+    },
 })
 
 type RenderedRadioInputItem = ComponentRenderProps<GovUKRadioInput>['items'][number]

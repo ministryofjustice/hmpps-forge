@@ -65,17 +65,19 @@ export interface GovUKHeading {
  * ```
  */
 export const GovUKHeading = jsxComponent<GovUKHeading>('govukHeading', {
-  render: props => {
-    // Evaluation widens the literal prop types, so pin the tag back to the union
-    const size = (props.size ?? 'l') as HeadingSize
-    const Tag = `h${props.level ?? defaultLevels[size]}` as HeadingTag
-    const className = props.classes ? `govuk-heading-${size} ${props.classes}` : `govuk-heading-${size}`
+  factory:
+    () =>
+    ({ props }) => {
+      // Evaluation widens the literal prop types, so pin the tag back to the union
+      const size = (props.size ?? 'l') as HeadingSize
+      const Tag = `h${props.level ?? defaultLevels[size]}` as HeadingTag
+      const className = props.classes ? `govuk-heading-${size} ${props.classes}` : `govuk-heading-${size}`
 
-    return (
-      <Tag class={className} {...props.attributes}>
-        {props.caption && <span class={`govuk-caption-${size}`}>{raw(props.caption)}</span>}
-        {raw(props.text)}
-      </Tag>
-    )
-  },
+      return (
+        <Tag class={className} {...props.attributes}>
+          {props.caption && <span class={`govuk-caption-${size}`}>{raw(props.caption)}</span>}
+          {raw(props.text)}
+        </Tag>
+      )
+    },
 })

@@ -119,7 +119,8 @@ export const MyStarRating = component<MyStarRatingProps>('myStarRating', {
 ## The renderer
 
 The function returned by `factory` receives `{ props, context }` and returns
-rendered output. Renderer-specific helpers keep a simpler props-first callback.
+rendered output. Renderer-specific helpers use this same shape while adding the
+dependencies or output type needed by their renderer.
 
 ### Pure function components
 
@@ -131,22 +132,24 @@ is short, self-contained, and does not need a template engine.
 
 `nunjucksComponent` (from `@ministryofjustice/hmpps-forge/express-nunjucks`)
 is the right choice when you want to render through a Nunjucks
-template. It is a compatibility wrapper around `component()`: the render callback
-receives the resolved props and a Nunjucks environment supplied by Forge.
+template. Its factory receives the package dependencies together with the Nunjucks
+environment supplied by the adapter.
 
 ```typescript
 import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjucks'
 
 export const MyCard = nunjucksComponent<MyCardProps>('myCard', {
-  render: (block, nunjucksEnv) => {
-    const params = {
-      heading: block.heading,
-      content: block.content,
-      outlined: block.outlined,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params = {
+        heading: props.heading,
+        content: props.content,
+        outlined: props.outlined,
+      }
 
-    return nunjucksEnv.render('components/my-card/template.njk', { params })
-  },
+      return nunjucksEnv.render('components/my-card/template.njk', { params })
+    },
 })
 ```
 
@@ -167,9 +170,9 @@ The important points:
   in `render`, even when the journey author supplied an expression.
 - **Props omitted in the definition are `undefined`.** Guard before
   reading them, especially for optional content.
-- **Field blocks gain `value` and `errors`.** `block.value` is the
+- **Field blocks gain `value` and `errors`.** `props.value` is the
   current answer, resolved from submission, `defaultValue`, or a
-  loaded answer store. `block.errors` is an array of
+  loaded answer store. `props.errors` is an array of
   `{ message, details? }` populated when validation has run and
   failed. Both can be `undefined`.
 - **Nested block props arrive as `RenderedBlock` objects.** If your
@@ -191,35 +194,40 @@ const renderChildren = (children: RenderedBlock[] | undefined): string => {
 
 ## Field blocks: value and errors
 
-Field components use `block.value` and `block.errors` to drive their
+Field components use `props.value` and `props.errors` to drive their
 output. The GOV.UK text input is a compact example:
 
 ```typescript
-export const GovUKTextInput = nunjucksComponent<GovUKTextInput>('govukTextInput', {
-  field: true,
-  render: (block, nunjucksEnv) => {
-    const params = {
-      id: block.id ?? block.code,
-      name: block.code,
-      label: typeof block.label === 'object' ? block.label : { text: block.label },
-      value: block.value,
-      errorMessage: block.errors?.length && { text: block.errors[0].message },
-    }
+export const GovUKTextInput = nunjucksComponent<GovUKTextInput>(
+  'govukTextInput',
+  {
+    field: true,
+    factory:
+      ({ nunjucksEnv }) =>
+      ({ props }) => {
+        const params = {
+          id: props.id ?? props.code,
+          name: props.code,
+          label: typeof props.label === 'object' ? props.label : { text: props.label },
+          value: props.value,
+          errorMessage: props.errors?.length && { text: props.errors[0].message },
+        }
 
-    return nunjucksEnv.render('govuk/components/input/template.njk', { params })
+        return nunjucksEnv.render('govuk/components/input/template.njk', { params })
+      },
   },
-})
+)
 ```
 
 A few things to copy from this pattern:
 
-- **Use `block.code` for the `name` attribute.** The code is the
+- **Use `props.code` for the `name` attribute.** The code is the
   field's identity in the answer store. A POST with
   `name="email"` is what flows back into `Answer('email')`.
 - **Default the `id` to the code.** Authors can override it for
   legitimate cases (for example, two fields sharing a name), but the
   common case is `id === code`.
-- **Render the first error.** `block.errors` is ordered. Most
+- **Render the first error.** `props.errors` is ordered. Most
   design systems only display one message at a time.
 
 ---
@@ -240,9 +248,9 @@ Emit each sub-input with a bracketed `name` attribute built from the
 field's `code`:
 
 ```typescript
-<input name="${block.code}[day]"   value="${parts.day ?? ''}" />
-<input name="${block.code}[month]" value="${parts.month ?? ''}" />
-<input name="${block.code}[year]"  value="${parts.year ?? ''}" />
+<input name="${props.code}[day]"   value="${parts.day ?? ''}" />
+<input name="${props.code}[month]" value="${parts.month ?? ''}" />
+<input name="${props.code}[year]"  value="${parts.year ?? ''}" />
 ```
 
 When the form is submitted, the Express body parser expands the
@@ -273,19 +281,19 @@ outside the component.
 
 ### The render path
 
-On render, `block.value` is already in the shape the component
+On render, `props.value` is already in the shape the component
 expects. The field's `parsers` convert the stored ISO string back to
 an object with date parts before the component sees it. On POST
-(validation failure re-render), `block.value` is the raw submitted
+(validation failure re-render), `props.value` is the raw submitted
 object. Either way, the component receives an object:
 
 ```typescript
-const parts = (block.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
+const parts = (props.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
 
 const items = [
-  { name: `${block.code}[day]`,   value: parts.day },
-  { name: `${block.code}[month]`, value: parts.month },
-  { name: `${block.code}[year]`,  value: parts.year },
+  { name: `${props.code}[day]`,   value: parts.day },
+  { name: `${props.code}[month]`, value: parts.month },
+  { name: `${props.code}[year]`,  value: parts.year },
 ]
 ```
 
@@ -315,14 +323,14 @@ validation({
 ```
 
 Forge does not interpret `details`. It forwards the object verbatim to
-the component through `block.errors[0].details`. The component
+the component through `props.errors[0].details`. The component
 decides what to do with it. The GOV.UK date input uses it to apply an
 error class to one input while leaving the others alone, and falls
 back to highlighting all inputs when `details.field` is absent:
 
 ```typescript
-const errorDetails = block.errors?.[0]?.details
-const hasError = Boolean(block.errors?.length)
+const errorDetails = props.errors?.[0]?.details
+const hasError = Boolean(props.errors?.length)
 
 const classForField = (fieldName: string) => {
   if (!hasError) return undefined

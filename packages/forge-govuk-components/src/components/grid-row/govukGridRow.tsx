@@ -46,15 +46,17 @@ export interface GovUKGridRow {
  * ```
  */
 export const GovUKGridRow = jsxComponent<GovUKGridRow>('govukGridRow', {
-  render: props => {
-    const className = props.classes ? `govuk-grid-row ${props.classes}` : 'govuk-grid-row'
+  factory:
+    () =>
+    ({ props }) => {
+      const className = props.classes ? `govuk-grid-row ${props.classes}` : 'govuk-grid-row'
 
-    return (
-      <div class={className} {...props.attributes}>
-        {props.columns.map(column => (
-          <div class={`govuk-grid-column-${column.width}`}>{column.blocks.map(block => raw(block.html))}</div>
-        ))}
-      </div>
-    )
-  },
+      return (
+        <div class={className} {...props.attributes}>
+          {props.columns.map(column => (
+            <div class={`govuk-grid-column-${column.width}`}>{column.blocks.map(block => raw(block.html))}</div>
+          ))}
+        </div>
+      )
+    },
 })

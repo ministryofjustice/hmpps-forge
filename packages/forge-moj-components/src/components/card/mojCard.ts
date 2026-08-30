@@ -88,20 +88,22 @@ export interface MOJCard {
  * ```
  */
 export const MOJCard = nunjucksComponent<MOJCard>('mojCard', {
-  render: (props, nunjucksEnv) => {
-    const params = {
-      heading: typeof props.heading === 'object' ? props.heading : { text: props.heading },
-      href: props.href,
-      description: props.description
-        ? typeof props.description === 'object'
-          ? props.description
-          : { text: props.description }
-        : undefined,
-      clickable: props.clickable,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params = {
+        heading: typeof props.heading === 'object' ? props.heading : { text: props.heading },
+        href: props.href,
+        description: props.description
+          ? typeof props.description === 'object'
+            ? props.description
+            : { text: props.description }
+          : undefined,
+        clickable: props.clickable,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('components/card/template.njk', { params })
-  },
+      return nunjucksEnv.render('components/card/template.njk', { params })
+    },
 })

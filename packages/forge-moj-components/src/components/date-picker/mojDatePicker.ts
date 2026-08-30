@@ -180,24 +180,26 @@ export const MOJDatePicker = nunjucksComponent<MOJDatePicker>('mojDatePicker', {
   inputSchema: z.string(),
   // The rendered input's id matches the render params below, so error summary links land on it.
   errorAnchor: props => props.id ?? props.code,
-  render: (props, nunjucksEnv) => {
-    const params = {
-      id: props.id ?? props.code,
-      name: props.code,
-      value: toUKDateFormat(props.value),
-      label: typeof props.label === 'object' ? props.label : { text: props.label },
-      hint: props.hint ? (typeof props.hint === 'object' ? props.hint : { text: props.hint }) : undefined,
-      errorMessage: props.errors?.length ? { text: props.errors[0].message } : undefined,
-      minDate: props.minDate,
-      maxDate: props.maxDate,
-      excludedDates: props.excludedDates?.join(' '),
-      excludedDays: props.excludedDays?.join(' '),
-      weekStartDay: props.weekStartDay,
-      formGroup: props.formGroup,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params = {
+        id: props.id ?? props.code,
+        name: props.code,
+        value: toUKDateFormat(props.value),
+        label: typeof props.label === 'object' ? props.label : { text: props.label },
+        hint: props.hint ? (typeof props.hint === 'object' ? props.hint : { text: props.hint }) : undefined,
+        errorMessage: props.errors?.length ? { text: props.errors[0].message } : undefined,
+        minDate: props.minDate,
+        maxDate: props.maxDate,
+        excludedDates: props.excludedDates?.join(' '),
+        excludedDays: props.excludedDays?.join(' '),
+        weekStartDay: props.weekStartDay,
+        formGroup: props.formGroup,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('moj/components/date-picker/template.njk', { params })
-  },
+      return nunjucksEnv.render('moj/components/date-picker/template.njk', { params })
+    },
 })

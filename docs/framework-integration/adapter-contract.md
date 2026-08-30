@@ -247,8 +247,8 @@ Each handler (`ExpressHandlerFactory`):
 
 `NunjucksRenderer` implements `ForgeRenderer<string>`: `wrapNestedBlock` returns
 `{ block, html }`, and `assemblePage` selects the page template and renders it.
-The `nunjucksComponent()` compatibility wrapper captures `nunjucksEnv` from the
-merged dependencies and passes it to existing props-first callbacks.
+The adapter adds `nunjucksEnv` to the merged dependencies received by
+`nunjucksComponent()` factories.
 See the rendering doc for detail.
 
     # Note

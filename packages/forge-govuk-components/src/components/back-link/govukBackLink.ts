@@ -75,15 +75,17 @@ export interface GovUKBackLink {
  * ```
  */
 export const GovUKBackLink = nunjucksComponent<GovUKBackLink>('govukBackLink', {
-  render: (props, nunjucksEnv) => {
-    const params: Record<string, any> = {
-      href: props.href,
-      text: props.html ? undefined : props.text,
-      html: props.html,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params: Record<string, any> = {
+        href: props.href,
+        text: props.html ? undefined : props.text,
+        html: props.html,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('govuk/components/back-link/template.njk', { params })
-  },
+      return nunjucksEnv.render('govuk/components/back-link/template.njk', { params })
+    },
 })

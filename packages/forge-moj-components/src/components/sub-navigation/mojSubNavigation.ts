@@ -78,14 +78,16 @@ export interface MOJSubNavigation {
  * ```
  */
 export const MOJSubNavigation = nunjucksComponent<MOJSubNavigation>('mojSubNavigation', {
-  render: (props, nunjucksEnv) => {
-    const params = {
-      label: props.label,
-      items: props.items.filter(item => item.visibleWhen !== false),
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params = {
+        label: props.label,
+        items: props.items.filter(item => item.visibleWhen !== false),
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('moj/components/sub-navigation/template.njk', { params })
-  },
+      return nunjucksEnv.render('moj/components/sub-navigation/template.njk', { params })
+    },
 })

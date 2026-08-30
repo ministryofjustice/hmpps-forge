@@ -149,24 +149,26 @@ export interface MOJProgressBar {
  * ```
  */
 export const MOJProgressBar = nunjucksComponent<MOJProgressBar>('mojProgressBar', {
-  render: (props, nunjucksEnv) => {
-    const params = {
-      id: props.id,
-      label: props.label,
-      items: props.items
-        .filter(item => item.visibleWhen !== false)
-        .map(item => ({
-          id: item.id,
-          label: typeof item.label === 'object' ? item.label : { text: item.label },
-          active: item.active,
-          complete: item.complete,
-          classes: item.classes,
-          attributes: item.attributes,
-        })),
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const params = {
+        id: props.id,
+        label: props.label,
+        items: props.items
+          .filter(item => item.visibleWhen !== false)
+          .map(item => ({
+            id: item.id,
+            label: typeof item.label === 'object' ? item.label : { text: item.label },
+            active: item.active,
+            complete: item.complete,
+            classes: item.classes,
+            attributes: item.attributes,
+          })),
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('moj/components/progress-bar/template.njk', { params })
-  },
+      return nunjucksEnv.render('moj/components/progress-bar/template.njk', { params })
+    },
 })

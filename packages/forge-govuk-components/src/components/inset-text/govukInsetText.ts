@@ -71,20 +71,22 @@ export interface GovUKInsetText {
  * ```
  */
 export const GovUKInsetText = nunjucksComponent<GovUKInsetText>('govukInsetText', {
-  render: (props, nunjucksEnv) => {
-    const content = normaliseGovukTextHtmlContent({
-      text: props.text,
-      html: props.html,
-      blocks: props.blocks,
-    })
-    const params: Record<string, any> = {
-      text: content.text,
-      html: content.html,
-      id: props.id,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const content = normaliseGovukTextHtmlContent({
+        text: props.text,
+        html: props.html,
+        blocks: props.blocks,
+      })
+      const params: Record<string, any> = {
+        text: content.text,
+        html: content.html,
+        id: props.id,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('govuk/components/inset-text/template.njk', { params })
-  },
+      return nunjucksEnv.render('govuk/components/inset-text/template.njk', { params })
+    },
 })

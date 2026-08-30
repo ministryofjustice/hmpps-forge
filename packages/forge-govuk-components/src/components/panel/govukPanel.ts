@@ -85,22 +85,24 @@ export interface GovUKPanel {
  * ```
  */
 export const GovUKPanel = nunjucksComponent<GovUKPanel>('govukPanel', {
-  render: (props, nunjucksEnv) => {
-    const content = normaliseGovukTextHtmlContent({
-      text: props.text,
-      html: props.html,
-      blocks: props.blocks,
-    })
-    const params: Record<string, any> = {
-      titleText: props.titleHtml ? undefined : props.titleText,
-      titleHtml: props.titleHtml,
-      headingLevel: props.headingLevel,
-      text: content.text,
-      html: content.html,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const content = normaliseGovukTextHtmlContent({
+        text: props.text,
+        html: props.html,
+        blocks: props.blocks,
+      })
+      const params: Record<string, any> = {
+        titleText: props.titleHtml ? undefined : props.titleText,
+        titleHtml: props.titleHtml,
+        headingLevel: props.headingLevel,
+        text: content.text,
+        html: content.html,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('govuk/components/panel/template.njk', { params })
-  },
+      return nunjucksEnv.render('govuk/components/panel/template.njk', { params })
+    },
 })

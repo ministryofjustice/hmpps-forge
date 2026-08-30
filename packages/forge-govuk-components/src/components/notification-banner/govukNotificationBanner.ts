@@ -146,26 +146,28 @@ export interface GovUKNotificationBanner {
  * ```
  */
 export const GovUKNotificationBanner = nunjucksComponent<GovUKNotificationBanner>('govukNotificationBanner', {
-  render: (props, nunjucksEnv) => {
-    const content = normaliseGovukTextHtmlContent({
-      text: props.text,
-      html: props.html,
-      blocks: props.content,
-    })
-    const params: Record<string, any> = {
-      text: content.text,
-      html: content.html,
-      titleText: props.titleHtml ? undefined : props.titleText,
-      titleHtml: props.titleHtml,
-      titleHeadingLevel: props.titleHeadingLevel,
-      type: props.bannerType,
-      role: props.role,
-      titleId: props.titleId,
-      disableAutoFocus: props.disableAutoFocus,
-      classes: props.classes,
-      attributes: props.attributes,
-    }
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) => {
+      const content = normaliseGovukTextHtmlContent({
+        text: props.text,
+        html: props.html,
+        blocks: props.content,
+      })
+      const params: Record<string, any> = {
+        text: content.text,
+        html: content.html,
+        titleText: props.titleHtml ? undefined : props.titleText,
+        titleHtml: props.titleHtml,
+        titleHeadingLevel: props.titleHeadingLevel,
+        type: props.bannerType,
+        role: props.role,
+        titleId: props.titleId,
+        disableAutoFocus: props.disableAutoFocus,
+        classes: props.classes,
+        attributes: props.attributes,
+      }
 
-    return nunjucksEnv.render('govuk/components/notification-banner/template.njk', { params })
-  },
+      return nunjucksEnv.render('govuk/components/notification-banner/template.njk', { params })
+    },
 })
