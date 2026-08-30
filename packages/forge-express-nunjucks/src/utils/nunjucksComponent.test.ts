@@ -1,6 +1,6 @@
 import nunjucks from 'nunjucks'
 import { z } from 'zod'
-import { ComponentTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
+import { FunctionRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 
 import { nunjucksComponent } from './nunjucksComponent'
 
@@ -12,7 +12,7 @@ describe('nunjucksComponent()', () => {
       const Card = nunjucksComponent<{ title: string }>('card', {
         render: (props, renderer) => renderer.renderString('<h1>{{ title }}</h1>', props),
       })
-      const harness = new ComponentTestHarness(Card, { nunjucksEnv: environment })
+      const harness = new FunctionRegistryTestHarness(Card, { nunjucksEnv: environment })
 
       // Act
       const output = await harness.render(Card({ title: 'Details' }))
@@ -49,7 +49,7 @@ describe('nunjucksComponent()', () => {
         // @ts-expect-error Exercise the runtime contract for untyped JavaScript consumers.
         render: () => 123,
       })
-      const harness = new ComponentTestHarness(Broken, { nunjucksEnv: environment })
+      const harness = new FunctionRegistryTestHarness(Broken, { nunjucksEnv: environment })
 
       // Act
       const output = harness.render(Broken({ code: 'broken', label: 'Broken' })).withValue(undefined)

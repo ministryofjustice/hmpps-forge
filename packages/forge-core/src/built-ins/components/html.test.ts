@@ -1,8 +1,8 @@
 import { HtmlBlock } from './html'
-import { ComponentTestHarness } from '../../testing/components/ComponentTestHarness'
+import { FunctionRegistryTestHarness } from '../../testing/functions/FunctionRegistryTestHarness'
 
 describe('html component', () => {
-  const harness = new ComponentTestHarness(HtmlBlock)
+  const harness = new FunctionRegistryTestHarness(HtmlBlock)
 
   const mockBlock = (overrides?: Partial<HtmlBlock>) =>
     HtmlBlock({

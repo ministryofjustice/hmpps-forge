@@ -78,10 +78,9 @@ generators directly when a predicate and single static message are not enough.
   field builder. `ResolvableProps` powers the authoring surface internally, so GOV.UK
   and MOJ components no longer wrap either whole interfaces or individual values
   themselves ([#281])
-- `FunctionRegistryTestHarness` accepts entries alongside registries ([#269])
-- `ComponentRegistryTestHarness` renders author-facing component calls through
-  Forge's recursive component rendering boundary, with `.withValue()` for field
-  runtime values and errors ([#282])
+- `FunctionRegistryTestHarness` accepts function and component entries, renders
+  author-facing component calls through Forge's recursive rendering boundary, and
+  provides `.withValue()` for field runtime values and errors ([#269], [#292])
 - `Loop.Item()` - the current loop's item under the `Loop` namespace, with the same
   `.path()`, `.value()` and `.key()` accessors as `Item()`. Nested loops read as
   `Loop.Parent.Item()` instead of `Item().parent`, so all loop access now lives in one
@@ -313,6 +312,7 @@ use returned error items for expected invalid input. ([#274])
 [#283]: https://github.com/ministryofjustice/hmpps-forge/pull/283
 [#290]: https://github.com/ministryofjustice/hmpps-forge/pull/290
 [#291]: https://github.com/ministryofjustice/hmpps-forge/pull/291
+[#292]: https://github.com/ministryofjustice/hmpps-forge/pull/292
 
 ---
 

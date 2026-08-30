@@ -1,5 +1,5 @@
 import { component } from '../../components/presentation'
-import { ComponentTestHarness } from '../../testing/components/ComponentTestHarness'
+import { FunctionRegistryTestHarness } from '../../testing/functions/FunctionRegistryTestHarness'
 import { CollectionBlock } from './collectionBlock'
 
 const TestBlock = component<{ html: string }>('testBlock', {
@@ -9,7 +9,7 @@ const TestBlock = component<{ html: string }>('testBlock', {
       props.html,
 })
 
-const harness = new ComponentTestHarness([CollectionBlock, TestBlock])
+const harness = new FunctionRegistryTestHarness([CollectionBlock, TestBlock])
 
 const testBlock = (html: string) => TestBlock({ html })
 
