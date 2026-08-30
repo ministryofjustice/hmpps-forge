@@ -162,9 +162,9 @@ describe('ReachabilityCompiler', () => {
   }
 
   dependencies.functionRegistry.register({
-    equals: { name: 'equals', isAsync: true, evaluate: () => undefined },
-    throwingCondition: { name: 'throwingCondition', isAsync: true, evaluate: () => undefined },
-    nextStep: { name: 'nextStep', isAsync: false, evaluate: () => undefined },
+    equals: { name: 'equals', evaluate: () => undefined },
+    throwingCondition: { name: 'throwingCondition', evaluate: () => undefined },
+    nextStep: { name: 'nextStep', evaluate: () => undefined },
   })
 
   beforeEach(() => {
@@ -173,7 +173,7 @@ describe('ReachabilityCompiler', () => {
   })
 
   describe('compile()', () => {
-    it('should keep compiled reachability synchronous when registry functions are sync', async () => {
+    it('should dynamically await reachability functions without relying on registry metadata', async () => {
       // Arrange
       const predicate = createTestPredicate(
         createReference(['data', 'isAdmin']),
@@ -187,7 +187,7 @@ describe('ReachabilityCompiler', () => {
       functionRegistry.register({
         equals: {
           name: 'equals',
-          isAsync: false,
+
           evaluate: (value: unknown, expected: unknown) => value === expected,
         },
       })
@@ -205,7 +205,8 @@ describe('ReachabilityCompiler', () => {
       )
 
       // Assert
-      expect(source).not.toContain('await')
+      expect(source).toContain('_forgeHelpers.isThenable(functionResult)')
+      expect(source).toContain('functionResult = await functionResult')
       expect(result.entryResults[0]).toBe(true)
     })
 
@@ -223,7 +224,7 @@ describe('ReachabilityCompiler', () => {
       functionRegistry.register({
         equals: {
           name: 'equals',
-          isAsync: true,
+
           evaluate: async (value: unknown, expected: unknown) => value === expected,
         },
       })
@@ -256,7 +257,7 @@ describe('ReachabilityCompiler', () => {
       functionRegistry.register({
         nextPath: {
           name: 'nextPath',
-          isAsync: true,
+
           evaluate: async () => 'next',
         },
       })

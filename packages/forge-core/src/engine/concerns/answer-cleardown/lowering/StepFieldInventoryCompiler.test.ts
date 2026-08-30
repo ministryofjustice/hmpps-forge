@@ -155,7 +155,7 @@ describe('StepFieldInventoryCompiler', () => {
       expect(source).not.toContain('const fieldCodes')
     })
 
-    it('should collect dynamic registered field codes', () => {
+    it('should collect dynamic registered field codes', async () => {
       // Arrange
       const functionRegistry = new FunctionRegistry()
       const dynamicCode = createGeneratorFunction('fieldCode')
@@ -171,7 +171,7 @@ describe('StepFieldInventoryCompiler', () => {
       functionRegistry.register({
         fieldCode: {
           name: 'fieldCode',
-          isAsync: false,
+
           evaluate: () => 'firstName',
         },
       })
@@ -183,7 +183,7 @@ describe('StepFieldInventoryCompiler', () => {
       const compiled = localCompiler.compile(inventoryModel(steps))
 
       // Act
-      const result = compiled!(createContext(functionRegistry))
+      const result = await compiled!(createContext(functionRegistry))
 
       // Assert
       expect(result).toEqual([
@@ -195,7 +195,7 @@ describe('StepFieldInventoryCompiler', () => {
       ])
     })
 
-    it('should compile MAP iterator template field codes without runtime expansion', () => {
+    it('should compile MAP iterator template field codes without runtime expansion', async () => {
       // Arrange
       const functionRegistry = new FunctionRegistry()
       const dynamicCode = createGeneratorFunction('memberCode', [createReference(['@loop', '0', 'index0'])])
@@ -213,7 +213,7 @@ describe('StepFieldInventoryCompiler', () => {
       functionRegistry.register({
         memberCode: {
           name: 'memberCode',
-          isAsync: false,
+
           evaluate: (index: unknown) => `member_${String(index)}`,
         },
       })
@@ -225,7 +225,7 @@ describe('StepFieldInventoryCompiler', () => {
       const compiled = localCompiler.compile(inventoryModel(steps))
 
       // Act
-      const result = compiled!(
+      const result = await compiled!(
         createContext(functionRegistry, {
           data: { members: [{ name: 'Ada' }, { name: 'Grace' }] },
         }),
@@ -241,7 +241,7 @@ describe('StepFieldInventoryCompiler', () => {
       ])
     })
 
-    it('should collect field codes from nested iterator templates with parent and child loop scope', () => {
+    it('should collect field codes from nested iterator templates with parent and child loop scope', async () => {
       // Arrange
       const functionRegistry = new FunctionRegistry()
       const dynamicCode = createGeneratorFunction('memberCode', [
@@ -264,7 +264,7 @@ describe('StepFieldInventoryCompiler', () => {
       functionRegistry.register({
         memberCode: {
           name: 'memberCode',
-          isAsync: false,
+
           evaluate: (teamIndex: unknown, memberIndex: unknown) =>
             `team_${String(teamIndex)}_member_${String(memberIndex)}`,
         },
@@ -277,7 +277,7 @@ describe('StepFieldInventoryCompiler', () => {
       const compiled = localCompiler.compile(inventoryModel(steps))
 
       // Act
-      const result = compiled!(
+      const result = await compiled!(
         createContext(functionRegistry, {
           data: {
             teams: [
@@ -316,7 +316,7 @@ describe('StepFieldInventoryCompiler', () => {
       functionRegistry.register({
         memberCode: {
           name: 'memberCode',
-          isAsync: true,
+
           evaluate: async (index: unknown) => `member_${String(index)}`,
         },
       })

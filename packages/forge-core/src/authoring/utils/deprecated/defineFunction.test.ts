@@ -35,7 +35,6 @@ describe('createFunctionsRegistry', () => {
     expect(registry.IsInteger).toMatchObject({
       name: 'IsInteger',
       evaluate: expect.any(Function),
-      isAsync: false,
       functionType: FunctionType.CONDITION,
     })
     expect(registry.IsInteger.evaluate(12)).toBe(true)
@@ -43,7 +42,7 @@ describe('createFunctionsRegistry', () => {
     expect(registry.IsInteger.evaluate('12')).toBe(false)
   })
 
-  it('should mark async evaluators as async', async () => {
+  it('should retain async evaluators without execution metadata', async () => {
     // Arrange
     const { implementations } = defineConditionFunctions({
       IsAvailable: () => async (value: string, prefix: string) => {
@@ -57,7 +56,6 @@ describe('createFunctionsRegistry', () => {
     const registry = createFunctionsRegistry(implementations, {})
 
     // Assert
-    expect(registry.IsAvailable.isAsync).toBe(true)
     await expect(registry.IsAvailable.evaluate('forge', 'for')).resolves.toBe(true)
   })
 

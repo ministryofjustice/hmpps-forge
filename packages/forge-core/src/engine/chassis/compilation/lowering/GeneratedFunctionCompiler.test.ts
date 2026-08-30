@@ -121,14 +121,14 @@ describe('GeneratedFunctionCompiler', () => {
       }
     })
 
-    it('should carry definedAt from emitted metadata into Forge diagnostics', () => {
+    it('should carry definedAt from emitted metadata into Forge diagnostics', async () => {
       // Arrange
       const functionRegistry = new FunctionRegistry()
 
       functionRegistry.register({
         throwingFunction: {
           name: 'throwingFunction',
-          isAsync: false,
+
           evaluate: () => {
             throw new Error('boom')
           },
@@ -152,7 +152,7 @@ describe('GeneratedFunctionCompiler', () => {
         () => {
           const generator = CodeGenerator.forFunction(['ctx'])
 
-          generator.return(expr.compileExpressionCode(expression))
+          generator.return(expr.compileExpressionCode(expression, generator))
 
           return generator
         },
@@ -164,7 +164,7 @@ describe('GeneratedFunctionCompiler', () => {
 
       // Assert
       try {
-        evaluate()
+        await evaluate()
         throw new Error('Expected generated function to throw')
       } catch (error) {
         if (!(error instanceof Error)) {

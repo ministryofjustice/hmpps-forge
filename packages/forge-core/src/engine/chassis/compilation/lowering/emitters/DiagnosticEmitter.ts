@@ -47,31 +47,26 @@ export default class DiagnosticEmitter {
     return positionedCode(expression, this.resolvePositions(source))
   }
 
-  wrapExpression(
-    expression: CodeFragment,
-    source: unknown,
-    usesAwait: boolean,
-    generator: CodeGenerator,
-  ): CodeFragment {
+  compileExpression(source: unknown, generator: CodeGenerator, compile: () => CodeFragment): CodeFragment {
     const metadata = this.getMetadata(source)
 
     if (metadata === undefined) {
-      return expression
+      return compile()
     }
 
-    const helperName = usesAwait ? 'evaluateTrackedAsync' : 'evaluateTracked'
-    const callback = generator.functionExpression(
-      this.compileCallbackName(metadata),
-      [],
-      callbackGenerator => {
-        callbackGenerator.return(usesAwait ? code`await (${expression})` : code`(${expression})`)
-      },
-      { async: usesAwait },
-    )
-    const helperCall = this.compileTrackedHelperCall(helperName, this.intern(metadata), callback)
-    const wrappedCall = usesAwait ? code`(await ${helperCall})` : helperCall
+    const result = generator.let('expressionResult')
+    const diagnosticReference = this.intern(metadata)
+    const positions = this.resolvePositions(source)
 
-    return positionedCode(wrappedCall, this.resolvePositions(source))
+    generator.withSourcePositions(positions, () => {
+      generator.tryCatch(
+        () => generator.assign(result, compile()),
+        'error',
+        error => generator.throw(code`${RUNTIME_DIAGNOSTICS_PARAM}.wrap(${error}, ${diagnosticReference})`),
+      )
+    })
+
+    return positionedCode(code`${result}`, positions)
   }
 
   /**
@@ -227,36 +222,6 @@ export default class DiagnosticEmitter {
       default:
         return undefined
     }
-  }
-
-  private compileTrackedHelperCall(
-    helperName: string,
-    diagnosticReference: number,
-    callback: CodeFragment,
-  ): CodeFragment {
-    return callCode(code`${GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM}${propertyCode(helperName)}`, [
-      RUNTIME_DIAGNOSTICS_PARAM,
-      literal(diagnosticReference),
-      callback,
-    ])
-  }
-
-  /**
-   * Names the tracked callback after the node it evaluates so debugger stacks
-   * show `evaluate_hidden` instead of `<anonymous>`. The `evaluate_` prefix
-   * avoids clashing with any variable name the compilers emit, so the inner
-   * expression can never be accidentally shadowed.
-   */
-  private compileCallbackName(metadata: DiagnosticMetadata): string {
-    const pathTail = metadata.formattedPath?.split(' > ').at(-1) ?? metadata.functionName
-
-    if (pathTail === undefined) {
-      return 'evaluate_expression'
-    }
-
-    const identifier = pathTail.replace(/[^\w$]+/g, '_').replace(/^_+|_+$/g, '')
-
-    return identifier.length > 0 ? `evaluate_${identifier}` : 'evaluate_expression'
   }
 
   private compileFunctionHelperCall(

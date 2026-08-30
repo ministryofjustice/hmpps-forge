@@ -227,7 +227,7 @@ flowchart TD
   As above, the runtime executor handles this. By returning `WorkTasks`, we can properly track runtime work, super
   inspired by React's Fiber model.
 - Async is discovered during expression compilation.
-  `ExpressionDispatcher.usesAwait` flips when a registered async function is compiled, and `compileGeneratedFunction()` chooses `AsyncFunction`.
+  `ExpressionDispatcher.usesAwait` flips when a Forge function call is compiled. The generated statements inspect its returned value and await it only when it is thenable; `compileGeneratedFunction()` chooses `AsyncFunction` for the enclosing generated function.
 - Hook lifecycles force async.
   Effects are awaited even when the current hook list does not visibly contain an async function.
 - Journey reachability is compiled at journey scope.

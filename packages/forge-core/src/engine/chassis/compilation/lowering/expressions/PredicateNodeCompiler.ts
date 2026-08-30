@@ -1,5 +1,5 @@
 import { PredicateType } from '../../../../../authoring/types/enums'
-import { CodeFragment, arrayCode, code, joinCode, literal } from '../codegen/fragments/CodeFragment'
+import { CodeFragment, arrayCode, code, literal } from '../codegen/fragments/CodeFragment'
 import { NodeCompilationContext } from './types'
 
 /**
@@ -21,9 +21,9 @@ export default class PredicateNodeCompiler {
       case PredicateType.TEST:
         return this.compileTest(properties)
       case PredicateType.AND:
-        return this.compileLogical(properties, code` && `, literal(true))
+        return this.compileLogical(properties, true)
       case PredicateType.OR:
-        return this.compileLogical(properties, code` || `, literal(false))
+        return this.compileLogical(properties, false)
       case PredicateType.NOT:
         return this.compileNot(properties)
       case PredicateType.XOR:
@@ -49,9 +49,7 @@ export default class PredicateNodeCompiler {
     const conditionProps = (condition.properties ?? condition) as Record<string, unknown>
     const funcName = conditionProps.name as string
     const funcArgs = (conditionProps.arguments ?? []) as unknown[]
-    const [subjectExpr, ...argExprs] = this.ctx.withoutCallHoisting(() =>
-      [subject, ...funcArgs].map(arg => this.ctx.compileOperandCode(arg)),
-    )
+    const [subjectExpr, ...argExprs] = [subject, ...funcArgs].map(arg => this.ctx.compileOperandCode(arg))
     const callExpr = this.ctx.compileFunctionCallCode(funcName, [subjectExpr, ...argExprs], condition, {
       argumentPrefixes: ['subject', ...funcArgs.map((_, index) => `functionArgument${index + 1}`)],
     })
@@ -66,21 +64,24 @@ export default class PredicateNodeCompiler {
   /**
    * Preserves JavaScript's short-circuit behaviour for AND and OR predicates.
    */
-  private compileLogical(
-    properties: Record<string, unknown>,
-    operator: CodeFragment,
-    empty: CodeFragment,
-  ): CodeFragment {
+  private compileLogical(properties: Record<string, unknown>, isAnd: boolean): CodeFragment {
     const operands = (properties.operands ?? []) as unknown[]
-    // Operands after the first evaluate conditionally under short-circuiting,
-    // so none of them may hoist call statements out of the expression.
-    const compiled = this.ctx.withoutCallHoisting(() => operands.map(op => this.ctx.compileOperandCode(op)))
 
-    if (compiled.length === 0) {
-      return empty
+    if (operands.length === 0) {
+      return literal(isAnd)
     }
 
-    return code`(${joinCode(compiled, operator)})`
+    const result = this.ctx.generator.let('predicateResult', this.ctx.compileOperandCode(operands[0]))
+
+    operands.slice(1).forEach(operand => {
+      const condition = isAnd ? code`${result}` : code`!${result}`
+
+      this.ctx.generator.if(condition, () => {
+        this.ctx.generator.assign(result, this.ctx.compileOperandCode(operand))
+      })
+    })
+
+    return code`${result}`
   }
 
   /**
@@ -95,9 +96,7 @@ export default class PredicateNodeCompiler {
    */
   private compileXor(properties: Record<string, unknown>): CodeFragment {
     const operands = (properties.operands ?? []) as unknown[]
-    const compiled = this.ctx.withoutCallHoisting(() =>
-      operands.map(op => code`Boolean(${this.ctx.compileOperandCode(op)})`),
-    )
+    const compiled = operands.map(op => code`Boolean(${this.ctx.compileOperandCode(op)})`)
 
     return code`(${arrayCode(compiled)}.filter(Boolean).length === 1)`
   }

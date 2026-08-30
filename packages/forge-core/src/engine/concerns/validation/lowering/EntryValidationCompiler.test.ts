@@ -56,7 +56,7 @@ describe('EntryValidationCompiler', () => {
   }
 
   dependencies.functionRegistry.register({
-    equals: { name: 'equals', isAsync: true, evaluate: () => undefined },
+    equals: { name: 'equals', evaluate: () => undefined },
   })
 
   beforeEach(() => {
@@ -103,7 +103,7 @@ describe('EntryValidationCompiler', () => {
       functionRegistry.register({
         equals: {
           name: 'equals',
-          isAsync: false,
+
           evaluate: (value: unknown, expected: unknown) => value === expected,
         },
       })
@@ -139,7 +139,7 @@ describe('EntryValidationCompiler', () => {
       functionRegistry.register({
         equals: {
           name: 'equals',
-          isAsync: true,
+
           evaluate: async (value: unknown, expected: unknown) => value === expected,
         },
       })

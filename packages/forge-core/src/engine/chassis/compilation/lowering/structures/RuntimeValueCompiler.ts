@@ -179,31 +179,30 @@ export default class RuntimeValueCompiler {
     const errorMode = options.expressionErrorMode ?? this.policy.expressionErrorMode ?? 'fallback'
 
     if (errorMode === 'throw') {
-      const expression = this.expr.withCallHoistingScope(generator, () => this.compileNodeExpression(node))
+      const expression = this.expr.withGeneratorScope(generator, () => this.compileNodeExpression(node, generator))
 
       generator.assign(target, expression)
 
       return
     }
 
-    const expression = this.compileNodeExpression(node)
     const fallback = options.expressionErrorFallback ?? this.policy.expressionErrorFallback
 
     generator.tryCatch(
-      () => generator.assign(target, expression),
+      () => generator.assign(target, this.compileNodeExpression(node, generator)),
       'error',
       () => generator.assign(target, fallback),
     )
   }
 
-  private compileNodeExpression(node: ASTNode | TemplateNode): CodeFragment {
+  private compileNodeExpression(node: ASTNode | TemplateNode, generator: CodeGenerator): CodeFragment {
     return this.expr.isTemplateNode(node)
-      ? this.expr.compileTemplateExpressionCode(node)
-      : this.expr.compileExpressionCode(node)
+      ? this.expr.compileTemplateExpressionCode(node, generator)
+      : this.expr.compileExpressionCode(node, generator)
   }
 
   private compileExpressionWithCatch(
-    expression: CodeFragment,
+    compileExpression: () => CodeFragment,
     generator: CodeGenerator,
     target: IdentifierName,
     options: RuntimeValueCompileOptions,
@@ -211,7 +210,7 @@ export default class RuntimeValueCompiler {
     const errorMode = options.expressionErrorMode ?? this.policy.expressionErrorMode ?? 'fallback'
 
     if (errorMode === 'throw') {
-      generator.assign(target, expression)
+      generator.assign(target, compileExpression())
 
       return
     }
@@ -219,7 +218,7 @@ export default class RuntimeValueCompiler {
     const fallback = options.expressionErrorFallback ?? this.policy.expressionErrorFallback
 
     generator.tryCatch(
-      () => generator.assign(target, expression),
+      () => generator.assign(target, compileExpression()),
       'error',
       () => generator.assign(target, fallback),
     )
@@ -240,7 +239,7 @@ export default class RuntimeValueCompiler {
     const errorMode = options.expressionErrorMode ?? this.policy.expressionErrorMode ?? 'fallback'
 
     if (errorMode === 'throw') {
-      const expression = this.expr.withCallHoistingScope(generator, () => this.compileNodeExpression(node))
+      const expression = this.expr.withGeneratorScope(generator, () => this.compileNodeExpression(node, generator))
 
       if (!expression.containsInvocation) {
         return expression
@@ -341,10 +340,15 @@ export default class RuntimeValueCompiler {
   ): void {
     const predicate = generator.let('conditionalPredicate')
 
-    this.compileExpressionWithCatch(this.expr.compileOperandCode(toRawOperand(value.predicate)), generator, predicate, {
-      ...options,
-      expressionErrorFallback: literal(false),
-    })
+    this.compileExpressionWithCatch(
+      () => this.expr.compileOperandCode(toRawOperand(value.predicate), generator),
+      generator,
+      predicate,
+      {
+        ...options,
+        expressionErrorFallback: literal(false),
+      },
+    )
 
     generator.if(
       predicate,
@@ -359,26 +363,38 @@ export default class RuntimeValueCompiler {
     target: IdentifierName,
     options: RuntimeValueCompileOptions,
   ): void {
-    const compiledBranches = value.branches.map(branch => {
-      const predicate = generator.let('matchPredicate')
+    this.compileMatchBranches(value.branches, value.otherwise, generator, target, options)
+  }
 
-      this.compileExpressionWithCatch(
-        this.expr.compileOperandCode(toRawOperand(branch.predicate)),
-        generator,
-        predicate,
-        { ...options, expressionErrorFallback: literal(false) },
-      )
+  private compileMatchBranches(
+    branches: MatchValue['branches'],
+    otherwise: MatchValue['otherwise'],
+    generator: CodeGenerator,
+    target: IdentifierName,
+    options: RuntimeValueCompileOptions,
+  ): void {
+    const [branch, ...remainingBranches] = branches
 
-      return {
-        condition: predicate,
-        body: () => this.compileValue(branch.value, generator, target, options),
+    if (branch === undefined) {
+      if (otherwise !== undefined) {
+        this.compileValue(otherwise, generator, target, options)
       }
-    })
-    const { otherwise } = value
 
-    generator.ifChain(
-      compiledBranches,
-      otherwise === undefined ? undefined : () => this.compileValue(otherwise, generator, target, options),
+      return
+    }
+
+    const predicate = generator.let('matchPredicate')
+
+    this.compileExpressionWithCatch(
+      () => this.expr.compileOperandCode(toRawOperand(branch.predicate), generator),
+      generator,
+      predicate,
+      { ...options, expressionErrorFallback: literal(false) },
+    )
+    generator.if(
+      predicate,
+      () => this.compileValue(branch.value, generator, target, options),
+      () => this.compileMatchBranches(remainingBranches, otherwise, generator, target, options),
     )
   }
 
@@ -440,9 +456,12 @@ export default class RuntimeValueCompiler {
     this.loops.compileLoop(toRawOperand(value.input), generator, scope => {
       const predicate = generator.let('filterPredicate')
 
-      this.compileExpressionWithCatch(this.expr.compileOperandCode(this.toRawPredicate(value)), generator, predicate, {
-        expressionErrorFallback: literal(false),
-      })
+      this.compileExpressionWithCatch(
+        () => this.expr.compileOperandCode(this.toRawPredicate(value), generator),
+        generator,
+        predicate,
+        { expressionErrorFallback: literal(false) },
+      )
       generator.if(predicate, () => {
         generator.statement(code`${filterValue}.push(${scope.rawItem})`)
       })
@@ -455,9 +474,12 @@ export default class RuntimeValueCompiler {
     this.loops.compileLoop(toRawOperand(value.input), generator, scope => {
       const predicate = generator.let('findPredicate')
 
-      this.compileExpressionWithCatch(this.expr.compileOperandCode(this.toRawPredicate(value)), generator, predicate, {
-        expressionErrorFallback: literal(false),
-      })
+      this.compileExpressionWithCatch(
+        () => this.expr.compileOperandCode(this.toRawPredicate(value), generator),
+        generator,
+        predicate,
+        { expressionErrorFallback: literal(false) },
+      )
       generator.if(predicate, () => {
         generator.assign(target, scope.rawItem)
         generator.break()

@@ -5,7 +5,6 @@ import { FunctionRegistryTestHarness } from '../../../testing/functions/Function
 import { GeneratorBuilder } from '../../../authoring/builders/GeneratorBuilder'
 
 describe('FormatGenerators', () => {
-  const registry = formatGeneratorsRegistry.build()
   const harness = new FunctionRegistryTestHarness(formatGeneratorsRegistry)
 
   describe('FormatString', () => {
@@ -71,11 +70,6 @@ describe('FormatGenerators', () => {
         name: FORMAT_STRING_GENERATOR_NAME,
         arguments: ['Hello %1', 'Ada'],
       })
-    })
-
-    it('should mark FormatString as sync', () => {
-      // Assert
-      expect(registry[FORMAT_STRING_GENERATOR_NAME].isAsync).toBe(false)
     })
   })
 })

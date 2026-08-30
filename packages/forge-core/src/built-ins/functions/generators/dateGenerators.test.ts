@@ -4,7 +4,6 @@ import { GeneratorBuilder } from '../../../authoring/builders/GeneratorBuilder'
 import { FunctionRegistryTestHarness } from '../../../testing/functions/FunctionRegistryTestHarness'
 
 describe('DateGenerators', () => {
-  const registry = dateGeneratorsRegistry.build()
   const harness = new FunctionRegistryTestHarness(dateGeneratorsRegistry)
 
   describe('Now', () => {
@@ -70,15 +69,4 @@ describe('DateGenerators', () => {
     })
   })
 
-  describe('Registry Metadata', () => {
-    it('should mark Now as sync', () => {
-      // Assert
-      expect(registry['Date.Now'].isAsync).toBe(false)
-    })
-
-    it('should mark Today as sync', () => {
-      // Assert
-      expect(registry['Date.Today'].isAsync).toBe(false)
-    })
-  })
 })

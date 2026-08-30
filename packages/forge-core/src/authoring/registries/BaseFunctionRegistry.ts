@@ -152,7 +152,6 @@ export abstract class BaseFunctionRegistry<TDeps = Record<string, never>> {
       registry[name] = {
         name,
         evaluate,
-        isAsync: evaluate.constructor.name === 'AsyncFunction',
         inputSchema: registration.inputSchema,
         argumentsSchema: registration.argumentsSchema,
         outputSchema: registration.outputSchema,

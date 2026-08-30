@@ -93,7 +93,7 @@ describe('RouteMetadataCompiler', () => {
       expect(result[stepNode.id]).toEqual({ title: 'Resolved at request time' })
     })
 
-    it('should throw a route-tree phase error when a title expression fails', () => {
+    it('should throw a route-tree phase error when a title expression fails', async () => {
       // Arrange
       const boomTitle = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'boom')
       const stepNode = ASTTestFactory.step().withProperty('title', boomTitle).build()
@@ -102,7 +102,7 @@ describe('RouteMetadataCompiler', () => {
       functionRegistry.register({
         boom: {
           name: 'boom',
-          isAsync: false,
+
           evaluate: () => {
             throw new Error('Title failed')
           },
@@ -119,7 +119,7 @@ describe('RouteMetadataCompiler', () => {
       let thrown: unknown
 
       try {
-        compiled(createCtx({ conditions: functionRegistry }))
+        await compiled(createCtx({ conditions: functionRegistry }))
       } catch (error) {
         thrown = error
       }

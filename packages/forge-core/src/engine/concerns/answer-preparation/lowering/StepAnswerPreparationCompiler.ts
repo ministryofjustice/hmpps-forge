@@ -1,5 +1,4 @@
 import {
-  arrayCode,
   callCode,
   CodeFragment,
   code,
@@ -184,46 +183,43 @@ export default class StepAnswerPreparationCompiler {
       return undefined
     }
 
-    return generator.functionExpression(functionName, ['value'], (body, [value]) => {
-      let pipelineAwaits = false
-      const transformerThunks = transformers.map(transformer => {
-        const compiledThunk = this.compileTransformerThunk(transformer, body)
+    let bodyUsesAwait = false
 
-        pipelineAwaits = pipelineAwaits || compiledThunk.usesAwait
+    return generator.functionExpression(
+      functionName,
+      ['value'],
+      (body, [value]) => {
+        bodyUsesAwait = this.expr.trackNestedFunctionAwait(() => {
+          this.expr.withGeneratorScope(body, () => {
+            const transformedValue = body.let('transformedValue', value)
 
-        return compiledThunk.thunk
-      })
-      const pipeline = pipelineAwaits
-        ? code`${HELPERS}.applyTransformerPipelineAsync`
-        : code`${HELPERS}.applyTransformerPipeline`
+            body.tryCatch(
+              () => {
+                transformers.forEach(transformer => {
+                  const transformerResult = body.const(
+                    'transformerResult',
+                    this.compileTransformerCall(transformer, transformedValue, body),
+                  )
 
-      body.return(callCode(pipeline, [value, arrayCode(transformerThunks)]))
-    })
-  }
-
-  private compileTransformerThunk(
-    transformer: TransformerPipeline[number],
-    generator: CodeGenerator,
-  ): { thunk: CodeFragment; usesAwait: boolean } {
-    let thunkUsesAwait = false
-    const thunk = generator.functionExpression(
-      this.transformerThunkName(transformer.name),
-      ['transformedValue'],
-      (body, [transformedValue]) => {
-        thunkUsesAwait = this.expr.trackNestedFunctionAwait(() => {
-          body.return(this.compileTransformerCall(transformer, transformedValue))
+                  body.if(code`${transformerResult} !== undefined`, () => {
+                    body.assign(transformedValue, transformerResult)
+                  })
+                })
+              },
+              'error',
+              error => {
+                body.if(code`${HELPERS}.isTransformerTypeError(${error})`, () => {
+                  body.return(value)
+                })
+                body.throw(error)
+              },
+            )
+            body.return(transformedValue)
+          })
         })
       },
-      { async: () => thunkUsesAwait },
+      { async: () => bodyUsesAwait },
     )
-
-    return { thunk, usesAwait: thunkUsesAwait }
-  }
-
-  private transformerThunkName(transformerName: string): string {
-    const nameParts = transformerName.split(/[^A-Za-z0-9]+/).filter(part => part.length > 0)
-
-    return `apply${nameParts.map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('')}`
   }
 
   private compileDependentWhenCallback(
@@ -271,7 +267,9 @@ export default class StepAnswerPreparationCompiler {
       prefix,
       [],
       body => {
-        bodyUsesAwait = this.expr.trackNestedFunctionAwait(() => buildBody(body))
+        bodyUsesAwait = this.expr.trackNestedFunctionAwait(() =>
+          this.expr.withGeneratorScope(body, () => buildBody(body)),
+        )
       },
       { async: () => bodyUsesAwait },
     )
@@ -323,8 +321,14 @@ export default class StepAnswerPreparationCompiler {
     return generator.const('fieldPreparations', callCode(code`${fieldGroups}.map`, [createFieldPreparation]))
   }
 
-  private compileTransformerCall(transformer: TransformerPipeline[number], value: IdentifierName): CodeFragment {
-    const argumentsCode = transformer.arguments.map(argument => this.expr.compileOperandCode(toRawOperand(argument)))
+  private compileTransformerCall(
+    transformer: TransformerPipeline[number],
+    value: IdentifierName,
+    generator: CodeGenerator,
+  ): CodeFragment {
+    const argumentsCode = transformer.arguments.map(argument =>
+      this.expr.compileOperandCode(toRawOperand(argument), generator),
+    )
 
     return this.expr.compileFunctionCallCode(
       transformer.name,

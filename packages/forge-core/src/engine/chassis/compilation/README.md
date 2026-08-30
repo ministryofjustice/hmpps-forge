@@ -46,7 +46,7 @@ It accepts a `JourneyDefinition` and returns a `CompiledPackage`.
 Under the hood it builds a `CompilationState`, runs the `compilation.pipeline` work task through `WorkExecutor.executeSyncWithUnit()`, emits the compilation trace, and assembles the result.
 
 `CompilationDependencies` carries what the phases need while compiling:
-- `functionRegistry`, used to validate function names and decide generated async behavior.
+- `functionRegistry`, used to validate function names and provide request-time evaluator lookup.
 - `componentRegistry`, used to validate block variants and component metadata.
 
 `CompilationState`, in [pipeline/CompilationState.ts](pipeline/CompilationState.ts), is the draft the phases build up.

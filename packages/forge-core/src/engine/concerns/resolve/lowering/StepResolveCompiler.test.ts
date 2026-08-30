@@ -1,4 +1,3 @@
-/* eslint-disable no-new-func */
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { BlockType, ExpressionType, FunctionType, IteratorType, PredicateType } from '../../../../authoring/types/enums'
 import {
@@ -153,12 +152,12 @@ describe('StepResolveCompiler', () => {
   }
 
   dependencies.functionRegistry.register({
-    answerCode: { name: 'answerCode', isAsync: true, evaluate: () => undefined },
-    Equals: { name: 'Equals', isAsync: true, evaluate: () => undefined },
-    fieldCode: { name: 'fieldCode', isAsync: true, evaluate: () => undefined },
-    FormatString: { name: 'FormatString', isAsync: true, evaluate: () => undefined },
-    renderAddress: { name: 'renderAddress', isAsync: true, evaluate: () => undefined },
-    renderMember: { name: 'renderMember', isAsync: true, evaluate: () => undefined },
+    answerCode: { name: 'answerCode', evaluate: () => undefined },
+    Equals: { name: 'Equals', evaluate: () => undefined },
+    fieldCode: { name: 'fieldCode', evaluate: () => undefined },
+    FormatString: { name: 'FormatString', evaluate: () => undefined },
+    renderAddress: { name: 'renderAddress', evaluate: () => undefined },
+    renderMember: { name: 'renderMember', evaluate: () => undefined },
   })
 
   beforeEach(() => {
@@ -228,7 +227,7 @@ describe('StepResolveCompiler', () => {
       )
     })
 
-    it('should keep compiled render synchronous when registry functions are sync', () => {
+    it('should dynamically await render functions without relying on registry metadata', async () => {
       // Arrange
       const title = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'renderTitle', ['Ada'])
       const block = ASTTestFactory.block('content', BlockType.BASIC)
@@ -239,7 +238,7 @@ describe('StepResolveCompiler', () => {
       functionRegistry.register({
         renderTitle: {
           name: 'renderTitle',
-          isAsync: false,
+
           evaluate: (name: unknown) => `Hello ${String(name)}`,
         },
       })
@@ -249,16 +248,11 @@ describe('StepResolveCompiler', () => {
       // Act
       const source = syncCompiler.generateSource(resolveModel(createStepWithBlocks([block]), [], []))
       const compiled = syncCompiler.compile(resolveModel(createStepWithBlocks([block]), [], []))
-      const result = compiled!(createCtx({ conditions: functionRegistry }))
+      const result = await compiled!(createCtx({ conditions: functionRegistry }))
 
       // Assert
-      expect(source).not.toContain('await')
-      expect(result).not.toBeInstanceOf(Promise)
-
-      if (result instanceof Promise) {
-        throw new Error('Expected sync render result')
-      }
-
+      expect(source).toContain('_forgeHelpers.isThenable(functionResult)')
+      expect(source).toContain('functionResult = await functionResult')
       expect(result.props.blocks[0].props.properties.content).toBe('Hello Ada')
     })
 
@@ -273,7 +267,7 @@ describe('StepResolveCompiler', () => {
       functionRegistry.register({
         renderTitle: {
           name: 'renderTitle',
-          isAsync: true,
+
           evaluate: async (name: unknown) => `Hello ${String(name)}`,
         },
       })
@@ -927,7 +921,7 @@ describe('StepResolveCompiler', () => {
       const functionRegistry = new FunctionRegistry()
 
       functionRegistry.register({
-        Equals: { name: 'Equals', isAsync: false, evaluate: () => undefined },
+        Equals: { name: 'Equals', evaluate: () => undefined },
       })
 
       const localCompiler = new StepResolveCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
@@ -973,7 +967,11 @@ describe('StepResolveCompiler', () => {
       const source = localCompiler.generateSource(resolveModel(createStepWithBlocks([block]), []))
 
       // Act / Assert
-      expect(() => new Function('ctx', source)).not.toThrow()
+      const AsyncFunction = Object.getPrototypeOf(async function asyncFunctionPrototype() {
+        return undefined
+      }).constructor as FunctionConstructor
+
+      expect(() => new AsyncFunction('ctx', source)).not.toThrow()
     })
 
     it('should evaluate conditional expressions in block properties', async () => {
@@ -1146,12 +1144,12 @@ describe('StepResolveCompiler', () => {
         ...formatGeneratorsRegistry.build(),
         Equals: {
           name: 'Equals',
-          isAsync: false,
+
           evaluate: (value: unknown, expected: unknown) => value === expected,
         },
         Length: {
           name: 'Length',
-          isAsync: false,
+
           evaluate: (value: unknown) => {
             if (!Array.isArray(value)) {
               throw new Error('Expected array')
@@ -1227,12 +1225,12 @@ describe('StepResolveCompiler', () => {
         ...formatGeneratorsRegistry.build(),
         Equals: {
           name: 'Equals',
-          isAsync: false,
+
           evaluate: (value: unknown, expected: unknown) => value === expected,
         },
         Length: {
           name: 'Length',
-          isAsync: false,
+
           evaluate: (value: unknown) => {
             if (!Array.isArray(value)) {
               throw new Error('Expected array')
@@ -1356,7 +1354,7 @@ describe('StepResolveCompiler', () => {
         ...formatGeneratorsRegistry.build(),
         AsyncFormatDate: {
           name: 'AsyncFormatDate',
-          isAsync: true,
+
           evaluate,
         },
       })
@@ -1452,7 +1450,7 @@ describe('StepResolveCompiler', () => {
         ...formatGeneratorsRegistry.build(),
         throwingCount: {
           name: 'throwingCount',
-          isAsync: false,
+
           evaluate: () => {
             throw new Error('Count failed')
           },

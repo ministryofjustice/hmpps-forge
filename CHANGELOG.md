@@ -57,7 +57,7 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 A correctness-focused release improving invalid-reference detection, request-time
 expression inputs, definition serialisation, redirect tracing, test harness
-configuration, and reachability traversal.
+configuration, function evaluation, and reachability traversal.
 
 ### Added
 
@@ -88,12 +88,17 @@ configuration, and reachability traversal.
   `ForgeRegistrationError`, matching other package registration failures ([#278])
 - Request traces now record the same fully resolved redirect URL carried by the
   navigation outcome ([#278])
+- Forge functions now detect asynchronous work from their returned value. Promises
+  and custom thenables are awaited even when the evaluator is not declared with
+  `async`, while direct values remain direct until asynchronous work is encountered.
+  Registration no longer relies on fragile function constructor inspection ([#283])
 - Reachability graph traversal now avoids repeated queue scans and duplicate visits,
   including when forward outcomes contain a cycle ([#289])
 
 [#272]: https://github.com/ministryofjustice/hmpps-forge/pull/272
 [#277]: https://github.com/ministryofjustice/hmpps-forge/pull/277
 [#278]: https://github.com/ministryofjustice/hmpps-forge/pull/278
+[#283]: https://github.com/ministryofjustice/hmpps-forge/pull/283
 [#288]: https://github.com/ministryofjustice/hmpps-forge/pull/288
 [#289]: https://github.com/ministryofjustice/hmpps-forge/pull/289
 
