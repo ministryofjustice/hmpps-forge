@@ -517,7 +517,8 @@ Arguments in the test call are the resolved values the engine
 would supply at runtime - `LoadCaseData('123')` in the test where
 the journey writes `LoadCaseData(Params('caseId'))`. The harness
 runs the engine's real evaluation pipeline, so `argumentsSchema`
-and `outputSchema` are exercised too.
+is exercised too. Effects have no output schema because their return
+value is discarded.
 
 ---
 

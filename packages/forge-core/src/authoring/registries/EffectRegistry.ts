@@ -1,6 +1,6 @@
 import type { EffectFunctionExpr, Resolvable } from '../types/expressions.type'
 import { FunctionCallType } from '../../shared/taxonomy'
-import { BaseFunctionRegistry, type RegistrationOptions } from './BaseFunctionRegistry'
+import { BaseFunctionRegistry, type EffectRegistrationOptions, type RegistrationOptions } from './BaseFunctionRegistry'
 
 /**
  * @deprecated Use `effect()` to define each effect as a standalone entry:
@@ -26,12 +26,12 @@ export default class EffectRegistry<TDeps = Record<string, never>> extends BaseF
 
   register<TArgs extends any[]>(
     name: string,
-    options: RegistrationOptions & { factory: (deps: TDeps) => (context: any, ...args: TArgs) => any },
+    options: EffectRegistrationOptions & { factory: (deps: TDeps) => (context: any, ...args: TArgs) => any },
   ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => EffectFunctionExpr
 
   register<TArgs extends any[]>(
     name: string,
-    options: RegistrationOptions,
+    options: EffectRegistrationOptions,
     factory: (deps: TDeps) => (context: any, ...args: TArgs) => any,
   ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => EffectFunctionExpr
 
@@ -41,7 +41,7 @@ export default class EffectRegistry<TDeps = Record<string, never>> extends BaseF
   ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => EffectFunctionExpr
 
   register<TArgs extends any[]>(
-    options: RegistrationOptions,
+    options: EffectRegistrationOptions,
     factory: (deps: TDeps) => (context: any, ...args: TArgs) => any,
   ): (...args: { [K in keyof TArgs]: Resolvable<TArgs[K]> }) => EffectFunctionExpr
 

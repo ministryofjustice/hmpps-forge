@@ -1,4 +1,4 @@
-import type { ZodType } from 'zod'
+import { z, type ZodType } from 'zod'
 import { RENDER_BLOCK_BRAND } from '../../../concerns/render/contracts/renderBlock.brand'
 import { FunctionEntryType } from '../../../../shared/taxonomy'
 import type { IteratorBudgetContract } from '../../contracts/runtime/iteratorBudget.type'
@@ -346,9 +346,8 @@ function normalizePostValue(rawValue: unknown, multiple: boolean): unknown {
  * normalisation. A value that fails the schema can't have come from the
  * rendered form, so it's replaced with an empty value (`[]` for multi-value
  * fields, `undefined` for single-value fields) rather than throwing. A passing
- * value uses the schema's parsed output so its sanitisation and transformations
- * are retained. An unanswered value, an unknown variant, or a variant without
- * a schema is left untouched.
+ * value is retained unchanged. An unanswered value, an unknown variant, or a
+ * variant without a schema is left untouched.
  */
 function checkComponentInputValue(
   ctx: ComponentInputContext,
@@ -366,10 +365,8 @@ function checkComponentInputValue(
     return value
   }
 
-  const parsed = entry.inputSchema.safeParse(value)
-
-  if (parsed.success) {
-    return parsed.data
+  if (z.validate(entry.inputSchema, value)) {
+    return value
   }
 
   return multiple ? [] : undefined
@@ -691,14 +688,18 @@ export function precheckShortCircuit(
     return undefined
   }
 
+  if (entry._forge === FunctionEntryType.CONDITION) {
+    if (z.validate(entry.inputSchema, args[0])) {
+      return undefined
+    }
+
+    return { value: false }
+  }
+
   const parsedValue = entry.inputSchema.safeParse(args[0])
 
   if (parsedValue.success) {
     return undefined
-  }
-
-  if (entry._forge === FunctionEntryType.CONDITION) {
-    return { value: false }
   }
 
   throw new TypeError(`${functionName}: value failed schema validation — ${parsedValue.error.message}`)

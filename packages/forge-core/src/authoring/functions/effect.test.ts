@@ -25,9 +25,7 @@ describe('effect()', () => {
     it('should carry the given name, function type, schemas, and factory on a named entry', () => {
       expect(SaveDraft.name).toBe('Draft.Save')
       expect(SaveDraft._forge).toBe(FunctionEntryType.EFFECT)
-      expect(SaveDraft.inputSchema).toBeUndefined()
       expect(SaveDraft.argumentsSchema?.safeParse(['draft']).success).toBe(true)
-      expect(SaveDraft.outputSchema).toBeUndefined()
       expect(SaveDraft.factory).toBe(saveDraftFactory)
     })
 
@@ -115,6 +113,14 @@ describe('effect()', () => {
   })
 
   describe('types', () => {
+    it('should not expose input or output schemas', () => {
+      type HasInputSchema = 'inputSchema' extends keyof typeof SaveDraft ? true : false
+      type HasOutputSchema = 'outputSchema' extends keyof typeof SaveDraft ? true : false
+
+      expectTypeOf<HasInputSchema>().toEqualTypeOf<false>()
+      expectTypeOf<HasOutputSchema>().toEqualTypeOf<false>()
+    })
+
     it('should type the evaluator as context first, then the annotated arguments', () => {
       const typed = effect('Typed', {
         factory: () => (context, key: string, overwrite: boolean) => {

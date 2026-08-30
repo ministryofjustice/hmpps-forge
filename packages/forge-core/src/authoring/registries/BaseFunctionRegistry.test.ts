@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import ConditionRegistry from './ConditionRegistry'
 
 describe('BaseFunctionRegistry', () => {
@@ -94,6 +95,31 @@ describe('BaseFunctionRegistry', () => {
   })
 
   describe('store()', () => {
+    it('should retain compiled schemas for definitions and request rows', () => {
+      // Arrange
+      const inputSchema = z.object({ value: z.string() })
+      const argumentsSchema = z.tuple([z.string()])
+      const outputSchema = z.boolean()
+
+      // Act
+      registry.register('Compiled', {
+        inputSchema,
+        argumentsSchema,
+        outputSchema,
+        factory: () => () => true,
+      })
+      const definition = registry.getDefinitions().Compiled
+      const row = registry.build().Compiled
+
+      // Assert
+      expect(definition.inputSchema).not.toBe(inputSchema)
+      expect(definition.argumentsSchema).not.toBe(argumentsSchema)
+      expect(definition.outputSchema).not.toBe(outputSchema)
+      expect(row.inputSchema).toBe(definition.inputSchema)
+      expect(row.argumentsSchema).toBe(definition.argumentsSchema)
+      expect(row.outputSchema).toBe(definition.outputSchema)
+    })
+
     it('should throw when the same explicit name is registered twice', () => {
       // Arrange
       registry.register('IsAdult', () => (value: any) => value >= 18)

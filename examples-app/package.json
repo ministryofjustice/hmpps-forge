@@ -57,7 +57,8 @@
     "pino": "^9.6.0",
     "redis": "^5.11.0",
     "stemmer": "^2.0.1",
-    "superagent": "^10.3.0"
+    "superagent": "^10.3.0",
+    "zod": "^4.5.0"
   },
   "devDependencies": {
     "@jgoz/esbuild-plugin-typecheck": "^4.0.4",

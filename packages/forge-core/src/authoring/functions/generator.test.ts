@@ -33,7 +33,6 @@ describe('generator()', () => {
     it('should carry the given name, function type, schemas, and factory on a named entry', () => {
       expect(Tomorrow.name).toBe('Date.Tomorrow')
       expect(Tomorrow._forge).toBe(FunctionEntryType.GENERATOR)
-      expect(Tomorrow.inputSchema).toBeUndefined()
       expect(Tomorrow.argumentsSchema?.safeParse([1]).success).toBe(true)
       expect(Tomorrow.outputSchema).toBeUndefined()
       expect(Tomorrow.factory).toBe(tomorrowFactory)
@@ -165,6 +164,12 @@ describe('generator()', () => {
   })
 
   describe('types', () => {
+    it('should not expose an input schema', () => {
+      type HasInputSchema = 'inputSchema' extends keyof typeof Tomorrow ? true : false
+
+      expectTypeOf<HasInputSchema>().toEqualTypeOf<false>()
+    })
+
     it('should accept author annotations on the evaluator parameters', () => {
       const typed = generator('Typed', {
         factory: () => (offset: number, strict: boolean) => (strict ? offset : 0),

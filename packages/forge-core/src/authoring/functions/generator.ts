@@ -36,7 +36,7 @@ export interface GeneratorOptions<
 export type GeneratorEntry<
   TDeps = Record<string, never>,
   TAuthoredArguments extends readonly unknown[] = ResolvableValue[],
-> = ((...args: TAuthoredArguments) => ChainableGenerator) & FunctionEntry<TDeps>
+> = ((...args: TAuthoredArguments) => ChainableGenerator) & Omit<FunctionEntry<TDeps>, 'inputSchema'>
 
 // Generator handles return a builder, matching registry handles, so authors can
 // chain `.pipe()`/`.match()`/`.not`. Stamps go on the builder AND its inner

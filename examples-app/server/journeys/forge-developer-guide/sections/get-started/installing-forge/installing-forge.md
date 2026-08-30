@@ -31,10 +31,10 @@ are setting it up for the first time.
 
 ## Install the package
 
-Install Forge from npm:
+Install Forge and its Zod peer dependency from npm:
 
 ```bash
-npm install @ministryofjustice/hmpps-forge
+npm install @ministryofjustice/hmpps-forge zod
 ```
 
 Forge ships its own TypeScript types. You do not need a separate
