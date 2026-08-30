@@ -28,7 +28,7 @@ request:
   execution entry point (`forge.execute`)
 - the adapter registers those routes with its framework's router
 - when a request arrives, the adapter turns it into a `RequestSnapshot`, calls
-  `forge.execute({ snapshot, responseBindings?, renderer? })`, and acts on the
+  `forge.execute({ snapshot, responseBindings?, renderer?, adapterDependencies? })`, and acts on the
   returned `ForgeOutcome`
 - the engine never calls back into the adapter to resolve routes, build
   snapshots, or commit responses. The only host objects it uses during
@@ -47,7 +47,7 @@ constructs it internally.
 | Method | What it provides |
 |--------|-----------------|
 | `forge.getTopology()` | A `ForgeTopology` (`{ routes }`) listing every registrable route (`nodeId`, `kind`, `templatePath`, `basePath`, `methods`, optional `title`) |
-| `forge.execute({ snapshot, responseBindings?, renderer? })` | Looks up the node by `snapshot.nodeId`, evaluates it, and resolves to a `ForgeOutcome<unknown>` for the host to dispatch. Node lookup and evaluation failures resolve as error outcomes |
+| `forge.execute({ snapshot, responseBindings?, renderer?, adapterDependencies? })` | Looks up the node by `snapshot.nodeId`, evaluates it, and resolves to a `ForgeOutcome<unknown>` for the host to dispatch. Node lookup and evaluation failures resolve as error outcomes |
 | `forge.getLogger()` | The configured logger |
 | `forge.getInstrumentation()` | The configured request instrumentation dispatcher |
 
@@ -115,6 +115,10 @@ is a `ForgeExecutionRequest`:
   `NO_OP_RESPONSE_BINDINGS`
 - `renderer` - an optional `ForgeRenderer`; when omitted, a render outcome
   carries only its `context` and no `output`
+- `adapterDependencies` - optional stable capabilities supplied to every function
+  factory for this execution
+- `requestDependencies` - an optional lazy direct or thenable dependency source
+  resolved once during request preparation
 
 `Forge` resolves `snapshot.nodeId` to a registered node and runs the runtime
 against it. Failures from node lookup or evaluation resolve as error outcomes;
@@ -131,9 +135,8 @@ discriminated union with three variants:
 - **render** - carries a `RenderContext` (`context`) and an optional `output`.
   When a `ForgeRenderer` was supplied, the engine resolves and assembles the
   page and returns the assembled result on `output`; otherwise `output` is
-  omitted and the host renders from `context` itself. There is no component
-  registry on the outcome — component lookup happens inside the engine's render
-  phase
+  omitted and the host renders from `context` itself. There is no registry on
+  the outcome — render-function lookup happens inside the engine's render phase
 - **navigate** - carries the resolved redirect `url`
 - **error** - carries a `ForgeError`, which extends `Error` with optional
   `status` and `statusCode` hints. The host adapter decides how to represent that
@@ -161,13 +164,14 @@ bindings. `forge-core` does not buffer responses itself — there is no
 
 `ForgeRenderer<TOut>` is the optional render strategy the host supplies on the
 execution request. The engine's render phase drives it; the host does not render
-blocks itself. It has three methods:
+blocks itself. It has two methods:
 
-- `renderBlock(entry, block)` - render one evaluated block to `TOut` (the engine
-  has already resolved `entry` from the component registry)
 - `wrapNestedBlock(block, output)` - wrap a rendered nested block
 - `assemblePage(context, renderedBlocks, requestState)` - assemble the rendered
   blocks and render context into the page output
+
+Forge invokes request-bound component and renderer evaluators itself. Adapter-specific
+capabilities used by those functions arrive through `adapterDependencies`.
 
 When no renderer is supplied, the pipeline ends after the resolve phase and the
 render outcome carries only `context`. See the rendering doc for the full render
@@ -200,9 +204,9 @@ the engine is one call inside the handler. A handler:
    when the route was registered from the topology)
 2. builds a `RequestSnapshot` from the native request
 3. builds a `ResponseBindings` sink (or omits it to use the no-op default)
-4. optionally supplies a zero-argument `requestDependencies` callback that closes
+4. supplies stable `adapterDependencies` and optionally supplies a zero-argument `requestDependencies` callback that closes
    over the native request
-5. calls `forge.execute({ snapshot, responseBindings, renderer, requestDependencies })`
+5. calls `forge.execute({ snapshot, responseBindings, renderer, adapterDependencies, requestDependencies })`
    and awaits the `ForgeOutcome`
 6. dispatches the outcome:
    - render: send the assembled `output` as the response body (or render
@@ -232,7 +236,8 @@ Each handler (`ExpressHandlerFactory`):
   (`res.setHeader`, `res.cookie`) — nothing is buffered
 - gives Forge a lazy callback for any configured request dependencies; Forge
   resolves direct values or thenables once during context preparation
-- calls `forge.execute({ snapshot, responseBindings, renderer, requestDependencies })`
+- supplies `{ nunjucksEnv }` as a stable adapter dependency
+- calls `forge.execute({ snapshot, responseBindings, renderer, adapterDependencies, requestDependencies })`
 - commits the returned outcome: `navigate` redirects with `res.redirect(url)`;
   `error` stamps `status`, `statusCode` and `expose` onto the same Error (using
   `error.status ?? error.statusCode ?? 500`) before passing it to `next`;
@@ -240,10 +245,11 @@ Each handler (`ExpressHandlerFactory`):
   `res.type('html').send(output)` (or a 500 when a render outcome has no
   `output`, which means no renderer was bound)
 
-`NunjucksRenderer` implements `ForgeRenderer<string>`: `renderBlock` calls the
-component entry's `render`, `wrapNestedBlock` returns `{ block, html }`, and
-`assemblePage` selects the page template and renders it. See the rendering doc
-for detail.
+`NunjucksRenderer` implements `ForgeRenderer<string>`: `wrapNestedBlock` returns
+`{ block, html }`, and `assemblePage` selects the page template and renders it.
+The `nunjucksComponent()` compatibility wrapper captures `nunjucksEnv` from the
+merged dependencies and passes it to existing props-first callbacks.
+See the rendering doc for detail.
 
     # Note
     We've never tried to implement anything but Express/Nunjucks here. We think
@@ -258,8 +264,8 @@ for detail.
 without HTTP or HTML rendering — there is no separate test adapter type.
 
 `ForgeTestHarness` wraps a `Forge` instance (with a silent logger). Its
-`registerPackage` method delegates to `Forge`, and `createClient()` returns a
-`ForgeTestClient`.
+`registerPackage` method delegates to `Forge`, and `createClient(renderer?, adapterDependencies?)`
+returns a `ForgeTestClient`.
 
 `ForgeTestClient.get(path, options?)` / `.post(path, options?)`:
 
@@ -300,9 +306,11 @@ Important failure cases include:
 - redirect targets cannot be written to the response
 - errors cannot be forwarded into the framework's error model
 
-The main rule to preserve is that framework-specific objects should not leak
-into `forge-core`. The `RequestSnapshot` is the inbound boundary; the
-`ForgeOutcome` is the outbound boundary.
+The main rule to preserve is that `forge-core` must not depend on framework-specific
+types or behaviour. Adapter dependencies may carry framework-owned values such as a
+Nunjucks environment, but core treats their keys and values as an opaque object used
+only to bind function factories. The `RequestSnapshot` remains the inbound request
+boundary and the `ForgeOutcome` remains the outbound boundary.
 
 ## Connection to other docs
 
@@ -312,5 +320,5 @@ for each request type.
 The framework integration rendering doc explains how an adapter turns a render
 outcome's `RenderContext` into a response.
 
-The component system docs explain how component registry entries are resolved
-during the engine's render phase.
+The component system docs explain how component and renderer entries are resolved through the
+request function registry during the engine's render phase.

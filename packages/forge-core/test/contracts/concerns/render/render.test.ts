@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { ComponentRegistryEntry } from '../../../../src/components/types/components.type'
 import type { BlockDefinition } from '../../../../src/components'
-import type { ForgeRenderer, RenderContext, ResolvedBlock } from '../../../../src/framework/types/rendering.type'
+import type { ForgeRenderer, RenderContext } from '../../../../src/framework/types/rendering.type'
 import { createForgePackage } from '../../../../src/authoring'
 import { ForgeTestHarness, type RequestTraceEvent } from '../../../../src/testing'
 import type { SerializedTraceSpan } from '../../../../src/engine/chassis/tracing/traceSpan.type'
@@ -25,26 +24,24 @@ interface RecordedAssemblePage {
 }
 
 interface RecordedCalls {
-  renderBlock: { variant: string }[]
+  presentationFunction: { variant: string }[]
   wrapNestedBlock: { variant: string; output: unknown }[]
   assemblePage: RecordedAssemblePage[]
 }
 
 interface RecordingRenderer {
   renderer: ForgeRenderer<unknown>
+  adapterDependencies: object
   calls: RecordedCalls
 }
 
 function createRecordingRenderer(options: { asyncAssemble?: boolean } = {}): RecordingRenderer {
-  const calls: RecordedCalls = { renderBlock: [], wrapNestedBlock: [], assemblePage: [] }
+  const calls: RecordedCalls = { presentationFunction: [], wrapNestedBlock: [], assemblePage: [] }
+  const adapterDependencies = {
+    renderProbe: (variant: string) => calls.presentationFunction.push({ variant }),
+  }
 
   const renderer: ForgeRenderer<unknown> = {
-    renderBlock(entry: ComponentRegistryEntry<object, unknown>, block: ResolvedBlock) {
-      calls.renderBlock.push({ variant: String(block.variant ?? '') })
-
-      return entry.render(block)
-    },
-
     wrapNestedBlock(block: BlockDefinition, output: unknown) {
       calls.wrapNestedBlock.push({ variant: block.variant, output })
 
@@ -59,7 +56,7 @@ function createRecordingRenderer(options: { asyncAssemble?: boolean } = {}): Rec
     },
   }
 
-  return { renderer, calls }
+  return { renderer, adapterDependencies, calls }
 }
 
 function renderBlockUnits(traces: RequestTraceEvent[]): readonly SerializedTraceSpan[] {
@@ -162,27 +159,36 @@ describe('render contracts', () => {
   describe('render invocation', () => {
     it('should render each visible block exactly once', async () => {
       // Arrange
-      const { renderer, calls } = createRecordingRenderer()
-      const client = createRenderClient(orderedRenderJourney, renderer, renderContractComponents)
+      const { renderer, adapterDependencies, calls } = createRecordingRenderer()
+      const client = createRenderClient(orderedRenderJourney, renderer, renderContractComponents, adapterDependencies)
 
       // Act
       await client.get('/ordered-render/form', { session: {} })
 
       // Assert
-      expect(calls.renderBlock).toHaveLength(3)
-      expect(calls.renderBlock.map(call => call.variant)).toEqual(['contractField', 'contractField', 'contractField'])
+      expect(calls.presentationFunction).toHaveLength(3)
+      expect(calls.presentationFunction.map(call => call.variant)).toEqual([
+        'contractField',
+        'contractField',
+        'contractField',
+      ])
     })
 
     it('should not invoke the renderer for a block hidden by visibleWhen', async () => {
       // Arrange
-      const { renderer, calls } = createRecordingRenderer()
-      const client = createRenderClient(invisibleBlockRenderJourney, renderer, renderContractComponents)
+      const { renderer, adapterDependencies, calls } = createRecordingRenderer()
+      const client = createRenderClient(
+        invisibleBlockRenderJourney,
+        renderer,
+        renderContractComponents,
+        adapterDependencies,
+      )
 
       // Act
       await client.get('/invisible-render/form', { session: {} })
 
       // Assert
-      expect(calls.renderBlock).toHaveLength(1)
+      expect(calls.presentationFunction).toHaveLength(1)
     })
   })
 

@@ -43,7 +43,7 @@ export default class RequestPipelineBootstrap {
 
   buildExecutionContext(): RequestState {
     const { node } = this.config
-    const { functionBuilders, packageDependencies, componentRegistry } = node
+    const { functionBuilders, packageDependencies } = node
 
     const context = {
       request: {},
@@ -62,7 +62,6 @@ export default class RequestPipelineBootstrap {
       packageDependencies,
       adapterDependencies: this.config.adapterDependencies,
       requestDependencies: this.config.requestDependencies,
-      componentRegistry,
       currentStepId: node.kind === 'step' ? node.nodeId : undefined,
       hasRenderer: this.config.renderer !== undefined,
       traceEnabled: this.config.traceEnabled,
@@ -120,7 +119,7 @@ export default class RequestPipelineBootstrap {
       path: node.path,
     })
 
-    const terminalPhases = this.buildTerminalPhases(routeTree, resolve, stepNode)
+    const terminalPhases = this.buildTerminalPhases(routeTree, resolve)
 
     if (method === 'POST') {
       const submit = createRequestSubmitTask({
@@ -161,7 +160,7 @@ export default class RequestPipelineBootstrap {
     ]
   }
 
-  private buildTerminalPhases(routeTree: WorkTask, resolve: WorkTask, stepNode: MountedStepNode): readonly WorkTask[] {
+  private buildTerminalPhases(routeTree: WorkTask, resolve: WorkTask): readonly WorkTask[] {
     const { renderer } = this.config
 
     if (!renderer) {
@@ -170,7 +169,6 @@ export default class RequestPipelineBootstrap {
 
     const render = createRequestRenderTask({
       renderer,
-      componentRegistry: stepNode.componentRegistry,
     })
 
     return [routeTree, resolve, render]

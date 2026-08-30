@@ -29,7 +29,6 @@ const STEP_GET_PHASES = [
 ]
 
 const passthroughRenderer: ForgeRenderer<unknown> = {
-  renderBlock: (entry, block) => entry.render(block),
   wrapNestedBlock: (block, output) => ({ block, html: output }),
   assemblePage: (_context, renderedBlocks) => renderedBlocks.join(''),
 }

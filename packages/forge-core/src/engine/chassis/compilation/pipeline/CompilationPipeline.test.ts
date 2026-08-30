@@ -1,9 +1,8 @@
 import { field, journey, step } from '../../../../authoring'
 import type { JourneyDefinition } from '../../../../authoring/types/structures.type'
 import type { FieldBlockDefinition } from '../../../../components/types/structures.type'
-import { component } from '../../../../components/component'
-import ComponentRegistry from '../../registries/ComponentRegistry'
 import FunctionRegistry from '../../registries/FunctionRegistry'
+import { FunctionEntryType } from '../../../../shared/taxonomy'
 import ForgeTraceSinkDispatcher from '../../tracing/ForgeTraceSinkDispatcher'
 import type { CompilationTraceEvent } from '../../contracts/compilation/trace.type'
 import CompilationPipeline from './CompilationPipeline'
@@ -23,8 +22,7 @@ describe('CompilationPipeline', () => {
       // Arrange
       const { instrumentation, events } = createInstrumentation()
       const pipeline = new CompilationPipeline({
-        functionRegistry: new FunctionRegistry(),
-        componentRegistry: createComponentRegistry(),
+        functionRegistry: createRenderFunctionRegistry(),
         instrumentation,
       })
 
@@ -56,7 +54,6 @@ describe('CompilationPipeline', () => {
       const { instrumentation, events } = createInstrumentation()
       const pipeline = new CompilationPipeline({
         functionRegistry: new FunctionRegistry(),
-        componentRegistry: new ComponentRegistry(),
         instrumentation,
       })
 
@@ -76,8 +73,7 @@ describe('CompilationPipeline', () => {
     it('should compile without emitting traces when instrumentation is not provided', () => {
       // Arrange
       const pipeline = new CompilationPipeline({
-        functionRegistry: new FunctionRegistry(),
-        componentRegistry: createComponentRegistry(),
+        functionRegistry: createRenderFunctionRegistry(),
       })
 
       // Act
@@ -95,7 +91,6 @@ describe('CompilationPipeline', () => {
       // Arrange
       const pipeline = new CompilationPipeline({
         functionRegistry: new FunctionRegistry(),
-        componentRegistry: new ComponentRegistry(),
       })
 
       // Act
@@ -107,12 +102,18 @@ describe('CompilationPipeline', () => {
   })
 })
 
-function createComponentRegistry(): ComponentRegistry {
-  const componentRegistry = new ComponentRegistry()
+function createRenderFunctionRegistry(): FunctionRegistry {
+  const functionRegistry = new FunctionRegistry()
 
-  componentRegistry.registerMany([component<object>('PipelineInput', { render: () => '<input />' })])
+  functionRegistry.register({
+    PipelineInput: {
+      name: 'PipelineInput',
+      _forge: FunctionEntryType.COMPONENT,
+      evaluate: () => '<input />',
+    },
+  })
 
-  return componentRegistry
+  return functionRegistry
 }
 
 function createValidJourney(): JourneyDefinition {

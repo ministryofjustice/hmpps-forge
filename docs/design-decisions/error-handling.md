@@ -231,8 +231,8 @@ The following problems should fail before routes are mounted:
 - invalid reference scope
 - unknown function names
 - unknown component variants
-- malformed function or component registry entries
-- duplicate function names or component variants in one registry
+- malformed function entries, including component and renderer entries
+- duplicate function names in one package
 - failures while compiling generated functions
 
 These failures are configuration or compilation problems. They should not be

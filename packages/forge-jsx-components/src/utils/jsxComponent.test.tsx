@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ComponentCallType } from '@ministryofjustice/hmpps-forge/core/authoring'
-import { ComponentRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
+import { ComponentTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 
 import { jsxComponent } from './jsxComponent'
 import { raw } from '../runtime/jsx-runtime'
@@ -30,8 +30,8 @@ const TestTextInput = jsxComponent<TestTextInputProps>('testTextInput', {
   inputSchema: z.string(),
 })
 
-const badgeHarness = new ComponentRegistryTestHarness(TestBadge)
-const textInputHarness = new ComponentRegistryTestHarness(TestTextInput)
+const badgeHarness = new ComponentTestHarness(TestBadge)
+const textInputHarness = new ComponentTestHarness(TestTextInput)
 
 describe('jsxComponent()', () => {
   describe('block building', () => {
@@ -105,7 +105,7 @@ describe('jsxComponent()', () => {
         render: props => <div class="card">{raw(props.childHtml)}</div>,
       })
 
-      const harness = new ComponentRegistryTestHarness(TestCard)
+      const harness = new ComponentTestHarness(TestCard)
 
       // Act
       const output = await harness.render(TestCard({ childHtml: '<p>Rendered elsewhere</p>' }))

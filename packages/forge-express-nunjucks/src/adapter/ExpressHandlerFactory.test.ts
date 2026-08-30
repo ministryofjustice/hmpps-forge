@@ -274,7 +274,6 @@ function createRenderContext(): RenderContext {
 
 function createRenderer(): ForgeRenderer<unknown> {
   return {
-    renderBlock: vi.fn(),
     wrapNestedBlock: vi.fn(),
     assemblePage: vi.fn(),
   }

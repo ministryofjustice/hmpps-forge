@@ -58,6 +58,8 @@ export default class FunctionDefinitionCatalog implements FunctionDefinitionLook
         argumentsSchema: definition.argumentsSchema,
         outputSchema: definition.outputSchema,
         _forge: definition._forge,
+        multiple: definition.multiple,
+        errorAnchor: definition.errorAnchor,
       })
     })
 

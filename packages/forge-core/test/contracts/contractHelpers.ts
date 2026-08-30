@@ -1,7 +1,7 @@
 import { createForgePackage, journey, effect } from '../../src/authoring'
 import { ForgeTestHarness, type ForgeTestHarnessOptions, type RequestTraceEvent } from '../../src/testing'
 import type { ForgeRenderer } from '../../src/framework/types/rendering.type'
-import type { ComponentRegistryEntry } from '../../src/components/types/components.type'
+import type { ForgePackage } from '../../src/authoring/types/package.type'
 import type {
   RuntimeContextSnapshotTrace,
   RequestTraceUnit,
@@ -96,18 +96,20 @@ export function createTracedClient(journeyDef: ReturnType<typeof journey>, trace
 export function createRenderClient(
   journeyDef: ReturnType<typeof journey>,
   renderer: ForgeRenderer<unknown>,
-  components: ComponentRegistryEntry<object, unknown>[],
+  components: NonNullable<ForgePackage['components']>,
+  adapterDependencies?: object,
 ) {
   return new ForgeTestHarness()
     .registerPackage(createForgePackage({ journey: journeyDef, components }))
-    .createClient(renderer)
+    .createClient(renderer, adapterDependencies)
 }
 
 export function createTracedRenderClient(
   journeyDef: ReturnType<typeof journey>,
   renderer: ForgeRenderer<unknown>,
   traces: RequestTraceEvent[],
-  components: ComponentRegistryEntry<object, unknown>[],
+  components: NonNullable<ForgePackage['components']>,
+  adapterDependencies?: object,
 ) {
   return new ForgeTestHarness({
       instrumentation: {
@@ -119,7 +121,7 @@ export function createTracedRenderClient(
       },
     })
       .registerPackage(createForgePackage({ journey: journeyDef, components }))
-      .createClient(renderer)
+      .createClient(renderer, adapterDependencies)
 }
 
 export function answersFromTrace(event: RequestTraceEvent): Record<string, unknown> {

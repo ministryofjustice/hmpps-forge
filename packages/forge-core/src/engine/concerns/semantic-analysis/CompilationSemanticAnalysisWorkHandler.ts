@@ -12,7 +12,6 @@ export const COMPILATION_SEMANTIC_ANALYSIS_WORK_HANDLER: WorkHandler<'compilatio
       nodeIndex: state.ast.nodeIndex,
       templateNodeIndex: state.ast.templateNodeIndex,
       functionRegistry: state.dependencies.functionRegistry,
-      componentRegistry: state.dependencies.componentRegistry,
     })
 
     validator.validate()

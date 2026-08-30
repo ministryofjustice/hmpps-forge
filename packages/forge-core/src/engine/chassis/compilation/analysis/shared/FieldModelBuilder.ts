@@ -1,4 +1,10 @@
-import { ComponentCallType, ExpressionType, FunctionCallType, IteratorType } from '../../../../../shared/taxonomy'
+import {
+  ComponentCallType,
+  ExpressionType,
+  FunctionCallType,
+  FunctionEntryType,
+  IteratorType,
+} from '../../../../../shared/taxonomy'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { isTemplateASTNode } from '../../../contracts/ast/nodes'
 import type { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
@@ -18,7 +24,7 @@ import {
 import { classifyValidationRules, hasConfiguredValue } from '../../../contracts/models/validationRules'
 import ForgeInternalError from '../../../../errors/ForgeInternalError'
 import AuthoredValueClassifier from './AuthoredValueClassifier'
-import type ComponentRegistry from '../../../registries/ComponentRegistry'
+import type { FunctionDefinitionLookup } from '../../../../../authoring/types/functions.type'
 
 interface TemplateMapIteratorProperties {
   readonly input?: unknown
@@ -37,7 +43,7 @@ interface TemplateMapIteratorProperties {
  */
 export default class FieldModelBuilder {
   constructor(
-    private readonly componentRegistry: ComponentRegistry,
+    private readonly functionRegistry: FunctionDefinitionLookup,
     private readonly classifier: AuthoredValueClassifier = new AuthoredValueClassifier(),
   ) {}
 
@@ -190,9 +196,9 @@ export default class FieldModelBuilder {
       return { variant, acceptsMultipleValues: false, validatesInput: false }
     }
 
-    const component = this.componentRegistry.get(variant)
+    const component = this.functionRegistry.get(variant)
 
-    if (component === undefined) {
+    if (component?._forge !== FunctionEntryType.COMPONENT) {
       throw new ForgeInternalError(`Component "${variant}" is not registered`)
     }
 

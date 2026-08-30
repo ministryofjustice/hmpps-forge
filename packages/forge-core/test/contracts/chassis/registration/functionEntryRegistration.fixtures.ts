@@ -4,7 +4,7 @@ import { ForgeTestHarness } from '../../../../src/testing'
 import type { PredicateExpr } from '../../../../src/authoring/types/expressions.type'
 import type { ChainableGenerator } from '../../../../src/authoring/builders/types'
 
-export const testInput = component<object>('test-input', { render: () => '<input />' })
+export const testInput = component<object>('test-input', { factory: () => () => '<input />' })
 
 export function fieldWithRule(code: string, rule: PredicateExpr, message: string) {
   return field({

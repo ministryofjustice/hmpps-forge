@@ -53,16 +53,16 @@ implementations all bundled together, to create reusable flows with integrations
 
 ## Adding custom components
 
-Components declared with `component()` register themselves when the
-journey builds a block with them - that includes the GOV.UK and MOJ
-libraries and your own custom components. A `components` listing is
-only needed when the journey refers to a variant by string alone (a
-JSON journey, for example):
+Components declared with `component()` or a renderer-specific helper such as
+`nunjucksComponent()` register themselves when the journey builds a block
+with them. That includes the GOV.UK and MOJ libraries and your own custom
+components. An explicit `functions` listing is only needed when the journey
+refers to a variant by string alone (a JSON journey, for example):
 
 ```typescript
 export default createForgePackage({
   journey: travelDeclaration,
-  components: [myCustomCard, myStatusBadge],
+  functions: [myCustomCard, myStatusBadge],
 })
 ```
 

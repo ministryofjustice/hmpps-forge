@@ -114,10 +114,10 @@ When Forge renders a step, it processes each block in the `blocks` array:
 1. **Evaluate** - All expressions in the block definition are resolved.
    `Answer()`, `Data()`, `Format()`, `when().then().else()` etc. become
    concrete values.
-2. **Look up** - Forge finds the component registered for the block's `variant`
-   string.
-3. **Render** - The component's render function receives the evaluated block
-   and returns HTML.
+2. **Look up** - Forge finds the request-bound component function registered for
+   the block's `variant` string.
+3. **Render** - The render evaluator receives the evaluated props and returns
+   output through the framework adapter.
 
 ```
 block({ variant: 'html', content: Format('Hello, %1', Answer('name')) })
@@ -127,16 +127,16 @@ block({ variant: 'html', content: Format('Hello, %1', Answer('name')) })
                   │    1. Evaluate: content becomes "Hello, Alice"
                   │
                   ▼
-         2. Look up: find the component registered for 'html'
+         2. Look up: find the component function registered for 'html'
                   │
                   ▼
-         3. Render: component returns "<p>Hello, Alice</p>"
+         3. Render: function returns "<p>Hello, Alice</p>"
 ```
 
 This means a block definition is just data. It contains no rendering logic,
-template paths, or framework dependencies. The component registry is what connects
-variants to renderers, and that registry is configured when you set up Forge - not
-when you author a form.
+template paths, or framework dependencies. The package's function entries connect
+variants to render evaluators, usually collected automatically from the declarations
+used while authoring the journey.
 
 ---
 
@@ -349,26 +349,26 @@ once for a common group of fields such as an address.
 
 ---
 
-## The component registry
+## Render registration
 
-For a `variant` to work, a component must be registered for it. Components
-declared with `component()` register themselves: building a block with one
-in a journey is enough, and Forge collects it at `registerPackage()`. That
-covers the GOV.UK and MOJ component libraries too - using `GovUKTextInput`
-in a journey registers it, with nothing to configure on the Forge instance.
+For a `variant` to work, its component function must be registered. Component
+declarations register themselves: building a block with one in a journey is
+enough, and Forge collects it at `registerPackage()`. That covers the GOV.UK
+and MOJ component libraries too - using `GovUKTextInput` in a journey registers
+it, with nothing to configure on the Forge instance.
 
-A component is just a variant string paired with a render function, and
+A component is a variant string paired with a component function, and
 the result doubles as the block builder for that variant:
 
 ```typescript
-import { component } from '@ministryofjustice/hmpps-forge/core/components'
+import { render } from '@ministryofjustice/hmpps-forge/core/components'
 
-const MyCustomCard = component('myCustomCard', {
-  render: (block) => {
+const MyCustomCard = render('myCustomCard', {
+  factory: () => ({ props }) => {
     return `
       <div class="app-card">
-        <h2>${block.title}</h2>
-        <p>${block.description}</p>
+        <h2>${props.title}</h2>
+        <p>${props.description}</p>
       </div>
     `
   },
@@ -387,8 +387,8 @@ and registering components.
 ## Dynamic properties
 
 Any property on a block (not just `content` or `visibleWhen`) can be a dynamic
-expression. Forge evaluates all expressions in the block before passing it to
-the component's render function:
+expression. Forge evaluates all expressions in the block before passing its props
+to the component function:
 
 ```typescript
 field({

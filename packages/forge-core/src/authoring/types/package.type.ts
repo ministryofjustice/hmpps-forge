@@ -1,4 +1,3 @@
-import type { ComponentRegistryEntry } from '../../components/types/components.type'
 import type { BaseFunctionRegistry } from '../registries/BaseFunctionRegistry'
 import type { FunctionEntry, FunctionRegistryBuilder } from './functions.type'
 import type { JourneyDefinition } from './structures.type'
@@ -40,14 +39,17 @@ export interface ForgePackage<TDeps = Record<string, never>> {
   functions?:
     | BaseFunctionRegistry<TDeps>
     | BaseFunctionRegistry
-    | (BaseFunctionRegistry<TDeps> | BaseFunctionRegistry | FunctionEntry<TDeps>)[]
+    | (BaseFunctionRegistry<TDeps> | BaseFunctionRegistry | FunctionEntry<TDeps> | FunctionEntry)[]
 
   /**
    * Custom components visible only to this package's journey.
    *
-   * @see {@link ComponentRegistryEntry}
+   * Component declarations are accepted here for compatibility and are registered
+   * exactly as they would be through `functions`.
+   *
+   * @deprecated List component entries in `functions`.
    */
-  components?: ComponentRegistryEntry<object, unknown>[]
+  components?: (FunctionEntry<TDeps> | FunctionEntry)[]
 
   /**
    * Whether this package should be registered. Default: true
@@ -77,7 +79,7 @@ export interface ForgePackage<TDeps = Record<string, never>> {
  */
 export interface RegisteredForgePackage<TDeps = Record<string, never>> extends Omit<
   ForgePackage<TDeps>,
-  'journey' | 'functions'
+  'journey' | 'functions' | 'components'
 > {
   /** The parsed, finalised journey definition this package mounts. */
   journey: JourneyDefinition

@@ -72,6 +72,10 @@ export function createJourneyNode(json: JourneyDefinition, ctx: NodeBuildContext
     properties.description = ctx.transformValue(dataProperties.description)
   }
 
+  if (dataProperties.renderer !== undefined) {
+    properties.renderer = ctx.createNode(dataProperties.renderer) as BasicBlockASTNode
+  }
+
   if (dataProperties.onAccess !== undefined) {
     properties.onAccess = ctx.transformValue(dataProperties.onAccess)
   }
@@ -195,6 +199,10 @@ export function createStepNode(json: StepDefinition, ctx: NodeBuildContext): Ste
 
   if (dataProperties.description !== undefined) {
     properties.description = ctx.transformValue(dataProperties.description)
+  }
+
+  if (dataProperties.renderer !== undefined) {
+    properties.renderer = ctx.createNode(dataProperties.renderer) as BasicBlockASTNode
   }
 
   if (dataProperties.view !== undefined) {

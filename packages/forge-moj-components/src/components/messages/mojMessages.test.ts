@@ -1,5 +1,5 @@
-import { component } from '@ministryofjustice/hmpps-forge/core/components'
-import { ComponentRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
+import { component as declareComponent } from '@ministryofjustice/hmpps-forge/core/components'
+import { ComponentTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 
 import { MojComponentTestHelper } from '../../test-utils/MojComponentTestHelper'
 import { setupComponentTest } from '../../test-utils/setupComponentTest'
@@ -8,7 +8,12 @@ import type { MOJMessageItem } from './mojMessages'
 
 vi.mock('nunjucks')
 
-const TestBlock = component<{ html: string }>('testBlock', { render: props => props.html })
+const TestBlock = declareComponent<{ html: string }>('testBlock', {
+  factory:
+    () =>
+    ({ props }) =>
+      props.html,
+})
 
 describe('mojMessages', () => {
   setupComponentTest()
@@ -164,7 +169,7 @@ describe('mojMessages', () => {
     it('should use blocks over text and html when provided', async () => {
       // Arrange
       const render = vi.fn().mockReturnValue('<div>Mocked HTML</div>')
-      const harness = new ComponentRegistryTestHarness([MOJMessages, TestBlock], { render })
+      const harness = new ComponentTestHarness([MOJMessages, TestBlock], { nunjucksEnv: { render } })
       const items = [
         {
           text: 'This is ignored',

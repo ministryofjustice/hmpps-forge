@@ -6,7 +6,6 @@ import { TemplateValue } from '../../../chassis/contracts/ast/template.type'
 import { compileTemplate } from '../../../chassis/compilation/ast/nodes/template'
 import { NodeIDGenerator } from '../../../chassis/compilation/ast/ast-state/NodeIDGenerator'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
-import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
 import type { FieldInventoryContext } from '../contracts/compiledFieldInventory.type'
 import type { NodeId } from '../../../chassis/contracts/ast/ast.type'
@@ -96,7 +95,6 @@ describe('StepFieldInventoryCompiler', () => {
   let compiler: StepFieldInventoryCompiler
   const dependencies: CompilationDependencies = {
     functionRegistry: new FunctionRegistry(),
-    componentRegistry: new ComponentRegistry(),
   }
 
   beforeEach(() => {
@@ -177,7 +175,6 @@ describe('StepFieldInventoryCompiler', () => {
 
       const localCompiler = new StepFieldInventoryCompiler({
         functionRegistry,
-        componentRegistry: new ComponentRegistry(),
       })
       const compiled = localCompiler.compile(inventoryModel(steps))
 
@@ -219,7 +216,6 @@ describe('StepFieldInventoryCompiler', () => {
 
       const localCompiler = new StepFieldInventoryCompiler({
         functionRegistry,
-        componentRegistry: new ComponentRegistry(),
       })
       const compiled = localCompiler.compile(inventoryModel(steps))
 
@@ -274,7 +270,6 @@ describe('StepFieldInventoryCompiler', () => {
 
       const localCompiler = new StepFieldInventoryCompiler({
         functionRegistry,
-        componentRegistry: new ComponentRegistry(),
       })
       const compiled = localCompiler.compile(inventoryModel(steps))
 
@@ -325,7 +320,6 @@ describe('StepFieldInventoryCompiler', () => {
 
       const localCompiler = new StepFieldInventoryCompiler({
         functionRegistry,
-        componentRegistry: new ComponentRegistry(),
       })
 
       // Act

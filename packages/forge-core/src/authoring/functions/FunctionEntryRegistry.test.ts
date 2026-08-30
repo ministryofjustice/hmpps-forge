@@ -6,6 +6,7 @@ import { FunctionEntryType } from '../../shared/taxonomy'
 import ForgeFunctionEntryBuildError from '../../engine/errors/ForgeFunctionEntryBuildError'
 import { FunctionEntryRegistry } from './FunctionEntryRegistry'
 import type { ConditionFunctionExpr } from '../types/expressions.type'
+import { component } from '../../components/presentation'
 
 describe('FunctionEntryRegistry', () => {
   describe('collectEmbedded()', () => {
@@ -129,6 +130,27 @@ describe('FunctionEntryRegistry', () => {
 
       // Assert
       await expect(registry.build()['Test.Async'].evaluate('ok')).resolves.toBe(true)
+    })
+
+    it('should collect component entries and rewrite their block variants', () => {
+      // Arrange
+      const first = component<{ title: string }>('card', { factory: () => input => input.props.title })
+      const second = component<{ title: string }>('card', { factory: () => input => input.props.title })
+      const tree = finaliseBuilders({ first: first({ title: 'One' }), second: second({ title: 'Two' }) }) as {
+        first: { variant: string }
+        second: { variant: string }
+      }
+      const registry = new FunctionEntryRegistry()
+
+      // Act
+      registry.collectEmbedded(tree)
+      const rows = registry.build()
+
+      // Assert
+      expect(tree.first.variant).toBe('card')
+      expect(tree.second.variant).toBe('card@2')
+      expect(rows.card._forge).toBe(FunctionEntryType.COMPONENT)
+      expect(rows.card.evaluate({ props: { title: 'One' } })).toBe('One')
     })
   })
 

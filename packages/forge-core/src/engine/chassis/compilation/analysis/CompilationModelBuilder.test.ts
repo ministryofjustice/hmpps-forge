@@ -1,6 +1,5 @@
 import { staticValue } from '../../contracts/models/authoredValue.type'
 import type { ASTNode } from '../../contracts/ast/engine.type'
-import ComponentRegistry from '../../registries/ComponentRegistry'
 import FunctionRegistry from '../../registries/FunctionRegistry'
 import ASTNodeIndex from '../ast/ast-state/ASTNodeIndex'
 import { ASTTestFactory } from '../ast/testing-helpers/ASTTestFactory'
@@ -8,7 +7,6 @@ import CompilationModelBuilder from './CompilationModelBuilder'
 
 function createBuilder(nodeIndex: ASTNodeIndex): CompilationModelBuilder {
   return new CompilationModelBuilder(nodeIndex, {
-    componentRegistry: new ComponentRegistry(),
     functionRegistry: new FunctionRegistry(),
   })
 }

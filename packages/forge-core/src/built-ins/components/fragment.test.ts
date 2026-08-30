@@ -1,10 +1,15 @@
 import { Fragment } from './fragment'
-import { component } from '../../components/component'
-import { ComponentRegistryTestHarness } from '../../testing/components/ComponentRegistryTestHarness'
+import { component as declareComponent } from '../../components/presentation'
+import { ComponentTestHarness } from '../../testing/components/ComponentTestHarness'
 
-const TestBlock = component<{ html: string }>('testBlock', { render: props => props.html })
+const TestBlock = declareComponent<{ html: string }>('testBlock', {
+  factory:
+    () =>
+    ({ props }) =>
+      props.html,
+})
 
-const harness = new ComponentRegistryTestHarness([Fragment, TestBlock])
+const harness = new ComponentTestHarness([Fragment, TestBlock])
 
 const renderedBlock = (_variant: string, html: string) => TestBlock({ html })
 

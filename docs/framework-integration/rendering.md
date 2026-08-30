@@ -4,9 +4,9 @@
 
 Rendering turns a Forge `RenderContext` into an HTTP response.
 
-`forge-core` orchestrates block rendering — registry lookup, visible-block
-filtering, and nested-block walking — and drives the host's `ForgeRenderer`
-methods to produce the HTML. It does this as real
+`forge-core` orchestrates block rendering — registry lookup, function evaluation,
+visible-block filtering, and nested-block walking — then drives the host's
+`ForgeRenderer` to wrap nested output and assemble the page. It does this as real
 work types run by the `WorkExecutor`, not a hand-rolled traversal. The framework
 integration layer implements those render methods (template rendering and page
 assembly) and writes the finished outcome through the host framework. Forge
@@ -65,8 +65,8 @@ The Express/Nunjucks adapter uses these shapes:
 
 1. `RenderContext` contains evaluated Forge runtime data.
 
-2. `forge-core` walks the top-level blocks and drives the renderer's methods
-   (here `NunjucksRenderer`) to turn them into rendered HTML strings.
+2. `forge-core` walks the top-level blocks and invokes their request-bound
+   component evaluators to produce rendered HTML strings.
 
 3. Nested blocks inside component properties become rendered-block objects.
 
@@ -88,8 +88,6 @@ core-to-adapter rendering contract is the `ForgeRenderer<TOut>` interface, which
 the adapter implements and passes as the `renderer` on the execution request.
 Its methods are:
 
-- `renderBlock(entry, block)` — render one evaluated block into `TOut` (the
-  engine has already resolved `entry` from the component registry)
 - `wrapNestedBlock(block, output)` — wrap a rendered nested block (the
   Nunjucks adapter returns `{ block, html }`)
 - `assemblePage(context, renderedBlocks, requestState)` — combine the
@@ -113,8 +111,8 @@ Internally, `forge-core` runs this as work types via the `WorkExecutor`. A
 `render.assemble-page` work type. `render.render-blocks` fans out one
 `render.render-blocks.block` child per registered top-level block; nested
 `RenderBlock`s inside a block's properties become further
-`render.render-blocks.block` children. The block work types call the renderer's
-`renderBlock` and `wrapNestedBlock`, and `render.assemble-page` calls
+`render.render-blocks.block` children. The block work types invoke the request-bound
+evaluator and call the renderer's `wrapNestedBlock`; `render.assemble-page` calls
 `assemblePage` to produce the page.
 
 ### `RenderContext`
@@ -150,9 +148,9 @@ navigation, answers, data, and validation errors needed to lay out the page.
 ### Page template rendering
 
 The Express/Nunjucks adapter's renderer is `NunjucksRenderer`, which implements
-the `ForgeRenderer<string>` interface (`renderBlock`, `wrapNestedBlock`,
-`assemblePage`). It is passed as the `renderer` on the execution request, so the
-engine's render phase calls its methods directly.
+the `ForgeRenderer<string>` interface (`wrapNestedBlock` and `assemblePage`). It is
+passed as the `renderer` on the execution request, so the engine's render phase
+calls those methods directly.
 
 `NunjucksRenderer` assembles a full page in its `assemblePage` method.
 
@@ -168,19 +166,18 @@ no template was declared, and adds the effective locals to the template context.
 
 ### Block rendering
 
-Blocks are rendered through the component registry.
+Blocks are rendered through request-bound component entries.
 
 Top-level blocks with `visibleWhen: false` are filtered out before rendering. For
-each visible block, `forge-core` looks up the component registered for the block
-variant. It converts the evaluated block into the component-facing block shape
-and passes it to the renderer's `renderBlock`, which calls the component's
-render function.
+each visible block, `forge-core` looks up the component entry registered for the
+block variant. It constructs the standard `{ props, context }` input and invokes
+the request-bound evaluator directly.
 
 The component-facing shape keeps the authoring-level block discriminator and
 variant, then spreads the evaluated block properties onto the object. Validation
 failures are converted into an `errors` array when failures should be shown.
 
-The component render function returns HTML. The page template then receives the
+The component evaluator returns HTML. The page template then receives the
 rendered block output as part of its template context.
 
 ### Nested blocks
@@ -226,7 +223,7 @@ template.
 
 ### Component renderers
 
-Component renderers are registered by variant.
+Component and renderer functions are registered by variant.
 
 Each component receives its resolved props and an optional renderer object. The
 renderer object lets a framework integration pass template-engine support to
@@ -237,8 +234,7 @@ Nunjucks environment while retaining the component's plain props.
 
 ### GOV.UK and MOJ components
 
-The GOV.UK and MOJ component packages provide concrete component registry
-entries.
+The GOV.UK and MOJ component packages provide concrete component entries.
 
 Those packages translate Forge block data into the parameter shape expected by
 the relevant GOV.UK or MOJ template, then render through the Nunjucks renderer
@@ -255,8 +251,8 @@ Important failure cases include:
 
 - the selected page template cannot be found
 - the page template throws while rendering
-- a block variant is not registered in the component registry
-- a component renderer throws
+- a block variant does not resolve to a render entry
+- a render evaluator throws
 - nested block rendering receives unsupported block data
 - the framework response cannot be written
 
@@ -274,7 +270,7 @@ produces.
 The runtime render context doc explains how `forge-core` builds the
 `RenderContext`.
 
-The component system docs explain how component registry entries are defined.
+The component system docs explain how component and renderer entries are declared and bound.
 
 The framework adapter docs explain the broader adapter contract for routing,
 requests, responses, redirects, errors, and rendering.

@@ -3,7 +3,6 @@ import CodeGenerator from '../codegen/CodeGenerator'
 import type { CompilationDependencies } from '../compilationDependencies.type'
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
 import { compileGeneratedFunction } from '../GeneratedFunctionCompiler'
-import ComponentRegistry from '../../../registries/ComponentRegistry'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import IteratorLoopEmitter from './IteratorLoopEmitter'
@@ -16,7 +15,6 @@ describe('IteratorLoopEmitter', () => {
   let emitter: IteratorLoopEmitter
   const dependencies: CompilationDependencies = {
     functionRegistry: new FunctionRegistry(),
-    componentRegistry: new ComponentRegistry(),
   }
 
   beforeEach(() => {

@@ -1,6 +1,5 @@
 export { default as Forge } from './engine/Forge'
 export { default as FunctionRegistry } from './engine/chassis/registries/FunctionRegistry'
-export { default as ComponentRegistry } from './engine/chassis/registries/ComponentRegistry'
 export { default as EffectFunctionContext } from './engine/chassis/runtime/context/EffectFunctionContext'
 export { isRenderBlock } from './engine/concerns/resolve/runtime/typeguards'
 export { RENDER_BLOCK_BRAND } from './engine/concerns/render/contracts/renderBlock.brand'

@@ -1,11 +1,10 @@
-import { ComponentCallType, ExpressionType, IteratorType } from '../../../../../shared/taxonomy'
+import { ComponentCallType, ExpressionType, FunctionEntryType, IteratorType } from '../../../../../shared/taxonomy'
 import type { IterateASTNode } from '../../../contracts/ast/expressions.type'
 import { isTemplateASTNode } from '../../../contracts/ast/nodes'
 import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../../../contracts/ast/structures.type'
 import type { TemplateValue } from '../../../contracts/ast/template.type'
 import type { NodeId } from '../../../contracts/ast/ast.type'
 import type { FieldModel } from '../../../contracts/models/fieldModel.type'
-import ComponentRegistry from '../../../registries/ComponentRegistry'
 import FunctionRegistry from '../../../registries/FunctionRegistry'
 import ASTNodeIndex from '../../ast/ast-state/ASTNodeIndex'
 import type { JourneyAnalysisContext, StepAnalysisContext } from '../concernAnalyzers.type'
@@ -18,7 +17,6 @@ import OwnershipIndex from '../shared/OwnershipIndex'
 interface StepContextOptions {
   stepNode: StepASTNode
   nodeIndex?: ASTNodeIndex
-  componentRegistry?: ComponentRegistry
   functionRegistry?: FunctionRegistry
 }
 
@@ -26,14 +24,13 @@ interface JourneyContextOptions {
   journeyNode: JourneyASTNode
   stepNodes?: readonly StepASTNode[]
   nodeIndex?: ASTNodeIndex
-  componentRegistry?: ComponentRegistry
   functionRegistry?: FunctionRegistry
 }
 
 interface FieldModelOptions {
   fieldBlocks?: readonly FieldBlockASTNode[]
   iterateNodes?: readonly IterateASTNode[]
-  componentRegistry?: ComponentRegistry
+  functionRegistry?: FunctionRegistry
 }
 
 /**
@@ -44,24 +41,23 @@ interface FieldModelOptions {
  */
 export function createStepAnalysisContext(options: StepContextOptions): StepAnalysisContext {
   const nodeIndex = options.nodeIndex ?? new ASTNodeIndex()
-  const componentRegistry = options.componentRegistry ?? new ComponentRegistry()
+  const functionRegistry = options.functionRegistry ?? new FunctionRegistry()
   const ownership = new OwnershipIndex(nodeIndex)
   const stepId = options.stepNode.id
   const fieldBlocks = ownership.fieldBlocksOf(stepId)
   const iterateNodes = ownership.mapIterateNodesOf(stepId)
 
-  ensureVariantsRegistered(componentRegistry, fieldBlocks, iterateNodes)
+  ensureVariantsRegistered(functionRegistry, fieldBlocks, iterateNodes)
 
   return {
     stepNode: options.stepNode,
     ownership,
     ancestry: new Ancestry(),
     registries: {
-      componentRegistry,
-      functionRegistry: options.functionRegistry ?? new FunctionRegistry(),
+      functionRegistry,
     },
     classifier: new AuthoredValueClassifier(),
-    fields: new FieldModelBuilder(componentRegistry).buildStepFields(fieldBlocks, iterateNodes),
+    fields: new FieldModelBuilder(functionRegistry).buildStepFields(fieldBlocks, iterateNodes),
     labels: new NodeLabeller(),
   }
 }
@@ -69,20 +65,20 @@ export function createStepAnalysisContext(options: StepContextOptions): StepAnal
 /** Builds a real `JourneyAnalysisContext`, deriving owned steps and their field models. */
 export function createJourneyAnalysisContext(options: JourneyContextOptions): JourneyAnalysisContext {
   const nodeIndex = options.nodeIndex ?? new ASTNodeIndex()
-  const componentRegistry = options.componentRegistry ?? new ComponentRegistry()
+  const functionRegistry = options.functionRegistry ?? new FunctionRegistry()
   const ownership = new OwnershipIndex(nodeIndex)
   const stepNodes =
     options.stepNodes ??
     ownership.journeys().find(journey => journey.journeyNode === options.journeyNode)?.stepNodes ??
     []
-  const fieldModelBuilder = new FieldModelBuilder(componentRegistry)
+  const fieldModelBuilder = new FieldModelBuilder(functionRegistry)
   const stepFields = new Map<NodeId, readonly FieldModel[]>()
 
   stepNodes.forEach(stepNode => {
     const fieldBlocks = ownership.fieldBlocksOf(stepNode.id)
     const iterateNodes = ownership.mapIterateNodesOf(stepNode.id)
 
-    ensureVariantsRegistered(componentRegistry, fieldBlocks, iterateNodes)
+    ensureVariantsRegistered(functionRegistry, fieldBlocks, iterateNodes)
     stepFields.set(stepNode.id, fieldModelBuilder.buildStepFields(fieldBlocks, iterateNodes))
   })
 
@@ -92,8 +88,7 @@ export function createJourneyAnalysisContext(options: JourneyContextOptions): Jo
     ownership,
     ancestry: new Ancestry(),
     registries: {
-      componentRegistry,
-      functionRegistry: options.functionRegistry ?? new FunctionRegistry(),
+      functionRegistry,
     },
     classifier: new AuthoredValueClassifier(),
     labels: new NodeLabeller(),
@@ -106,17 +101,17 @@ export function createJourneyAnalysisContext(options: JourneyContextOptions): Jo
  * an `ASTNodeIndex`. Useful for compiler tests that construct nodes by hand.
  */
 export function buildStepFieldModels(options: FieldModelOptions): FieldModel[] {
-  const componentRegistry = options.componentRegistry ?? new ComponentRegistry()
+  const functionRegistry = options.functionRegistry ?? new FunctionRegistry()
   const fieldBlocks = options.fieldBlocks ?? []
   const iterateNodes = options.iterateNodes ?? []
 
-  ensureVariantsRegistered(componentRegistry, fieldBlocks, iterateNodes)
+  ensureVariantsRegistered(functionRegistry, fieldBlocks, iterateNodes)
 
-  return new FieldModelBuilder(componentRegistry).buildStepFields(fieldBlocks, iterateNodes)
+  return new FieldModelBuilder(functionRegistry).buildStepFields(fieldBlocks, iterateNodes)
 }
 
 function ensureVariantsRegistered(
-  componentRegistry: ComponentRegistry,
+  functionRegistry: FunctionRegistry,
   fieldBlocks: readonly FieldBlockASTNode[],
   iterateNodes: readonly IterateASTNode[],
 ): void {
@@ -127,9 +122,13 @@ function ensureVariantsRegistered(
     collectTemplateVariants(iterateNode.properties.iterator.yieldTemplate, variants)
   })
 
-  const missingVariants = [...variants].filter(variant => variant !== '' && !componentRegistry.has(variant))
+  const missingVariants = [...variants].filter(variant => variant !== '' && !functionRegistry.has(variant))
 
-  componentRegistry.registerMany(missingVariants.map(variant => ({ variant, render: () => '' })))
+  functionRegistry.register(
+    Object.fromEntries(
+      missingVariants.map(name => [name, { name, _forge: FunctionEntryType.COMPONENT, evaluate: () => '' }]),
+    ),
+  )
 }
 
 function collectTemplateVariants(template: TemplateValue | undefined, variants: Set<string>): void {

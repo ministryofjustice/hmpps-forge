@@ -11,8 +11,10 @@ import NunjucksRenderer from '../renderer/NunjucksRenderer'
  */
 export interface ExpressForgeRouterOptions<TRequestDependencies extends object = Record<string, never>> {
   /**
-   * Nunjucks environment used to load and render page templates. Forge function
-   * factories also receive it as the stable `nunjucksEnv` adapter dependency.
+   * Nunjucks environment used to load and render page templates. The same
+   * environment is supplied as an adapter dependency. `nunjucksComponent()`
+   * passes it to existing component callbacks, so templates and macros resolve
+   * against the configured environment.
    */
   nunjucksEnv: nunjucks.Environment
 

@@ -20,12 +20,14 @@ const ANONYMOUS_LABELS: Record<FunctionEntryType, string> = {
   [FunctionEntryType.TRANSFORMER]: 'transformer',
   [FunctionEntryType.GENERATOR]: 'generator',
   [FunctionEntryType.EFFECT]: 'effect',
+  [FunctionEntryType.COMPONENT]: 'component',
+  [FunctionEntryType.RENDERER]: 'renderer',
 }
 
 /**
  * A function registry assembled from function entries (created by the
- * authoring `condition()` / `transformer()` / `generator()` / `effect()`
- * helpers). `createForgePackage()` builds one per package: listed entries and
+ * authoring `condition()` / `transformer()` / `generator()` / `effect()` /
+ * `component()` / `renderer()` helpers). `createForgePackage()` builds one per package: listed entries and
  * entries embedded in the journey collect into it, and from then on the
  * package carries an ordinary registry builder - the engine reads its
  * definitions during registration and builds it for each request exactly like
@@ -122,6 +124,8 @@ export class FunctionEntryRegistry<TDeps = any> implements FunctionRegistryBuild
         outputSchema:
           entry.outputSchema ?? (entry._forge === FunctionEntryType.CONDITION ? CONDITION_OUTPUT_SCHEMA : undefined),
         _forge: entry._forge,
+        multiple: entry.multiple,
+        errorAnchor: entry.errorAnchor,
       }
     })
 
@@ -150,6 +154,8 @@ export class FunctionEntryRegistry<TDeps = any> implements FunctionRegistryBuild
           outputSchema:
             entry.outputSchema ?? (entry._forge === FunctionEntryType.CONDITION ? CONDITION_OUTPUT_SCHEMA : undefined),
           _forge: entry._forge,
+          multiple: entry.multiple,
+          errorAnchor: entry.errorAnchor,
         }
       } catch (cause) {
         errors.push(this.buildError(name, entry, cause))
@@ -175,7 +181,11 @@ export class FunctionEntryRegistry<TDeps = any> implements FunctionRegistryBuild
     if (entry && isFunctionEntry(entry)) {
       const name = this.collect(entry)
 
-      ;(node as { name?: string }).name = name
+      if (entry._forge === FunctionEntryType.COMPONENT || entry._forge === FunctionEntryType.RENDERER) {
+        ;(node as { variant?: string }).variant = name
+      } else {
+        ;(node as { name?: string }).name = name
+      }
 
       if (!this.expressions.has(entry)) {
         this.expressions.set(entry, node)

@@ -17,13 +17,15 @@ const contextFor = (entry: StubRegistryEntry) => ({
   },
 })
 
-interface StubComponentEntry {
+interface StubRenderEntry {
   inputSchema?: ZodType
 }
 
-const componentContextFor = (entry: StubComponentEntry | undefined) => ({
-  components: {
-    get: vi.fn(() => entry),
+const renderContextFor = (entry: StubRenderEntry | undefined) => ({
+  conditions: {
+    get: vi.fn(() =>
+      entry === undefined ? undefined : { ...entry, _forge: FunctionEntryType.COMPONENT, evaluate: () => undefined },
+    ),
   },
 })
 
@@ -604,19 +606,19 @@ describe('generatedFunctionRuntimeLibrary', () => {
   describe('checkComponentInputValue()', () => {
     it('should return the value unchanged when it is undefined', () => {
       // Arrange
-      const ctx = componentContextFor({ inputSchema: z.string() })
+      const ctx = renderContextFor({ inputSchema: z.string() })
 
       // Act
       const result = generatedFunctionRuntimeLibrary.checkComponentInputValue(ctx, 'textInput', undefined, false)
 
       // Assert
       expect(result).toBeUndefined()
-      expect(ctx.components.get).not.toHaveBeenCalled()
+      expect(ctx.conditions.get).not.toHaveBeenCalled()
     })
 
     it('should return the value unchanged when the variant has no registry entry', () => {
       // Arrange
-      const ctx = componentContextFor(undefined)
+      const ctx = renderContextFor(undefined)
 
       // Act
       const result = generatedFunctionRuntimeLibrary.checkComponentInputValue(
@@ -632,7 +634,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
 
     it('should return the value unchanged when the entry declares no input schema', () => {
       // Arrange
-      const ctx = componentContextFor({})
+      const ctx = renderContextFor({})
 
       // Act
       const result = generatedFunctionRuntimeLibrary.checkComponentInputValue(
@@ -648,7 +650,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
 
     it('should return the parsed value when it satisfies the input schema', () => {
       // Arrange
-      const ctx = componentContextFor({ inputSchema: z.string() })
+      const ctx = renderContextFor({ inputSchema: z.string() })
 
       // Act
       const result = generatedFunctionRuntimeLibrary.checkComponentInputValue(ctx, 'textInput', 'Ada', false)
@@ -659,7 +661,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
 
     it('should preserve unexpected properties when the input schema permits them', () => {
       // Arrange
-      const ctx = componentContextFor({ inputSchema: z.object({ day: z.string() }) })
+      const ctx = renderContextFor({ inputSchema: z.object({ day: z.string() }) })
       const submittedValue = {
         day: '1',
         unexpected: { deeply: { nested: true } },
@@ -674,7 +676,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
 
     it('should reject unexpected properties when the input schema is strict', () => {
       // Arrange
-      const ctx = componentContextFor({ inputSchema: z.object({ day: z.string() }).strict() })
+      const ctx = renderContextFor({ inputSchema: z.object({ day: z.string() }).strict() })
       const submittedValue = { day: '1', unexpected: true }
 
       // Act
@@ -691,7 +693,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
 
     it('should preserve submitted values when the input schema coerces them', () => {
       // Arrange
-      const ctx = componentContextFor({ inputSchema: z.object({ value: z.coerce.string() }) })
+      const ctx = renderContextFor({ inputSchema: z.object({ value: z.coerce.string() }) })
       const submittedValue = { value: 42, unexpected: true }
 
       // Act
@@ -703,7 +705,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
 
     it('should return undefined when a single-value schema rejects the value', () => {
       // Arrange
-      const ctx = componentContextFor({ inputSchema: z.string() })
+      const ctx = renderContextFor({ inputSchema: z.string() })
 
       // Act
       const result = generatedFunctionRuntimeLibrary.checkComponentInputValue(
@@ -719,7 +721,7 @@ describe('generatedFunctionRuntimeLibrary', () => {
 
     it('should return an empty array when a multiple schema rejects the value', () => {
       // Arrange
-      const ctx = componentContextFor({ inputSchema: z.array(z.string()) })
+      const ctx = renderContextFor({ inputSchema: z.array(z.string()) })
 
       // Act
       const result = generatedFunctionRuntimeLibrary.checkComponentInputValue(ctx, 'checkbox', 'not-an-array', true)

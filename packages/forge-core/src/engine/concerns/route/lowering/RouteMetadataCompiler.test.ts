@@ -3,7 +3,6 @@ import AuthoredValueClassifier from '../../../chassis/compilation/analysis/share
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { FunctionCallType } from '../../../../shared/taxonomy'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
-import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import { getForgeRuntimeEvaluationDiagnostics } from '../../../errors/ForgeRuntimeEvaluationError'
 import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
 import type { CompiledRouteMetadataContext } from '../../../chassis/contracts/compiled/compiledContexts.type'
@@ -32,7 +31,6 @@ describe('RouteMetadataCompiler', () => {
   let compiler: RouteMetadataCompiler
   const dependencies: CompilationDependencies = {
     functionRegistry: new FunctionRegistry(),
-    componentRegistry: new ComponentRegistry(),
   }
 
   beforeEach(() => {
@@ -111,7 +109,6 @@ describe('RouteMetadataCompiler', () => {
 
       const throwingCompiler = new RouteMetadataCompiler({
         functionRegistry,
-        componentRegistry: new ComponentRegistry(),
       })
       const compiled = throwingCompiler.compile([{ nodeId: stepNode.id, title: classify(stepNode.properties.title) }])
 

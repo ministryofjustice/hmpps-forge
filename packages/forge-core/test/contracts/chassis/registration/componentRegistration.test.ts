@@ -5,7 +5,6 @@ import { HtmlBlock } from '../../../../src/built-ins/components/html'
 import { ForgeTestHarness } from '../../../../src/testing'
 import type { ForgeRenderer } from '../../../../src/framework/types/rendering.type'
 import ForgeRegistrationError from '../../../../src/engine/errors/ForgeRegistrationError'
-import ForgeRegistryDuplicateError from '../../../../src/engine/errors/ForgeRegistryDuplicateError'
 import { journeyWithBlocks, TestCard, type TestCardBlock } from './componentRegistration.fixtures'
 
 describe('component registration contracts', () => {
@@ -31,22 +30,27 @@ describe('component registration contracts', () => {
       })
 
       // Assert
-      expect(pkg.components).toEqual([TestCard])
+      const functionBuilders = Array.isArray(pkg.functions) ? pkg.functions : [pkg.functions]
+
+      expect(functionBuilders[0]?.getDefinitions()).toHaveProperty('test-card')
     })
 
-    it('should throw when two different components claim one variant', () => {
+    it('should apply ordinary function-entry collision naming', () => {
       // Arrange
-      const Duplicate = component<TestCardBlock>('test-card', { render: card => `<p>${card.title}</p>` })
+      const Duplicate = component<TestCardBlock>('test-card', {
+        factory:
+          () =>
+          ({ props }) =>
+            `<p>${props.title}</p>`,
+      })
 
       // Act
-      const act = () =>
-        createForgePackage({
-          journey: journeyWithBlocks([TestCard({ title: 'One' }), Duplicate({ title: 'Two' })]),
-        })
+      const pkg = createForgePackage({
+        journey: journeyWithBlocks([TestCard({ title: 'One' }), Duplicate({ title: 'Two' })]),
+      })
 
       // Assert
-      expect(act).toThrow(ForgeRegistryDuplicateError)
-      expect(act).toThrow(/test-card/)
+      expect(pkg.journey.steps?.[0].blocks?.map(block => block.variant)).toEqual(['test-card', 'test-card@2'])
     })
   })
 
@@ -79,30 +83,11 @@ describe('component registration contracts', () => {
     })
   })
 
-  describe('malformed listed entries', () => {
-    it('should reject a listed component without a render function at registration', () => {
-      // Act
-      const act = () =>
-        new ForgeTestHarness().registerPackage(
-          createForgePackage({
-            journey: journeyWithBlocks([]),
-            components: [{ variant: 'broken-card' } as never],
-          }),
-        )
-
-      // Assert
-      expect(act).toThrow(ForgeRegistrationError)
-      expect(act).toThrow('Component registration failed')
-      expect(act).toThrow('Component "broken-card" must have a render function')
-    })
-  })
-
   describe('built-in entries', () => {
     /** A JSON journey using the built-in `html` variant, so variant resolution is observable. */
     const htmlJourney = () => JSON.stringify(journeyWithBlocks([HtmlBlock({ content: '<b>built-in</b>' })]))
 
     const passThroughRenderer: ForgeRenderer<unknown> = {
-      renderBlock: (entry, block) => entry.render(block),
       wrapNestedBlock: (_block, output) => output,
       assemblePage: (_context, renderedBlocks) => renderedBlocks.join(''),
     }

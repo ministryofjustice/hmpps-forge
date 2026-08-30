@@ -4,8 +4,8 @@ import { ComponentCallType, ExpressionType, StructureType } from '../../../share
 import { FormatGenerators } from '../../../built-ins/functions/generators/formatGenerators'
 import { Condition } from '../../../built-ins/functions/conditions'
 import { condition } from '../../functions/condition'
-import { component } from '../../../components/component'
-import { getComponentStamp, getEntryStamp } from './stampEntry'
+import { component } from '../../../components/presentation'
+import { getEntryStamp } from './stampEntry'
 import type { Callsite } from './captureCallsite'
 import type { DSLSourceLocation } from '../../../shared/diagnostics/sourceLocation.type'
 
@@ -205,9 +205,9 @@ describe('finaliseBuilders', () => {
       expect(Object.getOwnPropertyDescriptor(copied, '__entry')?.enumerable).toBe(false)
     })
 
-    it('should carry a component stamp through the walk by reference identity', () => {
+    it('should carry a component entry through the walk by reference identity', () => {
       // Arrange
-      const TestCard = component('test-card', { render: () => '<hr />' })
+      const TestCard = component('test-card', { factory: () => () => '<hr />' })
       const card = TestCard()
       const input = { steps: [{ blocks: [card] }] }
 
@@ -217,8 +217,8 @@ describe('finaliseBuilders', () => {
       // Assert
       const copied = result.steps[0].blocks[0]
       expect(copied).not.toBe(card)
-      expect(getComponentStamp(copied)).toBe(TestCard)
-      expect(Object.getOwnPropertyDescriptor(copied, '__component')?.enumerable).toBe(false)
+      expect(getEntryStamp(copied)).toBe(TestCard)
+      expect(Object.getOwnPropertyDescriptor(copied, '__entry')?.enumerable).toBe(false)
     })
 
     it('should keep callsite stamps invisible to JSON serialisation', () => {

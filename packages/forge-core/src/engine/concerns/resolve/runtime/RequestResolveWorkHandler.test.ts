@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { NO_OP_RESPONSE_BINDINGS } from '../../../../framework/types/responseBindings.type'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
-import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import { createResolveBlocksTask, RESOLVE_BLOCKS_KIND } from './ResolveBlocksWorkHandler'
 import { REQUEST_RESOLVE_WORK_HANDLER } from './RequestResolveWorkHandler'
 import type { CompiledResolveContext } from '../../../chassis/contracts/compiled/compiledContexts.type'
@@ -45,7 +44,6 @@ function createRequestContext(
     {
       responseBindings: NO_OP_RESPONSE_BINDINGS,
       functionRegistry: new FunctionRegistry(),
-      componentRegistry: new ComponentRegistry(),
     },
   )
 

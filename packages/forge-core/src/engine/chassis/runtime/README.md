@@ -57,7 +57,7 @@ It accepts a `RequestEvaluationRequest` and returns a `ForgeOutcome`.
 
 `MountedNode` is created by `MountRegistry`.
 It carries compiled functions, function builders and package dependencies, the
-component registry, route data, and static data for either a step or a journey.
+route data, and static data for either a step or a journey.
 A request adapter can add request dependencies when it executes one of those
 mounted nodes; they are never stored on the node itself.
 Both step and journey nodes carry the reachability pair `compiledReachabilityFacts` and `compiledReachabilityState`; step nodes add step-only functions such as `compiledSubmitHooks`, `compiledEntryValidation`, `compiledValidation`, and `compiledResolve`.
@@ -152,7 +152,7 @@ Runtime executes that work against one request.
 | [hooks](../../concerns/hooks/README.md) | `compiledSubmitHooks` and `compiledValidation` | `request.submit` runs submit hooks and validation |
 | [route](../../concerns/route/README.md) | `compiledRouteMetadata` | `request.route-tree` resolves route metadata and hydrates the route tree |
 | [resolve](../../concerns/resolve/README.md) | `compiledResolve` | `request.resolve` builds `RenderContext` |
-| [render](../../concerns/render/README.md) | `componentRegistry` and `renderer` | `request.render` renders blocks and assembles output |
+| [render](../../concerns/render/README.md) | request `functionRegistry` and `renderer` | `request.render` renders blocks and assembles output |
 
 - [RequestPipeline.ts](pipeline/RequestPipeline.ts) owns runtime entry, pipeline execution, trace projection, and outcome conversion.
 - [pipeline/README.md](pipeline/README.md) covers request phase order and cross-phase request state.

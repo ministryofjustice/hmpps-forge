@@ -7,16 +7,15 @@ import {
   PredicateType,
   ExpressionType,
   ComponentCallType,
+  FunctionEntryType,
   IteratorType,
 } from '../../../shared/taxonomy'
 import type { ReferenceExpr } from '../../../authoring/types/expressions.type'
 import type { JourneyDefinition, StepDefinition } from '../../../authoring/types/structures.type'
 import type { FieldBlockDefinition, BlockDefinition, ResolvableString } from '../../../components/types/structures.type'
 import FunctionRegistry from '../../chassis/registries/FunctionRegistry'
-import ComponentRegistry from '../../chassis/registries/ComponentRegistry'
 import ConditionRegistry from '../../../authoring/registries/ConditionRegistry'
 import TransformerRegistry from '../../../authoring/registries/TransformerRegistry'
-import { component } from '../../../components/component'
 import ForgeReferenceScopeError from '../../errors/ForgeReferenceScopeError'
 import ForgeUnregisteredFunctionError from '../../errors/ForgeUnregisteredFunctionError'
 import ForgeUnregisteredComponentError from '../../errors/ForgeUnregisteredComponentError'
@@ -25,15 +24,35 @@ import CompilationPipeline from '../../chassis/compilation/pipeline/CompilationP
 import { finaliseBuilders } from '../../../authoring/builders/utils/finaliseBuilders'
 
 function createTestComponent(variant: string, render: () => string) {
-  return component<object>(variant, { render })
+  return { variant, render }
+}
+
+class RenderFunctionRegistry extends FunctionRegistry {
+  registerMany(components: ReturnType<typeof createTestComponent>[]): void {
+    this.register(
+      Object.fromEntries(
+        components.map(component => [
+          component.variant,
+          {
+            name: component.variant,
+            _forge: FunctionEntryType.COMPONENT,
+            evaluate: component.render,
+          },
+        ]),
+      ),
+    )
+  }
 }
 
 function compileJourney(
   journey: JourneyDefinition,
   functionRegistry: FunctionRegistry,
-  componentRegistry: ComponentRegistry,
+  renderFunctionRegistry: RenderFunctionRegistry,
 ): void {
-  const pipeline = new CompilationPipeline({ functionRegistry, componentRegistry })
+  const combinedRegistry = new FunctionRegistry()
+
+  combinedRegistry.register(Object.fromEntries([...functionRegistry.getAll(), ...renderFunctionRegistry.getAll()]))
+  const pipeline = new CompilationPipeline({ functionRegistry: combinedRegistry })
 
   pipeline.compile(finaliseBuilders(journey) as JourneyDefinition)
 }
@@ -45,8 +64,8 @@ describe('ASTSemanticValidator', () => {
       IsRequired: { name: 'IsRequired', evaluate: () => true },
     })
 
-    const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([
+    const renderFunctionRegistry = new RenderFunctionRegistry()
+    renderFunctionRegistry.registerMany([
       createTestComponent('GovUKInput', () => '<input />'),
       createTestComponent('collection-block', () => '<div />'),
     ])
@@ -103,10 +122,10 @@ describe('ASTSemanticValidator', () => {
       })
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).toThrow(AggregateError)
 
       try {
-        compileJourney(journey, functionRegistry, componentRegistry)
+        compileJourney(journey, functionRegistry, renderFunctionRegistry)
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -152,10 +171,10 @@ describe('ASTSemanticValidator', () => {
       })
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).toThrow(AggregateError)
 
       try {
-        compileJourney(journey, functionRegistry, componentRegistry)
+        compileJourney(journey, functionRegistry, renderFunctionRegistry)
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -201,10 +220,10 @@ describe('ASTSemanticValidator', () => {
       })
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).toThrow(AggregateError)
 
       try {
-        compileJourney(journey, functionRegistry, componentRegistry)
+        compileJourney(journey, functionRegistry, renderFunctionRegistry)
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -236,10 +255,10 @@ describe('ASTSemanticValidator', () => {
       })
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).toThrow(AggregateError)
 
       try {
-        compileJourney(journey, functionRegistry, componentRegistry)
+        compileJourney(journey, functionRegistry, renderFunctionRegistry)
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -300,7 +319,7 @@ describe('ASTSemanticValidator', () => {
       })
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).not.toThrow()
     })
   })
 
@@ -321,8 +340,8 @@ describe('ASTSemanticValidator', () => {
       return registry
     }
 
-    const compRegistry = new ComponentRegistry()
-    compRegistry.registerMany([
+    const renderRegistry = new RenderFunctionRegistry()
+    renderRegistry.registerMany([
       createTestComponent('text', () => '<input />'),
       createTestComponent('radio', () => '<radio />'),
     ])
@@ -340,7 +359,7 @@ describe('ASTSemanticValidator', () => {
       const registry = createFnRegistry()
 
       // Act / Assert
-      expect(() => compileJourney(baseJourney, registry, compRegistry)).not.toThrow()
+      expect(() => compileJourney(baseJourney, registry, renderRegistry)).not.toThrow()
     })
 
     it('should not throw when all referenced functions are registered', () => {
@@ -370,7 +389,7 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, registry, compRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, registry, renderRegistry)).not.toThrow()
     })
 
     it('should throw when an effect is not registered', () => {
@@ -398,10 +417,10 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, registry, compRegistry)).toThrow(AggregateError)
+      expect(() => compileJourney(journey, registry, renderRegistry)).toThrow(AggregateError)
 
       try {
-        compileJourney(journey, registry, compRegistry)
+        compileJourney(journey, registry, renderRegistry)
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -449,10 +468,10 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, registry, compRegistry)).toThrow(AggregateError)
+      expect(() => compileJourney(journey, registry, renderRegistry)).toThrow(AggregateError)
 
       try {
-        compileJourney(journey, registry, compRegistry)
+        compileJourney(journey, registry, renderRegistry)
       } catch (error) {
         if (error instanceof AggregateError) {
           const fnErrors = error.errors.filter((e: Error) => e instanceof ForgeUnregisteredFunctionError)
@@ -499,7 +518,7 @@ describe('ASTSemanticValidator', () => {
 
       // Act / Assert
       try {
-        compileJourney(journey, registry, compRegistry)
+        compileJourney(journey, registry, renderRegistry)
         expect.fail('Expected AggregateError')
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
@@ -547,7 +566,7 @@ describe('ASTSemanticValidator', () => {
 
       // Act / Assert
       try {
-        compileJourney(journey, registry, compRegistry)
+        compileJourney(journey, registry, renderRegistry)
         expect.fail('Expected AggregateError')
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
@@ -586,7 +605,7 @@ describe('ASTSemanticValidator', () => {
 
       // Act / Assert
       try {
-        compileJourney(journey, registry, compRegistry)
+        compileJourney(journey, registry, renderRegistry)
         expect.fail('Expected AggregateError')
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
@@ -604,8 +623,8 @@ describe('ASTSemanticValidator', () => {
   })
 
   describe('component registration', () => {
-    const createCompRegistry = (...variants: string[]): ComponentRegistry => {
-      const registry = new ComponentRegistry()
+    const createRenderRegistry = (...variants: string[]): RenderFunctionRegistry => {
+      const registry = new RenderFunctionRegistry()
 
       if (variants.length > 0) {
         registry.registerMany(variants.map(variant => createTestComponent(variant, () => `<${variant} />`)))
@@ -626,7 +645,7 @@ describe('ASTSemanticValidator', () => {
 
     it('should not throw when journey has no blocks', () => {
       // Arrange
-      const registry = createCompRegistry()
+      const registry = createRenderRegistry()
 
       // Act / Assert
       expect(() => compileJourney(baseJourney, fnRegistry, registry)).not.toThrow()
@@ -634,7 +653,7 @@ describe('ASTSemanticValidator', () => {
 
     it('should not throw when all block variants are registered', () => {
       // Arrange
-      const registry = createCompRegistry('text', 'radio')
+      const registry = createRenderRegistry('text', 'radio')
 
       const journey: JourneyDefinition = {
         ...baseJourney,
@@ -664,7 +683,7 @@ describe('ASTSemanticValidator', () => {
 
     it('should throw when a block variant is not registered', () => {
       // Arrange
-      const registry = createCompRegistry()
+      const registry = createRenderRegistry()
 
       const journey: JourneyDefinition = {
         ...baseJourney,
@@ -701,7 +720,7 @@ describe('ASTSemanticValidator', () => {
 
     it('should collect multiple unregistered component errors', () => {
       // Arrange
-      const registry = createCompRegistry('text')
+      const registry = createRenderRegistry('text')
 
       const journey: JourneyDefinition = {
         ...baseJourney,
@@ -748,7 +767,7 @@ describe('ASTSemanticValidator', () => {
 
     it('should find unregistered components in nested child journeys', () => {
       // Arrange
-      const registry = createCompRegistry()
+      const registry = createRenderRegistry()
 
       const journey: JourneyDefinition = {
         ...baseJourney,
@@ -798,8 +817,8 @@ describe('ASTSemanticValidator', () => {
       IsRequired: { name: 'IsRequired', evaluate: () => true },
     })
 
-    const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([createTestComponent('text', () => '<input />')])
+    const renderFunctionRegistry = new RenderFunctionRegistry()
+    renderFunctionRegistry.registerMany([createTestComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
       _forge: StructureType.JOURNEY,
@@ -830,7 +849,7 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).not.toThrow()
     })
 
     it('should allow effects inside submit hooks', () => {
@@ -856,7 +875,7 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).not.toThrow()
     })
 
     it('should not reject non-effect functions outside hooks', () => {
@@ -892,7 +911,7 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).not.toThrow()
     })
 
     it('should reject an effect outside a hook', () => {
@@ -917,10 +936,10 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).toThrow(AggregateError)
 
       try {
-        compileJourney(journey, functionRegistry, componentRegistry)
+        compileJourney(journey, functionRegistry, renderFunctionRegistry)
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -941,8 +960,8 @@ describe('ASTSemanticValidator', () => {
       IsRequired: { name: 'IsRequired', evaluate: () => true },
     })
 
-    const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([
+    const renderFunctionRegistry = new RenderFunctionRegistry()
+    renderFunctionRegistry.registerMany([
       createTestComponent('text', () => '<input />'),
       createTestComponent('collection-block', () => '<div />'),
     ])
@@ -986,10 +1005,10 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).toThrow(AggregateError)
 
       try {
-        compileJourney(journey, functionRegistry, componentRegistry)
+        compileJourney(journey, functionRegistry, renderFunctionRegistry)
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -1039,10 +1058,10 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).toThrow(AggregateError)
 
       try {
-        compileJourney(journey, functionRegistry, componentRegistry)
+        compileJourney(journey, functionRegistry, renderFunctionRegistry)
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -1094,7 +1113,7 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).not.toThrow()
     })
 
     it('should collect multiple function argument scope errors', () => {
@@ -1138,10 +1157,10 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).toThrow(AggregateError)
 
       try {
-        compileJourney(journey, functionRegistry, componentRegistry)
+        compileJourney(journey, functionRegistry, renderFunctionRegistry)
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -1201,10 +1220,10 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).toThrow(AggregateError)
 
       try {
-        compileJourney(journey, functionRegistry, componentRegistry)
+        compileJourney(journey, functionRegistry, renderFunctionRegistry)
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -1225,8 +1244,8 @@ describe('ASTSemanticValidator', () => {
       someTransformer: { name: 'someTransformer', evaluate: () => 'value' },
     })
 
-    const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([
+    const renderFunctionRegistry = new RenderFunctionRegistry()
+    renderFunctionRegistry.registerMany([
       createTestComponent('text', () => '<input />'),
       createTestComponent('collection-block', () => '<div />'),
     ])
@@ -1272,7 +1291,7 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).not.toThrow()
     })
 
     it('should allow validations in step validWhen', () => {
@@ -1302,7 +1321,7 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).not.toThrow()
     })
 
     it('should reject a validation in a basic block property', () => {
@@ -1335,10 +1354,10 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).toThrow(AggregateError)
 
       try {
-        compileJourney(journey, functionRegistry, componentRegistry)
+        compileJourney(journey, functionRegistry, renderFunctionRegistry)
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -1378,7 +1397,7 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).not.toThrow()
     })
 
     it('should allow validations inside iterator yield templates when the iterator is in validWhen', () => {
@@ -1433,7 +1452,7 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).not.toThrow()
     })
   })
 
@@ -1443,8 +1462,8 @@ describe('ASTSemanticValidator', () => {
       saveToApi: { name: 'saveToApi', evaluate: () => {} },
     })
 
-    const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([createTestComponent('text', () => '<input />')])
+    const renderFunctionRegistry = new RenderFunctionRegistry()
+    renderFunctionRegistry.registerMany([createTestComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
       _forge: StructureType.JOURNEY,
@@ -1478,15 +1497,15 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).not.toThrow()
     })
 
   })
 
   describe('hook scope', () => {
     const functionRegistry = new FunctionRegistry()
-    const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([createTestComponent('text', () => '<input />')])
+    const renderFunctionRegistry = new RenderFunctionRegistry()
+    renderFunctionRegistry.registerMany([createTestComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
       _forge: StructureType.JOURNEY,
@@ -1516,15 +1535,15 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).not.toThrow()
     })
 
   })
 
   describe('tie-breaker scope', () => {
     const functionRegistry = new FunctionRegistry()
-    const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([createTestComponent('text', () => '<input />')])
+    const renderFunctionRegistry = new RenderFunctionRegistry()
+    renderFunctionRegistry.registerMany([createTestComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
       _forge: StructureType.JOURNEY,
@@ -1552,15 +1571,15 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).not.toThrow()
     })
 
   })
 
   describe('structure scope', () => {
     const functionRegistry = new FunctionRegistry()
-    const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([createTestComponent('text', () => '<input />')])
+    const renderFunctionRegistry = new RenderFunctionRegistry()
+    renderFunctionRegistry.registerMany([createTestComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
       _forge: StructureType.JOURNEY,
@@ -1587,7 +1606,7 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).not.toThrow()
     })
 
     it('should reject a step defined inside a block property', () => {
@@ -1612,10 +1631,10 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).toThrow(AggregateError)
 
       try {
-        compileJourney(journey, functionRegistry, componentRegistry)
+        compileJourney(journey, functionRegistry, renderFunctionRegistry)
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -1650,10 +1669,10 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).toThrow(AggregateError)
 
       try {
-        compileJourney(journey, functionRegistry, componentRegistry)
+        compileJourney(journey, functionRegistry, renderFunctionRegistry)
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -1670,8 +1689,8 @@ describe('ASTSemanticValidator', () => {
 
   describe('block scope', () => {
     const functionRegistry = new FunctionRegistry()
-    const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([
+    const renderFunctionRegistry = new RenderFunctionRegistry()
+    renderFunctionRegistry.registerMany([
       createTestComponent('text', () => '<input />'),
       createTestComponent('wrapper', () => '<div />'),
     ])
@@ -1705,7 +1724,7 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).not.toThrow()
     })
 
     it('should reject a block defined inside journey metadata', () => {
@@ -1719,10 +1738,10 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).toThrow(AggregateError)
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).toThrow(AggregateError)
 
       try {
-        compileJourney(journey, functionRegistry, componentRegistry)
+        compileJourney(journey, functionRegistry, renderFunctionRegistry)
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
         if (error instanceof AggregateError) {
@@ -1743,8 +1762,8 @@ describe('ASTSemanticValidator', () => {
       saveToApi: { name: 'saveToApi', evaluate: () => {} },
     })
 
-    const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([createTestComponent('text', () => '<input />')])
+    const renderFunctionRegistry = new RenderFunctionRegistry()
+    renderFunctionRegistry.registerMany([createTestComponent('text', () => '<input />')])
 
     const baseJourney: JourneyDefinition = {
       _forge: StructureType.JOURNEY,
@@ -1785,7 +1804,7 @@ describe('ASTSemanticValidator', () => {
       }
 
       // Act / Assert
-      expect(() => compileJourney(journey, functionRegistry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, functionRegistry, renderFunctionRegistry)).not.toThrow()
     })
 
   })
@@ -1818,8 +1837,8 @@ describe('ASTSemanticValidator', () => {
       return registry
     }
 
-    const componentRegistry = new ComponentRegistry()
-    componentRegistry.registerMany([
+    const renderFunctionRegistry = new RenderFunctionRegistry()
+    renderFunctionRegistry.registerMany([
       createTestComponent('text', () => '<input />'),
       createTestComponent('collection-block', () => '<div />'),
     ])
@@ -1872,7 +1891,7 @@ describe('ASTSemanticValidator', () => {
 
       // Act / Assert
       try {
-        compileJourney(journey, registry, componentRegistry)
+        compileJourney(journey, registry, renderFunctionRegistry)
         expect.fail('Expected AggregateError')
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
@@ -1894,7 +1913,7 @@ describe('ASTSemanticValidator', () => {
 
       // Act / Assert
       try {
-        compileJourney(journey, registry, componentRegistry)
+        compileJourney(journey, registry, renderFunctionRegistry)
         expect.fail('Expected AggregateError')
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
@@ -1913,7 +1932,7 @@ describe('ASTSemanticValidator', () => {
       const journey = journeyWithField(conditionField('field1', 'exactOne', [ref('a')]))
 
       // Act / Assert
-      expect(() => compileJourney(journey, registry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, registry, renderFunctionRegistry)).not.toThrow()
     })
 
     it('should not throw when the entry has no argumentsSchema', () => {
@@ -1922,7 +1941,7 @@ describe('ASTSemanticValidator', () => {
       const journey = journeyWithField(conditionField('field1', 'noSchema', [ref('a'), ref('b'), ref('c')]))
 
       // Act / Assert
-      expect(() => compileJourney(journey, registry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, registry, renderFunctionRegistry)).not.toThrow()
     })
 
     it('should not throw when the argumentsSchema is not a tuple', () => {
@@ -1931,7 +1950,7 @@ describe('ASTSemanticValidator', () => {
       const journey = journeyWithField(conditionField('field1', 'nonTuple', [ref('a'), ref('b')]))
 
       // Act / Assert
-      expect(() => compileJourney(journey, registry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, registry, renderFunctionRegistry)).not.toThrow()
     })
 
     it('should throw when a tuple with rest receives fewer than the fixed items', () => {
@@ -1941,7 +1960,7 @@ describe('ASTSemanticValidator', () => {
 
       // Act / Assert
       try {
-        compileJourney(journey, registry, componentRegistry)
+        compileJourney(journey, registry, renderFunctionRegistry)
         expect.fail('Expected AggregateError')
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
@@ -1960,7 +1979,7 @@ describe('ASTSemanticValidator', () => {
       const journey = journeyWithField(conditionField('field1', 'withRest', [ref('a'), ref('b'), ref('c')]))
 
       // Act / Assert
-      expect(() => compileJourney(journey, registry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, registry, renderFunctionRegistry)).not.toThrow()
     })
 
     it('should not throw when a trailing optional item is omitted', () => {
@@ -1969,7 +1988,7 @@ describe('ASTSemanticValidator', () => {
       const journey = journeyWithField(conditionField('field1', 'trailingOptional', [ref('a')]))
 
       // Act / Assert
-      expect(() => compileJourney(journey, registry, componentRegistry)).not.toThrow()
+      expect(() => compileJourney(journey, registry, renderFunctionRegistry)).not.toThrow()
     })
 
     it('should throw when fewer than the required prefix is supplied to a trailing-optional tuple', () => {
@@ -1979,7 +1998,7 @@ describe('ASTSemanticValidator', () => {
 
       // Act / Assert
       try {
-        compileJourney(journey, registry, componentRegistry)
+        compileJourney(journey, registry, renderFunctionRegistry)
         expect.fail('Expected AggregateError')
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
@@ -2036,7 +2055,7 @@ describe('ASTSemanticValidator', () => {
 
       // Act / Assert
       try {
-        compileJourney(journey, registry, componentRegistry)
+        compileJourney(journey, registry, renderFunctionRegistry)
         expect.fail('Expected AggregateError')
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
@@ -2070,7 +2089,7 @@ describe('ASTSemanticValidator', () => {
 
       // Act / Assert
       try {
-        compileJourney(journey, registry, componentRegistry)
+        compileJourney(journey, registry, renderFunctionRegistry)
         expect.fail('Expected AggregateError')
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)
@@ -2093,7 +2112,7 @@ describe('ASTSemanticValidator', () => {
 
       // Act / Assert
       try {
-        compileJourney(journey, registry, componentRegistry)
+        compileJourney(journey, registry, renderFunctionRegistry)
         expect.fail('Expected AggregateError')
       } catch (error) {
         expect(error).toBeInstanceOf(AggregateError)

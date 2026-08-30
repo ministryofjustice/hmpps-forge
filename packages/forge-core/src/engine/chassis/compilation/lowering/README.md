@@ -55,7 +55,7 @@ under heavy-load - so Forge remains performant!
 
 `CompilationDependencies` contains the registries lowering needs while generating source:
 - `functionRegistry`, used by `ExpressionDispatcher` to decide whether generated function calls need `await`.
-- `componentRegistry`, carried with the lowering dependencies for compilers that need component metadata.
+- Render-function metadata is read from `functionRegistry`; lowering has no separate component registry.
 
 `CompilationModel` is the input from analysis.
 The lowering phase handler consumes it and the codegen tasks fill:

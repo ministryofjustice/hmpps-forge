@@ -11,14 +11,17 @@ export enum FunctionCallType {
 }
 
 /**
- * Discriminates the four kinds of registered function entry a call can
- * target. Pairs with FunctionCallType by leaf name.
+ * Discriminates the kinds of registered function entry. Conditions,
+ * transformers, generators, and effects are invoked from expressions;
+ * components and renderers are invoked by the rendering pipeline.
  */
 export enum FunctionEntryType {
   CONDITION = 'function.entry.condition',
   TRANSFORMER = 'function.entry.transformer',
   GENERATOR = 'function.entry.generator',
   EFFECT = 'function.entry.effect',
+  COMPONENT = 'function.entry.component',
+  RENDERER = 'function.entry.renderer',
 }
 
 /**
@@ -37,15 +40,6 @@ export enum StructureType {
 export enum ComponentCallType {
   BASIC = 'component.call.basic',
   FIELD = 'component.call.field',
-}
-
-/**
- * Discriminates registered component entries, the handles component()
- * returns. Pairs with ComponentCallType by leaf name.
- */
-export enum ComponentEntryType {
-  BASIC = 'component.entry.basic',
-  FIELD = 'component.entry.field',
 }
 
 /**

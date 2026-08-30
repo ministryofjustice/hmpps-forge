@@ -1,10 +1,15 @@
-import { component } from '../../components/component'
-import { ComponentRegistryTestHarness } from '../../testing/components/ComponentRegistryTestHarness'
+import { component } from '../../components/presentation'
+import { ComponentTestHarness } from '../../testing/components/ComponentTestHarness'
 import { CollectionBlock } from './collectionBlock'
 
-const TestBlock = component<{ html: string }>('testBlock', { render: props => props.html })
+const TestBlock = component<{ html: string }>('testBlock', {
+  factory:
+    () =>
+    ({ props }) =>
+      props.html,
+})
 
-const harness = new ComponentRegistryTestHarness([CollectionBlock, TestBlock])
+const harness = new ComponentTestHarness([CollectionBlock, TestBlock])
 
 const testBlock = (html: string) => TestBlock({ html })
 

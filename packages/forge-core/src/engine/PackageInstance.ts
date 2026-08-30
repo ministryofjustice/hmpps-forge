@@ -1,6 +1,5 @@
 import type { JourneyDefinition } from '../authoring/types/structures.type'
 import type { ForgePackageRegistration, PackageDependencies, NodeId } from './chassis/contracts/ast/engine.type'
-import ComponentRegistry from './chassis/registries/ComponentRegistry'
 import FunctionDefinitionCatalog from './chassis/registries/FunctionDefinitionCatalog'
 import CompilationPipeline from './chassis/compilation/pipeline/CompilationPipeline'
 import type { ForgeInstrumentation } from './chassis/tracing/ForgeTraceSinkDispatcher'
@@ -29,16 +28,13 @@ export default class PackageInstance {
   constructor(pkg: ForgePackageRegistration<any>, options: PackageInstanceOptions<any>) {
     const functionBuilders = PackageInstance.resolveFunctionBuilders(pkg)
     const functionDefinitions = PackageInstance.resolveFunctionDefinitions(functionBuilders)
-
     this.dependencies = {
       functionBuilders,
       packageDependencies: options.packageDependencies ?? {},
-      componentRegistry: PackageInstance.resolveComponentRegistry(pkg),
     }
 
     const pipeline = new CompilationPipeline({
       functionRegistry: functionDefinitions,
-      componentRegistry: this.dependencies.componentRegistry,
       instrumentation: options.instrumentation,
     })
 
@@ -104,15 +100,5 @@ export default class PackageInstance {
     })
 
     return functionDefinitions
-  }
-
-  private static resolveComponentRegistry(pkg: ForgePackageRegistration<any>): ComponentRegistry {
-    const componentRegistry = new ComponentRegistry()
-
-    if (pkg.components) {
-      componentRegistry.registerMany(pkg.components)
-    }
-
-    return componentRegistry
   }
 }

@@ -1,4 +1,3 @@
-import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
 import type { ForgeRenderer } from '../../../../framework/types/rendering.type'
 import type { NodeId } from '../ast/ast.type'
 import type {
@@ -79,7 +78,6 @@ export interface RequestValiditiesWorkProps {
 
 export interface RequestRenderWorkProps {
   readonly renderer: ForgeRenderer<unknown>
-  readonly componentRegistry: ComponentRegistry
 }
 
 export interface RequestContextPreparationWorkProps {

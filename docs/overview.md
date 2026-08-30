@@ -53,7 +53,7 @@ the framework performant.
 Frontend. Web framework integration is handled through the `ForgeRenderer`
 interface and `ResponseBindings`: the framework supplies a `RequestSnapshot` and
 receives a `ForgeOutcome` back. Component rendering is handled through
-`ComponentRegistryEntry` renderers.
+request-bound component and renderer functions passed to the adapter's `ForgeRenderer`.
 
 ### Stateless request evaluation
 
@@ -155,13 +155,11 @@ forge-express-nunjucks
 
 forge-govuk-components
   Depends on forge-core and the express-nunjucks helper.
-  Provides GOV.UK component registry entries and wrappers rendered with
-  Nunjucks.
+  Provides GOV.UK component entries and authoring wrappers rendered with Nunjucks.
 
 forge-moj-components
   Depends on forge-core and the express-nunjucks helper.
-  Provides MOJ component registry entries and wrappers rendered with
-  Nunjucks/templates.
+  Provides MOJ component entries and authoring wrappers rendered with Nunjucks/templates.
 ```
 
 `forge-core` is the only source area with deep internal layering. The adapter

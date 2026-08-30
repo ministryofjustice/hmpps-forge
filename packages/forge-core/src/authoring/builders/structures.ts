@@ -2,8 +2,6 @@ import { finaliseBuilders } from './utils/finaliseBuilders'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { isFunctionEntry } from '../functions/createEntry'
 import { FunctionEntryRegistry } from '../functions/FunctionEntryRegistry'
-import { ComponentEntryCollector } from '../../components/ComponentEntryCollector'
-import { ComponentRegistryEntry } from '../../components/types/components.type'
 import { BlockDefinition, FieldBlockDefinition } from '../../components/types/structures.type'
 import { JourneyDefinition, StepDefinition } from '../types/structures.type'
 import { ForgePackage, RegisteredForgePackage } from '../types/package.type'
@@ -90,14 +88,14 @@ export function journey<D extends JourneyDefinition>(definition: Omit<D, '_forge
 export function createForgePackage<TDeps = Record<string, never>>(
   pkg: ForgePackage<TDeps>,
 ): RegisteredForgePackage<TDeps> {
+  const { components, ...packageDefinition } = pkg
   const parsed: unknown = typeof pkg.journey === 'string' ? JSON.parse(pkg.journey) : pkg.journey
   const finalisedJourney = finaliseBuilders(parsed) as JourneyDefinition
 
   const result: RegisteredForgePackage<TDeps> = {
-    ...pkg,
+    ...packageDefinition,
     journey: finalisedJourney,
-    functions: assembleFunctions(pkg.functions, finalisedJourney),
-    components: assembleComponents(pkg.components, finalisedJourney),
+    functions: assembleFunctions(pkg.functions, components, finalisedJourney),
     forgePackage: true,
   }
   stampCallsite(result, captureCallsite(createForgePackage))
@@ -112,6 +110,7 @@ export function createForgePackage<TDeps = Record<string, never>>(
  */
 function assembleFunctions<TDeps>(
   functions: ForgePackage<TDeps>['functions'],
+  components: ForgePackage<TDeps>['components'],
   finalisedJourney: JourneyDefinition,
 ): RegisteredForgePackage<TDeps>['functions'] {
   const entryRegistry = new FunctionEntryRegistry<TDeps>()
@@ -132,6 +131,10 @@ function assembleFunctions<TDeps>(
     listedRegistries.push(functions as FunctionRegistryBuilder<TDeps>)
   }
 
+  components?.forEach(component => {
+    entryRegistry.collectListed(component)
+  })
+
   entryRegistry.collectEmbedded(finalisedJourney)
 
   if (!entryRegistry.hasEntries()) {
@@ -141,26 +144,4 @@ function assembleFunctions<TDeps>(
   }
 
   return [...listedRegistries, entryRegistry]
-}
-
-/**
- * Collects the package's components - listed in `components` or stamped onto
- * blocks their builders created in the journey - into one listing, so the
- * engine registers every component the journey uses without the author naming
- * them. Packages whose journey embeds no components pass through untouched.
- */
-function assembleComponents(
-  components: ComponentRegistryEntry<object, unknown>[] | undefined,
-  finalisedJourney: JourneyDefinition,
-): ComponentRegistryEntry<object, unknown>[] | undefined {
-  const componentCollector = new ComponentEntryCollector()
-
-  components?.forEach(component => componentCollector.collectListed(component))
-  componentCollector.collectEmbedded(finalisedJourney)
-
-  if (!componentCollector.hasEmbedded()) {
-    return components
-  }
-
-  return componentCollector.entries()
 }

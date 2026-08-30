@@ -57,25 +57,27 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 Functions and components without the registry ceremony - write a condition with
 `condition()`, use it in your journey, and it registers itself. Components declared
-with `component()` now do the same, and global registration is gone entirely - a
-package carries everything its journey uses. The deprecated `defineFunction`-era
-helpers and the implementations-map `functions` form are gone too. Validation rules
-can also call generators directly when a predicate and single static message are not
-enough.
+with `component()` and step renderers declared with `renderer()` now use the same
+function machinery, and global registration is gone entirely - a package carries
+everything its journey uses. The deprecated `defineFunction`-era helpers and the
+implementations-map `functions` form are gone too. Validation rules can also call
+generators directly when a predicate and single static message are not enough.
 
 ### Added
 
 - `condition()`, `transformer()`, `generator()`, and `effect()` - define a function as
   a standalone entry that registers itself when a journey uses it, no registry or
   `functions` listing needed ([#269])
-- Components declared with `component()` register themselves the same way - building
-  a block with one in a journey is enough, no `components` listing needed. The listing
-  stays for journeys that reference a variant by string ([#270])
-- Plain component props - pass an ordinary props interface to `component()` and Forge
-  derives an expression-aware block or field builder while `render()` receives the
-  original plain types. `ResolvableProps` powers the authoring surface internally,
-  so GOV.UK and MOJ components no longer wrap either whole interfaces or individual
-  values themselves ([#281])
+- Components register themselves when used - building a block with `component()`,
+  `nunjucksComponent()`, or `jsxComponent()` is enough, with no `components` listing
+  needed. The deprecated listing stays for journeys that reference a variant by string ([#270])
+- `renderer()` - declare a step renderer that receives resolved props, the step context,
+  and its rendered children, then place it through the step's `renderer` option ([#291])
+- Plain component props - pass an ordinary props interface to `component()` or a
+  renderer-specific component helper and Forge derives an expression-aware block or
+  field builder. `ResolvableProps` powers the authoring surface internally, so GOV.UK
+  and MOJ components no longer wrap either whole interfaces or individual values
+  themselves ([#281])
 - `FunctionRegistryTestHarness` accepts entries alongside registries ([#269])
 - `ComponentRegistryTestHarness` renders author-facing component calls through
   Forge's recursive component rendering boundary, with `.withValue()` for field
@@ -105,6 +107,10 @@ enough.
 
 ### Changed
 
+- Component and step-renderer factories now bind through the request-owned function
+  registry and execute in Forge core. Adapters retain only nested-output wrapping and
+  page assembly, while Nunjucks and JSX helpers preserve their existing callback APIs
+  ([#291])
 - Forge now requires Zod 4.5 or later. Function and component schemas are compiled
   once when registered and reused across requests, while boolean-only condition input
   checks use Zod's allocation-free validation path. Component input schemas only validate
@@ -306,6 +312,7 @@ use returned error items for expected invalid input. ([#274])
 [#282]: https://github.com/ministryofjustice/hmpps-forge/pull/282
 [#283]: https://github.com/ministryofjustice/hmpps-forge/pull/283
 [#290]: https://github.com/ministryofjustice/hmpps-forge/pull/290
+[#291]: https://github.com/ministryofjustice/hmpps-forge/pull/291
 
 ---
 

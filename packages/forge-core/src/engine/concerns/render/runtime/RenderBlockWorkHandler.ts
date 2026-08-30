@@ -1,8 +1,6 @@
-import type { ComponentRegistryEntry } from '../../../../components/types/components.type'
 import type { BlockDefinition } from '../../../../components/types/structures.type'
 import { RENDER_BLOCK_BRAND } from '../contracts/renderBlock.brand'
-import type { RenderBlock, ForgeRenderer, ResolvedBlock } from '../../../../framework/types/rendering.type'
-import type { ComponentRegistry } from '../../../../framework/types/adapter.type'
+import type { RenderBlock, ForgeRenderer } from '../../../../framework/types/rendering.type'
 import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
 import type {
   CompletedWork,
@@ -14,12 +12,18 @@ import type {
 import type { TraceSpanFields } from '../../../chassis/tracing/traceSpan.type'
 import ForgeUnregisteredComponentError from '../../../errors/ForgeUnregisteredComponentError'
 import { createWorkTask } from '../../../chassis/work/workTask'
+import type { RendererFunctionContext } from '../../../../components/types/renderFunctions.type'
+import { FunctionEntryType } from '../../../../shared/taxonomy'
+import type {
+  FunctionRegistryEntry,
+  PresentationFunctionRegistryEntry,
+} from '../../../../authoring/types/functions.type'
+import type FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
 
 export interface RenderBlockWorkProps {
   readonly block: RenderBlock
-  readonly entry: ComponentRegistryEntry<object, unknown>
   readonly renderer: ForgeRenderer<unknown>
-  readonly componentRegistry: ComponentRegistry
+  readonly rendererFunctionContext?: RendererFunctionContext
 }
 
 type RenderBlockWorkTask = WorkTask<'render.render-blocks.block', RenderBlockWorkProps>
@@ -44,7 +48,7 @@ export const RENDER_BLOCK_WORK_HANDLER: WorkHandler<'render.render-blocks.block'
   kind: RENDER_BLOCK_KIND,
 
   begin(ctx: WorkContextContract<RequestState, RenderBlockWorkProps>) {
-    const { block, renderer, componentRegistry } = ctx.props
+    const { block, renderer } = ctx.props
 
     if (block.properties.visibleWhen === false) {
       ctx.omitFromTrace?.()
@@ -52,7 +56,7 @@ export const RENDER_BLOCK_WORK_HANDLER: WorkHandler<'render.render-blocks.block'
       return { output: '' }
     }
 
-    const nestedTasks = collectNestedBlockTasks(block.properties, renderer, componentRegistry)
+    const nestedTasks = collectNestedBlockTasks(block.properties, renderer)
 
     if (nestedTasks.length === 0) {
       return { groups: [] }
@@ -69,32 +73,34 @@ export const RENDER_BLOCK_WORK_HANDLER: WorkHandler<'render.render-blocks.block'
   },
 
   async complete(ctx: WorkContextContract<RequestState, RenderBlockWorkProps>, children: readonly CompletedWork[]) {
-    const { block, entry, renderer } = ctx.props
+    const { block, renderer } = ctx.props
 
     if (block.properties.visibleWhen === false) {
       return ''
     }
 
     const updatedProperties = replaceNestedBlocks(block.properties, children, renderer)
-    const resolvedBlock = toResolvedBlock({ ...block, properties: updatedProperties })
+    const renderBlock = { ...block, properties: updatedProperties }
+    const entryType =
+      ctx.props.rendererFunctionContext === undefined ? FunctionEntryType.COMPONENT : FunctionEntryType.RENDERER
+    const entry = resolvePresentationFunction(ctx.state.functionRegistry, block.variant, entryType)
+    const renderInput = {
+      props: updatedProperties,
+      context: ctx.props.rendererFunctionContext ?? {
+        kind: 'block' as const,
+        block: renderBlock,
+      },
+    }
 
-    const output = await renderer.renderBlock(entry, resolvedBlock)
+    const output = await entry.evaluate(renderInput)
 
     // Mark only while devtools is tracing, so production output stays unmarked.
-    if (ctx.state.dependencies.traceEnabled && renderer.markBlock) {
+    if (ctx.props.rendererFunctionContext === undefined && ctx.state.dependencies.traceEnabled && renderer.markBlock) {
       return renderer.markBlock(block.id, output)
     }
 
     return output
   },
-}
-
-function toResolvedBlock(block: RenderBlock): ResolvedBlock {
-  return {
-    _forge: block.blockType,
-    variant: block.variant,
-    ...block.properties,
-  }
 }
 
 function isRenderBlock(value: unknown): value is RenderBlock {
@@ -107,7 +113,6 @@ function isRenderBlock(value: unknown): value is RenderBlock {
 function collectNestedBlockTasks(
   properties: Record<string, unknown>,
   renderer: ForgeRenderer<unknown>,
-  componentRegistry: ComponentRegistry,
 ): RenderBlockWorkTask[] {
   const tasks: RenderBlockWorkTask[] = []
 
@@ -116,13 +121,7 @@ function collectNestedBlockTasks(
       return
     }
 
-    const entry = componentRegistry.get(value.variant)
-
-    if (entry === undefined) {
-      throw new ForgeUnregisteredComponentError({ variant: value.variant })
-    }
-
-    tasks.push(createRenderBlockTask(value.id, value, entry, renderer, componentRegistry))
+    tasks.push(createRenderBlockTask(value.id, value, renderer))
   })
 
   return tasks
@@ -203,14 +202,37 @@ function replaceInValue(value: unknown, replacer: (value: unknown) => unknown): 
 export function createRenderBlockTask(
   id: string,
   block: RenderBlock,
-  entry: ComponentRegistryEntry<object, unknown>,
   renderer: ForgeRenderer<unknown>,
-  componentRegistry: ComponentRegistry,
+  rendererFunctionContext?: RendererFunctionContext,
 ) {
   return createWorkTask(
     id,
     RENDER_BLOCK_WORK_HANDLER,
-    { block, entry, renderer, componentRegistry },
+    {
+      block,
+      renderer,
+      ...(rendererFunctionContext === undefined ? {} : { rendererFunctionContext }),
+    },
     RENDER_BLOCK_WORK_INSTRUMENTATION,
   )
+}
+
+function resolvePresentationFunction(
+  functionRegistry: FunctionRegistry,
+  variant: string,
+  entryType: FunctionEntryType.COMPONENT | FunctionEntryType.RENDERER,
+): PresentationFunctionRegistryEntry {
+  const renderEntry = functionRegistry.get(variant)
+
+  if (isPresentationFunctionEntry(renderEntry) && renderEntry._forge === entryType) {
+    return renderEntry
+  }
+
+  throw new ForgeUnregisteredComponentError({ variant })
+}
+
+function isPresentationFunctionEntry(
+  entry: FunctionRegistryEntry | undefined,
+): entry is PresentationFunctionRegistryEntry {
+  return entry?._forge === FunctionEntryType.COMPONENT || entry?._forge === FunctionEntryType.RENDERER
 }

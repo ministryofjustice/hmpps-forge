@@ -17,7 +17,6 @@ import type {
 } from '../contracts/compiled/compiledFunctions.type'
 import type { CompiledFieldInventoryFunction } from '../../concerns/answer-cleardown/contracts/compiledFieldInventory.type'
 import type { FunctionRegistryBuilder } from '../../../authoring/types/functions.type'
-import type { ComponentRegistry } from '../../../framework/types/adapter.type'
 import {
   createRouteTreeIndex,
   JourneyRouteContext,
@@ -40,7 +39,6 @@ interface MountedNodeBase {
   readonly basePath: string
   readonly functionBuilders: readonly FunctionRegistryBuilder[]
   readonly packageDependencies: unknown
-  readonly componentRegistry: ComponentRegistry
   readonly compiledReachabilityFacts: CompiledReachabilityFactsFunction
   readonly compiledReachabilityState: CompiledReachabilityStateFunction
   readonly compiledFieldInventory: CompiledFieldInventoryFunction | undefined
@@ -79,7 +77,7 @@ export default class MountRegistry {
   }
 
   register(packageInstance: PackageInstance): void {
-    const { functionBuilders, packageDependencies, componentRegistry } = packageInstance.getDependencies()
+    const { functionBuilders, packageDependencies } = packageInstance.getDependencies()
     const stepRouteIndex = packageInstance.getStepRouteIndex()
     const journeyRouteIndex = packageInstance.getJourneyRouteIndex()
     const journeyCode = packageInstance.getJourneyCode()
@@ -97,7 +95,6 @@ export default class MountRegistry {
       journeyCode,
       functionBuilders,
       packageDependencies,
-      componentRegistry,
     )
     this.buildJourneyNodes(
       packageInstance,
@@ -107,7 +104,6 @@ export default class MountRegistry {
       journeyCode,
       functionBuilders,
       packageDependencies,
-      componentRegistry,
     )
   }
 
@@ -138,7 +134,6 @@ export default class MountRegistry {
     journeyCode: string,
     functionBuilders: readonly FunctionRegistryBuilder[],
     packageDependencies: unknown,
-    componentRegistry: ComponentRegistry,
   ): void {
     stepContexts.forEach(ctx => {
       const compiledStep = packageInstance.getCompiledStep(ctx.stepId)
@@ -155,7 +150,6 @@ export default class MountRegistry {
         basePath: ctx.journeyBasePath,
         functionBuilders,
         packageDependencies,
-        componentRegistry,
         compiledReachabilityFacts: compiledStep.compiledReachabilityFacts,
         compiledReachabilityState: compiledStep.compiledReachabilityState,
         compiledFieldInventory: compiledStep.compiledFieldInventory,
@@ -182,7 +176,6 @@ export default class MountRegistry {
     journeyCode: string,
     functionBuilders: readonly FunctionRegistryBuilder[],
     packageDependencies: unknown,
-    componentRegistry: ComponentRegistry,
   ): void {
     journeyContexts.forEach(({ journeyId, templatePath }) => {
       const compiledJourney = packageInstance.getCompiledJourney(journeyId)
@@ -205,7 +198,6 @@ export default class MountRegistry {
         basePath: templatePath,
         functionBuilders,
         packageDependencies,
-        componentRegistry,
         compiledReachabilityFacts: compiledJourney.compiledReachabilityFacts,
         compiledReachabilityState: compiledJourney.compiledReachabilityState,
         compiledFieldInventory: compiledJourney.compiledFieldInventory,

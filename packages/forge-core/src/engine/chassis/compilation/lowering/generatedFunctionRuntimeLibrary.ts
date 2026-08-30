@@ -24,7 +24,7 @@ interface RenderFieldValueContext {
   request: Record<string, unknown>
 }
 
-interface RenderFieldFailureContext extends ComponentInputContext {
+interface RenderFieldFailureContext extends RenderFunctionInputContext {
   fieldFailures: Record<string, unknown[]>
   fieldFailureAnchors: Record<string, string>
 }
@@ -36,6 +36,7 @@ export interface FunctionRegistryLookupEntry {
   outputSchema?: ZodType
   /** Internal Forge discriminator. Do not set or override this property. */
   _forge?: FunctionEntryType
+  errorAnchor?(props: Record<string, unknown>): string | undefined
 }
 
 interface FunctionEvaluationContext {
@@ -48,18 +49,13 @@ interface IteratorBudgetContext {
   iteratorBudget: IteratorBudgetContract
 }
 
-interface ComponentRegistryLookupEntry {
-  inputSchema?: ZodType
-  errorAnchor?(props: Record<string, unknown>): string | undefined
-}
-
-interface ComponentInputContext {
-  components: {
-    get(variant: string): ComponentRegistryLookupEntry | undefined
+interface RenderFunctionInputContext {
+  conditions: {
+    get(name: string): FunctionRegistryLookupEntry | undefined
   }
 }
 
-interface FieldPreparationContext extends AnswerHistoryContext, ComponentInputContext {
+interface FieldPreparationContext extends AnswerHistoryContext, RenderFunctionInputContext {
   post: Record<string, unknown>
 }
 
@@ -147,7 +143,7 @@ export interface GeneratedFunctionRuntimeLibrary {
   ensureAnswerHistory(ctx: AnswerHistoryContext, code: string): AnswerHistory
   pushAnswerMutation(answerHistory: AnswerHistory, value: unknown, source: string): void
   normalizePostValue(rawValue: unknown, multiple: boolean): unknown
-  checkComponentInputValue(ctx: ComponentInputContext, variant: string, value: unknown, multiple: boolean): unknown
+  checkComponentInputValue(ctx: RenderFunctionInputContext, variant: string, value: unknown, multiple: boolean): unknown
   groupFieldDefinitionsByCode(definitions: readonly PreparedFieldDefinition[]): PreparedFieldDefinition[][]
   preparePostedFieldAnswerGroup(
     ctx: FieldPreparationContext,
@@ -240,7 +236,10 @@ export const generatedFunctionRuntimeLibrary: GeneratedFunctionRuntimeLibrary = 
     // The failing block instance's document anchor, for the error summary link.
     // The component owns the ids it renders, so it declares how to derive the
     // anchor; without a declaration the anchor is the field code.
-    const anchor = ctx.components.get(variant)?.errorAnchor?.(blockProps) ?? blockProps.code
+    const renderEntry = ctx.conditions.get(variant)
+    const anchor =
+      (renderEntry?._forge === FunctionEntryType.COMPONENT ? renderEntry.errorAnchor?.(blockProps) : undefined) ??
+      blockProps.code
 
     if (typeof anchor === 'string') {
       ctx.fieldFailureAnchors[String(blockId)] = anchor
@@ -350,7 +349,7 @@ function normalizePostValue(rawValue: unknown, multiple: boolean): unknown {
  * variant without a schema is left untouched.
  */
 function checkComponentInputValue(
-  ctx: ComponentInputContext,
+  ctx: RenderFunctionInputContext,
   variant: string,
   value: unknown,
   multiple: boolean,
@@ -359,9 +358,9 @@ function checkComponentInputValue(
     return value
   }
 
-  const entry = ctx.components.get(variant)
+  const entry = ctx.conditions.get(variant)
 
-  if (entry === undefined || entry.inputSchema === undefined) {
+  if (entry?._forge !== FunctionEntryType.COMPONENT || entry.inputSchema === undefined) {
     return value
   }
 

@@ -36,7 +36,7 @@ The phase order is fixed, so a missing recording is a pipeline bug - the state g
 ## Data Model
 
 `CompilationPipeline` accepts `CompilationPipelineOptions`:
-- `functionRegistry` and `componentRegistry`, passed into `CompilationState` as the phase dependencies.
+- `functionRegistry`, passed into `CompilationState` as the phase dependency for every function kind.
 - `instrumentation`, optional; when enabled it turns on executor trace fields and the codegen recorder.
 
 `CompilationState` is the mutable draft the phases build up:

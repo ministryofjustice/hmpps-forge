@@ -86,8 +86,8 @@ export const myPackage = createForgePackage({
 | Property | Type | Description |
 |----------|------|-------------|
 | `journey` | `JourneyDefinition` | The journey definition (required). |
-| `functions` | `Registry \| Registry[]` | One or more function registries (`EffectRegistry`, `ConditionRegistry`, `TransformerRegistry`, `GeneratorRegistry`) holding your custom implementations. Function entries can be listed alongside registries. |
-| `components` | `ComponentRegistryEntry[]` | Custom components scoped to this journey. |
+| `functions` | `Registry \| FunctionEntry \| (Registry \| FunctionEntry)[]` | Function registries and entries, including component and renderer declarations, scoped to this journey. |
+| `components` | `FunctionEntry[]` | Deprecated compatibility listing for component declarations. Prefer `functions`. |
 | `enabled` | `boolean` | Whether to register the package. Defaults to `true`. |
 
 ---
@@ -97,12 +97,12 @@ export const myPackage = createForgePackage({
 There is no global registration step. Every component and
 function a journey uses arrives through its package:
 
-- Components and functions declared with `component()`,
-  `condition()`, and friends register themselves - using one in
+- Entries declared with `component()`, `renderer()`, `condition()`, and the
+  other function helpers register themselves - using one in
   the journey definition is enough.
 - Journeys that reference a variant or function by string only
   (a JSON journey, for example) list what they need on the
-  package's `components` and `functions` properties.
+  package's `functions` property.
 
 Core exports `builtInFunctions` and `builtInComponents` for a
 name-only package that needs the complete built-in sets:

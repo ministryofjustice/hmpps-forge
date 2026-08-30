@@ -4,7 +4,6 @@ import ASTNodeIndex from '../../../chassis/compilation/ast/ast-state/ASTNodeInde
 import TemplateNodeIndex from '../../../chassis/compilation/ast/ast-state/TemplateNodeIndex'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
-import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import ForgeReferenceScopeError from '../../../errors/ForgeReferenceScopeError'
 import type { ASTValidationContext } from './types'
 import { validateTieBreakerScope } from './validateTieBreakerScope'
@@ -31,7 +30,6 @@ const createContext = (
     nodeIndex,
     templateNodeIndex: new TemplateNodeIndex(),
     functionRegistry: new FunctionRegistry(),
-    componentRegistry: new ComponentRegistry(),
   }
 }
 

@@ -2,200 +2,99 @@
 
 ## Purpose
 
-Forge has a small core engine. It does not hard-code every condition,
-transformation, effect, generator, or renderable component.
+Forge has six function declaration families:
 
-Those behaviours enter Forge through extensions.
+- conditions decide
+- transformers change values
+- generators produce values
+- effects perform hook work
+- components present blocks and fields
+- renderers compose complete steps
 
-The extension model is made of three parts:
+They share one extension lifecycle. Each declaration produces a callable authoring
+handle, package finalisation collects the declaration from its invocation, compilation
+uses its static metadata, and request preparation binds its factory into the active
+`FunctionRegistry`.
 
-- components, which provide renderable block variants
-- functions, which provide executable behaviour for expressions and hooks
-- registries, which make components and functions available to the engine
+## Definitions and implementations
 
-The important separation is between names in a journey definition and the
-implementations those names resolve to.
+Journey definitions remain declarative data. Function declarations provide the
+executable behaviour those definitions name.
 
-A journey definition can say that a block uses a given component variant, or
-that an expression calls a named function. The registry decides whether that
-variant or function exists, and provides the implementation when the engine
-needs it.
+Keeping the two separate allows Forge to inspect and compile journeys before request
+handling starts, detect missing names early, isolate extensions by package, and build
+request-specific evaluators without embedding application objects in the AST.
 
-## Where this sits in the pipeline
+## Function entries
 
-Extensions are registered before a journey is validated and compiled.
+Every function entry carries a name, a Forge function-kind discriminator, a factory,
+and any static schemas or metadata relevant to its kind.
 
-They then stay visible across the rest of the pipeline:
+`FunctionDefinitionCatalog` holds the unbound metadata used by validation and
+compilation. `FunctionRegistry` holds the request-bound rows whose factories have
+already received the active dependency object.
 
-1. Validation checks that referenced functions and component variants exist.
+Generated expression code invokes conditions, transformers, generators, and effects
+through that request registry. Render work performs the same lookup for component
+and renderer entries and invokes the resolved evaluator directly.
 
-2. Intermediate representation keeps the function names, function types, and
-   component variants as part of the node structure.
+## Components and renderers
 
-3. Compilation emits generated function call sites and render data that still
-   refer to those registered names.
+A component declaration builds basic or field block invocations. A renderer declaration
+builds the invocation used by a journey or step to compose its rendered blocks.
 
-4. Runtime evaluation calls registered functions through the function registry.
+`component()` and `renderer()` are separate authoring primitives because they have
+different contracts and valid placements. Helpers such as `nunjucksComponent()` and
+`jsxComponent()` adapt renderer-specific callback ergonomics into `component()`.
+There is no component-specific registry.
 
-5. Rendering dispatches evaluated blocks to component renderers through the
-   component registry.
+Component declarations retain field metadata that must be inspected statically,
+including the input schema, `multiple`, and error anchoring. Component evaluators
+receive block context; renderer evaluators receive step context and rendered children.
+Both capture the same merged package, adapter, and request dependencies as the other
+function kinds.
 
-This lets Forge validate and compile declarative definitions without embedding
-application code or presentation code into the definition itself.
+## Registries and package scope
 
-## Why definitions and implementations are separate
+A package exposes function builders and entries through `functions`. Embedded
+invocations are collected automatically; explicit listing supports serialized or
+otherwise name-only journeys.
 
-Journey definitions are declarative data. They describe structure, navigation,
-validation, hooks, and rendering intent - the recipe.
+All names are package-scoped. Two packages may register different entries with the
+same local name. Reusing one entry across packages registers it separately in each
+scope.
 
-Functions and components are executable code. They depend on application
-services, template engines, design-system packages, or framework integrations
-- the ingredients.
-
-Keeping them separate gives Forge a stable compilation model:
-
-- Definitions can be inspected before request handling starts
-- Missing functions and components surface during registration
-- Generated code resolves functions by registry lookup
-- Render data stays framework-independent until the adapter handles it
-- Package-specific extensions stay isolated from other journeys
-
-It also means the core never becomes the place where application integrations
-or component packages have to live.
-
-At request time, Forge combines the two: definitions govern how data, flows,
-and views are structured, while functions and components supply the
-computation, side-effects, and rendering. Recipe meets ingredients, Forge bakes 
-it... and mmm, cake!!
-
-## Components
-
-Components are presentation extensions.
-
-A block definition carries a component variant. The component registry maps that
-variant to a component renderer.
-
-During runtime, Forge evaluates block properties into render data. It does not
-produce the final HTML itself. The framework integration takes the render
-context, looks up each block variant in the component registry, and calls the
-matching component renderer.
-
-This keeps block evaluation inside `forge-core`, while allowing component
-packages to decide how their markup is produced.
-
-Component renderers may use Nunjucks, another template engine, plain string
-rendering, or a different response model supplied by the framework adapter.
-That choice belongs outside the core engine.
-
-## Functions
-
-Functions are evaluation extensions.
-
-Forge uses registered functions for conditions, transformers, generators, and
-effects. In the definition, these appear as typed function expressions with a
-name and arguments.
-
-The package definition catalog maps each name to unbound function metadata.
-Context preparation builds a request-owned registry mapping those names to
-evaluators. Generated functions inspect each evaluator result for thenability.
-
-The engine does not inline application function code into generated source.
-Generated code keeps the decision about when a function should run. The
-registry supplies the function that runs at that point.
-
-Different function types have different roles:
-
-- conditions answer a question used by validation, reachability, or hooks
-- transformers change values as part of expression evaluation
-- generators produce values, often for defaults or derived content
-- effects run from hooks and may interact with application state or services
-
-Effects are the main place where application side effects enter Forge. The core
-only controls where effect expressions are allowed to appear and how they are
-called. It does not prescribe what the effect does.
-
-## Registries
-
-Registries are lookup and validation boundaries.
-
-`FunctionDefinitionCatalog` stores unbound function metadata by name during
-registration. `FunctionRegistry` stores request-bound evaluators by name.
-
-`ComponentRegistry` stores component entries by variant. A component entry
-needs a variant and a renderer.
-
-Registration fails if an entry is missing the required shape or if the same
-name or variant is registered twice in the same registry.
-
-Validation uses the definition catalog and component registry to reject unknown
-names or variants. Runtime uses the request registry to resolve function
-implementations, while rendering uses the package component registry.
-
-This means a registry is not just a container. It defines the extension
-environment that a journey is allowed to use.
-
-## Scoping
-
-Extension registration is package-scoped.
-
-A package's functions and components go into registries owned by that package.
-Nothing is registered globally, so every entry visible to a journey arrives
-through that journey's package.
-
-This gives packages local extension names without mutating a shared registry.
-It also means one package can register a custom function or component variant
-without making it visible to another package.
-
-The rule to preserve is that package extensions should be visible to the
-journey they are registered with and invisible to unrelated journeys. Built-in
-entries follow the same rule as application entries: using their builder in a
-TypeScript journey registers them automatically, while name-only packages can
-list `builtInFunctions` and `builtInComponents` explicitly.
+The deprecated `components` package field accepts component entries, but it feeds the
+same entry collector and adds no separate lifecycle.
 
 ## What Forge does not define
 
-The extension model is deliberately narrow.
-
-Forge defines how extensions are named, registered, validated, resolved, and
-called. It does not define:
+Forge defines how extension declarations are collected, validated, bound, resolved,
+and invoked. It does not prescribe:
 
 - how application services load data
 - how external systems are integrated
-- how component packages render their internal templates
-- how framework adapters turn render contexts into responses
-- what side effects an effect function performs
+- how component packages structure templates
+- how adapters turn rendered values into responses
+- what side effects an effect performs
 
-Those choices sit at the edge of the engine. Once values are loaded into the
-request context, registered functions and component renderers give Forge a
-consistent way to use them during the evaluated request.
+Those choices stay at the engine boundary and enter through package, adapter, or
+request dependencies and the page-assembly renderer.
 
 ## What can fail
 
-Important failure cases include:
+Important failure cases include malformed or duplicate entries, references to names
+outside the active package, an entry used in the wrong semantic position, factory
+binding failures, and evaluator failures.
 
-- a function entry is registered without a name or evaluator
-- a component entry is registered without a variant or renderer
-- a name or variant is registered twice in the same registry
-- a definition references an unregistered function
-- a definition references an unregistered component variant
-- an effect function is used outside a hook
-- a package registry does not contain the expected extension
-- a function or component renderer throws when it is called
+Static name and shape errors should fail before routes mount. Failures depending on
+request data, external services, or templates remain runtime errors.
 
-The first group should fail during registration/validation. Runtime failures
-should be reserved for code that can only fail when executed, such as an effect
-calling an application service or a component renderer throwing. 
+## Rules to preserve
 
-## Connection to other docs
-
-The component registry doc explains component entries, block variants, built-in
-components, and render-facing contracts in more detail.
-
-The function registry doc explains function definitions, request-owned
-evaluators, thenable results, function families, and generated-function call sites.
-
-The registry scoping doc explains package registries, explicit built-in
-registration, and isolation rules.
-
-The framework rendering doc explains how evaluated blocks are dispatched to
-component renderers by framework integrations.
+- Sibling function kinds share one declaration and binding lifecycle.
+- Structural differences reflect real semantic differences, not separate plumbing.
+- Package scope determines visibility.
+- Compilation never needs to execute a factory.
+- Request evaluators are isolated to one request.
+- Components and renderers remain ordinary function entries rather than parallel registries.

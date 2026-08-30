@@ -4,7 +4,6 @@ import { FunctionCallType, HookType, PredicateType } from '../../../../shared/ta
 import { FormatGenerators } from '../../../../built-ins/functions/generators/formatGenerators'
 import { FunctionEntryRegistry } from '../../../../authoring/functions/FunctionEntryRegistry'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
-import ComponentRegistry from '../../../chassis/registries/ComponentRegistry'
 import { AccessHookASTNode, SubmitHookASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import { TestPredicateASTNode } from '../../../chassis/contracts/ast/predicates.type'
 import type { ResponseBindings } from '../../../../framework/types/responseBindings.type'
@@ -202,7 +201,7 @@ describe('HookLifecycleCompiler', () => {
   beforeEach(() => {
     ASTTestFactory.resetIds()
     functionRegistry = new FunctionRegistry()
-    compiler = new HookLifecycleCompiler({ functionRegistry, componentRegistry: new ComponentRegistry() })
+    compiler = new HookLifecycleCompiler({ functionRegistry })
     functionRegistry.register({
       ...formatGeneratorRows,
       isRequired: {
