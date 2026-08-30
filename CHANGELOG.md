@@ -92,9 +92,6 @@ generators directly when a predicate and single static message are not enough.
   array, keeping other falsy values like `0` and `""` ([#276])
 - `builtInFunctions` and `builtInComponents` - explicit entry arrays for serialized
   or other name-only packages that want Forge's complete built-in sets ([#284])
-- `ForgeTestHarness` options now cover engine configuration - `logger`,
-  `strictRegistration`, and `basePath` pass through to the underlying `Forge`,
-  alongside the existing `instrumentation` and `maxIteratorIterations` ([#277])
 - Request adapters can provide direct or thenable `requestDependencies` for one
   request. Forge resolves them during context preparation, rejects collisions with
   `packageDependencies`, and passes the flat merged object to function factories.
@@ -110,10 +107,8 @@ generators directly when a predicate and single static message are not enough.
   registry and execute in Forge core. Adapters retain only nested-output wrapping and
   page assembly, while Nunjucks and JSX helpers preserve their existing callback APIs
   ([#291])
-- Forge now requires Zod 4.5 or later. Function and component schemas are compiled
-  once when registered and reused across requests, while boolean-only condition input
-  checks use Zod's allocation-free validation path. Component input schemas only validate
-  submitted values; passing values are retained unchanged ([#288])
+- Component input schemas now only validate submitted values; successful values are
+  retained unchanged rather than being replaced with Zod's parsed output ([#288])
 - Function schemas now match the kind of function: only conditions and transformers have
   `inputSchema`, only value-returning functions have `outputSchema`, and effects have
   neither because they receive a context and their return value is discarded ([#288])
@@ -148,11 +143,6 @@ generators directly when a predicate and single static message are not enough.
   further changing the authored `_forge` wire format or generated runtime behaviour
   ([#280]).
 
-- The contract test suite now mirrors the engine's chassis/concerns split - per-area
-  suites under `test/contracts/chassis/` (expressions, references, registration,
-  tracing) and `test/contracts/concerns/` (one per runtime concern), expanded to 525
-  black-box tests pinning authored behaviour end-to-end ([#277])
-
 - Iterating an object now works like `Object.entries` - each iteration's item is the
   entry value and `Item().key()` is the entry key. `Map` returns its mapped values,
   while `Filter` retains `[key, value]` entries and `Find` returns one entry, matching
@@ -160,11 +150,6 @@ generators directly when a predicate and single static message are not enough.
   `Filter` and `Find` returned the engine's internal `{'@key', '@value'}` wrappers,
   and array values with literal `@key` properties could be mistaken for those wrappers
   ([#273])
-
-- `Answer()` in an `onAccess` hook now fails compilation - answer preparation runs after
-  access hooks, so the reference could only ever read unprepared state. A new
-  `validateAnswerScope` semantic-analysis rule rejects it at `registerPackage()` with an
-  error naming the source location ([#272])
 
 - A condition evaluator that throws inside `validWhen` now fails the request, the same
   as everywhere else. Previously a `TypeError` there was caught and shown as the rule's
@@ -188,17 +173,6 @@ generators directly when a predicate and single static message are not enough.
   absent, matching how `null` items behave since the drop above was removed. Pipe the
   result through `Transformer.Array.Compact()` if you relied on the old compacted
   shape ([#278])
-
-- A class instance in a definition - a `Date`, a `Map`, anything not a plain object -
-  now fails registration with a serialisation error naming its path, alongside the
-  existing rejections for functions and bigints. Previously builder finalisation
-  rebuilt every object from its enumerable entries, so a class instance silently
-  became `{}` before validation could see it ([#278])
-
-- Request traces now record a redirect's fully resolved URL - the same value the
-  navigate outcome carries. Previously the trace copied whatever the redirecting
-  phase produced, so a submit-hook redirect traced the authored `goto` code while a
-  reachability redirect traced a path ([#278])
 
 ### Removed
 
@@ -233,17 +207,6 @@ generators directly when a predicate and single static message are not enough.
 - A bare `Item()` or `Loop.Item()` in a value position now means the whole item, same
   as `.value()`. Previously it typechecked but finalised to a useless builder object
   ([#273])
-
-- `Post()` now resolves the submitted body in every expression position. Previously
-  only answer preparation, resolve, and hooks received the body, so `Post()` inside a
-  `validWhen` or reachability rule silently resolved `undefined` even mid-POST
-  ([#278])
-
-- Forge functions now detect asynchronous work from their returned value: promises
-  and custom thenables are awaited even when the evaluator is not declared with
-  `async`, while direct values continue synchronously. Function registration no
-  longer relies on `evaluate.constructor.name === 'AsyncFunction'`, which was fragile
-  under wrapping and transpilation ([#283])
 
 ### Details
 
@@ -313,6 +276,57 @@ use returned error items for expected invalid input. ([#274])
 [#290]: https://github.com/ministryofjustice/hmpps-forge/pull/290
 [#291]: https://github.com/ministryofjustice/hmpps-forge/pull/291
 [#292]: https://github.com/ministryofjustice/hmpps-forge/pull/292
+
+---
+
+## 0.4.2
+
+A correctness-focused release improving invalid-reference detection, request-time
+expression inputs, definition serialisation, redirect tracing, test harness
+configuration, function evaluation, and reachability traversal.
+
+### Added
+
+- `ForgeTestHarness` options now cover engine configuration: `logger`,
+  `strictRegistration`, `basePath`, `disableBuiltInFunctions`, and
+  `disableBuiltInComponents` pass through to the underlying `Forge` alongside the
+  existing `instrumentation` and `maxIteratorIterations` options ([#277])
+
+### Changed
+
+- Forge now requires Zod 4.5 or later. Function and component schemas are compiled
+  once when registered and reused across requests, while boolean-only condition input
+  checks use Zod's allocation-free validation path. Component schemas retain their
+  existing parsing and sanitisation behaviour ([#288])
+
+### Fixed
+
+- `Answer()` inside an `onAccess` hook now fails compilation with its source location.
+  Answer preparation runs after access hooks, so the reference could only read
+  unprepared state previously ([#272])
+- `Post()` now resolves the submitted body in every expression position. Previously
+  validation and reachability expressions received `undefined` even during a POST
+  request ([#278])
+- Class instances in definitions now reach serialisation validation instead of being
+  silently flattened into plain objects, producing an error that identifies the
+  offending path ([#278])
+- Registering an object that was not created with `createForgePackage()` now throws a
+  `ForgeRegistrationError`, matching other package registration failures ([#278])
+- Request traces now record the same fully resolved redirect URL carried by the
+  navigation outcome ([#278])
+- Forge functions now detect asynchronous work from their returned value. Promises
+  and custom thenables are awaited even when the evaluator is not declared with
+  `async`, while direct values remain direct until asynchronous work is encountered.
+  Registration no longer relies on fragile function constructor inspection ([#283])
+- Reachability graph traversal now avoids repeated queue scans and duplicate visits,
+  including when forward outcomes contain a cycle ([#289])
+
+[#272]: https://github.com/ministryofjustice/hmpps-forge/pull/272
+[#277]: https://github.com/ministryofjustice/hmpps-forge/pull/277
+[#278]: https://github.com/ministryofjustice/hmpps-forge/pull/278
+[#283]: https://github.com/ministryofjustice/hmpps-forge/pull/283
+[#288]: https://github.com/ministryofjustice/hmpps-forge/pull/288
+[#289]: https://github.com/ministryofjustice/hmpps-forge/pull/289
 
 ---
 
