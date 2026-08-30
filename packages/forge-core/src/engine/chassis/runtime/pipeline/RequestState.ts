@@ -15,6 +15,7 @@ export interface RequestStateDependencies {
   readonly responseBindings: ResponseBindings
   readonly functionBuilders: readonly FunctionRegistryBuilder[]
   readonly packageDependencies: unknown
+  readonly adapterDependencies?: object
   readonly requestDependencies?: () => object | PromiseLike<object>
   readonly componentRegistry: ComponentRegistry
   readonly currentStepId?: NodeId

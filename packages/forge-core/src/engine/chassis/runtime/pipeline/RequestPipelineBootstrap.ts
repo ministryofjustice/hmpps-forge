@@ -28,6 +28,7 @@ export interface RequestPipelineConfig {
   readonly traceEnabled: boolean
   readonly responseBindings: ResponseBindings
   readonly maxIteratorIterations: number
+  readonly adapterDependencies?: object
   readonly requestDependencies?: () => object | PromiseLike<object>
 }
 
@@ -59,6 +60,7 @@ export default class RequestPipelineBootstrap {
       responseBindings: this.config.responseBindings,
       functionBuilders,
       packageDependencies,
+      adapterDependencies: this.config.adapterDependencies,
       requestDependencies: this.config.requestDependencies,
       componentRegistry,
       currentStepId: node.kind === 'step' ? node.nodeId : undefined,

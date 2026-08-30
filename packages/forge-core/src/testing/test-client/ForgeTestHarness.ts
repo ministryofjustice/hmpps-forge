@@ -55,7 +55,7 @@ export class ForgeTestHarness {
     return this
   }
 
-  createClient(renderer?: ForgeRenderer<unknown>): ForgeTestClient {
-    return new ForgeTestClient(this.forge, renderer)
+  createClient(renderer?: ForgeRenderer<unknown>, adapterDependencies?: object): ForgeTestClient {
+    return new ForgeTestClient(this.forge, renderer, adapterDependencies)
   }
 }

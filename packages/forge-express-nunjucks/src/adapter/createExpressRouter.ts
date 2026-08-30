@@ -11,9 +11,8 @@ import NunjucksRenderer from '../renderer/NunjucksRenderer'
  */
 export interface ExpressForgeRouterOptions<TRequestDependencies extends object = Record<string, never>> {
   /**
-   * Nunjucks environment used to load and render page templates. The same
-   * environment is handed to components at render time via their `renderer`
-   * parameter, so component templates and macros resolve against it too.
+   * Nunjucks environment used to load and render page templates. Forge function
+   * factories also receive it as the stable `nunjucksEnv` adapter dependency.
    */
   nunjucksEnv: nunjucks.Environment
 
@@ -40,7 +39,7 @@ export interface ExpressForgeRouterOptions<TRequestDependencies extends object =
    * Resolves capabilities that exist only for one Express request. Direct and
    * thenable results are supported. Forge calls this once during request
    * context preparation before binding function evaluators and rejects keys
-   * already supplied through package dependencies.
+   * already supplied through package or adapter dependencies.
    */
   requestDependencies?: (request: express.Request) => TRequestDependencies | PromiseLike<TRequestDependencies>
 }
@@ -52,9 +51,17 @@ export function createExpressRouter<TRequestDependencies extends object = Record
   const logger = forge.getLogger()
   const router = express.Router({ mergeParams: true })
   const renderer = new NunjucksRenderer(options)
+  const adapterDependencies = { nunjucksEnv: options.nunjucksEnv }
 
   forge.getTopology().routes.forEach(route => {
-    const handler = ExpressHandlerFactory.create(forge, route, logger, renderer, options.requestDependencies)
+    const handler = ExpressHandlerFactory.create(
+      forge,
+      route,
+      logger,
+      renderer,
+      adapterDependencies,
+      options.requestDependencies,
+    )
 
     route.methods.forEach(method => {
       if (method === 'GET') {

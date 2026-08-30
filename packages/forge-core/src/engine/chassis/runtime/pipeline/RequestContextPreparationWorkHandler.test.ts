@@ -95,9 +95,10 @@ describe('RequestContextPreparationWorkHandler', () => {
       expect(secondEvaluator?.('123')).toBe('case-123-1')
     })
 
-    it('should merge package and request dependencies once for every function builder', () => {
+    it('should merge package, adapter and request dependencies once for every function builder', () => {
       // Arrange
       const packageDependencies = { packageService: { name: 'package' } }
+      const adapterDependencies = { adapterService: { name: 'adapter' } }
       const resolvedRequestDependencies = { requestService: { name: 'request' } }
       const requestDependencies = vi.fn(() => resolvedRequestDependencies)
       const firstFactory = vi.fn((_dependencies: unknown) => (value: unknown) => value)
@@ -106,7 +107,12 @@ describe('RequestContextPreparationWorkHandler', () => {
       const secondBuilder = new TransformerRegistry()
       firstBuilder.register('First', firstFactory)
       secondBuilder.register('Second', secondFactory)
-      const requestState = createRequestState([firstBuilder, secondBuilder], packageDependencies, requestDependencies)
+      const requestState = createRequestState(
+        [firstBuilder, secondBuilder],
+        packageDependencies,
+        requestDependencies,
+        adapterDependencies,
+      )
 
       // Act
       const result = REQUEST_CONTEXT_PREPARATION_WORK_HANDLER.begin(createWorkContext(requestState))
@@ -117,11 +123,33 @@ describe('RequestContextPreparationWorkHandler', () => {
       expect(result).toEqual({ output: { action: 'continue' } })
       expect(requestDependencies).toHaveBeenCalledOnce()
       expect(secondFactory).toHaveBeenCalledWith(mergedDependencies)
-      expect(mergedDependencies).toEqual({ ...packageDependencies, ...resolvedRequestDependencies })
+      expect(mergedDependencies).toEqual({
+        ...packageDependencies,
+        ...adapterDependencies,
+        ...resolvedRequestDependencies,
+      })
       expect(mergedDependencies).not.toBe(packageDependencies)
+      expect(mergedDependencies).not.toBe(adapterDependencies)
       expect(mergedDependencies).not.toBe(resolvedRequestDependencies)
       expect(packageDependencies).toEqual({ packageService: { name: 'package' } })
+      expect(adapterDependencies).toEqual({ adapterService: { name: 'adapter' } })
       expect(resolvedRequestDependencies).toEqual({ requestService: { name: 'request' } })
+    })
+
+    it('should merge adapter dependencies when no request dependencies are configured', () => {
+      // Arrange
+      const factory = vi.fn(() => (value: unknown) => value)
+      const functionBuilder = new TransformerRegistry()
+      functionBuilder.register('AdapterDependencies', factory)
+      const packageDependencies = { packageService: 'package' }
+      const adapterDependencies = { adapterService: 'adapter' }
+      const requestState = createRequestState([functionBuilder], packageDependencies, undefined, adapterDependencies)
+
+      // Act
+      REQUEST_CONTEXT_PREPARATION_WORK_HANDLER.begin(createWorkContext(requestState))
+
+      // Assert
+      expect(factory).toHaveBeenCalledWith({ packageService: 'package', adapterService: 'adapter' })
     })
 
     it('should await promise request dependencies before building functions', async () => {
@@ -186,6 +214,40 @@ describe('RequestContextPreparationWorkHandler', () => {
       expect(String(error)).not.toContain('package-secret')
       expect(String(error)).not.toContain('request-secret')
       expect(requestDependencies).toHaveBeenCalledOnce()
+      expect(factory).not.toHaveBeenCalled()
+    })
+
+    it('should reject adapter dependency collisions with package dependencies', () => {
+      // Arrange
+      const factory = vi.fn(() => (value: unknown) => value)
+      const functionBuilder = new TransformerRegistry()
+      functionBuilder.register('CollidingAdapterDependencies', factory)
+      const requestState = createRequestState([functionBuilder], { shared: 'package-secret' }, undefined, {
+        shared: 'adapter-secret',
+      })
+
+      // Act
+      const act = () => REQUEST_CONTEXT_PREPARATION_WORK_HANDLER.begin(createWorkContext(requestState))
+
+      // Assert
+      expect(act).toThrow('adapterDependencies contains keys already provided by packageDependencies: shared')
+      expect(factory).not.toHaveBeenCalled()
+    })
+
+    it('should reject request dependency collisions with adapter dependencies', () => {
+      // Arrange
+      const factory = vi.fn(() => (value: unknown) => value)
+      const functionBuilder = new TransformerRegistry()
+      functionBuilder.register('CollidingRequestDependencies', factory)
+      const requestState = createRequestState([functionBuilder], {}, () => ({ shared: 'request-secret' }), {
+        shared: 'adapter-secret',
+      })
+
+      // Act
+      const act = () => REQUEST_CONTEXT_PREPARATION_WORK_HANDLER.begin(createWorkContext(requestState))
+
+      // Assert
+      expect(act).toThrow('requestDependencies contains keys already provided by adapterDependencies: shared')
       expect(factory).not.toHaveBeenCalled()
     })
 
@@ -288,10 +350,12 @@ function createRequestState(
   functionBuilders: readonly FunctionRegistryBuilder[],
   packageDependencies: unknown,
   requestDependencies?: () => object | PromiseLike<object>,
+  adapterDependencies?: object,
 ): RequestState {
   return createTestRequestState(createRuntimeContext(), {
     functionBuilders,
     packageDependencies,
+    adapterDependencies,
     requestDependencies,
   })
 }
