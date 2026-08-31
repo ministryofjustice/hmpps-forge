@@ -55,7 +55,11 @@ function createRenderer(): ForgeRenderer<string> {
   }
 }
 
-function createRequestContext(traceEnabled = false, functionRegistry = new FunctionRegistry()): RequestState {
+function createRequestContext(
+  traceEnabled = false,
+  functionRegistry = new FunctionRegistry(),
+  requestState: Record<string, unknown> = {},
+): RequestState {
   return createTestRequestState(
     {
       request: {
@@ -70,7 +74,7 @@ function createRequestContext(traceEnabled = false, functionRegistry = new Funct
         },
         headers: {},
         cookies: {},
-        state: {},
+        state: requestState,
         params: {},
         query: {},
         post: {},
@@ -285,6 +289,7 @@ describe('Render work handlers', () => {
       },
       rows: [],
     }
+    const requestState = { csrfToken: 'example-token' }
 
     functionRegistry.register({
       page: {
@@ -294,7 +299,7 @@ describe('Render work handlers', () => {
       },
     })
 
-    const requestContext = createRequestContext(false, functionRegistry)
+    const requestContext = createRequestContext(false, functionRegistry, requestState)
 
     requestContext.recordRenderedBlocks(['<h1>Example</h1>'])
     requestContext.recordRenderedBlockShape(renderedBlockShape)
@@ -319,6 +324,7 @@ describe('Render work handlers', () => {
         domainValidationErrors: [],
         answers: {},
         data: {},
+        requestState,
       },
     })
   })

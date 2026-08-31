@@ -70,6 +70,7 @@ export const RENDER_ASSEMBLE_PAGE_WORK_HANDLER: WorkHandler<'render.assemble-pag
       domainValidationErrors: renderContext.domainValidationErrors,
       answers: renderContext.answers,
       data: renderContext.data,
+      requestState: ctx.state.context.request.state,
     }
 
     return singleTaskGroup(

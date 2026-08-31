@@ -29,6 +29,7 @@ export interface RendererFunctionContext {
   readonly domainValidationErrors: RenderContext['domainValidationErrors']
   readonly answers: RenderContext['answers']
   readonly data: RenderContext['data']
+  readonly requestState: Record<string, unknown>
 }
 
 export interface ComponentFunctionInput<TProps extends object> {
