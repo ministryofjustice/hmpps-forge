@@ -34,7 +34,20 @@ type FieldComponentDefinition<TProps> = FieldBlockDefinition & ResolvableProps<T
 
 type RendererDefinition<TProps> = RendererInvocation & ResolvableProps<TProps>
 
-/** Declares a presentational block or field component. */
+/**
+ * Defines a component entry and returns its expression-aware block builder.
+ * The factory receives package dependencies for the current request, then its
+ * evaluator receives the component's resolved props.
+ *
+ * Set `field: true` to define a field component. Its evaluator also receives
+ * the field `code`, current `value`, and validation `errors` in its props.
+ *
+ * @typeParam TProps - The component's plain render props
+ * @typeParam TDeps - The package dependencies received by `factory`
+ * @param variant - The unique component variant used in compiled block definitions
+ * @param options - The component's authoring preparation, field metadata, and evaluator factory
+ * @returns A self-registering component entry that authors blocks when called
+ */
 export function component<TProps extends object, TDeps = Record<string, never>>(
   variant: string,
   options: FieldComponentOptions<TProps, TDeps>,
@@ -54,7 +67,20 @@ export function component<TProps extends object, TDeps>(
   return createComponent(variant, options)
 }
 
-/** Declares a step renderer that composes a step and its rendered children. */
+/**
+ * Defines a step renderer and returns its expression-aware renderer builder.
+ * The factory receives package dependencies for the current request. Its
+ * evaluator receives the rendered block structure, resolved renderer props,
+ * and renderer context in that order.
+ *
+ * @typeParam TProps - The renderer's plain props
+ * @typeParam TBlocks - The authored structure of the step's `blocks` property
+ * @typeParam TContext - The request and journey context received by the evaluator
+ * @typeParam TDeps - The package dependencies received by `factory`
+ * @param variant - The unique renderer variant used in compiled step definitions
+ * @param options - The block schema, authoring preparation, and evaluator factory
+ * @returns A self-registering renderer entry that authors renderer invocations when called
+ */
 export function renderer<
   TProps extends object,
   TBlocks,
