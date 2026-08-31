@@ -38,10 +38,7 @@ describe('component registration contracts', () => {
     it('should apply ordinary function-entry collision naming', () => {
       // Arrange
       const Duplicate = component<TestCardBlock>('test-card', {
-        factory:
-          () =>
-          ({ props }) =>
-            `<p>${props.title}</p>`,
+        factory: () => props => `<p>${props.title}</p>`,
       })
 
       // Act
@@ -50,7 +47,9 @@ describe('component registration contracts', () => {
       })
 
       // Assert
-      expect(pkg.journey.steps?.[0].blocks?.map(block => block.variant)).toEqual(['test-card', 'test-card@2'])
+      const blocks = pkg.journey.steps?.[0].blocks
+
+      expect(Array.isArray(blocks) ? blocks.map(block => block.variant) : []).toEqual(['test-card', 'test-card@2'])
     })
   })
 

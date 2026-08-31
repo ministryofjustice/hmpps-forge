@@ -136,27 +136,25 @@ const resolveContent = (content: unknown): string => {
  * ```
  */
 export const HtmlBlock = component<HtmlBlock>('html', {
-  factory:
-    () =>
-    ({ props }) => {
-      const hasAttrs = props.classes || props.attributes
+  factory: () => props => {
+    const hasAttrs = props.classes || props.attributes
 
-      if (!props.tag && !hasAttrs) {
-        return resolveContent(props.content)
-      }
+    if (!props.tag && !hasAttrs) {
+      return resolveContent(props.content)
+    }
 
-      const element = props.tag ?? 'div'
-      const classAttr = props.classes ? ` class="${escapeHtmlEntities(props.classes)}"` : ''
-      const customAttrs = props.attributes
-        ? Object.entries(props.attributes)
-            .map(([key, value]) => ` ${escapeHtmlEntities(key)}="${escapeHtmlEntities(String(value))}"`)
-            .join('')
-        : ''
+    const element = props.tag ?? 'div'
+    const classAttr = props.classes ? ` class="${escapeHtmlEntities(props.classes)}"` : ''
+    const customAttrs = props.attributes
+      ? Object.entries(props.attributes)
+          .map(([key, value]) => ` ${escapeHtmlEntities(key)}="${escapeHtmlEntities(String(value))}"`)
+          .join('')
+      : ''
 
-      if (VOID_ELEMENTS.has(element)) {
-        return `<${element}${classAttr}${customAttrs}>`
-      }
+    if (VOID_ELEMENTS.has(element)) {
+      return `<${element}${classAttr}${customAttrs}>`
+    }
 
-      return `<${element}${classAttr}${customAttrs}>${resolveContent(props.content)}</${element}>`
-    },
+    return `<${element}${classAttr}${customAttrs}>${resolveContent(props.content)}</${element}>`
+  },
 })

@@ -176,7 +176,7 @@ export const GovUKTextareaInput = nunjucksComponent<GovUKTextareaInput>('govukTe
   errorAnchor: props => props.id ?? props.code,
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params = {
         id: props.id ?? props.code,
         name: props.code,

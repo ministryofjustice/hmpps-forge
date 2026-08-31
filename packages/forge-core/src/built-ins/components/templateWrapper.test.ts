@@ -3,10 +3,7 @@ import { component } from '../../components/presentation'
 import { FunctionRegistryTestHarness } from '../../testing/functions/FunctionRegistryTestHarness'
 
 const TestChild = component<{ html: string }>('testChild', {
-  factory:
-    () =>
-    ({ props }) =>
-      props.html,
+  factory: () => props => props.html,
 })
 
 describe('templateWrapper component', () => {

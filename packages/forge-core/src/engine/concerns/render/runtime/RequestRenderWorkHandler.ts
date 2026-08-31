@@ -23,7 +23,11 @@ export const REQUEST_RENDER_WORK_HANDLER: WorkHandler<'request.render', RequestR
   begin(ctx: WorkContextContract<RequestState, RequestRenderWorkProps>) {
     const renderContext = ctx.state.renderContext
     const { renderer } = ctx.props
-    const renderBlocks = createRenderBlocksTask(renderContext.blocks, renderer)
+    const renderBlocks = createRenderBlocksTask(
+      ctx.state.resolvedBlockShape,
+      renderer,
+      renderContext.renderer !== undefined,
+    )
     const assemblePage = createAssemblePageTask(renderContext, renderer)
 
     return {

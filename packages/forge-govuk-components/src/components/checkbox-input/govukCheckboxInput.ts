@@ -331,7 +331,7 @@ export const GovUKCheckboxInput = nunjucksComponent<GovUKCheckboxInput>('govukCh
   errorAnchor: props => props.idPrefix || props.code,
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const items = props.items
         .filter(option => option.visibleWhen !== false)
         .map(option => makeOption(option, props.value))

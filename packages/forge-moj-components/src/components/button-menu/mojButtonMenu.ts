@@ -218,7 +218,7 @@ export interface MOJButtonMenu {
 export const MOJButtonMenu = nunjucksComponent<MOJButtonMenu>('mojButtonMenu', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params = {
         button: props.button,
         alignMenu: props.alignMenu,

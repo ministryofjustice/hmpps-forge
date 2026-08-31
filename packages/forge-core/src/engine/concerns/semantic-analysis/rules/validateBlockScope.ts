@@ -9,7 +9,7 @@ function buildError(diagnostics: ASTNodeDiagnostics | undefined): ForgeReference
   const source = diagnostics?.source
 
   return new ForgeReferenceScopeError({
-    message: 'Blocks can only be defined in a step blocks array or nested within another block',
+    message: "Blocks can only be defined in a step's blocks structure or nested within another block",
     formattedPath: source?.formattedPath ?? 'unknown',
     callsite: diagnostics?.callsite,
   })
@@ -35,8 +35,24 @@ function buildComponentError(diagnostics: ASTNodeDiagnostics | undefined): Forge
   })
 }
 
-function containsNode(container: unknown, nodeId: NodeId): boolean {
-  return Array.isArray(container) && container.some(entry => entry?.id === nodeId)
+function containsNode(container: unknown, nodeId: NodeId, visited = new WeakSet<object>()): boolean {
+  if (container === null || container === undefined || typeof container !== 'object') {
+    return false
+  }
+
+  if ('id' in container && container.id === nodeId) {
+    return true
+  }
+
+  if (visited.has(container)) {
+    return false
+  }
+
+  visited.add(container)
+
+  return (Array.isArray(container) ? container : Object.values(container)).some(entry =>
+    containsNode(entry, nodeId, visited),
+  )
 }
 
 function isRenderer(container: unknown, nodeId: NodeId): boolean {

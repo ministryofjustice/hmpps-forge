@@ -101,6 +101,7 @@ export const REQUEST_RESOLVE_WORK_HANDLER: WorkHandler<'request.resolve', Reques
 
     if (ctx.state.dependencies.hasRenderer) {
       ctx.state.recordRenderContext(renderContext)
+      ctx.state.recordResolvedBlockShape(output.blockShape)
 
       return { action: 'continue' }
     }

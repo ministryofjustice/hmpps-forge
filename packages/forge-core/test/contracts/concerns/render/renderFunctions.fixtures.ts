@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { Data, component, createForgePackage, journey, renderer, step } from '../../../../src/authoring'
-import type { BlockDefinition } from '../../../../src/components'
+import { Data, blockSchema, component, createForgePackage, journey, renderer, step } from '../../../../src/authoring'
+import type { BlockDefinition, RendererFunctionContext } from '../../../../src/components'
 
 export interface RenderRequestDependencies {
   readonly id: string
@@ -92,12 +92,19 @@ interface TestPageProps {
   chrome?: BlockDefinition
 }
 
+interface TwoColumnBlocks {
+  main: BlockDefinition[]
+  aside: BlockDefinition[]
+}
+
+const twoColumnStep = step<TwoColumnBlocks>
+
 const TestLeaf = component<TestLeafProps, RenderFunctionDependencies>('renderSpikeLeaf', {
   factory: dependencies => {
     const request = bindRequest(dependencies, 'renderSpikeLeaf')
 
-    return async input => {
-      return request.probe.renderBlock(input.props.label, `${dependencies.prefix}:${request.id}:${input.props.text}`)
+    return async props => {
+      return request.probe.renderBlock(props.label, `${dependencies.prefix}:${request.id}:${props.text}`)
     }
   },
 })
@@ -106,8 +113,8 @@ const TestContainer = component<TestContainerProps, RenderFunctionDependencies>(
   factory: dependencies => {
     const request = bindRequest(dependencies, 'renderSpikeContainer')
 
-    return async input => {
-      return request.probe.renderBlock(input.props.label, `<container>${input.props.child.html}</container>`)
+    return async props => {
+      return request.probe.renderBlock(props.label, `<container>${props.child.html}</container>`)
     }
   },
 })
@@ -119,37 +126,80 @@ const TestField = component<TestFieldProps, RenderFunctionDependencies>('renderS
   factory: dependencies => {
     const request = bindRequest(dependencies, 'renderSpikeField')
 
-    return async input => {
-      return request.probe.renderBlock(
-        'field',
-        `<input id="${input.props.code}-input" aria-label="${input.props.label}">`,
-      )
+    return async props => {
+      return request.probe.renderBlock('field', `<input id="${props.code}-input" aria-label="${props.label}">`)
     }
   },
 })
 
-const TestPage = renderer<TestPageProps, RenderFunctionDependencies>('renderSpikePage', {
-  factory: dependencies => {
-    const request = bindRequest(dependencies, 'renderSpikePage')
+const TestPage = renderer<TestPageProps, BlockDefinition[], RendererFunctionContext, RenderFunctionDependencies>(
+  'renderSpikePage',
+  {
+    factory: dependencies => {
+      const request = bindRequest(dependencies, 'renderSpikePage')
 
-    return input => {
-      const children = input.context.children.map(child => child.output).join('|')
-      const chrome = input.props.chrome?.html ?? ''
+      return (blocks, props) => {
+        const children = blocks.map(block => block.html).join('|')
+        const chrome = props.chrome?.html ?? ''
 
-      return `<page data-request="${request.id}"><h1>${input.props.heading}</h1>${chrome}${children}</page>`
-    }
+        return `<page data-request="${request.id}"><h1>${props.heading}</h1>${chrome}${children}</page>`
+      }
+    },
   },
-})
+)
 
-const AlternatePage = renderer<TestPageProps, RenderFunctionDependencies>('renderSpikeAlternatePage', {
+const AlternatePage = renderer<TestPageProps, BlockDefinition[], RendererFunctionContext, RenderFunctionDependencies>(
+  'renderSpikeAlternatePage',
+  {
+    factory: dependencies => {
+      const request = bindRequest(dependencies, 'renderSpikeAlternatePage')
+
+      return (blocks, props) => {
+        const children = blocks.map(block => block.html).join('|')
+
+        return `<alternate data-request="${request.id}"><h1>${props.heading}</h1>${children}</alternate>`
+      }
+    },
+  },
+)
+
+const TwoColumnPage = renderer<TestPageProps, TwoColumnBlocks, RendererFunctionContext, RenderFunctionDependencies>(
+  'renderSpikeTwoColumnPage',
+  {
+    blocksSchema: z.strictObject({
+      main: z.array(blockSchema),
+      aside: z.array(blockSchema),
+    }),
+    factory: dependencies => {
+      const request = bindRequest(dependencies, 'renderSpikeTwoColumnPage')
+
+      return blocks => {
+        const main = blocks.main.map(block => block.html).join('|')
+        const aside = blocks.aside.map(block => block.html).join('|')
+
+        return `<two-column data-request="${request.id}"><main>${main}</main><aside>${aside}</aside></two-column>`
+      }
+    },
+  },
+)
+
+const OptionalBlocksPage = renderer<
+  TestPageProps,
+  TwoColumnBlocks | undefined,
+  RendererFunctionContext,
+  RenderFunctionDependencies
+>('renderSpikeOptionalBlocksPage', {
+  blocksSchema: z
+    .strictObject({
+      main: z.array(blockSchema),
+      aside: z.array(blockSchema),
+    })
+    .optional(),
   factory: dependencies => {
-    const request = bindRequest(dependencies, 'renderSpikeAlternatePage')
+    const request = bindRequest(dependencies, 'renderSpikeOptionalBlocksPage')
 
-    return input => {
-      const children = input.context.children.map(child => child.output).join('|')
-
-      return `<alternate data-request="${request.id}"><h1>${input.props.heading}</h1>${children}</alternate>`
-    }
+    return blocks =>
+      `<optional-blocks data-request="${request.id}">${blocks === undefined ? 'none' : 'present'}</optional-blocks>`
   },
 })
 
@@ -189,6 +239,22 @@ export const renderFunctionSpikePackage = createForgePackage<RenderFunctionDepen
         reachability: { entryWhen: true },
         renderer: AlternatePage({ heading: 'Replacement heading' }),
         blocks: sharedBlocks(),
+      }),
+      twoColumnStep({
+        path: '/structured',
+        title: 'Structured renderer',
+        reachability: { entryWhen: true },
+        renderer: TwoColumnPage({ heading: 'Structured heading' }),
+        blocks: {
+          main: [TestLeaf({ label: 'first', text: 'main content' })],
+          aside: [TestLeaf({ label: 'second', text: 'aside content' })],
+        },
+      }),
+      step<TwoColumnBlocks | undefined>({
+        path: '/optional-blocks',
+        title: 'Optional structured blocks',
+        reachability: { entryWhen: true },
+        renderer: OptionalBlocksPage({ heading: 'Optional blocks' }),
       }),
     ],
   }),

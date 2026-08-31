@@ -77,7 +77,7 @@ export interface GovUKBackLink {
 export const GovUKBackLink = nunjucksComponent<GovUKBackLink>('govukBackLink', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params: Record<string, any> = {
         href: props.href,
         text: props.html ? undefined : props.text,

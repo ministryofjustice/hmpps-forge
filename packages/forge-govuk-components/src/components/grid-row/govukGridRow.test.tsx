@@ -4,7 +4,7 @@ import { FunctionRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core
 import { GovUKGridRow } from './govukGridRow'
 import type { GovUKGridColumn } from './govukGridRow'
 
-const TestBlock = declareComponent<{ html: string }>('testBlock', { factory: () => ({ props }) => props.html })
+const TestBlock = declareComponent<{ html: string }>('testBlock', { factory: () => props => props.html })
 
 const harness = new FunctionRegistryTestHarness([GovUKGridRow, TestBlock])
 

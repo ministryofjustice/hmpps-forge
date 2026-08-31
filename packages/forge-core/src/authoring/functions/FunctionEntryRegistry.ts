@@ -126,6 +126,7 @@ export class FunctionEntryRegistry<TDeps = any> implements FunctionRegistryBuild
         _forge: entry._forge,
         multiple: entry.multiple,
         errorAnchor: entry.errorAnchor,
+        blocksSchema: entry.blocksSchema,
       }
     })
 
@@ -156,6 +157,7 @@ export class FunctionEntryRegistry<TDeps = any> implements FunctionRegistryBuild
           _forge: entry._forge,
           multiple: entry.multiple,
           errorAnchor: entry.errorAnchor,
+          blocksSchema: entry.blocksSchema,
         }
       } catch (cause) {
         errors.push(this.buildError(name, entry, cause))

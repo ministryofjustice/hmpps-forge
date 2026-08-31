@@ -17,8 +17,8 @@ export interface ResolveModel {
   readonly step: readonly ResolvePropertyModel[]
   /** Ancestor journeys root-first, each with its render-facing properties. */
   readonly ancestors: readonly ResolveAncestorModel[]
-  /** The step's own blocks, in authored order. */
-  readonly blocks: readonly ResolveBlockModel[]
+  /** The step's renderer-defined block structure. */
+  readonly blocks: AuthoredValue
   /** MAP iterators that stand alone as block producers (not property values). */
   readonly standaloneIterateBlocks: readonly StandaloneIterateModel[]
 }

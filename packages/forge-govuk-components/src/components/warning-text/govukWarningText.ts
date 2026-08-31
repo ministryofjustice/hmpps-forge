@@ -53,7 +53,7 @@ export interface GovUKWarningText {
 export const GovUKWarningText = nunjucksComponent<GovUKWarningText>('govukWarningText', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const content = normaliseGovukTextHtmlContent({
         text: props.text,
         html: props.html,

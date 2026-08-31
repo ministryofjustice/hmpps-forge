@@ -73,6 +73,55 @@ describe('presentation function contracts', () => {
       expect(probe.factoryCount('renderSpikeField')).toBe(1)
       expect(probe.factoryCount('renderSpikePage')).toBe(1)
       expect(probe.factoryCount('renderSpikeAlternatePage')).toBe(1)
+      expect(probe.factoryCount('renderSpikeTwoColumnPage')).toBe(1)
+      expect(probe.factoryCount('renderSpikeOptionalBlocksPage')).toBe(1)
+    })
+
+    it('should preserve a typed block structure for a custom renderer', async () => {
+      // Arrange
+      const probe = new RenderFunctionProbe()
+      const client = createClient()
+
+      // Act
+      const result = await client.get('/render-functions-spike/structured', {
+        session: {},
+        requestDependencies: requestDependencies('structured-request', probe),
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.output).toBe(
+          '<two-column data-request="structured-request">' +
+            '<main>package:structured-request:main content</main>' +
+            '<aside>package:structured-request:aside content</aside>' +
+            '</two-column>',
+        )
+        expect(result.context.blocks.map(block => block.properties.label)).toEqual(['first', 'second'])
+      }
+
+      expect(probe.maximumConcurrency()).toBe(2)
+    })
+
+    it('should preserve omitted blocks as undefined for a renderer that accepts them', async () => {
+      // Arrange
+      const probe = new RenderFunctionProbe()
+      const client = createClient()
+
+      // Act
+      const result = await client.get('/render-functions-spike/optional-blocks', {
+        session: {},
+        requestDependencies: requestDependencies('optional-request', probe),
+      })
+
+      // Assert
+      expect(result.type).toBe('render')
+
+      if (result.type === 'render') {
+        expect(result.output).toBe('<optional-blocks data-request="optional-request">none</optional-blocks>')
+        expect(result.context.blocks).toEqual([])
+      }
     })
 
     it('should replace an inherited renderer with the complete step invocation', async () => {

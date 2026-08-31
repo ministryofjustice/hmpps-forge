@@ -90,7 +90,7 @@ export interface MOJCard {
 export const MOJCard = nunjucksComponent<MOJCard>('mojCard', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params = {
         heading: typeof props.heading === 'object' ? props.heading : { text: props.heading },
         href: props.href,

@@ -40,7 +40,7 @@ export interface GovUKSectionBreak {
 export const GovUKSectionBreak = jsxComponent<GovUKSectionBreak>('govukSectionBreak', {
   factory:
     () =>
-    ({ props }) => {
+    props => {
       const className = [
         'govuk-section-break',
         props.size && `govuk-section-break--${props.size}`,

@@ -154,7 +154,7 @@ function normaliseTableCell(cell: RuntimeTableCell) {
 export const GovUKTable = nunjucksComponent<GovUKTable>('govukTable', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params: Record<string, any> = {
         rows: props.rows.map(row => row.map(normaliseTableCell)),
         head: props.head,

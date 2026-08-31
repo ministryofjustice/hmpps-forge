@@ -274,10 +274,10 @@ describe('FunctionRegistryTestHarness', () => {
     it('should render an author-facing component call through its registered entry', async () => {
       // Arrange
       const dependencies = { prefix: 'Rendered: ' }
-      const Card = component<{ title: string }, typeof dependencies, string>('card', {
+      const Card = component<{ title: string }, typeof dependencies>('card', {
         factory:
           ({ prefix }) =>
-          ({ props }) =>
+          props =>
             `${prefix}${props.title}`,
       })
       const harness = new FunctionRegistryTestHarness(Card, dependencies)
@@ -293,10 +293,7 @@ describe('FunctionRegistryTestHarness', () => {
       // Arrange
       const TextInput = component<{ label: string }>('textInput', {
         field: true,
-        factory:
-          () =>
-          ({ props }) =>
-            `${props.code}:${props.label}:${String(props.value)}:${props.errors?.[0]?.message}`,
+        factory: () => props => `${props.code}:${props.label}:${String(props.value)}:${props.errors?.[0]?.message}`,
       })
       const harness = new FunctionRegistryTestHarness(TextInput)
 
@@ -312,16 +309,10 @@ describe('FunctionRegistryTestHarness', () => {
     it('should render and wrap nested authored component calls before their parent', async () => {
       // Arrange
       const Child = component<{ text: string }>('child', {
-        factory:
-          () =>
-          ({ props }) =>
-            `<p>${props.text}</p>`,
+        factory: () => props => `<p>${props.text}</p>`,
       })
       const Parent = component<{ child: BlockDefinition }>('parent', {
-        factory:
-          () =>
-          ({ props }) =>
-            `<main>${props.child.html}</main>`,
+        factory: () => props => `<main>${props.child.html}</main>`,
       })
       const harness = new FunctionRegistryTestHarness([Parent, Child])
 
@@ -363,10 +354,7 @@ describe('FunctionRegistryTestHarness', () => {
     it('should direct expression evaluation tests to ForgeTestHarness', async () => {
       // Arrange
       const Card = component<{ title: string }>('card', {
-        factory:
-          () =>
-          ({ props }) =>
-            props.title,
+        factory: () => props => props.title,
       })
       const harness = new FunctionRegistryTestHarness(Card)
 

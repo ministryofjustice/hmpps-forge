@@ -23,7 +23,7 @@ export default class PackageInstance {
 
   private readonly compilation: CompiledPackage
 
-  private readonly rawConfiguration: JourneyDefinition
+  private readonly rawConfiguration: JourneyDefinition<unknown>
 
   constructor(pkg: ForgePackageRegistration<any>, options: PackageInstanceOptions<any>) {
     const functionBuilders = PackageInstance.resolveFunctionBuilders(pkg)
@@ -74,7 +74,7 @@ export default class PackageInstance {
     return this.compilation.journeys.get(journeyId)
   }
 
-  getConfiguration(): JourneyDefinition {
+  getConfiguration(): JourneyDefinition<unknown> {
     return this.rawConfiguration
   }
 

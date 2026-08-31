@@ -6,10 +6,7 @@ export interface TestCardBlock {
 }
 
 export const TestCard = component<TestCardBlock>('test-card', {
-  factory:
-    () =>
-    ({ props }) =>
-      `<h2>${props.title}</h2>`,
+  factory: () => props => `<h2>${props.title}</h2>`,
 })
 
 export function journeyWithBlocks(blocks: BlockDefinition[]) {

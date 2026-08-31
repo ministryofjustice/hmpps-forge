@@ -80,7 +80,7 @@ export interface MOJSubNavigation {
 export const MOJSubNavigation = nunjucksComponent<MOJSubNavigation>('mojSubNavigation', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params = {
         label: props.label,
         items: props.items.filter(item => item.visibleWhen !== false),

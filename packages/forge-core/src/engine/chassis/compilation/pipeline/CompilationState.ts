@@ -52,7 +52,7 @@ export default class CompilationState {
   private mutableRouteIndexes?: RouteIndexes
 
   constructor(
-    readonly journeyDefinition: JourneyDefinition,
+    readonly journeyDefinition: JourneyDefinition<unknown>,
     readonly dependencies: CompilationDependencies,
   ) {}
 

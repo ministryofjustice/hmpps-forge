@@ -196,7 +196,7 @@ export interface MOJFilter {
 export const MOJFilter = nunjucksComponent<MOJFilter>('mojFilter', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const selectedFilters = props.selectedFilters
         ? {
             ...props.selectedFilters,

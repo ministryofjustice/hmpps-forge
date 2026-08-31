@@ -120,7 +120,7 @@ export interface GovUKExitThisPage {
 export const GovUKExitThisPage = nunjucksComponent<GovUKExitThisPage>('govukExitThisPage', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params: Record<string, any> = {
         id: props.id,
         text: props.html ? undefined : props.text,

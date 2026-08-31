@@ -12,7 +12,6 @@ import { createAssemblePageTask } from './RenderAssemblePageWorkHandler'
 import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
 import type { FunctionEntry } from '../../../../authoring/types/functions.type'
-import type { ComponentFunctionInput } from '../../../../components/types/renderFunctions.type'
 import { createTestRequestState } from '../../../chassis/runtime/pipeline/testing-helpers/requestStateTestHelpers'
 
 function createRenderBlock(
@@ -39,7 +38,7 @@ function createRenderFunctionRegistry(...variants: string[]): FunctionRegistry {
         {
           name,
           _forge: FunctionEntryType.COMPONENT,
-          evaluate: ({ props }: ComponentFunctionInput<Record<string, unknown>>) => `<${name}>${props.content ?? ''}`,
+          evaluate: (props: Record<string, unknown>) => `<${name}>${props.content ?? ''}`,
         },
       ]),
     ),
@@ -55,7 +54,11 @@ function createRenderer(): ForgeRenderer<string> {
   }
 }
 
-function createRequestContext(traceEnabled = false, functionRegistry = new FunctionRegistry()): RequestState {
+function createRequestContext(
+  traceEnabled = false,
+  functionRegistry = new FunctionRegistry(),
+  requestState: Record<string, unknown> = {},
+): RequestState {
   return createTestRequestState(
     {
       request: {
@@ -70,7 +73,7 @@ function createRequestContext(traceEnabled = false, functionRegistry = new Funct
         },
         headers: {},
         cookies: {},
-        state: {},
+        state: requestState,
         params: {},
         query: {},
         post: {},
@@ -113,6 +116,31 @@ function createRenderContext(blocks: readonly RenderBlock[] = []): RenderContext
 }
 
 describe('Render work handlers', () => {
+  it('should pass resolved props as the component evaluator argument', async () => {
+    // Arrange
+    const executor = new WorkExecutor()
+    const renderer = createRenderer()
+    const evaluate = vi.fn((props: Record<string, unknown>) => `<known>${props.content}</known>`)
+    const functionRegistry = new FunctionRegistry()
+
+    functionRegistry.register({
+      known: {
+        name: 'known',
+        _forge: FunctionEntryType.COMPONENT,
+        evaluate,
+      },
+    })
+
+    const task = createRenderBlocksTask([createRenderBlock('known', { content: 'Hello' })], renderer)
+
+    // Act
+    const result = await executor.execute(task, new WorkContext(createRequestContext(false, functionRegistry)))
+
+    // Assert
+    expect(result.output).toEqual(['<known>Hello</known>'])
+    expect(evaluate).toHaveBeenCalledWith({ content: 'Hello' })
+  })
+
   it('should throw when a top-level block component is not registered', async () => {
     // Arrange
     const executor = new WorkExecutor()
@@ -162,6 +190,66 @@ describe('Render work handlers', () => {
       { _forge: ComponentCallType.BASIC, variant: 'child' },
       '<child>',
     )
+    expect(renderer.wrapNestedBlock).toHaveBeenCalledTimes(1)
+  })
+
+  it('should render structured block leaves concurrently and reconstruct their shape', async () => {
+    // Arrange
+    const executor = new WorkExecutor()
+    const pendingResolvers: Array<() => void> = []
+    const functionRegistry = new FunctionRegistry()
+
+    functionRegistry.register({
+      first: {
+        name: 'first',
+        _forge: FunctionEntryType.COMPONENT,
+        evaluate: () =>
+          new Promise<string>(resolve => {
+            pendingResolvers.push(() => resolve('<first>'))
+          }),
+      },
+      second: {
+        name: 'second',
+        _forge: FunctionEntryType.COMPONENT,
+        evaluate: () =>
+          new Promise<string>(resolve => {
+            pendingResolvers.push(() => resolve('<second>'))
+          }),
+      },
+    })
+
+    const renderer: ForgeRenderer<string> = {
+      wrapNestedBlock: (block, html) => ({ block, html }),
+      assemblePage: (_context, renderedBlocks) => renderedBlocks.join(''),
+    }
+    const first = createRenderBlock('first', {}, 'compile_ast:first')
+    const second = createRenderBlock('second', {}, 'compile_ast:second')
+    const task = createRenderBlocksTask({ header: first, rows: [[second]] }, renderer, true)
+    const requestContext = createRequestContext(false, functionRegistry)
+
+    // Act
+    const execution = executor.execute(task, new WorkContext(requestContext))
+    await vi.waitFor(() => expect(pendingResolvers).toHaveLength(2))
+    pendingResolvers.reverse().forEach(resolve => resolve())
+    const result = await execution
+
+    // Assert
+    expect(result.output).toEqual(['<first>', '<second>'])
+    expect(requestContext.renderedBlocks).toEqual(['<first>', '<second>'])
+    expect(requestContext.renderedBlockShape).toEqual({
+      header: {
+        block: { _forge: ComponentCallType.BASIC, variant: 'first' },
+        html: '<first>',
+      },
+      rows: [
+        [
+          {
+            block: { _forge: ComponentCallType.BASIC, variant: 'second' },
+            html: '<second>',
+          },
+        ],
+      ],
+    })
   })
 
   it('should preserve nested block properties when wrapping rendered output', async () => {
@@ -205,6 +293,64 @@ describe('Render work handlers', () => {
     // Assert
     expect(result.output).toBe('<one><two>')
     expect(renderer.assemblePage).toHaveBeenCalledWith(renderContext, ['<one>', '<two>'], {})
+  })
+
+  it('should pass the reconstructed block shape to a step renderer', async () => {
+    // Arrange
+    const executor = new WorkExecutor()
+    const renderer = createRenderer()
+    const evaluate = vi.fn(() => '<page>')
+    const functionRegistry = new FunctionRegistry()
+    const rendererInvocation = createRenderBlock('page', { layout: 'wide' }, 'compile_ast:page')
+    const renderContext = {
+      ...createRenderContext(),
+      renderer: rendererInvocation,
+    }
+    const renderedBlockShape = {
+      header: {
+        block: { _forge: ComponentCallType.BASIC, variant: 'heading', text: 'Example' },
+        html: '<h1>Example</h1>',
+      },
+      rows: [],
+    }
+    const requestState = { csrfToken: 'example-token' }
+
+    functionRegistry.register({
+      page: {
+        name: 'page',
+        _forge: FunctionEntryType.RENDERER,
+        evaluate,
+      },
+    })
+
+    const requestContext = createRequestContext(false, functionRegistry, requestState)
+
+    requestContext.recordRenderedBlocks(['<h1>Example</h1>'])
+    requestContext.recordRenderedBlockShape(renderedBlockShape)
+
+    const task = createAssemblePageTask(renderContext, renderer)
+
+    // Act
+    const result = await executor.execute(task, new WorkContext(requestContext))
+
+    // Assert
+    expect(result.output).toBe('<page>')
+    expect(evaluate).toHaveBeenCalledWith(
+      renderedBlockShape,
+      { layout: 'wide' },
+      {
+        kind: 'step',
+        step: renderContext.step,
+        ancestors: renderContext.ancestors,
+        routeTree: renderContext.routeTree,
+        showValidationFailures: false,
+        fieldValidationErrors: [],
+        domainValidationErrors: [],
+        answers: {},
+        data: {},
+        requestState,
+      },
+    )
   })
 
   it('should mark the block output with comment markers when the request is traced and the renderer supports it', async () => {
@@ -260,10 +406,7 @@ describe('Render work handlers', () => {
       assemblePage: (_context, renderedBlocks) => renderedBlocks.join(''),
     }
     const Child = component<{ text?: string }>('child', {
-      factory:
-        () =>
-        ({ props }) =>
-          `<p>${props.text}</p>`,
+      factory: () => props => `<p>${props.text}</p>`,
     })
     const functionRegistry = createFunctionRegistry([...builtInComponents, Child])
     const fragment = createRenderBlock('fragment', {

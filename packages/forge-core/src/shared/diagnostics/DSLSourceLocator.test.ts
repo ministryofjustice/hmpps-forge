@@ -1,18 +1,37 @@
 import { ComponentCallType, ExpressionType, FunctionCallType, IteratorType, StructureType } from '../taxonomy'
 import type { JourneyDefinition } from '../../authoring/types/structures.type'
 import type { FunctionASTNode, IterateASTNode, MatchASTNode } from '../../engine/chassis/contracts/ast/expressions.type'
-import type { FieldBlockASTNode, JourneyASTNode, StepASTNode } from '../../engine/chassis/contracts/ast/structures.type'
+import type {
+  BlockASTNode,
+  FieldBlockASTNode,
+  JourneyASTNode,
+  StepASTNode,
+} from '../../engine/chassis/contracts/ast/structures.type'
 import type { TestPredicateASTNode } from '../../engine/chassis/contracts/ast/predicates.type'
 import type { TemplateASTNode } from '../../engine/chassis/contracts/ast/ast.type'
 import { NodeIDGenerator } from '../../engine/chassis/compilation/ast/ast-state/NodeIDGenerator'
 import { NodeFactory } from '../../engine/chassis/compilation/ast/nodes/NodeFactory'
 import { finaliseBuilders } from '../../authoring/builders/utils/finaliseBuilders'
+import { ASTNodeFamily, astNodeFamily } from '../../engine/chassis/contracts/ast/enums'
+import { isASTNode } from '../../engine/chassis/contracts/ast/nodes'
 import DSLSourceLocator from './DSLSourceLocator'
 
 const compileJourney = (journey: JourneyDefinition): JourneyASTNode => {
   const factory = new NodeFactory(new NodeIDGenerator())
 
   return factory.createNode(finaliseBuilders(journey)) as JourneyASTNode
+}
+
+function firstBlockOf(step: StepASTNode): BlockASTNode {
+  const { blocks } = step.properties
+
+  const firstBlock = Array.isArray(blocks) ? blocks[0] : undefined
+
+  if (!isASTNode(firstBlock) || astNodeFamily(firstBlock.kind) !== ASTNodeFamily.COMPONENT_CALL) {
+    throw new Error('Expected the step to contain a flat block array')
+  }
+
+  return firstBlock
 }
 
 describe('DSLSourceLocator', () => {
@@ -77,7 +96,7 @@ describe('DSLSourceLocator', () => {
       // Act
       const root = compileJourney(journey)
       const step = root.properties.steps![0] as StepASTNode
-      const block = step.properties.blocks![0] as FieldBlockASTNode
+      const block = firstBlockOf(step) as FieldBlockASTNode
       const defaultValue = block.properties.defaultValue as FunctionASTNode
 
       // Assert
@@ -126,7 +145,7 @@ describe('DSLSourceLocator', () => {
       // Act
       const root = compileJourney(journey)
       const step = root.properties.steps![0] as StepASTNode
-      const block = step.properties.blocks![0]
+      const block = firstBlockOf(step)
       const iterate = block.properties.items as IterateASTNode
       const template = iterate.properties.iterator.yieldTemplate as TemplateASTNode
 
@@ -178,7 +197,7 @@ describe('DSLSourceLocator', () => {
       // Act
       const root = compileJourney(journey)
       const step = root.properties.steps![0] as StepASTNode
-      const block = step.properties.blocks![0]
+      const block = firstBlockOf(step)
       const match = block.properties.content as MatchASTNode
       const predicate = match.properties.branches[0].predicate as TestPredicateASTNode
 

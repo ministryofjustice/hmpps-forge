@@ -48,7 +48,7 @@ export interface GovUKGridRow {
 export const GovUKGridRow = jsxComponent<GovUKGridRow>('govukGridRow', {
   factory:
     () =>
-    ({ props }) => {
+    props => {
       const className = props.classes ? `govuk-grid-row ${props.classes}` : 'govuk-grid-row'
 
       return (

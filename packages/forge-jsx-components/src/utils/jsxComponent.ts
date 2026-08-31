@@ -1,12 +1,24 @@
 import { component } from '@ministryofjustice/hmpps-forge/core/components'
 import type {
+  ComponentRenderProps,
   ComponentOptions,
+  FieldComponentRenderProps,
   FieldComponentOptions,
   ForgeComponent,
   ForgeFieldComponent,
 } from '@ministryofjustice/hmpps-forge/core/components'
 
 import type { RawHtml } from '../runtime/jsx-runtime'
+
+type MaybePromise<T> = T | PromiseLike<T>
+
+type JSXComponentOptions<TProps extends object, TDeps> = Omit<ComponentOptions<TProps, TDeps>, 'factory'> & {
+  readonly factory: (deps: TDeps) => (props: ComponentRenderProps<TProps>) => MaybePromise<RawHtml>
+}
+
+type JSXFieldComponentOptions<TProps extends object, TDeps> = Omit<FieldComponentOptions<TProps, TDeps>, 'factory'> & {
+  readonly factory: (deps: TDeps) => (props: FieldComponentRenderProps<TProps>) => MaybePromise<RawHtml>
+}
 
 /**
  * Defines a component whose evaluator is written in JSX. The factory receives its
@@ -24,7 +36,7 @@ import type { RawHtml } from '../runtime/jsx-runtime'
  * export const CaseHeading = jsxComponent<CaseHeadingProps, CaseHeadingDependencies>('caseHeading', {
  *   factory:
  *     ({ cases }) =>
- *     async ({ props }) => {
+ *     async props => {
  *       const caseDetails = await cases.get(props.caseReference)
  *
  *       return <h1>{caseDetails.title}</h1>
@@ -32,39 +44,39 @@ import type { RawHtml } from '../runtime/jsx-runtime'
  * })
  * ```
  */
-export function jsxComponent<TProps extends object, TDependencies = Record<string, never>>(
+export function jsxComponent<TProps extends object, TDeps = Record<string, never>>(
   variant: string,
-  options: FieldComponentOptions<TProps, TDependencies, RawHtml>,
-): ForgeFieldComponent<TProps, TDependencies, string>
-export function jsxComponent<TProps extends object, TDependencies = Record<string, never>>(
+  options: JSXFieldComponentOptions<TProps, TDeps>,
+): ForgeFieldComponent<TProps, TDeps>
+export function jsxComponent<TProps extends object, TDeps = Record<string, never>>(
   variant: string,
-  options: ComponentOptions<TProps, TDependencies, RawHtml>,
-): ForgeComponent<TProps, TDependencies, string>
-export function jsxComponent<TProps extends object, TDependencies = Record<string, never>>(
+  options: JSXComponentOptions<TProps, TDeps>,
+): ForgeComponent<TProps, TDeps>
+export function jsxComponent<TProps extends object, TDeps = Record<string, never>>(
   variant: string,
-  options: ComponentOptions<TProps, TDependencies, RawHtml> | FieldComponentOptions<TProps, TDependencies, RawHtml>,
-): ForgeComponent<TProps, TDependencies, string> | ForgeFieldComponent<TProps, TDependencies, string> {
+  options: JSXComponentOptions<TProps, TDeps> | JSXFieldComponentOptions<TProps, TDeps>,
+): ForgeComponent<TProps, TDeps> | ForgeFieldComponent<TProps, TDeps> {
   if ('field' in options) {
     const { factory, ...componentOptions } = options
 
-    return component<TProps, TDependencies, string>(variant, {
+    return component<TProps, TDeps>(variant, {
       ...componentOptions,
       factory: dependencies => {
         const evaluate = factory(dependencies)
 
-        return async input => String(await evaluate(input))
+        return async props => String(await evaluate(props))
       },
     })
   }
 
   const { factory, ...componentOptions } = options
 
-  return component<TProps, TDependencies, string>(variant, {
+  return component<TProps, TDeps>(variant, {
     ...componentOptions,
     factory: dependencies => {
       const evaluate = factory(dependencies)
 
-      return async input => String(await evaluate(input))
+      return async props => String(await evaluate(props))
     },
   })
 }

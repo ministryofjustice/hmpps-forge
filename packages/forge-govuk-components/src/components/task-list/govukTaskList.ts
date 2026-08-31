@@ -245,7 +245,7 @@ export interface GovUKTaskList {
 export const GovUKTaskList = nunjucksComponent<GovUKTaskList>('govukTaskList', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params: Record<string, any> = {
         items: props.items.filter(item => item.visibleWhen !== false),
         classes: props.classes,

@@ -1747,7 +1747,7 @@ describe('ASTSemanticValidator', () => {
         if (error instanceof AggregateError) {
           const scopeErrors = error.errors.filter(
             (e: ForgeReferenceScopeError) =>
-              e.message === 'Blocks can only be defined in a step blocks array or nested within another block',
+              e.message === "Blocks can only be defined in a step's blocks structure or nested within another block",
           )
 
           expect(scopeErrors).toHaveLength(1)

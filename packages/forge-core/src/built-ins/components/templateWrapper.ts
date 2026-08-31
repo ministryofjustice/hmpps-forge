@@ -139,49 +139,47 @@ const extractStringValue = (value: unknown): string => {
  * ```
  */
 export const TemplateWrapper = component<TemplateWrapper>('templateWrapper', {
-  factory:
-    () =>
-    ({ props }) => {
-      let content = props.template
+  factory: () => props => {
+    let content = props.template
 
-      // Replace value markers: {{valueName}}
-      // Values are developer-controlled (not user input), so no escaping needed.
-      // User input flows through form fields and is escaped by Nunjucks at render time.
-      if (props.values) {
-        Object.entries(props.values).forEach(([key, value]) => {
-          const marker = `{{${key}}}`
-          const stringValue = extractStringValue(value)
-          content = content.split(marker).join(stringValue)
-        })
-      }
+    // Replace value markers: {{valueName}}
+    // Values are developer-controlled (not user input), so no escaping needed.
+    // User input flows through form fields and is escaped by Nunjucks at render time.
+    if (props.values) {
+      Object.entries(props.values).forEach(([key, value]) => {
+        const marker = `{{${key}}}`
+        const stringValue = extractStringValue(value)
+        content = content.split(marker).join(stringValue)
+      })
+    }
 
-      // Replace slot markers: {{slot:slotName}}
-      if (props.slots) {
-        Object.entries(props.slots).forEach(([slotName, renderedBlocks]) => {
-          const marker = `{{slot:${slotName}}}`
-          const slotHtml = renderedBlocks.map(b => b.html).join('')
-          content = content.split(marker).join(slotHtml)
-        })
-      }
+    // Replace slot markers: {{slot:slotName}}
+    if (props.slots) {
+      Object.entries(props.slots).forEach(([slotName, renderedBlocks]) => {
+        const marker = `{{slot:${slotName}}}`
+        const slotHtml = renderedBlocks.map(b => b.html).join('')
+        content = content.split(marker).join(slotHtml)
+      })
+    }
 
-      // Clean up any unreplaced markers (slots/values that weren't provided)
-      content = content.replace(/\{\{slot:[^}]+}}/g, '')
-      content = content.replace(/\{\{[^}]+}}/g, '')
+    // Clean up any unreplaced markers (slots/values that weren't provided)
+    content = content.replace(/\{\{slot:[^}]+}}/g, '')
+    content = content.replace(/\{\{[^}]+}}/g, '')
 
-      const hasWrapper = props.tag || props.classes || props.attributes
+    const hasWrapper = props.tag || props.classes || props.attributes
 
-      if (hasWrapper) {
-        const element = props.tag ?? 'div'
-        const classAttr = props.classes ? ` class="${escapeHtmlEntities(props.classes)}"` : ''
-        const customAttrs = props.attributes
-          ? Object.entries(props.attributes)
-              .map(([key, value]) => ` ${escapeHtmlEntities(key)}="${escapeHtmlEntities(String(value))}"`)
-              .join('')
-          : ''
+    if (hasWrapper) {
+      const element = props.tag ?? 'div'
+      const classAttr = props.classes ? ` class="${escapeHtmlEntities(props.classes)}"` : ''
+      const customAttrs = props.attributes
+        ? Object.entries(props.attributes)
+            .map(([key, value]) => ` ${escapeHtmlEntities(key)}="${escapeHtmlEntities(String(value))}"`)
+            .join('')
+        : ''
 
-        return `<${element}${classAttr}${customAttrs}>${content}</${element}>`
-      }
+      return `<${element}${classAttr}${customAttrs}>${content}</${element}>`
+    }
 
-      return content
-    },
+    return content
+  },
 })

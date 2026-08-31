@@ -135,7 +135,7 @@ export interface MOJSortableTable {
 export const MOJSortableTable = nunjucksComponent<MOJSortableTable>('mojSortableTable', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params: Record<string, any> = {
         rows: props.rows,
         head: props.head,

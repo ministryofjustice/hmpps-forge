@@ -15,6 +15,7 @@ import WorkContext from '../../work/WorkContext'
 import { createWorkTask } from '../../work/workTask'
 import CompilationState from '../pipeline/CompilationState'
 import { COMPILATION_LOWERING_WORK_HANDLER } from './CompilationLoweringWorkHandler'
+import { staticValue } from '../../contracts/models/authoredValue.type'
 
 function runLowering(
   model: CompilationModel,
@@ -279,7 +280,7 @@ function createStepModel({
       label: undefined,
       step: [],
       ancestors: [],
-      blocks: [],
+      blocks: staticValue([]),
       standaloneIterateBlocks: [],
     },
   }

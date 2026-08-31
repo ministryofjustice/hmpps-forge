@@ -56,6 +56,21 @@ describe('validateBlockScope', () => {
       expect(errors).toHaveLength(0)
     })
 
+    it('should return no errors when a block is nested in the step blocks structure', () => {
+      // Arrange
+      const block = ASTTestFactory.block('text', ComponentCallType.FIELD).build()
+      const step = ASTTestFactory.step()
+        .withProperty('blocks', { sections: [[block]] })
+        .build()
+      const context = createContext([block, step], [[block.id, step.id]])
+
+      // Act
+      const errors = validateBlockScope(context)
+
+      // Assert
+      expect(errors).toHaveLength(0)
+    })
+
     it('should return an error when a renderer declaration is used in step blocks', () => {
       // Arrange
       const block = ASTTestFactory.block('page', ComponentCallType.BASIC).build()
@@ -151,7 +166,7 @@ describe('validateBlockScope', () => {
 
       // Assert
       expect(errorMessages(errors)).toEqual([
-        'Blocks can only be defined in a step blocks array or nested within another block',
+        "Blocks can only be defined in a step's blocks structure or nested within another block",
       ])
     })
 
@@ -166,7 +181,7 @@ describe('validateBlockScope', () => {
 
       // Assert
       expect(errorMessages(errors)).toEqual([
-        'Blocks can only be defined in a step blocks array or nested within another block',
+        "Blocks can only be defined in a step's blocks structure or nested within another block",
       ])
     })
 
@@ -181,7 +196,7 @@ describe('validateBlockScope', () => {
 
       // Assert
       expect(errorMessages(errors)).toEqual([
-        'Blocks can only be defined in a step blocks array or nested within another block',
+        "Blocks can only be defined in a step's blocks structure or nested within another block",
       ])
     })
 

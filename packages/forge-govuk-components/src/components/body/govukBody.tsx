@@ -46,7 +46,7 @@ export interface GovUKBody {
 export const GovUKBody = jsxComponent<GovUKBody>('govukBody', {
   factory:
     () =>
-    ({ props }) => {
+    props => {
       const className = [props.size ? `govuk-body-${props.size}` : 'govuk-body', props.classes]
         .filter(Boolean)
         .join(' ')

@@ -17,7 +17,7 @@ export interface ForgePackage<TDeps = Record<string, never>> {
    * The root journey definition this package mounts, compiled at registration.
    * Accepts a JSON string, which {@link createForgePackage} parses.
    */
-  journey: string | JourneyDefinition
+  journey: string | JourneyDefinition<unknown>
 
   /**
    * Custom functions visible only to this package's journey. Accepts a
@@ -82,7 +82,7 @@ export interface RegisteredForgePackage<TDeps = Record<string, never>> extends O
   'journey' | 'functions' | 'components'
 > {
   /** The parsed, finalised journey definition this package mounts. */
-  journey: JourneyDefinition
+  journey: JourneyDefinition<unknown>
 
   /**
    * The package's function registries. `createForgePackage()` assembles any

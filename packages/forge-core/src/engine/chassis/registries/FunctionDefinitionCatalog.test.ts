@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import type { FunctionDefinitionObject } from '../../../authoring/types/functions.type'
 import FunctionDefinitionCatalog from './FunctionDefinitionCatalog'
 
@@ -18,8 +19,23 @@ describe('FunctionDefinitionCatalog', () => {
         argumentsSchema: undefined,
         outputSchema: undefined,
         _forge: undefined,
+        multiple: undefined,
+        errorAnchor: undefined,
+        blocksSchema: undefined,
       })
       expect(factory).not.toHaveBeenCalled()
+    })
+
+    it('should retain a renderer block schema', () => {
+      // Arrange
+      const blocksSchema = z.array(z.object({ variant: z.string() }))
+      const catalog = new FunctionDefinitionCatalog()
+
+      // Act
+      catalog.register({ Page: { name: 'Page', factory: () => () => '', blocksSchema } })
+
+      // Assert
+      expect(catalog.get('Page')?.blocksSchema).toBe(blocksSchema)
     })
 
     it('should reject duplicate definitions across builders', () => {

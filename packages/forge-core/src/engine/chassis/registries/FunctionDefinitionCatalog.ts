@@ -60,6 +60,7 @@ export default class FunctionDefinitionCatalog implements FunctionDefinitionLook
         _forge: definition._forge,
         multiple: definition.multiple,
         errorAnchor: definition.errorAnchor,
+        blocksSchema: definition.blocksSchema,
       })
     })
 

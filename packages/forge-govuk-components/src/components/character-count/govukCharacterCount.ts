@@ -240,7 +240,7 @@ export const GovUKCharacterCount = nunjucksComponent<GovUKCharacterCount>('govuk
   errorAnchor: props => props.id ?? props.code,
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const id = props.id ?? props.code
 
       const params = {

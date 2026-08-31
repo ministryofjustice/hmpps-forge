@@ -207,6 +207,50 @@ describe('StepResolveCompiler', () => {
       expect(Array.isArray(result.props.ancestors)).toBe(true)
     })
 
+    it('should preserve a recursively structured blocks value', async () => {
+      // Arrange
+      const header = ASTTestFactory.block('header', ComponentCallType.BASIC).withProperty('text', 'Case').build()
+      const field = ASTTestFactory.block('text-input', ComponentCallType.FIELD).withProperty('code', 'name').build()
+      const step = ASTTestFactory.step()
+        .withPath('/step')
+        .withTitle('Step')
+        .withProperty('blocks', { header, sections: [[field]] })
+        .build()
+      const compiled = compiler.compile(resolveModel(step))
+
+      // Act
+      const result = await compiled(createCtx())
+      const blocks = result.props.blocks as unknown as {
+        header: CompiledResolveBlockWorkTask
+        sections: CompiledResolveBlockWorkTask[][]
+      }
+
+      // Assert
+      expect(blocks.header.props.variant).toBe('header')
+      expect(blocks.sections[0][0].props.variant).toBe('text-input')
+      expect(blocks.sections[0][0].props.properties.code).toBe('name')
+    })
+
+    it('should expand a top-level MAP iterator only at its authored array slot', async () => {
+      // Arrange
+      const before = ASTTestFactory.block('before', ComponentCallType.BASIC).build()
+      const repeated = ASTTestFactory.block('repeated', ComponentCallType.BASIC).build()
+      const after = ASTTestFactory.block('after', ComponentCallType.BASIC).build()
+      const iterateNode = createIterateNode(createTemplate(repeated))
+      const step = ASTTestFactory.step()
+        .withPath('/step')
+        .withTitle('Step')
+        .withProperty('blocks', [before, iterateNode, after])
+        .build()
+      const compiled = compiler.compile(resolveModel(step, [], [iterateNode]))
+
+      // Act
+      const result = await compiled(createCtx({ data: { members: [{}, {}] } }))
+
+      // Assert
+      expect(result.props.blocks.map(block => block.props.variant)).toEqual(['before', 'repeated', 'repeated', 'after'])
+    })
+
     it('should produce readable source code', () => {
       // Arrange
       const ancestor = ASTTestFactory.journey().withProperty('path', '/guide').withTitle('Guide').build()
@@ -225,23 +269,24 @@ describe('StepResolveCompiler', () => {
         [
           '"use strict";',
           'const blocks = [];',
-          'const step = { path: "/step", title: "Step" };',
-          'const ancestors = [];',
           '',
-          '// --- Ancestor journeys ---',
-          'ancestors.push({ path: "/guide", title: "Guide" });',
-          '',
-          '// --- Block — text-input (root) ---',
-          'const textInputProps = {',
+          '// --- Block — text-input "name" ---',
+          'const nestedBlockNameProps = {',
           '  code: "name",',
           '  label: { text: "Your name" },',
           '  hint: ctx.data?.nameHint',
           '};',
           '',
-          '_forgeHelpers.resolveFieldValue(ctx, textInputProps);',
-          `_forgeHelpers.resolveFieldFailures(ctx, "${field.id}", "text-input", textInputProps);`,
-          `blocks.push(ctx.workTasks.resolveBlock("${field.id}", "text-input", "component.call.field", textInputProps));`,
+          '_forgeHelpers.resolveFieldValue(ctx, nestedBlockNameProps);',
+          `_forgeHelpers.resolveFieldFailures(ctx, "${field.id}", "text-input", nestedBlockNameProps);`,
+          `const nestedBlockName = ctx.workTasks.resolveBlock("${field.id}", "text-input", "component.call.field", nestedBlockNameProps);`,
           '',
+          'blocks.push(nestedBlockName);',
+          'const step = { path: "/step", title: "Step" };',
+          'const ancestors = [];',
+          '',
+          '// --- Ancestor journeys ---',
+          'ancestors.push({ path: "/guide", title: "Guide" });',
           'return ctx.workTasks.resolveBlocks(blocks, step, ancestors);',
         ].join('\n'),
       )
@@ -675,7 +720,7 @@ describe('StepResolveCompiler', () => {
       const result = await compiled(createCtx({ fieldFailures: { [block.id]: [failure] } }))
 
       // Assert
-      expect(source).toContain(`resolveFieldFailures(ctx, "${block.id}", "text-input", textInputProps)`)
+      expect(source).toContain(`resolveFieldFailures(ctx, "${block.id}", "text-input",`)
       expect(result.props.blocks[0].props.properties.errors).toEqual([failure])
     })
 

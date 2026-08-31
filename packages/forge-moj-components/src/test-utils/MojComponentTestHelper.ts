@@ -6,9 +6,9 @@ import type { Mocked } from 'vitest'
 
 import type { FunctionEntry } from '@ministryofjustice/hmpps-forge/core/authoring'
 
-type ComponentProps<TComponent extends FunctionEntry> = Parameters<ReturnType<TComponent['factory']>>[0] extends {
-  readonly props: infer TProps extends object
-}
+type ComponentProps<TComponent extends FunctionEntry> = Parameters<
+  ReturnType<TComponent['factory']>
+>[0] extends infer TProps extends object
   ? TProps
   : never
 
@@ -76,10 +76,7 @@ export class MojComponentTestHelper<TComponent extends FunctionEntry> {
   }
 
   private render(props: ComponentProps<TComponent>, nunjucksEnv: nunjucks.Environment): string {
-    const rendered = this.component.factory({ nunjucksEnv })({
-      props,
-      context: { kind: 'block', block: { id: 'test', variant: this.component.name ?? '', properties: props } },
-    })
+    const rendered = this.component.factory({ nunjucksEnv })(props)
 
     if (typeof rendered !== 'string') {
       throw new Error('MOJ component test helpers only support synchronous Nunjucks components')

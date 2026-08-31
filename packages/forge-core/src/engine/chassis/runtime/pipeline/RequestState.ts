@@ -47,7 +47,11 @@ export default class RequestState {
 
   private mutableRenderContext?: RenderContext
 
+  private mutableResolvedBlockShape?: unknown
+
   private mutableRenderedBlocks?: readonly unknown[]
+
+  private mutableRenderedBlockShape?: unknown
 
   private mutablePipelineResult?: RequestPipelineResult
 
@@ -108,6 +112,14 @@ export default class RequestState {
     return this.mutableRenderedBlocks
   }
 
+  get resolvedBlockShape(): unknown {
+    return this.mutableResolvedBlockShape
+  }
+
+  get renderedBlockShape(): unknown {
+    return this.mutableRenderedBlockShape
+  }
+
   recordReachabilityEvaluation(evaluation: ReachabilityEvaluation): void {
     this.mutableReachabilityEvaluation = evaluation
   }
@@ -124,8 +136,16 @@ export default class RequestState {
     this.mutableRenderContext = renderContext
   }
 
+  recordResolvedBlockShape(resolvedBlockShape: unknown): void {
+    this.mutableResolvedBlockShape = resolvedBlockShape
+  }
+
   recordRenderedBlocks(renderedBlocks: readonly unknown[]): void {
     this.mutableRenderedBlocks = renderedBlocks
+  }
+
+  recordRenderedBlockShape(renderedBlockShape: unknown): void {
+    this.mutableRenderedBlockShape = renderedBlockShape
   }
 
   recordPipelineResult(result: RequestPipelineResult): void {

@@ -148,7 +148,7 @@ export interface GovUKNotificationBanner {
 export const GovUKNotificationBanner = nunjucksComponent<GovUKNotificationBanner>('govukNotificationBanner', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const content = normaliseGovukTextHtmlContent({
         text: props.text,
         html: props.html,

@@ -151,7 +151,7 @@ export interface MOJProgressBar {
 export const MOJProgressBar = nunjucksComponent<MOJProgressBar>('mojProgressBar', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params = {
         id: props.id,
         label: props.label,

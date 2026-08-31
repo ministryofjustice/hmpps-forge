@@ -162,10 +162,7 @@ interface TestCardBlock {
 }
 
 const TestCard = component<TestCardBlock>('test-card', {
-  factory:
-    () =>
-    ({ props }) =>
-      `<h2>${props.title}</h2>`,
+  factory: () => props => `<h2>${props.title}</h2>`,
 })
 const testInput = component<object>('test-input', { factory: () => () => '<input />' })
 

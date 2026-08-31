@@ -206,7 +206,7 @@ function normaliseMessageItem(item: RuntimeMOJMessageItem) {
 export const MOJMessages = nunjucksComponent<MOJMessages>('mojMessages', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params = {
         items: props.items.filter(item => item.visibleWhen !== false).map(normaliseMessageItem),
         id: props.id,

@@ -40,7 +40,7 @@ export interface GovUKButtonGroup {
 export const GovUKButtonGroup = jsxComponent<GovUKButtonGroup>('govukButtonGroup', {
   factory:
     () =>
-    ({ props }) => {
+    props => {
       const className = props.classes ? `govuk-button-group ${props.classes}` : 'govuk-button-group'
 
       return (

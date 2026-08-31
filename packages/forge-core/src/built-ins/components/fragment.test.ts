@@ -3,10 +3,7 @@ import { component as declareComponent } from '../../components/presentation'
 import { FunctionRegistryTestHarness } from '../../testing/functions/FunctionRegistryTestHarness'
 
 const TestBlock = declareComponent<{ html: string }>('testBlock', {
-  factory:
-    () =>
-    ({ props }) =>
-      props.html,
+  factory: () => props => props.html,
 })
 
 const harness = new FunctionRegistryTestHarness([Fragment, TestBlock])
