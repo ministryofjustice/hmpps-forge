@@ -8,12 +8,12 @@ import type {
 import type { TraceSpanFields } from '../../../chassis/tracing/traceSpan.type'
 import type { ResolveBlocksOutput } from '../contracts/resolveBlocksOutput.type'
 import { childOutputs, createWorkTask } from '../../../chassis/work/workTask'
-import { RESOLVE_BLOCK_KIND, type ResolveBlockWorkTask } from './ResolveBlockWorkHandler'
+import { RESOLVE_BLOCK_KIND } from './ResolveBlockWorkHandler'
 import WorkTaskPropsWalker from '../../../chassis/work/WorkTaskPropsWalker'
 import ForgeInternalError from '../../../errors/ForgeInternalError'
 
 export interface ResolveBlocksWorkProps {
-  readonly blocks: readonly ResolveBlockWorkTask[]
+  readonly blocks: unknown
   readonly step: Record<string, unknown>
   readonly ancestors: readonly Record<string, unknown>[]
 }
@@ -36,6 +36,7 @@ export const RESOLVE_BLOCKS_WORK_HANDLER: WorkHandler<'resolve.blocks', ResolveB
   kind: RESOLVE_BLOCKS_KIND,
 
   begin(ctx: WorkContextContract<RequestState, ResolveBlocksWorkProps>) {
+    const blockTasks = propsWalker.collect(ctx.props.blocks)
     const renderMetadataTasks = propsWalker.collect({
       step: ctx.props.step,
       ancestors: ctx.props.ancestors,
@@ -45,7 +46,7 @@ export const RESOLVE_BLOCKS_WORK_HANDLER: WorkHandler<'resolve.blocks', ResolveB
       groups: [
         {
           mode: 'concurrent',
-          children: [...ctx.props.blocks, ...renderMetadataTasks],
+          children: [...blockTasks, ...renderMetadataTasks],
         },
       ],
     }
@@ -55,9 +56,11 @@ export const RESOLVE_BLOCKS_WORK_HANDLER: WorkHandler<'resolve.blocks', ResolveB
     ctx: WorkContextContract<RequestState, ResolveBlocksWorkProps>,
     children: readonly CompletedWork[],
   ): ResolveBlocksOutput {
-    const blockChildren = children.slice(0, ctx.props.blocks.length)
-    const renderMetadataChildren = children.slice(ctx.props.blocks.length)
+    const blockTaskCount = propsWalker.collect(ctx.props.blocks).length
+    const blockChildren = children.slice(0, blockTaskCount)
+    const renderMetadataChildren = children.slice(blockTaskCount)
     const blocks = childOutputs(blockChildren, RESOLVE_BLOCK_KIND)
+    const blockShape = propsWalker.replaceCompletedOutputs(ctx.props.blocks, blockChildren)
     const renderMetadata = propsWalker.replaceCompletedOutputs(
       { step: ctx.props.step, ancestors: ctx.props.ancestors },
       renderMetadataChildren,
@@ -67,7 +70,7 @@ export const RESOLVE_BLOCKS_WORK_HANDLER: WorkHandler<'resolve.blocks', ResolveB
       throw new ForgeInternalError('Resolve work completed with invalid step renderer metadata')
     }
 
-    return { blocks, step: renderMetadata.step, ancestors: renderMetadata.ancestors }
+    return { blocks, blockShape, step: renderMetadata.step, ancestors: renderMetadata.ancestors }
   },
 }
 
@@ -88,7 +91,7 @@ function isResolvedRenderMetadata(
 
 function traceBegin(props: ResolveBlocksWorkProps): TraceSpanFields {
   return {
-    blocks: props.blocks.length,
+    blocks: propsWalker.collect(props.blocks).length,
   }
 }
 
@@ -99,7 +102,7 @@ function traceComplete(output: ResolveBlocksOutput): TraceSpanFields {
 }
 
 export function createResolveBlocksTask(
-  blocks: readonly ResolveBlockWorkTask[],
+  blocks: unknown,
   step: Record<string, unknown>,
   ancestors: readonly Record<string, unknown>[],
 ) {

@@ -54,10 +54,15 @@ export function component<TProps extends object, TDependencies, TOutput>(
 }
 
 /** Declares a step renderer that composes a step and its rendered children. */
-export function renderer<TProps extends object, TDependencies = Record<string, never>, TOutput = string>(
+export function renderer<
+  TProps extends object,
+  TBlockShape = BlockDefinition[],
+  TDependencies = Record<string, never>,
+  TOutput = string,
+>(
   variant: string,
-  options: RendererOptions<TProps, TDependencies, TOutput>,
-): ForgeStepRenderer<TProps, TDependencies, TOutput> {
+  options: RendererOptions<TProps, TBlockShape, TDependencies, TOutput>,
+): ForgeStepRenderer<TProps, TBlockShape, TDependencies, TOutput> {
   const buildDefinition = (props?: RendererAuthorProps<TProps>): RendererDefinition<TProps> => {
     const authored = props ?? ({} as RendererAuthorProps<TProps>)
     const prepared = options.prepare?.(authored) ?? authored
@@ -74,6 +79,7 @@ export function renderer<TProps extends object, TDependencies = Record<string, n
   const handle = Object.assign(buildDefinition, {
     _forge: FunctionEntryType.RENDERER as const,
     variant,
+    blocksSchema: options.blocksSchema,
     factory: options.factory,
   })
 

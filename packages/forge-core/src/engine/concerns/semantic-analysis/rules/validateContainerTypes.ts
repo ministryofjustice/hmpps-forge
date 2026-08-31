@@ -67,6 +67,30 @@ function checkEntries(
   })
 }
 
+function checkBlockStructure(
+  value: unknown,
+  containerDiagnostics: ASTNodeDiagnostics | undefined,
+  errors: Error[],
+): void {
+  if (isBlock(value)) {
+    return
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach(entry => checkBlockStructure(entry, containerDiagnostics, errors))
+
+    return
+  }
+
+  if (isObject(value) && !isASTNode(value)) {
+    Object.values(value).forEach(entry => checkBlockStructure(entry, containerDiagnostics, errors))
+
+    return
+  }
+
+  errors.push(buildError(BLOCKS, getDiagnostics(value) ?? containerDiagnostics))
+}
+
 function isAccessHook(value: unknown): boolean {
   return isObject(value) && value.kind === HookType.ACCESS
 }
@@ -134,7 +158,9 @@ export const validateContainerTypes: ASTValidationRule = (context: ASTValidation
 
     checkEntries(step.properties.onAccess, ON_ACCESS, diagnostics, errors)
     checkEntries(step.properties.onSubmission, ON_SUBMISSION, diagnostics, errors)
-    checkEntries(step.properties.blocks, BLOCKS, diagnostics, errors)
+    if (step.properties.blocks !== undefined) {
+      checkBlockStructure(step.properties.blocks, diagnostics, errors)
+    }
   })
 
   nodeIndex.findByKind<JourneyASTNode>(StructureType.JOURNEY).forEach(journey => {

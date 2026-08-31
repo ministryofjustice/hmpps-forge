@@ -64,7 +64,7 @@ describe('ResolveAnalyzer', () => {
         kind: AuthoredValueKind.STATIC,
         value: 'Step',
       })
-      expect(model.blocks).toEqual([])
+      expect(model.blocks).toEqual({ kind: AuthoredValueKind.STATIC, value: [] })
       expect(model.standaloneIterateBlocks).toEqual([])
     })
 
@@ -86,6 +86,24 @@ describe('ResolveAnalyzer', () => {
 
       // Assert
       expect(model.ancestors.map(ancestor => ancestor.composedPath)).toEqual(['/outer', '/outer/inner'])
+    })
+
+    it('should preserve omitted blocks for a custom renderer', () => {
+      // Arrange
+      const nodeIndex = new ASTNodeIndex()
+      const renderer = ASTTestFactory.block('page', ComponentCallType.BASIC).build()
+      const journeyNode = ASTTestFactory.journey().withProperty('renderer', renderer).build()
+      const stepNode = ASTTestFactory.step().withPath('/step').build()
+
+      setParent(stepNode, journeyNode)
+      nodeIndex.register(journeyNode.id, journeyNode)
+      nodeIndex.register(stepNode.id, stepNode)
+
+      // Act
+      const model = new ResolveAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode, nodeIndex }))
+
+      // Assert
+      expect(model.blocks).toEqual({ kind: AuthoredValueKind.STATIC, value: undefined })
     })
 
     it('should partition iterators into inline and standalone when both are present', () => {
@@ -149,6 +167,54 @@ describe('ResolveAnalyzer', () => {
       if (summaryBlock?.kind === AuthoredValueKind.BLOCK) {
         expect(summaryBlock.entries.map(entry => entry.key)).toEqual(['code', 'hint'])
       }
+    })
+
+    it('should classify a recursively structured blocks value without flattening it', () => {
+      // Arrange
+      const nodeIndex = new ASTNodeIndex()
+      const journeyNode = ASTTestFactory.journey().build()
+      const header = ASTTestFactory.block('header', ComponentCallType.BASIC).build()
+      const field = ASTTestFactory.block('text-input', ComponentCallType.FIELD)
+        .withProperty('code', 'name')
+        .withProperty('formatters', ['trim'])
+        .build()
+      const stepNode = ASTTestFactory.step()
+        .withPath('/step')
+        .withProperty('blocks', { header, sections: [[field]] })
+        .build()
+
+      setParent(stepNode, journeyNode)
+      ;[journeyNode, stepNode, header, field].forEach(node => nodeIndex.register(node.id, node))
+
+      // Act
+      const model = new ResolveAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode, nodeIndex }))
+
+      // Assert
+      expect(model.blocks.kind).toBe(AuthoredValueKind.RECORD)
+
+      if (model.blocks.kind !== AuthoredValueKind.RECORD) {
+        throw new Error('Expected a classified blocks record')
+      }
+
+      const headerValue = model.blocks.entries.find(entry => entry.key === 'header')?.value
+      const sectionsValue = model.blocks.entries.find(entry => entry.key === 'sections')?.value
+
+      expect(headerValue?.kind).toBe(AuthoredValueKind.BLOCK)
+      expect(sectionsValue?.kind).toBe(AuthoredValueKind.LIST)
+
+      if (sectionsValue?.kind !== AuthoredValueKind.LIST) {
+        throw new Error('Expected classified section arrays')
+      }
+
+      const section = sectionsValue.items[0]
+
+      expect(section?.kind).toBe(AuthoredValueKind.LIST)
+
+      if (section?.kind !== AuthoredValueKind.LIST || section.items[0]?.kind !== AuthoredValueKind.BLOCK) {
+        throw new Error('Expected a nested classified field block')
+      }
+
+      expect(section.items[0].entries.map(entry => entry.key)).toEqual(['code'])
     })
   })
 })

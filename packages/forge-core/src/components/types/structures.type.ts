@@ -181,3 +181,20 @@ export type ResolvableProps<TProps> = {
 export type RenderedBlock<TOutput = string> = {
   block: BlockDefinition
 } & ([TOutput] extends [string] ? { html: string } : { output: TOutput })
+
+/**
+ * Preserves a step's block container while replacing every authored block leaf
+ * with the value produced after that block has rendered.
+ */
+export type RenderedBlockShape<TBlockShape, TOutput = string> =
+  IsAny<TBlockShape> extends true
+    ? TBlockShape
+    : TBlockShape extends BlockDefinition
+      ? RenderedBlock<TOutput>
+      : TBlockShape extends (...args: never[]) => unknown
+        ? TBlockShape
+        : TBlockShape extends readonly unknown[]
+          ? { [TIndex in keyof TBlockShape]: RenderedBlockShape<TBlockShape[TIndex], TOutput> }
+          : TBlockShape extends object
+            ? { [TKey in keyof TBlockShape]: RenderedBlockShape<TBlockShape[TKey], TOutput> }
+            : TBlockShape

@@ -39,11 +39,13 @@ export function field<D extends FieldBlockDefinition>(definition: Omit<D, '_forg
  * Creates a step (page) within a journey.
  * Steps contain blocks and define lifecycle hooks for access, submission, and actions.
  */
-export function step<D extends StepDefinition>(definition: Omit<D, '_forge'>): D {
+export function step<TBlockShape = BlockDefinition[]>(
+  definition: Omit<StepDefinition<TBlockShape>, '_forge'>,
+): StepDefinition<TBlockShape> {
   const result = finaliseBuilders({
     ...definition,
     _forge: StructureType.STEP,
-  }) as D
+  }) as StepDefinition<TBlockShape>
   stampCallsite(result, captureCallsite(step))
   return result
 }
@@ -51,7 +53,7 @@ export function step<D extends StepDefinition>(definition: Omit<D, '_forge'>): D
 /**
  * Creates a journey definition - a complete form flow containing steps.
  */
-export function journey<D extends JourneyDefinition>(definition: Omit<D, '_forge'>): D {
+export function journey<D extends JourneyDefinition<unknown>>(definition: Omit<D, '_forge'>): D {
   const result = finaliseBuilders({
     ...definition,
     _forge: StructureType.JOURNEY,
@@ -90,7 +92,7 @@ export function createForgePackage<TDeps = Record<string, never>>(
 ): RegisteredForgePackage<TDeps> {
   const { components, ...packageDefinition } = pkg
   const parsed: unknown = typeof pkg.journey === 'string' ? JSON.parse(pkg.journey) : pkg.journey
-  const finalisedJourney = finaliseBuilders(parsed) as JourneyDefinition
+  const finalisedJourney = finaliseBuilders(parsed) as JourneyDefinition<unknown>
 
   const result: RegisteredForgePackage<TDeps> = {
     ...packageDefinition,
@@ -111,7 +113,7 @@ export function createForgePackage<TDeps = Record<string, never>>(
 function assembleFunctions<TDeps>(
   functions: ForgePackage<TDeps>['functions'],
   components: ForgePackage<TDeps>['components'],
-  finalisedJourney: JourneyDefinition,
+  finalisedJourney: JourneyDefinition<unknown>,
 ): RegisteredForgePackage<TDeps>['functions'] {
   const entryRegistry = new FunctionEntryRegistry<TDeps>()
   const listedRegistries: FunctionRegistryBuilder<TDeps>[] = []

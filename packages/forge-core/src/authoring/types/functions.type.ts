@@ -53,6 +53,9 @@ export interface FunctionRegistryEntry {
 
   /** Field metadata carried by component entries. */
   errorAnchor?: FunctionEvaluator<string | undefined>
+
+  /** Block-layout schema carried by renderer entries. */
+  blocksSchema?: ZodType
 }
 
 /** A request-bound presentation evaluator, narrowed after registry lookup. */
@@ -79,6 +82,7 @@ export interface FunctionDefinition<TDeps = unknown> {
   readonly _forge?: FunctionEntryType
   readonly multiple?: boolean
   readonly errorAnchor?: FunctionEvaluator<string | undefined>
+  readonly blocksSchema?: ZodType
 }
 
 /** Function definitions keyed by their package-scoped registry name. */
@@ -129,6 +133,9 @@ export interface FunctionEntry<TDeps = any> {
 
   /** Field metadata carried by component entries. */
   readonly errorAnchor?: FunctionEvaluator<string | undefined>
+
+  /** Block-layout schema carried by renderer entries. */
+  readonly blocksSchema?: ZodType
 
   /** Builds one request's evaluator from its resolved dependencies. */
   readonly factory: (dependencies: TDeps) => FunctionEvaluator

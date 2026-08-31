@@ -15,7 +15,7 @@ const silentLogger = {
 } as unknown as Console
 
 function registerAndCollect(
-  targetJourney: string | JourneyDefinition,
+  targetJourney: string | JourneyDefinition<unknown>,
   strictRegistration: boolean,
 ): { register: () => void; events: CompilationTraceEvent[] } {
   const events: CompilationTraceEvent[] = []

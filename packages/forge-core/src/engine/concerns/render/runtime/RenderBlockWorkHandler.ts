@@ -24,9 +24,10 @@ export interface RenderBlockWorkProps {
   readonly block: RenderBlock
   readonly renderer: ForgeRenderer<unknown>
   readonly rendererFunctionContext?: RendererFunctionContext
+  readonly rendererBlocks?: unknown
 }
 
-type RenderBlockWorkTask = WorkTask<'render.render-blocks.block', RenderBlockWorkProps>
+export type RenderBlockWorkTask = WorkTask<'render.render-blocks.block', RenderBlockWorkProps>
 
 export const RENDER_BLOCK_KIND = 'render.render-blocks.block'
 
@@ -84,13 +85,20 @@ export const RENDER_BLOCK_WORK_HANDLER: WorkHandler<'render.render-blocks.block'
     const entryType =
       ctx.props.rendererFunctionContext === undefined ? FunctionEntryType.COMPONENT : FunctionEntryType.RENDERER
     const entry = resolvePresentationFunction(ctx.state.functionRegistry, block.variant, entryType)
-    const renderInput = {
-      props: updatedProperties,
-      context: ctx.props.rendererFunctionContext ?? {
-        kind: 'block' as const,
-        block: renderBlock,
-      },
-    }
+    const renderInput =
+      ctx.props.rendererFunctionContext === undefined
+        ? {
+            props: updatedProperties,
+            context: {
+              kind: 'block' as const,
+              block: renderBlock,
+            },
+          }
+        : {
+            props: updatedProperties,
+            blocks: ctx.props.rendererBlocks,
+            context: ctx.props.rendererFunctionContext,
+          }
 
     const output = await entry.evaluate(renderInput)
 
@@ -139,11 +147,7 @@ function replaceNestedBlocks(
       return value
     }
 
-    const blockDefinition = {
-      _forge: value.blockType,
-      variant: value.variant,
-      ...value.properties,
-    } as BlockDefinition
+    const blockDefinition = toBlockDefinition(value)
 
     const entry = children[childIndex]
 
@@ -155,6 +159,14 @@ function replaceNestedBlocks(
 
     return renderer.wrapNestedBlock(blockDefinition, entry.output)
   }) as Record<string, unknown>
+}
+
+export function toBlockDefinition(block: RenderBlock): BlockDefinition {
+  return {
+    _forge: block.blockType,
+    variant: block.variant,
+    ...block.properties,
+  } as BlockDefinition
 }
 
 function walkProperties(value: unknown, visitor: (value: unknown) => void): void {
@@ -204,6 +216,7 @@ export function createRenderBlockTask(
   block: RenderBlock,
   renderer: ForgeRenderer<unknown>,
   rendererFunctionContext?: RendererFunctionContext,
+  rendererBlocks?: unknown,
 ) {
   return createWorkTask(
     id,
@@ -212,6 +225,7 @@ export function createRenderBlockTask(
       block,
       renderer,
       ...(rendererFunctionContext === undefined ? {} : { rendererFunctionContext }),
+      ...(rendererBlocks === undefined ? {} : { rendererBlocks }),
     },
     RENDER_BLOCK_WORK_INSTRUMENTATION,
   )

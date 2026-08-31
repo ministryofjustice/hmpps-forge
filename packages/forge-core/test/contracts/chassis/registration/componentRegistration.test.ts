@@ -50,7 +50,9 @@ describe('component registration contracts', () => {
       })
 
       // Assert
-      expect(pkg.journey.steps?.[0].blocks?.map(block => block.variant)).toEqual(['test-card', 'test-card@2'])
+      const blocks = pkg.journey.steps?.[0].blocks
+
+      expect(Array.isArray(blocks) ? blocks.map(block => block.variant) : []).toEqual(['test-card', 'test-card@2'])
     })
   })
 

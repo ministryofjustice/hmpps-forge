@@ -8,15 +8,11 @@ import type {
   BlockDefinition,
   FieldBlockDefinition,
   FieldBlockProps,
+  RenderedBlockShape,
   ResolvableProps,
 } from './structures.type'
 
 type MaybePromise<T> = T | PromiseLike<T>
-
-export interface RenderedChild<TOutput = unknown> {
-  readonly block: RenderBlock
-  readonly output: TOutput
-}
 
 export interface ComponentFunctionContext {
   readonly kind: 'block'
@@ -25,7 +21,6 @@ export interface ComponentFunctionContext {
 
 export interface RendererFunctionContext {
   readonly kind: 'step'
-  readonly children: readonly RenderedChild[]
   readonly step: RenderContext['step']
   readonly ancestors: RenderContext['ancestors']
   readonly routeTree: RenderContext['routeTree']
@@ -46,8 +41,9 @@ export interface FieldComponentFunctionInput<TProps extends object> {
   readonly context: ComponentFunctionContext
 }
 
-export interface RendererFunctionInput<TProps extends object> {
+export interface RendererFunctionInput<TProps extends object, TBlockShape = BlockDefinition[], TOutput = string> {
   readonly props: RendererProps<TProps>
+  readonly blocks: RenderedBlockShape<TBlockShape, TOutput>
   readonly context: RendererFunctionContext
 }
 
@@ -77,11 +73,13 @@ export interface FieldComponentOptions<
   readonly prepare?: (props: FieldBlockProps & ResolvableProps<TProps>) => FieldBlockProps & ResolvableProps<TProps>
 }
 
-export interface RendererOptions<TProps extends object, TDependencies, TOutput = string> extends BaseRenderOptions<
-  TDependencies,
-  RendererFunctionInput<TProps>,
-  TOutput
-> {
+export interface RendererOptions<
+  TProps extends object,
+  TBlockShape = BlockDefinition[],
+  TDependencies = Record<string, never>,
+  TOutput = string,
+> extends BaseRenderOptions<TDependencies, RendererFunctionInput<TProps, TBlockShape, TOutput>, TOutput> {
+  readonly blocksSchema?: ZodType<TBlockShape>
   readonly prepare?: (props: ResolvableProps<TProps>) => ResolvableProps<TProps>
 }
 
@@ -125,12 +123,15 @@ export type ForgeFieldComponent<TProps extends object, TDependencies, TOutput = 
     readonly errorAnchor?: (props: FieldComponentRenderProps<TProps>) => string | undefined
   }
 
-export type ForgeStepRenderer<TProps extends object, TDependencies, TOutput = string> = PresentationBuilder<
-  ResolvableProps<TProps>,
-  RendererDefinition<TProps>
-> &
-  PresentationDefinition<TDependencies, RendererFunctionInput<TProps>, TOutput> & {
+export type ForgeStepRenderer<
+  TProps extends object,
+  TBlockShape = BlockDefinition[],
+  TDependencies = Record<string, never>,
+  TOutput = string,
+> = PresentationBuilder<ResolvableProps<TProps>, RendererDefinition<TProps>> &
+  PresentationDefinition<TDependencies, RendererFunctionInput<TProps, TBlockShape, TOutput>, TOutput> & {
     readonly _forge: FunctionEntryType.RENDERER
+    readonly blocksSchema?: ZodType<TBlockShape>
   }
 
 export interface RendererInvocation {

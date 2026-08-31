@@ -1,4 +1,5 @@
 export { component, renderer } from './presentation'
+export { blockSchema } from './blockSchema'
 export { builtInComponents, HtmlBlock, CollectionBlock, TemplateWrapper, Fragment } from '../built-ins/components'
 export type { ComponentRenderProps, FieldComponentRenderProps, RendererProps } from './types/components.type'
 export type {
@@ -10,7 +11,6 @@ export type {
   ForgeComponent,
   ForgeFieldComponent,
   ForgeStepRenderer,
-  RenderedChild,
   RenderFunctionEvaluator,
   RendererFunctionContext,
   RendererFunctionInput,
@@ -26,4 +26,5 @@ export type {
   FieldBlockDefinition,
   FieldBlockProps,
   RenderedBlock,
+  RenderedBlockShape,
 } from './types/structures.type'

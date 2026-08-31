@@ -11,7 +11,7 @@ import { createCompilationLoweringTask } from '../lowering/CompilationLoweringWo
 import { createCompilationRoutesTask } from '../../../concerns/route/analysis/CompilationRoutesWorkHandler'
 
 export interface CompilationPipelineConfig {
-  readonly journeyDefinition: JourneyDefinition
+  readonly journeyDefinition: JourneyDefinition<unknown>
   readonly functionRegistry: FunctionDefinitionLookup
 }
 

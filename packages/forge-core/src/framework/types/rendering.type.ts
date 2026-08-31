@@ -47,7 +47,7 @@ export interface RenderContext {
   /**
    * Current step properties (excluding hooks and blocks).
    * Contains all step properties like path, title, view, backlink, metadata,
-   * plus any custom properties defined on the step.
+   * and data defined by Forge's step contract.
    */
   step: {
     path: string

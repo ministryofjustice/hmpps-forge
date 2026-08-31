@@ -1,4 +1,4 @@
-import { ComponentCallType } from '../../../../shared/taxonomy'
+import { ComponentCallType, IteratorType } from '../../../../shared/taxonomy'
 import { isTemplateASTNode } from '../../../chassis/contracts/ast/nodes'
 import type { TemplateASTNode } from '../../../chassis/contracts/ast/ast.type'
 import {
@@ -96,14 +96,13 @@ export default class StepResolveCompiler {
 
     generator.directive('use strict')
     const names: ResolveResultNames = {
-      blocks: generator.const('blocks', code`[]`),
+      blocks: this.compileBlocksValue(model.blocks, generator),
       step: generator.const('step', this.staticPropertiesLiteral(model.step)),
       ancestors: generator.const('ancestors', code`[]`),
     }
 
     this.compileDynamicProperties(model.step, names.step, generator)
     this.compileAncestorMetadata(model.ancestors, names.ancestors, generator)
-    this.compileBlocks(model.blocks, names.blocks, generator)
     this.compileIterateBlocks(model, names.blocks, generator)
     generator.return(this.compileResolveBlocksWorkTaskExpression(names))
 
@@ -204,26 +203,44 @@ export default class StepResolveCompiler {
     generator.statement(code`${ancestorsName}.push(${ancestor})`)
   }
 
-  private compileBlocks(
-    blocks: readonly ResolveBlockModel[],
-    targetBlocks: IdentifierName,
-    generator: CodeGenerator,
-  ): void {
-    blocks.forEach(block => {
-      this.compileBlock(block, targetBlocks, generator)
-      generator.blank()
+  private compileBlocksValue(blocks: AuthoredValue, generator: CodeGenerator): IdentifierName {
+    if (blocks.kind !== AuthoredValueKind.LIST) {
+      return generator.const('blocks', this.values.compileValueExpression(blocks, generator, 'blocks'))
+    }
+
+    const compiledBlocks = generator.const('blocks', code`[]`)
+
+    blocks.items.forEach(block => {
+      const compiledBlock = this.values.compileValueExpression(block, generator, 'blocks')
+
+      if (block.kind === AuthoredValueKind.ITERATION && block.iterator === IteratorType.MAP) {
+        generator.statement(code`${compiledBlocks}.push(...${compiledBlock})`)
+
+        return
+      }
+
+      if (this.mayResolveUndefined(block)) {
+        generator.if(code`${compiledBlock} !== undefined`, () => {
+          generator.statement(code`${compiledBlocks}.push(${compiledBlock})`)
+        })
+
+        return
+      }
+
+      generator.statement(code`${compiledBlocks}.push(${compiledBlock})`)
     })
+
+    return compiledBlocks
   }
 
-  private compileBlock(block: ResolveBlockModel, targetBlocks: IdentifierName, generator: CodeGenerator): void {
-    const blockId = literal(block.id)
-    const props = this.compileBlockProperties(
-      this.toBlockPropsCompilation(block, blockId, undefined, this.toBlockPropsName(block.variant)),
-      generator,
-      `Block — ${block.variant} (${block.label})`,
-    )
+  private mayResolveUndefined(value: AuthoredValue): boolean {
+    if (value.kind === AuthoredValueKind.STATIC) {
+      return false
+    }
 
-    this.pushResolveBlockWorkTask(targetBlocks, blockId, block.variant, block.blockType, props, generator)
+    return value.kind !== AuthoredValueKind.RECORD &&
+      value.kind !== AuthoredValueKind.LIST &&
+      value.kind !== AuthoredValueKind.BLOCK
   }
 
   private compileIterateBlocks(model: ResolveModel, blocks: IdentifierName, generator: CodeGenerator): void {
@@ -451,7 +468,7 @@ export default class StepResolveCompiler {
   private compileNestedBlock(block: BlockValue, nameHint: string, generator: CodeGenerator): IdentifierName {
     const blockName = this.toNestedBlockName(block, nameHint)
     const blockId = literal(block.id)
-    const props = this.compileUngatedBlockProps(
+    const props = this.compileBlockProperties(
       this.toNestedBlockPropsCompilation(block, blockId, `${blockName}Props`),
       generator,
       this.toNestedBlockComment(block, nameHint),
@@ -474,7 +491,7 @@ export default class StepResolveCompiler {
   ): IdentifierName {
     const blockName = this.toNestedBlockName(block, nameHint)
     const blockId = generator.const('resolveBlockId', this.templates.compileTemplateInstanceIdExpression(source))
-    const props = this.compileUngatedBlockProps(
+    const props = this.compileBlockProperties(
       this.toNestedBlockPropsCompilation(block, blockId, `${blockName}Props`),
       generator,
       this.toNestedBlockComment(block, nameHint),

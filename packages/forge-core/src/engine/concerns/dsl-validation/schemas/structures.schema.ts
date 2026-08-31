@@ -139,7 +139,7 @@ const ValidWhenSchema = z.preprocess(value => {
 /**
  * @see {@link BlockDefinition}
  */
-const BlockSchema: z.ZodType<any> = z.lazy(() => {
+export const BlockSchema: z.ZodType<any> = z.lazy(() => {
   const baseBlock = z.looseObject({
     variant: z.string(),
     visibleWhen: ResolvableBooleanSchema.optional(),
@@ -173,6 +173,42 @@ const BlockSchema: z.ZodType<any> = z.lazy(() => {
   })
 
   return z.discriminatedUnion('_forge', [fieldBlock, basicBlock])
+})
+
+/**
+ * A renderer-owned arrangement of blocks. Containers carry layout only; the
+ * tagged block leaves retain the same validation as the existing flat list.
+ */
+export const BlockStructureSchema: z.ZodType<unknown> = z.unknown().superRefine((value, ctx) => {
+  const validateValue = (candidate: unknown, path: PropertyKey[]): void => {
+    if (Array.isArray(candidate)) {
+      candidate.forEach((item, index) => validateValue(item, [...path, index]))
+
+      return
+    }
+
+    if (candidate !== null && typeof candidate === 'object') {
+      const forgeTag = (candidate as { _forge?: unknown })._forge
+
+      if (forgeTag === ComponentCallType.BASIC || forgeTag === ComponentCallType.FIELD) {
+        const result = BlockSchema.safeParse(candidate)
+
+        if (!result.success) {
+          result.error.issues.forEach(issue => ctx.addIssue({ ...issue, path: [...path, ...issue.path] }))
+        }
+
+        return
+      }
+
+      Object.entries(candidate).forEach(([key, item]) => validateValue(item, [...path, key]))
+
+      return
+    }
+
+    ctx.addIssue({ code: 'custom', path, message: 'Expected a Forge block definition or block container' })
+  }
+
+  validateValue(value, [])
 })
 
 /**
@@ -255,7 +291,7 @@ const JourneyReachabilitySchema = z
 const StepSchema = z.looseObject({
   _forge: z.literal(StructureType.STEP),
   path: z.string(),
-  blocks: z.array(BlockSchema).optional(),
+  blocks: BlockStructureSchema.optional(),
   onAccess: z.array(AccessHookSchema).optional(),
   onSubmission: z.array(SubmitHookSchema).optional(),
   validateOnEntry: z.array(StepEntryValidationSchema).optional(),

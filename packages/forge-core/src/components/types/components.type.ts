@@ -1,22 +1,7 @@
-import type { BasicBlockProps, BlockDefinition, RenderedBlock } from './structures.type'
-
-type IsAny<T> = 0 extends 1 & T ? true : false
-
-type RenderValue<T> =
-  IsAny<T> extends true
-    ? T
-    : T extends BlockDefinition
-      ? RenderedBlock
-      : T extends (...args: never[]) => unknown
-        ? T
-        : T extends readonly (infer TItem)[]
-          ? RenderValue<TItem>[]
-          : T extends object
-            ? { [K in keyof T]: RenderValue<T[K]> }
-            : T
+import type { BasicBlockProps, RenderedBlockShape } from './structures.type'
 
 type RenderProps<TProps> = {
-  [K in keyof TProps]: RenderValue<TProps[K]>
+  [K in keyof TProps]: RenderedBlockShape<TProps[K]>
 }
 
 /**

@@ -26,7 +26,7 @@ export default class CompilationPipeline {
 
   constructor(private readonly options: CompilationPipelineOptions) {}
 
-  compile(journeyDefinition: JourneyDefinition): CompiledPackage {
+  compile(journeyDefinition: JourneyDefinition<unknown>): CompiledPackage {
     const traceEnabled = this.options.instrumentation?.enabled === true
     const bootstrap = new CompilationPipelineBootstrap({
       journeyDefinition,

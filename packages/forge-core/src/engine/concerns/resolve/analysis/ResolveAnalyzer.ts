@@ -1,7 +1,7 @@
 import { ComponentCallType, IteratorType, StructureType } from '../../../../shared/taxonomy'
 import type { ASTNode, TemplateASTNode } from '../../../chassis/contracts/ast/ast.type'
 import { isTemplateASTNode } from '../../../chassis/contracts/ast/nodes'
-import type { BlockASTNode, JourneyASTNode } from '../../../chassis/contracts/ast/structures.type'
+import type { JourneyASTNode } from '../../../chassis/contracts/ast/structures.type'
 import type { TemplateValue } from '../../../chassis/contracts/ast/template.type'
 import { AuthoredValueKind, type AuthoredValue } from '../../../chassis/contracts/models/authoredValue.type'
 import type {
@@ -39,7 +39,10 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
       ResolveAnalyzer.STEP_SKIP_PROPS,
     )
     const ancestors = this.buildAncestors(context)
-    const blocks = (context.stepNode.properties.blocks ?? []).map(block => this.buildRegisteredBlock(context, block))
+    const authoredBlocks = context.stepNode.properties.blocks
+    const blocks = this.pruneNestedBlockProps(
+      context.classifier.classify(authoredBlocks ?? this.defaultBlocksValue(context)),
+    )
     const inlineIterateIds = this.collectInlineIterateIds(step, ancestors, blocks)
 
     return {
@@ -47,8 +50,22 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
       step,
       ancestors,
       blocks,
-      standaloneIterateBlocks: this.buildStandaloneIterateBlocks(context, inlineIterateIds),
+      standaloneIterateBlocks: this.isArrayBlocksValue(blocks)
+        ? this.buildStandaloneIterateBlocks(context, inlineIterateIds)
+        : [],
     }
+  }
+
+  private defaultBlocksValue(context: StepAnalysisContext): [] | undefined {
+    if (context.stepNode.properties.renderer !== undefined) {
+      return undefined
+    }
+
+    const hasInheritedRenderer = context.ancestry
+      .ancestorsOfType(context.stepNode, isJourneyNode)
+      .some(journeyNode => journeyNode.properties.renderer !== undefined)
+
+    return hasInheritedRenderer ? undefined : []
   }
 
   private buildAncestors(context: StepAnalysisContext): ResolveAncestorModel[] {
@@ -72,18 +89,9 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
     })
   }
 
-  private buildRegisteredBlock(context: StepAnalysisContext, block: BlockASTNode): ResolveBlockModel {
-    const rawProperties = block.properties as Record<string, unknown>
-
-    return {
-      source: block,
-      id: block.id,
-      variant: block.variant,
-      blockType: block.kind,
-      label: this.deriveBlockLabel(block),
-      properties: this.classifyProperties(context, rawProperties, ResolveAnalyzer.BLOCK_SKIP_PROPS),
-      resolvesFieldValue: block.kind === ComponentCallType.FIELD && rawProperties.value === undefined,
-    }
+  private isArrayBlocksValue(blocks: AuthoredValue): boolean {
+    return blocks.kind === AuthoredValueKind.LIST ||
+      (blocks.kind === AuthoredValueKind.STATIC && Array.isArray(blocks.value))
   }
 
   private buildTemplateBlock(context: StepAnalysisContext, block: TemplateASTNode): ResolveBlockModel {
@@ -204,7 +212,7 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
   private collectInlineIterateIds(
     step: readonly ResolvePropertyModel[],
     ancestors: readonly ResolveAncestorModel[],
-    blocks: readonly ResolveBlockModel[],
+    blocks: AuthoredValue,
   ): Set<string> {
     const inlineIterateIds = new Set<string>()
     const collectFrom = (properties: readonly ResolvePropertyModel[]) => {
@@ -213,7 +221,7 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
 
     collectFrom(step)
     ancestors.forEach(ancestor => collectFrom(ancestor.properties))
-    blocks.forEach(block => collectFrom(block.properties))
+    this.collectIterationIds(blocks, inlineIterateIds)
 
     return inlineIterateIds
   }
@@ -305,11 +313,6 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
     })
   }
 
-  private deriveBlockLabel(block: BlockASTNode): string {
-    const pathTail = block.diagnostics?.source.formattedPath.split(' > ').at(-1)
-
-    return pathTail?.replace(/ \(.*\)$/, '') ?? String(block.id)
-  }
 }
 
 function isJourneyNode(node: ASTNode): node is JourneyASTNode {

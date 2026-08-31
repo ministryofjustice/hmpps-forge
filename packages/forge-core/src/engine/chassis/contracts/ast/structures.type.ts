@@ -47,7 +47,7 @@ export interface StepASTNode extends MaterialisedASTNode {
     onAccess?: AccessHookASTNode[]
     onSubmission?: SubmitHookASTNode[]
     validateOnEntry?: StepEntryValidationAST[]
-    blocks?: BlockASTNode[]
+    blocks?: StepBlocksAST
     title: ResolvableString
     renderer?: BasicBlockASTNode
     description?: ResolvableString
@@ -101,3 +101,9 @@ export interface FieldBlockASTNode extends MaterialisedASTNode {
  * Block AST node - union type for all block variants
  */
 export type BlockASTNode = BasicBlockASTNode | FieldBlockASTNode
+
+/**
+ * The renderer-defined block structure for a step. Component calls are the
+ * leaves; arrays and records preserve the shape the renderer expects.
+ */
+export type StepBlocksAST = BlockASTNode | StepBlocksAST[] | { [key: string]: StepBlocksAST }

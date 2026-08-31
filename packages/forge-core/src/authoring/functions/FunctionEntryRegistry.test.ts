@@ -6,7 +6,8 @@ import { FunctionEntryType } from '../../shared/taxonomy'
 import ForgeFunctionEntryBuildError from '../../engine/errors/ForgeFunctionEntryBuildError'
 import { FunctionEntryRegistry } from './FunctionEntryRegistry'
 import type { ConditionFunctionExpr } from '../types/expressions.type'
-import { component } from '../../components/presentation'
+import { component, renderer } from '../../components/presentation'
+import type { BlockDefinition } from '../../components/types/structures.type'
 
 describe('FunctionEntryRegistry', () => {
   describe('collectEmbedded()', () => {
@@ -151,6 +152,23 @@ describe('FunctionEntryRegistry', () => {
       expect(tree.second.variant).toBe('card@2')
       expect(rows.card._forge).toBe(FunctionEntryType.COMPONENT)
       expect(rows.card.evaluate({ props: { title: 'One' } })).toBe('One')
+    })
+
+    it('should retain renderer block schema in definitions and request rows', () => {
+      // Arrange
+      const blocksSchema = z.array(z.custom<BlockDefinition>())
+      const Page = renderer<object>('page', {
+        blocksSchema,
+        factory: () => () => '',
+      })
+      const registry = new FunctionEntryRegistry()
+
+      // Act
+      registry.collect(Page)
+
+      // Assert
+      expect(registry.getDefinitions().page.blocksSchema).toBe(blocksSchema)
+      expect(registry.build().page.blocksSchema).toBe(blocksSchema)
     })
   })
 

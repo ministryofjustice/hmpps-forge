@@ -43,7 +43,7 @@ export const RENDER_ASSEMBLE_PAGE_WORK_HANDLER: WorkHandler<'render.assemble-pag
 
   begin(ctx: WorkContextContract<RequestState, RenderAssemblePageWorkProps>) {
     const { renderContext, renderer } = ctx.props
-    const renderedBlocks = ctx.state.renderedBlocks ?? []
+    const renderedBlockShape = ctx.state.renderedBlockShape
 
     if (renderContext.renderer === undefined) {
       throw new ForgeInternalError('Step render work started without a step renderer')
@@ -60,10 +60,8 @@ export const RENDER_ASSEMBLE_PAGE_WORK_HANDLER: WorkHandler<'render.assemble-pag
       throw new ForgeInternalError(`Step renderer "${rendererInvocation.variant}" was not declared with renderer()`)
     }
 
-    const children = renderContext.blocks.map((block, index) => ({ block, output: renderedBlocks[index] }))
     const rendererFunctionContext = {
       kind: 'step' as const,
-      children,
       step: renderContext.step,
       ancestors: renderContext.ancestors,
       routeTree: renderContext.routeTree,
@@ -75,7 +73,13 @@ export const RENDER_ASSEMBLE_PAGE_WORK_HANDLER: WorkHandler<'render.assemble-pag
     }
 
     return singleTaskGroup(
-      createRenderBlockTask(String(rendererInvocation.id), rendererInvocation, renderer, rendererFunctionContext),
+      createRenderBlockTask(
+        String(rendererInvocation.id),
+        rendererInvocation,
+        renderer,
+        rendererFunctionContext,
+        renderedBlockShape,
+      ),
     )
   },
 

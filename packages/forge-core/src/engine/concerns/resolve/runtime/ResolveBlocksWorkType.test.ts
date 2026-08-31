@@ -56,6 +56,38 @@ describe('ResolveBlocksWorkHandler', () => {
       expect(result.output.blocks.map(block => block.id)).toEqual(['compile_ast:1', 'compile_ast:2'])
     })
 
+    it('should reconstruct structured blocks while returning a deterministic flat list', async () => {
+      // Arrange
+      const executor = new WorkExecutor()
+      const first = createWorkTask('first', RESOLVE_BLOCK_WORK_HANDLER, {
+        id: 'compile_ast:1',
+        variant: 'html',
+        blockType: ComponentCallType.BASIC,
+        properties: { html: '<p>First</p>' },
+      })
+      const second = createWorkTask('second', RESOLVE_BLOCK_WORK_HANDLER, {
+        id: 'compile_ast:2',
+        variant: 'html',
+        blockType: ComponentCallType.BASIC,
+        properties: { html: '<p>Second</p>' },
+      })
+      const element = createWorkTask('resolve-blocks', RESOLVE_BLOCKS_WORK_HANDLER, {
+        blocks: { header: first, rows: [[second]] },
+        step: {},
+        ancestors: [],
+      })
+
+      // Act
+      const result = await executor.execute(element, createContext())
+
+      // Assert
+      expect(result.output.blockShape).toEqual({
+        header: expect.objectContaining({ id: 'compile_ast:1' }),
+        rows: [[expect.objectContaining({ id: 'compile_ast:2' })]],
+      })
+      expect(result.output.blocks.map(block => block.id)).toEqual(['compile_ast:1', 'compile_ast:2'])
+    })
+
     it('should declare resolve root trace fields attached by the executor', async () => {
       // Arrange
       const executor = new WorkExecutor()

@@ -133,7 +133,7 @@ describe('REQUEST_RESOLVE_WORK_HANDLER', () => {
       return {
         key: 'resolve',
         kind: RESOLVE_BLOCKS_KIND,
-        output: { ancestors: [], step: { path: '/step' }, blocks: [] },
+        output: { ancestors: [], step: { path: '/step' }, blocks: [], blockShape: [] },
         children: [],
       }
     }

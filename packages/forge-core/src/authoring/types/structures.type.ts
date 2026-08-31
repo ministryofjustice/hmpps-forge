@@ -108,7 +108,7 @@ export type RouteMetadata = Record<string, ResolvableValue | undefined>
  * Top-level journey definition representing a complete form flow.
  * Journeys contain steps and can have nested child journeys.
  */
-export interface JourneyDefinition {
+export interface JourneyDefinition<TBlockShape = BlockDefinition[]> {
   /** Internal Forge discriminator. Do not set or override this property. */
   _forge: StructureType.JOURNEY
 
@@ -154,13 +154,13 @@ export interface JourneyDefinition {
    *
    * @see {@link StepDefinition}
    */
-  steps?: StepDefinition[]
+  steps?: StepDefinition<TBlockShape>[]
 
   /**
    * Child journeys nested under this one, routed beneath this journey's
    * path.
    */
-  children?: JourneyDefinition[]
+  children?: JourneyDefinition<TBlockShape>[]
 
   /**
    * Display title for the journey, surfaced on the route tree and as a
@@ -329,7 +329,7 @@ interface StepEntryValidation {
  * Definition for a single step within a journey.
  * Steps contain blocks and define navigation/hook logic.
  */
-export interface StepDefinition {
+export interface StepDefinition<TBlockShape = BlockDefinition[]> {
   /** Internal Forge discriminator. Do not set or override this property. */
   _forge: StructureType.STEP
 
@@ -357,12 +357,14 @@ export interface StepDefinition {
   code?: string
 
   /**
-   * Content of the step, rendered in order. Blocks are built with registered
-   * components: field blocks collect answers, basic blocks display content.
+   * Content of the step. The default is an ordered block array; a custom page
+   * renderer may define a typed arrangement of arrays and named regions.
+   * Blocks are built with registered components: field blocks collect answers,
+   * basic blocks display content.
    *
    * @see {@link BlockDefinition}
    */
-  blocks?: BlockDefinition[]
+  blocks?: TBlockShape
 
   /**
    * Lifecycle hooks run on every request to this step, after the hooks of

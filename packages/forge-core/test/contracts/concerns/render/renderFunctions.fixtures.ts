@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Data, component, createForgePackage, journey, renderer, step } from '../../../../src/authoring'
+import { Data, blockSchema, component, createForgePackage, journey, renderer, step } from '../../../../src/authoring'
 import type { BlockDefinition } from '../../../../src/components'
 
 export interface RenderRequestDependencies {
@@ -92,6 +92,13 @@ interface TestPageProps {
   chrome?: BlockDefinition
 }
 
+interface TwoColumnBlocks {
+  main: BlockDefinition[]
+  aside: BlockDefinition[]
+}
+
+const twoColumnStep = step<TwoColumnBlocks>
+
 const TestLeaf = component<TestLeafProps, RenderFunctionDependencies>('renderSpikeLeaf', {
   factory: dependencies => {
     const request = bindRequest(dependencies, 'renderSpikeLeaf')
@@ -128,12 +135,12 @@ const TestField = component<TestFieldProps, RenderFunctionDependencies>('renderS
   },
 })
 
-const TestPage = renderer<TestPageProps, RenderFunctionDependencies>('renderSpikePage', {
+const TestPage = renderer<TestPageProps, BlockDefinition[], RenderFunctionDependencies>('renderSpikePage', {
   factory: dependencies => {
     const request = bindRequest(dependencies, 'renderSpikePage')
 
     return input => {
-      const children = input.context.children.map(child => child.output).join('|')
+      const children = input.blocks.map(block => block.html).join('|')
       const chrome = input.props.chrome?.html ?? ''
 
       return `<page data-request="${request.id}"><h1>${input.props.heading}</h1>${chrome}${children}</page>`
@@ -141,17 +148,55 @@ const TestPage = renderer<TestPageProps, RenderFunctionDependencies>('renderSpik
   },
 })
 
-const AlternatePage = renderer<TestPageProps, RenderFunctionDependencies>('renderSpikeAlternatePage', {
+const AlternatePage = renderer<TestPageProps, BlockDefinition[], RenderFunctionDependencies>(
+  'renderSpikeAlternatePage',
+  {
+    factory: dependencies => {
+      const request = bindRequest(dependencies, 'renderSpikeAlternatePage')
+
+      return input => {
+        const children = input.blocks.map(block => block.html).join('|')
+
+        return `<alternate data-request="${request.id}"><h1>${input.props.heading}</h1>${children}</alternate>`
+      }
+    },
+  },
+)
+
+const TwoColumnPage = renderer<TestPageProps, TwoColumnBlocks, RenderFunctionDependencies>('renderSpikeTwoColumnPage', {
+  blocksSchema: z.strictObject({
+    main: z.array(blockSchema),
+    aside: z.array(blockSchema),
+  }),
   factory: dependencies => {
-    const request = bindRequest(dependencies, 'renderSpikeAlternatePage')
+    const request = bindRequest(dependencies, 'renderSpikeTwoColumnPage')
 
     return input => {
-      const children = input.context.children.map(child => child.output).join('|')
+      const main = input.blocks.main.map(block => block.html).join('|')
+      const aside = input.blocks.aside.map(block => block.html).join('|')
 
-      return `<alternate data-request="${request.id}"><h1>${input.props.heading}</h1>${children}</alternate>`
+      return `<two-column data-request="${request.id}"><main>${main}</main><aside>${aside}</aside></two-column>`
     }
   },
 })
+
+const OptionalBlocksPage = renderer<TestPageProps, TwoColumnBlocks | undefined, RenderFunctionDependencies>(
+  'renderSpikeOptionalBlocksPage',
+  {
+    blocksSchema: z
+      .strictObject({
+        main: z.array(blockSchema),
+        aside: z.array(blockSchema),
+      })
+      .optional(),
+    factory: dependencies => {
+      const request = bindRequest(dependencies, 'renderSpikeOptionalBlocksPage')
+
+      return input =>
+        `<optional-blocks data-request="${request.id}">${input.blocks === undefined ? 'none' : 'present'}</optional-blocks>`
+    },
+  },
+)
 
 const sharedBlocks = () => [
   TestLeaf({ label: 'first', text: Data('message') }),
@@ -189,6 +234,22 @@ export const renderFunctionSpikePackage = createForgePackage<RenderFunctionDepen
         reachability: { entryWhen: true },
         renderer: AlternatePage({ heading: 'Replacement heading' }),
         blocks: sharedBlocks(),
+      }),
+      twoColumnStep({
+        path: '/structured',
+        title: 'Structured renderer',
+        reachability: { entryWhen: true },
+        renderer: TwoColumnPage({ heading: 'Structured heading' }),
+        blocks: {
+          main: [TestLeaf({ label: 'first', text: 'main content' })],
+          aside: [TestLeaf({ label: 'second', text: 'aside content' })],
+        },
+      }),
+      step<TwoColumnBlocks | undefined>({
+        path: '/optional-blocks',
+        title: 'Optional structured blocks',
+        reachability: { entryWhen: true },
+        renderer: OptionalBlocksPage({ heading: 'Optional blocks' }),
       }),
     ],
   }),

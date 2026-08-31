@@ -1,9 +1,10 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { z } from 'zod'
 import { ComponentCallType, FunctionEntryType } from '../shared/taxonomy'
 import { getEntryStamp } from '../authoring/builders/utils/stampEntry'
 import type { NodeId } from '../engine/chassis/contracts/ast/ast.type'
 import type { ComponentOptions } from './types/renderFunctions.type'
+import type { BlockDefinition } from './types/structures.type'
 import { component, renderer } from './presentation'
 
 interface CardProps {
@@ -179,8 +180,8 @@ describe('renderer()', () => {
       const Page = renderer<{ heading: string }>('page', {
         factory:
           () =>
-          ({ props, context }) =>
-            `<h1>${props.heading}</h1>${context.children.map(child => child.output).join('')}`,
+          ({ props, blocks }) =>
+            `<h1>${props.heading}</h1>${blocks.map(block => block.html).join('')}`,
       })
 
       // Act
@@ -194,6 +195,35 @@ describe('renderer()', () => {
         heading: 'Details',
       })
       expect(getEntryStamp(invocation)).toBe(Page)
+    })
+
+    it('should type a structured block layout and retain its schema', () => {
+      // Arrange
+      interface PageBlocks {
+        readonly main: BlockDefinition[]
+        readonly aside: {
+          readonly featured: BlockDefinition
+        }
+      }
+
+      const blocksSchema: z.ZodType<PageBlocks> = z.object({
+        main: z.array(z.custom<BlockDefinition>()),
+        aside: z.object({ featured: z.custom<BlockDefinition>() }),
+      })
+      const Page = renderer<{ heading: string }, PageBlocks>('structuredPage', {
+        blocksSchema,
+        factory:
+          () =>
+          ({ blocks }) => {
+            expectTypeOf(blocks.main[0].html).toEqualTypeOf<string>()
+            expectTypeOf(blocks.aside.featured.html).toEqualTypeOf<string>()
+
+            return `${blocks.main[0].html}${blocks.aside.featured.html}`
+          },
+      })
+
+      // Act & Assert
+      expect(Page.blocksSchema).toBe(blocksSchema)
     })
   })
 })
