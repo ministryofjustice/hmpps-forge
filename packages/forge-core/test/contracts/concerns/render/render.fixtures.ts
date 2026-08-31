@@ -25,49 +25,37 @@ interface ContractScopedHtml {
 
 const ContractField = component<ContractField, RenderContractDependencies>('contractField', {
   field: true,
-  factory:
-    dependencies =>
-    ({ props }) => {
-      dependencies.renderProbe?.('contractField')
+  factory: dependencies => props => {
+    dependencies.renderProbe?.('contractField')
 
-      return `<input id="${props.code}" name="${props.code}" aria-label="${props.label}">`
-    },
+    return `<input id="${props.code}" name="${props.code}" aria-label="${props.label}">`
+  },
 })
 
-const ContractAsyncField = component<ContractAsyncField, Record<string, never>, Promise<string>>('contractAsyncField', {
+const ContractAsyncField = component<ContractAsyncField>('contractAsyncField', {
   field: true,
-  factory:
-    () =>
-    ({ props }) =>
-      Promise.resolve(`<async id="${props.code}">`),
+  factory: () => props => Promise.resolve(`<async id="${props.code}">`),
 })
 
 const ContractNestedFieldProbe = component<ContractNestedFieldProbe>('contractNestedFieldProbe', {
-  factory:
-    () =>
-    ({ props }) => {
-      const nestedFieldBlock = props.field.block as FieldBlockDefinition
+  factory: () => props => {
+    const nestedFieldBlock = props.field.block as FieldBlockDefinition
 
-      return `<div data-nested-field-code="${nestedFieldBlock.code}">${props.field.html}</div>`
-    },
+    return `<div data-nested-field-code="${nestedFieldBlock.code}">${props.field.html}</div>`
+  },
 })
 
 const ContractMultiFieldProbe = component<ContractMultiFieldProbe>('contractMultiFieldProbe', {
-  factory:
-    () =>
-    ({ props }) => {
-      const inner = props.fields.map(nested => nested.html).join('')
+  factory: () => props => {
+    const inner = props.fields.map(nested => nested.html).join('')
 
-      return `<section>${inner}</section>`
-    },
+    return `<section>${inner}</section>`
+  },
 })
 
 /** Package-scope entry claiming the built-in `html` variant - the scoped entry must win for its own journey. */
 export const contractScopedHtmlComponent = component<ContractScopedHtml>('html', {
-  factory:
-    () =>
-    ({ props }) =>
-      `<scoped>${props.content}</scoped>`,
+  factory: () => props => `<scoped>${props.content}</scoped>`,
 })
 
 export const renderContractComponents = [

@@ -98,7 +98,7 @@ export interface MOJBanner {
 export const MOJBanner = nunjucksComponent<MOJBanner>('mojBanner', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const content = normaliseMojTextHtmlContent({
         text: props.text,
         html: props.html,

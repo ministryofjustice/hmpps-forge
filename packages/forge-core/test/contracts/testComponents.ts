@@ -19,10 +19,7 @@ export const TextField = component<TextField>('testTextField', {
   field: true,
   inputSchema: z.string(),
   errorAnchor: props => props.id ?? props.code,
-  factory:
-    () =>
-    ({ props }) =>
-      `<field:${props.code}>`,
+  factory: () => props => `<field:${props.code}>`,
 })
 
 export type CheckboxField = Record<never, never>
@@ -32,10 +29,7 @@ export const CheckboxField = component<CheckboxField>('testCheckboxField', {
   field: true,
   inputSchema: z.array(z.string()),
   multiple: true,
-  factory:
-    () =>
-    ({ props }) =>
-      `<field:${props.code}>`,
+  factory: () => props => `<field:${props.code}>`,
 })
 
 export interface StaticText {
@@ -45,10 +39,7 @@ export interface StaticText {
 
 /** A non-field block, for tests that assert basic-block behavior. */
 export const StaticText = component<StaticText>('testStaticText', {
-  factory:
-    () =>
-    ({ props }) =>
-      `<static>${props.text}</static>`,
+  factory: () => props => `<static>${props.text}</static>`,
 })
 
 export interface RadioItem {
@@ -66,10 +57,7 @@ export interface RadioField {
 export const RadioField = component<RadioField>('testRadioField', {
   field: true,
   inputSchema: z.string(),
-  factory:
-    () =>
-    ({ props }) =>
-      `<field:${props.code}>`,
+  factory: () => props => `<field:${props.code}>`,
 })
 
 export type DateField = Record<never, never>
@@ -82,8 +70,5 @@ export const DateField = component<DateField>('testDateField', {
     ...props,
     formatters: [Transformer.Object.ToISO({ year: 'year', month: 'month', day: 'day' }), ...(props.formatters ?? [])],
   }),
-  factory:
-    () =>
-    ({ props }) =>
-      `<field:${props.code}>`,
+  factory: () => props => `<field:${props.code}>`,
 })

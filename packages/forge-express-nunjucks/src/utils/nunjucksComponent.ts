@@ -12,7 +12,7 @@ export interface NunjucksComponentDependencies {
   readonly nunjucksEnv: nunjucks.Environment
 }
 
-type NunjucksDependencies<TDependencies> = TDependencies & NunjucksComponentDependencies
+type NunjucksDependencies<TDeps> = TDeps & NunjucksComponentDependencies
 
 /**
  * Defines a Nunjucks component as a Forge function. Its factory receives both the
@@ -28,7 +28,7 @@ type NunjucksDependencies<TDependencies> = TDependencies & NunjucksComponentDepe
  *   {
  *     factory:
  *       ({ cases, nunjucksEnv }) =>
- *       async ({ props }) => {
+ *       async props => {
  *         const summary = await cases.getSummary(props.caseReference)
  *
  *         return nunjucksEnv.render('components/case-summary.njk', { params: summary })
@@ -37,25 +37,23 @@ type NunjucksDependencies<TDependencies> = TDependencies & NunjucksComponentDepe
  * )
  * ```
  */
-export function nunjucksComponent<TProps extends object, TDependencies extends object = object>(
+export function nunjucksComponent<TProps extends object, TDeps extends object = object>(
   variant: string,
-  options: FieldComponentOptions<TProps, NunjucksDependencies<TDependencies>, string>,
-): ForgeFieldComponent<TProps, NunjucksDependencies<TDependencies>, string>
-export function nunjucksComponent<TProps extends object, TDependencies extends object = object>(
+  options: FieldComponentOptions<TProps, NunjucksDependencies<TDeps>>,
+): ForgeFieldComponent<TProps, NunjucksDependencies<TDeps>>
+export function nunjucksComponent<TProps extends object, TDeps extends object = object>(
   variant: string,
-  options: ComponentOptions<TProps, NunjucksDependencies<TDependencies>, string>,
-): ForgeComponent<TProps, NunjucksDependencies<TDependencies>, string>
-export function nunjucksComponent<TProps extends object, TDependencies extends object = object>(
+  options: ComponentOptions<TProps, NunjucksDependencies<TDeps>>,
+): ForgeComponent<TProps, NunjucksDependencies<TDeps>>
+export function nunjucksComponent<TProps extends object, TDeps extends object = object>(
   variant: string,
   options:
-    | ComponentOptions<TProps, NunjucksDependencies<TDependencies>, string>
-    | FieldComponentOptions<TProps, NunjucksDependencies<TDependencies>, string>,
-):
-  | ForgeComponent<TProps, NunjucksDependencies<TDependencies>, string>
-  | ForgeFieldComponent<TProps, NunjucksDependencies<TDependencies>, string> {
+    | ComponentOptions<TProps, NunjucksDependencies<TDeps>>
+    | FieldComponentOptions<TProps, NunjucksDependencies<TDeps>>,
+): ForgeComponent<TProps, NunjucksDependencies<TDeps>> | ForgeFieldComponent<TProps, NunjucksDependencies<TDeps>> {
   if ('field' in options) {
-    return component<TProps, NunjucksDependencies<TDependencies>, string>(variant, options)
+    return component<TProps, NunjucksDependencies<TDeps>>(variant, options)
   }
 
-  return component<TProps, NunjucksDependencies<TDependencies>, string>(variant, options)
+  return component<TProps, NunjucksDependencies<TDeps>>(variant, options)
 }

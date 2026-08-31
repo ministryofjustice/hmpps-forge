@@ -42,7 +42,7 @@ export interface MyBadge extends BlockDefinition {
 }
 
 export const MyBadge = jsxComponent<MyBadge>('myBadge', {
-  factory: () => ({ props }) => <strong class="moj-badge">{props.text}</strong>,
+  factory: () => props => <strong class="moj-badge">{props.text}</strong>,
 })
 ```
 

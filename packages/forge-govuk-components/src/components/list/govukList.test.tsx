@@ -3,7 +3,7 @@ import { component as declareComponent } from '@ministryofjustice/hmpps-forge/co
 import { FunctionRegistryTestHarness } from '@ministryofjustice/hmpps-forge/core/testing'
 import { GovUKList } from './govukList'
 
-const TestBlock = declareComponent<{ html: string }>('testBlock', { factory: () => ({ props }) => props.html })
+const TestBlock = declareComponent<{ html: string }>('testBlock', { factory: () => props => props.html })
 
 const harness = new FunctionRegistryTestHarness([GovUKList, TestBlock])
 

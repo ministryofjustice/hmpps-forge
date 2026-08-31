@@ -34,7 +34,7 @@ export const RichTextEditor = nunjucksComponent<RichTextEditor>('richTextEditor'
   field: true,
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const toolbar = props.toolbar ?? {
         bold: true,
         italic: true,

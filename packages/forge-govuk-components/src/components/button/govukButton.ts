@@ -148,7 +148,7 @@ function buttonRenderer(props: GovUKButton | GovUKLinkButton, nunjucksEnv: nunju
 export const GovUKButton = nunjucksComponent<GovUKButton>('govukButton', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) =>
+    props =>
       buttonRenderer(props, nunjucksEnv),
 })
 
@@ -170,6 +170,6 @@ export const GovUKButton = nunjucksComponent<GovUKButton>('govukButton', {
 export const GovUKLinkButton = nunjucksComponent<GovUKLinkButton>('govukLinkButton', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) =>
+    props =>
       buttonRenderer(props, nunjucksEnv),
 })

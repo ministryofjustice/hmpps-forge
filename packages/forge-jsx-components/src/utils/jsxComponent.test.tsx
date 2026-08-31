@@ -13,7 +13,7 @@ interface TestBadgeProps {
 const TestBadge = jsxComponent<TestBadgeProps>('testBadge', {
   factory:
     () =>
-    ({ props }) =>
+    props =>
       <strong class="badge">{props.text}</strong>,
 })
 
@@ -26,7 +26,7 @@ const TestTextInput = jsxComponent<TestTextInputProps>('testTextInput', {
   field: true,
   factory:
     () =>
-    ({ props }) => (
+    props => (
       <div class="form-group">
         <label for={props.code}>{props.label}</label>
         <input type="text" id={props.code} name={props.code} value={props.value as string} />
@@ -68,7 +68,7 @@ describe('jsxComponent()', () => {
       const Greeting = jsxComponent<{ name: string }, { loadGreeting: () => Promise<string> }>('greeting', {
         factory:
           ({ loadGreeting }) =>
-          async ({ props }) => {
+          async props => {
             const greeting = await loadGreeting()
 
             return <p>{`${greeting}, ${props.name}`}</p>
@@ -129,7 +129,7 @@ describe('jsxComponent()', () => {
       const TestCard = jsxComponent<TestCardProps>('testCard', {
         factory:
           () =>
-          ({ props }) =>
+          props =>
             <div class="card">{raw(props.childHtml)}</div>,
       })
 

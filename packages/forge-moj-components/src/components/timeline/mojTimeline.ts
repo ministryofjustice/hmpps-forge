@@ -217,7 +217,7 @@ function normaliseTimelineItem(item: RuntimeMOJTimelineItem) {
 export const MOJTimeline = nunjucksComponent<MOJTimeline>('mojTimeline', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params = {
         items: props.items.filter(item => item.visibleWhen !== false).map(normaliseTimelineItem),
         headingLevel: props.headingLevel,

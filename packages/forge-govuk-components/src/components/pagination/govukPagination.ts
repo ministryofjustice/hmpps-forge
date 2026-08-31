@@ -120,7 +120,7 @@ export interface GovUKPagination {
 export const GovUKPagination = nunjucksComponent<GovUKPagination>('govukPagination', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params: Record<string, any> = {
         previous: props.previous?.visibleWhen === false ? undefined : props.previous,
         next: props.next?.visibleWhen === false ? undefined : props.next,

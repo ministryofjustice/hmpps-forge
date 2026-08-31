@@ -15,6 +15,7 @@ import type {
   ForgeComponent,
   ForgeFieldComponent,
   ForgeStepRenderer,
+  RendererFunctionContext,
   RendererInvocation,
   RendererOptions,
 } from './types/renderFunctions.type'
@@ -34,18 +35,18 @@ type FieldComponentDefinition<TProps> = FieldBlockDefinition & ResolvableProps<T
 type RendererDefinition<TProps> = RendererInvocation & ResolvableProps<TProps>
 
 /** Declares a presentational block or field component. */
-export function component<TProps extends object, TDependencies = Record<string, never>, TOutput = string>(
+export function component<TProps extends object, TDeps = Record<string, never>>(
   variant: string,
-  options: FieldComponentOptions<TProps, TDependencies, TOutput>,
-): ForgeFieldComponent<TProps, TDependencies, TOutput>
-export function component<TProps extends object, TDependencies = Record<string, never>, TOutput = string>(
+  options: FieldComponentOptions<TProps, TDeps>,
+): ForgeFieldComponent<TProps, TDeps>
+export function component<TProps extends object, TDeps = Record<string, never>>(
   variant: string,
-  options: ComponentOptions<TProps, TDependencies, TOutput>,
-): ForgeComponent<TProps, TDependencies, TOutput>
-export function component<TProps extends object, TDependencies, TOutput>(
+  options: ComponentOptions<TProps, TDeps>,
+): ForgeComponent<TProps, TDeps>
+export function component<TProps extends object, TDeps>(
   variant: string,
-  options: ComponentOptions<TProps, TDependencies, TOutput> | FieldComponentOptions<TProps, TDependencies, TOutput>,
-): ForgeComponent<TProps, TDependencies, TOutput> | ForgeFieldComponent<TProps, TDependencies, TOutput> {
+  options: ComponentOptions<TProps, TDeps> | FieldComponentOptions<TProps, TDeps>,
+): ForgeComponent<TProps, TDeps> | ForgeFieldComponent<TProps, TDeps> {
   if ('field' in options) {
     return createFieldComponent(variant, options)
   }
@@ -56,13 +57,13 @@ export function component<TProps extends object, TDependencies, TOutput>(
 /** Declares a step renderer that composes a step and its rendered children. */
 export function renderer<
   TProps extends object,
-  TBlockShape = BlockDefinition[],
-  TDependencies = Record<string, never>,
-  TOutput = string,
+  TBlocks,
+  TContext extends RendererFunctionContext,
+  TDeps = Record<string, never>,
 >(
   variant: string,
-  options: RendererOptions<TProps, TBlockShape, TDependencies, TOutput>,
-): ForgeStepRenderer<TProps, TBlockShape, TDependencies, TOutput> {
+  options: RendererOptions<TProps, TBlocks, TContext, TDeps>,
+): ForgeStepRenderer<TProps, TBlocks, TContext, TDeps> {
   const buildDefinition = (props?: RendererAuthorProps<TProps>): RendererDefinition<TProps> => {
     const authored = props ?? ({} as RendererAuthorProps<TProps>)
     const prepared = options.prepare?.(authored) ?? authored
@@ -86,10 +87,10 @@ export function renderer<
   return handle
 }
 
-function createComponent<TProps extends object, TDependencies, TOutput>(
+function createComponent<TProps extends object, TDeps>(
   variant: string,
-  options: ComponentOptions<TProps, TDependencies, TOutput>,
-): ForgeComponent<TProps, TDependencies, TOutput> {
+  options: ComponentOptions<TProps, TDeps>,
+): ForgeComponent<TProps, TDeps> {
   const buildDefinition = (props?: AuthorProps<TProps>): BasicPresentationDefinition<TProps> => {
     const authored = props ?? ({} as AuthorProps<TProps>)
     const prepared = options.prepare?.(authored) ?? authored
@@ -112,10 +113,10 @@ function createComponent<TProps extends object, TDependencies, TOutput>(
   return handle
 }
 
-function createFieldComponent<TProps extends object, TDependencies, TOutput>(
+function createFieldComponent<TProps extends object, TDeps>(
   variant: string,
-  options: FieldComponentOptions<TProps, TDependencies, TOutput>,
-): ForgeFieldComponent<TProps, TDependencies, TOutput> {
+  options: FieldComponentOptions<TProps, TDeps>,
+): ForgeFieldComponent<TProps, TDeps> {
   const buildDefinition = (props?: FieldAuthorProps<TProps>): FieldComponentDefinition<TProps> => {
     const authored = props ?? ({} as FieldAuthorProps<TProps>)
     const prepared = options.prepare?.(authored) ?? authored

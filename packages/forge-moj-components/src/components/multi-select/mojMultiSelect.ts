@@ -143,7 +143,7 @@ export interface MOJMultiSelect {
 export const MOJMultiSelect = nunjucksComponent<MOJMultiSelect>('mojMultiSelect', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params: Record<string, any> = {
         rows: props.rows,
         head: props.head,

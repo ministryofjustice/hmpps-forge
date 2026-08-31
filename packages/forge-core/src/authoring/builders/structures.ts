@@ -39,13 +39,13 @@ export function field<D extends FieldBlockDefinition>(definition: Omit<D, '_forg
  * Creates a step (page) within a journey.
  * Steps contain blocks and define lifecycle hooks for access, submission, and actions.
  */
-export function step<TBlockShape = BlockDefinition[]>(
-  definition: Omit<StepDefinition<TBlockShape>, '_forge'>,
-): StepDefinition<TBlockShape> {
+export function step<TBlocks = BlockDefinition[]>(
+  definition: Omit<StepDefinition<TBlocks>, '_forge'>,
+): StepDefinition<TBlocks> {
   const result = finaliseBuilders({
     ...definition,
     _forge: StructureType.STEP,
-  }) as StepDefinition<TBlockShape>
+  }) as StepDefinition<TBlocks>
   stampCallsite(result, captureCallsite(step))
   return result
 }

@@ -12,7 +12,6 @@ import { createAssemblePageTask } from './RenderAssemblePageWorkHandler'
 import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
 import FunctionRegistry from '../../../chassis/registries/FunctionRegistry'
 import type { FunctionEntry } from '../../../../authoring/types/functions.type'
-import type { ComponentFunctionInput } from '../../../../components/types/renderFunctions.type'
 import { createTestRequestState } from '../../../chassis/runtime/pipeline/testing-helpers/requestStateTestHelpers'
 
 function createRenderBlock(
@@ -39,7 +38,7 @@ function createRenderFunctionRegistry(...variants: string[]): FunctionRegistry {
         {
           name,
           _forge: FunctionEntryType.COMPONENT,
-          evaluate: ({ props }: ComponentFunctionInput<Record<string, unknown>>) => `<${name}>${props.content ?? ''}`,
+          evaluate: (props: Record<string, unknown>) => `<${name}>${props.content ?? ''}`,
         },
       ]),
     ),
@@ -117,6 +116,31 @@ function createRenderContext(blocks: readonly RenderBlock[] = []): RenderContext
 }
 
 describe('Render work handlers', () => {
+  it('should pass resolved props as the component evaluator argument', async () => {
+    // Arrange
+    const executor = new WorkExecutor()
+    const renderer = createRenderer()
+    const evaluate = vi.fn((props: Record<string, unknown>) => `<known>${props.content}</known>`)
+    const functionRegistry = new FunctionRegistry()
+
+    functionRegistry.register({
+      known: {
+        name: 'known',
+        _forge: FunctionEntryType.COMPONENT,
+        evaluate,
+      },
+    })
+
+    const task = createRenderBlocksTask([createRenderBlock('known', { content: 'Hello' })], renderer)
+
+    // Act
+    const result = await executor.execute(task, new WorkContext(createRequestContext(false, functionRegistry)))
+
+    // Assert
+    expect(result.output).toEqual(['<known>Hello</known>'])
+    expect(evaluate).toHaveBeenCalledWith({ content: 'Hello' })
+  })
+
   it('should throw when a top-level block component is not registered', async () => {
     // Arrange
     const executor = new WorkExecutor()
@@ -311,10 +335,10 @@ describe('Render work handlers', () => {
 
     // Assert
     expect(result.output).toBe('<page>')
-    expect(evaluate).toHaveBeenCalledWith({
-      props: { layout: 'wide' },
-      blocks: renderedBlockShape,
-      context: {
+    expect(evaluate).toHaveBeenCalledWith(
+      renderedBlockShape,
+      { layout: 'wide' },
+      {
         kind: 'step',
         step: renderContext.step,
         ancestors: renderContext.ancestors,
@@ -326,7 +350,7 @@ describe('Render work handlers', () => {
         data: {},
         requestState,
       },
-    })
+    )
   })
 
   it('should mark the block output with comment markers when the request is traced and the renderer supports it', async () => {
@@ -382,10 +406,7 @@ describe('Render work handlers', () => {
       assemblePage: (_context, renderedBlocks) => renderedBlocks.join(''),
     }
     const Child = component<{ text?: string }>('child', {
-      factory:
-        () =>
-        ({ props }) =>
-          `<p>${props.text}</p>`,
+      factory: () => props => `<p>${props.text}</p>`,
     })
     const functionRegistry = createFunctionRegistry([...builtInComponents, Child])
     const fragment = createRenderBlock('fragment', {

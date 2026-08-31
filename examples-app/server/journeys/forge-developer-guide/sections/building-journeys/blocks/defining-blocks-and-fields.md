@@ -364,7 +364,7 @@ the result doubles as the block builder for that variant:
 import { render } from '@ministryofjustice/hmpps-forge/core/components'
 
 const MyCustomCard = render('myCustomCard', {
-  factory: () => ({ props }) => {
+  factory: () => props => {
     return `
       <div class="app-card">
         <h2>${props.title}</h2>

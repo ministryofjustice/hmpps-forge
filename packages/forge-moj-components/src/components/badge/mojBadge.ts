@@ -117,7 +117,7 @@ export interface MOJBadge {
 export const MOJBadge = nunjucksComponent<MOJBadge>('mojBadge', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params = {
         text: props.text,
         html: props.html,

@@ -12,7 +12,7 @@ describe('nunjucksComponent()', () => {
       const Card = nunjucksComponent<{ title: string }, { prefix: string }>('card', {
         factory:
           ({ nunjucksEnv, prefix }) =>
-          async ({ props }) =>
+          async props =>
             nunjucksEnv.renderString('<h1>{{ prefix }}: {{ title }}</h1>', { ...props, prefix }),
       })
       const harness = new FunctionRegistryTestHarness(Card, { nunjucksEnv: environment, prefix: 'Case' })

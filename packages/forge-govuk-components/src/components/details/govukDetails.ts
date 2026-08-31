@@ -64,7 +64,7 @@ export interface GovUKDetails {
 export const GovUKDetails = nunjucksComponent<GovUKDetails>('govukDetails', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const content = normaliseGovukTextHtmlContent({
         text: props.text,
         html: props.html,

@@ -83,7 +83,7 @@ For a display block:
 import { component } from '@ministryofjustice/hmpps-forge/core/components'
 
 export const MyCard = component<MyCardProps>('myCard', {
-  factory: () => ({ props }) => {
+  factory: () => props => {
     const border = props.outlined ? ' my-card--outlined' : ''
 
     return `
@@ -110,7 +110,7 @@ export interface MyStarRatingProps {
 
 export const MyStarRating = component<MyStarRatingProps>('myStarRating', {
   field: true,
-  factory: () => ({ props }) => { ... },
+  factory: () => props => { ... },
 })
 ```
 
@@ -118,9 +118,9 @@ export const MyStarRating = component<MyStarRatingProps>('myStarRating', {
 
 ## The renderer
 
-The function returned by `factory` receives `{ props, context }` and returns
+The function returned by `factory` receives the resolved props directly and returns
 rendered output. Renderer-specific helpers use this same shape while adding the
-dependencies or output type needed by their renderer.
+dependencies needed by their renderer.
 
 ### Pure function components
 
@@ -141,7 +141,7 @@ import { nunjucksComponent } from '@ministryofjustice/hmpps-forge/express-nunjuc
 export const MyCard = nunjucksComponent<MyCardProps>('myCard', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params = {
         heading: props.heading,
         content: props.content,
@@ -204,7 +204,7 @@ export const GovUKTextInput = nunjucksComponent<GovUKTextInput>(
     field: true,
     factory:
       ({ nunjucksEnv }) =>
-      ({ props }) => {
+      props => {
         const params = {
           id: props.id ?? props.code,
           name: props.code,
@@ -372,7 +372,7 @@ const escapeHtml = (value: string): string =>
     .replace(/'/g, '&#39;')
 
 export const MyBadge = component<MyBadge>('myBadge', {
-  factory: () => ({ props }) => {
+  factory: () => props => {
     const label = escapeHtml(String(props.label ?? ''))
 
     return `<span class="my-badge">${label}</span>`

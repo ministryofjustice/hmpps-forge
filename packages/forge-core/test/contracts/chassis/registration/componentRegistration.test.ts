@@ -38,10 +38,7 @@ describe('component registration contracts', () => {
     it('should apply ordinary function-entry collision naming', () => {
       // Arrange
       const Duplicate = component<TestCardBlock>('test-card', {
-        factory:
-          () =>
-          ({ props }) =>
-            `<p>${props.title}</p>`,
+        factory: () => props => `<p>${props.title}</p>`,
       })
 
       // Act

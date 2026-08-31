@@ -81,26 +81,13 @@ export const RENDER_BLOCK_WORK_HANDLER: WorkHandler<'render.render-blocks.block'
     }
 
     const updatedProperties = replaceNestedBlocks(block.properties, children, renderer)
-    const renderBlock = { ...block, properties: updatedProperties }
     const entryType =
       ctx.props.rendererFunctionContext === undefined ? FunctionEntryType.COMPONENT : FunctionEntryType.RENDERER
     const entry = resolvePresentationFunction(ctx.state.functionRegistry, block.variant, entryType)
-    const renderInput =
+    const output =
       ctx.props.rendererFunctionContext === undefined
-        ? {
-            props: updatedProperties,
-            context: {
-              kind: 'block' as const,
-              block: renderBlock,
-            },
-          }
-        : {
-            props: updatedProperties,
-            blocks: ctx.props.rendererBlocks,
-            context: ctx.props.rendererFunctionContext,
-          }
-
-    const output = await entry.evaluate(renderInput)
+        ? await entry.evaluate(updatedProperties)
+        : await entry.evaluate(ctx.props.rendererBlocks, updatedProperties, ctx.props.rendererFunctionContext)
 
     // Mark only while devtools is tracing, so production output stays unmarked.
     if (ctx.props.rendererFunctionContext === undefined && ctx.state.dependencies.traceEnabled && renderer.markBlock) {

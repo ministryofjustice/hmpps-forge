@@ -121,8 +121,5 @@ const renderCollectionBlock = (block: ComponentRenderProps<CollectionBlock>): st
  * ```
  */
 export const CollectionBlock = component<CollectionBlock>('collection-block', {
-  factory:
-    () =>
-    ({ props }) =>
-      renderCollectionBlock(props),
+  factory: () => props => renderCollectionBlock(props),
 })

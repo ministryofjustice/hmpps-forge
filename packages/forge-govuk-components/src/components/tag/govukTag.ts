@@ -108,7 +108,7 @@ export interface GovUKTag {
 export const GovUKTag = nunjucksComponent<GovUKTag>('govukTag', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params: Record<string, any> = {
         text: props.html ? undefined : props.text,
         html: props.html,

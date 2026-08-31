@@ -73,7 +73,7 @@ export interface GovUKInsetText {
 export const GovUKInsetText = nunjucksComponent<GovUKInsetText>('govukInsetText', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const content = normaliseGovukTextHtmlContent({
         text: props.text,
         html: props.html,

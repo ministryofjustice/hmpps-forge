@@ -163,7 +163,7 @@ export interface MOJAlert {
 export const MOJAlert = nunjucksComponent<MOJAlert>('mojAlert', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const content = normaliseMojTextHtmlContent({
         text: props.text,
         html: props.html,

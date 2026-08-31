@@ -237,7 +237,7 @@ export const GovUKDateInputFull = nunjucksComponent<GovUKDateInputFull>('govukDa
   }),
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const dateParts = (props.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
       const errorDetails = props.errors?.[0]?.details
 
@@ -286,7 +286,7 @@ export const GovUKDateInputYearMonth = nunjucksComponent<GovUKDateInputYearMonth
   }),
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const dateParts = (props.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
       const errorDetails = props.errors?.[0]?.details
 
@@ -334,7 +334,7 @@ export const GovUKDateInputMonthDay = nunjucksComponent<GovUKDateInputMonthDay>(
   }),
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const dateParts = (props.value as { day?: string; month?: string; year?: string } | undefined) ?? {}
       const errorDetails = props.errors?.[0]?.details
 

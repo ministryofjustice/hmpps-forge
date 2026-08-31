@@ -202,7 +202,7 @@ export interface GovUKAccordion {
 export const GovUKAccordion = nunjucksComponent<GovUKAccordion>('govukAccordion', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const processedItems = props.items
         .filter(item => item.visibleWhen !== false)
         .map(item => {

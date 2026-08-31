@@ -79,7 +79,7 @@ export interface GovUKBreadcrumbs {
 export const GovUKBreadcrumbs = nunjucksComponent<GovUKBreadcrumbs>('govukBreadcrumbs', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params: Record<string, any> = {
         items: props.items.filter(item => item.visibleWhen !== false),
         collapseOnMobile: props.collapseOnMobile,

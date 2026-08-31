@@ -87,7 +87,7 @@ export interface GovUKPanel {
 export const GovUKPanel = nunjucksComponent<GovUKPanel>('govukPanel', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const content = normaliseGovukTextHtmlContent({
         text: props.text,
         html: props.html,

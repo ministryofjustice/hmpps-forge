@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { Data, blockSchema, component, createForgePackage, journey, renderer, step } from '../../../../src/authoring'
-import type { BlockDefinition } from '../../../../src/components'
+import type { BlockDefinition, RendererFunctionContext } from '../../../../src/components'
 
 export interface RenderRequestDependencies {
   readonly id: string
@@ -103,8 +103,8 @@ const TestLeaf = component<TestLeafProps, RenderFunctionDependencies>('renderSpi
   factory: dependencies => {
     const request = bindRequest(dependencies, 'renderSpikeLeaf')
 
-    return async input => {
-      return request.probe.renderBlock(input.props.label, `${dependencies.prefix}:${request.id}:${input.props.text}`)
+    return async props => {
+      return request.probe.renderBlock(props.label, `${dependencies.prefix}:${request.id}:${props.text}`)
     }
   },
 })
@@ -113,8 +113,8 @@ const TestContainer = component<TestContainerProps, RenderFunctionDependencies>(
   factory: dependencies => {
     const request = bindRequest(dependencies, 'renderSpikeContainer')
 
-    return async input => {
-      return request.probe.renderBlock(input.props.label, `<container>${input.props.child.html}</container>`)
+    return async props => {
+      return request.probe.renderBlock(props.label, `<container>${props.child.html}</container>`)
     }
   },
 })
@@ -126,77 +126,82 @@ const TestField = component<TestFieldProps, RenderFunctionDependencies>('renderS
   factory: dependencies => {
     const request = bindRequest(dependencies, 'renderSpikeField')
 
-    return async input => {
-      return request.probe.renderBlock(
-        'field',
-        `<input id="${input.props.code}-input" aria-label="${input.props.label}">`,
-      )
+    return async props => {
+      return request.probe.renderBlock('field', `<input id="${props.code}-input" aria-label="${props.label}">`)
     }
   },
 })
 
-const TestPage = renderer<TestPageProps, BlockDefinition[], RenderFunctionDependencies>('renderSpikePage', {
-  factory: dependencies => {
-    const request = bindRequest(dependencies, 'renderSpikePage')
-
-    return input => {
-      const children = input.blocks.map(block => block.html).join('|')
-      const chrome = input.props.chrome?.html ?? ''
-
-      return `<page data-request="${request.id}"><h1>${input.props.heading}</h1>${chrome}${children}</page>`
-    }
-  },
-})
-
-const AlternatePage = renderer<TestPageProps, BlockDefinition[], RenderFunctionDependencies>(
-  'renderSpikeAlternatePage',
+const TestPage = renderer<TestPageProps, BlockDefinition[], RendererFunctionContext, RenderFunctionDependencies>(
+  'renderSpikePage',
   {
     factory: dependencies => {
-      const request = bindRequest(dependencies, 'renderSpikeAlternatePage')
+      const request = bindRequest(dependencies, 'renderSpikePage')
 
-      return input => {
-        const children = input.blocks.map(block => block.html).join('|')
+      return (blocks, props) => {
+        const children = blocks.map(block => block.html).join('|')
+        const chrome = props.chrome?.html ?? ''
 
-        return `<alternate data-request="${request.id}"><h1>${input.props.heading}</h1>${children}</alternate>`
+        return `<page data-request="${request.id}"><h1>${props.heading}</h1>${chrome}${children}</page>`
       }
     },
   },
 )
 
-const TwoColumnPage = renderer<TestPageProps, TwoColumnBlocks, RenderFunctionDependencies>('renderSpikeTwoColumnPage', {
-  blocksSchema: z.strictObject({
-    main: z.array(blockSchema),
-    aside: z.array(blockSchema),
-  }),
-  factory: dependencies => {
-    const request = bindRequest(dependencies, 'renderSpikeTwoColumnPage')
-
-    return input => {
-      const main = input.blocks.main.map(block => block.html).join('|')
-      const aside = input.blocks.aside.map(block => block.html).join('|')
-
-      return `<two-column data-request="${request.id}"><main>${main}</main><aside>${aside}</aside></two-column>`
-    }
-  },
-})
-
-const OptionalBlocksPage = renderer<TestPageProps, TwoColumnBlocks | undefined, RenderFunctionDependencies>(
-  'renderSpikeOptionalBlocksPage',
+const AlternatePage = renderer<TestPageProps, BlockDefinition[], RendererFunctionContext, RenderFunctionDependencies>(
+  'renderSpikeAlternatePage',
   {
-    blocksSchema: z
-      .strictObject({
-        main: z.array(blockSchema),
-        aside: z.array(blockSchema),
-      })
-      .optional(),
     factory: dependencies => {
-      const request = bindRequest(dependencies, 'renderSpikeOptionalBlocksPage')
+      const request = bindRequest(dependencies, 'renderSpikeAlternatePage')
 
-      return input =>
-        `<optional-blocks data-request="${request.id}">${input.blocks === undefined ? 'none' : 'present'}</optional-blocks>`
+      return (blocks, props) => {
+        const children = blocks.map(block => block.html).join('|')
+
+        return `<alternate data-request="${request.id}"><h1>${props.heading}</h1>${children}</alternate>`
+      }
     },
   },
 )
+
+const TwoColumnPage = renderer<TestPageProps, TwoColumnBlocks, RendererFunctionContext, RenderFunctionDependencies>(
+  'renderSpikeTwoColumnPage',
+  {
+    blocksSchema: z.strictObject({
+      main: z.array(blockSchema),
+      aside: z.array(blockSchema),
+    }),
+    factory: dependencies => {
+      const request = bindRequest(dependencies, 'renderSpikeTwoColumnPage')
+
+      return blocks => {
+        const main = blocks.main.map(block => block.html).join('|')
+        const aside = blocks.aside.map(block => block.html).join('|')
+
+        return `<two-column data-request="${request.id}"><main>${main}</main><aside>${aside}</aside></two-column>`
+      }
+    },
+  },
+)
+
+const OptionalBlocksPage = renderer<
+  TestPageProps,
+  TwoColumnBlocks | undefined,
+  RendererFunctionContext,
+  RenderFunctionDependencies
+>('renderSpikeOptionalBlocksPage', {
+  blocksSchema: z
+    .strictObject({
+      main: z.array(blockSchema),
+      aside: z.array(blockSchema),
+    })
+    .optional(),
+  factory: dependencies => {
+    const request = bindRequest(dependencies, 'renderSpikeOptionalBlocksPage')
+
+    return blocks =>
+      `<optional-blocks data-request="${request.id}">${blocks === undefined ? 'none' : 'present'}</optional-blocks>`
+  },
+})
 
 const sharedBlocks = () => [
   TestLeaf({ label: 'first', text: Data('message') }),

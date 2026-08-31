@@ -54,7 +54,7 @@ export interface GovUKList {
 export const GovUKList = jsxComponent<GovUKList>('govukList', {
   factory:
     () =>
-    ({ props }) => {
+    props => {
       // Evaluation widens the literal prop types, so pin the type back to the union
       const style = props.style as ListType | undefined
       const Tag = style === 'number' ? 'ol' : 'ul'

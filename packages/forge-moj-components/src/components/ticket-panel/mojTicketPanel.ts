@@ -165,7 +165,7 @@ function normaliseTicketPanelItem(item: RuntimeMOJTicketPanelItem) {
 export const MOJTicketPanel = nunjucksComponent<MOJTicketPanel>('mojTicketPanel', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params = {
         items: props.items.filter(item => item.visibleWhen !== false).map(normaliseTicketPanelItem),
         classes: props.classes,

@@ -174,7 +174,7 @@ export interface MOJSideNavigation {
 export const MOJSideNavigation = nunjucksComponent<MOJSideNavigation>('mojSideNavigation', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const items = props.items?.filter(item => item.visibleWhen !== false)
       const sections = props.sections
         ?.filter(section => section.visibleWhen !== false)

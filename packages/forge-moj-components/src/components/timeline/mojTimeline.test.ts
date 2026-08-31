@@ -9,10 +9,7 @@ import type { MOJTimelineItem } from './mojTimeline'
 vi.mock('nunjucks')
 
 const TestBlock = declareComponent<{ html: string }>('testBlock', {
-  factory:
-    () =>
-    ({ props }) =>
-      props.html,
+  factory: () => props => props.html,
 })
 
 describe('mojTimeline', () => {

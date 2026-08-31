@@ -267,7 +267,7 @@ function normaliseSummaryListValue(value: RuntimeSummaryListRow['value'] | undef
 export const GovUKSummaryList = nunjucksComponent<GovUKSummaryList>('govukSummaryList', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params: Record<string, any> = {
         rows: props.rows.filter(row => row.visibleWhen !== false).map(normaliseSummaryListRow),
         card: props.card,

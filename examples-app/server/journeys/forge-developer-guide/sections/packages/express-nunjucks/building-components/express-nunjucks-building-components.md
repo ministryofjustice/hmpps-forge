@@ -36,7 +36,7 @@ export const MyInput = nunjucksComponent<MyInputProps>('my-input', {
   field: true,
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) =>
+    props =>
       nunjucksEnv.render('components/my-input.njk', {
         params: {
           id: props.id ?? props.code,
@@ -55,8 +55,8 @@ The component is built in two stages:
 
 1. **`factory` receives the dependencies.** These include `nunjucksEnv`
    from the adapter and any dependencies registered with the package.
-2. **The evaluator receives `{ props, context }`.** The plain interface supplied
-   as the generic parameter shapes `props`; fields also receive `code`, `value`,
+2. **The evaluator receives the resolved props.** The plain interface supplied as
+   the generic parameter shapes those props; fields also receive `code`, `value`,
    and `errors` from Forge.
 
 The evaluator must return an HTML string, either directly or through a promise.
@@ -79,7 +79,7 @@ export const CaseSummary = nunjucksComponent<CaseSummaryProps, CaseSummaryDepend
   {
     factory:
       ({ cases, nunjucksEnv }) =>
-      async ({ props }) => {
+      async props => {
         const summary = await cases.getSummary(props.caseReference)
 
         return nunjucksEnv.render('components/case-summary.njk', { params: summary })

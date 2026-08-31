@@ -61,8 +61,5 @@ const renderChild = (child: unknown): string => {
  * ```
  */
 export const Fragment = component<Fragment>('fragment', {
-  factory:
-    () =>
-    ({ props }) =>
-      props.blocks.map(renderChild).join(''),
+  factory: () => props => props.blocks.map(renderChild).join(''),
 })

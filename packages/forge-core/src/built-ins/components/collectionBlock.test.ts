@@ -3,10 +3,7 @@ import { FunctionRegistryTestHarness } from '../../testing/functions/FunctionReg
 import { CollectionBlock } from './collectionBlock'
 
 const TestBlock = component<{ html: string }>('testBlock', {
-  factory:
-    () =>
-    ({ props }) =>
-      props.html,
+  factory: () => props => props.html,
 })
 
 const harness = new FunctionRegistryTestHarness([CollectionBlock, TestBlock])

@@ -67,7 +67,7 @@ export interface GovUKHeading {
 export const GovUKHeading = jsxComponent<GovUKHeading>('govukHeading', {
   factory:
     () =>
-    ({ props }) => {
+    props => {
       // Evaluation widens the literal prop types, so pin the tag back to the union
       const size = (props.size ?? 'l') as HeadingSize
       const Tag = `h${props.level ?? defaultLevels[size]}` as HeadingTag

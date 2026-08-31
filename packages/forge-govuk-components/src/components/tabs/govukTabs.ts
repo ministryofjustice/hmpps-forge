@@ -165,7 +165,7 @@ export interface GovUKTabs {
 export const GovUKTabs = nunjucksComponent<GovUKTabs>('govukTabs', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       // Process items, handling child blocks in panel content
       const processedItems = props.items
         .filter(item => item.visibleWhen !== false)

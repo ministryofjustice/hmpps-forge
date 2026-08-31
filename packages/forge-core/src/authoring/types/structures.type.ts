@@ -108,7 +108,7 @@ export type RouteMetadata = Record<string, ResolvableValue | undefined>
  * Top-level journey definition representing a complete form flow.
  * Journeys contain steps and can have nested child journeys.
  */
-export interface JourneyDefinition<TBlockShape = BlockDefinition[]> {
+export interface JourneyDefinition<TBlocks = BlockDefinition[]> {
   /** Internal Forge discriminator. Do not set or override this property. */
   _forge: StructureType.JOURNEY
 
@@ -154,13 +154,13 @@ export interface JourneyDefinition<TBlockShape = BlockDefinition[]> {
    *
    * @see {@link StepDefinition}
    */
-  steps?: StepDefinition<TBlockShape>[]
+  steps?: StepDefinition<TBlocks>[]
 
   /**
    * Child journeys nested under this one, routed beneath this journey's
    * path.
    */
-  children?: JourneyDefinition<TBlockShape>[]
+  children?: JourneyDefinition<TBlocks>[]
 
   /**
    * Display title for the journey, surfaced on the route tree and as a
@@ -329,7 +329,7 @@ interface StepEntryValidation {
  * Definition for a single step within a journey.
  * Steps contain blocks and define navigation/hook logic.
  */
-export interface StepDefinition<TBlockShape = BlockDefinition[]> {
+export interface StepDefinition<TBlocks = BlockDefinition[]> {
   /** Internal Forge discriminator. Do not set or override this property. */
   _forge: StructureType.STEP
 
@@ -364,7 +364,7 @@ export interface StepDefinition<TBlockShape = BlockDefinition[]> {
    *
    * @see {@link BlockDefinition}
    */
-  blocks?: TBlockShape
+  blocks?: TBlocks
 
   /**
    * Lifecycle hooks run on every request to this step, after the hooks of

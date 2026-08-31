@@ -162,7 +162,7 @@ function isHeadingLevel(value: number | undefined): value is NonNullable<MOJCard
 export const MOJCardGroup = nunjucksComponent<MOJCardGroup>('mojCardGroup', {
   factory:
     ({ nunjucksEnv }) =>
-    ({ props }) => {
+    props => {
       const params = {
         items: props.items.filter(item => item.visibleWhen !== false).map(normalizeCardItem),
         columns: props.columns,

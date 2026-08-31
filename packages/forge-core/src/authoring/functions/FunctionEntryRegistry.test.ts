@@ -7,6 +7,7 @@ import ForgeFunctionEntryBuildError from '../../engine/errors/ForgeFunctionEntry
 import { FunctionEntryRegistry } from './FunctionEntryRegistry'
 import type { ConditionFunctionExpr } from '../types/expressions.type'
 import { component, renderer } from '../../components/presentation'
+import type { RendererFunctionContext } from '../../components/types/renderFunctions.type'
 import type { BlockDefinition } from '../../components/types/structures.type'
 
 describe('FunctionEntryRegistry', () => {
@@ -135,8 +136,8 @@ describe('FunctionEntryRegistry', () => {
 
     it('should collect component entries and rewrite their block variants', () => {
       // Arrange
-      const first = component<{ title: string }>('card', { factory: () => input => input.props.title })
-      const second = component<{ title: string }>('card', { factory: () => input => input.props.title })
+      const first = component<{ title: string }>('card', { factory: () => props => props.title })
+      const second = component<{ title: string }>('card', { factory: () => props => props.title })
       const tree = finaliseBuilders({ first: first({ title: 'One' }), second: second({ title: 'Two' }) }) as {
         first: { variant: string }
         second: { variant: string }
@@ -151,13 +152,13 @@ describe('FunctionEntryRegistry', () => {
       expect(tree.first.variant).toBe('card')
       expect(tree.second.variant).toBe('card@2')
       expect(rows.card._forge).toBe(FunctionEntryType.COMPONENT)
-      expect(rows.card.evaluate({ props: { title: 'One' } })).toBe('One')
+      expect(rows.card.evaluate({ title: 'One' })).toBe('One')
     })
 
     it('should retain renderer block schema in definitions and request rows', () => {
       // Arrange
       const blocksSchema = z.array(z.custom<BlockDefinition>())
-      const Page = renderer<object>('page', {
+      const Page = renderer<object, BlockDefinition[], RendererFunctionContext>('page', {
         blocksSchema,
         factory: () => () => '',
       })
