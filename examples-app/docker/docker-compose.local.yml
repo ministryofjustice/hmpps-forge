@@ -14,6 +14,9 @@ services:
       - examples_app_node_modules:/app/examples-app/node_modules
       - examples_app_dist:/app/examples-app/dist
       - ../../packages/dist:/app/examples-app/node_modules/@ministryofjustice/hmpps-forge/dist
+      - ../../packages/package.json:/app/examples-app/node_modules/@ministryofjustice/hmpps-forge/package.json:ro
+    env_file:
+      - ../../.env
     environment:
       NODE_ENV: development
       ENVIRONMENT_NAME: dev

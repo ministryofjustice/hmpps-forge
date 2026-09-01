@@ -1,0 +1,94 @@
+{% extends "../partials/layout.njk" %}
+
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/inset-text/macro.njk" import govukInsetText %}
+{% from "govuk/components/textarea/macro.njk" import govukTextarea %}
+{% from "govuk/components/warning-text/macro.njk" import govukWarningText %}
+{% from "moj/components/messages/macro.njk" import mojMessages %}
+
+{% set pageTitle = "Forge LLM webchat" %}
+{% set mainClasses = "govuk-main-wrapper--auto-spacing" %}
+
+{% block content %}
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-full">
+      <span class="govuk-caption-xl">LLM adapter example</span>
+      <h1 class="govuk-heading-xl">Talk to a Forge journey</h1>
+
+      <p class="govuk-body">
+        Describe your housing situation naturally. The LLM adapter translates the conversation into answers while Forge still owns branching and validation.
+      </p>
+
+      {% if not llmEnabled %}
+        {{ govukWarningText({
+          text: "Set OPENAI_API_KEY before sending a message in this example.",
+          iconFallbackText: "Warning"
+        }) }}
+      {% endif %}
+
+      <div class="llm-webchat" data-llm-webchat>
+        {{ mojMessages({
+          id: "llm-webchat-messages",
+          label: "Conversation with the Forge assistant",
+          classes: "llm-webchat__messages",
+          items: messages
+        }) }}
+
+        {% if status == "awaiting-input" %}
+          <form
+            action="/llm-webchat/messages"
+            method="post"
+            class="llm-webchat__form"
+            data-llm-webchat-form
+            data-stream-url="/llm-webchat/messages/stream"
+          >
+            <input type="hidden" name="_csrf" value="{{ csrfToken }}">
+
+            {{ govukTextarea({
+              id: "llm-webchat-message",
+              name: "message",
+              rows: 3,
+              label: {
+                text: "Your message",
+                classes: "govuk-label--m"
+              },
+              attributes: {
+                autocomplete: "off",
+                maxlength: "2000"
+              },
+              disabled: not llmEnabled
+            }) }}
+
+            {{ govukButton({
+              text: "Send message",
+              attributes: {
+                "data-llm-send": ""
+              },
+              disabled: not llmEnabled
+            }) }}
+
+            <p class="govuk-body-s llm-webchat__status" data-llm-status role="status" aria-live="polite"></p>
+          </form>
+        {% endif %}
+
+        <div data-llm-finished {% if status == "awaiting-input" %}hidden{% endif %}>
+          {% if status == "complete" %}
+            {{ govukInsetText({ text: "This Forge journey is complete." }) }}
+          {% elif status == "navigate" and navigationUrl %}
+            <p class="govuk-body">
+              <a class="govuk-link" href="{{ navigationUrl }}">Continue to the next service</a>
+            </p>
+          {% endif %}
+        </div>
+
+        <form action="/llm-webchat/reset" method="post" class="llm-webchat__reset">
+          <input type="hidden" name="_csrf" value="{{ csrfToken }}">
+          {{ govukButton({
+            text: "Start again",
+            classes: "govuk-button--secondary"
+          }) }}
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}

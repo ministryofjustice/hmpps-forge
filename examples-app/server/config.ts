@@ -33,5 +33,6 @@ export default {
     expiryMinutes: Number(get('WEB_SESSION_TIMEOUT_IN_MINUTES', 120)),
   },
   ingressUrl: get('INGRESS_URL', 'http://localhost:3000', requiredInProduction),
+  openAiApiKey: process.env.OPENAI_API_KEY,
   environmentName: get('ENVIRONMENT_NAME', ''),
 }

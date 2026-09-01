@@ -1,0 +1,43 @@
+.llm-webchat {
+  margin-bottom: govuk-spacing(6);
+}
+
+.llm-webchat__messages {
+  margin-bottom: govuk-spacing(5);
+}
+
+.llm-webchat__messages .moj-message-list {
+  max-height: 34rem;
+}
+
+.llm-webchat__messages .moj-message-item {
+  box-sizing: border-box;
+  width: calc(100% - govuk-spacing(6));
+}
+
+.llm-webchat__messages .moj-message-item__text {
+  white-space: pre-line;
+}
+
+.llm-webchat__messages .moj-message-item__text > p {
+  margin: 0;
+}
+
+.llm-webchat__content-rule {
+  margin: govuk-spacing(3) 0;
+  border: 0;
+  border-top: 1px solid $govuk-border-colour;
+}
+
+.llm-webchat__form {
+  padding-top: govuk-spacing(2);
+}
+
+.llm-webchat__status {
+  min-height: govuk-spacing(4);
+  margin-top: govuk-spacing(-3);
+}
+
+.llm-webchat__reset {
+  margin-top: govuk-spacing(4);
+}

@@ -2,6 +2,8 @@ import express from 'express'
 import createError from 'http-errors'
 import { Forge, type ForgeInstrumentationSink } from '@ministryofjustice/hmpps-forge/core'
 import { createExpressRouter } from '@ministryofjustice/hmpps-forge/express-nunjucks'
+import { OpenAISupplier } from '@ministryofjustice/hmpps-forge/llm-adapter'
+import { llmDemoPackage } from '@ministryofjustice/hmpps-forge/llm-adapter/demo'
 import nunjucksSetup from './utils/nunjucksSetup'
 import errorHandler from './errorHandler'
 import setUpCsrf from './middleware/setUpCsrf'
@@ -13,8 +15,10 @@ import logger from './logger'
 import developerGuidePackage from './journeys/forge-developer-guide'
 import setUpWebSecurity from './middleware/setUpWebSecurity'
 import llmsTxtRouter from './routes/llmsTxt'
+import { LlmWebchatRouter } from './routes/llm-webchat/LlmWebchatRouter'
 import type { Services } from './services'
 import { forgeDevToolsInstrumentationSink } from './forgeDevTools'
+import config from './config'
 
 export default function createApp(services: Services): express.Application {
   const app = express()
@@ -29,6 +33,11 @@ export default function createApp(services: Services): express.Application {
     formDataStore: services.formDataStore,
     mocksApi: services.mocksApi,
   })
+  const llmForge = new Forge({
+    logger,
+    instrumentation: { sinks: createForgeInstrumentationSinks() },
+  }).registerPackage(llmDemoPackage)
+  const llmSupplier = new OpenAISupplier({ apiKey: config.openAiApiKey ?? 'not-configured' })
 
   app.set('json spaces', 2)
   app.set('trust proxy', true)
@@ -45,6 +54,14 @@ export default function createApp(services: Services): express.Application {
   app.use(setUpStaticResources())
   app.use(setUpCsrf())
   app.get('/', (req, res) => res.redirect('/forge-developer-guide/get-started'))
+  app.use(
+    new LlmWebchatRouter({
+      forge: llmForge,
+      supplier: llmSupplier,
+      origin: config.ingressUrl,
+      enabled: config.openAiApiKey !== undefined,
+    }).create(),
+  )
   app.use(createExpressRouter(forge, { nunjucksEnv }))
 
   app.use(llmsTxtRouter(services.guideContentStore, services.llmsTextGenerator))
