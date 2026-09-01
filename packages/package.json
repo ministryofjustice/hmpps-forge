@@ -92,6 +92,18 @@
       "import": "./dist/devtools/index.mjs",
       "require": "./dist/devtools/index.cjs",
       "default": "./dist/devtools/index.mjs"
+    },
+    "./llm-adapter": {
+      "types": "./dist/llm-adapter/index.d.ts",
+      "import": "./dist/llm-adapter/index.mjs",
+      "require": "./dist/llm-adapter/index.cjs",
+      "default": "./dist/llm-adapter/index.mjs"
+    },
+    "./llm-adapter/demo": {
+      "types": "./dist/llm-adapter/demo/index.d.ts",
+      "import": "./dist/llm-adapter/demo/index.mjs",
+      "require": "./dist/llm-adapter/demo/index.cjs",
+      "default": "./dist/llm-adapter/demo/index.mjs"
     }
   },
   "files": [
@@ -101,11 +113,13 @@
     "forge-express-nunjucks/src/**/*",
     "forge-govuk-components/src/**/*",
     "forge-jsx-components/src/**/*",
+    "forge-llm-adapter/src/**/*",
+    "forge-llm-adapter/README.md",
     "forge-moj-components/src/**/*",
     "*.md"
   ],
   "engines": {
-    "node": "20 || 22 || 24"
+    "node": "22 || 24"
   },
   "scripts": {
     "build": "npm run clean && rolldown -c rolldown.config.mjs && cp ../README.md ../LICENSE.md ../CHANGELOG.md .",
@@ -150,6 +164,7 @@
   "dependencies": {
     "express": "^4.21.0 || ^5.0.0",
     "nunjucks": "^3.2.4",
+    "openai": "^7.8.0",
     "ws": "^8.18.0"
   },
   "peerDependencies": {

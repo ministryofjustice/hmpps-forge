@@ -4,6 +4,7 @@ import forgeGovukComponents from './forge-govuk-components/rolldown.config.mjs'
 import forgeMojComponents from './forge-moj-components/rolldown.config.mjs'
 import forgeJsxComponents from './forge-jsx-components/rolldown.config.mjs'
 import forgeDevtools from './forge-devtools/rolldown.config.mjs'
+import forgeLlmAdapter from './forge-llm-adapter/rolldown.config.mjs'
 import { jsFormats, createIsExternal, createJsConfig } from './rolldown.shared.mjs'
 import { createDtsConfigs } from './rolldown.dts.mjs'
 
@@ -14,6 +15,7 @@ const packageConfigs = [
   forgeMojComponents,
   forgeJsxComponents,
   forgeDevtools,
+  forgeLlmAdapter,
 ]
 
 const entrypoints = packageConfigs.flatMap(config => config.entrypoints)

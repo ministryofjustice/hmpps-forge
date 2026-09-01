@@ -26,6 +26,8 @@
       "@ministryofjustice/hmpps-forge/govuk-components": ["./forge-govuk-components/src/index.ts"],
       "@ministryofjustice/hmpps-forge/moj-components": ["./forge-moj-components/src/index.ts"],
       "@ministryofjustice/hmpps-forge/jsx-components": ["./forge-jsx-components/src/index.ts"],
+      "@ministryofjustice/hmpps-forge/llm-adapter": ["./forge-llm-adapter/src/index.ts"],
+      "@ministryofjustice/hmpps-forge/llm-adapter/demo": ["./forge-llm-adapter/src/demo.ts"],
       "@ministryofjustice/hmpps-forge/jsx-components/jsx-runtime": [
         "./forge-jsx-components/src/runtime/jsx-runtime.ts"
       ],

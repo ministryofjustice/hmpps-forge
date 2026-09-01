@@ -8,7 +8,7 @@ export const jsFormats = [
   { extension: 'cjs', format: 'cjs' },
 ]
 
-const nonPackageExternals = ['express', 'express-session', 'http-errors', 'nunjucks', 'ws', 'zod']
+const nonPackageExternals = ['express', 'express-session', 'http-errors', 'nunjucks', 'openai', 'ws', 'zod']
 
 export const createIsExternal = registry => {
   const entrypointIds = Object.keys(registry).map(name => `${packageName}/${name}`)
@@ -18,7 +18,7 @@ export const createIsExternal = registry => {
       return true
     }
 
-    if (nonPackageExternals.includes(id)) {
+    if (nonPackageExternals.some(external => id === external || id.startsWith(`${external}/`))) {
       return true
     }
 
