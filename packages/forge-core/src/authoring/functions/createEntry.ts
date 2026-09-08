@@ -1,4 +1,5 @@
 import { z, type ZodType } from 'zod'
+import ForgeAuthoringError from '../../engine/errors/ForgeAuthoringError'
 import { FunctionCallType, FunctionEntryType } from '../../shared/taxonomy'
 import { captureCallsite, stampCallsite } from '../builders/utils/captureCallsite'
 import { stampEntry } from '../builders/utils/stampEntry'
@@ -10,6 +11,9 @@ import type { FunctionEntry } from '../types/functions.type'
  * @typeParam TPrepareArguments - The parameters `prepare` declares, which become the entry's call signature when present
  */
 export interface BaseEntryOptions<TPrepareArguments extends any[]> {
+  /** Optional diagnostic and registration name for the function. */
+  name?: string
+
   /** Validates the authored arguments at runtime, and drives arity checking at compilation. */
   argumentsSchema?: ZodType
 
@@ -35,6 +39,7 @@ export function isFunctionEntry(value: unknown): value is FunctionEntry {
 }
 
 interface AnyEntryOptions {
+  name?: string
   inputSchema?: ZodType
   argumentsSchema?: ZodType
   outputSchema?: ZodType
@@ -68,8 +73,18 @@ export const createEntry = (
   second: AnyEntryOptions | undefined,
   buildCallResult: CallResultBuilder,
 ): any => {
-  const name = typeof first === 'string' ? first : undefined
-  const options = typeof first === 'string' ? second! : first
+  const options = typeof first === 'string' ? second : first
+
+  if (options === undefined) {
+    throw new ForgeAuthoringError({ message: `${helperName}() requires an options object` })
+  }
+
+  const name = typeof first === 'string' ? first : options.name
+
+  if (typeof first === 'string' && options.name !== undefined && options.name !== first) {
+    throw new ForgeAuthoringError({ message: `${helperName}() received conflicting positional and options names` })
+  }
+
   const { inputSchema, argumentsSchema, outputSchema, prepare, factory } = options
 
   // Expressions carry the author name as a label - anonymous entries the helper

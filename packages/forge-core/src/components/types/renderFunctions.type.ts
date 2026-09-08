@@ -55,6 +55,9 @@ export type RenderFunctionEvaluator<TArguments extends unknown[]> = (...args: TA
  * @typeParam TDeps - The package dependencies received by `factory`
  */
 export interface ComponentOptions<TProps extends object, TDeps> {
+  /** The component or renderer variant, supplied here or as a positional argument. */
+  readonly name?: string
+
   /**
    * Builds the component evaluator used for the current request.
    *
@@ -83,6 +86,9 @@ export interface ComponentOptions<TProps extends object, TDeps> {
  * @typeParam TDeps - The package dependencies received by `factory`
  */
 export interface FieldComponentOptions<TProps extends object, TDeps> {
+  /** The component or renderer variant, supplied here or as a positional argument. */
+  readonly name?: string
+
   /**
    * Builds the field component evaluator used for the current request.
    *
@@ -134,6 +140,9 @@ export interface FieldComponentOptions<TProps extends object, TDeps> {
  * @typeParam TDeps - The package dependencies received by `factory`
  */
 export interface RendererOptions<TProps extends object, TBlocks, TContext extends RendererFunctionContext, TDeps> {
+  /** The component or renderer variant, supplied here or as a positional argument. */
+  readonly name?: string
+
   /**
    * Builds the renderer evaluator used for the current request.
    *

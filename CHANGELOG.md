@@ -65,6 +65,8 @@ generators directly when a predicate and single static message are not enough.
 
 ### Added
 
+- Function, component, and renderer definitions accept `name` inside their options
+  object. Positional names remain supported; conflicting names are rejected.
 - `condition()`, `transformer()`, `generator()`, and `effect()` - define a function as
   a standalone entry that registers itself when a journey uses it, no registry or
   `functions` listing needed ([#269])

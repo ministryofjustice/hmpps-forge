@@ -29,7 +29,8 @@ describe('function entry registration contracts', () => {
   describe('embedded entries', () => {
     it('should register and evaluate a named embedded entry with no functions listing', async () => {
       // Arrange
-      const IsAtLeast = condition('Test.IsAtLeast', {
+      const IsAtLeast = condition({
+        name: 'Test.IsAtLeast',
         factory: () => (value: unknown, min: number) => String(value ?? '').length >= min,
       })
       const client = createEntriesClient([fieldWithRule('crn', Self().match(IsAtLeast(3)), 'Too short')])

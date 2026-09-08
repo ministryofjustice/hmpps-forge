@@ -99,7 +99,8 @@ interface TwoColumnBlocks {
 
 const twoColumnStep = step<TwoColumnBlocks>
 
-const TestLeaf = component<TestLeafProps, RenderFunctionDependencies>('renderSpikeLeaf', {
+const TestLeaf = component<TestLeafProps, RenderFunctionDependencies>({
+  name: 'renderSpikeLeaf',
   factory: dependencies => {
     const request = bindRequest(dependencies, 'renderSpikeLeaf')
 
@@ -119,7 +120,8 @@ const TestContainer = component<TestContainerProps, RenderFunctionDependencies>(
   },
 })
 
-const TestField = component<TestFieldProps, RenderFunctionDependencies>('renderSpikeField', {
+const TestField = component<TestFieldProps, RenderFunctionDependencies>({
+  name: 'renderSpikeField',
   field: true,
   inputSchema: z.string(),
   errorAnchor: props => `${props.code}-input`,
@@ -132,21 +134,19 @@ const TestField = component<TestFieldProps, RenderFunctionDependencies>('renderS
   },
 })
 
-const TestPage = renderer<TestPageProps, BlockDefinition[], RendererFunctionContext, RenderFunctionDependencies>(
-  'renderSpikePage',
-  {
-    factory: dependencies => {
-      const request = bindRequest(dependencies, 'renderSpikePage')
+const TestPage = renderer<TestPageProps, BlockDefinition[], RendererFunctionContext, RenderFunctionDependencies>({
+  name: 'renderSpikePage',
+  factory: dependencies => {
+    const request = bindRequest(dependencies, 'renderSpikePage')
 
-      return (blocks, props) => {
-        const children = blocks.map(block => block.html).join('|')
-        const chrome = props.chrome?.html ?? ''
+    return (blocks, props) => {
+      const children = blocks.map(block => block.html).join('|')
+      const chrome = props.chrome?.html ?? ''
 
-        return `<page data-request="${request.id}"><h1>${props.heading}</h1>${chrome}${children}</page>`
-      }
-    },
+      return `<page data-request="${request.id}"><h1>${props.heading}</h1>${chrome}${children}</page>`
+    }
   },
-)
+})
 
 const AlternatePage = renderer<TestPageProps, BlockDefinition[], RendererFunctionContext, RenderFunctionDependencies>(
   'renderSpikeAlternatePage',
