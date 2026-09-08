@@ -520,18 +520,16 @@ describe('ReachabilityCompiler', () => {
       expect(result.declaredOutcomeValues[0]).toEqual(['/step-guarded', '/step-fallback'])
     })
 
-    it('should compile match expressions in dynamic goto outcomes', async () => {
+    it.each(['case', 'condition'])('should compile dynamic goto matches when using a %s branch', async branchType => {
       // Arrange
+      const subject = createReference(['answers', 'choice'])
+      const branch =
+        branchType === 'case'
+          ? { expected: 'yes', value: '/step-yes' }
+          : { predicate: createTestPredicate(subject, createConditionFunction('equals', ['yes'])), value: '/step-yes' }
       const gotoMatch = ASTTestFactory.expression(ExpressionType.MATCH)
-        .withProperty('branches', [
-          {
-            predicate: createTestPredicate(
-              createReference(['answers', 'choice']),
-              createConditionFunction('equals', ['yes']),
-            ),
-            value: '/step-yes',
-          },
-        ])
+        .withProperty('subject', subject)
+        .withProperty('branches', [branch])
         .withProperty('otherwise', '/step-no')
         .build()
       const outcome = {
