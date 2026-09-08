@@ -67,6 +67,18 @@ generators directly when a predicate and single static message are not enough.
 
 - Function, component, and renderer definitions accept `name` inside their options
   object. Positional names remain supported; conflicting names are rejected.
+- `value.nullish(fallback)` supplies a lazily evaluated fallback for `null` and
+  `undefined` across value builders, preserving other falsy values and evaluating
+  the primary only once.
+- `Iterator.Count()` counts matching items without constructing a filtered array,
+  returning a value that supports further pipelines and conditions.
+- `Iterator.Some()` and `Iterator.Every()` test collections with short-circuit
+  evaluation and return native predicates usable directly in guards and logical
+  combinators, without an implicit `Equals(true)` condition call.
+- `match(subject).case(expected, value)` uses native strict equality, including
+  matching `null` and resolved `undefined`, without registering or calling `Equals`.
+  Cases can be mixed with `.branch()` conditions and finished with `.otherwise()`;
+  the subject is evaluated once, and later branches and unselected values stay lazy.
 - `condition()`, `transformer()`, `generator()`, and `effect()` - define a function as
   a standalone entry that registers itself when a journey uses it, no registry or
   `functions` listing needed ([#269])
@@ -209,6 +221,8 @@ generators directly when a predicate and single static message are not enough.
 
 ### Fixed
 
+- `when()`, `Conditional()`, and `match()` results now support `.pipe()`, applying
+  transformations to the selected value while leaving other branches unevaluated.
 - A bare `Item()` or `Loop.Item()` in a value position now means the whole item, same
   as `.value()`. Previously it typechecked but finalised to a useless builder object
   ([#273])

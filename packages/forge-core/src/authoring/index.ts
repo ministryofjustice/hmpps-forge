@@ -82,6 +82,7 @@ export type {
   PipelineExpr,
   ConditionalExpr,
   MatchExpr,
+  NullishExpr,
   IterateExpr,
   FunctionExpr,
   ConditionFunctionExpr,

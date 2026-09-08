@@ -296,10 +296,37 @@ export interface FindIteratorConfig {
   predicate: PredicateExpr
 }
 
+/** Predicate evaluated in item scope; stops at the first match. */
+export interface SomeIteratorConfig {
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: IteratorType.SOME
+  predicate: PredicateExpr
+}
+
+/** Predicate evaluated in item scope; stops at the first failure. */
+export interface EveryIteratorConfig {
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: IteratorType.EVERY
+  predicate: PredicateExpr
+}
+
+/** Counts items matching a predicate evaluated in item scope. */
+export interface CountIteratorConfig {
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: IteratorType.COUNT
+  predicate: PredicateExpr
+}
+
 /**
  * Union of all iterator configuration types.
  */
-export type IteratorConfig = MapIteratorConfig | FilterIteratorConfig | FindIteratorConfig
+export type IteratorConfig =
+  | MapIteratorConfig
+  | FilterIteratorConfig
+  | FindIteratorConfig
+  | SomeIteratorConfig
+  | EveryIteratorConfig
+  | CountIteratorConfig
 
 /**
  * Represents an iterate expression that applies an iterator to a source collection.
@@ -333,6 +360,14 @@ export interface IterateExpr {
   iterator: IteratorConfig
 }
 
+/** Resolves the fallback only when the primary value is null or undefined. */
+export interface NullishExpr {
+  /** Internal Forge discriminator. Do not set or override this property. */
+  _forge: ExpressionType.NULLISH
+  input?: ResolvableValue
+  fallback?: ResolvableValue
+}
+
 /**
  * Any Forge-tagged node or live builder that resolves to a value at runtime.
  */
@@ -357,6 +392,7 @@ export type ResolvableValue =
   | GeneratorFunctionExpr
   | PipelineExpr
   | IterateExpr
+  | NullishExpr
   | ResolvableValue[]
   | string
   | number
@@ -495,11 +531,22 @@ export interface PredicateNotExpr {
   operand: PredicateExpr
 }
 
+/** Boolean collection iterators are predicates without a registered condition call. */
+export interface CollectionPredicateExpr extends IterateExpr {
+  iterator: SomeIteratorConfig | EveryIteratorConfig
+}
+
 /**
  * Represents any predicate expression that evaluates to true or false.
  * Used for validation rules, conditional logic, and guards.
  */
-export type PredicateExpr = PredicateTestExpr | PredicateAndExpr | PredicateOrExpr | PredicateXorExpr | PredicateNotExpr
+export type PredicateExpr =
+  | CollectionPredicateExpr
+  | PredicateTestExpr
+  | PredicateAndExpr
+  | PredicateOrExpr
+  | PredicateXorExpr
+  | PredicateNotExpr
 
 /**
  * Represents a conditional expression that evaluates to different values based on a predicate.
@@ -687,13 +734,16 @@ export type ConditionBranchExpr = ConditionFunctionExpr<any> | ConditionCombinat
  * The condition may be a single condition function or a combinator tree of them;
  * the match subject is applied to every condition leaf in that tree.
  */
-interface MatchBranch {
+interface MatchConditionBranch {
   /** The condition, or combinator tree of conditions, to evaluate against the match subject. */
   condition: ConditionBranchExpr
 
   /** The value to return when this branch's condition matches. */
   value: ResolvableValue
 }
+
+/** An ordered condition branch or native strict-equality case. */
+export type MatchBranch = MatchConditionBranch | { expected: ResolvableValue; value: ResolvableValue }
 
 /**
  * Represents a match expression that evaluates a subject against multiple branches.

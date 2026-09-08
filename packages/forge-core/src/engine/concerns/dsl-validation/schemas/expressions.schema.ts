@@ -12,6 +12,7 @@ export const ResolvableValueSchema: z.ZodType<any> = z.lazy(() =>
     GeneratorFunctionExprSchema,
     PipelineExprSchema,
     IterateExprSchema,
+    NullishExprSchema,
     z.array(ResolvableValueSchema),
     z.string(),
     z.number(),
@@ -62,6 +63,21 @@ const FindIteratorConfigSchema = z.looseObject({
   predicate: z.any(),
 })
 
+export const SomeIteratorConfigSchema = z.looseObject({
+  _forge: z.literal(IteratorType.SOME),
+  predicate: z.unknown(),
+})
+
+export const EveryIteratorConfigSchema = z.looseObject({
+  _forge: z.literal(IteratorType.EVERY),
+  predicate: z.unknown(),
+})
+
+const CountIteratorConfigSchema = z.looseObject({
+  _forge: z.literal(IteratorType.COUNT),
+  predicate: z.unknown(),
+})
+
 /**
  * @see {@link IteratorConfig}
  */
@@ -69,6 +85,9 @@ const IteratorConfigSchema = z.discriminatedUnion('_forge', [
   MapIteratorConfigSchema,
   FilterIteratorConfigSchema,
   FindIteratorConfigSchema,
+  SomeIteratorConfigSchema,
+  EveryIteratorConfigSchema,
+  CountIteratorConfigSchema,
 ])
 
 /**
@@ -78,4 +97,11 @@ export const IterateExprSchema = z.looseObject({
   _forge: z.literal(ExpressionType.ITERATE),
   input: ResolvableValueSchema,
   iterator: IteratorConfigSchema,
+})
+
+/** @see {@link NullishExpr} */
+export const NullishExprSchema = z.looseObject({
+  _forge: z.literal(ExpressionType.NULLISH),
+  input: ResolvableValueSchema.optional(),
+  fallback: ResolvableValueSchema.optional(),
 })

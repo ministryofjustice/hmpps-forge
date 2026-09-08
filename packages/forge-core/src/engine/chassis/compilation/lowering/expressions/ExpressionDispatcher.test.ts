@@ -1,3 +1,10 @@
+import { match } from '../../../../../authoring/builders/MatchExprBuilder'
+import { Data, Item } from '../../../../../authoring/builders/references'
+import { Iterator } from '../../../../../authoring/builders/iterators'
+import { finaliseBuilders } from '../../../../../authoring/builders/utils/finaliseBuilders'
+import { condition } from '../../../../../authoring/functions/condition'
+import { FunctionEntryRegistry } from '../../../../../authoring/functions/FunctionEntryRegistry'
+import { NodeFactory } from '../../ast/nodes/NodeFactory'
 import {
   ExpressionType,
   FunctionCallType,
@@ -67,6 +74,35 @@ describe('ExpressionDispatcher', () => {
   }
 
   describe('compileExpressionCode()', () => {
+    it.each(['case', 'some', 'every'] as const)(
+      'should compile %s without collecting or calling an implicit Equals function',
+      kind => {
+        // Arrange
+        const IsRequired = condition('isRequired', { factory: () => (value: unknown) => value !== undefined })
+        const predicate = Item().value().match(IsRequired())
+        const expressions = {
+          case: match(Data('value')).case(Data('expected'), 'matched').otherwise('fallback'),
+          some: Data('items').each(Iterator.Some(predicate)),
+          every: Data('items').each(Iterator.Every(predicate)),
+        }
+        const expression = finaliseBuilders(expressions[kind])
+        const registry = new FunctionEntryRegistry()
+        const nodeFactory = new NodeFactory(new NodeIDGenerator())
+
+        // Act
+        registry.collectEmbedded(expression)
+        const source = compileSource(compiler, nodeFactory.createNode(expression))
+
+        // Assert
+        expect(Object.keys(registry.getDefinitions())).toEqual(kind === 'case' ? [] : ['isRequired'])
+        expect(source).not.toContain('Equals')
+        if (kind === 'case') {
+          expect(source).toContain('===')
+          expect(source).not.toContain('evaluateFunction')
+        }
+      },
+    )
+
     it('should compile materialised and template forms through the same expression path', () => {
       // Arrange
       const predicate = ASTTestFactory.predicate(PredicateType.TEST, {

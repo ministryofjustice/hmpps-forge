@@ -51,6 +51,7 @@ export enum ExpressionType {
   PIPELINE = 'expression.pipeline',
   CONDITIONAL = 'expression.conditional',
   MATCH = 'expression.match',
+  NULLISH = 'expression.nullish',
   ITERATE = 'expression.iterate',
 }
 
@@ -74,6 +75,9 @@ export enum IteratorType {
   MAP = 'iterator.map',
   FILTER = 'iterator.filter',
   FIND = 'iterator.find',
+  SOME = 'iterator.some',
+  EVERY = 'iterator.every',
+  COUNT = 'iterator.count',
 }
 
 /**

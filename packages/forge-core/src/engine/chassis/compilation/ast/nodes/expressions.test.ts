@@ -1547,7 +1547,7 @@ describe('expressions', () => {
       const result = createMatchNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.properties.branches[0].value.isTemplate).toBe(false)
+      expect(result.properties.branches[0].value).toMatchObject({ isTemplate: false })
     })
 
     it('should handle otherwise when present', () => {

@@ -419,6 +419,16 @@ export default class RuntimeValueCompiler {
       return
     }
 
+    if (
+      value.iterator === IteratorType.SOME ||
+      value.iterator === IteratorType.EVERY ||
+      value.iterator === IteratorType.COUNT
+    ) {
+      this.compileExpressionValue(value.source, generator, target, options)
+
+      return
+    }
+
     generator.assign(target, literal(undefined))
   }
 

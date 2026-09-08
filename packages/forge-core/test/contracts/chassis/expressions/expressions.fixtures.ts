@@ -116,7 +116,7 @@ const CaptureSubject = effect('Expressions.CaptureSubject', {
  * session data, then stores each expression's result under its key, so rows
  * observe expression results through the render context's `data` verdict.
  */
-function evaluationJourney(code: string, evaluations: Record<string, ResolvableValue>) {
+export function evaluationJourney(code: string, evaluations: Record<string, ResolvableValue>) {
   return journey({
     code,
     path: `/${code}`,
@@ -342,4 +342,70 @@ export const iteratorBudgetJourney = evaluationJourney('iterator-budget', {
 /** Two chained stages that each stay under the budget but together exceed it. */
 export const chainedIteratorBudgetJourney = evaluationJourney('iterator-budget-chained', {
   chained: Data('items').each(Iterator.Map(Loop.Item())).each(Iterator.Map(Loop.Item())),
+})
+
+export const iteratorPredicatesJourney = evaluationJourney('iterator-predicates', {
+  count: Data('items').each(Iterator.Count(Loop.Item().value().match(Condition.Equals('yes')))),
+  asyncCount: Data('items').each(Iterator.Count(Loop.Item().value().match(AsyncExpressionConditions.IsYesAsync()))),
+  countPlusOne: Data('items')
+    .each(Iterator.Count(Loop.Item().value().match(Condition.Equals('yes'))))
+    .pipe(Transformer.Number.Add(1)),
+  nestedCounts: Data('groups').each(
+    Iterator.Map(
+      Loop.Item()
+        .path('items')
+        .each(
+          Iterator.Count(
+            Loop.Item()
+              .value()
+              .match(Condition.Equals(Loop.Parent.Item().path('expected'))),
+          ),
+        ),
+    ),
+  ),
+  keyedCount: Data('keyed').each(Iterator.Count(Loop.Item().value().match(Condition.Number.GreaterThan(0)))),
+  some: Data('items').each(Iterator.Some(Loop.Item().value().match(Condition.Equals('yes')))),
+  every: Data('items').each(Iterator.Every(Loop.Item().value().match(Condition.Equals('yes')))),
+  asyncSome: Data('items').each(Iterator.Some(Loop.Item().value().match(AsyncExpressionConditions.IsYesAsync()))),
+  asyncEvery: Data('items').each(Iterator.Every(Loop.Item().value().match(AsyncExpressionConditions.IsYesAsync()))),
+  composed: when(
+    and(
+      Data('items').each(Iterator.Some(Loop.Item().value().match(Condition.Equals('yes')))),
+      not(Data('items').each(Iterator.Every(Loop.Item().value().match(Condition.Equals('yes'))))),
+    ),
+  )
+    .then('mixed')
+    .else('uniform'),
+  nested: Data('groups').each(
+    Iterator.Map(
+      Loop.Item()
+        .path('items')
+        .each(
+          Iterator.Every(
+            Loop.Item()
+              .value()
+              .match(Condition.Equals(Loop.Parent.Item().path('expected'))),
+          ),
+        ),
+    ),
+  ),
+  keyed: Data('keyed').each(Iterator.Some(Loop.Item().key().match(Condition.Equals('target')))),
+})
+
+const FailOnUnexpectedItem = condition('Expressions.FailOnUnexpectedItem', {
+  factory: () => async (value: string) => {
+    if (value === 'unexpected') {
+      throw new Error('Iterator evaluated an unnecessary item')
+    }
+
+    return value === 'yes'
+  },
+})
+
+export const someShortCircuitJourney = evaluationJourney('some-short-circuit', {
+  result: Data('items').each(Iterator.Some(Loop.Item().value().match(FailOnUnexpectedItem()))),
+})
+
+export const everyShortCircuitJourney = evaluationJourney('every-short-circuit', {
+  result: Data('items').each(Iterator.Every(Loop.Item().value().match(FailOnUnexpectedItem()))),
 })
