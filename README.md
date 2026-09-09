@@ -141,6 +141,33 @@ make test       # run tests
 make lint-fix   # run linting
 ```
 
+## Publishing releases
+
+Publishing a GitHub release runs the package validation and publishes to npm.
+The release tag must match the version in `packages/package.json`, using
+`hmpps-forge-<version>`, `v<version>`, or `<version>`.
+
+For an alpha release:
+
+1. Run `npm version 0.5.0-alpha.1 --no-git-tag-version` from `packages/`, choosing
+   the version you want to release.
+2. Commit and push the updated `package.json` and `package-lock.json`, along with
+   the workflow changes if this is the first alpha release.
+3. Create a GitHub release targeting that commit with the tag
+   `hmpps-forge-0.5.0-alpha.1`, tick **Set as a pre-release**, and publish it.
+
+The workflow publishes alpha versions with npm's `alpha` tag, leaving `latest`
+unchanged. Install the newest alpha explicitly:
+
+```bash
+npm install @ministryofjustice/hmpps-forge@alpha
+```
+
+Use a new version such as `0.5.0-alpha.2` for each subsequent alpha. For a stable
+release, set the package version to `0.5.0` and publish a matching GitHub release
+without the prerelease checkbox; this publishes under `latest`. The workflow
+rejects mismatched versions or release types and skips versions already on npm.
+
 ## Contributing & Licence
 
 Issues and pull requests are welcome. Branch off `development` (PRs target it,

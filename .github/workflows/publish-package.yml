@@ -14,8 +14,34 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      npm-tag: ${{ steps.release.outputs.npm-tag }}
     steps:
       - uses: actions/checkout@v7
+      - name: Validate release version and select npm tag
+        id: release
+        working-directory: packages
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          IS_PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          version=$(jq -r .version package.json)
+
+          if [[ "${RELEASE_TAG}" != "hmpps-forge-${version}" && "${RELEASE_TAG}" != "v${version}" && "${RELEASE_TAG}" != "${version}" ]]; then
+            echo "::error::Release tag must match package.json version ${version}."
+            exit 1
+          fi
+
+          if [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-alpha\.[0-9]+$ && "${IS_PRERELEASE}" = "true" ]]; then
+            npm_tag="alpha"
+          elif [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ && "${IS_PRERELEASE}" = "false" ]]; then
+            npm_tag="latest"
+          else
+            echo "::error::Use an x.y.z-alpha.n version with a GitHub prerelease, or an x.y.z version with a stable release."
+            exit 1
+          fi
+
+          echo "npm-tag=${npm_tag}" >> "${GITHUB_OUTPUT}"
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -62,26 +88,29 @@ jobs:
         working-directory: packages
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           version=$(jq -r .version package.json)
           cd dist/plugin && zip -r "../../forge-devtools-${version}.zip" .
           cd ../..
-          gh release upload "${{ github.event.release.tag_name }}" "forge-devtools-${version}.zip" --clobber
+          gh release upload "${RELEASE_TAG}" "forge-devtools-${version}.zip" --clobber
       - name: Publish package
         working-directory: packages
+        env:
+          NPM_TAG: ${{ needs.validate.outputs.npm-tag }}
         run: |
           name=$(jq -r .name package.json)
           version=$(jq -r .version package.json)
 
-          if latest_version=$(npm view "${name}" version --silent 2>/dev/null); then
+          if published_version=$(npm view "${name}@${version}" version --silent 2>/dev/null); then
             :
           else
-            latest_version="unpublished"
+            published_version="unpublished"
           fi
 
-          if [ "${version}" = "${latest_version}" ]; then
-            echo "Package ${name} has already published latest version: ${version}, skipping..."
+          if [ "${version}" = "${published_version}" ]; then
+            echo "Package ${name}@${version} is already published, skipping..."
           else
-            echo "Publishing ${name} v${version} to npmjs.com..."
-            npm publish --provenance --access public
+            echo "Publishing ${name}@${version} to npmjs.com with tag ${NPM_TAG}..."
+            npm publish --provenance --access public --tag "${NPM_TAG}"
           fi
