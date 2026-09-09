@@ -3,6 +3,10 @@ import {
   ConditionFunctionExpr,
   FilterIteratorConfig,
   FindIteratorConfig,
+  SomeIteratorConfig,
+  EveryIteratorConfig,
+  CountIteratorConfig,
+  CollectionPredicateExpr,
   MapIteratorConfig,
   PredicateTestExpr,
   ResolvableExpression,
@@ -44,6 +48,12 @@ export interface ChainableIterable extends ResolvableExpression {
    */
   each(iterator: FindIteratorConfig): ChainableExpr
 
+  /** Test the collection directly as a predicate. */
+  each(iterator: SomeIteratorConfig | EveryIteratorConfig): CollectionPredicateExpr
+
+  /** Count matching items and continue with the resulting number. */
+  each(iterator: CountIteratorConfig): ChainableExpr
+
   /**
    * Chain a Map or Filter iterator.
    */
@@ -59,6 +69,9 @@ export interface ChainableIterable extends ResolvableExpression {
    * Transform the output array through a pipeline.
    */
   pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
+
+  /** Uses the fallback only when the value is null or undefined. */
+  nullish(fallback: ResolvableValue | undefined): ChainableExpr
 
   /**
    * Test the output array against a condition.
@@ -87,11 +100,20 @@ export interface ChainableExpr extends ResolvableExpression {
    */
   pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
 
+  /** Uses the fallback only when the value is null or undefined. */
+  nullish(fallback: ResolvableValue | undefined): ChainableExpr
+
   /**
    * Enter per-item iteration mode with a Find iterator.
    * Returns a ChainableExpr since Find returns a single item, not an array.
    */
   each(iterator: FindIteratorConfig): ChainableExpr
+
+  /** Test the collection directly as a predicate. */
+  each(iterator: SomeIteratorConfig | EveryIteratorConfig): CollectionPredicateExpr
+
+  /** Count matching items and continue with the resulting number. */
+  each(iterator: CountIteratorConfig): ChainableExpr
 
   /**
    * Enter per-item iteration mode with a Map or Filter iterator.
@@ -125,11 +147,20 @@ export interface ChainableRef extends ResolvableExpression {
    */
   pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
 
+  /** Uses the fallback only when the value is null or undefined. */
+  nullish(fallback: ResolvableValue | undefined): ChainableExpr
+
   /**
    * Enter per-item iteration mode with a Find iterator.
    * Returns a ChainableExpr since Find returns a single item.
    */
   each(iterator: FindIteratorConfig): ChainableExpr
+
+  /** Test the collection directly as a predicate. */
+  each(iterator: SomeIteratorConfig | EveryIteratorConfig): CollectionPredicateExpr
+
+  /** Count matching items and continue with the resulting number. */
+  each(iterator: CountIteratorConfig): ChainableExpr
 
   /**
    * Enter per-item iteration mode with a Map or Filter iterator.
@@ -153,6 +184,12 @@ export interface ChainableRef extends ResolvableExpression {
  * assignable anywhere a Resolvable* value is accepted.
  */
 export interface ChainableConditional {
+  /** Uses the fallback only when the value is null or undefined. */
+  nullish(fallback: ResolvableValue | undefined): ChainableExpr
+
+  /** Transforms the selected branch value without evaluating other branches. */
+  pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
+
   /**
    * Sets the value to return when the predicate evaluates to true.
    */
@@ -170,6 +207,15 @@ export interface ChainableConditional {
  * assignable anywhere a Resolvable* value is accepted.
  */
 export interface ChainableMatch {
+  /** Uses the fallback only when the value is null or undefined. */
+  nullish(fallback: ResolvableValue | undefined): ChainableExpr
+
+  /** Transforms the selected branch value without evaluating other branches. */
+  pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
+
+  /** Adds an ordered case using native JavaScript strict equality. */
+  case(expected: ResolvableValue, value: BranchValue): ChainableMatch
+
   /**
    * Adds a branch: when the condition matches the subject, the value is returned.
    */
@@ -191,6 +237,9 @@ export interface ChainableGenerator extends ResolvableExpression {
    */
   pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
 
+  /** Uses the fallback only when the value is null or undefined. */
+  nullish(fallback: ResolvableValue | undefined): ChainableExpr
+
   /**
    * Test the generated value against a condition.
    */
@@ -206,6 +255,9 @@ export interface ChainableGenerator extends ResolvableExpression {
  * Public interface for scoped reference builders (Item()).
  */
 export interface ChainableScopedRef extends ResolvableExpression {
+  /** Uses the fallback only when the value is null or undefined. */
+  nullish(fallback: ResolvableValue | undefined): ChainableExpr
+
   /**
    * Navigate to the parent scope in nested collections.
    */

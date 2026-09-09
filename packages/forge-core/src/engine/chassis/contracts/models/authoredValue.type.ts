@@ -59,15 +59,15 @@ export interface MatchValue {
   readonly kind: AuthoredValueKind.MATCH
   /** The match node itself — expression leaf and diagnostic token. */
   readonly source: ASTNode | TemplateNode
+  readonly subject: AuthoredValue
   readonly branches: readonly MatchBranchValue[]
   /** Present only when the author supplied an otherwise value. */
   readonly otherwise?: AuthoredValue
 }
 
-export interface MatchBranchValue {
-  readonly predicate: AuthoredValue
-  readonly value: AuthoredValue
-}
+export type MatchBranchValue =
+  | { readonly predicate: AuthoredValue; readonly value: AuthoredValue }
+  | { readonly expected: AuthoredValue; readonly value: AuthoredValue }
 
 /** A MAP/FILTER/FIND iteration producing a value from an input collection. */
 export interface IterationValue {

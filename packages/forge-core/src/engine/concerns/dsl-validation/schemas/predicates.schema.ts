@@ -1,5 +1,11 @@
 import { z } from 'zod'
-import { PredicateType, ExpressionType, OutcomeType, ConditionCombinatorType } from '../../../../authoring/types/enums'
+import {
+  PredicateType,
+  ExpressionType,
+  IteratorType,
+  OutcomeType,
+  ConditionCombinatorType,
+} from '../../../../authoring/types/enums'
 import { ResolvableValueSchema } from './expressions.schema'
 import { ConditionFunctionExprSchema } from './base.schema'
 
@@ -13,8 +19,19 @@ export const PredicateExprSchema: z.ZodType<any> = z.lazy(() =>
     PredicateOrExprSchema,
     PredicateXorExprSchema,
     PredicateNotExprSchema,
+    CollectionPredicateExprSchema,
   ]),
 )
+
+/** A boolean iterator can be used wherever a predicate is expected. */
+const CollectionPredicateExprSchema = z.object({
+  type: z.literal(ExpressionType.ITERATE),
+  input: ResolvableValueSchema,
+  iterator: z.object({
+    type: z.enum([IteratorType.SOME, IteratorType.EVERY]),
+    predicate: PredicateExprSchema,
+  }),
+})
 
 /**
  * @see {@link PredicateTestExpr}
@@ -118,10 +135,10 @@ export const ConditionNotExprSchema: z.ZodType<any> = z.looseObject({
 /**
  * @see {@link MatchBranch}
  */
-export const MatchBranchSchema = z.object({
-  condition: ConditionBranchExprSchema,
-  value: ResolvableValueSchema,
-})
+export const MatchBranchSchema = z.union([
+  z.object({ condition: ConditionBranchExprSchema, value: ResolvableValueSchema }),
+  z.object({ expected: ResolvableValueSchema, value: ResolvableValueSchema }),
+])
 
 /**
  * @see {@link MatchExpr}

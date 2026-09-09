@@ -1,8 +1,9 @@
-import { FunctionType, PredicateType } from '../types/enums'
+import { FunctionType, PredicateType, ExpressionType } from '../types/enums'
 import {
   ConditionFunctionExpr,
   GeneratorFunctionExpr,
   PipelineExpr,
+  NullishExpr,
   PredicateTestExpr,
   TransformerFunctionExpr,
   ResolvableValue,
@@ -96,6 +97,20 @@ export class GeneratorBuilder<A extends ResolvableValue[]> implements ChainableG
    */
   pipe(...steps: TransformerFunctionExpr[]): ExpressionBuilder<PipelineExpr> {
     return ExpressionBuilder.pipeline(this.expression, steps)
+  }
+
+  /** Uses the fallback only when the value is null or undefined, like `??`. */
+  nullish(fallback: ResolvableValue | undefined): ExpressionBuilder<NullishExpr> {
+    const expression: NullishExpr = {
+      type: ExpressionType.NULLISH,
+      input: this.expression,
+      ...(fallback !== undefined && { fallback }),
+    }
+    const builder = ExpressionBuilder.from(expression)
+
+    stampCallsite(builder, captureCallsite(this.nullish))
+
+    return builder
   }
 
   /**

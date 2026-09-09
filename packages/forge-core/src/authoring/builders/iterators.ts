@@ -1,4 +1,12 @@
-import { MapIteratorConfig, FilterIteratorConfig, FindIteratorConfig, PredicateExpr } from '../types/expressions.type'
+import {
+  MapIteratorConfig,
+  FilterIteratorConfig,
+  FindIteratorConfig,
+  SomeIteratorConfig,
+  EveryIteratorConfig,
+  CountIteratorConfig,
+  PredicateExpr,
+} from '../types/expressions.type'
 import { IteratorType } from '../types/enums'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 
@@ -101,4 +109,40 @@ export const Iterator = {
     stampCallsite(config, captureCallsite(Iterator.Find))
     return config
   },
+  /** Returns whether any item matches; empty collections return false. */
+  Some(predicate: PredicateExpr): SomeIteratorConfig {
+    const config: SomeIteratorConfig = {
+      type: IteratorType.SOME,
+      predicate,
+    }
+
+    stampCallsite(config, captureCallsite(Iterator.Some))
+
+    return config
+  },
+
+  /** Returns whether every item matches; empty collections return true. */
+  Every(predicate: PredicateExpr): EveryIteratorConfig {
+    const config: EveryIteratorConfig = {
+      type: IteratorType.EVERY,
+      predicate,
+    }
+
+    stampCallsite(config, captureCallsite(Iterator.Every))
+
+    return config
+  },
+
+  /** Counts matching items; empty collections return zero. */
+  Count(predicate: PredicateExpr): CountIteratorConfig {
+    const config: CountIteratorConfig = {
+      type: IteratorType.COUNT,
+      predicate,
+    }
+
+    stampCallsite(config, captureCallsite(Iterator.Count))
+
+    return config
+  },
+
 }

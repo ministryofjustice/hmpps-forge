@@ -1,6 +1,13 @@
-import { ConditionalExpr, PredicateExpr, PredicateTestExpr } from '../types/expressions.type'
+import {
+  ConditionalExpr,
+  PredicateExpr,
+  PredicateTestExpr,
+  TransformerFunctionExpr,
+  ResolvableValue,
+} from '../types/expressions.type'
+import { ExpressionBuilder } from './ExpressionBuilder'
 import { ExpressionType } from '../types/enums'
-import { BranchValue, ChainableConditional } from './types'
+import { ChainableExpr, BranchValue, ChainableConditional } from './types'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 
 /**
@@ -42,6 +49,30 @@ export class ConditionalExprBuilder implements ChainableConditional {
    */
   else(value: BranchValue): ConditionalExprBuilder {
     return new ConditionalExprBuilder(this.predicate, this.thenValue, value)
+  }
+
+  /** Transforms the selected branch value without evaluating unselected branches. */
+  pipe(...steps: TransformerFunctionExpr[]): ChainableExpr {
+    const callsite = captureCallsite(this.pipe)
+    const expression = this.build()
+    const builder = ExpressionBuilder.from(expression).pipe(...steps)
+
+    stampCallsite(expression, callsite)
+    stampCallsite(builder, callsite)
+
+    return builder
+  }
+
+  /** Uses the fallback only when the selected branch resolves to null or undefined. */
+  nullish(fallback: ResolvableValue | undefined): ChainableExpr {
+    const callsite = captureCallsite(this.nullish)
+    const expression = this.build()
+    const builder = ExpressionBuilder.from(expression).nullish(fallback)
+
+    stampCallsite(expression, callsite)
+    stampCallsite(builder, callsite)
+
+    return builder
   }
 
   /**

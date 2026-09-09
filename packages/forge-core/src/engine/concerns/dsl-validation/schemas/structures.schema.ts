@@ -9,7 +9,13 @@ import {
   PredicateType,
   StructureType,
 } from '../../../../authoring/types/enums'
-import { ReferenceExprSchema, PipelineExprSchema, IterateExprSchema, ResolvableValueSchema } from './expressions.schema'
+import {
+  ReferenceExprSchema,
+  PipelineExprSchema,
+  NullishExprSchema,
+  IterateExprSchema,
+  ResolvableValueSchema,
+} from './expressions.schema'
 import { PredicateExprSchema, ConditionalExprSchema, MatchExprSchema, HookOutcomeSchema } from './predicates.schema'
 import {
   TransformerFunctionExprSchema,
@@ -74,6 +80,7 @@ const ResolvableStringSchema = z.union([
   ReferenceExprSchema,
   GeneratorFunctionExprSchema,
   PipelineExprSchema,
+  NullishExprSchema,
   ConditionalExprSchema,
   MatchExprSchema,
 ])
@@ -87,6 +94,7 @@ const ResolvableBooleanSchema = z.union([
   ReferenceExprSchema,
   GeneratorFunctionExprSchema,
   PipelineExprSchema,
+  NullishExprSchema,
   ConditionalExprSchema,
   MatchExprSchema,
 ])
