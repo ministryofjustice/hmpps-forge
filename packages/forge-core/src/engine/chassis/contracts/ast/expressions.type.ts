@@ -65,6 +65,15 @@ export interface PipelineASTNode extends ExpressionASTNode {
   }
 }
 
+/** Nullish coalescing keeps fallback evaluation inside the missing-value branch. */
+export interface NullishASTNode extends ExpressionASTNode {
+  kind: ExpressionType.NULLISH
+  properties: {
+    input: unknown
+    fallback: unknown
+  }
+}
+
 /**
  * Iterate Expression AST node - applies an iterator to a source collection.
  *
@@ -105,9 +114,11 @@ export interface ConditionalASTNode extends ExpressionASTNode {
 export interface MatchASTNode extends ExpressionASTNode {
   kind: ExpressionType.MATCH
   properties: {
+    subject: unknown
     branches: Array<{
-      predicate: ASTNode
-      value: ASTNode | any
+      predicate?: ASTNode
+      expected?: unknown
+      value: unknown
     }>
     otherwise?: ASTNode | any
   }

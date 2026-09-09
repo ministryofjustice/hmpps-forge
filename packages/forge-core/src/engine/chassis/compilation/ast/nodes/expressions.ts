@@ -7,6 +7,7 @@ import {
 } from '../../../../../shared/taxonomy'
 import {
   ConditionalASTNode,
+  NullishASTNode,
   FunctionASTNode,
   IterateASTNode,
   MatchASTNode,
@@ -19,6 +20,7 @@ import type { ASTNode } from '../../../contracts/ast/engine.type'
 import type { TemplateValue } from '../../../contracts/ast/template.type'
 import {
   ConditionalExpr,
+  NullishExpr,
   ConditionAndExpr,
   ConditionCombinatorExpr,
   ConditionBranchExpr,
@@ -221,6 +223,9 @@ export function createIterateNode(json: IterateExpr, ctx: NodeBuildContext): Ite
     // For FILTER/FIND: compile predicate template once and instantiate per item at runtime
     case IteratorType.FILTER:
     case IteratorType.FIND:
+    case IteratorType.SOME:
+    case IteratorType.EVERY:
+    case IteratorType.COUNT:
       properties.iterator.predicateTemplate = compileIteratorTemplate(json.iterator.predicate, ctx)
       break
     default:
@@ -376,8 +381,16 @@ export function createMatchNode(json: MatchExpr, ctx: NodeBuildContext): MatchAS
     })
   }
 
-  const compiledBranches = json.branches.map((branch, index) => ({
-    predicate: createBranchPredicate(json, index, ctx),
+  const compiledBranches = json.branches.map(branch => ({
+    ...('condition' in branch
+      ? {
+          predicate: expandCondition(
+            branch.condition,
+            { subject: json.subject, branchCondition: branch.condition },
+            ctx,
+          ),
+        }
+      : { expected: ctx.transformValue(branch.expected) }),
     value: ctx.transformValue(branch.value),
   }))
 
@@ -386,18 +399,13 @@ export function createMatchNode(json: MatchExpr, ctx: NodeBuildContext): MatchAS
     kind: ExpressionType.MATCH,
     isTemplate: false,
     properties: {
+      subject: ctx.transformValue(json.subject),
       branches: compiledBranches,
       ...(json.otherwise !== undefined && {
         otherwise: ctx.transformValue(json.otherwise),
       }),
     },
   }
-}
-
-function createBranchPredicate(json: MatchExpr, branchIndex: number, ctx: NodeBuildContext): PredicateASTNode {
-  const branchCondition = json.branches[branchIndex].condition
-
-  return expandCondition(branchCondition, { subject: json.subject, branchCondition }, ctx)
 }
 
 function expandCondition(
@@ -473,4 +481,17 @@ function createBranchDiagnostics(
   const diagnostics = ctx.diagnosticsFor(context.branchCondition)
 
   return diagnostics && { diagnostics }
+}
+
+/** Builds both operands for analysis while leaving fallback evaluation to lowering. */
+export function createNullishNode(json: NullishExpr, ctx: NodeBuildContext): NullishASTNode {
+  return {
+    id: ctx.nextId(),
+    kind: ExpressionType.NULLISH,
+    isTemplate: false,
+    properties: {
+      input: ctx.transformValue(json.input),
+      fallback: ctx.transformValue(json.fallback),
+    },
+  }
 }

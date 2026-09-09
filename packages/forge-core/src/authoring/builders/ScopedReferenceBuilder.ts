@@ -1,9 +1,12 @@
 /* eslint-disable max-classes-per-file -- the shared ItemReferenceBuilder base lives with
    its primary subclass. */
+import type { ChainableExpr } from './types'
+import { captureCallsite, stampCallsite } from './utils/captureCallsite'
+
 import { BuilderType } from '../../shared/taxonomy'
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { splitKey } from './utils/splitKey'
-import type { ReferenceExpr } from '../types/expressions.type'
+import type { ReferenceExpr, ResolvableValue } from '../types/expressions.type'
 
 /**
  * Shared behaviour for the item reference builders: navigation into the item
@@ -57,6 +60,15 @@ export abstract class ItemReferenceBuilder {
    */
   key(): ReferenceBuilder {
     return ReferenceBuilder.create([...this.itemPath(), '@key'])
+  }
+
+  /** Uses the fallback only when the whole item is null or undefined. */
+  nullish(fallback: ResolvableValue | undefined): ChainableExpr {
+    const builder = this.value().nullish(fallback)
+
+    stampCallsite(builder, captureCallsite(this.nullish))
+
+    return builder
   }
 
   protected abstract itemPath(): string[]

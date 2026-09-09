@@ -19,6 +19,7 @@ import {
   createConditionalNode,
   createFunctionNode,
   createIterateNode,
+  createNullishNode,
   createMatchNode,
   createPipelineNode,
   createReferenceNode,
@@ -93,6 +94,7 @@ export const creatorsByForgeTag: ReadonlyMap<string, NodeCreator> = new Map<stri
   [ExpressionType.CONDITIONAL, createConditionalNode],
   [ExpressionType.MATCH, createMatchNode],
   [ExpressionType.ITERATE, createIterateNode],
+  [ExpressionType.NULLISH, createNullishNode],
   [PolicyType.VALIDATION_RULE, createValidationNode],
   [PolicyType.NAVIGATION_TIE_BREAKER, createTieBreakerNode],
 

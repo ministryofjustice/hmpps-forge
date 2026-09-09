@@ -1,3 +1,4 @@
+import NullishNodeCompiler from './NullishNodeCompiler'
 import { ASTNode } from '../../../contracts/ast/ast.type'
 import { ASTNodeFamily, astNodeFamily, type ASTNodeKind } from '../../../contracts/ast/enums'
 import {
@@ -65,6 +66,8 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   private readonly predicates = new PredicateNodeCompiler(this)
 
   private readonly pipelines = new PipelineNodeCompiler(this)
+
+  private readonly nullish = new NullishNodeCompiler(this)
 
   private readonly conditionals = new ConditionalNodeCompiler(this)
 
@@ -281,6 +284,8 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       case FunctionCallType.TRANSFORMER:
       case FunctionCallType.GENERATOR:
         return this.pipelines.compileFunction(properties, source)
+      case ExpressionType.NULLISH:
+        return this.nullish.compile(properties)
       case ExpressionType.CONDITIONAL:
         return this.conditionals.compile(properties)
       case ExpressionType.MATCH:
@@ -349,6 +354,18 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
 
     if (iterator?.type === IteratorType.FIND) {
       return this.compileFindIterator(properties.input, iterator.predicateTemplate)
+    }
+
+    if (iterator?.type === IteratorType.SOME) {
+      return this.compileSomeIterator(properties.input, iterator.predicateTemplate)
+    }
+
+    if (iterator?.type === IteratorType.EVERY) {
+      return this.compileEveryIterator(properties.input, iterator.predicateTemplate)
+    }
+
+    if (iterator?.type === IteratorType.COUNT) {
+      return this.compileCountIterator(properties.input, iterator.predicateTemplate)
     }
 
     return literal(undefined)
@@ -502,6 +519,92 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
 
       generator.if(predicateExpr, () => {
         generator.assign(resultVar, rawItemExpr)
+        generator.break()
+      })
+    })
+
+    return code`${resultVar}`
+  }
+
+  private compileSomeIterator(input: unknown, predicateTemplate: unknown): CodeFragment {
+    const inputExpr = this.compileOperandCode(input)
+    const generator = this.generator
+    const inputVar = generator.let('_input', inputExpr)
+    const inputWasKeyedVar = this.compileNormalizeIteratorInput(inputVar, generator)
+    const resultVar = generator.let('_result', literal(false))
+
+    this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
+      const itemVar = this.compileIteratorItemScope(rawItemExpr, inputWasKeyedVar, generator)
+      const frame: IteratorScopeFrame = {
+        itemVar,
+        indexVar,
+        inputLengthExpr: code`${inputVar}.length`,
+        inputWasKeyedVar,
+        rawItemExpr,
+      }
+      const predicateExpr = this.withIteratorFrame(frame, () =>
+        predicateTemplate !== undefined ? this.compileOperandCode(predicateTemplate) : literal(false),
+      )
+
+      generator.if(predicateExpr, () => {
+        generator.assign(resultVar, literal(true))
+        generator.break()
+      })
+    })
+
+    return code`${resultVar}`
+  }
+
+  private compileCountIterator(input: unknown, predicateTemplate: unknown): CodeFragment {
+    const inputExpr = this.compileOperandCode(input)
+    const generator = this.generator
+    const inputVar = generator.let('_input', inputExpr)
+    const inputWasKeyedVar = this.compileNormalizeIteratorInput(inputVar, generator)
+    const resultVar = generator.let('_result', literal(0))
+
+    this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
+      const itemVar = this.compileIteratorItemScope(rawItemExpr, inputWasKeyedVar, generator)
+      const frame: IteratorScopeFrame = {
+        itemVar,
+        indexVar,
+        inputLengthExpr: code`${inputVar}.length`,
+        inputWasKeyedVar,
+        rawItemExpr,
+      }
+      const predicateExpr = this.withIteratorFrame(frame, () =>
+        predicateTemplate !== undefined ? this.compileOperandCode(predicateTemplate) : literal(false),
+      )
+
+      generator.if(predicateExpr, () => {
+        generator.assign(resultVar, code`${resultVar} + 1`)
+      })
+    })
+
+    return code`${resultVar}`
+  }
+
+  private compileEveryIterator(input: unknown, predicateTemplate: unknown): CodeFragment {
+    const inputExpr = this.compileOperandCode(input)
+    const generator = this.generator
+    const inputVar = generator.let('_input', inputExpr)
+    const inputWasKeyedVar = this.compileNormalizeIteratorInput(inputVar, generator)
+    const resultVar = generator.let('_result', literal(true))
+
+    this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
+      const itemVar = this.compileIteratorItemScope(rawItemExpr, inputWasKeyedVar, generator)
+      const frame: IteratorScopeFrame = {
+        itemVar,
+        indexVar,
+        inputLengthExpr: code`${inputVar}.length`,
+        inputWasKeyedVar,
+        rawItemExpr,
+      }
+      const predicateExpr = this.withIteratorFrame(frame, () =>
+        predicateTemplate !== undefined ? this.compileOperandCode(predicateTemplate) : literal(false),
+      )
+
+      generator.if(code`!(${predicateExpr})`, () => {
+        generator.assign(resultVar, literal(false))
         generator.break()
       })
     })

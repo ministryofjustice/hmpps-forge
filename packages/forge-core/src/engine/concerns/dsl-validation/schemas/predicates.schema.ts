@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { PredicateType, ExpressionType, PolicyType, ConditionCombinatorType } from '../../../../shared/taxonomy'
-import { ResolvableValueSchema } from './expressions.schema'
+import { ResolvableValueSchema, SomeIteratorConfigSchema, EveryIteratorConfigSchema } from './expressions.schema'
 import { ConditionFunctionExprSchema } from './base.schema'
 
 /**
@@ -8,6 +8,7 @@ import { ConditionFunctionExprSchema } from './base.schema'
  */
 export const PredicateExprSchema: z.ZodType<any> = z.lazy(() =>
   z.discriminatedUnion('_forge', [
+    CollectionPredicateExprSchema,
     PredicateTestExprSchema,
     PredicateAndExprSchema,
     PredicateOrExprSchema,
@@ -15,6 +16,13 @@ export const PredicateExprSchema: z.ZodType<any> = z.lazy(() =>
     PredicateNotExprSchema,
   ]),
 )
+
+/** @see {@link CollectionPredicateExpr} */
+const CollectionPredicateExprSchema = z.object({
+  _forge: z.literal(ExpressionType.ITERATE),
+  input: ResolvableValueSchema,
+  iterator: z.discriminatedUnion('_forge', [SomeIteratorConfigSchema, EveryIteratorConfigSchema]),
+})
 
 /**
  * @see {@link PredicateTestExpr}
@@ -118,10 +126,10 @@ export const ConditionNotExprSchema = z.looseObject({
 /**
  * @see {@link MatchBranch}
  */
-export const MatchBranchSchema = z.object({
-  condition: ConditionBranchExprSchema,
-  value: ResolvableValueSchema,
-})
+export const MatchBranchSchema = z.union([
+  z.object({ condition: ConditionBranchExprSchema, value: ResolvableValueSchema }),
+  z.object({ expected: ResolvableValueSchema, value: ResolvableValueSchema }),
+])
 
 /**
  * @see {@link MatchExpr}

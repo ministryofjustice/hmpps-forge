@@ -1,6 +1,13 @@
-import { ConditionBranchExpr, MatchExpr, ResolvableValue } from '../types/expressions.type'
+import {
+  TransformerFunctionExpr,
+  ConditionBranchExpr,
+  MatchExpr,
+  MatchBranch,
+  ResolvableValue,
+} from '../types/expressions.type'
+import { ExpressionBuilder } from './ExpressionBuilder'
+import { ChainableExpr, BranchValue, ChainableMatch } from './types'
 import { ExpressionType, BuilderType } from '../../shared/taxonomy'
-import { BranchValue, ChainableMatch } from './types'
 import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 
 /**
@@ -18,15 +25,11 @@ export class MatchExprBuilder implements ChainableMatch {
 
   private readonly subject: ResolvableValue
 
-  private readonly branches: ReadonlyArray<{ condition: ConditionBranchExpr; value: BranchValue }>
+  private readonly branches: ReadonlyArray<MatchBranch>
 
   private readonly otherwiseValue?: BranchValue
 
-  constructor(
-    subject: ResolvableValue,
-    branches: ReadonlyArray<{ condition: ConditionBranchExpr; value: BranchValue }> = [],
-    otherwiseValue?: BranchValue,
-  ) {
+  constructor(subject: ResolvableValue, branches: ReadonlyArray<MatchBranch> = [], otherwiseValue?: BranchValue) {
     this.subject = subject
     this.branches = branches
     this.otherwiseValue = otherwiseValue
@@ -42,6 +45,11 @@ export class MatchExprBuilder implements ChainableMatch {
     return new MatchExprBuilder(this.subject, [...this.branches, { condition, value }], this.otherwiseValue)
   }
 
+  /** Adds a branch using native JavaScript strict equality. */
+  case(expected: ResolvableValue, value: BranchValue): MatchExprBuilder {
+    return new MatchExprBuilder(this.subject, [...this.branches, { expected, value }], this.otherwiseValue)
+  }
+
   /**
    * Sets the fallback value when no branch matches.
    * @param value - The value to return when no branch condition matches
@@ -49,6 +57,30 @@ export class MatchExprBuilder implements ChainableMatch {
    */
   otherwise(value: BranchValue): MatchExprBuilder {
     return new MatchExprBuilder(this.subject, this.branches, value)
+  }
+
+  /** Transforms the selected branch value without evaluating unselected branches. */
+  pipe(...steps: TransformerFunctionExpr[]): ChainableExpr {
+    const callsite = captureCallsite(this.pipe)
+    const expression = this.build()
+    const builder = ExpressionBuilder.from(expression).pipe(...steps)
+
+    stampCallsite(expression, callsite)
+    stampCallsite(builder, callsite)
+
+    return builder
+  }
+
+  /** Uses the fallback only when the selected branch resolves to null or undefined. */
+  nullish(fallback: ResolvableValue | undefined): ChainableExpr {
+    const callsite = captureCallsite(this.nullish)
+    const expression = this.build()
+    const builder = ExpressionBuilder.from(expression).nullish(fallback)
+
+    stampCallsite(expression, callsite)
+    stampCallsite(builder, callsite)
+
+    return builder
   }
 
   /**
@@ -60,10 +92,7 @@ export class MatchExprBuilder implements ChainableMatch {
     return {
       _forge: ExpressionType.MATCH,
       subject: this.subject,
-      branches: this.branches.map(b => ({
-        condition: b.condition,
-        value: b.value,
-      })),
+      branches: [...this.branches],
       ...(this.otherwiseValue !== undefined && { otherwise: this.otherwiseValue }),
     }
   }

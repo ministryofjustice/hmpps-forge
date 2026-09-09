@@ -5,11 +5,16 @@ import {
   ConditionFunctionExpr,
   FilterIteratorConfig,
   FindIteratorConfig,
+  SomeIteratorConfig,
+  EveryIteratorConfig,
+  CountIteratorConfig,
   IterateExpr,
   IteratorConfig,
   MapIteratorConfig,
   PipelineExpr,
+  NullishExpr,
   PredicateTestExpr,
+  CollectionPredicateExpr,
   ReferenceExpr,
   TransformerFunctionExpr,
   ResolvableValue,
@@ -62,6 +67,20 @@ export abstract class ChainedValueBuilder<TExpr extends ResolvableValue> {
     return ExpressionBuilder.pipeline(this.expression, steps)
   }
 
+  /** Uses the fallback only when this value resolves to null or undefined, like `??`. */
+  nullish(fallback: ResolvableValue | undefined): ExpressionBuilder<NullishExpr> {
+    const expression: NullishExpr = {
+      _forge: ExpressionType.NULLISH,
+      input: this.expression,
+      ...(fallback !== undefined && { fallback }),
+    }
+    const builder = ExpressionBuilder.from(expression)
+
+    stampCallsite(builder, captureCallsite(this.nullish))
+
+    return builder
+  }
+
   /**
    * Enter per-item iteration mode with a Find iterator.
    * Returns an ExpressionBuilder since Find returns a single item, not an array.
@@ -71,6 +90,12 @@ export abstract class ChainedValueBuilder<TExpr extends ResolvableValue> {
    *   .path('name')  // Navigate into the found item
    */
   each(iterator: FindIteratorConfig): ExpressionBuilder<ReferenceExpr>
+
+  /** Finish the chain with a predicate over the collection. */
+  each(iterator: SomeIteratorConfig | EveryIteratorConfig): CollectionPredicateExpr
+
+  /** Count matching items and continue with the resulting number. */
+  each(iterator: CountIteratorConfig): ExpressionBuilder<IterateExpr>
 
   /**
    * Enter per-item iteration mode with a Map or Filter iterator.
@@ -85,7 +110,26 @@ export abstract class ChainedValueBuilder<TExpr extends ResolvableValue> {
   /**
    * Enter per-item iteration mode with an iterator.
    */
-  each(iterator: IteratorConfig): IterableBuilder | ExpressionBuilder<ReferenceExpr> {
+  each(
+    iterator: IteratorConfig,
+  ): IterableBuilder | ExpressionBuilder<ReferenceExpr> | ExpressionBuilder<IterateExpr> | CollectionPredicateExpr {
+    if (iterator._forge === IteratorType.COUNT) {
+      const iterateExpr: IterateExpr = { _forge: ExpressionType.ITERATE, input: this.expression, iterator }
+      const builder = ExpressionBuilder.from(iterateExpr)
+
+      stampCallsite(builder, captureCallsite(this.each))
+
+      return builder
+    }
+
+    if (iterator._forge === IteratorType.SOME || iterator._forge === IteratorType.EVERY) {
+      const predicate: CollectionPredicateExpr = { _forge: ExpressionType.ITERATE, input: this.expression, iterator }
+
+      stampCallsite(predicate, captureCallsite(this.each))
+
+      return predicate
+    }
+
     if (iterator._forge === IteratorType.FIND) {
       // Find returns a single item - wrap in a reference with empty path
       // so .path() works naturally

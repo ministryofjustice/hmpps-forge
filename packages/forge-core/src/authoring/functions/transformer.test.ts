@@ -1,5 +1,6 @@
 import { expectTypeOf, vi } from 'vitest'
 import { z } from 'zod'
+import { finaliseBuilders } from '../builders/utils/finaliseBuilders'
 import { Answer } from '../builders'
 import TransformerRegistry from '../registries/TransformerRegistry'
 import { FunctionCallType, FunctionEntryType } from '../../shared/taxonomy'
@@ -21,6 +22,37 @@ const Truncate = transformer('Text.Truncate', {
 
 describe('transformer()', () => {
   describe('entry creation', () => {
+    it('should preserve the name and prepared arguments when the options contain a name', () => {
+      // Arrange
+      const prepare = vi.fn((minimum: number) => [minimum + 1])
+      const entry = transformer({
+        name: 'NamedOptions',
+        prepare,
+        argumentsSchema: z.tuple([z.number()]),
+        factory: () => (_input: unknown, minimum: number) => minimum,
+      })
+
+      // Act
+      const expression = finaliseBuilders(entry(2))
+
+      // Assert
+      expect(entry.name).toBe('NamedOptions')
+      expect(prepare).toHaveBeenCalledWith(2)
+      expect(expression).toMatchObject({ name: 'NamedOptions', arguments: [3] })
+      expect(entry.argumentsSchema?.safeParse([3]).success).toBe(true)
+    })
+
+    it('should reject conflicting names when both call forms supply a name', () => {
+      // Arrange
+      const options = { name: 'OtherName', factory: () => () => true }
+
+      // Act
+      const create = () => transformer('PositionalName', options)
+
+      // Assert
+      expect(create).toThrow('conflicting positional and options names')
+    })
+
     it('should carry the given name, function type, schemas, and factory on a named entry', () => {
       expect(Truncate.name).toBe('Text.Truncate')
       expect(Truncate._forge).toBe(FunctionEntryType.TRANSFORMER)

@@ -30,6 +30,37 @@ const asBuilder = (value: ChainableGenerator): GeneratorBuilder<any[]> => value 
 
 describe('generator()', () => {
   describe('entry creation', () => {
+    it('should preserve the name and prepared arguments when the options contain a name', () => {
+      // Arrange
+      const prepare = vi.fn((minimum: number) => [minimum + 1])
+      const entry = generator({
+        name: 'NamedOptions',
+        prepare,
+        argumentsSchema: z.tuple([z.number()]),
+        factory: () => (minimum: number) => minimum,
+      })
+
+      // Act
+      const expression = finaliseBuilders(entry(2))
+
+      // Assert
+      expect(entry.name).toBe('NamedOptions')
+      expect(prepare).toHaveBeenCalledWith(2)
+      expect(expression).toMatchObject({ name: 'NamedOptions', arguments: [3] })
+      expect(entry.argumentsSchema?.safeParse([3]).success).toBe(true)
+    })
+
+    it('should reject conflicting names when both call forms supply a name', () => {
+      // Arrange
+      const options = { name: 'OtherName', factory: () => () => true }
+
+      // Act
+      const create = () => generator('PositionalName', options)
+
+      // Assert
+      expect(create).toThrow('conflicting positional and options names')
+    })
+
     it('should carry the given name, function type, schemas, and factory on a named entry', () => {
       expect(Tomorrow.name).toBe('Date.Tomorrow')
       expect(Tomorrow._forge).toBe(FunctionEntryType.GENERATOR)

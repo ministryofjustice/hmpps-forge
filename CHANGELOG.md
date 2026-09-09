@@ -65,6 +65,20 @@ generators directly when a predicate and single static message are not enough.
 
 ### Added
 
+- Function, component, and renderer definitions accept `name` inside their options
+  object. Positional names remain supported; conflicting names are rejected.
+- `value.nullish(fallback)` supplies a lazily evaluated fallback for `null` and
+  `undefined` across value builders, preserving other falsy values and evaluating
+  the primary only once.
+- `Iterator.Count()` counts matching items without constructing a filtered array,
+  returning a value that supports further pipelines and conditions.
+- `Iterator.Some()` and `Iterator.Every()` test collections with short-circuit
+  evaluation and return native predicates usable directly in guards and logical
+  combinators, without an implicit `Equals(true)` condition call.
+- `match(subject).case(expected, value)` uses native strict equality, including
+  matching `null` and resolved `undefined`, without registering or calling `Equals`.
+  Cases can be mixed with `.branch()` conditions and finished with `.otherwise()`;
+  the subject is evaluated once, and later branches and unselected values stay lazy.
 - `condition()`, `transformer()`, `generator()`, and `effect()` - define a function as
   a standalone entry that registers itself when a journey uses it, no registry or
   `functions` listing needed ([#269])
@@ -90,8 +104,9 @@ generators directly when a predicate and single static message are not enough.
   asynchronous application code ([#274])
 - `Transformer.Array.Compact()` - removes `null` and `undefined` elements from an
   array, keeping other falsy values like `0` and `""` ([#276])
-- `builtInFunctions` and `builtInComponents` - explicit entry arrays for serialized
-  or other name-only packages that want Forge's complete built-in sets ([#284])
+- `builtInFunctions` and `builtInComponents` - explicit entry arrays for packages
+  containing serialised (JSON-driven) journeys that need Forge's complete built-in
+  sets ([#284])
 - Request adapters can provide direct or thenable `requestDependencies` for one
   request. Forge resolves them during context preparation, rejects collisions with
   `packageDependencies`, and passes the flat merged object to function factories.
@@ -118,8 +133,9 @@ generators directly when a predicate and single static message are not enough.
   validates and compiles against unbound function metadata, while every request gets
   an isolated ordinary function registry.
 - Forge no longer registers built-in functions or components globally. Every package
-  owns ordinary function and component registries; TypeScript journeys collect the
-  entries they use, while name-only packages list entries explicitly ([#284]).
+  owns ordinary function and component registries; builder-authored journeys collect
+  the entries they use, while serialised (JSON-driven) journeys list entries explicitly
+  ([#284]).
 - `disableBuiltInFunctions`, `disableBuiltInComponents`, `ConditionsRegistry`,
   `TransformersRegistry`, `GeneratorsRegistry`, and `coreComponents` have been removed
   with the global built-in registration path ([#284]).
@@ -178,7 +194,7 @@ generators directly when a predicate and single static message are not enough.
 
 - `frameworkAdapter` from `ForgeOptions`, `Forge.getRouter()`, `ForgeRouterAdapter`,
   `ExpressFrameworkAdapter`, and `ExpressForgeAdapter`. Build Express routers directly
-  with `createExpressRouter(forge, options)`.
+  with `createExpressRouter(forge, options)` ([#294]).
 - `buildComponent`, `buildNunjucksComponent`, and their renderer aliases - component
   declarations now use `component()` or `nunjucksComponent()` directly ([#270], [#282])
 - `EvaluatedBlock`, `ResolvedPropsOf`, `PropsOf`, `ResolvableBlockProps`, and
@@ -207,27 +223,303 @@ generators directly when a predicate and single static message are not enough.
 
 ### Fixed
 
+- `when()`, `Conditional()`, and `match()` results now support `.pipe()`, applying
+  transformations to the selected value while leaving other branches unevaluated.
 - A bare `Item()` or `Loop.Item()` in a value position now means the whole item, same
   as `.value()`. Previously it typechecked but finalised to a useless builder object
   ([#273])
 
 ### Details
 
+#### Nullish/fallback handling
+
+Giving a missing value a default no longer needs a conditional expression. Use
+`.nullish(fallback)` on a value builder, much like JavaScript's `??` operator:
+
+```typescript
+GovUKHeading({
+  text: Data('fullName').nullish('The person'),
+})
+```
+
+Only `null` and `undefined` trigger the fallback. Values such as `false`, `0`, and
+an empty string stay as they are, so this also works where those values are meaningful
+answers. An empty array stays an empty array too.
+
+The fallback can itself be a Forge expression, and is only evaluated when needed:
+
+```typescript
+Data('preferredName').nullish(Data('fullName')).nullish('The person')
+```
+
+Forge evaluates each primary value once. References, generator calls, iterator values,
+and conditional or match results all support `.nullish()`, and the resulting value
+can continue through `.pipe()` as usual.
+
+#### Iterator additions
+
+Sometimes a journey only needs to know how many items match, whether any match, or
+whether all of them do. Previously that could mean filtering a collection and then
+inspecting the result. Forge 0.5.0 adds three iterators for these questions:
+
+```typescript
+const isCompleted = Loop.Item().path('status').match(Condition.Equals('COMPLETED'))
+
+const completedCount = Data('actions').each(Iterator.Count(isCompleted))
+const hasCompletedActions = Data('actions').each(Iterator.Some(isCompleted))
+const allActionsCompleted = Data('actions').each(Iterator.Every(isCompleted))
+```
+
+Each takes a predicate evaluated against the current item, using the same `Loop.Item()`
+references as other iterators. `Count` returns the number of matching items without
+building a filtered array. Its result supports pipelines and conditions, for example:
+
+```typescript
+const hasSeveralCompletedActions = completedCount.match(Condition.Number.GreaterThan(1))
+```
+
+`Some` and `Every` return predicates, ready to use in guards or combine with `and()`,
+`or()`, and `not()`. They stop as soon as the answer is known: `Some` at the first
+match, and `Every` at the first non-match.
+
+For an empty collection, `Count` returns `0`, `Some` returns `false`, and `Every`
+returns `true`, matching JavaScript's array predicate behaviour.
+
+#### Switch statements
+
+When several branches compare the same value, repeating `Condition.Equals()` makes
+the expression longer than it needs to be. `match()` now has `.case(expected, value)`
+for those equality branches:
+
+```typescript
+const statusLabel = match(Data('status'))
+  .case('NOT_STARTED', 'Not started')
+  .case('IN_PROGRESS', 'In progress')
+  .case('COMPLETED', 'Completed')
+  .otherwise('Unknown')
+```
+
+This reads like a switch statement, but produces a value you can use directly in a
+component prop or another expression. Cases use JavaScript's strict equality (`===`)
+without a registered condition call, so `null` matches `null` and a reference resolving
+to `undefined` matches another `undefined` value. The subject is evaluated once across
+all cases and condition branches. The first matching branch wins, and only its result
+is evaluated; `.otherwise()` supplies the value when nothing matches.
+
+Use `.branch()` alongside `.case()` when a branch needs a more involved condition:
+
+```typescript
+match(Data('status'))
+  .case('NOT_STARTED', 'Not started')
+  .branch(or(Condition.Equals('COMPLETED'), Condition.Equals('APPROVED')), 'Finished')
+  .otherwise('In progress')
+```
+
+The selected result can also continue through `.pipe()` or `.nullish()`, so shared
+transformations and defaults only need to be written once after the branches.
+
+#### Registering packages in your application
+
+As of Forge 0.5.0, journeys authored with Forge's builders now carry the function and
+component entries they use. On package creation, we collect all your referenced
+functions and components, and bundle them automatically into the package - neatly
+registering them for you.
+
+Because of this change, we are removing the `registerGlobalComponents()` and
+`registerGlobalFunctions()` functions from the Forge class, as they are
+redundant under this simpler, improved approach.
+
+```typescript
+// Before
+const forge = new Forge({ logger })
+  .registerGlobalComponents(govukComponents)
+  .registerGlobalComponents(mojComponents)
+  .registerGlobalFunctions(nunjucksFunctions)
+  .registerPackage(developerGuidePackage, {
+    guideContentStore: services.guideContentStore,
+    guideSearch: services.guideSearch,
+  })
+
+// After
+const forge = new Forge({ logger }).registerPackage(developerGuidePackage, {
+  guideContentStore: services.guideContentStore,
+  guideSearch: services.guideSearch,
+})
+```
+
+For serialised (JSON-driven) journeys (which only carry entry names), you can
+list your components/functions as usual through the `functions`/`components`
+entries on packages. Use the `builtInFunctions` and `builtInComponents` exports
+for the complete built-in sets.
+
 #### Functions as entries
 
-Previously every custom function meant a registry: create a `ConditionRegistry`,
-register the function on it, list the registry in the package's `functions`. Now the
-four entry helpers each define a function as a standalone entry - the returned value
-is both the authoring handle and the registration entry, so calling it in a journey is
-enough for `registerPackage()` to collect it, run its factory with the package's deps,
-and register the evaluator.
+Previously a custom condition meant creating or extending a registry, registering an
+implementation, and remembering to attach that registry to the package. In Forge 0.5.0
+the condition is one exported value:
 
-Anonymous inline entries work too, and two different entries sharing a name are kept
-isolated - one of them registers as `name@2` and the expressions that used it are
-renamed to match. Listing an entry in `functions` still works and promises its exact
-name, for journeys that reference functions by name only (for example plain JSON) - a
-name clash there throws instead of renaming. The built-in string conditions are
-entries now. ([#269])
+```typescript
+export const IsEligible = condition<Dependencies>('IsEligible', {
+  factory: ({ eligibilityService }) => person => eligibilityService.check(person),
+})
+
+const isPersonEligible = Answer('person').match(IsEligible())
+```
+
+Calling `IsEligible()` in the journey is what registers it. There is no registry to
+create, no global registration call, and no package entry to keep in sync. Conditions,
+transformers, generators, and effects all work this way through `condition()`,
+`transformer()`, `generator()`, and `effect()`. ([#269])
+
+This also makes custom functions nicer to work with in your editor. JSDoc now shows
+up properly, and 'Go to Definition' takes you straight to the implementation!
+
+On a smaller note, Forge 0.5.0 tightens the available `inputSchema` and
+`outputSchema` options for each function type so they correctly match how that
+function is evaluated. ([#288])
+
+#### Components join the function family
+
+Components used to sit separately from Forge's functions. In Forge 0.5.0,
+`component()` joins `condition()`, `transformer()`, `generator()`, and `effect()` as
+part of the same function family. Components are collected from builder-authored
+journeys in the same way, and their factories now have access to package dependencies.
+
+This gives components the option to load their own data. Instead of preparing
+everything up front, an author could pass a component a reference number and let it
+handle loading the data and any fallback itself:
+
+```typescript
+// Props interface (now only needs primitives, no Resolvable wrapping)
+interface PrisonerSummaryProps {
+  prisonerNumber: string
+}
+
+// The component() function, making an API call to load the data, and
+// displaying a fallback component if it fails
+export const PrisonerSummary = nunjucksComponent<PrisonerSummaryProps, Dependencies>(
+  'prisonerSummary',
+  {
+    factory: ({ logger, prisonerService, nunjucksEnv }) => async ({ props }) => {
+      try {
+        const prisoner = await prisonerService.findByPrisonerNumber(props.prisonerNumber)
+
+        return nunjucksEnv.render('components/prisoner-summary.njk', {
+          params: { prisonerNumber: props.prisonerNumber, prisoner },
+        })
+      } catch (error) {
+        logger.warn({ error, prisonerNumber: props.prisonerNumber }, 'Failed to load prisoner summary')
+
+        return nunjucksEnv.render('components/prisoner-summary-unavailable.njk', {
+          params: { prisonerNumber: props.prisonerNumber },
+        })
+      }
+    },
+  },
+)
+
+// In a step
+blocks: [
+  PrisonerSummary({
+    prisonerNumber: Answer('prisonerNumber'),
+  }),
+]
+```
+
+Forge renders independent components concurrently, so components can also make
+separate data calls in parallel while building the page. If you start doing this
+a bunch, we'd recommend using a dataloader of some sort to dedupe API calls.
+
+#### Simpler component types
+
+Previously, a custom component needed a resolvable block type for journey authors, an
+evaluated version for its renderer, a registry entry, and a wrapper function:
+
+```typescript
+// Before
+interface CaseSummaryProps extends BasicBlockProps {
+  heading: ResolvableString
+  rows: ResolvableArray<SummaryRow>
+}
+
+interface CaseSummary extends BlockDefinition, CaseSummaryProps {
+  variant: 'caseSummary'
+}
+
+const renderCaseSummary = (
+  props: EvaluatedBlock<CaseSummary>,
+  nunjucksEnv: nunjucks.Environment,
+) => nunjucksEnv.render('case-summary.njk', { params: props })
+
+export const caseSummary = buildNunjucksComponent<CaseSummary>(
+  'caseSummary',
+  renderCaseSummary,
+)
+
+export function CaseSummary(props: CaseSummaryProps): CaseSummary {
+  return buildBlock<CaseSummary>({ ...props, variant: 'caseSummary' })
+}
+```
+
+In Forge 0.5.0, give `component()` or `nunjucksComponent()` the ordinary props its
+evaluator receives. Forge derives the resolvable authoring type and the component
+registers itself:
+
+```typescript
+// After
+interface CaseSummaryProps {
+  heading: string
+  rows: SummaryRow[]
+}
+
+export const CaseSummary = nunjucksComponent<CaseSummaryProps>('caseSummary', {
+  factory:
+    ({ nunjucksEnv }) =>
+    ({ props }) =>
+      nunjucksEnv.render('case-summary.njk', { params: props }),
+})
+```
+
+Replace `buildComponent` and `buildNunjucksComponent` with the direct helpers, move the
+old renderer inside `factory`, and delete the separate block interface, registry entry,
+and wrapper function. The evaluator's `props` are still the plain, resolved values the
+renderer received before. Using `CaseSummary(...)` in a journey registers it just like
+using a condition does. ([#270], [#281], [#282])
+
+One behaviour change matters for field components: `inputSchema` checks a submitted
+value but no longer swaps it for Zod's parsed output. If a component used
+`.transform()` or `.coerce()` as a hidden sanitisation step, make that conversion
+explicit in a parser, transformer, or the component itself. ([#288])
+
+#### Step renderers
+
+Step renderers now use `renderer()` and live alongside components in the same function
+machinery. This mainly affects component and adapter packages; ordinary journeys only
+need to set `renderer` when they want to replace the package's normal page composition.
+([#291])
+
+#### Things worth regression testing
+
+Most of the remaining behaviour changes make Forge act more like ordinary JavaScript,
+but they will not necessarily produce a type error during the upgrade.
+
+Conditions and transformers now treat `null` like `undefined`: a condition returns
+`false` and a transformer returns `undefined` without calling your evaluator. Check any
+custom function where `null` had a meaning of its own. A condition that throws inside
+`validWhen` now fails the request instead of turning a caught `TypeError` into the
+validation message; return `false` for expected invalid input and use `inputSchema`
+when a wrongly-shaped value should fail softly. ([#275])
+
+Iterators no longer quietly remove `null` and `undefined` array items, and
+`Iterator.Map` keeps an `undefined` result in the same position as its input. Indices
+and lengths therefore describe the real array. If the old compacted shape was
+intentional, pipe the input or result through `Transformer.Array.Compact()`. ([#276],
+[#278])
+
+Object iteration now follows `Object.entries()`: map returns mapped values, filter
+returns `[key, value]` entries, and find returns one entry. Code that reached into the
+old internal `@key`/`@value` wrapper needs updating. A bare `Item()` or `Loop.Item()`
+now means the whole item, the same as `.value()`. ([#273])
 
 #### Generator-backed validation
 
@@ -262,6 +554,27 @@ arguments such as `Self()`, `Answer()`, and `Data()`, and use injected read-only
 dependencies. Throwing remains an evaluation failure rather than a validation failure;
 use returned error items for expected invalid input. ([#274])
 
+#### Testing migrated packages
+
+`createTestPackage` existed to replace functions in the old implementations map, so it
+has nothing left to override and is removed. Register the real package and pass mocks
+through its normal dependencies instead:
+
+```typescript
+const harness = new ForgeTestHarness()
+  .registerPackage(developerGuidePackage, {
+    guideContentStore: mockGuideContentStore,
+    guideSearch: mockGuideSearch,
+  })
+
+const client = harness.createClient()
+```
+
+For a single function or component, pass its standalone entry to
+`FunctionRegistryTestHarness`. It can now render components and supply field values and
+errors, so the test no longer needs to build a package around one evaluator. ([#269],
+[#292])
+
 [#269]: https://github.com/ministryofjustice/hmpps-forge/pull/269
 [#270]: https://github.com/ministryofjustice/hmpps-forge/pull/270
 [#271]: https://github.com/ministryofjustice/hmpps-forge/pull/271
@@ -276,9 +589,12 @@ use returned error items for expected invalid input. ([#274])
 [#281]: https://github.com/ministryofjustice/hmpps-forge/pull/281
 [#282]: https://github.com/ministryofjustice/hmpps-forge/pull/282
 [#283]: https://github.com/ministryofjustice/hmpps-forge/pull/283
+[#286]: https://github.com/ministryofjustice/hmpps-forge/pull/286
+[#287]: https://github.com/ministryofjustice/hmpps-forge/pull/287
 [#290]: https://github.com/ministryofjustice/hmpps-forge/pull/290
 [#291]: https://github.com/ministryofjustice/hmpps-forge/pull/291
 [#292]: https://github.com/ministryofjustice/hmpps-forge/pull/292
+[#294]: https://github.com/ministryofjustice/hmpps-forge/pull/294
 
 ---
 

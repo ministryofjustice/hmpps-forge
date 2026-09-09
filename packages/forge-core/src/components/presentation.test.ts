@@ -21,6 +21,45 @@ interface DividerProps {
 
 describe('component()', () => {
   describe('component()', () => {
+    it('should preserve field metadata and prepare when the options contain a name', () => {
+      // Arrange
+      const NamedField = component<CardProps>({
+        name: 'named-field',
+        field: true,
+        inputSchema: z.string(),
+        prepare: props => ({ ...props, title: 'Prepared' }),
+        factory: () => props => props.title,
+      })
+      const NamedCard = component<CardProps>({ name: 'named-card', factory: () => props => props.title })
+
+      // Act
+      const field = NamedField({ code: 'answer', title: 'Authored' })
+      const card = NamedCard({ title: 'Card' })
+
+      // Assert
+      expect(field).toMatchObject({
+        _forge: ComponentCallType.FIELD,
+        variant: 'named-field',
+        code: 'answer',
+        title: 'Prepared',
+      })
+      expect(card).toMatchObject({ _forge: ComponentCallType.BASIC, variant: 'named-card', title: 'Card' })
+      expect(NamedField.inputSchema?.safeParse('value').success).toBe(true)
+      expect(getEntryStamp(field)).toBe(NamedField)
+      expect(getEntryStamp(card)).toBe(NamedCard)
+    })
+
+    it('should reject conflicting names when the component also has a positional name', () => {
+      // Arrange
+      const options = { name: 'other', factory: () => () => '' }
+
+      // Act
+      const create = () => component('original', options)
+
+      // Assert
+      expect(create).toThrow('conflicting positional and options names')
+    })
+
     it('should build a self-registering expression-aware block invocation', () => {
       // Arrange
       const Card = component<CardProps, Dependencies>('card', {
@@ -157,6 +196,33 @@ describe('component()', () => {
 
 describe('renderer()', () => {
   describe('renderer()', () => {
+    it('should preserve renderer preparation when the options contain a name', () => {
+      // Arrange
+      const Page = renderer<CardProps, BlockDefinition[], RendererFunctionContext>({
+        name: 'named-page',
+        prepare: props => ({ ...props, title: 'Prepared' }),
+        factory: () => (_blocks, props) => props.title,
+      })
+
+      // Act
+      const invocation = Page({ title: 'Authored' })
+
+      // Assert
+      expect(invocation).toMatchObject({ variant: 'named-page', title: 'Prepared' })
+      expect(getEntryStamp(invocation)).toBe(Page)
+    })
+
+    it('should reject conflicting names when the renderer also has a positional name', () => {
+      // Arrange
+      const options = { name: 'other', factory: () => () => '' }
+
+      // Act
+      const create = () => renderer('original', options)
+
+      // Assert
+      expect(create).toThrow('conflicting positional and options names')
+    })
+
     it('should build a self-registering step renderer invocation', () => {
       // Arrange
       const Page = renderer<{ heading: string }, BlockDefinition[], RendererFunctionContext>('page', {

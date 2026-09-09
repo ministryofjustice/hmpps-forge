@@ -98,7 +98,7 @@ export default class AuthoredValueClassifier {
           ? this.classify(iterator.yieldTemplate)
           : undefined,
       predicate:
-        iteratorType === IteratorType.FILTER || iteratorType === IteratorType.FIND
+        iteratorType !== undefined && iteratorType !== IteratorType.MAP
           ? this.classify(iterator?.predicateTemplate)
           : undefined,
     }
@@ -144,7 +144,12 @@ export default class AuthoredValueClassifier {
   }
 
   private resolveIteratorType(value: unknown): IteratorType | undefined {
-    return value === IteratorType.MAP || value === IteratorType.FILTER || value === IteratorType.FIND
+    return value === IteratorType.MAP ||
+      value === IteratorType.FILTER ||
+      value === IteratorType.FIND ||
+      value === IteratorType.SOME ||
+      value === IteratorType.EVERY ||
+      value === IteratorType.COUNT
       ? value
       : undefined
   }

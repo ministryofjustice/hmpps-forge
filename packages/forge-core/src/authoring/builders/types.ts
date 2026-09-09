@@ -3,8 +3,12 @@ import {
   ConditionFunctionExpr,
   FilterIteratorConfig,
   FindIteratorConfig,
+  SomeIteratorConfig,
+  EveryIteratorConfig,
+  CountIteratorConfig,
   MapIteratorConfig,
   PredicateTestExpr,
+  CollectionPredicateExpr,
   ResolvableValue,
   TransformerFunctionExpr,
 } from '../types/expressions.type'
@@ -52,11 +56,20 @@ export interface ChainableValue extends ChainableExpression {
    */
   pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
 
+  /** Uses the fallback only when the value is null or undefined. */
+  nullish(fallback: ResolvableValue | undefined): ChainableExpr
+
   /**
    * Enter per-item iteration mode with a Find iterator.
    * Returns a ChainableExpr since Find returns a single item, not an array.
    */
   each(iterator: FindIteratorConfig): ChainableExpr
+
+  /** Finish the chain with a predicate over the collection. */
+  each(iterator: SomeIteratorConfig | EveryIteratorConfig): CollectionPredicateExpr
+
+  /** Count matching items and continue with the resulting number. */
+  each(iterator: CountIteratorConfig): ChainableExpr
 
   /**
    * Enter per-item iteration mode with a Map or Filter iterator.
@@ -121,6 +134,12 @@ export interface ChainableConditional extends ChainableExpression {
    * Sets the value to return when the predicate evaluates to false.
    */
   else(value: BranchValue): ChainableConditional
+
+  /** Transform the selected branch value. */
+  pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
+
+  /** Uses the fallback only when the value is null or undefined. */
+  nullish(fallback: ResolvableValue | undefined): ChainableExpr
 }
 
 /**
@@ -134,10 +153,19 @@ export interface ChainableMatch extends ChainableExpression {
    */
   branch(condition: ConditionBranchExpr, value: BranchValue): ChainableMatch
 
+  /** Adds a branch using the same strict equality test as `Condition.Equals()`. */
+  case(expected: ResolvableValue, value: BranchValue): ChainableMatch
+
   /**
    * Sets the fallback value when no branch matches.
    */
   otherwise(value: BranchValue): ChainableMatch
+
+  /** Transform the selected branch value. */
+  pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
+
+  /** Uses the fallback only when the value is null or undefined. */
+  nullish(fallback: ResolvableValue | undefined): ChainableExpr
 }
 
 /**
@@ -149,6 +177,9 @@ export interface ChainableGenerator extends ChainableExpression {
    * Transform the generated value through a pipeline of transformers.
    */
   pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
+
+  /** Uses the fallback only when the value is null or undefined. */
+  nullish(fallback: ResolvableValue | undefined): ChainableExpr
 
   /**
    * Test the generated value against a condition.
@@ -165,6 +196,9 @@ export interface ChainableGenerator extends ChainableExpression {
  * Public interface for loop item references (Loop.Item()).
  */
 export interface ChainableLoopItemRef extends ChainableExpression {
+  /** Uses the fallback only when the whole item is null or undefined. */
+  nullish(fallback: ResolvableValue | undefined): ChainableExpr
+
   /**
    * Get a sub-property of the item.
    * Supports dot notation: .path('user.address.city')

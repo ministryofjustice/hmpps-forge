@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import ForgeAuthoringError from '../engine/errors/ForgeAuthoringError'
 import { block as buildBlock, field as buildField } from '../authoring/builders'
 import { stampEntry } from '../authoring/builders/utils/stampEntry'
 import { ComponentCallType, FunctionEntryType } from '../shared/taxonomy'
@@ -49,6 +50,12 @@ type RendererDefinition<TProps> = RendererInvocation & ResolvableProps<TProps>
  * @returns A self-registering component entry that authors blocks when called
  */
 export function component<TProps extends object, TDeps = Record<string, never>>(
+  options: FieldComponentOptions<TProps, TDeps> & { name: string },
+): ForgeFieldComponent<TProps, TDeps>
+export function component<TProps extends object, TDeps = Record<string, never>>(
+  options: ComponentOptions<TProps, TDeps> & { name: string },
+): ForgeComponent<TProps, TDeps>
+export function component<TProps extends object, TDeps = Record<string, never>>(
   variant: string,
   options: FieldComponentOptions<TProps, TDeps>,
 ): ForgeFieldComponent<TProps, TDeps>
@@ -57,9 +64,11 @@ export function component<TProps extends object, TDeps = Record<string, never>>(
   options: ComponentOptions<TProps, TDeps>,
 ): ForgeComponent<TProps, TDeps>
 export function component<TProps extends object, TDeps>(
-  variant: string,
-  options: ComponentOptions<TProps, TDeps> | FieldComponentOptions<TProps, TDeps>,
+  first: string | ComponentOptions<TProps, TDeps> | FieldComponentOptions<TProps, TDeps>,
+  second?: ComponentOptions<TProps, TDeps> | FieldComponentOptions<TProps, TDeps>,
 ): ForgeComponent<TProps, TDeps> | ForgeFieldComponent<TProps, TDeps> {
+  const { variant, options } = resolvePresentationOptions('component', first, second)
+
   if ('field' in options) {
     return createFieldComponent(variant, options)
   }
@@ -87,9 +96,28 @@ export function renderer<
   TContext extends RendererFunctionContext,
   TDeps = Record<string, never>,
 >(
+  options: RendererOptions<TProps, TBlocks, TContext, TDeps> & { name: string },
+): ForgeStepRenderer<TProps, TBlocks, TContext, TDeps>
+export function renderer<
+  TProps extends object,
+  TBlocks,
+  TContext extends RendererFunctionContext,
+  TDeps = Record<string, never>,
+>(
   variant: string,
   options: RendererOptions<TProps, TBlocks, TContext, TDeps>,
+): ForgeStepRenderer<TProps, TBlocks, TContext, TDeps>
+export function renderer<
+  TProps extends object,
+  TBlocks,
+  TContext extends RendererFunctionContext,
+  TDeps = Record<string, never>,
+>(
+  first: string | RendererOptions<TProps, TBlocks, TContext, TDeps>,
+  second?: RendererOptions<TProps, TBlocks, TContext, TDeps>,
 ): ForgeStepRenderer<TProps, TBlocks, TContext, TDeps> {
+  const { variant, options } = resolvePresentationOptions('renderer', first, second)
+
   const buildDefinition = (props?: RendererAuthorProps<TProps>): RendererDefinition<TProps> => {
     const authored = props ?? ({} as RendererAuthorProps<TProps>)
     const prepared = options.prepare?.(authored) ?? authored
@@ -166,4 +194,28 @@ function createFieldComponent<TProps extends object, TDeps>(
   })
 
   return handle
+}
+
+function resolvePresentationOptions<TOptions extends { name?: string }>(
+  helperName: string,
+  first: string | TOptions,
+  second: TOptions | undefined,
+): { variant: string; options: TOptions } {
+  const options = typeof first === 'string' ? second : first
+
+  if (options === undefined) {
+    throw new ForgeAuthoringError({ message: `${helperName}() requires an options object` })
+  }
+
+  const variant = typeof first === 'string' ? first : options.name
+
+  if (variant === undefined) {
+    throw new ForgeAuthoringError({ message: `${helperName}() requires a name` })
+  }
+
+  if (typeof first === 'string' && options.name !== undefined && options.name !== first) {
+    throw new ForgeAuthoringError({ message: `${helperName}() received conflicting positional and options names` })
+  }
+
+  return { variant, options }
 }
