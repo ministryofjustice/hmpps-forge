@@ -287,10 +287,41 @@ export interface FindIteratorConfig {
   predicate: PredicateExpr
 }
 
+/** Stops at the first matching item. */
+export interface SomeIteratorConfig {
+  type: IteratorType.SOME
+  predicate: PredicateExpr
+}
+
+/** Stops at the first item that does not match. */
+export interface EveryIteratorConfig {
+  type: IteratorType.EVERY
+  predicate: PredicateExpr
+}
+
+/** Counts items matching the predicate. */
+export interface CountIteratorConfig {
+  type: IteratorType.COUNT
+  predicate: PredicateExpr
+}
+
 /**
  * Union of all iterator configuration types.
  */
-export type IteratorConfig = MapIteratorConfig | FilterIteratorConfig | FindIteratorConfig
+export type IteratorConfig =
+  | MapIteratorConfig
+  | FilterIteratorConfig
+  | FindIteratorConfig
+  | SomeIteratorConfig
+  | EveryIteratorConfig
+  | CountIteratorConfig
+
+/** Resolves the fallback only when the primary value is null or undefined. */
+export interface NullishExpr extends ResolvableExpression {
+  type: ExpressionType.NULLISH
+  input: ResolvableValue
+  fallback?: ResolvableValue
+}
 
 /**
  * Represents an iterate expression that applies an iterator to a source collection.
@@ -355,6 +386,7 @@ export type ResolvableValue =
   | GeneratorFunctionExpr
   | PipelineExpr
   | IterateExpr
+  | NullishExpr
   | ResolvableValue[]
   | string
   | number
@@ -488,11 +520,22 @@ export interface PredicateNotExpr {
   operand: PredicateExpr
 }
 
+/** Boolean collection iterators can be used directly as guards and logical operands. */
+export interface CollectionPredicateExpr extends IterateExpr {
+  iterator: SomeIteratorConfig | EveryIteratorConfig
+}
+
 /**
  * Represents any predicate expression that evaluates to true or false.
  * Used for validation rules, conditional logic, and guards.
  */
-export type PredicateExpr = PredicateTestExpr | PredicateAndExpr | PredicateOrExpr | PredicateXorExpr | PredicateNotExpr
+export type PredicateExpr =
+  | CollectionPredicateExpr
+  | PredicateTestExpr
+  | PredicateAndExpr
+  | PredicateOrExpr
+  | PredicateXorExpr
+  | PredicateNotExpr
 
 /**
  * Represents a conditional expression that evaluates to different values based on a predicate.
@@ -669,13 +712,16 @@ export type ConditionCombinatorExpr = ConditionAndExpr | ConditionOrExpr | Condi
  */
 export type ConditionBranchExpr = ConditionFunctionExpr<any> | ConditionCombinatorExpr
 
+/** An ordered condition branch or native strict-equality case. */
+export type MatchBranch = MatchConditionBranch | { expected: ResolvableValue; value: ResolvableValue }
+
 /**
  * Represents a single branch in a match expression.
  * Each branch pairs a condition with a value to return when the condition matches.
  * The condition may be a single condition function or a combinator tree of them;
  * the match subject is applied to every condition leaf in that tree.
  */
-interface MatchBranch {
+interface MatchConditionBranch {
   /** The condition, or combinator tree of conditions, to evaluate against the match subject. */
   condition: ConditionBranchExpr
 

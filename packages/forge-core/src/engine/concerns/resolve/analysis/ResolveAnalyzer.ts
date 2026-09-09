@@ -176,8 +176,11 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
       case AuthoredValueKind.MATCH:
         return {
           ...value,
+          subject: this.pruneNestedBlockProps(value.subject),
           branches: value.branches.map(branch => ({
-            predicate: this.pruneNestedBlockProps(branch.predicate),
+            ...('expected' in branch
+              ? { expected: this.pruneNestedBlockProps(branch.expected) }
+              : { predicate: this.pruneNestedBlockProps(branch.predicate) }),
             value: this.pruneNestedBlockProps(branch.value),
           })),
           otherwise: value.otherwise === undefined ? undefined : this.pruneNestedBlockProps(value.otherwise),
@@ -239,8 +242,9 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
 
         return
       case AuthoredValueKind.MATCH:
+        this.collectIterationIds(value.subject, ids)
         value.branches.forEach(branch => {
-          this.collectIterationIds(branch.predicate, ids)
+          this.collectIterationIds('expected' in branch ? branch.expected : branch.predicate, ids)
           this.collectIterationIds(branch.value, ids)
         })
 

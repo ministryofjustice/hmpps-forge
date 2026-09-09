@@ -37,6 +37,7 @@ export enum BlockType {
 export enum ExpressionType {
   REFERENCE = 'ExpressionType.Reference',
   PIPELINE = 'ExpressionType.Pipeline',
+  NULLISH = 'ExpressionType.Nullish',
   NEXT = 'ExpressionType.Next',
   VALIDATION = 'ExpressionType.Validation',
   ITERATE = 'ExpressionType.Iterate',
@@ -53,6 +54,9 @@ export enum IteratorType {
   MAP = 'IteratorType.Map',
   FILTER = 'IteratorType.Filter',
   FIND = 'IteratorType.Find',
+  SOME = 'IteratorType.Some',
+  EVERY = 'IteratorType.Every',
+  COUNT = 'IteratorType.Count',
 }
 
 /**

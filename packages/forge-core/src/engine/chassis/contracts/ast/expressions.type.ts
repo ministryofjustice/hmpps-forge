@@ -68,6 +68,11 @@ export interface PipelineASTNode extends ExpressionASTNode {
   }
 }
 
+export interface NullishASTNode extends ExpressionASTNode {
+  expressionType: ExpressionType.NULLISH
+  properties: { input: unknown; fallback: unknown }
+}
+
 /**
  * Iterate Expression AST node - applies an iterator to a source collection.
  *
@@ -108,10 +113,11 @@ export interface ConditionalASTNode extends ExpressionASTNode {
 export interface MatchASTNode extends ExpressionASTNode {
   expressionType: ExpressionType.MATCH
   properties: {
-    branches: Array<{
-      predicate: ASTNode
-      value: ASTNode | any
-    }>
+    subject: unknown
+    branches: Array<
+      | { predicate: ASTNode; expected?: never; value: unknown }
+      | { expected: unknown; predicate?: never; value: unknown }
+    >
     otherwise?: ASTNode | any
   }
 }

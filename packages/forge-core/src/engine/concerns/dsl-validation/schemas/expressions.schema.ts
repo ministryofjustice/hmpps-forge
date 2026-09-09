@@ -11,6 +11,7 @@ export const ResolvableValueSchema: z.ZodType<any> = z.lazy(() =>
     TransformerFunctionExprSchema,
     GeneratorFunctionExprSchema,
     PipelineExprSchema,
+    NullishExprSchema,
     IterateExprSchema,
     z.array(ResolvableValueSchema),
     z.string(),
@@ -27,6 +28,13 @@ export const ResolvableValueSchema: z.ZodType<any> = z.lazy(() =>
 export const ReferenceExprSchema = z.looseObject({
   type: z.literal(ExpressionType.REFERENCE),
   path: z.array(z.string()),
+})
+
+/** Validates a lazy fallback expression. */
+export const NullishExprSchema = z.looseObject({
+  type: z.literal(ExpressionType.NULLISH),
+  input: ResolvableValueSchema,
+  fallback: ResolvableValueSchema.optional(),
 })
 
 /**
@@ -62,10 +70,32 @@ const FindIteratorConfigSchema = z.looseObject({
   predicate: z.any(),
 })
 
+const SomeIteratorConfigSchema = z.looseObject({
+  type: z.literal(IteratorType.SOME),
+  predicate: z.unknown(),
+})
+
+const EveryIteratorConfigSchema = z.looseObject({
+  type: z.literal(IteratorType.EVERY),
+  predicate: z.unknown(),
+})
+
+const CountIteratorConfigSchema = z.looseObject({
+  type: z.literal(IteratorType.COUNT),
+  predicate: z.unknown(),
+})
+
 /**
  * @see {@link IteratorConfig}
  */
-const IteratorConfigSchema = z.union([MapIteratorConfigSchema, FilterIteratorConfigSchema, FindIteratorConfigSchema])
+const IteratorConfigSchema = z.union([
+  MapIteratorConfigSchema,
+  FilterIteratorConfigSchema,
+  FindIteratorConfigSchema,
+  SomeIteratorConfigSchema,
+  EveryIteratorConfigSchema,
+  CountIteratorConfigSchema,
+])
 
 /**
  * @see {@link IterateExpr}

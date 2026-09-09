@@ -1488,7 +1488,7 @@ describe('expressions', () => {
       const result = createMatchNode(json, nodeFactory.context)
 
       // Assert
-      expect(result.properties.branches[0].value.type).toBe(ASTNodeType.EXPRESSION)
+      expect(result.properties.branches[0].value).toMatchObject({ type: ASTNodeType.EXPRESSION })
     })
 
     it('should handle otherwise when present', () => {

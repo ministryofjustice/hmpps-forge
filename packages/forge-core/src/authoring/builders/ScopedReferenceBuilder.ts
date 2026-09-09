@@ -1,3 +1,6 @@
+import type { ChainableExpr } from './types'
+import type { ResolvableValue } from '../types/expressions.type'
+import { captureCallsite, stampCallsite } from './utils/captureCallsite'
 import { ReferenceBuilder } from './ReferenceBuilder'
 import { splitKey } from './utils/splitKey'
 
@@ -72,6 +75,15 @@ export class ScopedReferenceBuilder {
    */
   value(): ReferenceBuilder {
     return ReferenceBuilder.create(['@scope', this.level.toString()])
+  }
+
+  /** Uses the fallback only when the whole item is null or undefined. */
+  nullish(fallback: ResolvableValue | undefined): ChainableExpr {
+    const builder = this.value().nullish(fallback)
+
+    stampCallsite(builder, captureCallsite(this.nullish))
+
+    return builder
   }
 
   /**

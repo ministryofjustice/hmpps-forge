@@ -22,6 +22,7 @@ import {
   createIterateNode,
   createMatchNode,
   createPipelineNode,
+  createNullishNode,
   createReferenceNode,
   createTieBreakerNode,
   createValidationNode,
@@ -113,6 +114,7 @@ export const creatorsByType: ReadonlyMap<string, NodeCreator> = new Map<string, 
   // Expressions
   [ExpressionType.REFERENCE, createReferenceNode],
   [ExpressionType.PIPELINE, createPipelineNode],
+  [ExpressionType.NULLISH, createNullishNode],
   [ExpressionType.CONDITIONAL, createConditionalNode],
   [ExpressionType.MATCH, createMatchNode],
   [ExpressionType.ITERATE, createIterateNode],
@@ -148,6 +150,9 @@ export const creatorsByType: ReadonlyMap<string, NodeCreator> = new Map<string, 
   [IteratorType.MAP, notConstructible(ITERATOR_PLACEMENT)],
   [IteratorType.FILTER, notConstructible(ITERATOR_PLACEMENT)],
   [IteratorType.FIND, notConstructible(ITERATOR_PLACEMENT)],
+  [IteratorType.SOME, notConstructible(ITERATOR_PLACEMENT)],
+  [IteratorType.EVERY, notConstructible(ITERATOR_PLACEMENT)],
+  [IteratorType.COUNT, notConstructible(ITERATOR_PLACEMENT)],
 ])
 
 /**

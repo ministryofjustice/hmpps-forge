@@ -525,6 +525,7 @@ describe('ReachabilityCompiler', () => {
     it('should compile match expressions in dynamic goto outcomes', async () => {
       // Arrange
       const gotoMatch = ASTTestFactory.expression(ExpressionType.MATCH)
+        .withProperty('subject', createReference(['answers', 'choice']))
         .withProperty('branches', [
           {
             predicate: createTestPredicate(

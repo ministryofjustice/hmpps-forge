@@ -43,6 +43,30 @@ describe('ExpressionDispatcher', () => {
   }
 
   describe('compileExpressionCode()', () => {
+    it('should use native equality when a match case has no registered conditions', async () => {
+      // Arrange
+      const functionRegistry = new FunctionRegistry()
+      const nativeCompiler = new ExpressionDispatcher({ functionRegistry, componentRegistry: new ComponentRegistry() })
+      const expression = ASTTestFactory.expression(ExpressionType.MATCH)
+        .withProperty('subject', ASTTestFactory.reference(['data', 'value']))
+        .withProperty('branches', [{ expected: ASTTestFactory.reference(['data', 'expected']), value: 'matched' }])
+        .withProperty('otherwise', 'fallback')
+        .build()
+      const compiled = compileGeneratedFunction<EvaluateFunction>(nativeCompiler, ['ctx'], () => {
+        const generator = CodeGenerator.forFunction(['ctx'])
+
+        generator.return(nativeCompiler.compileExpressionCode(expression, generator))
+
+        return generator
+      })
+
+      // Act
+      const result = await compiled({ data: {}, conditions: functionRegistry, iteratorBudget: new IteratorBudget(100) })
+
+      // Assert
+      expect(result).toBe('matched')
+    })
+
     it('should avoid wrapping direct function expressions twice when diagnostics are already on the function call', () => {
       // Arrange
       const expression = ASTTestFactory.functionExpression(FunctionType.GENERATOR, 'buildCode')

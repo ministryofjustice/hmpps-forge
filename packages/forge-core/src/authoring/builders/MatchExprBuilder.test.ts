@@ -85,6 +85,29 @@ describe('MatchExprBuilder', () => {
     })
   })
 
+  describe('case()', () => {
+    it('should preserve branch order and leave the original unchanged when adding equality cases', () => {
+      // Arrange
+      const base = match(Data('status')).branch(Condition.Equals('ACTIVE'), 'Active')
+
+      // Act
+      const result = finaliseBuilders(
+        base.case(Data('expectedStatus'), 'Expected').case('CLOSED', 'Closed').otherwise('Unknown'),
+      )
+      const original = finaliseBuilders(base)
+
+      // Assert
+      expect(result).toMatchObject({
+        branches: [
+          { condition: { name: 'Equals' }, value: 'Active' },
+          { expected: { path: ['data', 'expectedStatus'] }, value: 'Expected' },
+          { expected: 'CLOSED', value: 'Closed' },
+        ],
+      })
+      expect(original).toEqual(finaliseBuilders(match(Data('status')).branch(Condition.Equals('ACTIVE'), 'Active')))
+    })
+  })
+
   describe('otherwise()', () => {
     it('should return a new builder for chaining', () => {
       // Arrange
@@ -187,7 +210,7 @@ describe('MatchExprBuilder', () => {
       const result = finaliseBuilders(match(Data('status')).branch(condition, 'Matched')) as MatchExpr
 
       // Assert
-      expect(result.branches[0].condition).toEqual({
+      expect('condition' in result.branches[0] && result.branches[0].condition).toEqual({
         type: ConditionCombinatorType.OR,
         operands: [
           {

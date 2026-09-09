@@ -4,6 +4,11 @@ import {
   FindIteratorConfig,
   IterateExpr,
   IteratorConfig,
+  SomeIteratorConfig,
+  EveryIteratorConfig,
+  CountIteratorConfig,
+  CollectionPredicateExpr,
+  NullishExpr,
   MapIteratorConfig,
   PipelineExpr,
   PredicateTestExpr,
@@ -87,6 +92,12 @@ export class IterableBuilder {
    */
   each(iterator: FindIteratorConfig): ExpressionBuilder<ReferenceExpr>
 
+  /** Test the collection directly as a predicate. */
+  each(iterator: SomeIteratorConfig | EveryIteratorConfig): CollectionPredicateExpr
+
+  /** Count matching items and continue with the resulting number. */
+  each(iterator: CountIteratorConfig): ExpressionBuilder<IterateExpr>
+
   /**
    * Chain a Map or Filter iterator.
    * Returns an IterableBuilder that can chain more .each() calls.
@@ -101,7 +112,26 @@ export class IterableBuilder {
   /**
    * Chain another iterator operation.
    */
-  each(iterator: IteratorConfig): IterableBuilder | ExpressionBuilder<ReferenceExpr> {
+  each(
+    iterator: IteratorConfig,
+  ): IterableBuilder | ExpressionBuilder<ReferenceExpr> | ExpressionBuilder<IterateExpr> | CollectionPredicateExpr {
+    if (iterator.type === IteratorType.COUNT) {
+      const expression: IterateExpr = { type: ExpressionType.ITERATE, input: this.expression, iterator }
+      const builder = ExpressionBuilder.from(expression)
+
+      stampCallsite(builder, captureCallsite(this.each))
+
+      return builder
+    }
+
+    if (iterator.type === IteratorType.SOME || iterator.type === IteratorType.EVERY) {
+      const predicate: CollectionPredicateExpr = { type: ExpressionType.ITERATE, input: this.expression, iterator }
+
+      stampCallsite(predicate, captureCallsite(this.each))
+
+      return predicate
+    }
+
     if (iterator.type === IteratorType.FIND) {
       // Find returns a single item - wrap in a reference with empty path
       // so .path() works naturally
@@ -133,6 +163,20 @@ export class IterableBuilder {
    */
   pipe(...steps: TransformerFunctionExpr[]): ExpressionBuilder<PipelineExpr> {
     return ExpressionBuilder.pipeline(this.expression, steps)
+  }
+
+  /** Uses the fallback only when the value is null or undefined, like `??`. */
+  nullish(fallback: ResolvableValue | undefined): ExpressionBuilder<NullishExpr> {
+    const expression: NullishExpr = {
+      type: ExpressionType.NULLISH,
+      input: this.expression,
+      ...(fallback !== undefined && { fallback }),
+    }
+    const builder = ExpressionBuilder.from(expression)
+
+    stampCallsite(builder, captureCallsite(this.nullish))
+
+    return builder
   }
 
   /**

@@ -27,6 +27,7 @@ import CodeGenerator from '../codegen/CodeGenerator'
 import IdentifierName from '../codegen/fragments/IdentifierName'
 import IteratorLoopEmitter from '../emitters/IteratorLoopEmitter'
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
+import PredicateNodeCompiler from '../expressions/PredicateNodeCompiler'
 
 export interface RuntimeValueCompileOptions {
   readonly expressionErrorFallback?: CodeFragment
@@ -363,7 +364,10 @@ export default class RuntimeValueCompiler {
     target: IdentifierName,
     options: RuntimeValueCompileOptions,
   ): void {
-    this.compileMatchBranches(value.branches, value.otherwise, generator, target, options)
+    const subject = generator.let('matchSubject')
+
+    this.compileValue(value.subject, generator, subject, options)
+    this.compileMatchBranches(value.branches, value.otherwise, generator, target, options, code`${subject}`)
   }
 
   private compileMatchBranches(
@@ -372,6 +376,7 @@ export default class RuntimeValueCompiler {
     generator: CodeGenerator,
     target: IdentifierName,
     options: RuntimeValueCompileOptions,
+    subject: CodeFragment,
   ): void {
     const [branch, ...remainingBranches] = branches
 
@@ -386,7 +391,12 @@ export default class RuntimeValueCompiler {
     const predicate = generator.let('matchPredicate')
 
     this.compileExpressionWithCatch(
-      () => this.expr.compileOperandCode(toRawOperand(branch.predicate), generator),
+      () =>
+        this.expr.withGeneratorScope(generator, () =>
+          'expected' in branch
+            ? code`(${subject} === ${this.expr.compileOperandCode(toRawOperand(branch.expected))})`
+            : new PredicateNodeCompiler(this.expr).compileOperand(toRawOperand(branch.predicate), subject),
+        ),
       generator,
       predicate,
       { ...options, expressionErrorFallback: literal(false) },
@@ -394,7 +404,7 @@ export default class RuntimeValueCompiler {
     generator.if(
       predicate,
       () => this.compileValue(branch.value, generator, target, options),
-      () => this.compileMatchBranches(remainingBranches, otherwise, generator, target, options),
+      () => this.compileMatchBranches(remainingBranches, otherwise, generator, target, options, subject),
     )
   }
 
@@ -418,6 +428,16 @@ export default class RuntimeValueCompiler {
 
     if (value.iterator === IteratorType.FIND) {
       this.compileFindValue(value, generator, target)
+
+      return
+    }
+
+    if (
+      value.iterator === IteratorType.SOME ||
+      value.iterator === IteratorType.EVERY ||
+      value.iterator === IteratorType.COUNT
+    ) {
+      this.compileExpressionValue(value.source, generator, target, options)
 
       return
     }
