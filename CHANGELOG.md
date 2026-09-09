@@ -67,18 +67,6 @@ generators directly when a predicate and single static message are not enough.
 
 - Function, component, and renderer definitions accept `name` inside their options
   object. Positional names remain supported; conflicting names are rejected.
-- `value.nullish(fallback)` supplies a lazily evaluated fallback for `null` and
-  `undefined` across value builders, preserving other falsy values and evaluating
-  the primary only once.
-- `Iterator.Count()` counts matching items without constructing a filtered array,
-  returning a value that supports further pipelines and conditions.
-- `Iterator.Some()` and `Iterator.Every()` test collections with short-circuit
-  evaluation and return native predicates usable directly in guards and logical
-  combinators, without an implicit `Equals(true)` condition call.
-- `match(subject).case(expected, value)` uses native strict equality, including
-  matching `null` and resolved `undefined`, without registering or calling `Equals`.
-  Cases can be mixed with `.branch()` conditions and finished with `.otherwise()`;
-  the subject is evaluated once, and later branches and unselected values stay lazy.
 - `condition()`, `transformer()`, `generator()`, and `effect()` - define a function as
   a standalone entry that registers itself when a journey uses it, no registry or
   `functions` listing needed ([#269])
@@ -223,100 +211,11 @@ generators directly when a predicate and single static message are not enough.
 
 ### Fixed
 
-- `when()`, `Conditional()`, and `match()` results now support `.pipe()`, applying
-  transformations to the selected value while leaving other branches unevaluated.
 - A bare `Item()` or `Loop.Item()` in a value position now means the whole item, same
   as `.value()`. Previously it typechecked but finalised to a useless builder object
   ([#273])
 
 ### Details
-
-#### Nullish/fallback handling
-
-Giving a missing value a default no longer needs a conditional expression. Use
-`.nullish(fallback)` on a value builder, much like JavaScript's `??` operator:
-
-```typescript
-GovUKHeading({
-  text: Data('fullName').nullish('The person'),
-})
-```
-
-Only `null` and `undefined` trigger the fallback. Values such as `false`, `0`, and
-an empty string stay as they are, so this also works where those values are meaningful
-answers. An empty array stays an empty array too.
-
-The fallback can itself be a Forge expression, and is only evaluated when needed:
-
-```typescript
-Data('preferredName').nullish(Data('fullName')).nullish('The person')
-```
-
-Forge evaluates each primary value once. References, generator calls, iterator values,
-and conditional or match results all support `.nullish()`, and the resulting value
-can continue through `.pipe()` as usual.
-
-#### Iterator additions
-
-Sometimes a journey only needs to know how many items match, whether any match, or
-whether all of them do. Previously that could mean filtering a collection and then
-inspecting the result. Forge 0.5.0 adds three iterators for these questions:
-
-```typescript
-const isCompleted = Loop.Item().path('status').match(Condition.Equals('COMPLETED'))
-
-const completedCount = Data('actions').each(Iterator.Count(isCompleted))
-const hasCompletedActions = Data('actions').each(Iterator.Some(isCompleted))
-const allActionsCompleted = Data('actions').each(Iterator.Every(isCompleted))
-```
-
-Each takes a predicate evaluated against the current item, using the same `Loop.Item()`
-references as other iterators. `Count` returns the number of matching items without
-building a filtered array. Its result supports pipelines and conditions, for example:
-
-```typescript
-const hasSeveralCompletedActions = completedCount.match(Condition.Number.GreaterThan(1))
-```
-
-`Some` and `Every` return predicates, ready to use in guards or combine with `and()`,
-`or()`, and `not()`. They stop as soon as the answer is known: `Some` at the first
-match, and `Every` at the first non-match.
-
-For an empty collection, `Count` returns `0`, `Some` returns `false`, and `Every`
-returns `true`, matching JavaScript's array predicate behaviour.
-
-#### Switch statements
-
-When several branches compare the same value, repeating `Condition.Equals()` makes
-the expression longer than it needs to be. `match()` now has `.case(expected, value)`
-for those equality branches:
-
-```typescript
-const statusLabel = match(Data('status'))
-  .case('NOT_STARTED', 'Not started')
-  .case('IN_PROGRESS', 'In progress')
-  .case('COMPLETED', 'Completed')
-  .otherwise('Unknown')
-```
-
-This reads like a switch statement, but produces a value you can use directly in a
-component prop or another expression. Cases use JavaScript's strict equality (`===`)
-without a registered condition call, so `null` matches `null` and a reference resolving
-to `undefined` matches another `undefined` value. The subject is evaluated once across
-all cases and condition branches. The first matching branch wins, and only its result
-is evaluated; `.otherwise()` supplies the value when nothing matches.
-
-Use `.branch()` alongside `.case()` when a branch needs a more involved condition:
-
-```typescript
-match(Data('status'))
-  .case('NOT_STARTED', 'Not started')
-  .branch(or(Condition.Equals('COMPLETED'), Condition.Equals('APPROVED')), 'Finished')
-  .otherwise('In progress')
-```
-
-The selected result can also continue through `.pipe()` or `.nullish()`, so shared
-transformations and defaults only need to be written once after the branches.
 
 #### Registering packages in your application
 
@@ -595,6 +494,121 @@ errors, so the test no longer needs to build a package around one evaluator. ([#
 [#291]: https://github.com/ministryofjustice/hmpps-forge/pull/291
 [#292]: https://github.com/ministryofjustice/hmpps-forge/pull/292
 [#294]: https://github.com/ministryofjustice/hmpps-forge/pull/294
+
+---
+
+## 0.4.3
+
+New expression helpers for defaults, collection checks, and switch-style branches.
+
+### Added
+
+- `value.nullish(fallback)` supplies a lazily evaluated fallback for `null` and
+  `undefined` across value builders, preserving other falsy values and evaluating
+  the primary only once.
+- `Iterator.Count()` counts matching items without constructing a filtered array,
+  returning a value that supports further pipelines and conditions.
+- `Iterator.Some()` and `Iterator.Every()` test collections with short-circuit
+  evaluation and return native predicates usable directly in guards and logical
+  combinators, without an implicit `Equals(true)` condition call.
+- `match(subject).case(expected, value)` uses native strict equality, including
+  matching `null` and resolved `undefined`, without registering or calling `Equals`.
+  Cases can be mixed with `.branch()` conditions and finished with `.otherwise()`;
+  the subject is evaluated once, and later branches and unselected values stay lazy.
+
+### Fixed
+
+- `when()`, `Conditional()`, and `match()` results now support `.pipe()`, applying
+  transformations to the selected value while leaving other branches unevaluated.
+
+### Details
+
+#### Nullish/fallback handling
+
+Giving a missing value a default no longer needs a conditional expression. Use
+`.nullish(fallback)` on a value builder, much like JavaScript's `??` operator:
+
+```typescript
+GovUKHeading({
+  text: Data('fullName').nullish('The person'),
+})
+```
+
+Only `null` and `undefined` trigger the fallback. Values such as `false`, `0`, and
+an empty string stay as they are, so this also works where those values are meaningful
+answers. An empty array stays an empty array too.
+
+The fallback can itself be a Forge expression, and is only evaluated when needed:
+
+```typescript
+Data('preferredName').nullish(Data('fullName')).nullish('The person')
+```
+
+Forge evaluates each primary value once. References, generator calls, iterator values,
+and conditional or match results all support `.nullish()`, and the resulting value
+can continue through `.pipe()` as usual.
+
+#### Iterator additions
+
+Sometimes a journey only needs to know how many items match, whether any match, or
+whether all of them do. Previously that could mean filtering a collection and then
+inspecting the result. Forge 0.4.3 adds three iterators for these questions:
+
+```typescript
+const isCompleted = Item().path('status').match(Condition.Equals('COMPLETED'))
+
+const completedCount = Data('actions').each(Iterator.Count(isCompleted))
+const hasCompletedActions = Data('actions').each(Iterator.Some(isCompleted))
+const allActionsCompleted = Data('actions').each(Iterator.Every(isCompleted))
+```
+
+Each takes a predicate evaluated against the current item, using the same `Item()`
+references as other iterators. `Count` returns the number of matching items without
+building a filtered array. Its result supports pipelines and conditions, for example:
+
+```typescript
+const hasSeveralCompletedActions = completedCount.match(Condition.Number.GreaterThan(1))
+```
+
+`Some` and `Every` return predicates, ready to use in guards or combine with `and()`,
+`or()`, and `not()`. They stop as soon as the answer is known: `Some` at the first
+match, and `Every` at the first non-match.
+
+For an empty collection, `Count` returns `0`, `Some` returns `false`, and `Every`
+returns `true`, matching JavaScript's array predicate behaviour.
+
+#### Switch statements
+
+When several branches compare the same value, repeating `Condition.Equals()` makes
+the expression longer than it needs to be. `match()` now has `.case(expected, value)`
+for those equality branches:
+
+```typescript
+const statusLabel = match(Data('status'))
+  .case('NOT_STARTED', 'Not started')
+  .case('IN_PROGRESS', 'In progress')
+  .case('COMPLETED', 'Completed')
+  .otherwise('Unknown')
+```
+
+This reads like a switch statement, but produces a value you can use directly in a
+component prop or another expression. Cases use JavaScript's strict equality (`===`)
+without a registered condition call, so `null` matches `null` and a reference resolving
+to `undefined` matches another `undefined` value. The subject is evaluated once across
+all cases and condition branches. The first matching branch wins, and only its result
+is evaluated; `.otherwise()` supplies the value when nothing matches.
+
+Use `.branch()` alongside `.case()` when a branch needs a more involved condition:
+
+```typescript
+match(Data('status'))
+  .case('NOT_STARTED', 'Not started')
+  .branch(or(Condition.Equals('COMPLETED'), Condition.Equals('APPROVED')), 'Finished')
+  .otherwise('In progress')
+```
+
+The selected result can also continue through `.pipe()` or `.nullish()`, so shared
+transformations and defaults only need to be written once after the branches.
 
 ---
 
