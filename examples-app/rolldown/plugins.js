@@ -40,6 +40,10 @@ function copyPlugin({ patterns, baseDir, outDir }) {
     buildStart() {
       patterns.forEach(pattern => {
         globSync(pattern).forEach(file => {
+          if (!fs.statSync(file).isFile()) {
+            return
+          }
+
           this.addWatchFile(file)
         })
       })
@@ -47,6 +51,10 @@ function copyPlugin({ patterns, baseDir, outDir }) {
     writeBundle() {
       patterns.forEach(pattern => {
         globSync(pattern).forEach(file => {
+          if (!fs.statSync(file).isFile()) {
+            return
+          }
+
           const dest = path.join(outDir, path.relative(baseDir, file))
 
           fs.mkdirSync(path.dirname(dest), { recursive: true })
@@ -166,4 +174,80 @@ function typecheckPlugin({ prefix, debounceMs = 300 } = {}) {
   }
 }
 
-module.exports = { cleanPlugin, copyPlugin, manifestPlugin, typecheckPlugin }
+function liveReloadPlugin({ port }) {
+  return {
+    name: 'live-reload-client',
+    intro() {
+      return `
+const liveReloadKey = Symbol.for('hmpps-forge.live-reload')
+
+if (!globalThis[liveReloadKey]) {
+  const liveReloadUrl = new URL('http://localhost:${port}/events')
+  liveReloadUrl.hostname = window.location.hostname
+
+  const liveReloadSource = new EventSource(liveReloadUrl)
+  liveReloadSource.addEventListener('reload', () => window.location.reload())
+  globalThis[liveReloadKey] = liveReloadSource
+}
+`
+    },
+  }
+}
+
+/**
+ * Serves a virtual module that registers precompiled Nunjucks templates into
+ * `window.nunjucksPrecompiled`, where nunjucks-slim's PrecompiledLoader reads
+ * them. `templates` entries are paths relative to `root` - a single `.njk`
+ * file precompiles just that template, a folder precompiles every `.njk`
+ * inside it. Either way names come out root-relative (so under govuk-frontend's
+ * dist they are exactly the names components render, e.g.
+ * 'govuk/components/input/template.njk'); named files precompile under their
+ * given name. A template a component renders but the list misses fails loudly
+ * at runtime - the demo env has no fallback loader.
+ */
+function nunjucksPrecompilePlugin({ virtualId, root, templates = [], files = [] }) {
+  const resolvedId = `\0${virtualId}`
+
+  function collectTemplateFiles(entry) {
+    const fullPath = path.join(root, entry)
+
+    if (!fs.statSync(fullPath).isDirectory()) {
+      return [entry]
+    }
+
+    return fs
+      .readdirSync(fullPath, { recursive: true, withFileTypes: true })
+      .filter(dirent => dirent.isFile() && dirent.name.endsWith('.njk'))
+      .map(dirent => path.relative(root, path.join(dirent.parentPath, dirent.name)))
+  }
+
+  return {
+    name: 'nunjucks-precompile',
+    resolveId(id) {
+      return id === virtualId ? resolvedId : null
+    },
+    load(id) {
+      if (id !== resolvedId) {
+        return null
+      }
+
+      const nunjucks = require('nunjucks')
+      const templateSources = templates.flatMap(collectTemplateFiles).map(name => {
+        const file = path.join(root, name)
+
+        this.addWatchFile(file)
+
+        return nunjucks.precompileString(fs.readFileSync(file, 'utf8'), { name })
+      })
+      const fileSources = files.map(({ file, name }) => {
+        this.addWatchFile(file)
+
+        return nunjucks.precompileString(fs.readFileSync(file, 'utf8'), { name })
+      })
+
+      return [...templateSources, ...fileSources].join('\n')
+    },
+  }
+}
+
+module.exports = { cleanPlugin, copyPlugin, liveReloadPlugin, manifestPlugin, typecheckPlugin, nunjucksPrecompilePlugin }

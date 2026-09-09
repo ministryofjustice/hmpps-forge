@@ -29,5 +29,10 @@
 {% endblock %}
 
 {% block bodyEnd %}
-  <script type="module" src="{{ '/assets/js/index.js' | assetMap }}"></script>
+  <script
+    type="module"
+    src="{{ '/assets/js/index.js' | assetMap }}"
+    nonce="{{ cspNonce }}"
+    data-csp-nonce="{{ cspNonce }}"
+  ></script>
 {% endblock %}

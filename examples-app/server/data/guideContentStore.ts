@@ -7,6 +7,7 @@ export interface ContentEntry {
   section?: string
   path: string
   title: string
+  description?: string
   tags: string[]
   markdown: string
 }
@@ -14,6 +15,7 @@ export interface ContentEntry {
 export interface HeadingEntry {
   text: string
   slug: string
+  level: 2 | 3
 }
 
 export function slugifyHeading(text: string): string {
@@ -39,22 +41,32 @@ function parseFrontmatter(
   }
 
   const attrs: Record<string, unknown> = {}
+  const lines = raw.slice(3, endIndex).trim().split('\n')
 
-  raw
-    .slice(3, endIndex)
-    .trim()
-    .split('\n')
-    .forEach(line => {
-      const colon = line.indexOf(':')
+  // Look-ahead is needed to fold a YAML block scalar (an empty-valued key whose
+  // value continues on indented lines) back into one string, so this walks the
+  // lines by index rather than mapping over them.
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i]
+    const colon = line.indexOf(':')
+    const isTopLevelKey = colon !== -1 && !/^\s/.test(line)
 
-      if (colon === -1) {
-        return
-      }
-
+    if (isTopLevelKey) {
       const key = line.slice(0, colon).trim()
       const value = line.slice(colon + 1).trim()
 
-      if (value.startsWith('[') && value.endsWith(']')) {
+      if (value === '') {
+        const continuation: string[] = []
+
+        while (i + 1 < lines.length && /^\s/.test(lines[i + 1]) && !isSubmapEntry(lines[i + 1])) {
+          continuation.push(lines[i + 1].trim())
+          i += 1
+        }
+
+        if (continuation.length > 0) {
+          attrs[key] = continuation.join(' ')
+        }
+      } else if (value.startsWith('[') && value.endsWith(']')) {
         attrs[key] = value
           .slice(1, -1)
           .split(',')
@@ -63,9 +75,21 @@ function parseFrontmatter(
       } else {
         attrs[key] = value
       }
-    })
+    }
+  }
 
   return { attrs, body: raw.slice(endIndex + 3).trim() }
+}
+
+function isSubmapEntry(line: string): boolean {
+  const trimmed = line.trim()
+  const colon = trimmed.indexOf(':')
+
+  if (colon === -1) {
+    return false
+  }
+
+  return /^[\w-]+$/.test(trimmed.slice(0, colon))
 }
 
 export default class GuideContentStore {
@@ -95,9 +119,10 @@ export default class GuideContentStore {
       return []
     }
 
-    return [...markdown.matchAll(/^## (.+)$/gm)].map(m => ({
-      text: m[1],
-      slug: slugifyHeading(m[1]),
+    return [...markdown.matchAll(/^(##|###) (.+)$/gm)].map(m => ({
+      text: m[2],
+      slug: slugifyHeading(m[2]),
+      level: m[1].length === 2 ? 2 : 3,
     }))
   }
 
@@ -137,6 +162,10 @@ export default class GuideContentStore {
           section: typeof parsed.attrs.section === 'string' ? parsed.attrs.section : undefined,
           path,
           title,
+          description:
+            typeof parsed.attrs.description === 'string' && parsed.attrs.description
+              ? parsed.attrs.description
+              : undefined,
           tags: Array.isArray(parsed.attrs.teaches) ? parsed.attrs.teaches : [],
           markdown: parsed.body,
         })

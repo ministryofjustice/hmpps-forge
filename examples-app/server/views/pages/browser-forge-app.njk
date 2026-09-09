@@ -1,0 +1,14 @@
+{%- extends "partials/layout.njk" -%}
+
+{% set mainClasses = "govuk-body" %}
+
+{% block content %}
+  <div id="browser-forge-app" data-testid="browser-forge-app">
+    <p class="govuk-body">Loading the browser Forge application…</p>
+  </div>
+{% endblock %}
+
+{% block bodyEnd %}
+  {{ super() }}
+  <script type="module" src="{{ '/assets/js/browser-forge-demo.js' | assetMap }}"></script>
+{% endblock %}

@@ -1,5 +1,10 @@
 $app-code-font: ui-monospace, menlo, 'Cascadia Mono', 'Segoe UI Mono', consolas, 'Liberation Mono', monospace;
 
+@mixin app-code-step-colour($foreground, $background) {
+  color: $foreground;
+  background-color: $background;
+}
+
 pre,
 code,
 .font-monospace {
@@ -33,4 +38,107 @@ pre code {
 pre code:focus {
   border-color: govuk-functional-colour(focus);
   outline: $govuk-focus-width solid govuk-functional-colour(focus);
+}
+
+.app-code-block {
+  margin-bottom: govuk-spacing(4);
+
+  pre code {
+    margin-bottom: 0;
+    outline: 0;
+    background-color: govuk-colour("black", $variant: "tint-95");
+  }
+
+  pre code:focus {
+    border-color: govuk-functional-colour(focus);
+    outline: $govuk-focus-width solid govuk-functional-colour(focus);
+  }
+}
+
+.app-code-step {
+  display: inline;
+  padding: 0 4px;
+  border-bottom: 2px solid currentcolor;
+  border-radius: 3px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+
+  > code {
+    display: inline;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    font-size: 0.92em;
+    line-height: inherit;
+  }
+
+  .govuk-link {
+    color: inherit;
+  }
+
+  &--1 {
+    @include app-code-step-colour(
+      govuk-colour("blue", $variant: "shade-25"),
+      govuk-colour("blue", $variant: "tint-80")
+    );
+  }
+
+  &--2 {
+    @include app-code-step-colour(
+      govuk-colour("purple", $variant: "shade-25"),
+      govuk-colour("purple", $variant: "tint-80")
+    );
+  }
+
+  &--3 {
+    @include app-code-step-colour(
+      govuk-colour("teal", $variant: "shade-50"),
+      govuk-colour("teal", $variant: "tint-80")
+    );
+  }
+
+  &--4 {
+    @include app-code-step-colour(
+      govuk-colour("green", $variant: "shade-25"),
+      govuk-colour("green", $variant: "tint-80")
+    );
+  }
+
+  &--5 {
+    @include app-code-step-colour(
+      govuk-colour("orange", $variant: "shade-50"),
+      govuk-colour("orange", $variant: "tint-80")
+    );
+  }
+
+  &--6 {
+    @include app-code-step-colour(
+      govuk-colour("magenta", $variant: "shade-25"),
+      govuk-colour("magenta", $variant: "tint-80")
+    );
+  }
+
+  &--7 {
+    @include app-code-step-colour(
+      govuk-colour("yellow", $variant: "shade-50"),
+      govuk-colour("yellow", $variant: "tint-80")
+    );
+  }
+
+  &--8 {
+    @include app-code-step-colour(#4b5f00, #e8eecf);
+  }
+
+  &--9 {
+    @include app-code-step-colour(#6a4a20, #f3e7d8);
+  }
+
+  &--10 {
+    @include app-code-step-colour(#455a64, #e0e7ea);
+  }
+}
+
+.app-code-block .app-code-step span {
+  color: inherit;
 }

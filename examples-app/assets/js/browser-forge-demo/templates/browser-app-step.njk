@@ -1,0 +1,47 @@
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% from "govuk/components/breadcrumbs/macro.njk" import govukBreadcrumbs %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-one-quarter">
+    <nav class="guide-side-nav" aria-labelledby="browser-demo-nav-heading">
+      <h2 class="guide-side-nav__theme" id="browser-demo-nav-heading">Browser Forge</h2>
+      <ul class="guide-side-nav__section">
+        {% set browserDemoPages = [
+          { id: "basic", href: "/browser-demo/your-name", text: "Basic journey" },
+          { id: "branching", href: "/browser-demo/branching/visit-type", text: "Branching package" },
+          { id: "add-another", href: "/browser-demo/add-another/your-contacts", text: "Add another package" }
+        ] %}
+        {% for page in browserDemoPages %}
+          <li class="guide-side-nav__item{% if browserDemoSection == page.id %} guide-side-nav__item--current{% endif %}">
+            <a class="guide-side-nav__link govuk-link govuk-link--no-visited-state govuk-link--no-underline" href="{{ page.href }}"{% if browserDemoSection == page.id %} aria-current="page"{% endif %}>
+              {{ page.text }}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </nav>
+  </div>
+
+  <div class="govuk-grid-column-two-thirds">
+    {{ govukBreadcrumbs({
+      items: [
+        { text: "Forge Developer Guide", href: "/forge-developer-guide/get-started/overview" },
+        { text: "Browser Adapter", href: "/forge-developer-guide/packages/forge-browser/overview" }
+      ]
+    }) }}
+
+    {% set errorList = getErrorSummaryList() %}
+    {% if errorList.length %}
+      {{ govukErrorSummary({
+        titleText: "There is a problem",
+        errorList: errorList
+      }) }}
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% for block in blocks %}
+        {{ block | safe }}
+      {% endfor %}
+    </form>
+  </div>
+</div>

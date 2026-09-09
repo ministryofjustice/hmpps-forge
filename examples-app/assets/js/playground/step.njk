@@ -1,0 +1,6 @@
+{% from "govuk/components/error-summary/macro.njk" import govukErrorSummary %}
+{% set errors = getErrorSummaryList() %}
+{% if errors.length %}{{ govukErrorSummary({ titleText: 'There is a problem', errorList: errors }) }}{% endif %}
+<form method="post" novalidate>
+{% for block in blocks %}{{ block | safe }}{% endfor %}
+</form>

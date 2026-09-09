@@ -81,6 +81,62 @@ export default function nunjucksSetup(app: express.Express): nunjucks.Environmen
     return groups
   })
 
+  interface NavNode {
+    name: string | undefined
+    active: boolean
+    items: Record<string, unknown>[]
+    children: NavNode[]
+  }
+
+  njkEnv.addFilter('buildNavTree', (items: Record<string, unknown>[]) => {
+    const root: NavNode = { name: undefined, active: false, items: [], children: [] }
+
+    items.forEach(item => {
+      const nav = (item.metadata as Record<string, unknown> | undefined)?.nav as string | undefined
+      const isActive = item.active === true
+
+      root.active ||= isActive
+
+      if (!nav) {
+        root.items.push(item)
+
+        return
+      }
+
+      const target = nav.split('/').reduce((current, segment) => {
+        let child = current.children.find(c => c.name === segment)
+
+        if (!child) {
+          child = { name: segment, active: false, items: [], children: [] }
+          current.children.push(child)
+        }
+
+        child.active ||= isActive
+
+        return child
+      }, root)
+
+      target.items.push(item)
+    })
+
+    return root
+  })
+
+  njkEnv.addFilter('injectAfterFirstH1', (block: unknown, htmlToInject: unknown) => {
+    const html = String(block)
+    const injection = String(htmlToInject)
+    const closingTag = '</h1>'
+    const index = html.indexOf(closingTag)
+
+    if (index === -1) {
+      return injection + html
+    }
+
+    const insertAt = index + closingTag.length
+
+    return html.slice(0, insertAt) + injection + html.slice(insertAt)
+  })
+
   registerForgeGovUKComponentsGlobals(njkEnv)
 
   return njkEnv

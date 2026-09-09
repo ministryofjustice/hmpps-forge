@@ -1,0 +1,193 @@
+{%- extends "partials/layout.njk" -%}
+{% from "govuk/components/breadcrumbs/macro.njk" import govukBreadcrumbs %}
+
+{% set quadrant = step.metadata.quadrant if step and step.metadata else null %}
+{% set quadrantLabels = {
+  "learn": "Learn",
+  "how-to-guides": "How-to guide",
+  "concepts": "Concept",
+  "reference": "Reference",
+  "patterns": "Pattern"
+} %}
+
+{# Quadrant to an app-tag colour modifier. how-to-guides uses the default blue
+   tag, so it has no modifier class; learn/concepts/reference add one. #}
+{% set quadrantTagModifiers = {
+  "learn": "app-tag--green",
+  "how-to-guides": "",
+  "concepts": "app-tag--purple",
+  "reference": "app-tag--orange",
+  "patterns": ""
+} %}
+
+{% set relatedPages = data.relatedPages if data else null %}
+{% set nextPages = data.nextPages if data else null %}
+
+{% set guideNav = null %}
+{% for item in routeTree %}
+  {% if item.active %}
+    {% set guideNav = item %}
+  {% endif %}
+{% endfor %}
+
+{% set topNavItems = [] %}
+{% for child in guideNav.children %}
+  {% if child.route and not child.metadata.hiddenFromNav %}
+    {% set _ = topNavItems.push({ href: child.path, text: child.route.title, active: child.active }) %}
+  {% endif %}
+{% endfor %}
+
+{% set currentSection = null %}
+{% for child in guideNav.children %}
+  {% if child.active and child.children | length %}
+    {% set currentSection = child %}
+  {% endif %}
+{% endfor %}
+
+{% set sideNavTitle = guideNav.route.title %}
+{% set sideNavItems = [] %}
+{% for child in guideNav.children %}
+  {% if child.route and not child.metadata.hiddenFromNav %}
+    {% set _ = sideNavItems.push(child) %}
+  {% endif %}
+{% endfor %}
+
+{% if currentSection %}
+  {% set sideNavTitle = currentSection.route.title if currentSection.route else currentSection.segment %}
+  {% set sideNavItems = [] %}
+  {% for child in currentSection.children %}
+    {% if child.route and not child.metadata.hiddenFromNav %}
+      {% set _ = sideNavItems.push(child) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% set currentSubSection = null %}
+{% if currentSection %}
+  {% for child in currentSection.children %}
+    {% if child.active and child.children | length %}
+      {% set currentSubSection = child %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% if currentSubSection %}
+  {% set sideNavTitle = currentSubSection.route.title if currentSubSection.route else currentSubSection.segment %}
+  {% set sideNavItems = [] %}
+  {% for child in currentSubSection.children %}
+    {% if child.route and not child.metadata.hiddenFromNav %}
+      {% set _ = sideNavItems.push(child) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% set breadcrumbItems = [] %}
+{% if ancestors and ancestors.length %}
+  {% set _ = breadcrumbItems.push({ text: "Home", href: ancestors[0].path }) %}
+
+  {% for ancestor in ancestors.slice(1) %}
+    {% if ancestor.title %}
+      {% set _ = breadcrumbItems.push({ text: ancestor.title, href: ancestor.path }) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% set guideSearchAction = guideNav.path + '/search' %}
+{% set headerServiceName = "Forge" %}
+{% set headerNavItems = topNavItems %}
+{% set githubUrl = "https://github.com/ministryofjustice/hmpps-forge" %}
+
+{% block header %}
+  {% include "./header-v2.njk" %}
+{% endblock %}
+
+{% block container %}
+  <div class="guide-shell{% if quadrant == 'patterns' %} guide-shell--patterns{% endif %}">
+    <div class="guide-shell__nav">
+      {% set sideNavIdPrefix = 'guide-side-nav' %}
+      {% include "./guide-side-nav.njk" %}
+    </div>
+    <main class="guide-shell__main{% if quadrant == 'patterns' %} guide-shell__main--patterns{% endif %} govuk-body" id="main-content">
+      {% if breadcrumbItems.length %}
+        {{ govukBreadcrumbs({
+          collapseOnMobile: true,
+          items: breadcrumbItems,
+          classes: "govuk-!-display-none-print govuk-!-margin-bottom-5 guide-breadcrumbs-nudge"
+        }) }}
+      {% endif %}
+
+      {% if quadrant and quadrantLabels[quadrant] %}
+        <p class="guide-eyebrow">
+          <strong class="app-tag {{ quadrantTagModifiers[quadrant] }}">{{ quadrantLabels[quadrant] }}</strong>
+        </p>
+      {% endif %}
+
+      {% set relatedHtml %}
+        {% if relatedPages and relatedPages.length %}
+          <div class="guide-related">
+            <span class="guide-related__label">Related:</span>
+            <div class="guide-related__list">
+              {% for related in relatedPages %}
+                <a class="guide-related__chip" href="{{ related.href }}">
+                  <strong class="app-tag {{ quadrantTagModifiers[related.quadrant] }} app-tag--small">{{ related.tag }}</strong>
+                  <span class="guide-related__title">{{ related.title }}</span>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      {% endset %}
+
+      <div id="main">
+        {% for block in blocks %}
+          {% if loop.first and relatedPages and relatedPages.length %}
+            {{ block | injectAfterFirstH1(relatedHtml) | safe }}
+          {% else %}
+            {{ block | safe }}
+          {% endif %}
+        {% endfor %}
+
+        {% if nextPages and nextPages.length %}
+          <aside class="guide-next" aria-labelledby="guide-next-heading">
+            <h2 class="guide-next__heading" id="guide-next-heading">Where to go next</h2>
+            <div class="guide-next__grid">
+              {% for next in nextPages %}
+                <div class="guide-next__card">
+                  <strong class="app-tag {{ quadrantTagModifiers[next.quadrant] }}">{{ next.tag }}</strong>
+                  <a class="govuk-link govuk-link--no-visited-state guide-next__link" href="{{ next.href }}">{{ next.title }}</a>
+                  {% if next.description %}
+                    <p class="guide-next__description">{{ next.description }}</p>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          </aside>
+        {% endif %}
+      </div>
+    </main>
+    <div class="guide-shell__aside">
+      {% if data.headings and data.headings.length %}
+        <nav class="guide-toc" aria-labelledby="guide-toc-heading">
+          <h2 class="guide-toc__heading" id="guide-toc-heading">On this page</h2>
+          <ul class="guide-toc__list">
+            {% for heading in data.headings %}
+              <li class="guide-toc__item{% if heading.level == 3 %} guide-toc__item--nested{% endif %}">
+                <a class="guide-toc__link" href="#{{ heading.slug }}">{{ heading.text }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </nav>
+      {% endif %}
+    </div>
+  </div>
+  {% if showBackToTop %}
+    <div class="guide-back-to-top">
+      <a class="govuk-link govuk-link--no-visited-state guide-back-to-top__link" href="#top">
+        <svg role="presentation" focusable="false" class="guide-back-to-top__icon" xmlns="http://www.w3.org/2000/svg" width="13" height="17" viewBox="0 0 13 17">
+          <path fill="currentColor" d="M6.5 0L0 6.5 1.4 8l4-4v12.7h2V4l4.3 4L13 6.4z"></path>
+        </svg>
+        Back to top
+      </a>
+    </div>
+  {% endif %}
+{% endblock %}

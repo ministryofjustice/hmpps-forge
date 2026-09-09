@@ -3,43 +3,123 @@
   margin-bottom: govuk-spacing(9);
   padding-right: govuk-spacing(3);
 
+  &__toggle {
+    @include govuk-font($size: 16);
+    display: flex;
+    align-items: center;
+    gap: govuk-spacing(2);
+    width: 100%;
+    margin: 0;
+    padding: govuk-spacing(2) 0;
+    color: $govuk-link-colour;
+    background: none;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover .guide-side-nav__label {
+      text-decoration: underline;
+    }
+
+    &:focus {
+      @include govuk-focused-text;
+    }
+
+    // Border-right + border-bottom form an L; rotated it reads as a chevron
+    // pointing down when collapsed and up when open (the accordion idiom for
+    // a right-hand disclosure arrow).
+    &::after {
+      content: "";
+      flex: 0 0 auto;
+      margin-left: auto;
+      box-sizing: border-box;
+      width: 9px;
+      height: 9px;
+      border-right: 2px solid $govuk-secondary-text-colour;
+      border-bottom: 2px solid $govuk-secondary-text-colour;
+      transform: translateY(-2px) rotate(45deg);
+    }
+  }
+
+  &__toggle[aria-expanded="true"]::after {
+    transform: translateY(2px) rotate(-135deg);
+    border-color: $govuk-link-colour;
+  }
+
   &__section {
-    margin: 0 0 govuk-spacing(4);
+    margin: 0 0 govuk-spacing(2);
+    padding: 0 0 0 govuk-spacing(3);
+    border-left: 1px solid $govuk-border-colour;
+    list-style-type: none;
+  }
+
+  &__category {
+    margin: 0;
+    padding: govuk-spacing(3) 0 0;
+  }
+
+  &__category:first-of-type {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  &__category-heading {
+    @include govuk-font($size: 16, $weight: bold);
+    margin: 0 0 govuk-spacing(2);
+    color: $govuk-secondary-text-colour;
+  }
+
+  &__category-section {
+    margin: 0 0 govuk-spacing(3);
     padding: 0;
     list-style-type: none;
   }
 
-  &__link {
-    display: block;
-    padding: 2px 0;
+  &__subgroup {
+    margin: 0;
+  }
+
+  &__subheading {
+    margin: 0;
+    padding: 0;
+  }
+
+  &__sublist {
+    margin: 0;
+    padding: 0 0 0 govuk-spacing(3);
+    list-style-type: none;
   }
 
   &__item {
-    margin-bottom: govuk-spacing(1);
-    padding-top: govuk-spacing(1);
-    padding-bottom: govuk-spacing(1);
+    margin: 0;
+  }
+
+  &__link {
+    display: block;
+    padding: govuk-spacing(2) 0;
   }
 
   &__item--current {
     margin-left: -14px;
-    padding-left: 10px;
-    border-left: 4px solid $govuk-link-colour;
-    background-color: $govuk-body-background-colour;
+    padding-left: 14px;
+    box-shadow: inset 4px 0 0 $govuk-link-colour;
   }
 
   &__item--current &__link {
     font-weight: bold;
   }
 
-  &__theme {
-    @include govuk-font($size: 19);
-    margin: 0;
-    padding: govuk-spacing(2) govuk-spacing(3) govuk-spacing(2) 0;
-    color: govuk-colour("black", $variant: "tint-25");
-    font-weight: normal;
+  @media (prefers-reduced-motion: no-preference) {
+    &__toggle::after {
+      transition: transform 0.15s ease;
+    }
   }
+}
 
-  &__theme:first-of-type {
-    padding-top: 0;
+// Collapsing only applies once GOV.UK Frontend has confirmed JS support, so the
+// no-JS experience shows every group expanded.
+.govuk-frontend-supported {
+  .guide-side-nav__group:not(.guide-side-nav__group--open) .guide-side-nav__section {
+    display: none;
   }
 }

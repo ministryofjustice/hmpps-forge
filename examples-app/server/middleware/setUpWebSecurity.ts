@@ -26,6 +26,7 @@ export default function setUpWebSecurity(): Router {
           // page by an attacker.
           scriptSrc: ["'self'", (_req: Request, res: Response) => `'nonce-${res.locals.cspNonce}'`],
           styleSrc: ["'self'", (_req: Request, res: Response) => `'nonce-${res.locals.cspNonce}'`],
+          styleSrcAttr: ["'unsafe-inline'"],
           fontSrc: ["'self'"],
           formAction: ["'self'"],
           ...(config.https ? {} : { upgradeInsecureRequests: null }),

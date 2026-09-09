@@ -1,13 +1,15 @@
+const { playgroundPlugin } = require('./playgroundPlugin')
 const sassPlugin = require('rollup-plugin-sass')
 const sass = require('sass-embedded')
 const path = require('node:path')
 const { styleText } = require('node:util')
 
-const { cleanPlugin, copyPlugin, manifestPlugin, typecheckPlugin } = require('./plugins')
+const { cleanPlugin, copyPlugin, liveReloadPlugin, manifestPlugin, typecheckPlugin, nunjucksPrecompilePlugin } = require('./plugins')
 
 const cwd = process.cwd()
 const isProduction = process.env.NODE_ENV === 'production'
 const isWatch = process.argv.includes('--watch')
+const liveReloadPort = 35729
 
 function getAppConfig() {
   const outDir = path.join(cwd, 'dist')
@@ -60,19 +62,62 @@ function getAssetsConfig() {
   const assetsDir = path.join(cwd, 'assets')
   const outDir = path.join(cwd, 'dist/assets')
 
+  const demoDir = path.join(assetsDir, 'js/browser-forge-demo')
+
   return {
-    input: path.join(assetsDir, 'js/index.js'),
+    // Two browser entries need real chunk sharing, which iife cannot do - the
+    // layout already loads the bundle with type="module", so esm is safe.
+    external: ['/assets/playground/editor.js'],
+    input: {
+      index: path.join(assetsDir, 'js/index.js'),
+      'browser-forge-demo': path.join(demoDir, 'index.mjs'),
+    },
     output: {
       dir: outDir,
-      format: 'iife',
+      format: 'esm',
       sourcemap: !isProduction,
+      minify: isProduction,
       entryFileNames: isProduction ? 'js/[name].[hash].js' : 'js/[name].js',
+      chunkFileNames: isProduction ? 'js/[name].[hash].js' : 'js/[name].js',
       assetFileNames: isProduction ? '[name].[hash][extname]' : '[name][extname]',
     },
     platform: 'browser',
-    minify: isProduction,
+    resolve: {
+      alias: {
+        // Nunjucks swaps to the slim build: runtime only, no compiler,
+        // precompiled templates.
+        nunjucks: path.join(cwd, 'node_modules/nunjucks/browser/nunjucks-slim.js'),
+      },
+    },
     plugins: [
       cleanPlugin(outDir),
+      nunjucksPrecompilePlugin({
+        virtualId: 'virtual:browser-forge-demo-templates',
+        root: path.join(cwd, 'node_modules/govuk-frontend/dist'),
+        // Only what the demo journeys render plus the include closure those
+        // templates pull in (label, hint, error-message, fieldset,
+        // attributes) - a folder is the component's whole template set, a
+        // .njk path a single template. A missing one fails loudly in e2e.
+        templates: [
+          'govuk/components/breadcrumbs',
+          'govuk/components/button',
+          'govuk/components/error-message',
+          'govuk/components/error-summary',
+          'govuk/components/fieldset',
+          'govuk/components/hint',
+          'govuk/components/input',
+          'govuk/components/inset-text',
+          'govuk/components/label',
+          'govuk/components/radios',
+          'govuk/components/select',
+          'govuk/components/summary-list',
+          'govuk/macros/attributes.njk',
+        ],
+        files: [
+          { file: path.join(demoDir, 'templates/browser-app-step.njk'), name: 'browser-app-step.njk' },
+          { file: path.join(demoDir, 'templates/browser-app-error.njk'), name: 'browser-app-error.njk' },
+        ],
+      }),
       sassPlugin({
         runtime: sass,
         api: 'modern',
@@ -90,7 +135,9 @@ function getAssetsConfig() {
         baseDir: assetsDir,
         outDir,
       }),
+      playgroundPlugin(),
       manifestPlugin(outDir),
+      ...(isWatch ? [liveReloadPlugin({ port: liveReloadPort })] : []),
     ],
     watch: {
       include: [path.join(assetsDir, '**')],
@@ -99,4 +146,4 @@ function getAssetsConfig() {
   }
 }
 
-module.exports = { getAppConfig, getAssetsConfig }
+module.exports = { getAppConfig, getAssetsConfig, liveReloadPort }

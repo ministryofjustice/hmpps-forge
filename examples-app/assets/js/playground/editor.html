@@ -1,0 +1,35 @@
+  <div class="playground" data-playground aria-label="Forge journey playground">
+    <section class="playground__source" aria-label="Example source">
+      <div class="playground__tabs-bar">
+        <button class="playground__scroll" data-scroll-tabs="-1" type="button" aria-label="Scroll files left" disabled>‹</button>
+        <div class="playground__tabs" data-tabs role="group" aria-label="Example files">
+        </div>
+        <button class="playground__scroll" data-scroll-tabs="1" type="button" aria-label="Scroll files right" disabled>›</button>
+        <button class="playground__add-file" data-add-file type="button" aria-label="Add file" title="Add file">+</button>
+      </div>
+      <div class="playground__editor" data-editor></div>
+    </section>
+    <section class="playground__result" aria-label="Live preview">
+      <div class="playground__toolbar">
+        <p class="playground__status" role="status" data-status>Loading editor…</p>
+        <div class="playground__actions">
+          <button class="playground__link-button" type="button" data-restart disabled>Restart journey</button>
+          <button class="playground__link-button" type="button" data-reset title="Restore the original example">Reset</button>
+          <button class="playground__primary-button" type="button" data-run disabled title="Run example (Ctrl+Enter or ⌘+Enter)"><span class="playground__run-icon" aria-hidden="true">▸</span> Run</button>
+        </div>
+      </div>
+      <div class="playground__preview" data-preview></div>
+    </section>
+    <dialog class="playground__file-dialog" data-new-file-dialog aria-labelledby="__PLAYGROUND_ID__-new-file-title">
+      <form>
+        <h2 class="playground__file-title" id="__PLAYGROUND_ID__-new-file-title">Add a file</h2>
+        <label class="playground__file-label" for="__PLAYGROUND_ID__-new-file-name">File name</label>
+        <p class="playground__file-hint" id="__PLAYGROUND_ID__-new-file-hint">Use a .ts file, such as steps/address.ts.</p>
+        <input class="playground__file-input" id="__PLAYGROUND_ID__-new-file-name" data-file-name aria-describedby="__PLAYGROUND_ID__-new-file-hint" required autofocus autocomplete="off" spellcheck="false">
+        <div class="playground__actions">
+          <button class="playground__primary-button" type="submit">Add file</button>
+          <button class="playground__link-button" data-cancel-file type="button">Cancel</button>
+        </div>
+      </form>
+    </dialog>
+  </div>

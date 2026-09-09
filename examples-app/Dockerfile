@@ -68,6 +68,10 @@ COPY --from=build --chown=nonroot:nonroot \
         /app/examples-app/dist \
         ./dist
 
+COPY --from=build --chown=nonroot:nonroot \
+        /app/examples-app/assets/playground \
+        ./assets/playground
+
 COPY --from=prod-deps --chown=nonroot:nonroot \
         /app/examples-app/node_modules \
         ./node_modules

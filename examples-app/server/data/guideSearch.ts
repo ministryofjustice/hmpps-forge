@@ -186,9 +186,9 @@ export function chunkEntries(entries: ContentEntry[]): GuideChunk[] {
   })
 }
 
-function stripMarkdown(text: string): string {
+function toIndexableText(text: string): string {
   return text
-    .replace(/```[\s\S]*?```/g, '')
+    .replace(/```[^\n]*\n?([\s\S]*?)```/g, '$1')
     .replace(/\{\{slot:[^}]*\}\}/g, '')
     .replace(/<[^>]+>/g, '')
     .replace(/`([^`]+)`/g, '$1')
@@ -217,7 +217,7 @@ function cleanTextForExcerpt(text: string): string {
 function chunkToEmbeddingText(chunk: GuideChunk): string {
   const tagStr = chunk.tags.length > 0 ? ` [${chunk.tags.join(', ')}]` : ''
 
-  return `${chunk.title}${tagStr} - ${chunk.headingPath}: ${stripMarkdown(chunk.text)}`
+  return `${chunk.title}${tagStr} - ${chunk.headingPath}: ${toIndexableText(chunk.text)}`
 }
 
 interface ScoredChunk {
@@ -468,15 +468,16 @@ export default class GuideSearch {
       searchOptions: {
         boost: { title: 3, heading: 2, tags: 2 },
         combineWith: 'OR',
+        fuzzy: 0.2,
       },
     })
 
     const documents = this.chunks.map<KeywordDocument>((chunk, id) => ({
       id,
       title: chunk.title,
-      heading: chunk.headingPath,
+      heading: chunk.headingPath.replace(/`/g, ''),
       tags: chunk.tags.join(' '),
-      text: stripMarkdown(chunk.text),
+      text: toIndexableText(chunk.text),
     }))
 
     this.miniSearch.addAll(documents)

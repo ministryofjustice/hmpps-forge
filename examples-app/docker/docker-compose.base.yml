@@ -27,7 +27,7 @@ services:
         GIT_BRANCH: main
     command: ["dist/server.js"]
     ports:
-      - "3000:3000"
+      - "3001:3000"
       - "9229:9229"
     healthcheck:
       test: ["CMD", "/nodejs/bin/node", "-e", "fetch('http://localhost:3000/health').then(r=>{process.exit(r.ok?0:1)}).catch(()=>process.exit(1))"]
@@ -38,7 +38,7 @@ services:
       REDIS_ENABLED: true
       REDIS_HOST: redis
       SESSION_SECRET: somesecretvalue
-      INGRESS_URL: http://localhost:3000
+      INGRESS_URL: http://localhost:3001
       NO_HTTPS: true
       TOKEN_VERIFICATION_ENABLED: false
 

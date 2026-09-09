@@ -26,6 +26,19 @@ export default function setUpStaticResources(): Router {
     router.use('/assets', express.static(path.join(process.cwd(), dir), staticResourcesConfig))
   })
 
+  router.use('/assets/playground', (req, res, next) => {
+    if (!req.path.endsWith('.ts') || /\.(test|spec|d)\.ts$/.test(req.path)) {
+      next()
+
+      return
+    }
+
+    express.static(path.join(process.cwd(), 'assets/playground'), {
+      ...staticResourcesConfig,
+      setHeaders: response => response.setHeader('Content-Type', 'text/plain; charset=utf-8'),
+    })(req, res, next)
+  })
+
   // Don't cache dynamic resources
   router.use(noCache())
 

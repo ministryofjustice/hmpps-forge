@@ -1,0 +1,355 @@
+.guide-shell__main :not(pre):not(.app-code-step) > code {
+  display: inline;
+  padding: 1px 5px 2px;
+  border: 0;
+  background-color: govuk-colour("light-grey");
+  font-size: 0.9em;
+  line-height: inherit;
+}
+
+.guide-eyebrow {
+  margin-bottom: govuk-spacing(2);
+}
+
+// Running text is capped for a comfortable reading measure. Code blocks,
+// tables, headings, the deep-dive panels, and the related/next blocks stay
+// full width and so are left uncapped.
+.guide-shell__main {
+  p.govuk-body,
+  .govuk-list,
+  .govuk-inset-text {
+    max-width: 44em;
+  }
+
+  p.govuk-body {
+    line-height: 1.5;
+  }
+}
+
+.guide-related {
+  margin-bottom: govuk-spacing(6);
+  padding-bottom: govuk-spacing(4);
+  border-bottom: 1px solid $govuk-border-colour;
+
+  &__label {
+    @include govuk-font($size: 16);
+    display: block;
+    margin-bottom: govuk-spacing(2);
+    color: govuk-colour("dark-grey");
+  }
+
+  &__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: govuk-spacing(2);
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: govuk-spacing(2);
+    padding: govuk-spacing(2);
+    border: 1px solid $govuk-border-colour;
+    text-decoration: none;
+
+    &:hover {
+      background-color: govuk-colour("light-grey");
+    }
+
+    &:focus {
+      @include govuk-focused-text;
+    }
+  }
+
+  &__title {
+    color: $govuk-link-colour;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+
+.guide-next {
+  margin-top: govuk-spacing(8);
+  padding-top: govuk-spacing(4);
+  border-top: 2px solid govuk-colour("blue");
+
+  &__heading {
+    @include govuk-font($size: 24, $weight: bold);
+    margin: 0 0 govuk-spacing(4);
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: govuk-spacing(3);
+
+    @include govuk-media-query($from: desktop) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  &__card {
+    display: flex;
+    flex-direction: column;
+    gap: govuk-spacing(2);
+    padding: 16px 18px;
+    border: 1px solid $govuk-border-colour;
+
+    .app-tag {
+      align-self: flex-start;
+      width: fit-content;
+    }
+  }
+
+  &__link {
+    @include govuk-font($size: 19, $weight: bold);
+  }
+
+  &__description {
+    @include govuk-font($size: 16);
+    margin: 0;
+    color: govuk-colour("dark-grey");
+  }
+}
+
+.guide-shell__main .forge-deep-dive {
+  margin: govuk-spacing(7) 0;
+  padding: govuk-spacing(5);
+  border-radius: 8px;
+  background-color: govuk-colour("blue", $variant: "shade-50");
+  color: govuk-colour("white");
+
+  &__label {
+    @include govuk-font($size: 19, $weight: bold);
+    margin-bottom: govuk-spacing(5);
+    color: govuk-colour("blue", $variant: "tint-25");
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  &__title {
+    @include govuk-font($size: 36, $weight: bold);
+    margin: 0 0 govuk-spacing(3);
+    color: govuk-colour("white");
+  }
+
+  &__description {
+    @include govuk-font($size: 19);
+    max-width: 42rem;
+    margin: 0 0 govuk-spacing(5);
+    color: govuk-colour("black", $variant: "tint-95");
+  }
+
+  &__details {
+    margin-top: govuk-spacing(4);
+
+    &[open] > .forge-deep-dive__summary::before {
+      @include govuk-shape-arrow($direction: down, $base: 14px);
+    }
+  }
+
+  &__summary {
+    @include govuk-font($size: 19, $weight: bold);
+    position: relative;
+    display: inline-block;
+    width: fit-content;
+    padding-left: govuk-spacing(4) + $govuk-border-width;
+    color: govuk-colour("white");
+    cursor: pointer;
+    list-style: none;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: -1px;
+      bottom: 0;
+      left: 0;
+      margin: auto;
+
+      @include govuk-shape-arrow($direction: right, $base: 14px);
+    }
+
+    &:hover {
+      text-decoration-thickness: 3px;
+    }
+
+    &:focus {
+      @include govuk-focused-text;
+    }
+  }
+
+  &__body {
+    margin-top: govuk-spacing(5);
+
+    .govuk-body,
+    .govuk-list,
+    .govuk-heading-s,
+    .govuk-heading-m,
+    .govuk-heading-l {
+      color: govuk-colour("white");
+    }
+
+    .govuk-link {
+      color: govuk-colour("blue", $variant: "tint-25");
+    }
+
+    :not(pre) > code {
+      background-color: rgba(255, 255, 255, 0.14);
+      color: govuk-colour("white");
+    }
+
+    pre {
+      background-color: govuk-colour("black");
+    }
+  }
+}
+
+// Asides emitted by the `:::note` markdown block. Same panel treatment as the
+// deep-dive so the two read as one family, on an ink ground.
+// TODO: The ground colour is provisional - turquoise and a light purple/pink
+// are still candidates.
+.guide-shell__main .forge-note {
+  margin: govuk-spacing(7) 0;
+  padding: govuk-spacing(5);
+  border-radius: 8px;
+  background-color: #1c2226;
+  color: govuk-colour("black", $variant: "tint-95");
+
+  &__label {
+    @include govuk-font($size: 19, $weight: bold);
+    margin-bottom: govuk-spacing(3);
+    color: govuk-colour("blue", $variant: "tint-25");
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  &__body {
+    .govuk-body,
+    .govuk-list,
+    .govuk-heading-s,
+    .govuk-heading-m,
+    .govuk-heading-l {
+      color: govuk-colour("white");
+    }
+
+    .govuk-link {
+      color: govuk-colour("blue", $variant: "tint-25");
+    }
+
+    :not(pre) > code {
+      background-color: rgba(255, 255, 255, 0.14);
+      color: govuk-colour("white");
+    }
+
+    pre {
+      background-color: govuk-colour("black");
+    }
+
+    > :last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+// Parameter entries emitted by the `:::param` markdown block.
+.guide-shell__main .forge-param {
+  margin-bottom: govuk-spacing(5);
+
+  &--nested {
+    margin: govuk-spacing(4) 0 0;
+    padding-left: govuk-spacing(4);
+  }
+
+  &__signature {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 govuk-spacing(2);
+
+    code {
+      padding: 0;
+      background: none;
+    }
+  }
+
+  &__name {
+    font-weight: 700;
+  }
+
+  &__type {
+    color: govuk-colour("dark-grey");
+  }
+
+  &__body > :last-child {
+    margin-bottom: 0;
+  }
+}
+
+.guide-shell__main .forge-param + .forge-param {
+  position: relative;
+  margin-top: govuk-spacing(8);
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -(govuk-spacing(5));
+    right: 0;
+    left: 0;
+    border-top: 1px solid $govuk-border-colour;
+  }
+
+  &.forge-param--nested {
+    margin-top: govuk-spacing(6);
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: -(govuk-spacing(5));
+      right: 0;
+      left: govuk-spacing(4);
+      border-top: 1px solid $govuk-border-colour;
+    }
+
+    &::before {
+      top: -(govuk-spacing(3));
+    }
+  }
+}
+
+.guide-shell__main .forge-mermaid {
+  overflow-x: auto;
+  margin: govuk-spacing(7) 0;
+  padding: govuk-spacing(5);
+  border: 1px solid $govuk-border-colour;
+  border-radius: 8px;
+  background-color: govuk-colour("white");
+
+  .mermaid {
+    min-width: fit-content;
+    color: $govuk-text-colour;
+    background: transparent;
+    font-family: $govuk-font-family;
+    text-align: center;
+    white-space: normal;
+  }
+
+  svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+  }
+
+  // Mermaid wraps node labels in a `<p>` inside the label span it colours, so
+  // the app's global paragraph colour would override a classDef's `color`.
+  .nodeLabel p {
+    color: inherit;
+  }
+}

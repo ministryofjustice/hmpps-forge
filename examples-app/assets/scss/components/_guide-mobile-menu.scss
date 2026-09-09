@@ -1,0 +1,58 @@
+.guide-mobile-menu {
+  position: fixed;
+  top: $guide-header-height;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 99;
+  overflow-y: auto;
+  padding: govuk-spacing(4) govuk-spacing(6) govuk-spacing(6);
+  background: govuk-colour('white');
+  color: govuk-colour('black');
+
+  @include govuk-media-query($from: tablet) {
+    display: none;
+  }
+
+  &__list {
+    margin: 0 0 govuk-spacing(4);
+    padding: 0;
+    list-style: none;
+  }
+
+  &__item {
+    border-bottom: 1px solid $govuk-border-colour;
+  }
+
+  &__link {
+    @include govuk-font(19);
+    @include govuk-link-common;
+    @include govuk-link-style-default;
+    display: block;
+    padding: govuk-spacing(3) 0;
+
+    &:link,
+    &:visited {
+      color: $govuk-link-colour;
+      text-decoration: none;
+    }
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__link--active {
+    font-weight: bold;
+  }
+
+  &__side-nav .guide-side-nav {
+    margin-bottom: 0;
+    padding-right: 0;
+  }
+}
+
+// Stop the page behind the open menu from scrolling.
+.guide-mobile-menu-open {
+  overflow: hidden;
+}

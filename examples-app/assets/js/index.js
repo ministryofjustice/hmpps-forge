@@ -1,13 +1,23 @@
+import { PlaygroundInitializer } from './playground/initializer.mjs'
 import '../scss/index.scss'
 import * as govukFrontend from 'govuk-frontend'
 import * as mojFrontend from '@ministryofjustice/frontend'
 import { initScrollRestore } from './scroll-restore.mjs'
 import { initPatternCodeTabs } from './pattern-code-tabs.mjs'
+import { initGuideSideNav } from './guide-side-nav.mjs'
+import { initGuideToc } from './guide-toc.mjs'
+import { initFrameSequence } from './frame-sequence.mjs'
+import { initMermaid } from './mermaid.mjs'
 
 govukFrontend.initAll()
 mojFrontend.initAll()
 initScrollRestore()
 initPatternCodeTabs()
+initGuideSideNav()
+initGuideToc()
+initFrameSequence()
+initMermaid()
+new PlaygroundInitializer().start()
 
 document.querySelectorAll('#main h2[id], #main h3[id], #main h4[id]').forEach(heading => {
   const anchor = document.createElement('a')
@@ -30,13 +40,13 @@ document.querySelectorAll('#main h2[id], #main h3[id], #main h4[id]').forEach(he
   })
 })
 
-const searchToggle = document.querySelector('.guide-search-toggle')
+const searchToggle = document.querySelector('.guide-search-toggle, .guide-header__search')
 const searchPanel = document.getElementById('guide-search-panel')
 
 if (searchToggle && searchPanel) {
   const searchInput = searchPanel.querySelector('input')
 
-  searchToggle.addEventListener('click', () => {
+  const toggleSearchPanel = () => {
     const expanded = searchToggle.getAttribute('aria-expanded') === 'true'
 
     searchToggle.setAttribute('aria-expanded', String(!expanded))
@@ -45,19 +55,41 @@ if (searchToggle && searchPanel) {
     if (!expanded && searchInput) {
       searchInput.focus()
     }
+  }
+
+  searchToggle.addEventListener('click', toggleSearchPanel)
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault()
+      toggleSearchPanel()
+    }
   })
 }
 
-const backToTop = document.querySelector('.guide-back-to-top')
+const menuToggle = document.querySelector('.guide-header__menu-toggle')
+const mobileMenu = document.getElementById('guide-mobile-menu')
 
-if (backToTop) {
-  const footer = document.querySelector('.govuk-footer')
-  const threshold = window.innerHeight * 1.3
+if (menuToggle && mobileMenu) {
+  menuToggle.addEventListener('click', () => {
+    const expanded = menuToggle.getAttribute('aria-expanded') === 'true'
 
-  window.addEventListener('scroll', () => {
-    const pastThreshold = window.scrollY > threshold
-    const footerVisible = footer && footer.getBoundingClientRect().top < window.innerHeight
-
-    backToTop.classList.toggle('guide-back-to-top--visible', pastThreshold && !footerVisible)
+    menuToggle.setAttribute('aria-expanded', String(!expanded))
+    mobileMenu.hidden = expanded
+    document.documentElement.classList.toggle('guide-mobile-menu-open', !expanded)
   })
 }
+
+// const backToTop = document.querySelector('.guide-back-to-top')
+//
+// if (backToTop) {
+//   const footer = document.querySelector('.govuk-footer')
+//   const threshold = window.innerHeight * 1.3
+//
+//   window.addEventListener('scroll', () => {
+//     const pastThreshold = window.scrollY > threshold
+//     const footerVisible = footer && footer.getBoundingClientRect().top < window.innerHeight
+//
+//     backToTop.classList.toggle('guide-back-to-top--visible', pastThreshold && !footerVisible)
+//   })
+// }

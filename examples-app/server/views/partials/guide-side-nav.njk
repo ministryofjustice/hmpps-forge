@@ -1,0 +1,48 @@
+{# Section side navigation, shared by the desktop shell rail and the mobile
+   menu. Inputs: sideNavTitle, sideNavItems, and sideNavIdPrefix (unique per
+   inclusion so heading/section ids never collide). #}
+<nav class="guide-side-nav" aria-label="{{ sideNavTitle }}">
+  {% set navTree = sideNavItems | buildNavTree %}
+
+  {% for item in navTree.items %}
+    <div class="guide-side-nav__item{% if item.active %} guide-side-nav__item--current{% endif %}">
+      <a class="guide-side-nav__link govuk-link govuk-link--no-visited-state govuk-link--no-underline" href="{{ item.path }}"{% if item.active %} aria-current="page"{% endif %}>
+        {{ item.route.title }}
+      </a>
+    </div>
+  {% endfor %}
+
+  {% for group in navTree.children %}
+    {% set groupIndex = loop.index %}
+    <section class="guide-side-nav__category">
+      <h3 class="guide-side-nav__category-heading">{{ group.name }}</h3>
+      <ul class="guide-side-nav__category-section">
+        {% for item in group.items %}
+          <li class="guide-side-nav__item{% if item.active %} guide-side-nav__item--current{% endif %}">
+            <a class="guide-side-nav__link govuk-link govuk-link--no-visited-state govuk-link--no-underline" href="{{ item.path }}"{% if item.active %} aria-current="page"{% endif %}>
+              {{ item.route.title }}
+            </a>
+          </li>
+        {% endfor %}
+        {% for subGroup in group.children %}
+          <li class="guide-side-nav__group guide-side-nav__subgroup{% if subGroup.active %} guide-side-nav__group--open guide-side-nav__group--current{% endif %}">
+            <h4 class="guide-side-nav__subheading">
+              <button type="button" class="guide-side-nav__toggle guide-side-nav__subtoggle" aria-expanded="{{ 'true' if subGroup.active else 'false' }}" aria-controls="{{ sideNavIdPrefix }}-section-{{ groupIndex }}-{{ loop.index }}">
+                <span class="guide-side-nav__label">{{ subGroup.name }}</span>
+              </button>
+            </h4>
+            <ul class="guide-side-nav__section guide-side-nav__sublist" id="{{ sideNavIdPrefix }}-section-{{ groupIndex }}-{{ loop.index }}">
+              {% for item in subGroup.items %}
+                <li class="guide-side-nav__item{% if item.active %} guide-side-nav__item--current{% endif %}">
+                  <a class="guide-side-nav__link govuk-link govuk-link--no-visited-state govuk-link--no-underline" href="{{ item.path }}"{% if item.active %} aria-current="page"{% endif %}>
+                    {{ item.route.title }}
+                  </a>
+                </li>
+              {% endfor %}
+            </ul>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endfor %}
+</nav>

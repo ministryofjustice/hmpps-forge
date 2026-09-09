@@ -1,0 +1,174 @@
+// The carousel emitted by the `::::frame-sequence` markdown block: a card whose
+// viewport slides between frames, with the active frame's caption in the panel
+// beneath it. The panel takes the deep-dive's ground so the two read as one
+// family.
+.guide-shell__main .forge-frame-sequence {
+  overflow: hidden;
+  margin: govuk-spacing(7) 0;
+  border: 1px solid $govuk-border-colour;
+  border-radius: 8px;
+  background-color: govuk-colour("white");
+
+  &__header {
+    padding: govuk-spacing(3) govuk-spacing(5);
+    border-bottom: 1px solid $govuk-border-colour;
+  }
+
+  &__title {
+    @include govuk-font($size: 19, $weight: bold);
+    margin: 0;
+  }
+
+  &__viewport {
+    overflow: hidden;
+    height: 340px;
+
+    @include govuk-media-query($until: tablet) {
+      height: 280px;
+    }
+
+    &:focus {
+      outline: $govuk-focus-width solid $govuk-focus-colour;
+      outline-offset: -$govuk-focus-width;
+    }
+  }
+
+  &__track {
+    display: flex;
+    height: 100%;
+    transition: transform 0.3s ease;
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+
+  &__frame {
+    box-sizing: border-box;
+    display: flex;
+    flex: 0 0 100%;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    padding: govuk-spacing(4);
+
+    // A diagram floats in the frame rather than sitting in its own card, so the
+    // panel treatment the mermaid block carries on its own is stripped back out.
+    // The flex frame would shrink-wrap the block to the SVG's 300px fallback
+    // size, so it takes the frame's full width and lets the SVG scale into it.
+    .forge-mermaid {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: none;
+
+      svg {
+        max-height: 300px;
+      }
+    }
+  }
+
+  &__panel {
+    // Roughly a title plus a two-line description, so the footer doesn't jump
+    // when a caption has little or no description text.
+    min-height: 150px;
+    box-sizing: border-box;
+    padding: govuk-spacing(5);
+    background-color: govuk-colour("blue", $variant: "shade-50");
+    color: govuk-colour("white");
+  }
+
+  &__eyebrow {
+    @include govuk-font($size: 16, $weight: bold);
+    margin: 0 0 govuk-spacing(2);
+    color: govuk-colour("blue", $variant: "tint-25");
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  &__caption-title {
+    @include govuk-font($size: 24, $weight: bold);
+    margin: 0 0 govuk-spacing(2);
+    color: govuk-colour("white");
+  }
+
+  &__description {
+    @include govuk-font($size: 19);
+
+    .govuk-body,
+    .govuk-list,
+    .govuk-heading-s,
+    .govuk-heading-m,
+    .govuk-heading-l {
+      color: govuk-colour("white");
+    }
+
+    .govuk-link {
+      color: govuk-colour("blue", $variant: "tint-25");
+    }
+
+    :not(pre) > code {
+      background-color: rgba(255, 255, 255, 0.14);
+      color: govuk-colour("white");
+    }
+
+    > :last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: govuk-spacing(3) govuk-spacing(5);
+  }
+
+  &__nav {
+    @include govuk-font($size: 16, $weight: bold);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: $govuk-link-colour;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:disabled {
+      color: govuk-colour("black", $variant: "tint-80");
+      cursor: default;
+      text-decoration: none;
+    }
+
+    &:focus {
+      @include govuk-focused-text;
+    }
+  }
+
+  &__dots {
+    display: flex;
+    gap: govuk-spacing(2);
+  }
+
+  &__dot {
+    width: 10px;
+    height: 10px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background-color: govuk-colour("black", $variant: "tint-80");
+    cursor: pointer;
+
+    // A 10px circle is too small for the yellow-block focus treatment the nav
+    // links use, so the dots take an outline instead.
+    &:focus {
+      outline: $govuk-focus-width solid $govuk-focus-colour;
+      outline-offset: 2px;
+    }
+
+    &--active {
+      background-color: govuk-colour("blue", $variant: "shade-50");
+    }
+  }
+}

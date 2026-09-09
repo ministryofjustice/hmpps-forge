@@ -1,0 +1,45 @@
+.guide-toc {
+  @include govuk-font($size: 16);
+
+  &__heading {
+    @include govuk-font($size: 16, $weight: bold);
+    margin: 0 0 govuk-spacing(2);
+  }
+
+  &__list {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+  }
+
+  &__item {
+    margin: 0;
+  }
+
+  &__item--nested &__link {
+    padding-left: govuk-spacing(3);
+  }
+
+  &__link {
+    display: block;
+    padding: govuk-spacing(2) 0;
+    text-decoration: none;
+
+    &:link,
+    &:visited {
+      color: $govuk-link-colour;
+    }
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:focus {
+      @include govuk-focused-text;
+    }
+  }
+
+  &__link--active {
+    font-weight: bold;
+  }
+}

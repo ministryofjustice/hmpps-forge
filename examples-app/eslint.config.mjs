@@ -5,7 +5,7 @@ export default [
     ignores: ['rolldown/**', 'assets/**'],
   },
   ...hmppsConfig({
-    extraPathsAllowingDevDependencies: ['vitest.config.ts'],
+    extraPathsAllowingDevDependencies: ['vitest.config.ts', 'vitest.eval.config.ts'],
   }),
   {
     rules: {
