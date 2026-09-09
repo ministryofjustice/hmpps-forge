@@ -63,8 +63,31 @@ export const encodeInlineSourceMap = (
   const mappings = [...Array<string>(lineOffset).fill(''), ...mappingLines].join(';')
   const sourceMap = { version: 3, sources, names: [], mappings }
 
-  return `data:application/json;base64,${Buffer.from(JSON.stringify(sourceMap), 'utf8').toString('base64')}`
+  return `data:application/json;base64,${encodeBase64(JSON.stringify(sourceMap))}`
 }
+
+const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+
+// Pure JS so the encoder runs in browsers too - `Buffer` is Node-only and `btoa` cannot take
+// multi-byte characters without a byte-mangling detour.
+/* eslint-disable no-bitwise -- base64 is a bit-packing format */
+const encodeBase64 = (value: string): string => {
+  const bytes = new TextEncoder().encode(value)
+  let encoded = ''
+
+  for (let index = 0; index < bytes.length; index += 3) {
+    const chunk = [bytes[index], bytes[index + 1], bytes[index + 2]]
+    const bits = (chunk[0] << 16) | ((chunk[1] ?? 0) << 8) | (chunk[2] ?? 0)
+
+    encoded += BASE64_ALPHABET[(bits >> 18) & 63]
+    encoded += BASE64_ALPHABET[(bits >> 12) & 63]
+    encoded += chunk[1] === undefined ? '=' : BASE64_ALPHABET[(bits >> 6) & 63]
+    encoded += chunk[2] === undefined ? '=' : BASE64_ALPHABET[bits & 63]
+  }
+
+  return encoded
+}
+/* eslint-enable no-bitwise */
 
 const VLQ_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 

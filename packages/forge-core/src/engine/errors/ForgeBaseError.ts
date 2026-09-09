@@ -76,7 +76,9 @@ export default abstract class ForgeBaseError extends Error {
 
   private renderStack(): string {
     const frames = DiagnosticErrorFormatter.extractStackFrames(this.stackBodySource())
-    const foldDisabled = process.env.FORGE_FULL_STACK === '1' || !this.foldsInternalStackFrames
+    // `typeof` guard: bare `process` throws a ReferenceError in browsers.
+    const fullStackRequested = typeof process !== 'undefined' && process.env?.FORGE_FULL_STACK === '1'
+    const foldDisabled = fullStackRequested || !this.foldsInternalStackFrames
     const frameLines = foldDisabled
       ? frames.map(frame => `    at ${frame}`)
       : DiagnosticErrorFormatter.foldStackFrames(frames)
