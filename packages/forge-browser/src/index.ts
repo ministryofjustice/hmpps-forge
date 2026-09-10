@@ -1,3 +1,32 @@
+/**
+ * Browser adapter for Forge: run mounted journeys entirely client-side.
+ *
+ * Register packages with normal Forge and supply precompiled Nunjucks templates.
+ * Forge compiles journeys in the browser, requiring CSP to allow 'unsafe-eval'.
+ *
+ * @example
+ * ```typescript
+ * import { Forge } from '@ministryofjustice/hmpps-forge/core'
+ * import { createBrowserApp, NunjucksBrowserRenderer, WindowBrowserHost } from '@ministryofjustice/hmpps-forge/browser'
+ * import { myPackage } from './journey'
+ *
+ * const forge = new Forge({ logger: console }).registerPackage(myPackage)
+ * const app = createBrowserApp(forge, {
+ *   renderer: new NunjucksBrowserRenderer({ templateEnv }),
+ *   container,
+ *   host: new WindowBrowserHost({ container }),
+ *   onRender: ({ html, container }) => {
+ *     container.innerHTML = html
+ *   },
+ *   onError: ({ error, container }) => {
+ *     console.error(error)
+ *     container.innerHTML = templateEnv.render('error.njk')
+ *   },
+ * })
+ *
+ * await app.start({ fallbackPath: '/my-journey/start' })
+ * ```
+ */
 export { createBrowserApp } from './adapter/createBrowserApp'
 export { default as BrowserForgeApp } from './adapter/BrowserForgeApp'
 export type {

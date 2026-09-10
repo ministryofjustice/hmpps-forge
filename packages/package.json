@@ -109,6 +109,7 @@
   "files": [
     "dist/**/*",
     "forge-browser/src/**/*",
+    "forge-browser/README.md",
     "forge-core/src/**/*",
     "forge-devtools/src/**/*",
     "forge-express-nunjucks/src/**/*",
