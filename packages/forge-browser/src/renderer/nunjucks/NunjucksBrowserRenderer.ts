@@ -1,8 +1,8 @@
 import type { BlockDefinition, RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
 import type { NodeId, RenderContext, RouteTreeNode } from '@ministryofjustice/hmpps-forge/core/framework'
 import nunjucks from 'nunjucks'
-import BrowserPrecompiledLoader from './BrowserPrecompiledLoader'
-import type { BrowserRenderingEngine } from './BrowserRenderingEngine.type'
+import NunjucksPrecompiledLoader from './NunjucksPrecompiledLoader'
+import type { BrowserRenderingEngine } from '../BrowserRenderingEngine.type'
 import type {
   BrowserTemplateEnvironment,
   PrecompiledTemplateLoader,
@@ -105,7 +105,7 @@ export default class NunjucksBrowserRenderer implements BrowserRenderingEngine {
     }
 
     const configuredLoaders = loaders.map(loader =>
-      this.isDefaultPrecompiledLoader(loader) ? new BrowserPrecompiledLoader(loader.precompiled) : loader,
+      this.isDefaultPrecompiledLoader(loader) ? new NunjucksPrecompiledLoader(loader.precompiled) : loader,
     )
 
     if (configuredLoaders.every((loader, index) => loader === loaders[index])) {

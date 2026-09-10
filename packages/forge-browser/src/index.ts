@@ -52,11 +52,11 @@ export type {
   BrowserStorage,
   ForgeContainer,
 } from './adapter/types'
-export { default as NunjucksBrowserRenderer } from './renderer/NunjucksBrowserRenderer'
-export type { NunjucksBrowserRendererOptions } from './renderer/NunjucksBrowserRenderer'
+export { default as NunjucksBrowserRenderer } from './renderer/nunjucks/NunjucksBrowserRenderer'
+export type { NunjucksBrowserRendererOptions } from './renderer/nunjucks/NunjucksBrowserRenderer'
 export type {
   BrowserTemplateEnvironment,
   TemplateBlock,
   TemplateContext,
   TemplateNavigationItem,
-} from './renderer/types'
+} from './renderer/nunjucks/types'

@@ -2,15 +2,15 @@ import { createRequire } from 'node:module'
 import { dirname } from 'node:path'
 import { runInNewContext } from 'node:vm'
 import nunjucks from 'nunjucks'
-import BrowserPrecompiledLoader from './BrowserPrecompiledLoader'
+import NunjucksPrecompiledLoader from './NunjucksPrecompiledLoader'
 
-describe('BrowserPrecompiledLoader', () => {
+describe('NunjucksPrecompiledLoader', () => {
   let templates: Record<string, object>
   let environment: nunjucks.Environment
 
   beforeEach(() => {
     templates = {}
-    environment = new nunjucks.Environment(new BrowserPrecompiledLoader(templates))
+    environment = new nunjucks.Environment(new NunjucksPrecompiledLoader(templates))
 
     Object.entries({
       'app/page.njk':
@@ -93,8 +93,8 @@ describe('BrowserPrecompiledLoader', () => {
     it('should use the next loader when the first registry has no matching template', () => {
       // Arrange
       const fallbackEnvironment = new nunjucks.Environment([
-        new BrowserPrecompiledLoader({}),
-        new BrowserPrecompiledLoader(templates),
+        new NunjucksPrecompiledLoader({}),
+        new NunjucksPrecompiledLoader(templates),
       ])
 
       // Act

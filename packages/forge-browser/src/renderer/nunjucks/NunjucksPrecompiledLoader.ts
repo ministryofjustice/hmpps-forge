@@ -1,7 +1,7 @@
 import nunjucks from 'nunjucks'
 
 /** Loads precompiled templates using relative names within the supplied registry. */
-export default class BrowserPrecompiledLoader extends nunjucks.PrecompiledLoader {
+export default class NunjucksPrecompiledLoader extends nunjucks.PrecompiledLoader {
   constructor(templates: Record<string, object>) {
     // Nunjucks accepts a template map, but its community typings declare an array.
     super(templates as unknown as ConstructorParameters<typeof nunjucks.PrecompiledLoader>[0])

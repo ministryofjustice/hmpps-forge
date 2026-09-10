@@ -1,7 +1,7 @@
 import type { NodeId, RenderContext } from '@ministryofjustice/hmpps-forge/core/framework'
 import { runInNewContext } from 'node:vm'
 import nunjucks from 'nunjucks'
-import BrowserPrecompiledLoader from './BrowserPrecompiledLoader'
+import NunjucksPrecompiledLoader from './NunjucksPrecompiledLoader'
 import NunjucksBrowserRenderer from './NunjucksBrowserRenderer'
 import type { BrowserTemplateEnvironment } from './types'
 
@@ -72,7 +72,7 @@ describe('NunjucksBrowserRenderer', () => {
       })
       vi.stubGlobal('window', { nunjucksPrecompiled: templates })
 
-      const customLoader = new BrowserPrecompiledLoader({})
+      const customLoader = new NunjucksPrecompiledLoader({})
       const environment: nunjucks.Environment & { loaders?: nunjucks.Loader[] } = new nunjucks.Environment([
         customLoader,
       ])
@@ -88,7 +88,7 @@ describe('NunjucksBrowserRenderer', () => {
       expect(html).toBe('Hello ADA &lt;LOVELACE&gt;')
       expect(renderer.getAdapterDependencies().nunjucksEnv).toBe(environment)
       expect(environment.render('app/page.njk', { name: 'Ada <Lovelace>' })).toBe('Hello ADA &lt;LOVELACE&gt;')
-      expect(environment.loaders?.[0]).toBeInstanceOf(BrowserPrecompiledLoader)
+      expect(environment.loaders?.[0]).toBeInstanceOf(NunjucksPrecompiledLoader)
       expect(environment.loaders?.[1]).toBe(customLoader)
     })
   })
