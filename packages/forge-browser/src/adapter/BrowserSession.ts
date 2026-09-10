@@ -1,7 +1,7 @@
 import type { BrowserStorage } from './types'
 
 export interface BrowserSessionOptions {
-  /** Where to persist the session between page loads - typically `sessionStorage`. Omit for in-memory only. */
+  /** Where to persist the session between page loads. Defaults to browser `sessionStorage` when available. */
   readonly storage?: BrowserStorage
   /** @default 'forge-browser-session' */
   readonly storageKey?: string
@@ -16,18 +16,16 @@ export interface BrowserSessionOptions {
  * commonly key their stores on.
  */
 export default class BrowserSession {
-  private constructor(
-    private readonly state: Record<string, unknown>,
-    private readonly storage: BrowserStorage | undefined,
-    private readonly storageKey: string,
-  ) {}
+  private readonly state: Record<string, unknown>
 
-  static create(options: BrowserSessionOptions = {}): BrowserSession {
-    const storageKey = options.storageKey ?? 'forge-browser-session'
-    const restored = BrowserSession.restore(options.storage, storageKey)
-    const state = restored ?? { id: crypto.randomUUID() }
+  private readonly storage: BrowserStorage | undefined
 
-    return new BrowserSession(state, options.storage, storageKey)
+  private readonly storageKey: string
+
+  constructor(options: BrowserSessionOptions = {}) {
+    this.storage = options.storage ?? BrowserSession.getDefaultStorage()
+    this.storageKey = options.storageKey ?? 'forge-browser-session'
+    this.state = BrowserSession.restore(this.storage, this.storageKey) ?? { id: crypto.randomUUID() }
   }
 
   /** The live mutable session object handed to every snapshot. */
@@ -44,6 +42,15 @@ export default class BrowserSession {
       this.storage.setItem(this.storageKey, JSON.stringify(this.state))
     } catch {
       // Storage can be blocked or full; the live session remains usable in memory.
+    }
+  }
+
+  private static getDefaultStorage(): BrowserStorage | undefined {
+    try {
+      return globalThis.sessionStorage
+    } catch {
+      // Browsers can reject access to sessionStorage before any read or write.
+      return undefined
     }
   }
 

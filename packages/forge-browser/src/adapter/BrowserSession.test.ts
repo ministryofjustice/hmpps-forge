@@ -14,10 +14,67 @@ function createFakeStorage(initial: Record<string, string> = {}): BrowserStorage
 }
 
 describe('BrowserSession', () => {
-  describe('create()', () => {
-    it('should seed a fresh session with an id when no storage is supplied', () => {
-      // Arrange & Act
-      const session = BrowserSession.create()
+  beforeEach(() => {
+    vi.stubGlobal('sessionStorage', undefined)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  describe('constructor()', () => {
+    it('should restore from browser sessionStorage when no storage is supplied', () => {
+      // Arrange
+      const storage = createFakeStorage({ 'forge-browser-session': '{"id":"restored","draft":{"name":"Ada"}}' })
+
+      vi.stubGlobal('sessionStorage', storage)
+
+      // Act
+      const session = new BrowserSession()
+
+      // Assert
+      expect(session.getState()).toEqual({ id: 'restored', draft: { name: 'Ada' } })
+    })
+
+    it('should use the supplied storage when browser sessionStorage is also available', () => {
+      // Arrange
+      const browserStorage = createFakeStorage({ 'forge-browser-session': '{"id":"browser"}' })
+      const storage = createFakeStorage({ 'forge-browser-session': '{"id":"custom"}' })
+
+      vi.stubGlobal('sessionStorage', browserStorage)
+
+      // Act
+      const session = new BrowserSession({ storage })
+
+      // Assert
+      expect(session.getState()).toEqual({ id: 'custom' })
+    })
+
+    it('should retain a usable session when accessing browser sessionStorage throws', () => {
+      // Arrange
+      Object.defineProperty(globalThis, 'sessionStorage', {
+        configurable: true,
+        get: () => {
+          throw new DOMException('Access denied', 'SecurityError')
+        },
+      })
+
+      // Act
+      const session = new BrowserSession()
+
+      session.getState().draft = { name: 'Ada' }
+      session.persist()
+
+      // Assert
+      expect(session.getState()).toEqual({ id: expect.any(String), draft: { name: 'Ada' } })
+    })
+
+    it('should seed a fresh session with an id when browser storage is absent', () => {
+      // Arrange
+      const options = {}
+
+      // Act
+      const session = new BrowserSession(options)
 
       // Assert
       expect(session.getState().id).toEqual(expect.any(String))
@@ -28,7 +85,7 @@ describe('BrowserSession', () => {
       const storage = createFakeStorage({ 'forge-browser-session': '{"id":"restored","answers":{"name":"Ada"}}' })
 
       // Act
-      const session = BrowserSession.create({ storage })
+      const session = new BrowserSession({ storage })
 
       // Assert
       expect(session.getState()).toEqual({ id: 'restored', answers: { name: 'Ada' } })
@@ -39,7 +96,7 @@ describe('BrowserSession', () => {
       const storage = createFakeStorage({ 'forge-browser-session': 'not-json{' })
 
       // Act
-      const session = BrowserSession.create({ storage })
+      const session = new BrowserSession({ storage })
 
       // Assert
       expect(session.getState().id).toEqual(expect.any(String))
@@ -52,7 +109,7 @@ describe('BrowserSession', () => {
         const storage = createFakeStorage({ 'forge-browser-session': persistedValue })
 
         // Act
-        const session = BrowserSession.create({ storage })
+        const session = new BrowserSession({ storage })
 
         // Assert
         expect(session.getState().id).toEqual(expect.any(String))
@@ -69,7 +126,7 @@ describe('BrowserSession', () => {
       }
 
       // Act
-      const session = BrowserSession.create({ storage })
+      const session = new BrowserSession({ storage })
 
       // Assert
       expect(session.getState().id).toEqual(expect.any(String))
@@ -77,10 +134,30 @@ describe('BrowserSession', () => {
   })
 
   describe('persist()', () => {
+    it('should write to browser sessionStorage when no storage is supplied', () => {
+      // Arrange
+      const storage = createFakeStorage()
+
+      vi.stubGlobal('sessionStorage', storage)
+
+      const session = new BrowserSession()
+
+      session.getState().draft = { name: 'Ada' }
+
+      // Act
+      session.persist()
+
+      // Assert
+      expect(JSON.parse(storage.store.get('forge-browser-session') ?? '')).toEqual({
+        id: session.getState().id,
+        draft: { name: 'Ada' },
+      })
+    })
+
     it('should write the current state as JSON when storage is supplied', () => {
       // Arrange
       const storage = createFakeStorage()
-      const session = BrowserSession.create({ storage, storageKey: 'demo-session' })
+      const session = new BrowserSession({ storage, storageKey: 'demo-session' })
 
       session.getState().answers = { name: 'Ada' }
 
@@ -94,9 +171,9 @@ describe('BrowserSession', () => {
       })
     })
 
-    it('should do nothing when no storage is supplied', () => {
+    it('should do nothing when browser storage is absent', () => {
       // Arrange
-      const session = BrowserSession.create()
+      const session = new BrowserSession()
 
       // Act
       const act = () => session.persist()
@@ -113,7 +190,7 @@ describe('BrowserSession', () => {
           throw new DOMException('Storage quota exceeded', 'QuotaExceededError')
         },
       }
-      const session = BrowserSession.create({ storage })
+      const session = new BrowserSession({ storage })
 
       session.getState().answers = { name: 'Ada' }
 
@@ -128,7 +205,7 @@ describe('BrowserSession', () => {
     it('should retain the in-memory session when its state cannot be serialized', () => {
       // Arrange
       const storage = createFakeStorage()
-      const session = BrowserSession.create({ storage })
+      const session = new BrowserSession({ storage })
 
       session.getState().circular = session.getState()
 

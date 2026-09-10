@@ -1,4 +1,10 @@
 import { RenderBlock, RenderContext, RouteTreeRouteKind } from '@ministryofjustice/hmpps-forge/core/framework'
+import type { Loader, PrecompiledLoader } from 'nunjucks'
+
+/** Runtime properties omitted by the Nunjucks community typings. */
+export interface PrecompiledTemplateLoader extends PrecompiledLoader {
+  precompiled: Record<string, object>
+}
 
 /**
  * The template environment the renderer needs: nunjucks-shaped, but structural
@@ -6,6 +12,8 @@ import { RenderBlock, RenderContext, RouteTreeRouteKind } from '@ministryofjusti
  * precompiled templates - the browser never compiles a template.
  */
 export interface BrowserTemplateEnvironment {
+  loaders?: Loader[]
+  invalidateCache?(): void
   getTemplate(name: string): { render(context?: object): string }
   render(name: string, context?: object): string
 }

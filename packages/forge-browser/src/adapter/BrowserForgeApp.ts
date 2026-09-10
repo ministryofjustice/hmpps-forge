@@ -1,9 +1,12 @@
-import type { ForgeError, ForgeOutcome, ForgeRenderer, HttpMethod } from '@ministryofjustice/hmpps-forge/core/framework'
+import type { ForgeError, ForgeOutcome, HttpMethod } from '@ministryofjustice/hmpps-forge/core/framework'
+import type { BrowserRenderingEngine } from '../renderer/BrowserRenderingEngine.type'
 import BrowserNavigationUrl from './BrowserNavigationUrl'
 import BrowserRouteResolver from './BrowserRouteResolver'
 import type { ResolvedBrowserRoute } from './BrowserRouteResolver'
 import BrowserSnapshotFactory from './BrowserSnapshotFactory'
 import BrowserSession from './BrowserSession'
+import WindowBrowserHost from './WindowBrowserHost'
+import type { WindowBrowserHostOptions } from './WindowBrowserHost'
 import type {
   BrowserForge,
   BrowserHost,
@@ -14,11 +17,11 @@ import type {
 } from './types'
 
 export interface BrowserForgeAppOptions {
-  readonly adapterDependencies?: object
-  readonly renderer: ForgeRenderer<string>
-  readonly container: ForgeContainer
-  readonly host: BrowserHost
-  /** @default BrowserSession.create() - in-memory only */
+  readonly renderingEngine: BrowserRenderingEngine
+  readonly container: ForgeContainer & WindowBrowserHostOptions['container']
+  /** @default new WindowBrowserHost({ container }) */
+  readonly host?: BrowserHost
+  /** @default new BrowserSession() - persists to browser sessionStorage when available */
   readonly session?: BrowserSession
   /** Owns committing successful HTML and initializing its browser behaviour. */
   readonly onRender: (event: BrowserRenderEvent) => Promise<void> | void
@@ -89,9 +92,9 @@ const MAX_REDIRECTS = 10
  * re-homed onto the history API.
  */
 export default class BrowserForgeApp {
-  private readonly adapterDependencies?: object
+  private readonly adapterDependencies: object
 
-  private readonly renderer: ForgeRenderer<string>
+  private readonly renderingEngine: BrowserRenderingEngine
 
   private readonly container: ForgeContainer
 
@@ -125,11 +128,11 @@ export default class BrowserForgeApp {
       throw new Error('BrowserForgeApp requires an onError handler')
     }
 
-    this.adapterDependencies = options.adapterDependencies
-    this.renderer = options.renderer
+    this.renderingEngine = options.renderingEngine
+    this.adapterDependencies = { ...this.renderingEngine.getAdapterDependencies() }
     this.container = options.container
-    this.host = options.host
-    this.session = options.session ?? BrowserSession.create()
+    this.host = options.host ?? new WindowBrowserHost({ container: options.container })
+    this.session = options.session ?? new BrowserSession()
     this.onRender = options.onRender
     this.onError = options.onError
   }
@@ -405,7 +408,7 @@ export default class BrowserForgeApp {
 
     const outcome = await this.forge.execute({
       snapshot,
-      renderer: this.renderer,
+      renderer: this.renderingEngine,
       adapterDependencies: this.adapterDependencies,
     })
 

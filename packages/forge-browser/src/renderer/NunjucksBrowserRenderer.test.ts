@@ -1,4 +1,7 @@
 import type { NodeId, RenderContext } from '@ministryofjustice/hmpps-forge/core/framework'
+import { runInNewContext } from 'node:vm'
+import nunjucks from 'nunjucks'
+import BrowserPrecompiledLoader from './BrowserPrecompiledLoader'
 import NunjucksBrowserRenderer from './NunjucksBrowserRenderer'
 import type { BrowserTemplateEnvironment } from './types'
 
@@ -31,11 +34,19 @@ describe('NunjucksBrowserRenderer', () => {
     }
   })
 
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   describe('constructor()', () => {
     it('should preserve loader methods when an environment has custom loaders', () => {
       // Arrange
-      const loader = Object.freeze({ isRelative: vi.fn(), resolve: vi.fn() })
-      const environment = { ...templateEnv, loaders: [loader] }
+      const loader = new nunjucks.Loader()
+      const isRelative = vi.spyOn(loader, 'isRelative')
+      const resolve = vi.spyOn(loader, 'resolve')
+      const environment = { ...templateEnv, loaders: [loader], invalidateCache: vi.fn() }
+
+      Object.freeze(loader)
 
       // Act
       const renderer = new NunjucksBrowserRenderer({ templateEnv: environment })
@@ -43,8 +54,56 @@ describe('NunjucksBrowserRenderer', () => {
       // Assert
       expect(renderer).toBeDefined()
       expect(environment.loaders).toEqual([loader])
-      expect(loader.isRelative).not.toHaveBeenCalled()
-      expect(loader.resolve).not.toHaveBeenCalled()
+      expect(isRelative).not.toHaveBeenCalled()
+      expect(resolve).not.toHaveBeenCalled()
+      expect(environment.invalidateCache).not.toHaveBeenCalled()
+    })
+
+    it('should configure relative template loading when standard precompiled templates are present', () => {
+      // Arrange
+      const templates: Record<string, object> = {}
+      const sources = {
+        'app/page.njk': '{% include "./partial.njk" %}',
+        'app/partial.njk': '{{ greeting }} {{ name | shout }}',
+      }
+
+      Object.entries(sources).forEach(([name, source]) => {
+        runInNewContext(nunjucks.precompileString(source, { name }), { window: { nunjucksPrecompiled: templates } })
+      })
+      vi.stubGlobal('window', { nunjucksPrecompiled: templates })
+
+      const customLoader = new BrowserPrecompiledLoader({})
+      const environment: nunjucks.Environment & { loaders?: nunjucks.Loader[] } = new nunjucks.Environment([
+        customLoader,
+      ])
+
+      environment.addGlobal('greeting', 'Hello')
+      environment.addFilter('shout', (value: string) => value.toUpperCase())
+
+      // Act
+      const renderer = new NunjucksBrowserRenderer({ templateEnv: environment, defaultTemplate: 'app/page' })
+      const html = renderer.assemblePage(createRenderContext(), [], { name: 'Ada <Lovelace>' })
+
+      // Assert
+      expect(html).toBe('Hello ADA &lt;LOVELACE&gt;')
+      expect(renderer.getAdapterDependencies().nunjucksEnv).toBe(environment)
+      expect(environment.render('app/page.njk', { name: 'Ada <Lovelace>' })).toBe('Hello ADA &lt;LOVELACE&gt;')
+      expect(environment.loaders?.[0]).toBeInstanceOf(BrowserPrecompiledLoader)
+      expect(environment.loaders?.[1]).toBe(customLoader)
+    })
+  })
+
+  describe('getAdapterDependencies()', () => {
+    it('should supply the page environment when component rendering requests its dependencies', () => {
+      // Arrange
+      const renderer = new NunjucksBrowserRenderer({ templateEnv })
+
+      // Act
+      const dependencies = renderer.getAdapterDependencies()
+
+      // Assert
+      expect(dependencies).toEqual({ nunjucksEnv: templateEnv })
+      expect(dependencies.nunjucksEnv).toBe(templateEnv)
     })
   })
 

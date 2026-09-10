@@ -1,10 +1,11 @@
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
 import { createForgePackage, journey, redirect, step, submit } from '@ministryofjustice/hmpps-forge/core/authoring'
-import type { ForgeRenderer, RenderContext } from '@ministryofjustice/hmpps-forge/core/framework'
+import type { RenderContext } from '@ministryofjustice/hmpps-forge/core/framework'
+import type { BrowserRenderingEngine } from '../renderer/BrowserRenderingEngine.type'
 import BrowserForgeApp from './BrowserForgeApp'
-import type { BrowserErrorEvent, BrowserRenderEvent } from './BrowserForgeApp'
+import type { BrowserErrorEvent, BrowserForgeAppOptions, BrowserRenderEvent } from './BrowserForgeApp'
 import BrowserSession from './BrowserSession'
-import type { BrowserHost, BrowserInteraction, BrowserLocationSnapshot, ForgeContainer } from './types'
+import type { BrowserHost, BrowserInteraction, BrowserLocationSnapshot } from './types'
 
 const silentLogger = { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} } as unknown as Console
 
@@ -33,8 +34,8 @@ describe('BrowserForgeApp', () => {
   let location: BrowserLocationSnapshot
   let interactionListener: ((interaction: BrowserInteraction) => void) | undefined
   let host: Mocked<BrowserHost>
-  let container: ForgeContainer
-  let renderer: ForgeRenderer<string>
+  let container: BrowserForgeAppOptions['container']
+  let renderingEngine: BrowserRenderingEngine
   let onRender: (event: BrowserRenderEvent) => void
   let onError: (event: BrowserErrorEvent) => void
 
@@ -53,8 +54,9 @@ describe('BrowserForgeApp', () => {
         return vi.fn()
       }),
     } as unknown as Mocked<BrowserHost>
-    container = { innerHTML: '' }
-    renderer = {
+    container = { innerHTML: '', addEventListener: vi.fn(), removeEventListener: vi.fn() }
+    renderingEngine = {
+      getAdapterDependencies: vi.fn().mockReturnValue({}),
       wrapNestedBlock: vi.fn().mockImplementation((block, output) => ({ block, html: output })),
       assemblePage: vi.fn().mockImplementation((context: RenderContext) => `page:${context.step.title}`),
     }
@@ -67,7 +69,7 @@ describe('BrowserForgeApp', () => {
   })
 
   function createApp(session?: BrowserSession): BrowserForgeApp {
-    return new BrowserForgeApp(createForge(), { renderer, container, host, session, onRender, onError })
+    return new BrowserForgeApp(createForge(), { renderingEngine, container, host, session, onRender, onError })
   }
 
   async function emit(interaction: BrowserInteraction): Promise<void> {
@@ -81,7 +83,7 @@ describe('BrowserForgeApp', () => {
   describe('constructor', () => {
     it('should require an onRender handler at runtime', () => {
       // Arrange
-      const options = { renderer, container, host, onError }
+      const options = { renderingEngine, container, host, onError }
 
       // Act
       const createAppWithoutOnRender = () => Reflect.construct(BrowserForgeApp, [createForge(), options])
@@ -92,7 +94,7 @@ describe('BrowserForgeApp', () => {
 
     it('should require an onError handler at runtime', () => {
       // Arrange
-      const options = { renderer, container, host, onRender }
+      const options = { renderingEngine, container, host, onRender }
 
       // Act
       const createAppWithoutOnError = () => Reflect.construct(BrowserForgeApp, [createForge(), options])
@@ -103,25 +105,90 @@ describe('BrowserForgeApp', () => {
   })
 
   describe('start()', () => {
-    it('should pass adapter dependencies to the engine when rendering a step', async () => {
+    it('should handle browser events on the supplied container when no host is supplied', async () => {
+      // Arrange
+      const browserGlobals = {
+        location,
+        history: { state: undefined, scrollRestoration: 'auto', replaceState: vi.fn() },
+        document: {},
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }
+
+      Object.entries(browserGlobals).forEach(([name, value]) => vi.stubGlobal(name, value))
+
+      try {
+        const app = new BrowserForgeApp(createForge(), { renderingEngine, container, onRender, onError })
+
+        // Act
+        await app.start({ fallbackPath: '/demo/start' })
+        app.stop()
+
+        // Assert
+        expect(container.innerHTML).toBe('page:Start')
+        expect(container.addEventListener).toHaveBeenCalledWith('submit', expect.any(Function))
+        expect(container.addEventListener).toHaveBeenCalledWith('click', expect.any(Function))
+        expect(browserGlobals.addEventListener).toHaveBeenCalledWith('popstate', expect.any(Function))
+        expect(container.removeEventListener).toHaveBeenCalledWith('click', expect.any(Function))
+        expect(browserGlobals.removeEventListener).toHaveBeenCalledWith('popstate', expect.any(Function))
+      } finally {
+        vi.unstubAllGlobals()
+      }
+    })
+
+    it('should persist to browser sessionStorage when no session is supplied', async () => {
+      // Arrange
+      const storage = {
+        getItem: vi.fn().mockReturnValue('{"id":"browser-session"}'),
+        setItem: vi.fn(),
+      }
+
+      vi.stubGlobal('sessionStorage', storage)
+
+      try {
+        const app = createApp()
+
+        app.getSession().getState().draft = { name: 'Ada' }
+
+        // Act
+        await app.start({ fallbackPath: '/demo/start' })
+
+        // Assert
+        expect(storage.setItem).toHaveBeenCalledWith(
+          'forge-browser-session',
+          JSON.stringify({ id: 'browser-session', draft: { name: 'Ada' } }),
+        )
+      } finally {
+        vi.unstubAllGlobals()
+      }
+    })
+
+    it('should assemble adapter dependencies from the rendering engine when rendering a step', async () => {
       // Arrange
       const forge = createForge()
       const execute = vi.spyOn(forge, 'execute')
-      const adapterDependencies = { nunjucksEnv: { render: vi.fn() } }
+      const renderingDependencies = Object.freeze({ templateService: { render: vi.fn() } })
+
+      vi.spyOn(renderingEngine, 'getAdapterDependencies').mockReturnValue(renderingDependencies)
       const app = new BrowserForgeApp(forge, {
-        renderer,
+        renderingEngine,
         container,
         host,
         onRender,
         onError,
-        adapterDependencies,
       })
 
       // Act
       await app.start({ fallbackPath: '/demo/start' })
 
       // Assert
-      expect(execute).toHaveBeenCalledWith(expect.objectContaining({ adapterDependencies }))
+      expect(execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          renderer: renderingEngine,
+          adapterDependencies: renderingDependencies,
+        }),
+      )
+      expect(execute.mock.calls[0]?.[0].adapterDependencies).not.toBe(renderingDependencies)
       expect(container.innerHTML).toBe('page:Start')
     })
 
@@ -249,7 +316,7 @@ describe('BrowserForgeApp', () => {
     it('should hard-navigate when the engine redirects to another origin', async () => {
       // Arrange
       const forge = createForge()
-      const app = new BrowserForgeApp(forge, { renderer, container, host, onRender, onError })
+      const app = new BrowserForgeApp(forge, { renderingEngine, container, host, onRender, onError })
 
       await app.start({ fallbackPath: '/demo/start' })
       vi.spyOn(forge, 'execute').mockResolvedValueOnce({
@@ -275,7 +342,7 @@ describe('BrowserForgeApp', () => {
         update = nextUpdate
       })
 
-      const app = new BrowserForgeApp(createForge(), { renderer, container, host, onRender, onError })
+      const app = new BrowserForgeApp(createForge(), { renderingEngine, container, host, onRender, onError })
 
       // Act
       await app.start({ fallbackPath: '/demo/start' })
@@ -292,7 +359,7 @@ describe('BrowserForgeApp', () => {
 
     it('should invoke onRender immediately when the host has no view update capability', async () => {
       // Arrange
-      const app = new BrowserForgeApp(createForge(), { renderer, container, host, onRender, onError })
+      const app = new BrowserForgeApp(createForge(), { renderingEngine, container, host, onRender, onError })
 
       // Act
       await app.start({ fallbackPath: '/demo/start' })
@@ -406,7 +473,7 @@ describe('BrowserForgeApp', () => {
       })
       const executeSpy = vi.spyOn(forge, 'execute')
 
-      const app = new BrowserForgeApp(forge, { renderer, container, host, onRender, onError })
+      const app = new BrowserForgeApp(forge, { renderingEngine, container, host, onRender, onError })
 
       await app.start({ fallbackPath: '/demo/start' })
       vi.mocked(host.pushUrl).mockClear()
@@ -443,7 +510,7 @@ describe('BrowserForgeApp', () => {
       })
       const executeSpy = vi.spyOn(forge, 'execute')
 
-      const app = new BrowserForgeApp(forge, { renderer, container, host, onRender, onError })
+      const app = new BrowserForgeApp(forge, { renderingEngine, container, host, onRender, onError })
 
       await app.start({ fallbackPath: '/demo/start' })
       executeSpy.mockImplementationOnce(async request => {
@@ -482,7 +549,7 @@ describe('BrowserForgeApp', () => {
       })
       const executeSpy = vi.spyOn(forge, 'execute')
 
-      const app = new BrowserForgeApp(forge, { renderer, container, host, onRender, onError })
+      const app = new BrowserForgeApp(forge, { renderingEngine, container, host, onRender, onError })
 
       await app.start({ fallbackPath: '/demo/start' })
       vi.mocked(host.pushUrl).mockClear()
@@ -519,7 +586,7 @@ describe('BrowserForgeApp', () => {
       })
       const executeSpy = vi.spyOn(forge, 'execute')
 
-      const app = new BrowserForgeApp(forge, { renderer, container, host, onRender, onError })
+      const app = new BrowserForgeApp(forge, { renderingEngine, container, host, onRender, onError })
 
       await app.start({ fallbackPath: '/demo/start' })
       vi.mocked(host.pushUrl).mockClear()
@@ -548,7 +615,7 @@ describe('BrowserForgeApp', () => {
     it('should persist the session after every dispatch when storage is supplied', async () => {
       // Arrange
       const store = new Map<string, string>()
-      const session = BrowserSession.create({
+      const session = new BrowserSession({
         storage: {
           getItem: key => store.get(key) ?? null,
           setItem: (key, value) => {

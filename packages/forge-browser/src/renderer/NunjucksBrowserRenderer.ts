@@ -1,15 +1,21 @@
 import type { BlockDefinition, RenderedBlock } from '@ministryofjustice/hmpps-forge/core/components'
-import type { ForgeRenderer, NodeId, RenderContext, RouteTreeNode } from '@ministryofjustice/hmpps-forge/core/framework'
-import type { BrowserTemplateEnvironment, TemplateBlock, TemplateContext, TemplateNavigationItem } from './types'
+import type { NodeId, RenderContext, RouteTreeNode } from '@ministryofjustice/hmpps-forge/core/framework'
+import nunjucks from 'nunjucks'
+import BrowserPrecompiledLoader from './BrowserPrecompiledLoader'
+import type { BrowserRenderingEngine } from './BrowserRenderingEngine.type'
+import type {
+  BrowserTemplateEnvironment,
+  PrecompiledTemplateLoader,
+  TemplateBlock,
+  TemplateContext,
+  TemplateNavigationItem,
+} from './types'
 
 export interface NunjucksBrowserRendererOptions {
   /**
-   * Template environment used to load and render page templates. The same
-   * environment must also be supplied as `adapterDependencies.nunjucksEnv`
-   * on the browser app so component templates and macros resolve against it.
-   * Supply a `nunjucks-slim` environment with a `BrowserPrecompiledLoader` so
-   * nothing compiles in the browser. Compiled templates are cached per
-   * renderer instance.
+   * Nunjucks environment shared by page and component rendering. The renderer
+   * configures relative loading for precompiled templates and contributes the
+   * environment to the browser adapter's dependencies.
    */
   templateEnv: BrowserTemplateEnvironment
 
@@ -34,7 +40,7 @@ export interface NunjucksBrowserRendererOptions {
   includeBlockData?: boolean
 }
 
-export default class NunjucksBrowserRenderer implements ForgeRenderer<string> {
+export default class NunjucksBrowserRenderer implements BrowserRenderingEngine {
   private static readonly TEMPLATE_EXTENSION = '.njk'
 
   private static readonly FALLBACK_TEMPLATE = 'form-step'
@@ -51,6 +57,11 @@ export default class NunjucksBrowserRenderer implements ForgeRenderer<string> {
     this.templateEnv = options.templateEnv
     this.defaultTemplate = options.defaultTemplate ?? NunjucksBrowserRenderer.FALLBACK_TEMPLATE
     this.includeBlockData = options.includeBlockData ?? false
+    this.configureTemplateLoaders()
+  }
+
+  getAdapterDependencies(): { nunjucksEnv: BrowserTemplateEnvironment } {
+    return { nunjucksEnv: this.templateEnv }
   }
 
   /** Bracket a block's HTML with paired comment markers so devtools can locate it in the rendered DOM. */
@@ -84,6 +95,30 @@ export default class NunjucksBrowserRenderer implements ForgeRenderer<string> {
     const template = this.resolveTemplate(context)
 
     return this.renderTemplate(template, templateContext)
+  }
+
+  private configureTemplateLoaders(): void {
+    const { loaders } = this.templateEnv
+
+    if (!loaders || !this.templateEnv.invalidateCache) {
+      return
+    }
+
+    const configuredLoaders = loaders.map(loader =>
+      this.isDefaultPrecompiledLoader(loader) ? new BrowserPrecompiledLoader(loader.precompiled) : loader,
+    )
+
+    if (configuredLoaders.every((loader, index) => loader === loaders[index])) {
+      return
+    }
+
+    this.templateEnv.loaders = configuredLoaders
+    // Replacement loaders need caches before Nunjucks can look up templates.
+    this.templateEnv.invalidateCache()
+  }
+
+  private isDefaultPrecompiledLoader(loader: nunjucks.Loader): loader is PrecompiledTemplateLoader {
+    return loader.constructor === nunjucks.PrecompiledLoader
   }
 
   private buildTemplateBlocks(

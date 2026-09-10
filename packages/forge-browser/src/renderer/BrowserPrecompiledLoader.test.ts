@@ -25,32 +25,7 @@ describe('BrowserPrecompiledLoader', () => {
     })
   })
 
-  afterEach(() => {
-    vi.unstubAllGlobals()
-  })
-
   describe('resolve()', () => {
-    it('should render relative imports when the automatically added loader is removed', () => {
-      // Arrange
-      vi.stubGlobal('window', { nunjucksPrecompiled: templates })
-
-      const loader = new BrowserPrecompiledLoader(templates)
-      const browserEnvironment: nunjucks.Environment & { loaders?: nunjucks.Loader[] } = new nunjucks.Environment(
-        loader,
-      )
-
-      expect(browserEnvironment.loaders).toHaveLength(2)
-
-      // Act
-      browserEnvironment.loaders = [loader]
-
-      const html = browserEnvironment.render('app/page.njk', { name: 'Ada' })
-
-      // Assert
-      expect(browserEnvironment.loaders).toEqual([loader])
-      expect(html).toBe('<main>Hello Ada</main>')
-    })
-
     it('should render nested templates when includes, imports and inheritance use relative names', () => {
       // Arrange
       const context = { name: 'Ada <Lovelace>' }

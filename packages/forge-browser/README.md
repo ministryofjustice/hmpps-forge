@@ -50,20 +50,17 @@ Run the script again when templates change, or add it to the application's watch
 
 ## Start a browser application
 
-`BrowserPrecompiledLoader` resolves relative imports, includes and inheritance within
-the template registry. Nunjucks automatically adds its built-in loader when the global
-templates are present, so set `templateEnv.loaders` after construction to keep only the
-custom loader. The constructor has already initialized it for caching and rendering.
+Create a Nunjucks environment and pass it to `NunjucksBrowserRenderer`. The renderer
+configures relative loading for precompiled templates and supplies the environment
+for component rendering. The browser adapter assembles and injects those dependencies
+when it executes Forge.
 
 ```javascript
 import nunjucks from 'nunjucks'
-import BrowserPrecompiledLoader from '@ministryofjustice/hmpps-forge/browser/nunjucks-loader'
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
 import {
-  BrowserSession,
   createBrowserApp,
   NunjucksBrowserRenderer,
-  WindowBrowserHost,
 } from '@ministryofjustice/hmpps-forge/browser'
 import { myPackage } from './journey'
 
@@ -73,18 +70,12 @@ if (!container) {
   throw new Error('The browser application needs an app container')
 }
 
-const loader = new BrowserPrecompiledLoader(window.nunjucksPrecompiled)
-const templateEnv = new nunjucks.Environment(loader, { autoescape: true })
-
-templateEnv.loaders = [loader]
+const templateEnv = new nunjucks.Environment(undefined, { autoescape: true })
 
 const forge = new Forge({ logger: console }).registerPackage(myPackage)
 const app = createBrowserApp(forge, {
   container,
-  host: new WindowBrowserHost({ container }),
-  session: BrowserSession.create({ storage: sessionStorage }),
-  adapterDependencies: { nunjucksEnv: templateEnv },
-  renderer: new NunjucksBrowserRenderer({ templateEnv }),
+  renderingEngine: new NunjucksBrowserRenderer({ templateEnv }),
   onRender: ({ html }) => {
     container.innerHTML = html
     // Initialize the application's component behaviour here.
@@ -111,17 +102,19 @@ The adapter resolves each request against the engine's current topology.
 ## Hosting and navigation
 
 Serve the application host page for every pathname mounted by its journeys so direct
-links and reloads work. `WindowBrowserHost` handles POST forms, links, and browser
+links and reloads work. The adapter creates a `WindowBrowserHost` for the supplied
+container by default. It handles POST forms, links, and browser
 history within the container. Query strings and fragments are preserved. Back and
 forward restore scroll positions; new navigation resets scrolling or follows a fragment.
 External links and other native browser interactions retain their normal behaviour.
 
 Both outcome handlers are required. They own the page markup, error presentation, and
 component initialization. Same-document view transitions are used when available;
-pass `viewTransitions: false` to `WindowBrowserHost` to disable them. Call `app.stop()`
+supply `host: new WindowBrowserHost({ container, viewTransitions: false })` to disable them. Call `app.stop()`
 to unsubscribe when the containing application unmounts.
 
 Engine requests are serialized because they share a session. Repeated pending submits
-run once, and a superseded navigation cannot overwrite the latest page. Session state
-is in memory by default; supplying storage persists effect-owned drafts between reloads.
-Failed storage reads or writes leave the live in-memory session available.
+run once, and a superseded navigation cannot overwrite the latest page. The default session
+persists effect-owned drafts to `sessionStorage` between reloads. Supply
+`session: new BrowserSession({ storage, storageKey })` to choose another store or key.
+If browser storage is unavailable, the session remains usable in memory.

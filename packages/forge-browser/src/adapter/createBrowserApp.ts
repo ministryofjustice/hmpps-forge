@@ -9,10 +9,8 @@ import type { BrowserForge } from './types'
  * @example
  * ```typescript
  * const app = createBrowserApp(forge, {
- *   adapterDependencies: { nunjucksEnv: templateEnv },
- *   renderer: new NunjucksBrowserRenderer({ templateEnv }),
+ *   renderingEngine: new NunjucksBrowserRenderer({ templateEnv }),
  *   container,
- *   host: new WindowBrowserHost({ container }),
  *   onRender: ({ html, container }) => {
  *     container.innerHTML = html
  *   },

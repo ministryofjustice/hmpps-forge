@@ -7,14 +7,13 @@
  * @example
  * ```typescript
  * import { Forge } from '@ministryofjustice/hmpps-forge/core'
- * import { createBrowserApp, NunjucksBrowserRenderer, WindowBrowserHost } from '@ministryofjustice/hmpps-forge/browser'
+ * import { createBrowserApp, NunjucksBrowserRenderer } from '@ministryofjustice/hmpps-forge/browser'
  * import { myPackage } from './journey'
  *
  * const forge = new Forge({ logger: console }).registerPackage(myPackage)
  * const app = createBrowserApp(forge, {
- *   renderer: new NunjucksBrowserRenderer({ templateEnv }),
+ *   renderingEngine: new NunjucksBrowserRenderer({ templateEnv }),
  *   container,
- *   host: new WindowBrowserHost({ container }),
  *   onRender: ({ html, container }) => {
  *     container.innerHTML = html
  *   },
