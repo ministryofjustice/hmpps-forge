@@ -65,6 +65,12 @@ generators directly when a predicate and single static message are not enough.
 
 ### Added
 
+- Browser adapter with Nunjucks rendering, form and link handling, browser history,
+  scroll restoration, and optional session storage. Register packages with normal
+  `Forge`; browser compilation requires CSP to allow `'unsafe-eval'`.
+- Nunjucks browser renderer and precompiled template loader with relative import
+  resolution for component templates.
+
 - Function, component, and renderer definitions accept `name` inside their options
   object. Positional names remain supported; conflicting names are rejected.
 - `condition()`, `transformer()`, `generator()`, and `effect()` - define a function as

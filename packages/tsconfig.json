@@ -16,6 +16,7 @@
     "jsxImportSource": "@ministryofjustice/hmpps-forge/jsx-components",
     "types": ["node", "chrome"],
     "paths": {
+      "@ministryofjustice/hmpps-forge/browser": ["./forge-browser/src/index.ts"],
       "@ministryofjustice/hmpps-forge/core": ["./forge-core/src/index.ts"],
       "@ministryofjustice/hmpps-forge/core/authoring": ["./forge-core/src/authoring/index.ts"],
       "@ministryofjustice/hmpps-forge/core/components": ["./forge-core/src/components/index.ts"],

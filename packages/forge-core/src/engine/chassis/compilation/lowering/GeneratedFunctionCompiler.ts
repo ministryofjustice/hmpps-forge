@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { fnv1aHash } from '../../../../shared/fnv1aHash'
 import ExpressionDispatcher from './expressions/ExpressionDispatcher'
 import BlankLineCodeNode from './codegen/statements/BlankLineCodeNode'
 import { code } from './codegen/fragments/CodeFragment'
@@ -158,12 +158,7 @@ const nextSourceName = (
   source: string,
   sourceMapUrl: string | undefined,
 ): string => {
-  const fingerprint = createHash('sha256')
-    .update(source)
-    .update('\0')
-    .update(sourceMapUrl ?? '')
-    .digest('hex')
-    .slice(0, 8)
+  const fingerprint = fnv1aHash(`${source}\0${sourceMapUrl ?? ''}`).slice(0, 8)
   const readableName = label ?? 'unlabelled'
   const counterKey = `${phase}/${readableName}`
   const next = (sourceNameCounters.get(counterKey) ?? 0) + 1

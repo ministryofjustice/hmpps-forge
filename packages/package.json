@@ -92,10 +92,18 @@
       "import": "./dist/devtools/index.mjs",
       "require": "./dist/devtools/index.cjs",
       "default": "./dist/devtools/index.mjs"
+    },
+    "./browser": {
+      "types": "./dist/browser/index.d.ts",
+      "import": "./dist/browser/index.mjs",
+      "require": "./dist/browser/index.cjs",
+      "default": "./dist/browser/index.mjs"
     }
   },
   "files": [
     "dist/**/*",
+    "forge-browser/src/**/*",
+    "forge-browser/README.md",
     "forge-core/src/**/*",
     "forge-devtools/src/**/*",
     "forge-express-nunjucks/src/**/*",
