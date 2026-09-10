@@ -1,5 +1,6 @@
 import hmppsConfig from '@ministryofjustice/eslint-config-hmpps'
 import forgeCore from './forge-core/eslint.config.mjs'
+import forgeBrowser from './forge-browser/eslint.config.mjs'
 import forgeExpressNunjucks from './forge-express-nunjucks/eslint.config.mjs'
 import forgeGovukComponents from './forge-govuk-components/eslint.config.mjs'
 import forgeMojComponents from './forge-moj-components/eslint.config.mjs'
@@ -8,6 +9,7 @@ import forgeDevtools from './forge-devtools/eslint.config.mjs'
 
 const forgePackages = [
   { dir: 'forge-core', subpath: 'core' },
+  { dir: 'forge-browser', subpath: 'browser' },
   { dir: 'forge-express-nunjucks', subpath: 'express-nunjucks' },
   { dir: 'forge-govuk-components', subpath: 'govuk-components' },
   { dir: 'forge-moj-components', subpath: 'moj-components' },
@@ -83,6 +85,7 @@ export default [
   },
   ...crossImportBans,
   ...forgeCore,
+  ...forgeBrowser,
   ...forgeExpressNunjucks,
   ...forgeGovukComponents,
   ...forgeMojComponents,

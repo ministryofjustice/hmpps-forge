@@ -1,4 +1,5 @@
 import forgeCore from './forge-core/rolldown.config.mjs'
+import forgeBrowser from './forge-browser/rolldown.config.mjs'
 import forgeExpressNunjucks from './forge-express-nunjucks/rolldown.config.mjs'
 import forgeGovukComponents from './forge-govuk-components/rolldown.config.mjs'
 import forgeMojComponents from './forge-moj-components/rolldown.config.mjs'
@@ -9,6 +10,7 @@ import { createDtsConfigs } from './rolldown.dts.mjs'
 
 const packageConfigs = [
   forgeCore,
+  forgeBrowser,
   forgeExpressNunjucks,
   forgeGovukComponents,
   forgeMojComponents,

@@ -6,6 +6,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: /^@ministryofjustice\/hmpps-forge\/browser$/,
+        replacement: resolve(import.meta.dirname, './forge-browser/src/index.ts'),
+      },
+      {
         find: /^@ministryofjustice\/hmpps-forge\/core\/authoring$/,
         replacement: resolve(import.meta.dirname, './forge-core/src/authoring/index.ts'),
       },
