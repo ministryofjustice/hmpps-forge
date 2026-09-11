@@ -1,14 +1,19 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type FrameLocator } from '@playwright/test'
 import ForgeFormHelper from '../pages/forgeFormHelper'
 
-const basePath = '/forge-developer-guide/patterns/demos/edit-and-return'
+const basePath = '/forge-guide-v2/patterns/edit-and-return'
 
 test.describe('Edit and return journey', () => {
   let form: ForgeFormHelper
+  let preview: FrameLocator
 
   test.beforeEach(async ({ page }) => {
-    form = new ForgeFormHelper(page)
-    await page.goto(`${basePath}/full-name`)
+    // Arrange
+    preview = page.frameLocator('iframe[title="Journey preview"]')
+    form = new ForgeFormHelper(page, preview)
+    await page.goto(basePath)
+    await page.getByRole('button', { name: 'Run', exact: true }).click()
+    await form.clickButton('Start the pattern')
   })
 
   test.describe('happy path', () => {
@@ -105,7 +110,6 @@ test.describe('Edit and return journey', () => {
 
       // Assert — returned to summary, not to email-address
       await form.expectHeading('Check your answers')
-      await form.expectUrl(`${basePath}/check-answers`)
       await expect(form.getSummaryValue('Full name')).toContainText('Bob Jones')
     })
 
@@ -118,7 +122,6 @@ test.describe('Edit and return journey', () => {
 
       // Assert — returned to summary, not to contact-preference
       await form.expectHeading('Check your answers')
-      await form.expectUrl(`${basePath}/check-answers`)
       await expect(form.getSummaryValue('Email address')).toContainText('bob@example.com')
     })
 
@@ -131,13 +134,12 @@ test.describe('Edit and return journey', () => {
 
       // Assert — returned to summary
       await form.expectHeading('Check your answers')
-      await form.expectUrl(`${basePath}/check-answers`)
       await expect(form.getSummaryValue('Contact preference')).toContainText('Post')
     })
 
-    test('should include returnTo query parameter in change link URL', async ({ page }) => {
+    test('should include returnTo query parameter in change link URL', async () => {
       // Assert
-      const changeLink = page
+      const changeLink = preview
         .locator('.govuk-summary-list__row', { hasText: 'Full name' })
         .getByRole('link', { name: /change/i })
 
@@ -173,7 +175,6 @@ test.describe('Edit and return journey', () => {
 
       // Assert
       await form.expectHeading('Edit and return')
-      await form.expectUrl(`${basePath}/overview`)
     })
   })
 })
