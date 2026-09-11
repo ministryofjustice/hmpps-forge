@@ -1,14 +1,19 @@
 import { expect, test } from '@playwright/test'
 import ForgeFormHelper from '../pages/forgeFormHelper'
 
-const basePath = '/forge-developer-guide/patterns/demos/composite-fields'
+const basePath = '/forge-guide-v2/patterns/composite-fields'
 
 test.describe('Composite fields journey', () => {
   let form: ForgeFormHelper
 
   test.beforeEach(async ({ page }) => {
-    form = new ForgeFormHelper(page)
-    await page.goto(`${basePath}/date-of-birth`)
+    // Arrange
+    const preview = page.frameLocator('iframe[title="Journey preview"]')
+
+    form = new ForgeFormHelper(page, preview)
+    await page.goto(basePath)
+    await page.getByRole('button', { name: 'Run', exact: true }).click()
+    await form.clickButton('Start the pattern')
   })
 
   test.describe('happy path', () => {
@@ -36,6 +41,26 @@ test.describe('Composite fields journey', () => {
 
       // Assert — confirmation
       await form.expectPanelTitle('Details saved')
+    })
+
+    test('should display address markup as text when a visitor enters HTML', async () => {
+      // Arrange
+      await form.fillTextInput('Day', '27')
+      await form.fillTextInput('Month', '3')
+      await form.fillTextInput('Year', '1990')
+      await form.clickButton('Continue')
+
+      // Act
+      await form.fillTextInput('Address line 1', '<b>My address</b>')
+      await form.fillTextInput('Town or city', 'London')
+      await form.fillTextInput('Postcode', 'SW1A 2AA')
+      await form.clickButton('Continue')
+
+      // Assert
+      await expect(form.getSummaryValue('Address')).toContainText(
+        '<b>My address</b>, London, SW1A 2AA',
+      )
+      await expect(form.getSummaryValue('Address').locator('b')).toHaveCount(0)
     })
 
     test('should include optional address line 2 when provided', async () => {
@@ -202,7 +227,6 @@ test.describe('Composite fields journey', () => {
 
       // Assert
       await form.expectHeading('What is your date of birth?')
-      await form.expectUrl(`${basePath}/date-of-birth`)
     })
 
     test('should navigate to address when clicking Change', async () => {
@@ -221,7 +245,6 @@ test.describe('Composite fields journey', () => {
 
       // Assert
       await form.expectHeading('What is your address?')
-      await form.expectUrl(`${basePath}/address`)
     })
   })
 
@@ -243,7 +266,6 @@ test.describe('Composite fields journey', () => {
 
       // Assert
       await form.expectHeading('Multi-part composite fields')
-      await form.expectUrl(`${basePath}/overview`)
     })
   })
 })
