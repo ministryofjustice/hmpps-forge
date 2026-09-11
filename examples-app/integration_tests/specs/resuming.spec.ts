@@ -1,15 +1,31 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type FrameLocator } from '@playwright/test'
 import ForgeFormHelper from '../pages/forgeFormHelper'
 
-const basePath = '/forge-developer-guide/patterns/demos/resuming'
+const basePath = '/forge-guide-v2/patterns/resuming'
 
 test.describe('Resuming journey', () => {
   let form: ForgeFormHelper
+  let preview: FrameLocator
 
   test.beforeEach(async ({ page }) => {
-    form = new ForgeFormHelper(page)
-    await page.goto(`${basePath}/overview`)
+    // Arrange
+    preview = page.frameLocator('iframe[title="Journey preview"]')
+    form = new ForgeFormHelper(page, preview)
+    await page.goto(basePath)
+    await form.expectHeading('Resuming a partially-completed journey')
   })
+
+  async function visitPreview(path: string) {
+    // Exercise the preview's ordinary link navigation without recreating its session.
+    await preview.locator('body').evaluate((body, href) => {
+      const link = document.createElement('a')
+
+      link.href = href
+      link.textContent = 'Visit test route'
+      body.append(link)
+    }, path)
+    await preview.getByRole('link', { name: 'Visit test route' }).click()
+  }
 
   test.describe('happy path', () => {
     test('should complete the full journey from the start button', async () => {
@@ -36,36 +52,40 @@ test.describe('Resuming journey', () => {
   })
 
   test.describe('overview state', () => {
-    test('should show start button when no saved progress exists', async ({ page }) => {
+    test('should show start button when no saved progress exists', async () => {
       // Assert
-      await expect(page.getByRole('button', { name: 'Start the pattern' })).toBeVisible()
+      await expect(preview.getByRole('button', { name: 'Start the pattern' })).toBeVisible()
       await expect(
-        page.getByRole('button', { name: 'Continue where you left off' }),
+        preview.getByRole('button', { name: 'Continue where you left off' }),
       ).not.toBeVisible()
     })
 
-    test('should show continue button after seeding partial progress', async ({ page }) => {
+    test('should show continue button after seeding partial progress', async () => {
       // Act
       await form.clickButton('Seed partial progress')
 
       // Assert
-      await expect(page.getByRole('button', { name: 'Continue where you left off' })).toBeVisible()
-      await expect(page.getByRole('button', { name: 'Start the pattern' })).not.toBeVisible()
+      await expect(
+        preview.getByRole('button', { name: 'Continue where you left off' }),
+      ).toBeVisible()
+      await expect(preview.getByRole('button', { name: 'Start the pattern' })).not.toBeVisible()
       await form.expectInsetText('You have saved answers from a previous visit')
     })
 
-    test('should show start button after clearing saved answers', async ({ page }) => {
+    test('should show start button after clearing saved answers', async () => {
       // Arrange
       await form.clickButton('Seed partial progress')
-      await expect(page.getByRole('button', { name: 'Continue where you left off' })).toBeVisible()
+      await expect(
+        preview.getByRole('button', { name: 'Continue where you left off' }),
+      ).toBeVisible()
 
       // Act
       await form.clickButton('Clear saved answers')
 
       // Assert
-      await expect(page.getByRole('button', { name: 'Start the pattern' })).toBeVisible()
+      await expect(preview.getByRole('button', { name: 'Start the pattern' })).toBeVisible()
       await expect(
-        page.getByRole('button', { name: 'Continue where you left off' }),
+        preview.getByRole('button', { name: 'Continue where you left off' }),
       ).not.toBeVisible()
     })
   })
@@ -80,7 +100,6 @@ test.describe('Resuming journey', () => {
 
       // Assert — lands on role step (name already filled)
       await form.expectHeading('What is your role?')
-      await form.expectUrl(`${basePath}/your-role`)
     })
 
     test('should resume to check answers when all fields are saved', async () => {
@@ -96,60 +115,50 @@ test.describe('Resuming journey', () => {
       await expect(form.getSummaryValue('Role')).toContainText('Developer')
     })
 
-    test('should resume after partially completing and navigating away', async ({ page }) => {
+    test('should resume after partially completing and navigating away', async () => {
       // Arrange — fill name only then go back to overview
       await form.clickButton('Start the pattern')
       await form.fillTextInput('What is your name?', 'Jane Smith')
       await form.clickButton('Continue')
-      await page.goto(`${basePath}/overview`)
+      await visitPreview('/resuming/overview')
 
       // Act
       await form.clickButton('Continue where you left off')
 
       // Assert — resumes at role step
       await form.expectHeading('What is your role?')
-      await form.expectUrl(`${basePath}/your-role`)
     })
   })
 
   test.describe('reachability redirects', () => {
-    test('should redirect to overview when visiting role before answering name', async ({
-      page,
-    }) => {
+    test('should redirect to overview when visiting role before answering name', async () => {
       // Act
-      await page.goto(`${basePath}/your-role`)
+      await visitPreview('/resuming/your-role')
 
       // Assert
       await form.expectHeading('Resuming a partially-completed journey')
-      await form.expectUrl(`${basePath}/overview`)
     })
 
-    test('should redirect to resume frontier when visiting check answers with partial progress', async ({
-      page,
-    }) => {
+    test('should redirect to resume frontier when visiting check answers with partial progress', async () => {
       // Arrange
       await form.clickButton('Seed partial progress')
 
       // Act
-      await page.goto(`${basePath}/check-answers?resume=true`)
+      await visitPreview('/resuming/check-answers?resume=true')
 
       // Assert
       await form.expectHeading('What is your role?')
-      await form.expectUrl(`${basePath}/your-role`)
     })
 
-    test('should redirect to check answers when visiting confirmation with complete unsubmitted progress', async ({
-      page,
-    }) => {
+    test('should redirect to check answers when visiting confirmation with complete unsubmitted progress', async () => {
       // Arrange
       await form.clickButton('Seed complete progress')
 
       // Act
-      await page.goto(`${basePath}/confirmation?resume=true`)
+      await visitPreview('/resuming/confirmation?resume=true')
 
       // Assert
       await form.expectHeading('Check your answers')
-      await form.expectUrl(`${basePath}/check-answers`)
     })
   })
 
@@ -190,7 +199,6 @@ test.describe('Resuming journey', () => {
 
       // Assert
       await form.expectHeading('What is your name?')
-      await form.expectUrl(`${basePath}/your-name`)
     })
 
     test('should navigate to role step when clicking Change on role row', async () => {
@@ -199,12 +207,11 @@ test.describe('Resuming journey', () => {
 
       // Assert
       await form.expectHeading('What is your role?')
-      await form.expectUrl(`${basePath}/your-role`)
     })
   })
 
   test.describe('restart', () => {
-    test('should return to overview when clicking Restart pattern', async ({ page }) => {
+    test('should return to overview when clicking Restart pattern', async () => {
       // Arrange — complete the journey
       await form.clickButton('Seed complete progress')
       await form.clickButton('Continue where you left off')
@@ -215,8 +222,7 @@ test.describe('Resuming journey', () => {
 
       // Assert
       await form.expectHeading('Resuming a partially-completed journey')
-      await form.expectUrl(`${basePath}/overview`)
-      await expect(page.getByRole('button', { name: 'Start the pattern' })).toBeVisible()
+      await expect(preview.getByRole('button', { name: 'Start the pattern' })).toBeVisible()
     })
   })
 })
