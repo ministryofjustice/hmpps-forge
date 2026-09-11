@@ -7,7 +7,6 @@ import {
 import { CodeFragment, code, literal } from '../codegen/fragments/CodeFragment'
 import IdentifierName from '../codegen/fragments/IdentifierName'
 import { NodeCompilationContext } from './types'
-import PredicateNodeCompiler from './PredicateNodeCompiler'
 
 /** Compiles ordered branches against one evaluated subject, keeping branch operands and values lazy. */
 export default class MatchNodeCompiler {
@@ -47,7 +46,7 @@ export default class MatchNodeCompiler {
     const predicate =
       branch.kind === MatchBranchKind.CASE
         ? code`(${subject} === ${this.ctx.compileValueCode(branch.expected)})`
-        : new PredicateNodeCompiler(this.ctx).compileOperand(branch.predicate, subject)
+        : this.ctx.compileMatchPredicateCode(branch.predicate, subject)
 
     this.ctx.generator.if(
       predicate,

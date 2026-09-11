@@ -154,7 +154,7 @@ export interface BlockValue {
   readonly entries: readonly RecordEntryValue[]
 }
 
-/** A node the expression dispatcher can compile — AST or template. */
+/** Identifies AST nodes during authored-value classification. */
 export function isExpressionLeaf(value: unknown): value is ASTNode {
   return isASTNode(value)
 }
@@ -166,7 +166,7 @@ export function staticValue(value: unknown): StaticValue {
 /**
  * Whether a value contains no expression, template, or block nodes anywhere,
  * so it can be emitted as one literal. The single definition of "static"
- * shared by the classifier and the expression dispatcher.
+ * used during authored-value classification.
  */
 export function isDeepStaticValue(value: unknown): boolean {
   if (value === null || value === undefined || typeof value !== 'object') {

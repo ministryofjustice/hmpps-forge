@@ -17,6 +17,7 @@ export interface FunctionCallCompileOptions {
 
 export interface NodeCompilationContext {
   compileValueCode(value: AuthoredValue, generator?: CodeGenerator): CodeFragment
+  compileMatchPredicateCode(value: AuthoredValue, subject: CodeFragment): CodeFragment
   withIteratorFrame<T>(frame: IteratorScopeFrame, compile: () => T): T
   compileFunctionCallCode(
     funcName: string,
@@ -29,12 +30,6 @@ export interface NodeCompilationContext {
   readonly iteratorStack: readonly IteratorScopeFrame[]
   readonly selfCodeExpr: CodeFragment | undefined
 
-  /**
-   * True when the generated expression body contains async function calls.
-   *
-   * Expression compilers use this to decide whether to wrap results in
-   * `await` while still producing a single expression for both sync and
-   * async cases.
-   */
+  /** Whether the generated function requires an async wrapper to await possible promise results. */
   readonly usesAwait: boolean
 }

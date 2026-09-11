@@ -183,8 +183,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
 
   /**
    * Gives validation callbacks a stable developer-facing identity while their
-   * authored value (the raw value a journey author wrote) is compiled into
-   * generated code through the shared runtime-value compiler.
+   * analysed value is compiled through the shared value compiler.
    */
   withValidationFunctionPrefix<T>(prefix: string, compile: () => T): T {
     this.validationFunctionPrefixes.push(prefix)
@@ -215,6 +214,65 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
         return this.compileBlockExpression(value, 'nestedBlock')
       default:
         return this.compileExpressionValue(value)
+    }
+  }
+
+  /** Compiles a match predicate against its already evaluated subject. */
+  compileMatchPredicateCode(value: AuthoredValue, subject: CodeFragment): CodeFragment {
+    return this.predicates.compileOperand(value, subject)
+  }
+
+  compileFunctionCallCode(
+    funcName: string,
+    argExprs: readonly CodeFragment[],
+    source?: unknown,
+    options: FunctionCallCompileOptions = {},
+  ): CodeFragment {
+    const registeredFunction = this.dependencies.functionRegistry.get(funcName)
+
+    if (!registeredFunction) {
+      throw new ForgeUnregisteredFunctionError({
+        functionName: funcName,
+        functionType:
+          source !== null && typeof source === 'object' && 'kind' in source ? String(source.kind) : 'unknown',
+      })
+    }
+
+    this.usedAwait = true
+
+    const validationPrefix = this.validationFunctionPrefixes[this.validationFunctionPrefixes.length - 1]
+
+    if (validationPrefix !== undefined) {
+      const helperCall = this.compileDebuggableValidationFunctionCall(funcName, argExprs, source, options)
+
+      return this.compileMaybeAsyncResult(helperCall)
+    }
+
+    const helperCall = this.diagnostics.wrapFunctionCall('evaluateFunction', funcName, argExprs, source)
+
+    return this.compileMaybeAsyncResult(helperCall)
+  }
+
+  /**
+   * Maps top-level reference namespaces (e.g. `data`, `session`, `params`) to
+   * their corresponding runtime context property.
+   */
+  namespaceToCtxCode(namespace: string): CodeFragment {
+    switch (namespace) {
+      case 'data':
+        return code`ctx.data`
+      case 'session':
+        return code`ctx.session`
+      case 'params':
+        return code`ctx.params`
+      case 'query':
+        return code`ctx.query`
+      case 'request':
+        return code`ctx.request`
+      case 'post':
+        return code`ctx.post`
+      default:
+        return code`ctx[${namespace}]`
     }
   }
 
@@ -353,37 +411,6 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     return objectCode(ruleProperties)
   }
 
-  compileFunctionCallCode(
-    funcName: string,
-    argExprs: readonly CodeFragment[],
-    source?: unknown,
-    options: FunctionCallCompileOptions = {},
-  ): CodeFragment {
-    const registeredFunction = this.dependencies.functionRegistry.get(funcName)
-
-    if (!registeredFunction) {
-      throw new ForgeUnregisteredFunctionError({
-        functionName: funcName,
-        functionType:
-          source !== null && typeof source === 'object' && 'kind' in source ? String(source.kind) : 'unknown',
-      })
-    }
-
-    this.usedAwait = true
-
-    const validationPrefix = this.validationFunctionPrefixes[this.validationFunctionPrefixes.length - 1]
-
-    if (validationPrefix !== undefined) {
-      const helperCall = this.compileDebuggableValidationFunctionCall(funcName, argExprs, source, options)
-
-      return this.compileMaybeAsyncResult(helperCall)
-    }
-
-    const helperCall = this.diagnostics.wrapFunctionCall('evaluateFunction', funcName, argExprs, source)
-
-    return this.compileMaybeAsyncResult(helperCall)
-  }
-
   private compileDebuggableValidationFunctionCall(
     funcName: string,
     argExprs: readonly CodeFragment[],
@@ -441,8 +468,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
   /**
    * Wraps a lazily-evaluated validation value (condition, message, details) in
    * a named function expression. The expression compiles inside the function
-   * body with call hoisting active, so unconditional function calls emit their
-   * argument consts as statements and return directly instead of nesting IIFEs.
+   * body’s own generator scope, preserving lazy evaluation and async tracking.
    */
   private compileReturnFunctionExpression(compileExpression: () => CodeFragment, name: string): CodeFragment {
     let bodyUsesAwait = false
@@ -459,29 +485,6 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
       },
       { async: () => bodyUsesAwait },
     )
-  }
-
-  /**
-   * Maps top-level reference namespaces (e.g. `data`, `session`, `params`) to
-   * their corresponding runtime context property.
-   */
-  namespaceToCtxCode(namespace: string): CodeFragment {
-    switch (namespace) {
-      case 'data':
-        return code`ctx.data`
-      case 'session':
-        return code`ctx.session`
-      case 'params':
-        return code`ctx.params`
-      case 'query':
-        return code`ctx.query`
-      case 'request':
-        return code`ctx.request`
-      case 'post':
-        return code`ctx.post`
-      default:
-        return code`ctx[${namespace}]`
-    }
   }
 
 }
