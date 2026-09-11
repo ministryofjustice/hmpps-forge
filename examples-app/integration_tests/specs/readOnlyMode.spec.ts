@@ -1,44 +1,54 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type FrameLocator } from '@playwright/test'
 import ForgeFormHelper from '../pages/forgeFormHelper'
 
-const basePath = '/forge-developer-guide/patterns/demos/read-only-mode'
+const basePath = '/forge-guide-v2/patterns/read-only-mode'
 
 test.describe('Read-only mode journey', () => {
   let form: ForgeFormHelper
+  let preview: FrameLocator
 
   test.beforeEach(async ({ page }) => {
-    form = new ForgeFormHelper(page)
+    // Arrange
+    preview = page.frameLocator('iframe[title="Journey preview"]')
+    form = new ForgeFormHelper(page, preview)
+    await page.goto(basePath)
+    await form.clickButton('Start the pattern')
   })
 
   test.describe('contacts list', () => {
-    test('should show all three contacts after logging in', async ({ page }) => {
+    test('should show all three contacts after logging in', async () => {
       // Arrange
-      await page.goto(`${basePath}/login`)
       await form.clickButton('Log in as Viewer')
 
       // Assert
       await form.expectHeading('Contacts')
-      await expect(page.locator('.govuk-summary-list__row')).toHaveCount(3)
+      await expect(preview.locator('.govuk-summary-list__row')).toHaveCount(3)
     })
 
-    test('should redirect to login when accessing contacts without auth', async ({ page }) => {
+    test('should redirect to login when accessing contacts without auth', async () => {
       // Act
-      await page.goto(`${basePath}/contacts`)
+      await preview.locator('body').evaluate(body => {
+        const link = document.createElement('a')
+
+        link.href = '/read-only-mode/contacts'
+        link.textContent = 'Visit protected contacts'
+        body.append(link)
+      })
+      await preview.getByRole('link', { name: 'Visit protected contacts' }).click()
 
       // Assert
-      await form.expectUrl(`${basePath}/login`)
+      await form.expectHeading('Log in')
     })
   })
 
   test.describe('viewer role', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.goto(`${basePath}/login`)
+    test.beforeEach(async () => {
       await form.clickButton('Log in as Viewer')
     })
 
-    test('should show read-only summary list on record page', async ({ page }) => {
+    test('should show read-only summary list on record page', async () => {
       // Act
-      await page.getByRole('link', { name: 'View' }).first().click()
+      await preview.getByRole('link', { name: 'View' }).first().click()
 
       // Assert
       await form.expectHeading('Contact record')
@@ -47,56 +57,54 @@ test.describe('Read-only mode journey', () => {
       await expect(form.getSummaryValue('Department')).toContainText('Digital Services')
     })
 
-    test('should show read-only notice', async ({ page }) => {
+    test('should show read-only notice', async () => {
       // Act
-      await page.getByRole('link', { name: 'View' }).first().click()
+      await preview.getByRole('link', { name: 'View' }).first().click()
 
       // Assert
       await form.expectInsetText('You have read-only access')
     })
 
-    test('should not show edit fields or save button', async ({ page }) => {
+    test('should not show edit fields or save button', async () => {
       // Act
-      await page.getByRole('link', { name: 'View' }).first().click()
+      await preview.getByRole('link', { name: 'View' }).first().click()
 
       // Assert
-      await expect(page.getByLabel('Name')).not.toBeVisible()
-      await expect(page.getByRole('button', { name: 'Save changes' })).not.toBeVisible()
+      await expect(preview.getByLabel('Name')).not.toBeVisible()
+      await expect(preview.getByRole('button', { name: 'Save changes' })).not.toBeVisible()
     })
 
-    test('should navigate back to contacts list', async ({ page }) => {
+    test('should navigate back to contacts list', async () => {
       // Arrange
-      await page.getByRole('link', { name: 'View' }).first().click()
+      await preview.getByRole('link', { name: 'View' }).first().click()
 
       // Act
       await form.clickButton('Back to contacts')
 
       // Assert
       await form.expectHeading('Contacts')
-      await form.expectUrl(`${basePath}/contacts`)
     })
   })
 
   test.describe('admin role', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.goto(`${basePath}/login`)
+    test.beforeEach(async () => {
       await form.clickButton('Log in as Admin')
     })
 
-    test('should show editable form fields on record page', async ({ page }) => {
+    test('should show editable form fields on record page', async () => {
       // Act
-      await page.getByRole('link', { name: 'View' }).first().click()
+      await preview.getByRole('link', { name: 'View' }).first().click()
 
       // Assert
       await form.expectHeading('Contact record')
-      await expect(page.getByLabel('Name')).toHaveValue('Jane Smith')
-      await expect(page.getByLabel('Email')).toHaveValue('jane.smith@example.com')
-      await expect(page.getByLabel('Department')).toHaveValue('Digital Services')
+      await expect(preview.getByLabel('Name')).toHaveValue('Jane Smith')
+      await expect(preview.getByLabel('Email')).toHaveValue('jane.smith@example.com')
+      await expect(preview.getByLabel('Department')).toHaveValue('Digital Services')
     })
 
-    test('should redirect to contacts after saving', async ({ page }) => {
+    test('should redirect to contacts after saving', async () => {
       // Arrange
-      await page.getByRole('link', { name: 'View' }).first().click()
+      await preview.getByRole('link', { name: 'View' }).first().click()
 
       // Act
       await form.fillTextInput('Name', 'Alice Smith')
@@ -104,25 +112,24 @@ test.describe('Read-only mode journey', () => {
 
       // Assert
       await form.expectHeading('Contacts')
-      await form.expectUrl(`${basePath}/contacts`)
     })
 
-    test('should persist edits across navigation', async ({ page }) => {
+    test('should persist edits across navigation', async () => {
       // Arrange — edit the first contact
-      await page.getByRole('link', { name: 'View' }).first().click()
+      await preview.getByRole('link', { name: 'View' }).first().click()
       await form.fillTextInput('Name', 'Alice Smith')
       await form.clickButton('Save changes')
 
       // Act — view the same contact again
-      await page.getByRole('link', { name: 'View' }).first().click()
+      await preview.getByRole('link', { name: 'View' }).first().click()
 
       // Assert
-      await expect(page.getByLabel('Name')).toHaveValue('Alice Smith')
+      await expect(preview.getByLabel('Name')).toHaveValue('Alice Smith')
     })
 
-    test('should show validation error when name is empty', async ({ page }) => {
+    test('should show validation error when name is empty', async () => {
       // Arrange
-      await page.getByRole('link', { name: 'View' }).first().click()
+      await preview.getByRole('link', { name: 'View' }).first().click()
 
       // Act
       await form.fillTextInput('Name', '')
@@ -132,27 +139,26 @@ test.describe('Read-only mode journey', () => {
       await form.expectValidationError('Enter a name')
     })
 
-    test('should view different contacts', async ({ page }) => {
+    test('should view different contacts', async () => {
       // Act — click the second contact
-      await page.getByRole('link', { name: 'View' }).nth(1).click()
+      await preview.getByRole('link', { name: 'View' }).nth(1).click()
 
       // Assert
-      await expect(page.getByLabel('Name')).toHaveValue('John Doe')
-      await expect(page.getByLabel('Email')).toHaveValue('john.doe@example.com')
+      await expect(preview.getByLabel('Name')).toHaveValue('John Doe')
+      await expect(preview.getByLabel('Email')).toHaveValue('john.doe@example.com')
     })
   })
 
   test.describe('logout', () => {
-    test('should redirect to login after logging out from contacts', async ({ page }) => {
+    test('should redirect to login after logging out from contacts', async () => {
       // Arrange
-      await page.goto(`${basePath}/login`)
       await form.clickButton('Log in as Admin')
 
       // Act
       await form.clickButton('Log out')
 
       // Assert
-      await form.expectUrl(`${basePath}/login`)
+      await form.expectHeading('Log in')
     })
   })
 })
