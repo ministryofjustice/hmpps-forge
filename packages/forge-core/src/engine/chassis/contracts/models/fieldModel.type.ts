@@ -1,13 +1,13 @@
+import type { ASTNode, TemplateASTNode } from '../ast/ast.type'
 import type { IterateASTNode } from '../ast/expressions.type'
 import type { FieldBlockASTNode } from '../ast/structures.type'
-import type { TemplateASTNode } from '../ast/ast.type'
-import type { AuthoredValue, ExpressionValue } from './authoredValue.type'
+import type { AuthoredValue } from './authoredValue.type'
 
 /**
  * One field occurrence, registered or template-produced, as the analysis stage
  * hands it to lowering. Built once per step by `FieldModelBuilder`; consumed by
  * the answer-preparation, validation, and answer-cleardown compilers. AST nodes
- * survive here only as expression leaves and diagnostic tokens.
+ * survive here only as diagnostic and identity tokens.
  */
 export interface FieldModel {
   /** Diagnostics only — never queried structurally past analysis. */
@@ -27,7 +27,8 @@ export interface FieldModel {
 
 /** One level of iterator nesting: the registered or template MAP iterate node. */
 export interface IterateRef {
-  readonly node: IterateASTNode | TemplateASTNode
+  readonly source: IterateASTNode | TemplateASTNode
+  readonly input: AuthoredValue
 }
 
 export enum FieldCodeKind {
@@ -42,7 +43,7 @@ export interface StaticFieldCode {
 
 export interface DynamicFieldCode {
   readonly kind: FieldCodeKind.DYNAMIC
-  readonly node: ExpressionValue
+  readonly value: AuthoredValue
 }
 
 /** Component facts resolved from the registry at analysis time. */
@@ -57,7 +58,7 @@ export interface TransformerCall {
   readonly name: string
   readonly arguments: readonly AuthoredValue[]
   /** Diagnostic token for tracked-call metadata. */
-  readonly node: ExpressionValue
+  readonly source: ASTNode
 }
 
 export type TransformerPipeline = readonly TransformerCall[]
@@ -74,7 +75,7 @@ export enum ValidationRulesKind {
 /** An authored array of validation rule expressions, compiled rule-by-rule. */
 export interface DirectRules {
   readonly kind: ValidationRulesKind.DIRECT
-  readonly rules: readonly ExpressionValue[]
+  readonly rules: readonly AuthoredValue[]
 }
 
 /** Any other authored rules shape, materialised through the runtime value compiler. */

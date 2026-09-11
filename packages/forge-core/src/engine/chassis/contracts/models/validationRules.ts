@@ -1,7 +1,7 @@
 import { PolicyType } from '../../../../shared/taxonomy'
 import type { ASTNode } from '../ast/ast.type'
 import { isASTNode } from '../ast/nodes'
-import { AuthoredValueKind, type AuthoredValue, type ExpressionValue } from './authoredValue.type'
+import { type AuthoredValue } from './authoredValue.type'
 import { ValidationRulesKind, type ValidationRulesModel } from './fieldModel.type'
 
 /**
@@ -37,7 +37,7 @@ export function classifyValidationRules(
     if (directRules.length === value.length) {
       return {
         kind: ValidationRulesKind.DIRECT,
-        rules: directRules.map((rule): ExpressionValue => ({ kind: AuthoredValueKind.EXPRESSION, node: rule })),
+        rules: directRules.map(rule => classify(rule)),
       }
     }
   }

@@ -1,9 +1,14 @@
+import ForgeInternalError from '../../../errors/ForgeInternalError'
 import { ComponentCallType, IteratorType, StructureType } from '../../../../shared/taxonomy'
 import type { ASTNode, TemplateASTNode } from '../../../chassis/contracts/ast/ast.type'
 import { isTemplateASTNode } from '../../../chassis/contracts/ast/nodes'
 import type { JourneyASTNode } from '../../../chassis/contracts/ast/structures.type'
 import type { TemplateValue } from '../../../chassis/contracts/ast/template.type'
-import { AuthoredValueKind, type AuthoredValue } from '../../../chassis/contracts/models/authoredValue.type'
+import {
+  AuthoredValueKind,
+  MatchBranchKind,
+  type AuthoredValue,
+} from '../../../chassis/contracts/models/authoredValue.type'
 import type {
   StepAnalysisContext,
   StepModelAnalyzer,
@@ -135,7 +140,8 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
 
           return [
             {
-              node: iterateNode,
+              source: iterateNode,
+              input: context.classifier.classify(iterateNode.properties.input),
               templateBlocks: templateBlocks.map(templateBlock => this.buildTemplateBlock(context, templateBlock)),
             },
           ]
@@ -160,47 +166,89 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
 
   /** Recursively strips block-level skip properties from nested `BlockValue` branches. */
   private pruneNestedBlockProps(value: AuthoredValue): AuthoredValue {
+    const pruned =
+      value.kind === AuthoredValueKind.BLOCK
+        ? { ...value, entries: value.entries.filter(entry => !ResolveAnalyzer.BLOCK_SKIP_PROPS.has(entry.key)) }
+        : value
+
+    return this.mapValueChildren(pruned, child => this.pruneNestedBlockProps(child))
+  }
+
+  private mapValueChildren(value: AuthoredValue, map: (child: AuthoredValue) => AuthoredValue): AuthoredValue {
     switch (value.kind) {
-      case AuthoredValueKind.BLOCK:
-        return {
-          ...value,
-          entries: value.entries
-            .filter(entry => !ResolveAnalyzer.BLOCK_SKIP_PROPS.has(entry.key))
-            .map(entry => ({ key: entry.key, value: this.pruneNestedBlockProps(entry.value) })),
-        }
       case AuthoredValueKind.RECORD:
+      case AuthoredValueKind.BLOCK:
+        return { ...value, entries: value.entries.map(entry => ({ ...entry, value: map(entry.value) })) }
+      case AuthoredValueKind.LIST:
+        return { ...value, items: value.items.map(map) }
+      case AuthoredValueKind.REFERENCE:
         return {
           ...value,
-          entries: value.entries.map(entry => ({ key: entry.key, value: this.pruneNestedBlockProps(entry.value) })),
+          base: value.base === undefined ? undefined : map(value.base),
+          path: value.path.map(segment => (typeof segment === 'object' ? map(segment) : segment)),
         }
-      case AuthoredValueKind.LIST:
-        return { ...value, items: value.items.map(item => this.pruneNestedBlockProps(item)) }
+      case AuthoredValueKind.FUNCTION:
+        return { ...value, arguments: value.arguments.map(map) }
+      case AuthoredValueKind.PIPELINE:
+        return {
+          ...value,
+          input: map(value.input),
+          steps: value.steps.map(step => ({ ...step, arguments: step.arguments.map(map) })),
+        }
+      case AuthoredValueKind.PREDICATE:
+        return {
+          ...value,
+          subject: value.subject === undefined ? undefined : map(value.subject),
+          condition:
+            value.condition === undefined
+              ? undefined
+              : { ...value.condition, arguments: value.condition.arguments.map(map) },
+          operands: value.operands.map(map),
+          operand: map(value.operand),
+        }
+      case AuthoredValueKind.NULLISH:
+        return { ...value, input: map(value.input), fallback: map(value.fallback) }
       case AuthoredValueKind.CONDITIONAL:
         return {
           ...value,
-          predicate: this.pruneNestedBlockProps(value.predicate),
-          thenValue: this.pruneNestedBlockProps(value.thenValue),
-          elseValue: this.pruneNestedBlockProps(value.elseValue),
+          predicate: map(value.predicate),
+          thenValue: map(value.thenValue),
+          elseValue: map(value.elseValue),
         }
       case AuthoredValueKind.MATCH:
         return {
           ...value,
-          branches: value.branches.map(branch => ({
-            predicate: this.pruneNestedBlockProps(branch.predicate),
-            value: this.pruneNestedBlockProps(branch.value),
-          })),
-          otherwise: value.otherwise === undefined ? undefined : this.pruneNestedBlockProps(value.otherwise),
+          subject: map(value.subject),
+          branches: value.branches.map(branch =>
+            branch.kind === MatchBranchKind.CASE
+              ? { ...branch, expected: map(branch.expected), value: map(branch.value) }
+              : { ...branch, predicate: map(branch.predicate), value: map(branch.value) },
+          ),
+          otherwise: value.otherwise === undefined ? undefined : map(value.otherwise),
         }
       case AuthoredValueKind.ITERATION:
         return {
           ...value,
-          input: this.pruneNestedBlockProps(value.input),
-          yieldTemplate:
-            value.yieldTemplate === undefined ? undefined : this.pruneNestedBlockProps(value.yieldTemplate),
-          predicate: value.predicate === undefined ? undefined : this.pruneNestedBlockProps(value.predicate),
+          input: map(value.input),
+          yieldTemplate: value.yieldTemplate === undefined ? undefined : map(value.yieldTemplate),
+          predicate: value.predicate === undefined ? undefined : map(value.predicate),
         }
-      default:
+      case AuthoredValueKind.VALIDATION:
+        return {
+          ...value,
+          function: value.function === undefined ? undefined : map(value.function),
+          condition: value.condition === undefined ? undefined : map(value.condition),
+          message: map(value.message),
+          details: value.details === undefined ? undefined : map(value.details),
+          groups: value.groups === undefined ? undefined : map(value.groups),
+        }
+      case AuthoredValueKind.STATIC:
         return value
+      default: {
+        const unsupported: never = value
+
+        throw new ForgeInternalError(`Unsupported authored value: ${unsupported}`)
+      }
     }
   }
 
@@ -227,49 +275,15 @@ export default class ResolveAnalyzer implements StepModelAnalyzer<ResolveModel> 
   }
 
   private collectIterationIds(value: AuthoredValue, ids: Set<string>): void {
-    switch (value.kind) {
-      case AuthoredValueKind.ITERATION:
-        ids.add(String((value.source as { id?: unknown }).id))
-        this.collectIterationIds(value.input, ids)
-
-        if (value.yieldTemplate !== undefined) {
-          this.collectIterationIds(value.yieldTemplate, ids)
-        }
-
-        if (value.predicate !== undefined) {
-          this.collectIterationIds(value.predicate, ids)
-        }
-
-        return
-      case AuthoredValueKind.CONDITIONAL:
-        this.collectIterationIds(value.predicate, ids)
-        this.collectIterationIds(value.thenValue, ids)
-        this.collectIterationIds(value.elseValue, ids)
-
-        return
-      case AuthoredValueKind.MATCH:
-        value.branches.forEach(branch => {
-          this.collectIterationIds(branch.predicate, ids)
-          this.collectIterationIds(branch.value, ids)
-        })
-
-        if (value.otherwise !== undefined) {
-          this.collectIterationIds(value.otherwise, ids)
-        }
-
-        return
-      case AuthoredValueKind.RECORD:
-      case AuthoredValueKind.BLOCK:
-        value.entries.forEach(entry => this.collectIterationIds(entry.value, ids))
-
-        return
-      case AuthoredValueKind.LIST:
-        value.items.forEach(item => this.collectIterationIds(item, ids))
-
-        break
-      default:
-        break
+    if (value.kind === AuthoredValueKind.ITERATION) {
+      ids.add(value.source.id)
     }
+
+    this.mapValueChildren(value, child => {
+      this.collectIterationIds(child, ids)
+
+      return child
+    })
   }
 
   /** Finds block nodes inside a standalone iterator's yield template, collecting only the outermost matches. */

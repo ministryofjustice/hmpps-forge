@@ -1,3 +1,4 @@
+import { AuthoredValueKind } from '../../../chassis/contracts/models/authoredValue.type'
 /**
  * Compiles the `validateOnEntry` group selector for one step.
  *
@@ -13,7 +14,6 @@
  * Generated-function construction failures throw `ForgeCompilationError`. There is
  * no secondary entry-validation execution path.
  */
-import { StepEntryValidationAST } from '../../../chassis/contracts/ast/structures.type'
 import { CodeFragment, code, literal } from '../../../chassis/compilation/lowering/codegen/fragments/CodeFragment'
 import CodeGenerator from '../../../chassis/compilation/lowering/codegen/CodeGenerator'
 import IdentifierName from '../../../chassis/compilation/lowering/codegen/fragments/IdentifierName'
@@ -24,7 +24,7 @@ import {
   renderGeneratedSource,
 } from '../../../chassis/compilation/lowering/GeneratedFunctionCompiler'
 import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
-import type { ValidationModel } from '../contracts/validationModel.type'
+import type { ValidationModel, EntryValidationModel } from '../contracts/validationModel.type'
 
 import type { CompiledEntryValidationFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 
@@ -63,7 +63,7 @@ export default class EntryValidationCompiler {
   /**
    * Emits the entry-validation group selector used by GET rendering.
    */
-  private buildEntryValidationSource(entries: readonly StepEntryValidationAST[]): CodeGenerator {
+  private buildEntryValidationSource(entries: readonly EntryValidationModel[]): CodeGenerator {
     const generator = CodeGenerator.forFunction(['ctx'])
 
     generator.directive('use strict')
@@ -109,13 +109,13 @@ export default class EntryValidationCompiler {
    * Emits one validateOnEntry rule, preserving unconditional entries as direct group additions.
    */
   private compileEntryValidationRule(
-    entry: StepEntryValidationAST,
+    entry: EntryValidationModel,
     addGroup: IdentifierName,
     generator: CodeGenerator,
   ): void {
     generator.comment(`Entry rule — groups ${entry.groups.map(group => `"${group}"`).join(', ')}`)
     generator.scope(() => {
-      if (entry.when === true) {
+      if (entry.when?.kind === AuthoredValueKind.STATIC && entry.when.value === true) {
         this.compileEntryValidationGroups(entry.groups, addGroup, generator)
 
         return
@@ -131,14 +131,14 @@ export default class EntryValidationCompiler {
    * Emits a validateOnEntry predicate as a named boolean so generated source reads as a rule guard.
    */
   private compileEntryValidationWhen(
-    when: StepEntryValidationAST['when'],
+    when: EntryValidationModel['when'],
     generator: CodeGenerator,
   ): CodeFragment | IdentifierName {
-    if (when === true) {
+    if (when === undefined || (when.kind === AuthoredValueKind.STATIC && when.value === true)) {
       return literal(true)
     }
 
-    const predicate = this.expr.compileExpressionCode(when, generator)
+    const predicate = this.expr.compileValueCode(when, generator)
 
     return generator.const('entryWhen', code`Boolean(${predicate})`)
   }

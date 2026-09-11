@@ -1,3 +1,4 @@
+import AuthoredValueClassifier from '../analysis/shared/AuthoredValueClassifier'
 import ForgeCompilationError from '../../../errors/ForgeCompilationError'
 import ForgeRuntimeEvaluationError, {
   getForgeRuntimeEvaluationDiagnostics,
@@ -149,7 +150,7 @@ describe('GeneratedFunctionCompiler', () => {
         () => {
           const generator = CodeGenerator.forFunction(['ctx'])
 
-          generator.return(expr.compileExpressionCode(expression, generator))
+          generator.return(expr.compileValueCode(new AuthoredValueClassifier().classify(expression), generator))
 
           return generator
         },

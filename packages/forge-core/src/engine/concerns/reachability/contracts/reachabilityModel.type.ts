@@ -1,4 +1,5 @@
-import type { ASTNode, NodeId } from '../../../chassis/contracts/ast/ast.type'
+import type { AuthoredValue } from '../../../chassis/contracts/models/authoredValue.type'
+import type { NodeId } from '../../../chassis/contracts/ast/ast.type'
 import type { RedirectOutcomeASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { UnreachableRedirectTarget } from '../../../../authoring/types/structures.type'
 
@@ -36,11 +37,11 @@ export interface ReachabilityModel {
   readonly stateTable: ReachabilityStateTable
   readonly entries: readonly ReachabilityEntryModel[]
   readonly resumeAlways: boolean
-  readonly resumeWhen?: ASTNode
+  readonly resumeWhen?: AuthoredValue
 }
 
 export interface ReachabilityEntryModel extends ReachabilityStateTableEntry {
-  readonly entryWhen?: ASTNode
+  readonly entryWhen?: AuthoredValue
   readonly forwardOutcomeGroups: readonly ForwardOutcomeGroup[]
   readonly cleardownFieldCodes: readonly string[]
   readonly reachabilityTieBreakers: readonly ReachabilityTieBreakerEntry[]
@@ -58,7 +59,7 @@ export interface ReachabilityEntryModel extends ReachabilityStateTableEntry {
  * over-approximation for non-evaluable guards.
  */
 export interface ForwardOutcomeGroup {
-  readonly hookWhen?: ASTNode
+  readonly hookWhen?: AuthoredValue
   readonly redirectOutcomes: readonly ForwardRedirectOutcome[]
 }
 
@@ -68,11 +69,13 @@ export interface ForwardOutcomeGroup {
  * records its goto unconditionally instead of gating the cascade on the guard.
  */
 export interface ForwardRedirectOutcome {
-  readonly node: RedirectOutcomeASTNode
+  readonly source: RedirectOutcomeASTNode
+  readonly when?: AuthoredValue
+  readonly goto: string | AuthoredValue
   readonly overApproximatesWhen: boolean
 }
 
 export interface ReachabilityTieBreakerEntry {
   readonly priority: number
-  readonly when?: ASTNode
+  readonly when?: AuthoredValue
 }

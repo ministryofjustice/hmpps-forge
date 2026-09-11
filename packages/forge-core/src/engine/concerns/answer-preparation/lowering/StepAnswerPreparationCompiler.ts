@@ -18,9 +18,8 @@ import {
   GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM,
   renderGeneratedSource,
 } from '../../../chassis/compilation/lowering/GeneratedFunctionCompiler'
-import RuntimeValueCompiler from '../../../chassis/compilation/lowering/structures/RuntimeValueCompiler'
 import ScopedTemplateCompiler from '../../../chassis/compilation/lowering/structures/ScopedTemplateCompiler'
-import { toRawOperand, type AuthoredValue } from '../../../chassis/contracts/models/authoredValue.type'
+import { type AuthoredValue } from '../../../chassis/contracts/models/authoredValue.type'
 import type { FieldModel, TransformerPipeline } from '../../../chassis/contracts/models/fieldModel.type'
 import type { AnswerPreparationModel } from '../contracts/answerPreparationModel.type'
 import type { CompiledAnswerPreparationFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
@@ -34,18 +33,11 @@ export default class StepAnswerPreparationCompiler {
 
   private readonly fieldCodes: FieldCodeEmitter
 
-  private readonly values: RuntimeValueCompiler
-
   private readonly templates: ScopedTemplateCompiler
 
   constructor(dependencies: CompilationDependencies) {
     this.expr = new ExpressionDispatcher(dependencies)
     this.fieldCodes = new FieldCodeEmitter(this.expr)
-    this.values = new RuntimeValueCompiler(this.expr, {
-      expressionErrorFallback: literal(undefined),
-      expressionErrorMode: 'throw',
-      omitUndefinedArrayItems: false,
-    })
     this.templates = new ScopedTemplateCompiler(this.expr)
   }
 
@@ -233,9 +225,7 @@ export default class StepAnswerPreparationCompiler {
     return this.compileFunctionExpression('evaluateDependentWhen', generator, body => {
       const dependentWhenResult = body.let('dependentWhenResult')
 
-      this.values.compileValue(dependentWhen, body, dependentWhenResult, {
-        expressionErrorFallback: literal(true),
-      })
+      body.assign(dependentWhenResult, this.expr.compileValueCode(dependentWhen, body))
       body.return(dependentWhenResult)
     })
   }
@@ -251,7 +241,7 @@ export default class StepAnswerPreparationCompiler {
     return this.compileFunctionExpression('resolveDefaultValue', generator, body => {
       const resolvedDefaultValue = body.let('defaultValue')
 
-      this.values.compileValue(defaultValue, body, resolvedDefaultValue)
+      body.assign(resolvedDefaultValue, this.expr.compileValueCode(defaultValue, body))
       body.return(resolvedDefaultValue)
     })
   }
@@ -326,15 +316,9 @@ export default class StepAnswerPreparationCompiler {
     value: IdentifierName,
     generator: CodeGenerator,
   ): CodeFragment {
-    const argumentsCode = transformer.arguments.map(argument =>
-      this.expr.compileOperandCode(toRawOperand(argument), generator),
-    )
+    const argumentsCode = transformer.arguments.map(argument => this.expr.compileValueCode(argument, generator))
 
-    return this.expr.compileFunctionCallCode(
-      transformer.name,
-      [code`${value}`, ...argumentsCode],
-      transformer.node.node,
-    )
+    return this.expr.compileFunctionCallCode(transformer.name, [code`${value}`, ...argumentsCode], transformer.source)
   }
 
 }

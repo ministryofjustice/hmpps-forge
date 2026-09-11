@@ -234,8 +234,8 @@ describe('FieldModelBuilder', () => {
 
       // Assert
       expect(fields.map(field => field.source)).toEqual([registeredBlock, outerField, innerField])
-      expect(fields[1].iteratorPath.map(ref => ref.node)).toEqual([outerIterate])
-      expect(fields[2].iteratorPath.map(ref => ref.node)).toEqual([outerIterate, innerIterate])
+      expect(fields[1].iteratorPath.map(ref => ref.source)).toEqual([outerIterate])
+      expect(fields[2].iteratorPath.map(ref => ref.source)).toEqual([outerIterate, innerIterate])
     })
 
     it('should skip non-MAP iterators when collecting template occurrences', () => {

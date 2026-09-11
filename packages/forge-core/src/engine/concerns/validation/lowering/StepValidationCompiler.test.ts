@@ -1496,7 +1496,6 @@ describe('StepValidationCompiler', () => {
         ].join('\n'),
       )
       expect(source).not.toContain('const validationStack = [results]')
-      expect(source).not.toContain('RuntimeValueCompiler.compileArrayValue')
       expect(source).toContain('condition: async function evaluate_name_condition()')
       expect(source).toContain('"hasMaxLength"')
       expect(source).toContain('ctx.answers.name?.current')

@@ -1,4 +1,4 @@
-import { TemplateValue } from '../../../contracts/ast/template.type'
+import type { AuthoredValue, ReferenceValue } from '../../../contracts/models/authoredValue.type'
 import { CodeFragment, code, literal, optionalPropertyCode, propertyCode } from '../codegen/fragments/CodeFragment'
 import IdentifierName from '../codegen/fragments/IdentifierName'
 import { IteratorScopeFrame, NodeCompilationContext } from './types'
@@ -17,13 +17,13 @@ export default class ReferenceNodeCompiler {
    * `session`, the `@self` field, or a scoped iterator frame (the item/index
    * variables from a surrounding loop).
    */
-  compile(properties: Record<string, unknown>): CodeFragment {
-    const path = (properties.path ?? []) as (string | number | TemplateValue)[]
+  compile(properties: ReferenceValue): CodeFragment {
+    const path = properties.path
     const base = properties.base
 
     if (path.length === 0) {
       if (base !== undefined) {
-        return this.ctx.compileOperandCode(base)
+        return this.ctx.compileValueCode(base)
       }
 
       return literal(undefined)
@@ -33,7 +33,7 @@ export default class ReferenceNodeCompiler {
       return this.compileBaseReference(base, path)
     }
 
-    const namespace = path[0] as string
+    const namespace = String(path[0])
 
     if (namespace === '@loop') {
       return this.compileIteratorLoopReference(path)
@@ -63,8 +63,8 @@ export default class ReferenceNodeCompiler {
   /**
    * Applies a relative path to an already-compiled base expression.
    */
-  private compileBaseReference(base: unknown, path: (string | number | TemplateValue)[]): CodeFragment {
-    const baseExpr = this.ctx.compileOperandCode(base)
+  private compileBaseReference(base: AuthoredValue, path: ReferenceValue['path']): CodeFragment {
+    const baseExpr = this.ctx.compileValueCode(base)
 
     return path.reduce<CodeFragment>(
       (acc, segment) => code`${acc}${optionalPropertyCode(String(segment))}`,
@@ -75,7 +75,7 @@ export default class ReferenceNodeCompiler {
   /**
    * Resolves answers[fieldCode].current, including dynamic field-code operands.
    */
-  private compileAnswerReference(path: (string | number | TemplateValue)[]): CodeFragment {
+  private compileAnswerReference(path: ReferenceValue['path']): CodeFragment {
     if (path.length < 2) {
       return literal(undefined)
     }
@@ -89,7 +89,7 @@ export default class ReferenceNodeCompiler {
     const fieldAccess =
       typeof fieldCode === 'string'
         ? propertyCode(fieldCode)
-        : code`[String(${this.ctx.compileOperandCode(fieldCode)})]`
+        : code`[String(${typeof fieldCode === 'number' ? literal(fieldCode) : this.ctx.compileValueCode(fieldCode)})]`
     let expr = code`ctx.answers${fieldAccess}?.current`
 
     for (let i = 2; i < path.length; i++) {
@@ -102,7 +102,7 @@ export default class ReferenceNodeCompiler {
   /**
    * Resolves @self references against the field code supplied by the caller.
    */
-  private compileSelfAnswerReference(path: (string | number | TemplateValue)[]): CodeFragment {
+  private compileSelfAnswerReference(path: ReferenceValue['path']): CodeFragment {
     const selfCodeExpr = this.ctx.selfCodeExpr
 
     if (selfCodeExpr !== undefined) {
@@ -123,19 +123,19 @@ export default class ReferenceNodeCompiler {
    * item (`Loop.Item()`, and `Item()` references rewritten at AST build) and
    * loop metadata such as index, first, last, and length.
    */
-  private compileIteratorLoopReference(path: (string | number | TemplateValue)[]): CodeFragment {
+  private compileIteratorLoopReference(path: ReferenceValue['path']): CodeFragment {
     if (path.length < 3) {
       return literal(undefined)
     }
 
-    const level = typeof path[1] === 'string' ? parseInt(path[1] as string, 10) : (path[1] as number)
+    const level = typeof path[1] === 'string' ? parseInt(path[1], 10) : Number(path[1])
     const frame = this.ctx.iteratorStack[this.ctx.iteratorStack.length - 1 - level]
 
     if (!frame) {
       return literal(undefined)
     }
 
-    const property = path[2] as string
+    const property = String(path[2])
 
     if (property === 'item') {
       return this.compileLoopItemReference(frame, path)
@@ -180,14 +180,14 @@ export default class ReferenceNodeCompiler {
    * the item is the entry value for object inputs or the element for array
    * inputs, and the '@key' segment reads the object entry key.
    */
-  private compileLoopItemReference(frame: IteratorScopeFrame, path: (string | number | TemplateValue)[]): CodeFragment {
+  private compileLoopItemReference(frame: IteratorScopeFrame, path: ReferenceValue['path']): CodeFragment {
     const itemVar = toCode(frame.itemVar)
 
     if (path.length === 3) {
       return itemVar
     }
 
-    const property = path[3] as string
+    const property = String(path[3])
 
     if (property === '@key') {
       return code`${frame.inputWasKeyedVar} ? (${toCode(frame.rawItemExpr)})[0] : undefined`

@@ -1,9 +1,10 @@
-import type { AuthoredValue, ExpressionValue } from '../../../chassis/contracts/models/authoredValue.type'
+import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
+import type { AuthoredValue } from '../../../chassis/contracts/models/authoredValue.type'
 
 /**
  * The hooks concern's semantic model. Built by `HookAnalyzer`, consumed by
- * `HookLifecycleCompiler`. AST nodes survive here only as expression leaves
- * and diagnostic tokens.
+ * `HookLifecycleCompiler`. AST nodes survive here only as diagnostic
+ * and identity tokens.
  */
 export interface StepHookModel {
   readonly access: AccessLifecycleModel
@@ -33,7 +34,7 @@ export interface AccessHookModel {
   /** Generated-comment label: the authored path when known, else the key. */
   readonly label: string
   /** Guard predicate; absent means the hook always runs. */
-  readonly when?: ExpressionValue
+  readonly when?: AuthoredValue
   readonly effects: readonly EffectCall[]
   readonly outcomes: readonly HookOutcomeModel[]
 }
@@ -44,9 +45,9 @@ export interface SubmitHookModel {
   /** Generated-comment label: the authored path when known, else the key. */
   readonly label: string
   /** Guard predicate; absent means the hook always runs. */
-  readonly when?: ExpressionValue
+  readonly when?: AuthoredValue
   /** Guard evaluated alongside `when`; absent defaults to passing. */
-  readonly guards?: ExpressionValue
+  readonly guards?: AuthoredValue
   readonly validate: boolean
   /** Defaulted to `['default']` at analysis when none are authored. */
   readonly validationGroups: readonly string[]
@@ -73,7 +74,7 @@ export interface EffectCall {
   readonly name: string
   readonly arguments: readonly AuthoredValue[]
   /** The effect call itself, kept as the tracked call's diagnostic source. */
-  readonly node: ExpressionValue
+  readonly source: ASTNode
 }
 
 export enum HookOutcomeKind {
@@ -86,14 +87,14 @@ export type HookOutcomeModel = RedirectOutcomeModel | ThrowErrorOutcomeModel
 export interface RedirectOutcomeModel {
   readonly kind: HookOutcomeKind.REDIRECT
   /** Outcome guard; absent means the redirect always applies. */
-  readonly when?: ExpressionValue
-  readonly goto: string | ExpressionValue
+  readonly when?: AuthoredValue
+  readonly goto: string | AuthoredValue
 }
 
 export interface ThrowErrorOutcomeModel {
   readonly kind: HookOutcomeKind.THROW_ERROR
   /** Outcome guard; absent means the error always applies. */
-  readonly when?: ExpressionValue
+  readonly when?: AuthoredValue
   readonly status: number
-  readonly message: string | ExpressionValue
+  readonly message: string | AuthoredValue
 }

@@ -10,7 +10,7 @@ import { isTemplateASTNode } from '../../../contracts/ast/nodes'
 import type { FieldBlockASTNode } from '../../../contracts/ast/structures.type'
 import type { TemplateASTNode } from '../../../contracts/ast/ast.type'
 import type { TemplateValue } from '../../../contracts/ast/template.type'
-import { expressionValue, isExpressionLeaf, type AuthoredValue } from '../../../contracts/models/authoredValue.type'
+import { isExpressionLeaf, type AuthoredValue } from '../../../contracts/models/authoredValue.type'
 import {
   FieldCodeKind,
   type DynamicFieldCode,
@@ -85,7 +85,11 @@ export default class FieldModelBuilder {
       return
     }
 
-    this.collectTemplateFields(iterator.yieldTemplate, [{ node: iterateNode }], fields)
+    this.collectTemplateFields(
+      iterator.yieldTemplate,
+      [{ source: iterateNode, input: this.classifier.classify(iterateNode.properties.input) }],
+      fields,
+    )
   }
 
   private collectTemplateFields(template: TemplateValue, iteratorPath: IterateRef[], fields: FieldModel[]): void {
@@ -136,7 +140,11 @@ export default class FieldModelBuilder {
       return
     }
 
-    this.collectTemplateFields(iterator.yieldTemplate, [...iteratorPath, { node: template }], fields)
+    this.collectTemplateFields(
+      iterator.yieldTemplate,
+      [...iteratorPath, { source: template, input: this.classifier.classify(properties.input) }],
+      fields,
+    )
   }
 
   private buildTemplateField(template: TemplateASTNode, iteratorPath: IterateRef[]): FieldModel {
@@ -166,7 +174,7 @@ export default class FieldModelBuilder {
     }
 
     if (isExpressionLeaf(fieldCode)) {
-      return { kind: FieldCodeKind.DYNAMIC, node: expressionValue(fieldCode) }
+      return { kind: FieldCodeKind.DYNAMIC, value: this.classifier.classify(fieldCode) }
     }
 
     return undefined
@@ -179,7 +187,7 @@ export default class FieldModelBuilder {
     }
 
     if (isTemplateASTNode(fieldCode)) {
-      return { kind: FieldCodeKind.DYNAMIC, node: expressionValue(fieldCode) }
+      return { kind: FieldCodeKind.DYNAMIC, value: this.classifier.classify(fieldCode) }
     }
 
     return undefined
@@ -225,7 +233,7 @@ export default class FieldModelBuilder {
       return {
         name,
         arguments: readTransformerArguments(transformerNode).map(argument => this.classifier.classify(argument)),
-        node: expressionValue(transformerNode),
+        source: transformerNode,
       }
     })
 

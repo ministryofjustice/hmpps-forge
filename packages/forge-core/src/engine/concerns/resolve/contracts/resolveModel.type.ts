@@ -6,7 +6,7 @@ import type { AuthoredValue } from '../../../chassis/contracts/models/authoredVa
 /**
  * The resolve concern's semantic model for one step. Built by
  * `ResolveAnalyzer`, consumed by `StepResolveCompiler`. AST nodes survive here
- * only as expression leaves and diagnostic tokens; render-facing property
+ * only as diagnostic and identity tokens; render-facing property
  * selection (which authored props reach the render context) is decided at
  * analysis, so the compiler only materialises what it is handed.
  */
@@ -55,6 +55,7 @@ export interface ResolveBlockModel {
 
 /** One standalone MAP iterator and the template blocks it yields. */
 export interface StandaloneIterateModel {
-  readonly node: IterateASTNode
+  readonly source: IterateASTNode
+  readonly input: AuthoredValue
   readonly templateBlocks: readonly ResolveBlockModel[]
 }

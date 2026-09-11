@@ -251,6 +251,30 @@ describe('StepResolveCompiler', () => {
       expect(result.props.blocks.map(block => block.props.variant)).toEqual(['before', 'repeated', 'repeated', 'after'])
     })
 
+    it('should omit absent blocks without filtering property arrays when expanding a map', async () => {
+      // Arrange
+      const block = ASTTestFactory.block('visible', ComponentCallType.BASIC)
+        .withProperty('items', [createReference(['data', 'missing']), 'kept'])
+        .build()
+      const selected = ASTTestFactory.expression(ExpressionType.CONDITIONAL)
+        .withProperty('predicate', createReference(['@loop', '0', 'item']))
+        .withProperty('thenValue', block)
+        .build()
+      const mapped = ASTTestFactory.expression(ExpressionType.ITERATE)
+        .withProperty('input', [true, false])
+        .withProperty('iterator', { type: IteratorType.MAP, yieldTemplate: selected })
+        .build()
+      const step = ASTTestFactory.step().withPath('/step').withTitle('Step').withProperty('blocks', [mapped]).build()
+      const compiled = compiler.compile(resolveModel(step))
+
+      // Act
+      const result = await compiled(createCtx({ data: {} }))
+
+      // Assert
+      expect(result.props.blocks).toHaveLength(1)
+      expect(result.props.blocks[0].props.properties.items).toStrictEqual([undefined, 'kept'])
+    })
+
     it('should produce readable source code', () => {
       // Arrange
       const ancestor = ASTTestFactory.journey().withProperty('path', '/guide').withTitle('Guide').build()
@@ -269,12 +293,13 @@ describe('StepResolveCompiler', () => {
         [
           '"use strict";',
           'const blocks = [];',
+          'const referenceValue = ctx.data?.nameHint;',
           '',
           '// --- Block — text-input "name" ---',
           'const nestedBlockNameProps = {',
           '  code: "name",',
           '  label: { text: "Your name" },',
-          '  hint: ctx.data?.nameHint',
+          '  hint: referenceValue',
           '};',
           '',
           '_forgeHelpers.resolveFieldValue(ctx, nestedBlockNameProps);',

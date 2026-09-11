@@ -1,4 +1,4 @@
-import { ASTNode } from '../../../chassis/contracts/ast/ast.type'
+import type { AuthoredValue } from '../../../chassis/contracts/models/authoredValue.type'
 import type { CompiledReachabilityFactsFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 import type {
   ForwardOutcomeGroup,
@@ -113,10 +113,7 @@ export default class ReachabilityCompiler {
       }
 
       generator.comment(`Entry predicate — step "${this.stepLabel(entry)}"`)
-      generator.assign(
-        code`${entryResults}[${index}]`,
-        code`Boolean(${this.expr.compileExpressionCode(node, generator)})`,
-      )
+      generator.assign(code`${entryResults}[${index}]`, code`Boolean(${this.expr.compileValueCode(node, generator)})`)
     })
   }
 
@@ -146,7 +143,7 @@ export default class ReachabilityCompiler {
     generator: CodeGenerator,
   ): void {
     group.redirectOutcomes.forEach(outcome => {
-      this.compileDeclaredGotoResolution(outcome.node.properties.goto, stepIndex, declaredOutcomeValues, generator)
+      this.compileDeclaredGotoResolution(outcome.goto, stepIndex, declaredOutcomeValues, generator)
     })
 
     const emitCascade = () => {
@@ -160,7 +157,7 @@ export default class ReachabilityCompiler {
 
       group.redirectOutcomes.forEach(outcome => {
         this.compileForwardOutcomeCascade(
-          outcome.node.properties,
+          outcome,
           stepIndex,
           outcomeMatched,
           outcome.overApproximatesWhen,
@@ -175,7 +172,7 @@ export default class ReachabilityCompiler {
     if (hookWhenNode !== undefined) {
       const hookWhen = generator.const(
         'hookWhen',
-        code`Boolean(${this.expr.compileExpressionCode(hookWhenNode, generator)})`,
+        code`Boolean(${this.expr.compileValueCode(hookWhenNode, generator)})`,
       )
 
       generator.if(hookWhen, emitCascade)
@@ -187,7 +184,7 @@ export default class ReachabilityCompiler {
   }
 
   private hasOnlyStaticGotos(group: ForwardOutcomeGroup): boolean {
-    return group.redirectOutcomes.every(outcome => typeof outcome.node.properties.goto === 'string')
+    return group.redirectOutcomes.every(outcome => typeof outcome.goto === 'string')
   }
 
   /**
@@ -208,7 +205,7 @@ export default class ReachabilityCompiler {
       return
     }
 
-    const { when, goto } = outcome.node.properties
+    const { when, goto } = outcome
     const pushGoto = () => generator.statement(code`${outcomeValues}[${stepIndex}].push(${literal(goto)})`)
 
     if (outcome.overApproximatesWhen) {
@@ -218,11 +215,8 @@ export default class ReachabilityCompiler {
       return
     }
 
-    if (when !== undefined && this.expr.isCompilableNode(when)) {
-      const outcomeWhen = generator.const(
-        'outcomeWhen',
-        code`Boolean(${this.expr.compileExpressionCode(when, generator)})`,
-      )
+    if (when !== undefined) {
+      const outcomeWhen = generator.const('outcomeWhen', code`Boolean(${this.expr.compileValueCode(when, generator)})`)
       const emitRemaining =
         remainingOutcomes.length > 0
           ? () => this.compileStaticOutcomeChain(remainingOutcomes, stepIndex, outcomeValues, generator)
@@ -237,7 +231,7 @@ export default class ReachabilityCompiler {
   }
 
   private compileForwardOutcomeCascade(
-    properties: { readonly when?: ASTNode; readonly goto: ASTNode | string },
+    properties: { readonly when?: AuthoredValue; readonly goto: AuthoredValue | string },
     stepIndex: number,
     outcomeMatched: IdentifierName,
     overApproximateWhen: boolean,
@@ -247,10 +241,10 @@ export default class ReachabilityCompiler {
     generator.if(code`${outcomeMatched} === false`, () => {
       const { when, goto } = properties
 
-      if (!overApproximateWhen && when !== undefined && this.expr.isCompilableNode(when)) {
+      if (!overApproximateWhen && when !== undefined) {
         const outcomeWhen = generator.const(
           'outcomeWhen',
-          code`Boolean(${this.expr.compileExpressionCode(when, generator)})`,
+          code`Boolean(${this.expr.compileValueCode(when, generator)})`,
         )
 
         generator.if(outcomeWhen, () => {
@@ -265,7 +259,7 @@ export default class ReachabilityCompiler {
   }
 
   private compileDeclaredGotoResolution(
-    goto: ASTNode | string,
+    goto: AuthoredValue | string,
     stepIndex: number,
     declaredOutcomeValues: IdentifierName,
     generator: CodeGenerator,
@@ -278,7 +272,7 @@ export default class ReachabilityCompiler {
   }
 
   private compileGotoResolution(
-    goto: ASTNode | string,
+    goto: AuthoredValue | string,
     stepIndex: number,
     outcomeMatched: IdentifierName,
     marksOutcomeMatched: boolean,
@@ -302,12 +296,12 @@ export default class ReachabilityCompiler {
     })
   }
 
-  private compileGotoExpression(goto: ASTNode | string, generator: CodeGenerator): CodeFragment | undefined {
+  private compileGotoExpression(goto: AuthoredValue | string, generator: CodeGenerator): CodeFragment | undefined {
     if (typeof goto === 'string') {
       return literal(goto)
     }
 
-    return this.expr.isCompilableNode(goto) ? this.expr.compileExpressionCode(goto, generator) : undefined
+    return this.expr.compileValueCode(goto, generator)
   }
 
   private compileTieBreakers(
@@ -353,7 +347,7 @@ export default class ReachabilityCompiler {
 
     const tieBreakerWhen = generator.const(
       'tieBreakerWhen',
-      code`Boolean(${this.expr.compileExpressionCode(tieBreaker.when, generator)})`,
+      code`Boolean(${this.expr.compileValueCode(tieBreaker.when, generator)})`,
     )
     const emitRemaining =
       remainingTieBreakers.length > 0
@@ -372,9 +366,6 @@ export default class ReachabilityCompiler {
       return generator.const('resumeActive', literal(false))
     }
 
-    return generator.const(
-      'resumeActive',
-      code`Boolean(${this.expr.compileExpressionCode(model.resumeWhen, generator)})`,
-    )
+    return generator.const('resumeActive', code`Boolean(${this.expr.compileValueCode(model.resumeWhen, generator)})`)
   }
 }

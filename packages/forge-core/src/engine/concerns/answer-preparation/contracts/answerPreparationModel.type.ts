@@ -4,7 +4,7 @@ import type { FieldModel } from '../../../chassis/contracts/models/fieldModel.ty
  * The answer-preparation concern's semantic model for one step (or, at journey
  * scope, the aggregation of every owned step's fields in step order). Built by
  * `AnswerPreparationAnalyzer`, consumed by `StepAnswerPreparationCompiler`.
- * AST nodes survive here only as expression leaves and diagnostic tokens.
+ * AST nodes survive here only as diagnostic and identity tokens.
  */
 export interface AnswerPreparationModel {
   /** Script-URL identity segment; `undefined` leaves the script unlabelled. */

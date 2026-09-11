@@ -1,7 +1,8 @@
 import { CodeFragment, code, literal } from '../codegen/fragments/CodeFragment'
 import CodeGenerator from '../codegen/CodeGenerator'
 import IdentifierName from '../codegen/fragments/IdentifierName'
-import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
+import type { AuthoredValue } from '../../../contracts/models/authoredValue.type'
+import type { NodeCompilationContext } from '../expressions/types'
 import { IteratorScopeFrame } from '../expressions/types'
 
 /** The emitted loop's bindings, exposed to per-item compile callbacks. */
@@ -18,15 +19,15 @@ export interface IteratorEmitScope {
  * code generators in lowering) uses. It normalises the input collection,
  * guards on arrays, walks with index/raw-item/item bindings, and runs the
  * per-item callback inside an iterator scope frame so `Item()` and `Loop()`
- * expression references resolve correctly. Both `RuntimeValueCompiler` and
+ * expression references resolve correctly. Both `IteratorNodeCompiler` and
  * `ScopedTemplateCompiler` delegate here.
  */
 export default class IteratorLoopEmitter {
-  constructor(private readonly expr: ExpressionDispatcher) {}
+  constructor(private readonly expr: NodeCompilationContext) {}
 
-  compileLoop(input: unknown, generator: CodeGenerator, compileItem: (scope: IteratorEmitScope) => void): void {
-    const inputName = generator.let('iteratorInput', this.expr.compileOperandCode(input, generator))
-    const inputWasKeyedName = this.expr.compileNormalizeIteratorInput(inputName, generator)
+  compileLoop(input: AuthoredValue, generator: CodeGenerator, compileItem: (scope: IteratorEmitScope) => void): void {
+    const inputName = generator.let('iteratorInput', this.expr.compileValueCode(input, generator))
+    const inputWasKeyedName = this.compileNormalizeIteratorInput(inputName, generator)
 
     generator.if(code`Array.isArray(${inputName})`, () => {
       const indexName = generator.let('iteratorIndex', literal(0))
@@ -38,10 +39,7 @@ export default class IteratorLoopEmitter {
         generator.assign(indexName, code`${indexName} + 1`)
         generator.statement(code`_forgeHelpers.consumeIteratorIteration(ctx)`)
 
-        const item = generator.const(
-          'iteratorItem',
-          this.expr.compileIteratorItemScopeExpression(rawItem, inputWasKeyedName),
-        )
+        const item = generator.const('iteratorItem', code`${inputWasKeyedName} ? ${rawItem}[1] : ${rawItem}`)
         const inputLength = code`${inputName}.length`
         const scope: IteratorEmitScope = { input: inputName, index: currentIndex, item, rawItem, inputLength }
         const frame: IteratorScopeFrame = {
@@ -57,6 +55,17 @@ export default class IteratorLoopEmitter {
         })
       })
     })
+  }
+
+  private compileNormalizeIteratorInput(input: IdentifierName, generator: CodeGenerator): IdentifierName {
+    const keyed = generator.let('iteratorInputWasKeyed', literal(false))
+
+    generator.if(code`${input} != null && !Array.isArray(${input}) && typeof ${input} === "object"`, () => {
+      generator.assign(input, code`Object.entries(${input})`)
+      generator.assign(keyed, literal(true))
+    })
+
+    return keyed
   }
 
 }

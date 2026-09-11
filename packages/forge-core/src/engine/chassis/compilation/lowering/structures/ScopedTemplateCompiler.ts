@@ -1,23 +1,10 @@
-import { IteratorType } from '../../../../../shared/taxonomy'
-import { IterateASTNode } from '../../../contracts/ast/expressions.type'
-import { isTemplateASTNode } from '../../../contracts/ast/nodes'
 import type { TemplateASTNode } from '../../../contracts/ast/ast.type'
-import type { TemplateValue } from '../../../contracts/ast/template.type'
+import type { AuthoredValue } from '../../../contracts/models/authoredValue.type'
 import type { FieldModel, IterateRef } from '../../../contracts/models/fieldModel.type'
 import { arrayCode, CodeFragment, code, literal } from '../codegen/fragments/CodeFragment'
 import CodeGenerator from '../codegen/CodeGenerator'
-import IdentifierName from '../codegen/fragments/IdentifierName'
-import FieldCodeEmitter from '../emitters/FieldCodeEmitter'
 import IteratorLoopEmitter, { IteratorEmitScope } from '../emitters/IteratorLoopEmitter'
 import ExpressionDispatcher from '../expressions/ExpressionDispatcher'
-
-interface TemplateMapIteratorProperties {
-  readonly input?: unknown
-  readonly iterator?: {
-    readonly type?: unknown
-    readonly yieldTemplate?: TemplateValue
-  }
-}
 
 interface FieldOccurrenceOptions {
   readonly compileLeaf: (field: FieldModel) => void
@@ -41,12 +28,9 @@ interface FieldOccurrenceRun {
  * iterate nodes.
  */
 export default class ScopedTemplateCompiler {
-  private readonly fieldCodes: FieldCodeEmitter
-
   private readonly loops: IteratorLoopEmitter
 
   constructor(private readonly expr: ExpressionDispatcher) {
-    this.fieldCodes = new FieldCodeEmitter(expr)
     this.loops = new IteratorLoopEmitter(expr)
   }
 
@@ -69,29 +53,11 @@ export default class ScopedTemplateCompiler {
    * per-item output shape) under iterator scope.
    */
   compileMapIterator(
-    node: IterateASTNode,
+    input: AuthoredValue,
     generator: CodeGenerator,
-    compileYield: (template: TemplateValue, scope: IteratorEmitScope) => void,
+    compileBody: (scope: IteratorEmitScope) => void,
   ): void {
-    const yieldTemplate = node.properties.iterator.yieldTemplate
-
-    if (node.properties.iterator.type !== IteratorType.MAP || yieldTemplate === undefined) {
-      return
-    }
-
-    this.loops.compileLoop(node.properties.input, generator, scope => {
-      compileYield(yieldTemplate, scope)
-    })
-  }
-
-  /**
-   * Resolves a template field code to generated source, including dynamic code expressions.
-   */
-  compileTemplateCodeExpression(
-    node: TemplateASTNode,
-    generator: CodeGenerator,
-  ): CodeFragment | IdentifierName | undefined {
-    return this.fieldCodes.compileTemplateExpression(node, generator)
+    this.loops.compileLoop(input, generator, compileBody)
   }
 
   /**
@@ -138,7 +104,7 @@ export default class ScopedTemplateCompiler {
       const ref = field.iteratorPath[depth]
       const lastRun = runs.at(-1)
 
-      if (lastRun !== undefined && lastRun.ref?.node === ref?.node) {
+      if (lastRun !== undefined && lastRun.ref?.source === ref?.source) {
         lastRun.fields.push(field)
 
         return runs
@@ -152,11 +118,7 @@ export default class ScopedTemplateCompiler {
 
   /** Emits one loop level for a registered or template MAP iterate node. */
   private compileIterateRefLoop(ref: IterateRef, generator: CodeGenerator, compileBody: () => void): void {
-    const input = isTemplateASTNode(ref.node)
-      ? ((ref.node.properties ?? {}) as TemplateMapIteratorProperties).input
-      : ref.node.properties.input
-
-    this.loops.compileLoop(input, generator, () => {
+    this.loops.compileLoop(ref.input, generator, () => {
       compileBody()
     })
   }

@@ -14,7 +14,7 @@ import type { ValidationModel } from '../../../concerns/validation/contracts/val
  * every node plus one `JourneyModel` per journey, each owning its steps.
  * Ownership is structure — a step lives inside its journey's map, so lowering
  * never joins flat maps by `NodeId`. Past analysis there is no `unknown` and
- * no structural AST querying; AST survives only as expression leaves and
+ * no structural AST querying; AST survives only as identity and
  * diagnostic tokens. The model is strictly pre-codegen and never reaches
  * runtime state.
  */

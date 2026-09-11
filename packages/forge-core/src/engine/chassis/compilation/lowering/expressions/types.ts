@@ -1,3 +1,4 @@
+import type { AuthoredValue } from '../../../contracts/models/authoredValue.type'
 import { CodeFragment } from '../codegen/fragments/CodeFragment'
 import CodeGenerator from '../codegen/CodeGenerator'
 import IdentifierName from '../codegen/fragments/IdentifierName'
@@ -15,7 +16,8 @@ export interface FunctionCallCompileOptions {
 }
 
 export interface NodeCompilationContext {
-  compileOperandCode(value: unknown): CodeFragment
+  compileValueCode(value: AuthoredValue, generator?: CodeGenerator): CodeFragment
+  withIteratorFrame<T>(frame: IteratorScopeFrame, compile: () => T): T
   compileFunctionCallCode(
     funcName: string,
     argExprs: readonly CodeFragment[],

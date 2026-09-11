@@ -1,3 +1,4 @@
+import AuthoredValueClassifier from '../../../chassis/compilation/analysis/shared/AuthoredValueClassifier'
 import { FunctionCallType, HookType, PolicyType, PredicateType } from '../../../../shared/taxonomy'
 import type { RedirectOutcomeASTNode, SubmitHookASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { TestPredicateASTNode } from '../../../chassis/contracts/ast/predicates.type'
@@ -84,9 +85,9 @@ describe('ForwardNavigationAnalyzer', () => {
       const result = analyzer.analyze(stepNode)
 
       // Assert
-      expect(result.forwardOutcomeGroups).toEqual([
-        { hookWhen: undefined, redirectOutcomes: [{ node: firstRedirect, overApproximatesWhen: false }] },
-        { hookWhen: undefined, redirectOutcomes: [{ node: secondRedirect, overApproximatesWhen: false }] },
+      expect(result.forwardOutcomeGroups).toMatchObject([
+        { hookWhen: undefined, redirectOutcomes: [{ source: firstRedirect, overApproximatesWhen: false }] },
+        { hookWhen: undefined, redirectOutcomes: [{ source: secondRedirect, overApproximatesWhen: false }] },
       ])
     })
 
@@ -100,8 +101,11 @@ describe('ForwardNavigationAnalyzer', () => {
       const result = analyzer.analyze(stepNode)
 
       // Assert
-      expect(result.forwardOutcomeGroups).toEqual([
-        { hookWhen, redirectOutcomes: [{ node: redirect, overApproximatesWhen: false }] },
+      expect(result.forwardOutcomeGroups).toMatchObject([
+        {
+          hookWhen: new AuthoredValueClassifier().classify(hookWhen),
+          redirectOutcomes: [{ source: redirect, overApproximatesWhen: false }],
+        },
       ])
     })
 
@@ -115,8 +119,8 @@ describe('ForwardNavigationAnalyzer', () => {
       const result = analyzer.analyze(stepNode)
 
       // Assert
-      expect(result.forwardOutcomeGroups).toEqual([
-        { hookWhen: undefined, redirectOutcomes: [{ node: redirect, overApproximatesWhen: false }] },
+      expect(result.forwardOutcomeGroups).toMatchObject([
+        { hookWhen: undefined, redirectOutcomes: [{ source: redirect, overApproximatesWhen: false }] },
       ])
     })
 
@@ -130,8 +134,8 @@ describe('ForwardNavigationAnalyzer', () => {
       const result = analyzer.analyze(stepNode)
 
       // Assert
-      expect(result.forwardOutcomeGroups).toEqual([
-        { hookWhen: undefined, redirectOutcomes: [{ node: redirect, overApproximatesWhen: true }] },
+      expect(result.forwardOutcomeGroups).toMatchObject([
+        { hookWhen: undefined, redirectOutcomes: [{ source: redirect, overApproximatesWhen: true }] },
       ])
     })
 
@@ -148,12 +152,12 @@ describe('ForwardNavigationAnalyzer', () => {
       const result = analyzer.analyze(stepNode)
 
       // Assert
-      expect(result.forwardOutcomeGroups).toEqual([
+      expect(result.forwardOutcomeGroups).toMatchObject([
         {
           hookWhen: undefined,
           redirectOutcomes: [
-            { node: redirect, overApproximatesWhen: false },
-            { node: validRedirect, overApproximatesWhen: false },
+            { source: redirect, overApproximatesWhen: false },
+            { source: validRedirect, overApproximatesWhen: false },
           ],
         },
       ])

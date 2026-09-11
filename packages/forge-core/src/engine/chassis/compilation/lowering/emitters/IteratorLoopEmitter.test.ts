@@ -1,3 +1,4 @@
+import AuthoredValueClassifier from '../../analysis/shared/AuthoredValueClassifier'
 import { code } from '../codegen/fragments/CodeFragment'
 import CodeGenerator from '../codegen/CodeGenerator'
 import type { CompilationDependencies } from '../compilationDependencies.type'
@@ -28,7 +29,7 @@ describe('IteratorLoopEmitter', () => {
       const generator = CodeGenerator.forFunction(['ctx'])
       const results = generator.const('results', code`[]`)
 
-      emitter.compileLoop(input, generator, scope => {
+      emitter.compileLoop(new AuthoredValueClassifier().classify(input), generator, scope => {
         generator.statement(code`${results}.push(${scope.item})`)
       })
       generator.return(results)

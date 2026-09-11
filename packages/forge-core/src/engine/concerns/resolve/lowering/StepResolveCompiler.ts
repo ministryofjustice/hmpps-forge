@@ -3,7 +3,6 @@ import { isTemplateASTNode } from '../../../chassis/contracts/ast/nodes'
 import type { TemplateASTNode } from '../../../chassis/contracts/ast/ast.type'
 import {
   AuthoredValueKind,
-  toRawOperand,
   type AuthoredValue,
   type BlockValue,
   type RecordEntryValue,
@@ -13,6 +12,7 @@ import {
   code,
   literal,
   objectCode,
+  propertyCode,
   structuredLiteralCode,
   SafeCode,
   ObjectCodeProperty,
@@ -28,7 +28,6 @@ import {
   GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM,
   renderGeneratedSource,
 } from '../../../chassis/compilation/lowering/GeneratedFunctionCompiler'
-import RuntimeValueCompiler from '../../../chassis/compilation/lowering/structures/RuntimeValueCompiler'
 import ScopedTemplateCompiler from '../../../chassis/compilation/lowering/structures/ScopedTemplateCompiler'
 import type { CompiledResolveFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 import type {
@@ -66,18 +65,12 @@ export default class StepResolveCompiler {
 
   private readonly templates: ScopedTemplateCompiler
 
-  private readonly values: RuntimeValueCompiler
-
   constructor(dependencies: CompilationDependencies) {
-    this.expr = new ExpressionDispatcher(dependencies)
+    this.expr = new ExpressionDispatcher(dependencies, (block, generator, nameHint) =>
+      this.compileNestedBlockValue(block, generator, nameHint),
+    )
     this.fieldCodes = new FieldCodeEmitter(this.expr)
     this.templates = new ScopedTemplateCompiler(this.expr)
-    this.values = new RuntimeValueCompiler(this.expr, {
-      expressionErrorFallback: literal(undefined),
-      expressionErrorMode: 'throw',
-      omitUndefinedArrayItems: true,
-      compileBlockValue: (block, generator, nameHint) => this.compileNestedBlockValue(block, generator, nameHint),
-    })
   }
 
   compile(model: ResolveModel): CompiledResolveFunction {
@@ -205,16 +198,21 @@ export default class StepResolveCompiler {
 
   private compileBlocksValue(blocks: AuthoredValue, generator: CodeGenerator): IdentifierName {
     if (blocks.kind !== AuthoredValueKind.LIST) {
-      return generator.const('blocks', this.values.compileValueExpression(blocks, generator, 'blocks'))
+      const result = generator.const('blockValues', this.expr.compileValueCode(blocks, generator))
+
+      return generator.const(
+        'blocks',
+        code`Array.isArray(${result}) ? ${result}.filter(block => block !== undefined) : ${result}`,
+      )
     }
 
     const compiledBlocks = generator.const('blocks', code`[]`)
 
     blocks.items.forEach(block => {
-      const compiledBlock = this.values.compileValueExpression(block, generator, 'blocks')
+      const compiledBlock = this.expr.compileValueCode(block, generator)
 
       if (block.kind === AuthoredValueKind.ITERATION && block.iterator === IteratorType.MAP) {
-        generator.statement(code`${compiledBlocks}.push(...${compiledBlock})`)
+        generator.statement(code`${compiledBlocks}.push(...${compiledBlock}.filter(block => block !== undefined))`)
 
         return
       }
@@ -235,7 +233,7 @@ export default class StepResolveCompiler {
 
   private mayResolveUndefined(value: AuthoredValue): boolean {
     if (value.kind === AuthoredValueKind.STATIC) {
-      return false
+      return value.value === undefined
     }
 
     return value.kind !== AuthoredValueKind.RECORD &&
@@ -246,12 +244,13 @@ export default class StepResolveCompiler {
   private compileIterateBlocks(model: ResolveModel, blocks: IdentifierName, generator: CodeGenerator): void {
     model.standaloneIterateBlocks.forEach(iterateModel => {
       generator.comment('Iterator blocks')
-      this.templates.compileMapIterator(iterateModel.node, generator, () => {
+      this.templates.compileMapIterator(iterateModel.input, generator, () => {
         iterateModel.templateBlocks.forEach(templateBlock => {
-          const codeExpression = this.templates.compileTemplateCodeExpression(
-            templateBlock.source as TemplateASTNode,
-            generator,
-          )
+          const codeValue = templateBlock.properties.find(property => property.key === 'code')?.value
+          const codeExpression =
+            codeValue === undefined
+              ? undefined
+              : this.fieldCodes.compileRegisteredExpression(codeValue, generator, 'templateCode')
 
           this.compileTemplateBlock(templateBlock, codeExpression, blocks, generator)
         })
@@ -356,20 +355,19 @@ export default class StepResolveCompiler {
 
     return {
       ...plan,
-      codeExpression: this.fieldCodes.compileRegisteredExpression(toRawOperand(codeProperty.value), generator),
+      codeExpression: this.fieldCodes.compileRegisteredExpression(codeProperty.value, generator),
     }
   }
 
   private compileBlockPropEntries(plan: BlockPropsCompilation, generator: CodeGenerator): ObjectCodeProperty[] {
     return plan.properties.flatMap(property => {
       if (plan.blockType === ComponentCallType.FIELD && property.key === 'code') {
-        const codeExpression =
-          plan.codeExpression ?? this.fieldCodes.compileRegisteredInlineExpression(toRawOperand(property.value))
+        const codeExpression = plan.codeExpression ?? this.fieldCodes.compileRegisteredInlineExpression(property.value)
 
         return codeExpression === undefined ? [] : [{ key: 'code', value: codeExpression }]
       }
 
-      return [{ key: property.key, value: this.values.compileValueExpression(property.value, generator, property.key) }]
+      return [{ key: property.key, value: this.expr.compileValueCode(property.value, generator) }]
     })
   }
 
@@ -393,13 +391,7 @@ export default class StepResolveCompiler {
       this.compilePropertyAssignment(visibleWhen.value, props, 'visibleWhen', generator)
 
       if (boundPlan.blockType === ComponentCallType.FIELD && codeProperty !== undefined) {
-        this.fieldCodes.assignProperty(
-          toRawOperand(codeProperty.value),
-          generator,
-          props,
-          'code',
-          boundPlan.codeExpression,
-        )
+        this.fieldCodes.assignProperty(codeProperty.value, generator, props, 'code', boundPlan.codeExpression)
         hoistedKeys.add('code')
       }
 
@@ -421,7 +413,7 @@ export default class StepResolveCompiler {
     generator: CodeGenerator,
   ): void {
     if (plan.blockType === ComponentCallType.FIELD && property.key === 'code') {
-      this.fieldCodes.assignProperty(toRawOperand(property.value), generator, props, property.key, plan.codeExpression)
+      this.fieldCodes.assignProperty(property.value, generator, props, property.key, plan.codeExpression)
 
       return
     }
@@ -449,7 +441,7 @@ export default class StepResolveCompiler {
     key: string,
     generator: CodeGenerator,
   ): void {
-    this.values.compileAssignment(value, generator, targetObject, key)
+    generator.assign(code`${targetObject}${propertyCode(key)}`, this.expr.compileValueCode(value, generator))
   }
 
   /**

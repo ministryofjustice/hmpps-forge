@@ -64,7 +64,7 @@ describe('HookAnalyzer', () => {
       expect(branch.effects).toHaveLength(1)
       expect(branch.effects[0].key).toBe('submit-hook-0-onAlways-effect-0')
       expect(branch.effects[0].name).toBe('markAction')
-      expect(branch.effects[0].node.kind).toBe(AuthoredValueKind.EXPRESSION)
+      expect(branch.effects[0].source.kind).toBe(FunctionCallType.EFFECT)
     })
 
     it('should default validation groups and omit unauthored branches', () => {
@@ -103,7 +103,7 @@ describe('HookAnalyzer', () => {
 
       expect(outcomes[0]).toEqual({ kind: HookOutcomeKind.REDIRECT, when: undefined, goto: '/next' })
       expect(outcomes[1].kind).toBe(HookOutcomeKind.REDIRECT)
-      expect(outcomes[1]).toMatchObject({ goto: { kind: AuthoredValueKind.EXPRESSION } })
+      expect(outcomes[1]).toMatchObject({ goto: { kind: AuthoredValueKind.REFERENCE } })
       expect(outcomes[2]).toEqual({
         kind: HookOutcomeKind.THROW_ERROR,
         when: undefined,

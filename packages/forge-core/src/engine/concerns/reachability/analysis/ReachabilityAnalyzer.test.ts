@@ -220,15 +220,15 @@ describe('ReachabilityAnalyzer', () => {
       )
 
       // Assert
-      expect(result.resumeWhen).toBe(resumeWhen)
+      expect(result.resumeWhen).toMatchObject({ source: resumeWhen })
       expect(result.entries.map(entry => entry.stepId)).toEqual([firstStepNode.id, secondStepNode.id])
       expect(result.entries[0]).toMatchObject({
         stepId: firstStepNode.id,
         code: 'first',
         isEntryPoint: false,
-        entryWhen,
+        entryWhen: { source: entryWhen },
         cleardownFieldCodes: ['fieldA'],
-        reachabilityTieBreakers: [{ priority: 10, when: tieBreakerWhen }],
+        reachabilityTieBreakers: [{ priority: 10, when: { source: tieBreakerWhen } }],
       })
     })
   })

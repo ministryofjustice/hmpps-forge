@@ -131,7 +131,7 @@ describe('ResolveAnalyzer', () => {
       const model = new ResolveAnalyzer().analyzeStep(createStepAnalysisContext({ stepNode, nodeIndex }))
 
       // Assert
-      const standaloneIds = model.standaloneIterateBlocks.map(iterate => iterate.node.id)
+      const standaloneIds = model.standaloneIterateBlocks.map(iterate => iterate.source.id)
 
       expect(standaloneIds).toContain(standaloneIterate.id)
       expect(standaloneIds).not.toContain(inlineIterate.id)
