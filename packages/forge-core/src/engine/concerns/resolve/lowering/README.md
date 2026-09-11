@@ -32,7 +32,7 @@ The runtime resolve and render phases execute the tasks and render components.
 
 ## Rules
 
-- Block properties are evaluated through `RuntimeValueCompiler`.
+- Block properties are evaluated through `ExpressionDispatcher.compileValueCode()`.
   Static values emit as literals; dynamic values emit as expression-backed assignments.
 - Step and journey metadata skip executable structure.
   Hooks, child structure, blocks, and reachability belong to other phases.
@@ -49,7 +49,7 @@ The runtime resolve and render phases execute the tasks and render components.
 
 - To change step metadata output, start in `buildSource()` and `compileDynamicProperties()`.
 - To change ancestor metadata output, start in `compileAncestorMetadata()`.
-- To change block property handling, start in `compileBlockProperties()` and `RuntimeValueCompiler` policy hooks.
+- To change block property handling, start in `compileBlockProperties()` and the shared value compiler and resolve’s nested-component callback.
 - To change iterator-yielded block behavior, start in `compileIterateBlocks()` and `compileTemplateBlock()`.
 - To change template block identity, update `ScopedTemplateCompiler` and check validation at the same time.
 - To inspect generated source, use `generateSource()` in the tests.

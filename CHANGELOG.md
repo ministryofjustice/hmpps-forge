@@ -217,6 +217,14 @@ generators directly when a predicate and single static message are not enough.
 
 ### Fixed
 
+- Expressions now use one compiler across hooks, component properties, defaults,
+  validation and route metadata. Match cases preserve their expected values and
+  evaluate their subject once, including inside component properties.
+- Arrays and `Map` results retain `undefined` entries consistently across phases.
+  Only rendered block-list assembly removes absent blocks.
+- Reference arguments are evaluated in authored order, before later arguments
+  can invoke functions that change the referenced data.
+
 - A bare `Item()` or `Loop.Item()` in a value position now means the whole item, same
   as `.value()`. Previously it typechecked but finalised to a useless builder object
   ([#273])
