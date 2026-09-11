@@ -1,6 +1,6 @@
 import { Self, Condition, validation, submit, redirect, step } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovUKRadioInput, GovUKButton, GovUKUtilityClasses } from '@ministryofjustice/hmpps-forge/govuk-components'
-import { saveDraftAnswers } from '../effects'
+import { saveDraftAnswers } from './effects'
 
 const locationField = GovUKRadioInput({
   code: 'location',
@@ -40,7 +40,7 @@ export const locationStep = step({
     submit({
       validate: true,
       onValid: {
-        effects: [saveDraftAnswers('branching')],
+        effects: [saveDraftAnswers()],
         next: [redirect({ goto: 'check-answers' })],
       },
     }),

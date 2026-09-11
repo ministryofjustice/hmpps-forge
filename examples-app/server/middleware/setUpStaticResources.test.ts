@@ -11,9 +11,9 @@ describe('setUpStaticResources', () => {
     app.use(setUpStaticResources())
   })
 
-  it('should serve nested TypeScript as text when requesting an example', async () => {
+  it('should serve TypeScript as text when requesting an example', async () => {
     // Arrange
-    const url = '/assets/playground/branching/visit-type/step.ts'
+    const url = '/assets/playground/branching/visit-type.ts'
 
     // Act
     const response = await request(app).get(url)

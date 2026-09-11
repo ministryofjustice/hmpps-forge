@@ -1,6 +1,6 @@
-import { Answer, Condition, Transformer, match, submit, redirect, Session, step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { Answer, Condition, Transformer, match, submit, redirect, Data, step } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovUKHeading, GovUKBody, GovUKSummaryList, GovUKButton } from '@ministryofjustice/hmpps-forge/govuk-components'
-import { saveAnswers, saveSubmitStateToSession, clearDraftAnswers } from '../effects'
+import { saveAnswers, clearDraftAnswers } from './effects'
 
 const heading = GovUKHeading({
   text: 'Check your answers',
@@ -12,9 +12,9 @@ const heading = GovUKHeading({
 // from other branches stay in the session (so switching back shows the
 // previous value pre-filled) but are not displayed here.
 const visitTypeLabel = match(Answer('visitType'))
-  .branch(Condition.Equals('in-person'), 'In person')
-  .branch(Condition.Equals('video'), 'Video call')
-  .branch(Condition.Equals('phone'), 'Phone call')
+  .case('in-person', 'In person')
+  .case('video', 'Video call')
+  .case('phone', 'Phone call')
   .otherwise('')
 
 const summaryList = GovUKSummaryList({
@@ -71,16 +71,12 @@ export const checkAnswersStep = step({
       validate: false,
       onAlways: {
         effects: [
-          // Keep confirmed answers in memory, mark submitted, then clear drafts
-          saveAnswers('branching'),
-          saveSubmitStateToSession('branching', true),
-          clearDraftAnswers('branching'),
+          saveAnswers(),
+          clearDraftAnswers(),
         ],
         next: [
           redirect({
-            // Gate on session state so the redirect only fires after the effects
-            // above have run — the session value survives ClearDraftAnswers.
-            when: Session('patternSubmitted.branching').match(Condition.Equals(true)),
+            when: Data('savedAnswers').match(Condition.IsRequired()),
             goto: 'confirmation',
           }),
         ],

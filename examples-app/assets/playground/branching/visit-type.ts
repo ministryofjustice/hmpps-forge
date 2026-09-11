@@ -1,6 +1,6 @@
 import { Self, Condition, validation, submit, redirect, Answer, step } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovUKRadioInput, GovUKButton, GovUKUtilityClasses } from '@ministryofjustice/hmpps-forge/govuk-components'
-import { saveDraftAnswers } from '../effects'
+import { saveDraftAnswers } from './effects'
 
 // A plain radio with three options. The selected value drives the redirect in
 // the step's submit hook, so the field only needs a required rule here.
@@ -42,7 +42,7 @@ export const visitTypeStep = step({
     submit({
       validate: true,
       onValid: {
-        effects: [saveDraftAnswers('branching')],
+        effects: [saveDraftAnswers()],
         next: [
           redirect({
             when: Answer('visitType').match(Condition.Equals('in-person')),

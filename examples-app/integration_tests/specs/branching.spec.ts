@@ -1,14 +1,19 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type FrameLocator } from '@playwright/test'
 import ForgeFormHelper from '../pages/forgeFormHelper'
 
-const basePath = '/forge-developer-guide/patterns/demos/branching'
+const basePath = '/forge-guide-v2/patterns/branching'
 
 test.describe('Branching journey', () => {
   let form: ForgeFormHelper
+  let preview: FrameLocator
 
   test.beforeEach(async ({ page }) => {
-    form = new ForgeFormHelper(page)
-    await page.goto(`${basePath}/visit-type`)
+    // Arrange
+    preview = page.frameLocator('iframe[title="Journey preview"]')
+    form = new ForgeFormHelper(page, preview)
+    await page.goto(basePath)
+    await page.getByRole('button', { name: 'Run', exact: true }).click()
+    await form.clickButton('Start the pattern')
   })
 
   test.describe('happy path', () => {
@@ -75,7 +80,7 @@ test.describe('Branching journey', () => {
       await form.clickButton('Continue')
 
       // Assert
-      await form.expectUrl(`${basePath}/location`)
+      await form.expectHeading('Which office would you like to visit?')
     })
 
     test('should route to video email step for video call', async () => {
@@ -84,7 +89,7 @@ test.describe('Branching journey', () => {
       await form.clickButton('Continue')
 
       // Assert
-      await form.expectUrl(`${basePath}/video-email`)
+      await form.expectHeading('What email should we send the invite to?')
     })
 
     test('should route to phone number step for phone call', async () => {
@@ -93,7 +98,7 @@ test.describe('Branching journey', () => {
       await form.clickButton('Continue')
 
       // Assert
-      await form.expectUrl(`${basePath}/phone-number`)
+      await form.expectHeading('What number should we call you on?')
     })
   })
 
@@ -157,7 +162,7 @@ test.describe('Branching journey', () => {
   })
 
   test.describe('check answers', () => {
-    test('should show only the branch-specific row for in-person', async ({ page }) => {
+    test('should show only the branch-specific row for in-person', async () => {
       // Arrange
       await form.selectRadio('In person')
       await form.clickButton('Continue')
@@ -167,10 +172,10 @@ test.describe('Branching journey', () => {
       // Assert — office row visible, email and phone rows hidden
       await expect(form.getSummaryValue('Office')).toBeVisible()
       await expect(
-        page.locator('.govuk-summary-list__row', { hasText: 'Invite email' }),
+        preview.locator('.govuk-summary-list__row', { hasText: 'Invite email' }),
       ).not.toBeVisible()
       await expect(
-        page.locator('.govuk-summary-list__row', { hasText: 'Phone number' }),
+        preview.locator('.govuk-summary-list__row', { hasText: 'Phone number' }),
       ).not.toBeVisible()
     })
 
@@ -186,7 +191,6 @@ test.describe('Branching journey', () => {
 
       // Assert
       await form.expectHeading('How would you like to meet?')
-      await form.expectUrl(`${basePath}/visit-type`)
     })
   })
 
@@ -204,7 +208,6 @@ test.describe('Branching journey', () => {
 
       // Assert
       await form.expectHeading('Branching based on an earlier answer')
-      await form.expectUrl(`${basePath}/overview`)
     })
   })
 })

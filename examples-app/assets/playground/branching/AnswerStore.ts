@@ -1,16 +1,16 @@
 /** In-memory stand-in for the API or database that owns confirmed answers. */
 export class AnswerStore {
-  private readonly records = new Map<string, Record<string, unknown>>()
+  private answers: Record<string, unknown> | undefined
 
-  async save(recordId: string, answers: Record<string, unknown>): Promise<void> {
-    this.records.set(recordId, structuredClone(answers))
+  async save(answers: Record<string, unknown>): Promise<void> {
+    this.answers = structuredClone(answers)
   }
 
-  async get(recordId: string): Promise<Record<string, unknown> | undefined> {
-    return structuredClone(this.records.get(recordId))
+  async get(): Promise<Record<string, unknown> | undefined> {
+    return structuredClone(this.answers)
   }
 
-  async delete(recordId: string): Promise<void> {
-    this.records.delete(recordId)
+  async delete(): Promise<void> {
+    this.answers = undefined
   }
 }

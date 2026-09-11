@@ -1,13 +1,14 @@
 ---
-title: Branching
+title: Branching based on an earlier answer
 slug: branching
 section: patterns
 path: patterns/branching
-order: 1
+nav: Input and forms
+order: 2
 description: Try a journey with three branches, validation and a shared answer summary
 ---
 
-# Branching
+# Branching based on an earlier answer
 
 Ask how someone would like to meet, then collect the details for their chosen option.
 The three branches come together on a check-your-answers page, where they can change
@@ -26,12 +27,11 @@ start: /branching/overview
 journey.ts
 effects.ts
 AnswerStore.ts
-overview/step.ts
-visit-type/step.ts
-location/step.ts
-video-email/step.ts
-phone-number/step.ts
-phone-number/conditions.ts
-check-answers/step.ts
-confirmation/step.ts
+overview.ts
+visit-type.ts
+location.ts
+video-email.ts
+phone-number.ts
+check-answers.ts
+confirmation.ts
 :::

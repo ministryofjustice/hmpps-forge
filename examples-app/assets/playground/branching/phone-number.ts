@@ -1,7 +1,13 @@
-import { Self, Condition, Transformer, validation, submit, redirect, step } from '@ministryofjustice/hmpps-forge/core/authoring'
+import { condition, Self, Condition, Transformer, validation, submit, redirect, step } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovUKTextInput, GovUKButton, GovUKUtilityClasses } from '@ministryofjustice/hmpps-forge/govuk-components'
-import { IsUkPhoneNumber } from './conditions'
-import { saveDraftAnswers } from '../effects'
+import { saveDraftAnswers } from './effects'
+
+// Accepts UK formats like 07700 900982, 020 7946 0123, and +44 7700 900982.
+const IsUkPhoneNumber = condition({
+  name: 'IsUkPhoneNumber',
+  factory: () => (value: unknown) =>
+    typeof value === 'string' && /^(?:\+44|0)\d{9,10}$/.test(value.replace(/[\s()-]/g, '')),
+})
 
 const phoneNumberField = GovUKTextInput({
   code: 'phoneNumber',
@@ -43,7 +49,7 @@ export const phoneNumberStep = step({
     submit({
       validate: true,
       onValid: {
-        effects: [saveDraftAnswers('branching')],
+        effects: [saveDraftAnswers()],
         next: [redirect({ goto: 'check-answers' })],
       },
     }),

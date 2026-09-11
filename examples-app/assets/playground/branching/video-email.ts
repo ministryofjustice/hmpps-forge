@@ -1,6 +1,13 @@
 import { Self, Condition, Transformer, condition, validation, submit, redirect, step } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { GovUKTextInput, GovUKButton, GovUKUtilityClasses } from '@ministryofjustice/hmpps-forge/govuk-components'
-import { saveDraftAnswers } from '../effects'
+import { saveDraftAnswers } from './effects'
+
+// The invite must reach the visitor themselves, not a shared inbox.
+const isPersonalEmail = condition({
+  name: 'IsPersonalEmail',
+  factory: () => (value: unknown) =>
+    typeof value === 'string' && !/^(info|admin|office|enquiries)@/.test(value),
+})
 
 const videoEmailField = GovUKTextInput({
   code: 'videoEmail',
@@ -24,13 +31,7 @@ const videoEmailField = GovUKTextInput({
       message: 'Enter a valid email address',
     }),
     validation({
-      // The invite must reach the visitor themselves, not a shared inbox.
-      condition: Self().match(
-        condition({
-          factory: () => (value: unknown) =>
-            typeof value === 'string' && !/^(info|admin|office|enquiries)@/.test(value),
-        })(),
-      ),
+      condition: Self().match(isPersonalEmail()),
       message: 'Enter a personal email address, not a shared inbox',
     }),
   ],
@@ -49,7 +50,7 @@ export const videoEmailStep = step({
     submit({
       validate: true,
       onValid: {
-        effects: [saveDraftAnswers('branching')],
+        effects: [saveDraftAnswers()],
         next: [redirect({ goto: 'check-answers' })],
       },
     }),

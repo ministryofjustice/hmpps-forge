@@ -7,8 +7,7 @@ export type PatternDependencies = {
 }
 
 type PatternSession = {
-  patternDrafts?: Record<string, Record<string, unknown>>
-  patternSubmitted?: Record<string, boolean>
+  draftAnswers?: Record<string, unknown>
 }
 
 type PatternEffectContext = EffectFunctionContext<
@@ -19,9 +18,10 @@ type PatternEffectContext = EffectFunctionContext<
 
 // Drafts belong to the session; confirmed answers belong to the injected store.
 /** Copies previously stored draft answers for this pattern into the form context on access. */
-export const loadDraftAnswers = effect('LoadDraftAnswers', {
-  factory: () => (context: PatternEffectContext, patternCode: string) => {
-    const stored = context.getSession()?.patternDrafts?.[patternCode]
+export const loadDraftAnswers = effect({
+  name: 'LoadDraftAnswers',
+  factory: () => (context: PatternEffectContext) => {
+    const stored = context.getSession()?.draftAnswers
 
     if (!stored) {
       return
@@ -35,66 +35,64 @@ export const loadDraftAnswers = effect('LoadDraftAnswers', {
   },
 })
 
+/** Loads the confirmed record independently of the session's draft answers. */
+export const loadSavedAnswers = effect({
+  name: 'LoadSavedAnswers',
+  factory: ({ answerStore }: PatternDependencies) => async (context: PatternEffectContext) => {
+    const savedAnswers = await answerStore.get()
+
+    context.setData('savedAnswers', savedAnswers)
+  },
+})
+
 /** Saves confirmed answers through the store, separately from the session draft. */
-export const saveAnswers = effect('SaveAnswers', {
-  factory: ({ answerStore }: PatternDependencies) => async (context: PatternEffectContext, patternCode: string) => {
+export const saveAnswers = effect({
+  name: 'SaveAnswers',
+  factory: ({ answerStore }: PatternDependencies) => async (context: PatternEffectContext) => {
     context.getFieldsToClear().forEach(field => context.clearAnswer(field))
-    await answerStore.save(patternCode, context.getAllAnswers())
+
+    const answers = context.getAllAnswers()
+
+    await answerStore.save(answers)
+    context.setData('savedAnswers', answers)
   },
 })
 
 /** Persists the current answers into the session as a draft, kept separately from committed answers. */
-export const saveDraftAnswers = effect('SaveDraftAnswers', {
-  factory: () => (context: PatternEffectContext, patternCode: string) => {
+export const saveDraftAnswers = effect({
+  name: 'SaveDraftAnswers',
+  factory: () => (context: PatternEffectContext) => {
     const session = context.getSession()
 
     if (!session) {
       return
     }
 
-    if (!session.patternDrafts) {
-      session.patternDrafts = {}
-    }
-
-    session.patternDrafts[patternCode] = {
-      ...session.patternDrafts[patternCode],
+    session.draftAnswers = {
+      ...session.draftAnswers,
       ...context.getAllAnswers(),
     }
   },
 })
 
-/** Records in the session whether this pattern has been submitted. */
-export const saveSubmitStateToSession = effect('SaveSubmitStateToSession', {
-  factory: () => (context: PatternEffectContext, patternCode: string, submitted: boolean) => {
-    const session = context.getSession()
-
-    if (!session) {
-      return
-    }
-
-    if (!session.patternSubmitted) {
-      session.patternSubmitted = {}
-    }
-
-    session.patternSubmitted[patternCode] = submitted
-  },
-})
-
 /** Deletes the confirmed record when the pattern explicitly clears its answers. */
-export const clearAnswers = effect('ClearAnswers', {
-  factory: ({ answerStore }: PatternDependencies) => async (context: PatternEffectContext, patternCode: string) => {
-    await answerStore.delete(patternCode)
+export const clearAnswers = effect({
+  name: 'ClearAnswers',
+  factory: ({ answerStore }: PatternDependencies) => async (context: PatternEffectContext) => {
+    await answerStore.delete()
+    context.setData('savedAnswers', undefined)
     Object.keys(context.getAllAnswers()).forEach(key => context.clearAnswer(key))
   },
 })
 
 /** Clears draft answers for this pattern (used after committing drafts to the store). */
-export const clearDraftAnswers = effect('ClearDraftAnswers', {
-  factory: () => (context: PatternEffectContext, patternCode: string) => {
+export const clearDraftAnswers = effect({
+  name: 'ClearDraftAnswers',
+  factory: () => (context: PatternEffectContext) => {
     const session = context.getSession()
 
-    if (session?.patternDrafts) {
-      delete session.patternDrafts[patternCode]
+    if (session) {
+      delete session.draftAnswers
     }
 
     Object.keys(context.getAllAnswers()).forEach(key => context.clearAnswer(key))
