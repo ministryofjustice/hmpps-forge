@@ -13,6 +13,7 @@ const generatedPagePaths = [
   '/forge-guide-v2/patterns/single-question-per-page',
   '/forge-guide-v2/patterns/composite-fields',
   '/forge-guide-v2/patterns/repeating-fieldsets',
+  '/forge-guide-v2/patterns/pre-fill',
   '/forge-guide-v2/get-started/the-web-in-declarative-form',
   '/forge-guide-v2/get-started/what-is-forge',
   '/forge-guide-v2/get-started/installing-forge',
