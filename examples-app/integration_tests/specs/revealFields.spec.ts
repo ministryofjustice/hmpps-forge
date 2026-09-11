@@ -1,14 +1,19 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type FrameLocator } from '@playwright/test'
 import ForgeFormHelper from '../pages/forgeFormHelper'
 
-const basePath = '/forge-developer-guide/patterns/demos/reveal-fields'
+const basePath = '/forge-guide-v2/patterns/reveal-fields'
 
 test.describe('Reveal fields journey', () => {
   let form: ForgeFormHelper
+  let preview: FrameLocator
 
   test.beforeEach(async ({ page }) => {
-    form = new ForgeFormHelper(page)
-    await page.goto(`${basePath}/heard-from`)
+    // Arrange
+    preview = page.frameLocator('iframe[title="Journey preview"]')
+    form = new ForgeFormHelper(page, preview)
+    await page.goto(basePath)
+    await page.getByRole('button', { name: 'Run', exact: true }).click()
+    await form.clickButton('Start the pattern')
   })
 
   test.describe('happy path', () => {
@@ -66,34 +71,34 @@ test.describe('Reveal fields journey', () => {
   })
 
   test.describe('conditional fields', () => {
-    test('should show platform input when Social media is selected', async ({ page }) => {
+    test('should show platform input when Social media is selected', async () => {
       // Act
       await form.selectRadio('Social media')
 
       // Assert
-      await expect(page.getByLabel('Which platform?')).toBeVisible()
+      await expect(preview.getByLabel('Which platform?')).toBeVisible()
     })
 
-    test('should show specify input when Other is selected', async ({ page }) => {
+    test('should show specify input when Other is selected', async () => {
       // Act
       await form.selectRadio('Other')
 
       // Assert
-      await expect(page.getByLabel('Please specify')).toBeVisible()
+      await expect(preview.getByLabel('Please specify')).toBeVisible()
     })
 
-    test('should not show follow-up inputs for Search engine', async ({ page }) => {
+    test('should not show follow-up inputs for Search engine', async () => {
       // Act
       await form.selectRadio('Search engine')
 
       // Assert
-      await expect(page.getByLabel('Which platform?')).not.toBeVisible()
-      await expect(page.getByLabel('Please specify')).not.toBeVisible()
+      await expect(preview.getByLabel('Which platform?')).not.toBeVisible()
+      await expect(preview.getByLabel('Please specify')).not.toBeVisible()
     })
   })
 
   test.describe('conditional summary rows', () => {
-    test('should show Platform row only for social media', async ({ page }) => {
+    test('should show Platform row only for social media', async () => {
       // Arrange
       await form.selectRadio('Social media')
       await form.fillTextInput('Which platform?', 'Instagram')
@@ -102,11 +107,11 @@ test.describe('Reveal fields journey', () => {
       // Assert
       await expect(form.getSummaryValue('Platform')).toBeVisible()
       await expect(
-        page.locator('.govuk-summary-list__row', { hasText: 'Details' }),
+        preview.locator('.govuk-summary-list__row', { hasText: 'Details' }),
       ).not.toBeVisible()
     })
 
-    test('should show Details row only for other', async ({ page }) => {
+    test('should show Details row only for other', async () => {
       // Arrange
       await form.selectRadio('Other')
       await form.fillTextInput('Please specify', 'Newspaper')
@@ -115,21 +120,22 @@ test.describe('Reveal fields journey', () => {
       // Assert
       await expect(form.getSummaryValue('Details')).toBeVisible()
       await expect(
-        page.locator('.govuk-summary-list__row', { hasText: 'Platform' }),
+        preview.locator('.govuk-summary-list__row', { hasText: 'Platform' }),
       ).not.toBeVisible()
     })
 
-    test('should show neither follow-up row for search engine', async ({ page }) => {
+    test('should show neither follow-up row for search engine', async () => {
       // Arrange
       await form.selectRadio('Search engine')
       await form.clickButton('Continue')
 
       // Assert
+      await form.expectHeading('Check your answers')
       await expect(
-        page.locator('.govuk-summary-list__row', { hasText: 'Platform' }),
+        preview.locator('.govuk-summary-list__row', { hasText: 'Platform' }),
       ).not.toBeVisible()
       await expect(
-        page.locator('.govuk-summary-list__row', { hasText: 'Details' }),
+        preview.locator('.govuk-summary-list__row', { hasText: 'Details' }),
       ).not.toBeVisible()
     })
   })
@@ -183,7 +189,6 @@ test.describe('Reveal fields journey', () => {
 
       // Assert
       await form.expectHeading('Reveal fields')
-      await form.expectUrl(`${basePath}/overview`)
     })
   })
 })

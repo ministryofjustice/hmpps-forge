@@ -8,6 +8,7 @@ import forgeGuideV2Package from '.'
 const generatedPagePaths = [
   '/forge-guide-v2/patterns/branching',
   '/forge-guide-v2/patterns/add-another',
+  '/forge-guide-v2/patterns/reveal-fields',
   '/forge-guide-v2/get-started/the-web-in-declarative-form',
   '/forge-guide-v2/get-started/what-is-forge',
   '/forge-guide-v2/get-started/installing-forge',
