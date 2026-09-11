@@ -1,14 +1,19 @@
 import { expect, test } from '@playwright/test'
 import ForgeFormHelper from '../pages/forgeFormHelper'
 
-const basePath = '/forge-developer-guide/patterns/demos/single-question-per-page'
+const basePath = '/forge-guide-v2/patterns/single-question-per-page'
 
 test.describe('Single question per page journey', () => {
   let form: ForgeFormHelper
 
   test.beforeEach(async ({ page }) => {
-    form = new ForgeFormHelper(page)
-    await page.goto(`${basePath}/your-name`)
+    // Arrange
+    const preview = page.frameLocator('iframe[title="Journey preview"]')
+
+    form = new ForgeFormHelper(page, preview)
+    await page.goto(basePath)
+    await page.getByRole('button', { name: 'Run', exact: true }).click()
+    await form.clickButton('Start the pattern')
   })
 
   test.describe('happy path', () => {
@@ -41,7 +46,7 @@ test.describe('Single question per page journey', () => {
 
       // Assert
       await form.expectValidationError('Enter your name')
-      await form.expectUrl(`${basePath}/your-name`)
+      await form.expectHeading('What is your name?')
     })
 
     test('should show error when name exceeds 100 characters', async () => {
@@ -63,7 +68,7 @@ test.describe('Single question per page journey', () => {
 
       // Assert
       await form.expectValidationError('Enter your role')
-      await form.expectUrl(`${basePath}/your-role`)
+      await form.expectHeading('What is your role?')
     })
 
     test('should show error when role exceeds 100 characters', async () => {
@@ -100,7 +105,6 @@ test.describe('Single question per page journey', () => {
 
       // Assert
       await form.expectHeading('What is your name?')
-      await form.expectUrl(`${basePath}/your-name`)
     })
 
     test('should navigate to role step when clicking Change on role row', async () => {
@@ -109,7 +113,6 @@ test.describe('Single question per page journey', () => {
 
       // Assert
       await form.expectHeading('What is your role?')
-      await form.expectUrl(`${basePath}/your-role`)
     })
 
     test('should preserve updated name after change', async () => {
@@ -143,7 +146,6 @@ test.describe('Single question per page journey', () => {
 
       // Assert
       await form.expectHeading('Single question per page')
-      await form.expectUrl(`${basePath}/overview`)
     })
   })
 })
