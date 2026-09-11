@@ -17,6 +17,7 @@ const generatedPagePaths = [
   '/forge-guide-v2/patterns/pagination',
   '/forge-guide-v2/patterns/collection-validation',
   '/forge-guide-v2/patterns/inline-functions',
+  '/forge-guide-v2/patterns/load-reference-data',
   '/forge-guide-v2/get-started/the-web-in-declarative-form',
   '/forge-guide-v2/get-started/what-is-forge',
   '/forge-guide-v2/get-started/installing-forge',

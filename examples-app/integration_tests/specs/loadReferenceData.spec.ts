@@ -1,14 +1,18 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type FrameLocator } from '@playwright/test'
 import ForgeFormHelper from '../pages/forgeFormHelper'
 
-const basePath = '/forge-developer-guide/patterns/demos/load-reference-data'
+const basePath = '/forge-guide-v2/patterns/load-reference-data'
 
 test.describe('Load reference data journey', () => {
   let form: ForgeFormHelper
+  let preview: FrameLocator
 
   test.beforeEach(async ({ page }) => {
-    form = new ForgeFormHelper(page)
-    await page.goto(`${basePath}/draw`)
+    // Arrange
+    preview = page.frameLocator('iframe[title="Journey preview"]')
+    form = new ForgeFormHelper(page, preview)
+    await page.goto(basePath)
+    await form.clickButton('See the demo')
   })
 
   test('should display the lottery draw heading', async () => {
@@ -16,37 +20,33 @@ test.describe('Load reference data journey', () => {
     await form.expectHeading('Your lottery draw')
   })
 
-  test('should display a draw date', async ({ page }) => {
+  test('should display a draw date', async () => {
     // Assert — use <p> to avoid matching the <main> wrapper which also has govuk-body
-    await expect(page.locator('p.govuk-body', { hasText: 'Drawn on' })).toBeVisible()
+    await expect(preview.locator('p.govuk-body', { hasText: 'Drawn on' })).toBeVisible()
   })
 
-  test('should display 6 main lottery balls', async ({ page }) => {
+  test('should display 6 main lottery balls', async () => {
     // Assert
-    const balls = page.locator('.lottery-ball--blue .lottery-ball__number')
+    const balls = preview.locator('.lottery-ball--blue .lottery-ball__number')
     await expect(balls).toHaveCount(6)
   })
 
-  test('should display a bonus ball', async ({ page }) => {
+  test('should display a bonus ball', async () => {
     // Assert
-    await expect(page.locator('.lottery-ball--green .lottery-ball__number')).toBeVisible()
+    await expect(preview.locator('.lottery-ball--green .lottery-ball__number')).toBeVisible()
   })
 
-  test('should display different numbers on redraw', async ({ page }) => {
+  test('should display different numbers on redraw', async () => {
     // Arrange — capture first draw
-    const firstNumbers: string[] = []
-    const balls = page.locator('.lottery-ball--blue .lottery-ball__number')
+    const balls = preview.locator('.lottery-ball--blue .lottery-ball__number')
+    const firstNumbers = await balls.allTextContents()
 
-    for (let i = 0; i < 6; i += 1) {
-      // eslint-disable-next-line no-await-in-loop
-      firstNumbers.push((await balls.nth(i).textContent()) ?? '')
-    }
-
-    // Act — draw again (may take several redraws to get different numbers)
+    // Act
     await form.clickButton('Draw again')
 
-    // Assert — page reloads with lottery balls (numbers are random, so just verify the page renders)
+    // Assert
     await form.expectHeading('Your lottery draw')
     await expect(balls).toHaveCount(6)
+    await expect.poll(async () => balls.allTextContents()).not.toEqual(firstNumbers)
   })
 })
