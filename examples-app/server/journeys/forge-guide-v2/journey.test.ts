@@ -22,6 +22,7 @@ const generatedPagePaths = [
   '/forge-guide-v2/patterns/auth-role',
   '/forge-guide-v2/patterns/read-only-mode',
   '/forge-guide-v2/patterns/resuming',
+  '/forge-guide-v2/patterns/task-list',
   '/forge-guide-v2/get-started/the-web-in-declarative-form',
   '/forge-guide-v2/get-started/what-is-forge',
   '/forge-guide-v2/get-started/installing-forge',

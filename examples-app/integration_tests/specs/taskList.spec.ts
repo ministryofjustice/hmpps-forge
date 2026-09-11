@@ -1,14 +1,18 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type FrameLocator } from '@playwright/test'
 import ForgeFormHelper from '../pages/forgeFormHelper'
 
-const basePath = '/forge-developer-guide/patterns/demos/task-list'
+const basePath = '/forge-guide-v2/patterns/task-list'
 
 test.describe('Task list journey', () => {
   let form: ForgeFormHelper
+  let preview: FrameLocator
 
   test.beforeEach(async ({ page }) => {
-    form = new ForgeFormHelper(page)
-    await page.goto(`${basePath}/tasks`)
+    // Arrange
+    preview = page.frameLocator('iframe[title="Journey preview"]')
+    form = new ForgeFormHelper(page, preview)
+    await page.goto(basePath)
+    await form.clickButton('Start the pattern')
   })
 
   test.describe('happy path', () => {
@@ -78,40 +82,45 @@ test.describe('Task list journey', () => {
   })
 
   test.describe('task statuses', () => {
-    test('should show all tasks as not yet started initially', async ({ page }) => {
+    test('should show all tasks as not yet started initially', async () => {
       // Assert
-      const yourDetails = page.locator('.govuk-task-list__item', { hasText: 'Your details' })
+      const yourDetails = preview.locator('.govuk-task-list__item', { hasText: 'Your details' })
       await expect(yourDetails.locator('.govuk-tag')).toContainText('Not yet started')
 
-      const visitPrefs = page.locator('.govuk-task-list__item', { hasText: 'Visit preferences' })
+      const visitPrefs = preview.locator('.govuk-task-list__item', { hasText: 'Visit preferences' })
       await expect(visitPrefs.locator('.govuk-tag')).toContainText('Not yet started')
     })
 
-    test('should show Additional needs as locked when prerequisites are incomplete', async ({
-      page,
-    }) => {
+    test('should show Additional needs as locked when prerequisites are incomplete', async () => {
       // Assert
-      const additionalNeeds = page.locator('.govuk-task-list__item', {
+      const additionalNeeds = preview.locator('.govuk-task-list__item', {
         hasText: 'Additional needs',
       })
       await expect(additionalNeeds.locator('.govuk-tag')).toContainText('Cannot start yet')
     })
 
-    test('should show in progress after partially completing a section', async ({ page }) => {
+    test('should show in progress after partially completing a section', async () => {
       // Arrange — complete only the name step (first of two in Your details)
       await form.clickLink('Your details')
       await form.fillTextInput('Full name', 'Jane Smith')
       await form.clickButton('Continue')
 
       // Go back to hub without completing relationship
-      await page.goto(`${basePath}/tasks`)
+      await preview.locator('body').evaluate(body => {
+        const link = body.ownerDocument.createElement('a')
+
+        link.href = '/task-list/tasks'
+        link.textContent = 'Return to task list'
+        body.append(link)
+      })
+      await form.clickLink('Return to task list')
 
       // Assert
-      const yourDetails = page.locator('.govuk-task-list__item', { hasText: 'Your details' })
+      const yourDetails = preview.locator('.govuk-task-list__item', { hasText: 'Your details' })
       await expect(yourDetails.locator('.govuk-tag')).toContainText('In progress')
     })
 
-    test('should show completed after finishing a section', async ({ page }) => {
+    test('should show completed after finishing a section', async () => {
       // Arrange — complete Your details fully
       await form.clickLink('Your details')
       await form.fillTextInput('Full name', 'Jane Smith')
@@ -120,11 +129,11 @@ test.describe('Task list journey', () => {
       await form.clickButton('Save and return')
 
       // Assert
-      const yourDetails = page.locator('.govuk-task-list__item', { hasText: 'Your details' })
+      const yourDetails = preview.locator('.govuk-task-list__item', { hasText: 'Your details' })
       await expect(yourDetails.locator('.govuk-tag')).toContainText('Completed')
     })
 
-    test('should unlock Additional needs after completing prerequisites', async ({ page }) => {
+    test('should unlock Additional needs after completing prerequisites', async () => {
       // Arrange — complete Your details
       await form.clickLink('Your details')
       await form.fillTextInput('Full name', 'Jane Smith')
@@ -140,7 +149,7 @@ test.describe('Task list journey', () => {
       await form.clickButton('Save and return')
 
       // Assert — Additional needs is now clickable
-      const additionalNeeds = page.locator('.govuk-task-list__item', {
+      const additionalNeeds = preview.locator('.govuk-task-list__item', {
         hasText: 'Additional needs',
       })
       await expect(additionalNeeds.locator('.govuk-tag')).toContainText('Not yet started')
@@ -230,7 +239,6 @@ test.describe('Task list journey', () => {
 
       // Assert
       await form.expectHeading('Task list')
-      await form.expectUrl(`${basePath}/overview`)
     })
   })
 })
