@@ -1,55 +1,58 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type FrameLocator } from '@playwright/test'
 import ForgeFormHelper from '../pages/forgeFormHelper'
 
-const basePath = '/forge-developer-guide/patterns/demos/auth-role'
+const basePath = '/forge-guide-v2/patterns/auth-role'
 
 test.describe('Auth role journey', () => {
   let form: ForgeFormHelper
+  let preview: FrameLocator
 
   test.beforeEach(async ({ page }) => {
-    form = new ForgeFormHelper(page)
+    // Arrange
+    preview = page.frameLocator('iframe[title="Journey preview"]')
+    form = new ForgeFormHelper(page, preview)
+    await page.goto(basePath)
+    await form.expectHeading('Require authentication / role')
+    await form.clickButton('Start the pattern')
   })
 
   test.describe('authentication redirect', () => {
-    test('should redirect to login when accessing dashboard without auth', async ({ page }) => {
+    test('should redirect to login when accessing dashboard without auth', async () => {
       // Act
-      await page.goto(`${basePath}/dashboard`)
+      await navigateToPage(preview, '/auth-role/overview')
+      await navigateToPage(preview, '/auth-role/dashboard')
 
       // Assert
-      await form.expectUrl(`${basePath}/login`)
+      await form.expectHeading('Log in')
     })
 
-    test('should redirect to login when accessing admin panel without auth', async ({ page }) => {
+    test('should redirect to login when accessing admin panel without auth', async () => {
       // Act
-      await page.goto(`${basePath}/admin-panel`)
+      await navigateToPage(preview, '/auth-role/overview')
+      await navigateToPage(preview, '/auth-role/admin-panel')
 
       // Assert
-      await form.expectUrl(`${basePath}/login`)
+      await form.expectHeading('Log in')
     })
   })
 
   test.describe('admin login', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.goto(`${basePath}/login`)
-    })
-
-    test('should reach dashboard after logging in as admin', async ({ page }) => {
+    test('should reach dashboard after logging in as admin', async () => {
       // Act
       await form.clickButton('Log in as Admin')
 
       // Assert
       await form.expectHeading('Dashboard')
-      await form.expectUrl(`${basePath}/dashboard`)
-      await expect(page.locator('body')).toContainText('Demo Admin')
-      await expect(page.locator('body')).toContainText('admin')
+      await expect(preview.locator('body')).toContainText('Demo Admin')
+      await expect(preview.locator('body')).toContainText('admin')
     })
 
-    test('should access admin panel as admin', async ({ page }) => {
+    test('should access admin panel as admin', async () => {
       // Arrange
       await form.clickButton('Log in as Admin')
 
       // Act
-      await page.goto(`${basePath}/admin-panel`)
+      await form.clickButton('Go to admin panel')
 
       // Assert
       await form.expectHeading('Admin panel')
@@ -63,35 +66,32 @@ test.describe('Auth role journey', () => {
       await form.clickButton('Log out')
 
       // Assert
-      await form.expectUrl(`${basePath}/login`)
+      await form.expectHeading('Log in')
     })
 
-    test('should not access dashboard after logging out', async ({ page }) => {
+    test('should not access dashboard after logging out', async () => {
       // Arrange
       await form.clickButton('Log in as Admin')
       await form.clickButton('Log out')
 
       // Act
-      await page.goto(`${basePath}/dashboard`)
+      await navigateToPage(preview, '/auth-role/overview')
+      await navigateToPage(preview, '/auth-role/dashboard')
 
       // Assert
-      await form.expectUrl(`${basePath}/login`)
+      await form.expectHeading('Log in')
     })
   })
 
   test.describe('viewer login', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.goto(`${basePath}/login`)
-    })
-
-    test('should reach dashboard after logging in as viewer', async ({ page }) => {
+    test('should reach dashboard after logging in as viewer', async () => {
       // Act
       await form.clickButton('Log in as Viewer')
 
       // Assert
       await form.expectHeading('Dashboard')
-      await expect(page.locator('body')).toContainText('Demo Viewer')
-      await expect(page.locator('body')).toContainText('viewer')
+      await expect(preview.locator('body')).toContainText('Demo Viewer')
+      await expect(preview.locator('body')).toContainText('viewer')
     })
 
     test('should receive 403 when accessing admin panel as viewer', async ({ page }) => {
@@ -99,10 +99,26 @@ test.describe('Auth role journey', () => {
       await form.clickButton('Log in as Viewer')
 
       // Act
-      await page.goto(`${basePath}/admin-panel`)
+      await form.clickButton('Go to admin panel')
 
       // Assert
-      await expect(page.locator('body')).toContainText('You do not have permission')
+      await expect(page.locator('.playground__status')).toContainText('You do not have permission')
+      await expect(
+        preview.getByRole('heading', { name: 'Admin panel', exact: true }),
+      ).not.toBeVisible()
     })
   })
 })
+
+async function navigateToPage(preview: FrameLocator, href: string): Promise<void> {
+  await preview.locator('main').evaluate((container, destination) => {
+    const anchor = document.createElement('a')
+
+    anchor.href = destination
+    anchor.textContent = 'Open protected route'
+    anchor.id = 'test-protected-route'
+    container.append(anchor)
+  }, href)
+  await preview.locator('#test-protected-route').click()
+  await expect(preview.locator('#test-protected-route')).toHaveCount(0)
+}
