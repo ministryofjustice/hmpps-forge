@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { and } from '../../../../src/authoring/builders/combinators'
+import { and, or } from '../../../../src/authoring/builders/combinators'
 import { when, Conditional } from '../../../../src/authoring/builders/ConditionalExprBuilder'
 import { match } from '../../../../src/authoring/builders/MatchExprBuilder'
 import { GeneralConditions } from '../../../../src/built-ins/functions/conditions/generalConditions'
@@ -14,6 +14,7 @@ import { runStepCases, runJourneyCases } from '../../contractRunner'
 import { stepCases, journeyCases } from './expressions.cases'
 import {
   evaluationJourney,
+  evaluationContexts,
   iteratorPredicatesJourney,
   someShortCircuitJourney,
   everyShortCircuitJourney,
@@ -32,6 +33,145 @@ describe('expression contracts', () => {
   runJourneyCases(journeyCases)
 
   describe('iterator predicates', () => {
+    it.each(evaluationContexts)(
+      'should skip callbacks for empty iterators when evaluating %s expressions',
+      async context => {
+        // Arrange
+        const unused = vi.fn(() => {
+          throw new Error('Unused expression ran')
+        })
+        const Unused = generator('UnusedExpression', { factory: () => unused })
+        const client = createClient(
+          evaluationJourney(
+            'phase-expression',
+            {
+              result: {
+                map: Data('empty').each(Iterator.Map(Unused())),
+                some: Data('empty').each(Iterator.Some(Unused().match(GeneralConditions.Equals(true)))),
+                every: Data('empty').each(Iterator.Every(Unused().match(GeneralConditions.Equals(true)))),
+                count: Data('empty').each(Iterator.Count(Unused().match(GeneralConditions.Equals(true)))),
+              },
+            },
+            context,
+          ),
+        )
+
+        // Act
+        const result = await client.get('/phase-expression/result', { session: { data: { empty: [] } } })
+
+        // Assert
+        expect(result.type).toBe('render')
+        if (result.type !== 'render') {
+          throw new Error('Expected render output')
+        }
+
+        const values = {
+          hook: { result: result.context.data.result },
+          metadata: result.context.routeTree[0]?.children[0]?.metadata,
+          property: result.context.blocks[0]?.properties.value,
+          default: result.context.blocks[0]?.properties.value,
+        }
+        const actual = values[context]
+
+        expect(actual).toStrictEqual({ result: { map: [], some: false, every: true, count: 0 } })
+        expect(unused).not.toHaveBeenCalled()
+      },
+    )
+
+    it.each(evaluationContexts)(
+      'should preserve keyed iterator results when evaluating %s expressions',
+      async context => {
+        // Arrange
+        const isYes = Item().value().match(GeneralConditions.Equals('yes'))
+        const client = createClient(
+          evaluationJourney(
+            'phase-expression',
+            {
+              result: {
+                filtered: Data('keyed').each(Iterator.Filter(isYes)),
+                found: Data('keyed').each(Iterator.Find(isYes)),
+                some: Data('keyed').each(Iterator.Some(isYes)),
+                every: Data('keyed').each(Iterator.Every(isYes)),
+                count: Data('keyed').each(Iterator.Count(isYes)),
+              },
+            },
+            context,
+          ),
+        )
+
+        // Act
+        const result = await client.get('/phase-expression/result', {
+          session: { data: { keyed: { first: 'no', second: 'yes' } } },
+        })
+
+        // Assert
+        expect(result.type).toBe('render')
+        if (result.type !== 'render') {
+          throw new Error('Expected render output')
+        }
+
+        const values = {
+          hook: { result: result.context.data.result },
+          metadata: result.context.routeTree[0]?.children[0]?.metadata,
+          property: result.context.blocks[0]?.properties.value,
+          default: result.context.blocks[0]?.properties.value,
+        }
+        const actual = values[context]
+
+        expect(actual).toStrictEqual({
+          result: { filtered: [['second', 'yes']], found: ['second', 'yes'], some: true, every: false, count: 1 },
+        })
+      },
+    )
+
+    it.each(evaluationContexts)(
+      'should retain undefined array and map entries when evaluating %s expressions',
+      async context => {
+        // Arrange
+
+        const client = createClient(
+          evaluationJourney(
+            'phase-expression',
+            {
+              result: {
+                array: ['first', Data('missing'), Data('alsoMissing'), 'last'],
+                mapped: Data('items').each(Iterator.Map(Item().value())),
+                nested: Data('groups').each(Iterator.Map(Item().value().each(Iterator.Map(Item().value())))),
+              },
+            },
+            context,
+          ),
+        )
+
+        // Act
+        const result = await client.get('/phase-expression/result', {
+          session: { data: { items: [1, undefined, 3], groups: [[1, undefined], [3]] } },
+        })
+
+        // Assert
+        expect(result.type).toBe('render')
+        if (result.type !== 'render') {
+          throw new Error('Expected render output')
+        }
+
+        const values = {
+          hook: { result: result.context.data.result },
+          metadata: result.context.routeTree[0]?.children[0]?.metadata,
+          property: result.context.blocks[0]?.properties.value,
+          default: result.context.blocks[0]?.properties.value,
+        }
+        const actual = values[context]
+
+        expect(actual).toStrictEqual({
+          result: {
+            array: ['first', undefined, undefined, 'last'],
+            mapped: [1, undefined, 3],
+            nested: [[1, undefined], [3]],
+          },
+        })
+      },
+    )
+
     it.each([
       { count: 0, items: [], some: false, every: true, composed: 'uniform' },
       { count: 2, items: ['yes', 'yes'], some: true, every: true, composed: 'uniform' },
@@ -97,6 +237,40 @@ describe('expression contracts', () => {
   })
 
   describe('nullish()', () => {
+    it.each(evaluationContexts)(
+      'should skip the fallback for a present value when evaluating %s expressions',
+      async context => {
+        // Arrange
+        const unused = vi.fn(() => {
+          throw new Error('Unused expression ran')
+        })
+        const Unused = generator('UnusedExpression', { factory: () => unused })
+        const client = createClient(
+          evaluationJourney('phase-expression', { result: Data('choice').nullish(Unused()) }, context),
+        )
+
+        // Act
+        const result = await client.get('/phase-expression/result', { session: { data: { choice: 'yes' } } })
+
+        // Assert
+        expect(result.type).toBe('render')
+        if (result.type !== 'render') {
+          throw new Error('Expected render output')
+        }
+
+        const values = {
+          hook: { result: result.context.data.result },
+          metadata: result.context.routeTree[0]?.children[0]?.metadata,
+          property: result.context.blocks[0]?.properties.value,
+          default: result.context.blocks[0]?.properties.value,
+        }
+        const actual = values[context]
+
+        expect(actual).toStrictEqual({ result: 'yes' })
+        expect(unused).not.toHaveBeenCalled()
+      },
+    )
+
     it.each([
       { primaryValue: undefined, expected: 'fallback', fallbackCalls: 1 },
       { primaryValue: null, expected: 'fallback', fallbackCalls: 1 },
@@ -215,6 +389,97 @@ describe('expression contracts', () => {
   })
 
   describe('native match cases', () => {
+    it.each(evaluationContexts)(
+      'should evaluate an async subject once per match when evaluating %s expressions',
+      async context => {
+        // Arrange
+        const unused = vi.fn(() => {
+          throw new Error('Unused expression ran')
+        })
+        const Unused = generator('UnusedExpression', { factory: () => unused })
+        const subject = vi.fn(async () => 'second')
+        const Subject = generator('Subject', { factory: () => subject })
+        const selected = vi.fn(async () => 'selected')
+        const Selected = generator('Selected', { factory: () => selected })
+        const client = createClient(
+          evaluationJourney(
+            'phase-expression',
+            { result: match(Subject()).case('first', Unused()).case('second', Selected()).otherwise(Unused()) },
+            context,
+          ),
+        )
+
+        // Act
+        const result = await client.get('/phase-expression/result', { session: { data: {} } })
+
+        // Assert
+        expect(result.type).toBe('render')
+        if (result.type !== 'render') {
+          throw new Error('Expected render output')
+        }
+
+        const values = {
+          hook: { result: result.context.data.result },
+          metadata: result.context.routeTree[0]?.children[0]?.metadata,
+          property: result.context.blocks[0]?.properties.value,
+          default: result.context.blocks[0]?.properties.value,
+        }
+        const actual = values[context]
+
+        expect(actual).toStrictEqual({ result: 'selected' })
+        expect(selected).toHaveBeenCalled()
+        expect(subject).toHaveBeenCalledTimes(selected.mock.calls.length)
+        expect(unused).not.toHaveBeenCalled()
+      },
+    )
+
+    it.each(evaluationContexts)(
+      'should preserve mixed match branches and missing cases when evaluating %s expressions',
+      async context => {
+        // Arrange
+        const unused = vi.fn(() => {
+          throw new Error('Unused expression ran')
+        })
+        const Unused = generator('UnusedExpression', { factory: () => unused })
+        const client = createClient(
+          evaluationJourney(
+            'phase-expression',
+            {
+              result: {
+                matched: match(Data('choice')).case('yes', 'selected').otherwise(Unused()),
+                mixed: match(Data('choice'))
+                  .case('no', Unused())
+                  .branch(GeneralConditions.Equals('yes'), 'selected')
+                  .otherwise(Unused()),
+                absent: match(Data('missing')).case(Data('alsoMissing'), 'absent').otherwise(Unused()),
+              },
+            },
+            context,
+          ),
+        )
+
+        // Act
+        const result = await client.get('/phase-expression/result', { session: { data: { choice: 'yes' } } })
+
+        // Assert
+        expect(result.type).toBe('render')
+        if (result.type !== 'render') {
+          throw new Error('Expected render output')
+        }
+
+        const values = {
+          hook: { result: result.context.data.result },
+          metadata: result.context.routeTree[0]?.children[0]?.metadata,
+          property: result.context.blocks[0]?.properties.value,
+          default: result.context.blocks[0]?.properties.value,
+        }
+        const actual = values[context]
+
+        expect(actual).toStrictEqual({ result: { matched: 'selected', mixed: 'selected', absent: 'absent' } })
+        expect(unused).not.toHaveBeenCalled()
+      },
+    )
+
     it.each([
       { value: null, expected: null, result: 'matched' },
       { value: undefined, expected: undefined, result: 'matched' },
@@ -330,6 +595,89 @@ describe('expression contracts', () => {
   })
 
   describe('branch pipelines', () => {
+    it.each(evaluationContexts)(
+      'should keep conditional and logical branches lazy when evaluating %s expressions',
+      async context => {
+        // Arrange
+        const unused = vi.fn(() => {
+          throw new Error('Unused expression ran')
+        })
+        const Unused = generator('UnusedExpression', { factory: () => unused })
+        const client = createClient(
+          evaluationJourney(
+            'phase-expression',
+            {
+              result: {
+                conditional: when(Data('choice').match(GeneralConditions.Equals('yes')))
+                  .then('selected')
+                  .else(Unused()),
+                logicalAnd: and(
+                  Data('choice').match(GeneralConditions.Equals('no')),
+                  Unused().match(GeneralConditions.Equals(true)),
+                ),
+                logicalOr: or(
+                  Data('choice').match(GeneralConditions.Equals('yes')),
+                  Unused().match(GeneralConditions.Equals(true)),
+                ),
+              },
+            },
+            context,
+          ),
+        )
+
+        // Act
+        const result = await client.get('/phase-expression/result', { session: { data: { choice: 'yes' } } })
+
+        // Assert
+        expect(result.type).toBe('render')
+        if (result.type !== 'render') {
+          throw new Error('Expected render output')
+        }
+
+        const values = {
+          hook: { result: result.context.data.result },
+          metadata: result.context.routeTree[0]?.children[0]?.metadata,
+          property: result.context.blocks[0]?.properties.value,
+          default: result.context.blocks[0]?.properties.value,
+        }
+        const actual = values[context]
+
+        expect(actual).toStrictEqual({ result: { conditional: 'selected', logicalAnd: false, logicalOr: true } })
+        expect(unused).not.toHaveBeenCalled()
+      },
+    )
+
+    it.each(evaluationContexts)('should evaluate nested pipelines when evaluating %s expressions', async context => {
+      // Arrange
+
+      const client = createClient(
+        evaluationJourney(
+          'phase-expression',
+          { result: Data('choice').pipe(StringTransformers.ToUpperCase()) },
+          context,
+        ),
+      )
+
+      // Act
+      const result = await client.get('/phase-expression/result', { session: { data: { choice: 'yes' } } })
+
+      // Assert
+      expect(result.type).toBe('render')
+      if (result.type !== 'render') {
+        throw new Error('Expected render output')
+      }
+
+      const values = {
+        hook: { result: result.context.data.result },
+        metadata: result.context.routeTree[0]?.children[0]?.metadata,
+        property: result.context.blocks[0]?.properties.value,
+        default: result.context.blocks[0]?.properties.value,
+      }
+      const actual = values[context]
+
+      expect(actual).toStrictEqual({ result: 'YES' })
+    })
+
     it.each([true, false])('should transform only the chosen branches when the flag is %s', async flag => {
       // Arrange
       const selected = vi.fn(async () => 'selected')
