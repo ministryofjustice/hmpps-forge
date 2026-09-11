@@ -1,14 +1,18 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type FrameLocator } from '@playwright/test'
 import ForgeFormHelper from '../pages/forgeFormHelper'
 
-const basePath = '/forge-developer-guide/patterns/demos/repeating-fieldsets'
+const basePath = '/forge-guide-v2/patterns/repeating-fieldsets'
 
 test.describe('Repeating fieldsets journey', () => {
   let form: ForgeFormHelper
+  let preview: FrameLocator
 
   test.beforeEach(async ({ page }) => {
-    form = new ForgeFormHelper(page)
-    await page.goto(`${basePath}/household-members`)
+    // Arrange
+    preview = page.frameLocator('iframe[title="Journey preview"]')
+    form = new ForgeFormHelper(page, preview)
+    await page.goto(basePath)
+    await form.clickButton('Start the pattern')
   })
 
   test.describe('happy path', () => {
@@ -32,7 +36,7 @@ test.describe('Repeating fieldsets journey', () => {
       await form.expectPanelTitle('Household saved')
     })
 
-    test('should complete the journey with multiple household members', async ({ page }) => {
+    test('should complete the journey with multiple household members', async () => {
       // Arrange — add and fill first member
       await form.clickButton('Add another person')
       await form.fillTextInput('Name', 'Jane Smith')
@@ -40,8 +44,8 @@ test.describe('Repeating fieldsets journey', () => {
 
       // Add and fill second member
       await form.clickButton('Add another person')
-      await page.getByLabel('Name').nth(1).fill('John Doe')
-      await page.getByLabel('Age').nth(1).fill('25')
+      await preview.getByLabel('Name').nth(1).fill('John Doe')
+      await preview.getByLabel('Age').nth(1).fill('25')
       await form.clickButton('Continue')
 
       // Assert — Check answers with two summary cards
@@ -62,41 +66,41 @@ test.describe('Repeating fieldsets journey', () => {
       await form.expectInsetText('You have not added any household members yet.')
     })
 
-    test('should show name and age fields after adding a person', async ({ page }) => {
+    test('should show name and age fields after adding a person', async () => {
       // Act
       await form.clickButton('Add another person')
 
       // Assert
-      await expect(page.getByLabel('Name')).toBeVisible()
-      await expect(page.getByLabel('Age')).toBeVisible()
+      await expect(preview.getByLabel('Name')).toBeVisible()
+      await expect(preview.getByLabel('Age')).toBeVisible()
     })
 
-    test('should add multiple sets of fields', async ({ page }) => {
+    test('should add multiple sets of fields', async () => {
       // Act
       await form.clickButton('Add another person')
       await form.clickButton('Add another person')
 
       // Assert
-      await expect(page.getByLabel('Name')).toHaveCount(2)
-      await expect(page.getByLabel('Age')).toHaveCount(2)
+      await expect(preview.getByLabel('Name')).toHaveCount(2)
+      await expect(preview.getByLabel('Age')).toHaveCount(2)
     })
 
-    test('should remove a member when clicking Remove', async ({ page }) => {
+    test('should remove a member when clicking Remove', async () => {
       // Arrange — add two members
       await form.clickButton('Add another person')
       await form.fillTextInput('Name', 'Jane Smith')
       await form.fillTextInput('Age', '30')
       await form.clickButton('Add another person')
-      await page.getByLabel('Name').nth(1).fill('John Doe')
-      await page.getByLabel('Age').nth(1).fill('25')
+      await preview.getByLabel('Name').nth(1).fill('John Doe')
+      await preview.getByLabel('Age').nth(1).fill('25')
 
       // Act — remove first member
-      await page.getByRole('button', { name: 'Remove' }).first().click()
+      await preview.getByRole('button', { name: 'Remove' }).first().click()
 
       // Assert — only second member remains
-      await expect(page.getByLabel('Name')).toHaveCount(1)
-      await expect(page.getByLabel('Name')).toHaveValue('John Doe')
-      await expect(page.getByLabel('Age')).toHaveValue('25')
+      await expect(preview.getByLabel('Name')).toHaveCount(1)
+      await expect(preview.getByLabel('Name')).toHaveValue('John Doe')
+      await expect(preview.getByLabel('Age')).toHaveValue('25')
     })
 
     test('should show empty state after removing all members', async () => {
@@ -118,7 +122,7 @@ test.describe('Repeating fieldsets journey', () => {
 
       // Assert
       await form.expectStepError('Add at least one household member')
-      await form.expectUrl(`${basePath}/household-members`)
+      await form.expectHeading('Household members')
     })
 
     test('should show error when name is empty', async () => {
@@ -173,7 +177,6 @@ test.describe('Repeating fieldsets journey', () => {
 
       // Assert
       await form.expectHeading('Household members')
-      await form.expectUrl(`${basePath}/household-members`)
     })
 
     test('should preserve members after navigating back and returning', async () => {
@@ -201,7 +204,6 @@ test.describe('Repeating fieldsets journey', () => {
 
       // Assert
       await form.expectHeading('Repeating fieldsets')
-      await form.expectUrl(`${basePath}/overview`)
     })
   })
 })
