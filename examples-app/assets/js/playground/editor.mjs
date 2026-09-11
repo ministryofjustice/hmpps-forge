@@ -17,6 +17,7 @@ class PlaygroundEditor {
   lastRunSources = new Map()
   lastRun = undefined
   frame = undefined
+  frameReady = false
   busy = false
 
   constructor(root, instanceId, config) {
@@ -32,6 +33,8 @@ class PlaygroundEditor {
   }
 
   async start() {
+    window.addEventListener('message', (event) => this.receiveMessage(event))
+    this.createPreview()
     await (PlaygroundEditor.typeScriptReady ??= this.configureTypeScript())
     this.createModels()
     this.createEditor()
@@ -228,7 +231,6 @@ class PlaygroundEditor {
       keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
       run: () => this.run(),
     })
-    window.addEventListener('message', (event) => this.receiveMessage(event))
     const tabs = this.root.querySelector('[data-tabs]')
     this.root.querySelectorAll('[data-scroll-tabs]').forEach((button) => {
       button.addEventListener('click', () =>
@@ -290,6 +292,7 @@ class PlaygroundEditor {
     if (this.busy) {
       return
     }
+    const firstRun = !this.lastRun
     this.busy = true
     this.runButton.disabled = true
     this.status.textContent = 'Checking example…'
@@ -338,7 +341,11 @@ class PlaygroundEditor {
       )
       this.updateEditStatus()
       this.restartButton.disabled = false
-      this.restart()
+      if (firstRun) {
+        this.startPreview()
+      } else {
+        this.restart()
+      }
     } catch (error) {
       this.status.textContent = error instanceof Error ? error.message : JSON.stringify(error)
     } finally {
@@ -351,6 +358,11 @@ class PlaygroundEditor {
     if (!this.lastRun) {
       return
     }
+    this.createPreview()
+  }
+
+  createPreview() {
+    this.frameReady = false
     this.status.textContent = 'Starting preview…'
     const frame = document.createElement('iframe')
     frame.className = 'playground__preview-frame'
@@ -362,13 +374,22 @@ class PlaygroundEditor {
     this.root.querySelector('[data-preview]').replaceChildren(frame)
   }
 
+  startPreview() {
+    if (!this.frameReady || !this.lastRun) {
+      return
+    }
+    this.frameReady = false
+    this.frame.contentWindow.postMessage({ type: 'run', sources: this.lastRun, entryFile: this.entryFile, startPath: this.startPath }, '*')
+  }
+
   receiveMessage(event) {
     if (event.source !== this.frame?.contentWindow || event.origin !== 'null') {
       return
     }
     const message = event.data
     if (message?.type === 'ready') {
-      this.frame.contentWindow.postMessage({ type: 'run', sources: this.lastRun, entryFile: this.entryFile, startPath: this.startPath }, '*')
+      this.frameReady = true
+      this.startPreview()
     } else if (message?.type === 'rendered') {
       this.updateEditStatus()
     } else if (message?.type === 'error' && typeof message.text === 'string') {

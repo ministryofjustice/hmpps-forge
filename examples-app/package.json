@@ -58,6 +58,7 @@
     "passport": "^0.7.0",
     "passport-oauth2": "^1.8.0",
     "pino": "^9.6.0",
+    "qs": "^6.15.2",
     "redis": "^5.11.0",
     "stemmer": "^2.0.1",
     "superagent": "^10.3.0",

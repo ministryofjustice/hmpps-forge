@@ -1,16 +1,20 @@
 import express from 'express'
 import request from 'supertest'
-import { readFile } from 'node:fs/promises'
+import { statSync } from 'node:fs'
+import { readFile, stat } from 'node:fs/promises'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import playgroundRouter from './playground'
 
-vi.mock('node:fs/promises', () => ({ readFile: vi.fn() }))
+vi.mock('node:fs/promises', () => ({ readFile: vi.fn(), stat: vi.fn() }))
 
 describe('playgroundRouter', () => {
   let app: express.Express
 
   beforeEach(() => {
     vi.mocked(readFile).mockReset().mockResolvedValue('')
+    vi.mocked(stat)
+      .mockReset()
+      .mockResolvedValue(Object.assign(statSync(__filename), { mtimeMs: 123 }))
     app = express()
     app.use(playgroundRouter())
   })
@@ -37,25 +41,39 @@ describe('playgroundRouter', () => {
     expect(response.headers['content-security-policy']).toContain(`'nonce-${nonce}'`)
   })
 
-  it('should escape closing tags when embedding the preview assets', async () => {
+  it('should version the external runtime when its build changes', async () => {
     // Arrange
-    vi.mocked(readFile)
-      .mockResolvedValueOnce('const text = "</script><script>unexpected()</script>"')
-      .mockResolvedValueOnce('/* </style> */')
+    vi.mocked(stat)
+      .mockResolvedValueOnce(Object.assign(statSync(__filename), { mtimeMs: 123 }))
+      .mockResolvedValueOnce(Object.assign(statSync(__filename), { mtimeMs: 456 }))
+
+    // Act
+    const first = await request(app).get('/preview')
+    const rebuilt = await request(app).get('/preview')
+
+    // Assert
+    expect(first.text).toContain('src="/assets/playground/preview.js?v=123"')
+    expect(rebuilt.text).toContain('src="/assets/playground/preview.js?v=456"')
+    expect(
+      vi.mocked(readFile).mock.calls.every(([file]) => !String(file).endsWith('preview.js')),
+    ).toBe(true)
+  })
+
+  it('should escape closing tags when embedding preview styles', async () => {
+    // Arrange
+    vi.mocked(readFile).mockResolvedValueOnce('/* </style> */')
 
     // Act
     const response = await request(app).get('/preview')
 
     // Assert
     expect(response.status).toBe(200)
-    expect(response.text).toContain('<\\/script>')
     expect(response.text).toContain('<\\/style>')
     expect(response.text.match(/<\/script>/g)).toHaveLength(1)
   })
   it('should embed both font weights when serving the preview', async () => {
     // Arrange
     vi.mocked(readFile)
-      .mockResolvedValueOnce('/* runtime */')
       .mockResolvedValueOnce(
         `
         @font-face { font-family: "GDS Transport"; font-weight: normal;

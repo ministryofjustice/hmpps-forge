@@ -1,10 +1,13 @@
-import { type Locator, type Page, expect } from '@playwright/test'
+import { type FrameLocator, type Locator, type Page, expect } from '@playwright/test'
 
 export default class ForgeFormHelper {
-  constructor(private readonly page: Page) {}
+  constructor(
+    private readonly page: Page,
+    private readonly root: Page | FrameLocator = page,
+  ) {}
 
   async expectHeading(text: string): Promise<void> {
-    await expect(this.page.locator('h1')).toContainText(text)
+    await expect(this.root.locator('h1')).toContainText(text)
   }
 
   async expectUrl(path: string): Promise<void> {
@@ -12,70 +15,70 @@ export default class ForgeFormHelper {
   }
 
   async fillTextInput(label: string, value: string): Promise<void> {
-    await this.page.getByLabel(label, { exact: true }).fill(value)
+    await this.root.getByLabel(label, { exact: true }).fill(value)
   }
 
   async fillTextarea(label: string, value: string): Promise<void> {
-    await this.page.getByLabel(label, { exact: true }).fill(value)
+    await this.root.getByLabel(label, { exact: true }).fill(value)
   }
 
   async selectRadio(label: string): Promise<void> {
-    await this.page.getByRole('radio', { name: label, exact: true }).check()
+    await this.root.getByRole('radio', { name: label, exact: true }).check()
   }
 
   async selectOption(label: string, value: string): Promise<void> {
-    await this.page.getByLabel(label, { exact: true }).selectOption(value)
+    await this.root.getByLabel(label, { exact: true }).selectOption(value)
   }
 
   async fillDateInput(label: string, value: string): Promise<void> {
-    await this.page.getByLabel(label, { exact: true }).fill(value)
+    await this.root.getByLabel(label, { exact: true }).fill(value)
   }
 
   async clickButton(text: string): Promise<void> {
-    await this.page.getByRole('button', { name: text }).click()
+    await this.root.getByRole('button', { name: text }).click()
   }
 
   async clickLink(text: string): Promise<void> {
-    await this.page.getByRole('link', { name: text }).click()
+    await this.root.getByRole('link', { name: text }).click()
   }
 
   async clickBackLink(): Promise<void> {
-    await this.page.locator('.govuk-back-link').click()
+    await this.root.locator('.govuk-back-link').click()
   }
 
   async expectValidationError(text: string): Promise<void> {
-    const errorSummary = this.page.locator('.govuk-error-summary')
+    const errorSummary = this.root.locator('.govuk-error-summary')
 
     await expect(errorSummary).toBeVisible()
     await expect(errorSummary.locator('a', { hasText: text })).toBeVisible()
   }
 
   async expectStepError(text: string): Promise<void> {
-    const errorSummary = this.page.locator('.govuk-error-summary')
+    const errorSummary = this.root.locator('.govuk-error-summary')
 
     await expect(errorSummary).toBeVisible()
     await expect(errorSummary).toContainText(text)
   }
 
   async expectNoValidationErrors(): Promise<void> {
-    await expect(this.page.locator('.govuk-error-summary')).not.toBeVisible()
+    await expect(this.root.locator('.govuk-error-summary')).not.toBeVisible()
   }
 
   getSummaryValue(rowLabel: string): Locator {
-    const row = this.page.locator('.govuk-summary-list__row', { hasText: rowLabel })
+    const row = this.root.locator('.govuk-summary-list__row', { hasText: rowLabel })
 
     return row.locator('.govuk-summary-list__value')
   }
 
   async clickChangeLink(rowLabel: string): Promise<void> {
-    const row = this.page.locator('.govuk-summary-list__row', { hasText: rowLabel })
+    const row = this.root.locator('.govuk-summary-list__row', { hasText: rowLabel })
 
     await row.getByRole('link', { name: /change/i }).click()
   }
 
   getSummaryCard(title: string): Locator {
-    return this.page.locator('.govuk-summary-card', {
-      has: this.page.locator('.govuk-summary-card__title', { hasText: title }),
+    return this.root.locator('.govuk-summary-card', {
+      has: this.root.locator('.govuk-summary-card__title', { hasText: title }),
     })
   }
 
@@ -87,14 +90,14 @@ export default class ForgeFormHelper {
   }
 
   async expectSummaryCardCount(count: number): Promise<void> {
-    await expect(this.page.locator('.govuk-summary-card')).toHaveCount(count)
+    await expect(this.root.locator('.govuk-summary-card')).toHaveCount(count)
   }
 
   async expectInsetText(text: string): Promise<void> {
-    await expect(this.page.locator('.govuk-inset-text')).toContainText(text)
+    await expect(this.root.locator('.govuk-inset-text')).toContainText(text)
   }
 
   async expectPanelTitle(text: string): Promise<void> {
-    await expect(this.page.locator('.govuk-panel__title')).toContainText(text)
+    await expect(this.root.locator('.govuk-panel__title')).toContainText(text)
   }
 }

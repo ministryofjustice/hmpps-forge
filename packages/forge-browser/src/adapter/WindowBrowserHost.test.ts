@@ -14,6 +14,8 @@ interface TestDomEvent {
 }
 
 describe('WindowBrowserHost', () => {
+  let formEntries: [string, unknown][]
+
   function createWindow(
     startViewTransition?: (update: () => Promise<void> | void) => { readonly updateCallbackDone: Promise<void> },
   ) {
@@ -130,11 +132,13 @@ describe('WindowBrowserHost', () => {
   }
 
   beforeEach(() => {
+    formEntries = []
+
     vi.stubGlobal(
       'FormData',
       class TestFormData {
         [Symbol.iterator](): IterableIterator<[string, unknown]> {
-          return new Map<string, unknown>().entries()
+          return formEntries.values()
         }
       },
     )
@@ -335,6 +339,93 @@ describe('WindowBrowserHost', () => {
       // Assert
       expect(event.preventDefault).not.toHaveBeenCalled()
       expect(listener).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      {
+        description: 'composite date parts',
+        entries: [
+          ['dateOfBirth[day]', '27'],
+          ['dateOfBirth[month]', '3'],
+          ['dateOfBirth[year]', '1990'],
+        ],
+        body: { dateOfBirth: { day: '27', month: '3', year: '1990' } },
+      },
+      {
+        description: 'repeated checkbox values',
+        entries: [
+          ['choices', 'email'],
+          ['choices', 'post'],
+          ['action', 'continue'],
+        ],
+        body: { choices: ['email', 'post'], action: 'continue' },
+      },
+      {
+        description: 'bracketed arrays and indexed objects',
+        entries: [
+          ['choices[]', 'email'],
+          ['choices[]', 'post'],
+          ['members[0][name]', 'Jane'],
+          ['members[1][name]', 'John'],
+        ],
+        body: { choices: ['email', 'post'], members: [{ name: 'Jane' }, { name: 'John' }] },
+      },
+      {
+        description: 'empty and encoded text values',
+        entries: [
+          ['address[line2]', ''],
+          ['name', 'Jane & John + family'],
+        ],
+        body: { address: { line2: '' }, name: 'Jane & John + family' },
+      },
+      {
+        description: 'prototype property names',
+        entries: [
+          ['__proto__[polluted]', 'yes'],
+          ['constructor[prototype][polluted]', 'yes'],
+          ['name', 'Jane'],
+        ],
+        body: { name: 'Jane' },
+      },
+    ])('should parse the submitted body when the form contains $description', ({ entries, body }) => {
+      // Arrange
+      const container = createContainer()
+      const listener = vi.fn()
+      const host = new WindowBrowserHost({ container, window: createWindow() })
+
+      formEntries = entries.map(([name, value]) => [name, value])
+      host.subscribe(listener)
+
+      // Act
+      container.emit('submit', createSubmitEvent(null))
+
+      // Assert
+      expect(listener).toHaveBeenCalledWith({ kind: 'submit', url: '/host', body })
+    })
+
+    it('should preserve file values when the form contains uploads', () => {
+      // Arrange
+      const container = createContainer()
+      const listener = vi.fn()
+      const host = new WindowBrowserHost({ container, window: createWindow() })
+      const file = new Blob(['document'])
+
+      formEntries = [
+        ['document', file],
+        ['date[day]', '27'],
+      ]
+      host.subscribe(listener)
+
+      // Act
+      container.emit('submit', createSubmitEvent(null))
+
+      // Assert
+      expect(listener).toHaveBeenCalledWith({
+        kind: 'submit',
+        url: '/host',
+        body: { document: file, date: { day: '27' } },
+      })
+      expect(listener.mock.calls[0][0].body.document).toBe(file)
     })
 
     it('should resolve a relative POST action against the current URL', () => {

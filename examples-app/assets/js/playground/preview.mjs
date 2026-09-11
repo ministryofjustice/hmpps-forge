@@ -1,7 +1,11 @@
+import '../../scss/playground-preview.scss'
+import qs from 'qs'
 import nunjucks from 'nunjucks'
+import { Radios } from 'govuk-frontend'
 import 'virtual:playground-templates'
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
 import * as authoring from '@ministryofjustice/hmpps-forge/core/authoring'
+import * as coreComponents from '@ministryofjustice/hmpps-forge/core/components'
 import * as components from '@ministryofjustice/hmpps-forge/govuk-components'
 import {
   NunjucksBrowserRenderer,
@@ -31,11 +35,13 @@ class PlaygroundHost {
         return
       }
       event.preventDefault()
-      const body = {}
-      new FormData(event.target).forEach((value, key) => {
-        body[key] = key in body ? [body[key], value].flat() : value
+      const fields = Object.create(null)
+      new FormData(event.target, event.submitter).forEach((value, key) => {
+        fields[key] = key in fields ? [fields[key], value].flat() : value
       })
-      listener({ kind: 'submit', url: this.location.pathname, body })
+      // Match Express form parsing for composite inputs such as dateOfBirth[day].
+      const body = qs.parse(fields)
+      listener({ kind: 'submit', url: `${this.location.pathname}${this.location.search}`, body })
     }
     const follow = (event) => {
       const anchor = event.target.closest?.('a[href]')
@@ -67,6 +73,7 @@ const parentOrigin = new URL(document.referrer).origin
 const container = document.querySelector('main')
 const modules = new Map([
   ['@ministryofjustice/hmpps-forge/core/authoring', authoring],
+  ['@ministryofjustice/hmpps-forge/core/components', coreComponents],
   ['@ministryofjustice/hmpps-forge/govuk-components', components],
 ])
 
@@ -142,6 +149,8 @@ async function runExample(event) {
       renderingEngine: new NunjucksBrowserRenderer({ templateEnv, defaultTemplate: 'playground-step' }),
       onRender: ({ html }) => {
         container.innerHTML = html
+        document.body.classList.add('js-enabled', 'govuk-frontend-supported')
+        container.querySelectorAll('[data-module="govuk-radios"]').forEach(element => new Radios(element))
         window.parent.postMessage({ type: 'rendered' }, parentOrigin)
       },
       onError: ({ error }) =>

@@ -74,6 +74,7 @@ function playgroundPlugin() {
         outdir: path.join(cwd, 'dist/assets/playground'),
         format: 'esm',
         platform: 'browser',
+        external: ['/assets/*'],
         minify: true,
         metafile: true,
         loader: { '.ttf': 'dataurl', '.html': 'text' },

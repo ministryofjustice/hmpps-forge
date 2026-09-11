@@ -1,0 +1,15 @@
+$govuk-global-styles: true;
+$govuk-include-default-font-face: false;
+// The editor's narrow preview should show desktop components, not a mobile page.
+$govuk-breakpoints: (
+  // GOV.UK also derives tag maximum widths from the mobile breakpoint.
+  mobile: 320px,
+  tablet: 0,
+  desktop: 0,
+);
+
+@import 'govuk-frontend/dist/govuk/index';
+
+body.govuk-body {
+  margin: 30px 30px 40px;
+}

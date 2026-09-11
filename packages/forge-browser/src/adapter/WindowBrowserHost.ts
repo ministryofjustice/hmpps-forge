@@ -1,3 +1,4 @@
+import qs from 'qs'
 import BrowserNavigationUrl from './BrowserNavigationUrl'
 import type {
   BrowserHost,
@@ -269,9 +270,23 @@ export default class WindowBrowserHost implements BrowserHost {
   // browser itself would send on a real form submission.
   private readFormBody(form: DomElement, submitter: unknown): Record<string, unknown> {
     const entries = [...new (FormData as unknown as FormDataFromForm)(form, submitter)]
-    const body: Record<string, unknown> = {}
+    const fields = new URLSearchParams()
 
     entries.forEach(([name, value]) => {
+      if (typeof value === 'string') {
+        fields.append(name, value)
+      }
+    })
+
+    // Match server form parsing for nested names such as dateOfBirth[day].
+    const body: Record<string, unknown> = qs.parse(fields.toString())
+
+    // File values must retain their identity rather than being stringified.
+    entries.forEach(([name, value]) => {
+      if (typeof value === 'string') {
+        return
+      }
+
       const existing = body[name]
 
       if (existing === undefined) {
