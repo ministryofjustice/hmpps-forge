@@ -1137,6 +1137,7 @@ describe('StepAnswerPreparationCompiler', () => {
     it('should resolve match expressions in defaultValue', async () => {
       // Arrange
       const defaultMatch = ASTTestFactory.expression(ExpressionType.MATCH)
+        .withProperty('subject', createReference(['data', 'defaultCountry']))
         .withProperty('branches', [
           {
             predicate: createTestPredicate(

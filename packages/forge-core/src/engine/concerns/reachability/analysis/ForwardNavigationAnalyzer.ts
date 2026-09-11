@@ -1,3 +1,5 @@
+import AuthoredValueClassifier from '../../../chassis/compilation/analysis/shared/AuthoredValueClassifier'
+import type { AuthoredValue } from '../../../chassis/contracts/models/authoredValue.type'
 import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
 import type { RedirectOutcomeASTNode, SubmitHookASTNode } from '../../../chassis/contracts/ast/expressions.type'
 import type { StepASTNode } from '../../../chassis/contracts/ast/structures.type'
@@ -11,7 +13,10 @@ export interface ForwardNavigationAnalysis {
 }
 
 export default class ForwardNavigationAnalyzer {
-  constructor(private readonly requestTimeReferenceAnalyzer = new RequestTimeReferenceAnalyzer()) {}
+  constructor(
+    private readonly requestTimeReferenceAnalyzer = new RequestTimeReferenceAnalyzer(),
+    private readonly classifier = new AuthoredValueClassifier(),
+  ) {}
 
   analyze(stepNode: StepASTNode): ForwardNavigationAnalysis {
     const submitHooks = stepNode.properties.onSubmission ?? []
@@ -25,7 +30,12 @@ export default class ForwardNavigationAnalyzer {
 
   private buildForwardOutcomeGroup(hook: SubmitHookASTNode): ForwardOutcomeGroup {
     const redirectOutcomes = this.forwardRedirectOutcomes(hook).map(node => ({
-      node,
+      source: node,
+      when: node.properties.when === undefined ? undefined : this.classifier.classify(node.properties.when),
+      goto:
+        typeof node.properties.goto === 'string'
+          ? node.properties.goto
+          : this.classifier.classify(node.properties.goto),
       overApproximatesWhen: this.overApproximatesOutcomeWhen(node.properties.when),
     }))
 
@@ -35,7 +45,7 @@ export default class ForwardNavigationAnalyzer {
     }
   }
 
-  private resolveReachabilityCompilableHookWhen(when: ASTNode | undefined): ASTNode | undefined {
+  private resolveReachabilityCompilableHookWhen(when: ASTNode | undefined): AuthoredValue | undefined {
     if (when === undefined || !isASTNode(when)) {
       return undefined
     }
@@ -44,7 +54,7 @@ export default class ForwardNavigationAnalyzer {
       return undefined
     }
 
-    return when
+    return this.classifier.classify(when)
   }
 
   private forwardRedirectOutcomes(hook: SubmitHookASTNode): RedirectOutcomeASTNode[] {

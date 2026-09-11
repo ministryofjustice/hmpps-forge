@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { component } from '../../../../src/components/presentation'
 
 import {
   journey,
@@ -111,12 +112,17 @@ const CaptureSubject = effect('Expressions.CaptureSubject', {
   },
 })
 
-/**
- * A journey whose only job is to evaluate expressions: an access hook loads
- * session data, then stores each expression's result under its key, so rows
- * observe expression results through the render context's `data` verdict.
- */
-export function evaluationJourney(code: string, evaluations: Record<string, ResolvableValue>) {
+const ExpressionProbe = component<{ value?: unknown }>('expressionProbe', { field: true, factory: () => () => '' })
+const DefaultProbe = generator('DefaultProbe', { factory: () => (value: unknown) => value })
+
+export const evaluationContexts = ['hook', 'property', 'default', 'metadata'] as const
+
+/** Evaluates the same authored values at the selected phase boundary. */
+export function evaluationJourney(
+  code: string,
+  evaluations: Record<string, ResolvableValue>,
+  context: (typeof evaluationContexts)[number] = 'hook',
+) {
   return journey({
     code,
     path: `/${code}`,
@@ -125,7 +131,9 @@ export function evaluationJourney(code: string, evaluations: Record<string, Reso
       access({
         effects: [
           Effects.LoadData(),
-          ...Object.entries(evaluations).map(([key, expression]) => SetData(key, expression)),
+          ...(context === 'hook'
+            ? Object.entries(evaluations).map(([key, expression]) => SetData(key, expression))
+            : []),
         ],
       }),
     ],
@@ -134,7 +142,16 @@ export function evaluationJourney(code: string, evaluations: Record<string, Reso
         path: '/result',
         title: 'Result',
         reachability: { entryWhen: true },
-        blocks: [StaticText({ text: 'Result' })],
+        metadata: context === 'metadata' ? evaluations : {},
+        blocks:
+          context === 'property' || context === 'default'
+            ? [
+                ExpressionProbe({
+                  code: 'probe',
+                  ...(context === 'property' ? { value: evaluations } : { defaultValue: DefaultProbe(evaluations) }),
+                }),
+              ]
+            : [StaticText({ text: 'Result' })],
       }),
     ],
   })

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import AuthoredValueClassifier from '../../../chassis/compilation/analysis/shared/AuthoredValueClassifier'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { ExpressionType, FunctionCallType, PredicateType } from '../../../../shared/taxonomy'
 import { StepEntryValidationAST } from '../../../chassis/contracts/ast/structures.type'
@@ -42,7 +43,10 @@ function entryModel(entries: StepEntryValidationAST[] | undefined): ValidationMo
     hasValidation: false,
     fields: [],
     domainRules: undefined,
-    entryValidation: entries ?? [],
+    entryValidation: (entries ?? []).map(entry => ({
+      groups: entry.groups,
+      when: new AuthoredValueClassifier().classify(entry.when),
+    })),
   }
 }
 

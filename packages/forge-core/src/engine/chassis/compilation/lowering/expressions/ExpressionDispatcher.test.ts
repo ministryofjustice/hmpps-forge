@@ -1,3 +1,4 @@
+import AuthoredValueClassifier from '../../analysis/shared/AuthoredValueClassifier'
 import { match } from '../../../../../authoring/builders/MatchExprBuilder'
 import { Data, Item } from '../../../../../authoring/builders/references'
 import { Iterator } from '../../../../../authoring/builders/iterators'
@@ -58,7 +59,7 @@ describe('ExpressionDispatcher', () => {
     return compileGeneratedFunction<EvaluateFunction>(compiler, ['ctx'], () => {
       const generator = CodeGenerator.forFunction(['ctx'])
 
-      generator.return(compiler.compileExpressionCode(expression, generator))
+      generator.return(compiler.compileValueCode(new AuthoredValueClassifier().classify(expression), generator))
 
       return generator
     })
@@ -66,14 +67,14 @@ describe('ExpressionDispatcher', () => {
 
   function compileSource(expressionCompiler: ExpressionDispatcher, expression: ASTNode): string {
     const generator = CodeGenerator.forFunction(['ctx'])
-    const result = expressionCompiler.compileExpressionCode(expression, generator)
+    const result = expressionCompiler.compileValueCode(new AuthoredValueClassifier().classify(expression), generator)
 
     generator.return(result)
 
     return new SourceRenderer().render(generator.toNodes()).source
   }
 
-  describe('compileExpressionCode()', () => {
+  describe('compileValueCode()', () => {
     it.each(['case', 'some', 'every'] as const)(
       'should compile %s without collecting or calling an implicit Equals function',
       kind => {
@@ -197,7 +198,9 @@ describe('ExpressionDispatcher', () => {
       const compiled = compileGeneratedFunction<EvaluateFunction>(dynamicCompiler, ['ctx'], () => {
         const generator = CodeGenerator.forFunction(['ctx'])
 
-        generator.return(dynamicCompiler.compileExpressionCode(expression, generator))
+        generator.return(
+          dynamicCompiler.compileValueCode(new AuthoredValueClassifier().classify(expression), generator),
+        )
 
         return generator
       })

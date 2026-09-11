@@ -4,7 +4,7 @@ import type { AuthoredValue } from '../../../chassis/contracts/models/authoredVa
 /**
  * The route concern's semantic model for one step or journey node's authored
  * metadata. Built by `RouteAnalyzer`, consumed by `RouteMetadataCompiler`.
- * AST nodes survive here only as expression leaves and diagnostic tokens.
+ * AST nodes survive here only as diagnostic and identity tokens.
  */
 export interface RouteMetadataModel {
   readonly nodeId: NodeId

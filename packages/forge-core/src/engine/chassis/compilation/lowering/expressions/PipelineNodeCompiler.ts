@@ -1,3 +1,4 @@
+import type { PipelineValue, FunctionValue } from '../../../contracts/models/authoredValue.type'
 import { CodeFragment, code } from '../codegen/fragments/CodeFragment'
 import IdentifierName from '../codegen/fragments/IdentifierName'
 import { NodeCompilationContext } from './types'
@@ -15,9 +16,9 @@ export default class PipelineNodeCompiler {
   /**
    * Threads the previous step result into each pipeline function call.
    */
-  compilePipeline(properties: Record<string, unknown>): CodeFragment {
-    const steps = (properties.steps ?? []) as Record<string, unknown>[]
-    const value = this.ctx.generator.let('pipelineValue', this.ctx.compileOperandCode(properties.input))
+  compilePipeline(properties: PipelineValue): CodeFragment {
+    const steps = properties.steps
+    const value = this.ctx.generator.let('pipelineValue', this.ctx.compileValueCode(properties.input))
 
     steps.forEach(step => this.compilePipelineStep(value, step))
 
@@ -28,13 +29,12 @@ export default class PipelineNodeCompiler {
    * Compiles one transformer step, treating `undefined` as "no value was
    * passed through the pipeline".
    */
-  private compilePipelineStep(value: IdentifierName, step: Record<string, unknown>): void {
-    const stepProps = (step.properties ?? step) as Record<string, unknown>
-    const funcName = stepProps.name as string
-    const funcArgs = (stepProps.arguments ?? []) as unknown[]
+  private compilePipelineStep(value: IdentifierName, step: FunctionValue): void {
+    const funcName = step.name
+    const funcArgs = step.arguments
     this.ctx.generator.if(code`${value} !== undefined`, () => {
-      const argExprs = funcArgs.map(arg => this.ctx.compileOperandCode(arg))
-      const callResult = this.ctx.compileFunctionCallCode(funcName, [code`${value}`, ...argExprs], step, {
+      const argExprs = funcArgs.map(arg => this.ctx.compileValueCode(arg))
+      const callResult = this.ctx.compileFunctionCallCode(funcName, [code`${value}`, ...argExprs], step.source, {
         argumentPrefixes: ['pipelineValue', ...funcArgs.map((_, index) => `functionArgument${index + 1}`)],
       })
 
@@ -46,12 +46,12 @@ export default class PipelineNodeCompiler {
    * Compiles a standalone function call (condition, transformer, or generator)
    * with diagnostic source metadata for runtime error reporting.
    */
-  compileFunction(properties: Record<string, unknown>, source?: unknown): CodeFragment {
-    const funcName = properties.name as string
-    const funcArgs = (properties.arguments ?? []) as unknown[]
-    const argExprs = funcArgs.map(arg => this.ctx.compileOperandCode(arg))
+  compileFunction(properties: FunctionValue): CodeFragment {
+    const funcName = properties.name
+    const funcArgs = properties.arguments
+    const argExprs = funcArgs.map(arg => this.ctx.compileValueCode(arg))
 
-    return this.ctx.compileFunctionCallCode(funcName, argExprs, source ?? properties, {
+    return this.ctx.compileFunctionCallCode(funcName, argExprs, properties.source, {
       argumentPrefixes: funcArgs.map((_, index) => `functionArgument${index + 1}`),
     })
   }

@@ -1,5 +1,4 @@
-import { isTemplateASTNode } from '../../../contracts/ast/nodes'
-import type { TemplateASTNode } from '../../../contracts/ast/ast.type'
+import { AuthoredValueKind, type AuthoredValue } from '../../../contracts/models/authoredValue.type'
 import { FieldCodeKind, type DynamicFieldCode, type StaticFieldCode } from '../../../contracts/models/fieldModel.type'
 import { CodeFragment, code, literal, propertyCode, SafeCode } from '../codegen/fragments/CodeFragment'
 import CodeGenerator from '../codegen/CodeGenerator'
@@ -34,16 +33,16 @@ export default class FieldCodeEmitter {
       return literal(fieldCode.value)
     }
 
-    const variableName = isTemplateASTNode(fieldCode.node.node) ? 'templateCode' : 'fieldCode'
+    const variableName = 'source' in fieldCode.value && fieldCode.value.source.isTemplate ? 'templateCode' : 'fieldCode'
 
-    return generator.const(variableName, code`String(${this.expr.compileOperandCode(fieldCode.node.node, generator)})`)
+    return generator.const(variableName, code`String(${this.expr.compileValueCode(fieldCode.value, generator)})`)
   }
 
   /**
    * Emits a registered field code as either a string literal or a scoped const.
    */
   compileRegisteredExpression(
-    fieldCode: unknown,
+    fieldCode: AuthoredValue,
     generator: CodeGenerator,
     variableName = 'fieldCode',
   ): CodeFragment | IdentifierName | undefined {
@@ -53,7 +52,7 @@ export default class FieldCodeEmitter {
       return undefined
     }
 
-    if (typeof fieldCode === 'string') {
+    if (fieldCode.kind === AuthoredValueKind.STATIC && typeof fieldCode.value === 'string') {
       return codeExpression
     }
 
@@ -63,44 +62,28 @@ export default class FieldCodeEmitter {
   /**
    * Emits a registered field code as an inline expression, used when assigning block properties.
    */
-  compileRegisteredInlineExpression(fieldCode: unknown, generator?: CodeGenerator): CodeFragment | undefined {
-    if (typeof fieldCode === 'string') {
-      return literal(fieldCode)
+  compileRegisteredInlineExpression(fieldCode: AuthoredValue, generator?: CodeGenerator): CodeFragment | undefined {
+    if (fieldCode.kind === AuthoredValueKind.STATIC && typeof fieldCode.value === 'string') {
+      return literal(fieldCode.value)
     }
 
-    if (this.expr.isCompilableNode(fieldCode)) {
-      return code`String(${this.expr.compileOperandCode(fieldCode, generator)})`
+    if (
+      fieldCode.kind !== AuthoredValueKind.STATIC &&
+      fieldCode.kind !== AuthoredValueKind.RECORD &&
+      fieldCode.kind !== AuthoredValueKind.LIST &&
+      fieldCode.kind !== AuthoredValueKind.BLOCK
+    ) {
+      return code`String(${this.expr.compileValueCode(fieldCode, generator)})`
     }
 
     return undefined
   }
 
   /**
-   * Emits a template field code under the current iterator/template scope.
-   */
-  compileTemplateExpression(
-    node: TemplateASTNode,
-    generator: CodeGenerator,
-    variableName = 'templateCode',
-  ): CodeFragment | IdentifierName | undefined {
-    const fieldCode = node.properties?.code
-
-    if (typeof fieldCode === 'string') {
-      return literal(fieldCode)
-    }
-
-    if (!isTemplateASTNode(fieldCode)) {
-      return undefined
-    }
-
-    return generator.const(variableName, code`String(${this.expr.compileExpressionCode(fieldCode, generator)})`)
-  }
-
-  /**
    * Assigns a FIELD block's code property only when it resolves to a string expression.
    */
   assignProperty(
-    fieldCode: unknown,
+    fieldCode: AuthoredValue,
     generator: CodeGenerator,
     targetObject: SafeCode,
     key: string,

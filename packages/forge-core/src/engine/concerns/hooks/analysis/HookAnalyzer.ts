@@ -17,7 +17,7 @@ import type {
 } from '../../../chassis/contracts/ast/expressions.type'
 import { isRedirectOutcomeNode, isThrowErrorOutcomeNode } from '../../../chassis/contracts/ast/outcome-nodes'
 import type { JourneyASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
-import { expressionValue, type ExpressionValue } from '../../../chassis/contracts/models/authoredValue.type'
+import { type AuthoredValue } from '../../../chassis/contracts/models/authoredValue.type'
 import type {
   AccessHookModel,
   AccessLifecycleModel,
@@ -89,9 +89,9 @@ export default class HookAnalyzer implements StepModelAnalyzer<StepHookModel>, J
     return {
       key,
       label: this.describeHookNode(hook, key),
-      when: this.classifyExpression(hook.properties.when),
+      when: this.classifyExpression(hook.properties.when, classifier),
       effects: this.classifyEffects(hook.properties.effects, key, classifier),
-      outcomes: this.classifyOutcomes(hook.properties.next),
+      outcomes: this.classifyOutcomes(hook.properties.next, classifier),
     }
   }
 
@@ -106,8 +106,8 @@ export default class HookAnalyzer implements StepModelAnalyzer<StepHookModel>, J
     return {
       key,
       label: this.describeHookNode(hook, key),
-      when: this.classifyExpression(hook.properties.when),
-      guards: this.classifyExpression(hook.properties.guards),
+      when: this.classifyExpression(hook.properties.when, classifier),
+      guards: this.classifyExpression(hook.properties.guards, classifier),
       validate: hook.properties.validate,
       validationGroups: validationGroups.length > 0 ? validationGroups : ['default'],
       branches: {
@@ -132,7 +132,7 @@ export default class HookAnalyzer implements StepModelAnalyzer<StepHookModel>, J
   ): SubmitBranchModel {
     return {
       effects: this.classifyEffects(branch?.effects, branchKey, classifier),
-      outcomes: this.classifyOutcomes(branch?.next),
+      outcomes: this.classifyOutcomes(branch?.next, classifier),
     }
   }
 
@@ -147,43 +147,52 @@ export default class HookAnalyzer implements StepModelAnalyzer<StepHookModel>, J
         key: `${keyPrefix}-effect-${effectIndex}`,
         name: effect.properties.name,
         arguments: (effect.properties.arguments ?? []).map(argument => classifier.classify(argument)),
-        node: expressionValue(effect),
+        source: effect,
       }))
   }
 
-  private classifyOutcomes(next: ASTNode[] | undefined): HookOutcomeModel[] {
+  private classifyOutcomes(next: ASTNode[] | undefined, classifier: AuthoredValueClassifier): HookOutcomeModel[] {
     return (next ?? [])
       .filter(node => this.isOutcomeNode(node))
       .map(outcomeNode =>
         isRedirectOutcomeNode(outcomeNode)
-          ? this.classifyRedirectOutcome(outcomeNode)
-          : this.classifyThrowErrorOutcome(outcomeNode),
+          ? this.classifyRedirectOutcome(outcomeNode, classifier)
+          : this.classifyThrowErrorOutcome(outcomeNode, classifier),
       )
   }
 
-  private classifyRedirectOutcome(redirect: RedirectOutcomeASTNode): HookOutcomeModel {
+  private classifyRedirectOutcome(
+    redirect: RedirectOutcomeASTNode,
+    classifier: AuthoredValueClassifier,
+  ): HookOutcomeModel {
     const { goto } = redirect.properties
 
     return {
       kind: HookOutcomeKind.REDIRECT,
-      when: this.classifyExpression(redirect.properties.when),
-      goto: typeof goto === 'string' ? goto : expressionValue(goto),
+      when: this.classifyExpression(redirect.properties.when, classifier),
+      goto: typeof goto === 'string' ? goto : classifier.classify(goto),
     }
   }
 
-  private classifyThrowErrorOutcome(errorOutcome: ThrowErrorOutcomeASTNode): HookOutcomeModel {
+  private classifyThrowErrorOutcome(
+    errorOutcome: ThrowErrorOutcomeASTNode,
+    classifier: AuthoredValueClassifier,
+  ): HookOutcomeModel {
     const { message } = errorOutcome.properties
 
     return {
       kind: HookOutcomeKind.THROW_ERROR,
-      when: this.classifyExpression(errorOutcome.properties.when),
+      when: this.classifyExpression(errorOutcome.properties.when, classifier),
       status: errorOutcome.properties.status,
-      message: typeof message === 'string' ? message : expressionValue(message),
+      message: typeof message === 'string' ? message : classifier.classify(message),
     }
   }
 
-  private classifyExpression(node: ASTNode | undefined): ExpressionValue | undefined {
-    return node === undefined ? undefined : expressionValue(node)
+  private classifyExpression(
+    node: ASTNode | undefined,
+    classifier: AuthoredValueClassifier,
+  ): AuthoredValue | undefined {
+    return node === undefined ? undefined : classifier.classify(node)
   }
 
   private describeHookNode(hook: AccessHookASTNode | SubmitHookASTNode, hookKey: string): string {

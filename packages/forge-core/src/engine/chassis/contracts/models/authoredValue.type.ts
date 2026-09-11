@@ -1,88 +1,134 @@
-import type { IteratorType } from '../../../../shared/taxonomy'
+import type { IteratorType, PredicateType } from '../../../../shared/taxonomy'
 import type { ASTNode } from '../ast/ast.type'
 import { ASTNodeFamily, astNodeFamily } from '../ast/enums'
 import { isASTNode } from '../ast/nodes'
 
-/**
- * The classified forms an authored value can take once analysis has finished
- * with it. Built by `AuthoredValueClassifier` in the analysis stage, consumed
- * by `RuntimeValueCompiler` and the phase compilers. Past analysis there is no
- * structural AST querying: AST nodes survive only as expression leaves (handed
- * to the expression dispatcher) and diagnostic tokens.
- */
+/** Analysis is the only boundary that reads expression AST structure. */
 export enum AuthoredValueKind {
   STATIC = 'static',
-  EXPRESSION = 'expression',
+  REFERENCE = 'reference',
+  FUNCTION = 'function',
+  PIPELINE = 'pipeline',
+  PREDICATE = 'predicate',
+  NULLISH = 'nullish',
   CONDITIONAL = 'conditional',
   MATCH = 'match',
   ITERATION = 'iteration',
+  VALIDATION = 'validation',
   RECORD = 'record',
   LIST = 'list',
   BLOCK = 'block',
 }
 
-export type AuthoredValue =
-  | StaticValue
-  | ExpressionValue
+export type AuthoredValue = StaticValue | ExpressionValue | RecordValue | ListValue | BlockValue
+export type ExpressionValue =
+  | ReferenceValue
+  | FunctionValue
+  | PipelineValue
+  | PredicateValue
+  | NullishValue
   | ConditionalValue
   | MatchValue
   | IterationValue
-  | RecordValue
-  | ListValue
-  | BlockValue
+  | ValidationValue
 
-/** A deeply static value, emitted as a literal. */
 export interface StaticValue {
   readonly kind: AuthoredValueKind.STATIC
   readonly value: unknown
 }
 
-/** An authored value that must be evaluated at request time. */
-export interface ExpressionValue {
-  readonly kind: AuthoredValueKind.EXPRESSION
-  readonly node: ASTNode
+export interface ReferenceValue {
+  readonly kind: AuthoredValueKind.REFERENCE
+  readonly source: ASTNode
+  readonly path: readonly (string | number | AuthoredValue)[]
+  readonly base?: AuthoredValue
 }
 
-/** A predicate choosing between two authored values. */
+export interface FunctionValue {
+  readonly kind: AuthoredValueKind.FUNCTION
+  readonly source: ASTNode
+  readonly name: string
+  readonly arguments: readonly AuthoredValue[]
+}
+
+export interface PipelineValue {
+  readonly kind: AuthoredValueKind.PIPELINE
+  readonly source: ASTNode
+  readonly input: AuthoredValue
+  readonly steps: readonly FunctionValue[]
+}
+
+export interface PredicateValue {
+  readonly kind: AuthoredValueKind.PREDICATE
+  readonly source: ASTNode
+  readonly predicate: PredicateType
+  readonly subject?: AuthoredValue
+  readonly condition?: FunctionValue
+  readonly negate: boolean
+  readonly operands: readonly AuthoredValue[]
+  readonly operand: AuthoredValue
+}
+
+export interface NullishValue {
+  readonly kind: AuthoredValueKind.NULLISH
+  readonly source: ASTNode
+  readonly input: AuthoredValue
+  readonly fallback: AuthoredValue
+}
+
 export interface ConditionalValue {
   readonly kind: AuthoredValueKind.CONDITIONAL
-  /** The conditional node itself — expression leaf and diagnostic token. */
   readonly source: ASTNode
   readonly predicate: AuthoredValue
   readonly thenValue: AuthoredValue
   readonly elseValue: AuthoredValue
 }
 
-/** First-matching-predicate selection over authored branch values. */
+export enum MatchBranchKind {
+  CASE = 'case',
+  PREDICATE = 'predicate',
+}
+
 export interface MatchValue {
   readonly kind: AuthoredValueKind.MATCH
-  /** The match node itself — expression leaf and diagnostic token. */
   readonly source: ASTNode
+  readonly subject: AuthoredValue
   readonly branches: readonly MatchBranchValue[]
-  /** Present only when the author supplied an otherwise value. */
   readonly otherwise?: AuthoredValue
 }
 
-export interface MatchBranchValue {
-  readonly predicate: AuthoredValue
-  readonly value: AuthoredValue
-}
+export type MatchBranchValue =
+  | {
+      readonly kind: MatchBranchKind.CASE
+      readonly expected: AuthoredValue
+      readonly value: AuthoredValue
+    }
+  | {
+      readonly kind: MatchBranchKind.PREDICATE
+      readonly predicate: AuthoredValue
+      readonly value: AuthoredValue
+    }
 
-/** A MAP/FILTER/FIND iteration producing a value from an input collection. */
 export interface IterationValue {
   readonly kind: AuthoredValueKind.ITERATION
-  /** The iterate node itself — expression leaf and diagnostic token. */
   readonly source: ASTNode
-  /** `undefined` for unrecognised iterator kinds, which materialise as `undefined`. */
   readonly iterator?: IteratorType
   readonly input: AuthoredValue
-  /** MAP only; a MAP without a yield template materialises `undefined` items. */
   readonly yieldTemplate?: AuthoredValue
-  /** FILTER and FIND predicates. */
   readonly predicate?: AuthoredValue
 }
 
-/** A record with at least one non-static entry, materialised key by key. */
+export interface ValidationValue {
+  readonly kind: AuthoredValueKind.VALIDATION
+  readonly source: ASTNode
+  readonly function?: AuthoredValue
+  readonly condition?: AuthoredValue
+  readonly message: AuthoredValue
+  readonly details?: AuthoredValue
+  readonly submissionOnly: boolean
+  readonly groups?: AuthoredValue
+}
+
 export interface RecordValue {
   readonly kind: AuthoredValueKind.RECORD
   readonly entries: readonly RecordEntryValue[]
@@ -93,37 +139,24 @@ export interface RecordEntryValue {
   readonly value: AuthoredValue
 }
 
-/** An array with at least one non-static item, materialised item by item. */
 export interface ListValue {
   readonly kind: AuthoredValueKind.LIST
   readonly items: readonly AuthoredValue[]
 }
 
-/**
- * A nested block — a template block node or a block-shaped plain object.
- * Classification is generic AST knowledge, but only the resolve concern knows
- * how to emit one (its runtime-value policy supplies the block compiler);
- * every other concern treats a block value as an impossible state.
- */
+/** Only resolve supplies the operation that turns a component into work. */
 export interface BlockValue {
   readonly kind: AuthoredValueKind.BLOCK
-  /** The block node or block-shaped object — diagnostic and identity token. */
   readonly source: ASTNode | Record<string, unknown>
   readonly variant: string
   readonly blockType: string
-  /** Registered block id; template blocks derive an instance id at runtime. */
   readonly id?: string
-  /** The block's classified properties, in authored order. */
   readonly entries: readonly RecordEntryValue[]
 }
 
-/** A node the expression dispatcher can compile — AST or template. */
+/** Identifies AST nodes during authored-value classification. */
 export function isExpressionLeaf(value: unknown): value is ASTNode {
   return isASTNode(value)
-}
-
-export function expressionValue(node: ASTNode): ExpressionValue {
-  return { kind: AuthoredValueKind.EXPRESSION, node }
 }
 
 export function staticValue(value: unknown): StaticValue {
@@ -133,7 +166,7 @@ export function staticValue(value: unknown): StaticValue {
 /**
  * Whether a value contains no expression, template, or block nodes anywhere,
  * so it can be emitted as one literal. The single definition of "static"
- * shared by the classifier and the expression dispatcher.
+ * used during authored-value classification.
  */
 export function isDeepStaticValue(value: unknown): boolean {
   if (value === null || value === undefined || typeof value !== 'object') {
@@ -164,31 +197,4 @@ export function isBlockShapedValue(value: unknown): boolean {
   const record = value as Record<string, unknown>
 
   return typeof record.variant === 'string' && typeof record.blockType === 'string'
-}
-
-/**
- * Reconstructs the raw authored value for operand positions — the expression
- * dispatcher's `compileOperandCode` owns static/node dispatch there, so the
- * classified tree hands back exactly what the author wrote. Node-backed arms
- * return their source node; classification is lossless.
- */
-export function toRawOperand(value: AuthoredValue): unknown {
-  switch (value.kind) {
-    case AuthoredValueKind.STATIC:
-      return value.value
-    case AuthoredValueKind.EXPRESSION:
-      return value.node
-    case AuthoredValueKind.CONDITIONAL:
-    case AuthoredValueKind.MATCH:
-    case AuthoredValueKind.ITERATION:
-      return value.source
-    case AuthoredValueKind.BLOCK:
-      return value.source
-    case AuthoredValueKind.LIST:
-      return value.items.map(item => toRawOperand(item))
-    case AuthoredValueKind.RECORD:
-      return Object.fromEntries(value.entries.map(entry => [entry.key, toRawOperand(entry.value)]))
-    default:
-      return undefined
-  }
 }

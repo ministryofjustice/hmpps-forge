@@ -25,8 +25,8 @@ question once and records the answer as a typed model, so each phase compiler ma
 does nothing else.
 
 The stage is governed by one boundary rule: **past analysis there is no `unknown` and no structural AST
-querying**. AST nodes survive only as expression leaves (handed to `ExpressionDispatcher`) and diagnostic tokens
-(labels, callsites, source-map positions).
+querying**. AST nodes survive only as diagnostic and identity tokens
+(labels, callsites, source-map positions and template identities). All executable operands are classified into `AuthoredValue` trees, including function arguments, predicates and iterator inputs.
 
 ## Responsibilities
 
@@ -213,7 +213,7 @@ flowchart TD
   `ForgeInternalError` for impossible states only.
 - Run analysis before lowering.
   The lowering phase consumes `CompilationModel`, not raw step and journey maps.
-- Keep model contents typed: no `unknown` past this stage, AST nodes only as expression leaves and
+- Keep model contents typed: no `unknown` past this stage, AST nodes only as identity and
   diagnostic tokens.
 - Do not make lowering compilers recompute semantic facts.
   If a compiler needs a new fact, add it to the concern's model and classify it here.

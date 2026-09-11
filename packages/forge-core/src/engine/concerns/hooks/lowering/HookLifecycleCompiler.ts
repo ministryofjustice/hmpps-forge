@@ -15,7 +15,7 @@ import {
   compileGeneratedFunction,
   renderGeneratedSource,
 } from '../../../chassis/compilation/lowering/GeneratedFunctionCompiler'
-import { toRawOperand, type ExpressionValue } from '../../../chassis/contracts/models/authoredValue.type'
+import { type AuthoredValue } from '../../../chassis/contracts/models/authoredValue.type'
 import type { CompiledAccessLifecycleFunction, CompiledSubmitHooksFunction } from '../contracts/hookLifecycle.type'
 import type {
   AccessHookModel,
@@ -216,16 +216,16 @@ export default class HookLifecycleCompiler {
     )
   }
 
-  private compileAccessWhenTask(when: ExpressionValue, key: string, generator: CodeGenerator): CodeFragment {
+  private compileAccessWhenTask(when: AuthoredValue, key: string, generator: CodeGenerator): CodeFragment {
     const evaluate = this.compileFunctionExpression('evaluateAccessHookWhen', generator, body => {
-      body.return(code`Boolean(${this.expr.compileOperandCode(when.node, body)})`)
+      body.return(code`Boolean(${this.expr.compileValueCode(when, body)})`)
     })
 
     return code`${CONTEXT}.workTasks.accessHookWhen(${key}, ${objectCode([{ key: 'evaluate', value: evaluate }])})`
   }
 
   private compileSubmitPredicateTask(
-    predicate: ExpressionValue,
+    predicate: AuthoredValue,
     key: string,
     name: string,
     generator: CodeGenerator,
@@ -234,7 +234,7 @@ export default class HookLifecycleCompiler {
       `evaluateSubmit${this.toFunctionNamePart(name)}`,
       generator,
       body => {
-        body.return(code`Boolean(${this.expr.compileOperandCode(predicate.node, body)})`)
+        body.return(code`Boolean(${this.expr.compileValueCode(predicate, body)})`)
       },
     )
 
@@ -299,7 +299,7 @@ export default class HookLifecycleCompiler {
 
     const outcomeWhen = generator.const(
       'outcomeWhen',
-      code`Boolean(${this.expr.compileOperandCode(outcome.when.node, generator)})`,
+      code`Boolean(${this.expr.compileValueCode(outcome.when, generator)})`,
     )
 
     generator.if(outcomeWhen, emitReturn)
@@ -312,7 +312,7 @@ export default class HookLifecycleCompiler {
       return
     }
 
-    const gotoValue = generator.const('gotoValue', this.expr.compileOperandCode(redirect.goto.node, generator))
+    const gotoValue = generator.const('gotoValue', this.expr.compileValueCode(redirect.goto, generator))
 
     generator.if(code`${gotoValue} !== undefined`, () => {
       generator.return(this.redirectResult(code`String(${gotoValue})`))
@@ -341,23 +341,23 @@ export default class HookLifecycleCompiler {
     )
   }
 
-  private compileErrorMessage(message: string | ExpressionValue, generator: CodeGenerator): CodeFragment {
+  private compileErrorMessage(message: string | AuthoredValue, generator: CodeGenerator): CodeFragment {
     if (typeof message === 'string') {
       return literal(message)
     }
 
-    const messageValue = generator.const('messageValue', this.expr.compileOperandCode(message.node, generator))
+    const messageValue = generator.const('messageValue', this.expr.compileValueCode(message, generator))
 
     return code`${messageValue} !== undefined ? String(${messageValue}) : ""`
   }
 
   private compileEffectCall(effect: EffectCall, generator: CodeGenerator): CodeFragment {
-    const argExprs = effect.arguments.map(arg => this.expr.compileOperandCode(toRawOperand(arg), generator))
+    const argExprs = effect.arguments.map(arg => this.expr.compileValueCode(arg, generator))
 
     return this.expr.compileFunctionCallCode(
       effect.name,
       [code`${CONTEXT}.effectFunctionContext`, ...argExprs],
-      effect.node.node,
+      effect.source,
     )
   }
 

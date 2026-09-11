@@ -85,10 +85,9 @@ The main source-building helpers are:
 - `CodeGenerator`, which owns structured statements, functions, scopes, and variable names.
 - `CodeFragment` and `IdentifierName`, which keep executable fragments distinct from literal values.
 - `SourceRenderer`, which renders source and authored-position segments directly from the IR.
-- `ExpressionDispatcher`, which compiles expressions and tracks iterator scope, `@self`, and `usesAwait`.
-- `RuntimeValueCompiler`, which materialises classified `AuthoredValue` trees into runtime values.
+- `ExpressionDispatcher`, the single entry point for compiling classified `AuthoredValue` trees. It owns iterator scope, `@self`, diagnostics and `usesAwait`.
 - `ScopedTemplateCompiler`, which reconstructs iterator loop nests and compiled template instance IDs.
-- `IteratorLoopEmitter`, the single home of the emitted iterator loop both structures delegate to.
+- `IteratorLoopEmitter`, the shared traversal used by expression iterators and template expansion.
 - `DiagnosticEmitter`, which wraps expressions and function calls with node and source metadata.
 
 ### Example
@@ -197,11 +196,11 @@ flowchart TD
 - Phase compilers own the generated source for one runtime phase.
   They should not query the AST for missing inputs that analysis should have provided.
   They live in their concern's `lowering/` folder, not here.
-- `ExpressionDispatcher` owns expression-shaped source.
-  Phase compilers should use it for nested expressions instead of hand-writing expression dispatch.
-- `RuntimeValueCompiler` owns materialising classified `AuthoredValue` trees into runtime values.
-  It is a pure switch over the value kind; the only policy hook is `compileBlockValue`, which the resolve
-  concern supplies for nested block values (every other concern treats a block value as an impossible state).
+- `ExpressionDispatcher.compileValueCode()` owns all recursive value compilation.
+  Its node compilers consume typed analysed operands; raw ASTs are retained only for diagnostics and identity.
+  Resolve supplies the narrow `compileBlockValue` callback for nested component work.
+  Ordinary arrays and maps preserve every value, including `undefined`; resolve omits absent blocks only when assembling the step block list.
+- `IteratorNodeCompiler` owns all six iterator operations. `IteratorLoopEmitter` owns traversal, input normalisation, scope and budget accounting.
 - `ScopedTemplateCompiler` owns iterator loop-nest reconstruction from model `iteratorPath`s.
   Phase compilers should not each implement their own `Item()` and `Loop` stack; the loop body emission
   itself lives in `IteratorLoopEmitter`.
@@ -276,8 +275,8 @@ flowchart TD
   Then check answer preparation, validation, resolve, and field inventory.
 - To change template block identity, keep resolve and validation on `ScopedTemplateCompiler.compileTemplateInstanceIdExpression()`.
   Do not derive block IDs from field code.
-- To change how dynamic block property values are built, start in `RuntimeValueCompiler`.
-  Pass phase-specific behavior through its policy hooks (the optional methods on `RuntimeValueCompilerPolicy`).
+- To change expression semantics, start in `ExpressionDispatcher` and its node compilers.
+  Keep phase-specific task construction outside expression evaluation; only resolve supplies a nested-component compiler.
 - To change answer preparation, hook, reachability, resolve, or validation output, start in that phase compiler and its colocated tests.
 - To debug generated output, call the relevant `generateSource()` method in a phase compiler test.
 - We'd recommend maybe doing a bit of research on this codegen approach, AJV and Nunjucks have some great
@@ -295,7 +294,7 @@ flowchart TD
 - [emitters/DiagnosticEmitter.ts](emitters/DiagnosticEmitter.ts) emits runtime diagnostic wrappers.
 - [emitters/FieldCodeEmitter.ts](emitters/FieldCodeEmitter.ts) emits field-code expressions for answers, metadata, and `Self()`.
 - [expressions/ExpressionDispatcher.ts](expressions/ExpressionDispatcher.ts) compiles AST and template expressions.
-- [structures/RuntimeValueCompiler.ts](structures/RuntimeValueCompiler.ts) turns authored values into the runtime values used at request time.
+- [expressions/IteratorNodeCompiler.ts](expressions/IteratorNodeCompiler.ts) compiles iterator results using the shared loop emitter.
 - [structures/ScopedTemplateCompiler.ts](structures/ScopedTemplateCompiler.ts) emits iterator/template traversal and template instance IDs.
 - [../../concerns/answer-preparation/lowering/StepAnswerPreparationCompiler.ts](../../../concerns/answer-preparation/lowering/StepAnswerPreparationCompiler.ts) compiles answer-preparation work.
 - [../../concerns/hooks/lowering/HookLifecycleCompiler.ts](../../../concerns/hooks/lowering/HookLifecycleCompiler.ts) compiles access and submit hook work.

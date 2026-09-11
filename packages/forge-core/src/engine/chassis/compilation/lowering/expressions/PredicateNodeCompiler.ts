@@ -1,3 +1,8 @@
+import {
+  AuthoredValueKind,
+  type AuthoredValue,
+  type PredicateValue,
+} from '../../../contracts/models/authoredValue.type'
 import { PredicateType } from '../../../../../shared/taxonomy'
 import { CodeFragment, arrayCode, code, literal } from '../codegen/fragments/CodeFragment'
 import { NodeCompilationContext } from './types'
@@ -6,8 +11,8 @@ import { NodeCompilationContext } from './types'
  * Compiles predicate nodes into boolean JavaScript expressions.
  *
  * Predicate nodes are shared across validation, reachability, rendering guards,
- * and hooks, so this compiler keeps the output as a pure expression (not
- * statements) and delegates registered condition function calls back through
+ * and hooks, so this compiler emits branch-local statements and delegates registered
+ * condition function calls back through
  * the `ExpressionDispatcher`.
  */
 export default class PredicateNodeCompiler {
@@ -16,8 +21,8 @@ export default class PredicateNodeCompiler {
   /**
    * Dispatches each predicate type (TEST, AND, OR, NOT, XOR) to its compiler.
    */
-  compile(predicateKind: string, properties: Record<string, unknown>, matchSubject?: CodeFragment): CodeFragment {
-    switch (predicateKind) {
+  compile(properties: PredicateValue, matchSubject?: CodeFragment): CodeFragment {
+    switch (properties.predicate) {
       case PredicateType.TEST:
         return this.compileTest(properties, matchSubject)
       case PredicateType.AND:
@@ -34,35 +39,37 @@ export default class PredicateNodeCompiler {
   }
 
   /** Applies a match's evaluated subject to each condition leaf in its predicate tree. */
-  compileOperand(operand: unknown, matchSubject?: CodeFragment): CodeFragment {
+  compileOperand(operand: AuthoredValue, matchSubject?: CodeFragment): CodeFragment {
     if (matchSubject === undefined) {
-      return this.ctx.compileOperandCode(operand)
+      return this.ctx.compileValueCode(operand)
     }
 
-    const predicate = operand as { kind: string; properties: Record<string, unknown> }
+    if (operand.kind !== AuthoredValueKind.PREDICATE) {
+      return this.ctx.compileValueCode(operand)
+    }
 
-    return this.compile(predicate.kind, predicate.properties, matchSubject)
+    return this.compile(operand, matchSubject)
   }
 
   /**
    * Compiles a TEST predicate by calling a registered condition function,
    * optionally wrapping the result in logical negation.
    */
-  private compileTest(properties: Record<string, unknown>, matchSubject?: CodeFragment): CodeFragment {
+  private compileTest(properties: PredicateValue, matchSubject?: CodeFragment): CodeFragment {
     const subject = properties.subject
-    const condition = properties.condition as Record<string, unknown> | undefined
+    const condition = properties.condition
     const negate = properties.negate === true
 
-    if ((!matchSubject && !subject) || !condition) {
+    if ((matchSubject === undefined && subject === undefined) || !condition) {
       return literal(false)
     }
 
-    const conditionProps = (condition.properties ?? condition) as Record<string, unknown>
-    const funcName = conditionProps.name as string
-    const funcArgs = (conditionProps.arguments ?? []) as unknown[]
-    const subjectExpr = matchSubject ?? this.ctx.compileOperandCode(subject)
-    const argExprs = funcArgs.map(arg => this.ctx.compileOperandCode(arg))
-    const callExpr = this.ctx.compileFunctionCallCode(funcName, [subjectExpr, ...argExprs], condition, {
+    const funcName = condition.name
+    const funcArgs = condition.arguments
+    const subjectExpr =
+      matchSubject ?? (subject === undefined ? literal(undefined) : this.ctx.compileValueCode(subject))
+    const argExprs = funcArgs.map(arg => this.ctx.compileValueCode(arg))
+    const callExpr = this.ctx.compileFunctionCallCode(funcName, [subjectExpr, ...argExprs], condition.source, {
       argumentPrefixes: ['subject', ...funcArgs.map((_, index) => `functionArgument${index + 1}`)],
     })
 
@@ -76,12 +83,8 @@ export default class PredicateNodeCompiler {
   /**
    * Preserves JavaScript's short-circuit behaviour for AND and OR predicates.
    */
-  private compileLogical(
-    properties: Record<string, unknown>,
-    isAnd: boolean,
-    matchSubject?: CodeFragment,
-  ): CodeFragment {
-    const operands = (properties.operands ?? []) as unknown[]
+  private compileLogical(properties: PredicateValue, isAnd: boolean, matchSubject?: CodeFragment): CodeFragment {
+    const operands = properties.operands
 
     if (operands.length === 0) {
       return literal(isAnd)
@@ -103,15 +106,15 @@ export default class PredicateNodeCompiler {
   /**
    * Emits logical negation around a nested predicate operand.
    */
-  private compileNot(properties: Record<string, unknown>, matchSubject?: CodeFragment): CodeFragment {
+  private compileNot(properties: PredicateValue, matchSubject?: CodeFragment): CodeFragment {
     return code`(!(${this.compileOperand(properties.operand, matchSubject)}))`
   }
 
   /**
    * Counts truthy operands so XOR remains correct for more than two inputs.
    */
-  private compileXor(properties: Record<string, unknown>, matchSubject?: CodeFragment): CodeFragment {
-    const operands = (properties.operands ?? []) as unknown[]
+  private compileXor(properties: PredicateValue, matchSubject?: CodeFragment): CodeFragment {
+    const operands = properties.operands
     const compiled = operands.map(op => code`Boolean(${this.compileOperand(op, matchSubject)})`)
 
     return code`(${arrayCode(compiled)}.filter(Boolean).length === 1)`

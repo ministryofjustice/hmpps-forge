@@ -1,13 +1,12 @@
 import NullishNodeCompiler from './NullishNodeCompiler'
-import { ASTNode } from '../../../contracts/ast/ast.type'
-import { ASTNodeFamily, astNodeFamily, type ASTNodeKind } from '../../../contracts/ast/enums'
 import {
-  PolicyType,
-  ExpressionType,
-  FunctionCallType,
-  IteratorType,
-  PredicateType,
-} from '../../../../../shared/taxonomy'
+  AuthoredValueKind,
+  type AuthoredValue,
+  type BlockValue,
+  type ExpressionValue,
+  type ValidationValue,
+} from '../../../contracts/models/authoredValue.type'
+import ForgeInternalError from '../../../../errors/ForgeInternalError'
 import ForgeUnregisteredFunctionError from '../../../../errors/ForgeUnregisteredFunctionError'
 import {
   CodeFragment,
@@ -15,42 +14,23 @@ import {
   code,
   literal,
   objectCode,
-  ObjectCodeProperty,
-  SafeCode,
+  structuredLiteralCode,
+  type ObjectCodeProperty,
+  type SafeCode,
 } from '../codegen/fragments/CodeFragment'
 import CodeGenerator from '../codegen/CodeGenerator'
 import IdentifierName from '../codegen/fragments/IdentifierName'
 import DiagnosticEmitter, { type DiagnosticMetadata } from '../emitters/DiagnosticEmitter'
-import { FunctionCallCompileOptions, IteratorScopeFrame, NodeCompilationContext } from './types'
+import { type FunctionCallCompileOptions, type IteratorScopeFrame, type NodeCompilationContext } from './types'
 import ReferenceNodeCompiler from './ReferenceNodeCompiler'
 import PredicateNodeCompiler from './PredicateNodeCompiler'
 import PipelineNodeCompiler from './PipelineNodeCompiler'
 import ConditionalNodeCompiler from './ConditionalNodeCompiler'
 import MatchNodeCompiler from './MatchNodeCompiler'
-import { isASTNode } from '../../../contracts/ast/nodes'
-import { isDeepStaticValue } from '../../../contracts/models/authoredValue.type'
+import IteratorNodeCompiler from './IteratorNodeCompiler'
 import type { CompilationDependencies } from '../compilationDependencies.type'
 
-const COMPILABLE_NODE_KINDS: ReadonlySet<ASTNodeKind> = new Set([
-  ...Object.values(ExpressionType),
-  ...Object.values(PredicateType),
-  FunctionCallType.CONDITION,
-  FunctionCallType.TRANSFORMER,
-  FunctionCallType.GENERATOR,
-  PolicyType.VALIDATION_RULE,
-])
-
-export type { IteratorScopeFrame } from './types'
-
-/**
- * Coordinates the individual expression-node compilers and owns the temporary
- * state accumulated while generating a single function.
- *
- * Concern compilers (e.g. validation, reachability, hooks) use this as the
- * single entry point for compiling AST and template expressions. Routing
- * everything through here keeps iterator scope, `@self` scope, diagnostics,
- * and generated-function await tracking consistent across generated functions.
- */
+/** Owns value compilation, lexical scope, diagnostics and async tracking for one generated function. */
 export default class ExpressionDispatcher implements NodeCompilationContext {
   private readonly iteratorFrames: IteratorScopeFrame[] = []
 
@@ -73,13 +53,18 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
 
   private readonly matches = new MatchNodeCompiler(this)
 
+  private readonly iterators = new IteratorNodeCompiler(this)
+
   private readonly diagnostics = new DiagnosticEmitter()
 
   private usedAwait = false
 
   private fragmentGenerator = new CodeGenerator()
 
-  constructor(private readonly dependencies: CompilationDependencies) {}
+  constructor(
+    private readonly dependencies: CompilationDependencies,
+    private readonly compileBlockValue?: (block: BlockValue, generator: CodeGenerator, nameHint: string) => SafeCode,
+  ) {}
 
   get iteratorStack(): readonly IteratorScopeFrame[] {
     return this.iteratorFrames
@@ -198,8 +183,7 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
 
   /**
    * Gives validation callbacks a stable developer-facing identity while their
-   * authored value (the raw value a journey author wrote) is compiled into
-   * generated code through the shared runtime-value compiler.
+   * analysed value is compiled through the shared value compiler.
    */
   withValidationFunctionPrefix<T>(prefix: string, compile: () => T): T {
     this.validationFunctionPrefixes.push(prefix)
@@ -211,458 +195,31 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     }
   }
 
-  /**
-   * Materialised and template nodes share the same semantic kind and expression
-   * compilers, so every caller uses one scope and async model.
-   */
-  compileExpressionCode(node: ASTNode, generator?: CodeGenerator): CodeFragment {
+  /** Every operand is analysed before lowering; recursion always returns here. */
+  compileValueCode(value: AuthoredValue, generator?: CodeGenerator): CodeFragment {
     if (generator !== undefined && generator !== this.generator) {
-      return this.withGeneratorScope(generator, () => this.compileExpressionCode(node))
+      return this.withGeneratorScope(generator, () => this.compileValueCode(value))
     }
 
-    if (!this.isCompilableNode(node)) {
-      return literal(node)
-    }
-
-    const properties = node.properties ?? {}
-    const isPredicate = astNodeFamily(node.kind) === ASTNodeFamily.PREDICATE
-    const expressionKind = isPredicate ? undefined : node.kind
-    const compile = () =>
-      isPredicate
-        ? this.predicates.compile(node.kind, properties)
-        : this.dispatchExpression(node.kind, properties, node)
-
-    if (this.hasOwnDiagnosticBoundary(expressionKind) || this.isValidationPredicate(node.kind)) {
-      return compile()
-    }
-
-    if (this.isThrowFreeReference(expressionKind)) {
-      return this.diagnostics.attachPositions(compile(), node)
-    }
-
-    return this.diagnostics.compileExpression(node, this.generator, compile)
-  }
-
-  /**
-   * Reference chains compile to `?.`-guarded property reads, so unless a
-   * dynamic segment introduced a call they cannot throw. Tracking them through
-   * a diagnostic wrapper would allocate machinery purely to attribute an
-   * error that can never happen.
-   */
-  private isThrowFreeReference(nodeKind: string | undefined): boolean {
-    return nodeKind === ExpressionType.REFERENCE
-  }
-
-  private hasOwnDiagnosticBoundary(nodeKind: string | undefined): boolean {
-    // Function calls carry their own diagnostic metadata through evaluateFunction.
-    // Validation rules contain tracked operands and function calls, so wrapping
-    // the rule object itself only adds an unrelated callback around construction.
-    return nodeKind === FunctionCallType.CONDITION ||
-      nodeKind === FunctionCallType.TRANSFORMER ||
-      nodeKind === FunctionCallType.GENERATOR ||
-      nodeKind === PolicyType.VALIDATION_RULE
-  }
-
-  private isValidationPredicate(kind: ASTNodeKind): boolean {
-    // Predicate leaves already carry diagnostics through their references and
-    // registered function calls. Keep their boolean composition visible inside
-    // the named validation condition instead of wrapping the whole predicate.
-    return this.validationFunctionPrefixes.length > 0 && astNodeFamily(kind) === ASTNodeFamily.PREDICATE
-  }
-
-  private dispatchExpression(nodeKind: string, properties: Record<string, unknown>, source?: unknown): CodeFragment {
-    switch (nodeKind) {
-      case ExpressionType.REFERENCE:
-        return this.references.compile(properties)
-      case ExpressionType.PIPELINE:
-        return this.pipelines.compilePipeline(properties)
-      case ExpressionType.ITERATE:
-        return this.compileIterate(properties)
-      case PolicyType.VALIDATION_RULE:
-        return this.compileValidation(properties)
-      case FunctionCallType.CONDITION:
-      case FunctionCallType.TRANSFORMER:
-      case FunctionCallType.GENERATOR:
-        return this.pipelines.compileFunction(properties, source)
-      case ExpressionType.NULLISH:
-        return this.nullish.compile(properties)
-      case ExpressionType.CONDITIONAL:
-        return this.conditionals.compile(properties)
-      case ExpressionType.MATCH:
-        return this.matches.compile(properties)
+    switch (value.kind) {
+      case AuthoredValueKind.STATIC:
+        return structuredLiteralCode(value.value)
+      case AuthoredValueKind.RECORD:
+        return objectCode(
+          value.entries.map(entry => ({ key: entry.key, value: this.compileContainerValue(entry.value, entry.key) })),
+        )
+      case AuthoredValueKind.LIST:
+        return arrayCode(value.items.map(item => this.compileContainerValue(item, 'arrayItem')))
+      case AuthoredValueKind.BLOCK:
+        return this.compileBlockExpression(value, 'nestedBlock')
       default:
-        return literal(undefined)
+        return this.compileExpressionValue(value)
     }
   }
 
-  /**
-   * Operands can be plain data, registered nodes, template nodes, or nested
-   * containers containing any of those. Compiling them recursively here keeps
-   * function arguments and block properties on the same rules.
-   */
-  compileOperandCode(value: unknown, generator?: CodeGenerator): CodeFragment {
-    if (generator !== undefined && generator !== this.generator) {
-      return this.withGeneratorScope(generator, () => this.compileOperandCode(value))
-    }
-
-    if (this.isCompilableNode(value)) {
-      return this.compileExpressionCode(value)
-    }
-
-    if (Array.isArray(value)) {
-      return arrayCode(value.map(entry => this.compileOperandCode(entry)))
-    }
-
-    if (value !== null && value !== undefined && typeof value === 'object') {
-      const properties = Object.entries(value as Record<string, unknown>).map(([key, entry]) => ({
-        key,
-        value: this.compileOperandCode(entry),
-      }))
-
-      return code`(${objectCode(properties)})`
-    }
-
-    if (value === undefined) {
-      return literal(undefined)
-    }
-
-    return literal(value)
-  }
-
-  /**
-   * Dispatches authored iterators to the MAP, FILTER, and FIND compilers,
-   * each of which produces a JavaScript expression (not statements).
-   */
-  private compileIterate(properties: Record<string, unknown>): CodeFragment {
-    const iterator = properties.iterator as
-      | {
-          type?: unknown
-          yieldTemplate?: unknown
-          predicateTemplate?: unknown
-        }
-      | undefined
-
-    // Iterator input and templates compile into the iterator's own IIFE scope
-    // and loop body, so statements must not hoist past that boundary.
-    if (iterator?.type === IteratorType.MAP) {
-      return this.compileMapIterator(properties.input, iterator.yieldTemplate)
-    }
-
-    if (iterator?.type === IteratorType.FILTER) {
-      return this.compileFilterIterator(properties.input, iterator.predicateTemplate)
-    }
-
-    if (iterator?.type === IteratorType.FIND) {
-      return this.compileFindIterator(properties.input, iterator.predicateTemplate)
-    }
-
-    if (iterator?.type === IteratorType.SOME) {
-      return this.compileSomeIterator(properties.input, iterator.predicateTemplate)
-    }
-
-    if (iterator?.type === IteratorType.EVERY) {
-      return this.compileEveryIterator(properties.input, iterator.predicateTemplate)
-    }
-
-    if (iterator?.type === IteratorType.COUNT) {
-      return this.compileCountIterator(properties.input, iterator.predicateTemplate)
-    }
-
-    return literal(undefined)
-  }
-
-  /**
-   * Builds the validation result object used by field-level and journey-level
-   * validation rules.
-   */
-  private compileValidation(properties: Record<string, unknown>): CodeFragment {
-    const functionValue = properties.function
-    const condition = properties.condition
-
-    if (functionValue === undefined && condition === undefined) {
-      return literal(undefined)
-    }
-
-    const functionPrefix = this.validationFunctionPrefixes[this.validationFunctionPrefixes.length - 1] ?? 'validation'
-    const ruleProperties: ObjectCodeProperty[] = []
-
-    if (functionValue !== undefined) {
-      const validationFunction = this.compileReturnFunctionExpression(
-        () => this.compileOperandCode(functionValue),
-        `evaluate_${functionPrefix}_function`,
-      )
-
-      ruleProperties.push({ key: 'function', value: validationFunction })
-    } else {
-      const messageValue = properties.message
-      const detailsValue = properties.details
-      const validationCondition = this.compileReturnFunctionExpression(
-        () => this.compileOperandCode(condition),
-        `evaluate_${functionPrefix}_condition`,
-      )
-      const message = this.isStaticOperand(messageValue)
-        ? this.compileStaticOperand(messageValue, literal(''))
-        : this.compileReturnFunctionExpression(
-            () => this.compileOperandCode(messageValue),
-            `evaluate_${functionPrefix}_message`,
-          )
-
-      ruleProperties.push({ key: 'condition', value: validationCondition }, { key: 'message', value: message })
-
-      if (detailsValue !== undefined) {
-        const details = this.isStaticOperand(detailsValue)
-          ? this.compileStaticOperand(detailsValue, literal(undefined))
-          : this.compileReturnFunctionExpression(
-              () => this.compileOperandCode(detailsValue),
-              `evaluate_${functionPrefix}_details`,
-            )
-
-        ruleProperties.push({ key: 'details', value: details })
-      }
-    }
-
-    ruleProperties.push({ key: 'submissionOnly', value: literal(properties.submissionOnly === true) })
-
-    if (properties.groups !== undefined) {
-      ruleProperties.push({ key: 'groups', value: this.compileOperandCode(properties.groups) })
-    }
-
-    return objectCode(ruleProperties)
-  }
-
-  /**
-   * Compiles a map iterator into a JavaScript expression that builds an array
-   * by evaluating the yield template for each input item.
-   */
-  private compileMapIterator(input: unknown, yieldTemplate: unknown): CodeFragment {
-    const inputExpr = this.compileOperandCode(input)
-    const generator = this.generator
-    const inputVar = generator.let('_input', inputExpr)
-    const inputWasKeyedVar = this.compileNormalizeIteratorInput(inputVar, generator)
-    const resultVar = generator.const('_result', arrayCode([]))
-
-    this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
-      const itemVar = this.compileIteratorItemScope(rawItemExpr, inputWasKeyedVar, generator)
-      const frame: IteratorScopeFrame = {
-        itemVar,
-        indexVar,
-        inputLengthExpr: code`${inputVar}.length`,
-        inputWasKeyedVar,
-        rawItemExpr,
-      }
-      const yieldExpr = this.withIteratorFrame(frame, () =>
-        yieldTemplate !== undefined ? this.compileOperandCode(yieldTemplate) : literal(undefined),
-      )
-      const yieldVar = generator.const('_yield', yieldExpr)
-
-      generator.statement(code`${resultVar}.push(${yieldVar})`)
-    })
-
-    return code`${resultVar}`
-  }
-
-  /**
-   * Compiles a filter iterator into a JavaScript expression that keeps only
-   * items matching the predicate template.
-   */
-  private compileFilterIterator(input: unknown, predicateTemplate: unknown): CodeFragment {
-    const inputExpr = this.compileOperandCode(input)
-    const generator = this.generator
-    const inputVar = generator.let('_input', inputExpr)
-    const inputWasKeyedVar = this.compileNormalizeIteratorInput(inputVar, generator)
-    const resultVar = generator.const('_result', arrayCode([]))
-
-    this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
-      const itemVar = this.compileIteratorItemScope(rawItemExpr, inputWasKeyedVar, generator)
-      const frame: IteratorScopeFrame = {
-        itemVar,
-        indexVar,
-        inputLengthExpr: code`${inputVar}.length`,
-        inputWasKeyedVar,
-        rawItemExpr,
-      }
-      const predicateExpr = this.withIteratorFrame(frame, () =>
-        predicateTemplate !== undefined ? this.compileOperandCode(predicateTemplate) : literal(false),
-      )
-
-      generator.if(predicateExpr, () => {
-        generator.statement(code`${resultVar}.push(${rawItemExpr})`)
-      })
-    })
-
-    return code`${resultVar}`
-  }
-
-  /**
-   * Compiles a find iterator into a JavaScript expression that returns the
-   * first item matching the predicate template.
-   */
-  private compileFindIterator(input: unknown, predicateTemplate: unknown): CodeFragment {
-    const inputExpr = this.compileOperandCode(input)
-    const generator = this.generator
-    const inputVar = generator.let('_input', inputExpr)
-    const inputWasKeyedVar = this.compileNormalizeIteratorInput(inputVar, generator)
-    const resultVar = generator.let('_result', literal(undefined))
-
-    this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
-      const itemVar = this.compileIteratorItemScope(rawItemExpr, inputWasKeyedVar, generator)
-      const frame: IteratorScopeFrame = {
-        itemVar,
-        indexVar,
-        inputLengthExpr: code`${inputVar}.length`,
-        inputWasKeyedVar,
-        rawItemExpr,
-      }
-      const predicateExpr = this.withIteratorFrame(frame, () =>
-        predicateTemplate !== undefined ? this.compileOperandCode(predicateTemplate) : literal(false),
-      )
-
-      generator.if(predicateExpr, () => {
-        generator.assign(resultVar, rawItemExpr)
-        generator.break()
-      })
-    })
-
-    return code`${resultVar}`
-  }
-
-  private compileSomeIterator(input: unknown, predicateTemplate: unknown): CodeFragment {
-    const inputExpr = this.compileOperandCode(input)
-    const generator = this.generator
-    const inputVar = generator.let('_input', inputExpr)
-    const inputWasKeyedVar = this.compileNormalizeIteratorInput(inputVar, generator)
-    const resultVar = generator.let('_result', literal(false))
-
-    this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
-      const itemVar = this.compileIteratorItemScope(rawItemExpr, inputWasKeyedVar, generator)
-      const frame: IteratorScopeFrame = {
-        itemVar,
-        indexVar,
-        inputLengthExpr: code`${inputVar}.length`,
-        inputWasKeyedVar,
-        rawItemExpr,
-      }
-      const predicateExpr = this.withIteratorFrame(frame, () =>
-        predicateTemplate !== undefined ? this.compileOperandCode(predicateTemplate) : literal(false),
-      )
-
-      generator.if(predicateExpr, () => {
-        generator.assign(resultVar, literal(true))
-        generator.break()
-      })
-    })
-
-    return code`${resultVar}`
-  }
-
-  private compileCountIterator(input: unknown, predicateTemplate: unknown): CodeFragment {
-    const inputExpr = this.compileOperandCode(input)
-    const generator = this.generator
-    const inputVar = generator.let('_input', inputExpr)
-    const inputWasKeyedVar = this.compileNormalizeIteratorInput(inputVar, generator)
-    const resultVar = generator.let('_result', literal(0))
-
-    this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
-      const itemVar = this.compileIteratorItemScope(rawItemExpr, inputWasKeyedVar, generator)
-      const frame: IteratorScopeFrame = {
-        itemVar,
-        indexVar,
-        inputLengthExpr: code`${inputVar}.length`,
-        inputWasKeyedVar,
-        rawItemExpr,
-      }
-      const predicateExpr = this.withIteratorFrame(frame, () =>
-        predicateTemplate !== undefined ? this.compileOperandCode(predicateTemplate) : literal(false),
-      )
-
-      generator.if(predicateExpr, () => {
-        generator.assign(resultVar, code`${resultVar} + 1`)
-      })
-    })
-
-    return code`${resultVar}`
-  }
-
-  private compileEveryIterator(input: unknown, predicateTemplate: unknown): CodeFragment {
-    const inputExpr = this.compileOperandCode(input)
-    const generator = this.generator
-    const inputVar = generator.let('_input', inputExpr)
-    const inputWasKeyedVar = this.compileNormalizeIteratorInput(inputVar, generator)
-    const resultVar = generator.let('_result', literal(true))
-
-    this.compileIteratorArrayLoop(inputVar, generator, (indexVar, rawItemExpr) => {
-      const itemVar = this.compileIteratorItemScope(rawItemExpr, inputWasKeyedVar, generator)
-      const frame: IteratorScopeFrame = {
-        itemVar,
-        indexVar,
-        inputLengthExpr: code`${inputVar}.length`,
-        inputWasKeyedVar,
-        rawItemExpr,
-      }
-      const predicateExpr = this.withIteratorFrame(frame, () =>
-        predicateTemplate !== undefined ? this.compileOperandCode(predicateTemplate) : literal(false),
-      )
-
-      generator.if(code`!(${predicateExpr})`, () => {
-        generator.assign(resultVar, literal(false))
-        generator.break()
-      })
-    })
-
-    return code`${resultVar}`
-  }
-
-  /**
-   * Normalizes object inputs to `Object.entries()` tuples and records whether
-   * the input was keyed before every iterator operates on the resulting array.
-   * Shared with `IteratorLoopEmitter` so both iterator code paths use the same
-   * entry model.
-   */
-  compileNormalizeIteratorInput(inputVar: IdentifierName, generator: CodeGenerator): IdentifierName {
-    const inputWasKeyedVar = generator.let('iteratorInputWasKeyed', literal(false))
-
-    generator.if(code`${inputVar} != null && !Array.isArray(${inputVar}) && typeof ${inputVar} === "object"`, () => {
-      generator.assign(inputVar, code`Object.entries(${inputVar})`)
-      generator.assign(inputWasKeyedVar, literal(true))
-    })
-
-    return inputWasKeyedVar
-  }
-
-  /**
-   * Produces the item value exposed to `Item()` / `Loop.Item()` references:
-   * the entry value for object inputs and the element itself for array inputs.
-   * Shared with `IteratorLoopEmitter` for the same reason as normalisation.
-   */
-  compileIteratorItemScopeExpression(
-    rawItemExpr: CodeFragment | IdentifierName,
-    inputWasKeyedVar: IdentifierName,
-  ): CodeFragment {
-    return code`${inputWasKeyedVar} ? (${rawItemExpr})[1] : ${rawItemExpr}`
-  }
-
-  private compileIteratorItemScope(
-    rawItemExpr: CodeFragment,
-    inputWasKeyedVar: IdentifierName,
-    generator: CodeGenerator,
-  ): IdentifierName {
-    return generator.const('_item', this.compileIteratorItemScopeExpression(rawItemExpr, inputWasKeyedVar))
-  }
-
-  private compileIteratorArrayLoop(
-    inputVar: IdentifierName,
-    generator: CodeGenerator,
-    compileItem: (indexVar: IdentifierName, rawItemExpr: CodeFragment) => void,
-  ): void {
-    generator.if(code`Array.isArray(${inputVar})`, () => {
-      generator.forRange('_index', literal(0), code`${inputVar}.length`, indexVar => {
-        const rawItemExpr = code`${inputVar}[${indexVar}]`
-
-        generator.statement(code`_forgeHelpers.consumeIteratorIteration(ctx)`)
-
-        compileItem(indexVar, rawItemExpr)
-      })
-    })
+  /** Compiles a match predicate against its already evaluated subject. */
+  compileMatchPredicateCode(value: AuthoredValue, subject: CodeFragment): CodeFragment {
+    return this.predicates.compileOperand(value, subject)
   }
 
   compileFunctionCallCode(
@@ -676,7 +233,8 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     if (!registeredFunction) {
       throw new ForgeUnregisteredFunctionError({
         functionName: funcName,
-        functionType: (source as { kind?: string } | undefined)?.kind ?? 'unknown',
+        functionType:
+          source !== null && typeof source === 'object' && 'kind' in source ? String(source.kind) : 'unknown',
       })
     }
 
@@ -693,6 +251,164 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     const helperCall = this.diagnostics.wrapFunctionCall('evaluateFunction', funcName, argExprs, source)
 
     return this.compileMaybeAsyncResult(helperCall)
+  }
+
+  /**
+   * Maps top-level reference namespaces (e.g. `data`, `session`, `params`) to
+   * their corresponding runtime context property.
+   */
+  namespaceToCtxCode(namespace: string): CodeFragment {
+    switch (namespace) {
+      case 'data':
+        return code`ctx.data`
+      case 'session':
+        return code`ctx.session`
+      case 'params':
+        return code`ctx.params`
+      case 'query':
+        return code`ctx.query`
+      case 'request':
+        return code`ctx.request`
+      case 'post':
+        return code`ctx.post`
+      default:
+        return code`ctx[${namespace}]`
+    }
+  }
+
+  private compileContainerValue(value: AuthoredValue, nameHint: string): CodeFragment {
+    if (value.kind === AuthoredValueKind.BLOCK) {
+      return this.compileBlockExpression(value, nameHint)
+    }
+
+    const result = this.compileValueCode(value)
+
+    if (value.kind === AuthoredValueKind.STATIC) {
+      return result
+    }
+
+    // Capture each value before compiling the next sibling, which may invoke user code.
+    const prefix = nameHint.replace(/[^A-Za-z0-9_$]/g, '') || 'property'
+
+    return code`${this.generator.const(`${/^[A-Za-z_$]/.test(prefix) ? prefix : 'property'}Value`, result)}`
+  }
+
+  private compileBlockExpression(value: BlockValue, nameHint: string): CodeFragment {
+    if (this.compileBlockValue === undefined) {
+      throw new ForgeInternalError('A nested block value is only compilable by the resolve concern')
+    }
+
+    return code`${this.compileBlockValue(value, this.generator, nameHint)}`
+  }
+
+  private compileExpressionValue(value: ExpressionValue): CodeFragment {
+    const compile = () => this.dispatchExpression(value)
+
+    if (
+      value.kind === AuthoredValueKind.FUNCTION ||
+      value.kind === AuthoredValueKind.VALIDATION ||
+      (value.kind === AuthoredValueKind.PREDICATE && this.validationFunctionPrefixes.length > 0)
+    ) {
+      return compile()
+    }
+
+    if (value.kind === AuthoredValueKind.REFERENCE) {
+      const reference = this.diagnostics.attachPositions(compile(), value.source)
+
+      // Later operands can invoke user code that changes the referenced object.
+      return code`${this.generator.const('referenceValue', reference)}`
+    }
+
+    return this.diagnostics.compileExpression(value.source, this.generator, compile)
+  }
+
+  private dispatchExpression(value: ExpressionValue): CodeFragment {
+    switch (value.kind) {
+      case AuthoredValueKind.REFERENCE:
+        return this.references.compile(value)
+      case AuthoredValueKind.PIPELINE:
+        return this.pipelines.compilePipeline(value)
+      case AuthoredValueKind.ITERATION:
+        return this.iterators.compile(value)
+      case AuthoredValueKind.VALIDATION:
+        return this.compileValidation(value)
+      case AuthoredValueKind.FUNCTION:
+        return this.pipelines.compileFunction(value)
+      case AuthoredValueKind.PREDICATE:
+        return this.predicates.compile(value)
+      case AuthoredValueKind.NULLISH:
+        return this.nullish.compile(value)
+      case AuthoredValueKind.CONDITIONAL:
+        return this.conditionals.compile(value)
+      case AuthoredValueKind.MATCH:
+        return this.matches.compile(value)
+      default: {
+        const unsupported: never = value
+
+        throw new ForgeInternalError(`Unsupported expression value: ${unsupported}`)
+      }
+    }
+  }
+
+  /**
+   * Builds the validation result object used by field-level and journey-level
+   * validation rules.
+   */
+  private compileValidation(properties: ValidationValue): CodeFragment {
+    const functionValue = properties.function
+    const condition = properties.condition
+
+    if (functionValue === undefined && condition === undefined) {
+      return literal(undefined)
+    }
+
+    const functionPrefix = this.validationFunctionPrefixes[this.validationFunctionPrefixes.length - 1] ?? 'validation'
+    const ruleProperties: ObjectCodeProperty[] = []
+
+    if (functionValue !== undefined) {
+      const validationFunction = this.compileReturnFunctionExpression(
+        () => this.compileValueCode(functionValue),
+        `evaluate_${functionPrefix}_function`,
+      )
+
+      ruleProperties.push({ key: 'function', value: validationFunction })
+    } else {
+      const messageValue = properties.message
+      const detailsValue = properties.details
+      const validationCondition = this.compileReturnFunctionExpression(
+        () => (condition === undefined ? literal(false) : this.compileValueCode(condition)),
+        `evaluate_${functionPrefix}_condition`,
+      )
+      const message =
+        messageValue.kind === AuthoredValueKind.STATIC
+          ? this.compileStaticOperand(messageValue, literal(''))
+          : this.compileReturnFunctionExpression(
+              () => this.compileValueCode(messageValue),
+              `evaluate_${functionPrefix}_message`,
+            )
+
+      ruleProperties.push({ key: 'condition', value: validationCondition }, { key: 'message', value: message })
+
+      if (detailsValue !== undefined) {
+        const details =
+          detailsValue.kind === AuthoredValueKind.STATIC
+            ? this.compileStaticOperand(detailsValue, literal(undefined))
+            : this.compileReturnFunctionExpression(
+                () => this.compileValueCode(detailsValue),
+                `evaluate_${functionPrefix}_details`,
+              )
+
+        ruleProperties.push({ key: 'details', value: details })
+      }
+    }
+
+    ruleProperties.push({ key: 'submissionOnly', value: literal(properties.submissionOnly === true) })
+
+    if (properties.groups !== undefined) {
+      ruleProperties.push({ key: 'groups', value: this.compileValueCode(properties.groups) })
+    }
+
+    return objectCode(ruleProperties)
   }
 
   private compileDebuggableValidationFunctionCall(
@@ -743,19 +459,16 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     )
   }
 
-  private isStaticOperand(value: unknown): boolean {
-    return isDeepStaticValue(value)
-  }
-
-  private compileStaticOperand(value: unknown, fallback: CodeFragment): CodeFragment {
-    return value !== undefined ? this.compileOperandCode(value) : fallback
+  private compileStaticOperand(value: AuthoredValue, fallback: CodeFragment): CodeFragment {
+    return value.kind === AuthoredValueKind.STATIC && value.value === undefined
+      ? fallback
+      : this.compileValueCode(value)
   }
 
   /**
    * Wraps a lazily-evaluated validation value (condition, message, details) in
    * a named function expression. The expression compiles inside the function
-   * body with call hoisting active, so unconditional function calls emit their
-   * argument consts as statements and return directly instead of nesting IIFEs.
+   * body’s own generator scope, preserving lazy evaluation and async tracking.
    */
   private compileReturnFunctionExpression(compileExpression: () => CodeFragment, name: string): CodeFragment {
     let bodyUsesAwait = false
@@ -774,34 +487,4 @@ export default class ExpressionDispatcher implements NodeCompilationContext {
     )
   }
 
-  /**
-   * Maps top-level reference namespaces (e.g. `data`, `session`, `params`) to
-   * their corresponding runtime context property.
-   */
-  namespaceToCtxCode(namespace: string): CodeFragment {
-    switch (namespace) {
-      case 'data':
-        return code`ctx.data`
-      case 'session':
-        return code`ctx.session`
-      case 'params':
-        return code`ctx.params`
-      case 'query':
-        return code`ctx.query`
-      case 'request':
-        return code`ctx.request`
-      case 'post':
-        return code`ctx.post`
-      default:
-        return code`ctx[${namespace}]`
-    }
-  }
-
-  /**
-   * Checks whether a value is a materialised or template AST node that can be
-   * compiled into a JavaScript expression.
-   */
-  isCompilableNode(value: unknown): value is ASTNode {
-    return isASTNode(value) && COMPILABLE_NODE_KINDS.has(value.kind)
-  }
 }

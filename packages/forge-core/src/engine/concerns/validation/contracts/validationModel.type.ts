@@ -1,11 +1,11 @@
-import type { StepEntryValidationAST } from '../../../chassis/contracts/ast/structures.type'
+import type { AuthoredValue } from '../../../chassis/contracts/models/authoredValue.type'
 import type { FieldModel, ValidationRulesModel } from '../../../chassis/contracts/models/fieldModel.type'
 
 /**
  * The validation concern's semantic model for one step. Built by
  * `ValidationAnalyzer`, consumed by `StepValidationCompiler` and
- * `EntryValidationCompiler`. AST nodes survive here only as expression leaves
- * and diagnostic tokens.
+ * `EntryValidationCompiler`. AST nodes survive here only as diagnostic
+ * and identity tokens.
  */
 export interface ValidationModel {
   /** Script-URL identity segment; `undefined` leaves the script unlabelled. */
@@ -21,5 +21,10 @@ export interface ValidationModel {
   /** The step's domain `validWhen` rules; absent when none are configured. */
   readonly domainRules?: ValidationRulesModel
   /** The step's `validateOnEntry` group-selector rules. */
-  readonly entryValidation: readonly StepEntryValidationAST[]
+  readonly entryValidation: readonly EntryValidationModel[]
+}
+
+export interface EntryValidationModel {
+  readonly when?: AuthoredValue
+  readonly groups: readonly string[]
 }

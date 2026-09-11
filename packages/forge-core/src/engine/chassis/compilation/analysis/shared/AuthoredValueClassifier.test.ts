@@ -1,5 +1,5 @@
 import { ComponentCallType, ExpressionType, IteratorType, PredicateType } from '../../../../../shared/taxonomy'
-import { AuthoredValueKind, toRawOperand } from '../../../contracts/models/authoredValue.type'
+import { AuthoredValueKind, MatchBranchKind } from '../../../contracts/models/authoredValue.type'
 import { ASTTestFactory } from '../../ast/testing-helpers/ASTTestFactory'
 import AuthoredValueClassifier from './AuthoredValueClassifier'
 
@@ -31,7 +31,11 @@ describe('AuthoredValueClassifier', () => {
       const classified = classifier.classify(reference)
 
       // Assert
-      expect(classified).toEqual({ kind: AuthoredValueKind.EXPRESSION, node: reference })
+      expect(classified).toMatchObject({
+        kind: AuthoredValueKind.REFERENCE,
+        source: reference,
+        path: reference.properties.path,
+      })
     })
 
     it('should classify conditional nodes with classified branches', () => {
@@ -51,7 +55,7 @@ describe('AuthoredValueClassifier', () => {
       expect(classified.kind).toBe(AuthoredValueKind.CONDITIONAL)
 
       if (classified.kind === AuthoredValueKind.CONDITIONAL) {
-        expect(classified.predicate.kind).toBe(AuthoredValueKind.EXPRESSION)
+        expect(classified.predicate.kind).toBe(AuthoredValueKind.PREDICATE)
         expect(classified.thenValue).toEqual({ kind: AuthoredValueKind.STATIC, value: 'yes' })
         expect(classified.elseValue.kind).toBe(AuthoredValueKind.RECORD)
       }
@@ -100,7 +104,11 @@ describe('AuthoredValueClassifier', () => {
 
       if (classified.kind === AuthoredValueKind.ITERATION) {
         expect(classified.iterator).toBe(IteratorType.MAP)
-        expect(classified.input).toEqual({ kind: AuthoredValueKind.EXPRESSION, node: input })
+        expect(classified.input).toMatchObject({
+          kind: AuthoredValueKind.REFERENCE,
+          source: input,
+          path: input.properties.path,
+        })
         expect(classified.yieldTemplate).toEqual({ kind: AuthoredValueKind.STATIC, value: 'item' })
         expect(classified.predicate).toBeUndefined()
       }
@@ -123,7 +131,11 @@ describe('AuthoredValueClassifier', () => {
 
         if (items.kind === AuthoredValueKind.LIST) {
           expect(items.items[0]).toEqual({ kind: AuthoredValueKind.STATIC, value: 'static' })
-          expect(items.items[1]).toEqual({ kind: AuthoredValueKind.EXPRESSION, node: reference })
+          expect(items.items[1]).toMatchObject({
+            kind: AuthoredValueKind.REFERENCE,
+            source: reference,
+            path: reference.properties.path,
+          })
         }
       }
     })
@@ -147,22 +159,35 @@ describe('AuthoredValueClassifier', () => {
       if (classified.kind === AuthoredValueKind.BLOCK) {
         expect(classified.variant).toBe('text-input')
         expect(classified.entries.map(entry => entry.key)).toEqual(['code', 'hint'])
-        expect(classified.entries[1].value.kind).toBe(AuthoredValueKind.EXPRESSION)
+        expect(classified.entries[1].value.kind).toBe(AuthoredValueKind.REFERENCE)
       }
     })
-  })
 
-  describe('toRawOperand()', () => {
-    it('should reconstruct the authored raw value from classified arms', () => {
+    it('should retain the subject and explicit undefined case when classifying mixed match branches', () => {
       // Arrange
-      const reference = ASTTestFactory.reference(['data', 'name'])
-      const value = { label: 'Static', dynamic: reference, list: [1, reference] }
+      const subject = ASTTestFactory.reference(['data', 'choice'])
+      const predicate = ASTTestFactory.predicate(PredicateType.TEST)
+      const node = ASTTestFactory.expression(ExpressionType.MATCH)
+        .withProperty('subject', subject)
+        .withProperty('branches', [
+          { expected: undefined, value: 'missing' },
+          { predicate, value: 'other' },
+        ])
+        .build()
 
       // Act
-      const raw = toRawOperand(new AuthoredValueClassifier().classify(value))
+      const value = classifier.classify(node)
 
       // Assert
-      expect(raw).toEqual(value)
+      expect(value).toMatchObject({
+        kind: AuthoredValueKind.MATCH,
+        subject: { kind: AuthoredValueKind.REFERENCE, source: subject },
+        branches: [
+          { kind: MatchBranchKind.CASE, expected: { kind: AuthoredValueKind.STATIC, value: undefined } },
+          { kind: MatchBranchKind.PREDICATE, predicate: { kind: AuthoredValueKind.PREDICATE, source: predicate } },
+        ],
+      })
     })
   })
+
 })

@@ -1,7 +1,12 @@
+import {
+  MatchBranchKind,
+  type MatchValue,
+  type MatchBranchValue,
+  type AuthoredValue,
+} from '../../../contracts/models/authoredValue.type'
 import { CodeFragment, code, literal } from '../codegen/fragments/CodeFragment'
 import IdentifierName from '../codegen/fragments/IdentifierName'
 import { NodeCompilationContext } from './types'
-import PredicateNodeCompiler from './PredicateNodeCompiler'
 
 /** Compiles ordered branches against one evaluated subject, keeping branch operands and values lazy. */
 export default class MatchNodeCompiler {
@@ -10,10 +15,10 @@ export default class MatchNodeCompiler {
   /**
    * Binds the subject before emitting a first-match-wins conditional chain.
    */
-  compile(properties: Record<string, unknown>): CodeFragment {
-    const branches = (properties.branches ?? []) as Array<Record<string, unknown>>
+  compile(properties: MatchValue): CodeFragment {
+    const branches = properties.branches
     const otherwise = properties.otherwise
-    const subject = this.ctx.generator.const('matchSubject', this.ctx.compileOperandCode(properties.subject))
+    const subject = this.ctx.generator.const('matchSubject', this.ctx.compileValueCode(properties.subject))
     const result = this.ctx.generator.let('matchResult')
 
     this.compileBranch(branches, otherwise, result, code`${subject}`)
@@ -22,8 +27,8 @@ export default class MatchNodeCompiler {
   }
 
   private compileBranch(
-    branches: readonly Record<string, unknown>[],
-    otherwise: unknown,
+    branches: readonly MatchBranchValue[],
+    otherwise: AuthoredValue | undefined,
     result: IdentifierName,
     subject: CodeFragment,
   ): void {
@@ -32,20 +37,20 @@ export default class MatchNodeCompiler {
     if (branch === undefined) {
       this.ctx.generator.assign(
         result,
-        otherwise === undefined ? literal(undefined) : this.ctx.compileOperandCode(otherwise),
+        otherwise === undefined ? literal(undefined) : this.ctx.compileValueCode(otherwise),
       )
 
       return
     }
 
     const predicate =
-      'expected' in branch
-        ? code`(${subject} === ${this.ctx.compileOperandCode(branch.expected)})`
-        : new PredicateNodeCompiler(this.ctx).compileOperand(branch.predicate, subject)
+      branch.kind === MatchBranchKind.CASE
+        ? code`(${subject} === ${this.ctx.compileValueCode(branch.expected)})`
+        : this.ctx.compileMatchPredicateCode(branch.predicate, subject)
 
     this.ctx.generator.if(
       predicate,
-      () => this.ctx.generator.assign(result, this.ctx.compileOperandCode(branch.value)),
+      () => this.ctx.generator.assign(result, this.ctx.compileValueCode(branch.value)),
       () => this.compileBranch(remainingBranches, otherwise, result, subject),
     )
   }

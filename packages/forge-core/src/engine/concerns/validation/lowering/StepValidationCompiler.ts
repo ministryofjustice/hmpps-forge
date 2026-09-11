@@ -1,5 +1,4 @@
 import { isTemplateASTNode } from '../../../chassis/contracts/ast/nodes'
-import { toRawOperand } from '../../../chassis/contracts/models/authoredValue.type'
 import {
   arrayCode,
   callCode,
@@ -20,7 +19,6 @@ import {
   compileGeneratedFunction,
   renderGeneratedSource,
 } from '../../../chassis/compilation/lowering/GeneratedFunctionCompiler'
-import RuntimeValueCompiler from '../../../chassis/compilation/lowering/structures/RuntimeValueCompiler'
 import ScopedTemplateCompiler from '../../../chassis/compilation/lowering/structures/ScopedTemplateCompiler'
 import {
   FieldCodeKind,
@@ -41,18 +39,11 @@ export default class StepValidationCompiler {
 
   private readonly fieldCodes: FieldCodeEmitter
 
-  private readonly values: RuntimeValueCompiler
-
   private readonly templates: ScopedTemplateCompiler
 
   constructor(dependencies: CompilationDependencies) {
     this.expr = new ExpressionDispatcher(dependencies)
     this.fieldCodes = new FieldCodeEmitter(this.expr)
-    this.values = new RuntimeValueCompiler(this.expr, {
-      expressionErrorFallback: literal(undefined),
-      expressionErrorMode: 'throw',
-      omitUndefinedArrayItems: false,
-    })
     this.templates = new ScopedTemplateCompiler(this.expr)
   }
 
@@ -126,12 +117,12 @@ export default class StepValidationCompiler {
     generator.scope(() => {
       const selfCodeExpression = this.fieldCodes.compileModelExpression(field.code, generator)
       const blockCode = selfCodeExpression ?? literal(undefined)
-      const dependentWhen = field.dependentWhen === undefined ? undefined : toRawOperand(field.dependentWhen)
+      const dependentWhen = field.dependentWhen === undefined ? undefined : field.dependentWhen
       const functionPrefix = this.compileValidationFunctionPrefix(field)
 
       this.expr.withSelfCodeExpression(selfCodeExpression, () => {
-        if (dependentWhen !== undefined && this.expr.isCompilableNode(dependentWhen)) {
-          generator.if(this.expr.compileExpressionCode(dependentWhen, generator), () => {
+        if (dependentWhen !== undefined) {
+          generator.if(this.expr.compileValueCode(dependentWhen, generator), () => {
             this.compileFieldValidationSlot(
               rules,
               field.source.id,
@@ -174,10 +165,10 @@ export default class StepValidationCompiler {
     const functionPrefix = this.compileValidationFunctionPrefix(field)
 
     this.expr.withSelfCodeExpression(codeExpression, () => {
-      const dependentWhen = field.dependentWhen === undefined ? undefined : toRawOperand(field.dependentWhen)
+      const dependentWhen = field.dependentWhen === undefined ? undefined : field.dependentWhen
 
       if (dependentWhen !== undefined) {
-        generator.if(this.expr.compileOperandCode(dependentWhen, generator), () => {
+        generator.if(this.expr.compileValueCode(dependentWhen, generator), () => {
           this.compileFieldValidationSlot(
             rules,
             blockId,
@@ -385,7 +376,7 @@ export default class StepValidationCompiler {
   ): IdentifierName {
     if (rules.kind === ValidationRulesKind.DIRECT) {
       const validationRules = this.expr.withValidationFunctionPrefix(functionPrefix, () =>
-        rules.rules.map(rule => this.expr.compileOperandCode(rule.node, generator)),
+        rules.rules.map(rule => this.expr.compileValueCode(rule, generator)),
       )
 
       generator.comment('Build validation rules')
@@ -396,7 +387,7 @@ export default class StepValidationCompiler {
     const validationResults = generator.let('validationResults')
 
     this.expr.withValidationFunctionPrefix(functionPrefix, () => {
-      this.values.compileValue(rules.value, generator, validationResults)
+      generator.assign(validationResults, this.expr.compileValueCode(rules.value, generator))
     })
 
     return validationResults

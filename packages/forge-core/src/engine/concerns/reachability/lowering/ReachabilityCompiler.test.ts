@@ -1,3 +1,4 @@
+import AuthoredValueClassifier from '../../../chassis/compilation/analysis/shared/AuthoredValueClassifier'
 import { ASTTestFactory } from '../../../chassis/compilation/ast/testing-helpers/ASTTestFactory'
 import { ExpressionType, FunctionCallType, PolicyType, PredicateType } from '../../../../shared/taxonomy'
 import {
@@ -70,14 +71,24 @@ function createRedirectOutcome(goto: string | FunctionASTNode, when?: TestPredic
   } as RedirectOutcomeASTNode
 }
 
-function createEntry(overrides: Partial<ReachabilityEntryModel> = {}): ReachabilityEntryModel {
+function createEntry(
+  overrides: Omit<Partial<ReachabilityEntryModel>, 'entryWhen' | 'reachabilityTieBreakers'> & {
+    entryWhen?: ASTNode
+    reachabilityTieBreakers?: { priority: number; when?: ASTNode }[]
+  } = {},
+): ReachabilityEntryModel {
   return {
     stepId: ASTTestFactory.getId() as NodeId,
     isEntryPoint: false,
     forwardOutcomeGroups: [],
     cleardownFieldCodes: [],
-    reachabilityTieBreakers: [],
     ...overrides,
+    entryWhen:
+      overrides.entryWhen === undefined ? undefined : new AuthoredValueClassifier().classify(overrides.entryWhen),
+    reachabilityTieBreakers: (overrides.reachabilityTieBreakers ?? []).map(entry => ({
+      priority: entry.priority,
+      when: entry.when === undefined ? undefined : new AuthoredValueClassifier().classify(entry.when),
+    })),
   }
 }
 
@@ -87,15 +98,23 @@ function createGroup(
   overApproximateOutcomes: RedirectOutcomeASTNode[] = [],
 ): ForwardOutcomeGroup {
   return {
-    hookWhen,
+    hookWhen: hookWhen === undefined ? undefined : new AuthoredValueClassifier().classify(hookWhen),
     redirectOutcomes: outcomes.map(node => ({
-      node,
+      source: node,
+      when:
+        node.properties.when === undefined ? undefined : new AuthoredValueClassifier().classify(node.properties.when),
+      goto:
+        typeof node.properties.goto === 'string'
+          ? node.properties.goto
+          : new AuthoredValueClassifier().classify(node.properties.goto),
       overApproximatesWhen: overApproximateOutcomes.includes(node),
     })),
   }
 }
 
-function createPlan(overrides: Partial<ReachabilityModel> = {}): ReachabilityModel {
+function createPlan(
+  overrides: Omit<Partial<ReachabilityModel>, 'resumeWhen'> & { resumeWhen?: ASTNode } = {},
+): ReachabilityModel {
   const entries = overrides.entries ?? []
   const stateTable = overrides.stateTable ?? createStateTable(entries)
 
@@ -104,6 +123,8 @@ function createPlan(overrides: Partial<ReachabilityModel> = {}): ReachabilityMod
     resumeAlways: false,
     stateTable,
     ...overrides,
+    resumeWhen:
+      overrides.resumeWhen === undefined ? undefined : new AuthoredValueClassifier().classify(overrides.resumeWhen),
   }
 }
 

@@ -27,15 +27,15 @@ The route-tree runtime phase calls it once per request and merges the result ont
 ## Rules
 
 - Unlike per-step phase compilers, this one is compiled once at **package scope** — the route tree spans every node — then fanned onto every compiled step and journey.
-- Title, description, and metadata are evaluated through `RuntimeValueCompiler`.
+- Title, description, and metadata are evaluated through `ExpressionDispatcher.compileValueCode()`.
   Static values emit as literals; dynamic values emit as expression-backed assignments.
-- Expression failures **throw** (`expressionErrorMode: 'throw'`), tagged with the `route-tree` phase, matching how resolve treats authored expressions.
+- Expression failures **throw**, tagged with the `route-tree` phase, matching how resolve treats authored expressions.
 - `description` and `metadata` are only emitted when authored, so absent fields stay absent on the resolved entry.
 
 ## Editing Notes
 
 - To change the resolved entry shape, start in `compileEntry()`.
-- To change static-versus-dynamic value handling, start in the `RuntimeValueCompiler` policy in the constructor.
+- To change static-versus-dynamic value handling, start in the shared value compiler.
 - To inspect generated source, use `generateSource()` in the tests.
 
 ## Entry Points

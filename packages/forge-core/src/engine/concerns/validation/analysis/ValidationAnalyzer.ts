@@ -22,7 +22,10 @@ export default class ValidationAnalyzer implements StepModelAnalyzer<ValidationM
       domainRules: hasDomainValidation
         ? classifyValidationRules(domainValidWhen, value => context.classifier.classify(value))
         : undefined,
-      entryValidation: stepNode.properties.validateOnEntry ?? [],
+      entryValidation: (stepNode.properties.validateOnEntry ?? []).map(entry => ({
+        groups: entry.groups,
+        when: entry.when === undefined ? undefined : context.classifier.classify(entry.when),
+      })),
     }
   }
 }

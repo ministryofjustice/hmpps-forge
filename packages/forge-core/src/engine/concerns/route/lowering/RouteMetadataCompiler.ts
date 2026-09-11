@@ -1,6 +1,5 @@
 import {
   code,
-  literal,
   objectCode,
   ObjectCodeProperty,
 } from '../../../chassis/compilation/lowering/codegen/fragments/CodeFragment'
@@ -12,7 +11,6 @@ import {
   compileGeneratedFunction,
   renderGeneratedSource,
 } from '../../../chassis/compilation/lowering/GeneratedFunctionCompiler'
-import RuntimeValueCompiler from '../../../chassis/compilation/lowering/structures/RuntimeValueCompiler'
 import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
 import type { CompiledRouteMetadataFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 import type { RouteMetadataModel } from '../contracts/routeMetadataModel.type'
@@ -33,15 +31,8 @@ import type { RouteMetadataModel } from '../contracts/routeMetadataModel.type'
 export default class RouteMetadataCompiler {
   private readonly expr: ExpressionDispatcher
 
-  private readonly values: RuntimeValueCompiler
-
   constructor(dependencies: CompilationDependencies) {
     this.expr = new ExpressionDispatcher(dependencies)
-    this.values = new RuntimeValueCompiler(this.expr, {
-      expressionErrorFallback: literal(undefined),
-      expressionErrorMode: 'throw',
-      omitUndefinedArrayItems: false,
-    })
   }
 
   /**
@@ -87,20 +78,20 @@ export default class RouteMetadataCompiler {
    */
   private compileEntry(input: RouteMetadataModel, routeMetadata: IdentifierName, generator: CodeGenerator): void {
     const properties: ObjectCodeProperty[] = [
-      { key: 'title', value: this.values.compileValueExpression(input.title, generator, 'title') },
+      { key: 'title', value: this.expr.compileValueCode(input.title, generator) },
     ]
 
     if (input.description !== undefined) {
       properties.push({
         key: 'description',
-        value: this.values.compileValueExpression(input.description, generator, 'description'),
+        value: this.expr.compileValueCode(input.description, generator),
       })
     }
 
     if (input.metadata !== undefined) {
       properties.push({
         key: 'metadata',
-        value: this.values.compileValueExpression(input.metadata, generator, 'metadata'),
+        value: this.expr.compileValueCode(input.metadata, generator),
       })
     }
 

@@ -1,3 +1,4 @@
+import type AuthoredValueClassifier from '../../../chassis/compilation/analysis/shared/AuthoredValueClassifier'
 import type { ASTNode } from '../../../chassis/contracts/ast/ast.type'
 import { StructureType } from '../../../../shared/taxonomy'
 import type { JourneyASTNode, StepASTNode } from '../../../chassis/contracts/ast/structures.type'
@@ -17,7 +18,7 @@ export default class ReachabilityAnalyzer implements JourneyModelAnalyzer<Reacha
 
   analyzeJourney(context: JourneyAnalysisContext): ReachabilityModel {
     const { journeyNode } = context
-    const entries = context.stepNodes.map(stepNode => this.buildReachabilityEntry(stepNode))
+    const entries = context.stepNodes.map(stepNode => this.buildReachabilityEntry(stepNode, context.classifier))
     const resumeWhen = journeyNode.properties.reachability?.resumeWhen
     const resumeAlways = resumeWhen === true
     const resumeWhenNode = resumeWhen !== undefined && resumeWhen !== true ? resumeWhen : undefined
@@ -36,11 +37,11 @@ export default class ReachabilityAnalyzer implements JourneyModelAnalyzer<Reacha
       stateTable,
       entries,
       resumeAlways,
-      resumeWhen: resumeWhenNode,
+      resumeWhen: resumeWhenNode === undefined ? undefined : context.classifier.classify(resumeWhenNode),
     }
   }
 
-  private buildReachabilityEntry(stepNode: StepASTNode): ReachabilityEntryModel {
+  private buildReachabilityEntry(stepNode: StepASTNode, classifier: AuthoredValueClassifier): ReachabilityEntryModel {
     const stepId = stepNode.id
     const { forwardOutcomeGroups } = this.forwardNavigationAnalyzer.analyze(stepNode)
 
@@ -51,12 +52,12 @@ export default class ReachabilityAnalyzer implements JourneyModelAnalyzer<Reacha
       stepId,
       code: stepNode.properties.code,
       isEntryPoint: entryWhen === true,
-      entryWhen: entryWhen !== undefined && entryWhen !== true ? entryWhen : undefined,
+      entryWhen: entryWhen !== undefined && entryWhen !== true ? classifier.classify(entryWhen) : undefined,
       forwardOutcomeGroups,
       cleardownFieldCodes: stepNode.properties.cleardownFieldCodes ?? [],
       reachabilityTieBreakers: (reachability?.tieBreakers ?? []).map(entry => ({
         priority: entry.properties.priority,
-        when: entry.properties.when,
+        when: entry.properties.when === undefined ? undefined : classifier.classify(entry.properties.when),
       })),
     }
   }
@@ -80,8 +81,8 @@ export default class ReachabilityAnalyzer implements JourneyModelAnalyzer<Reacha
     const dynamicNodes = [
       resumeWhen,
       ...entries.flatMap(entry => [
-        entry.entryWhen,
-        ...entry.forwardOutcomeGroups.flatMap(group => group.redirectOutcomes.map(outcome => outcome.node)),
+        entry.entryWhen !== undefined && 'source' in entry.entryWhen ? entry.entryWhen.source : undefined,
+        ...entry.forwardOutcomeGroups.flatMap(group => group.redirectOutcomes.map(outcome => outcome.source)),
       ]),
     ]
 
