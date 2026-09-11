@@ -1,14 +1,18 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type FrameLocator } from '@playwright/test'
 import ForgeFormHelper from '../pages/forgeFormHelper'
 
-const basePath = '/forge-developer-guide/patterns/demos/add-another'
+const basePath = '/forge-guide-v2/patterns/add-another'
 
 test.describe('Add another journey', () => {
   let form: ForgeFormHelper
+  let preview: FrameLocator
 
   test.beforeEach(async ({ page }) => {
-    form = new ForgeFormHelper(page)
-    await page.goto(`${basePath}/your-contacts`)
+    // Arrange
+    preview = page.frameLocator('iframe[title="Journey preview"]')
+    form = new ForgeFormHelper(page, preview)
+    await page.goto(basePath)
+    await form.clickButton('Start the pattern')
   })
 
   test.describe('happy path', () => {
@@ -102,7 +106,6 @@ test.describe('Add another journey', () => {
 
       // Assert
       await form.expectHeading('Are you sure you want to remove this contact?')
-      await form.expectUrl(`${basePath}/delete-contact/0`)
       await expect(form.getSummaryValue('Name')).toContainText('Jane Smith')
     })
 
@@ -192,7 +195,6 @@ test.describe('Add another journey', () => {
 
       // Assert
       await form.expectHeading('Change emergency contact')
-      await form.expectUrl(`${basePath}/edit-contact/0`)
     })
 
     test('should update the contact after editing', async () => {
@@ -219,7 +221,6 @@ test.describe('Add another journey', () => {
 
       // Assert
       await form.expectStepError('Add at least one emergency contact')
-      await form.expectUrl(`${basePath}/your-contacts`)
     })
 
     test('should show error when name is empty on add form', async () => {
@@ -278,7 +279,6 @@ test.describe('Add another journey', () => {
 
       // Assert
       await form.expectHeading('Adding, editing and deleting from collections')
-      await form.expectUrl(`${basePath}/overview`)
     })
   })
 })
