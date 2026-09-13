@@ -38,6 +38,8 @@ export interface BrowserRenderEvent {
 export interface BrowserErrorEvent {
   readonly error: ForgeError
   readonly container: ForgeContainer
+  /** Path, query and fragment of the last successful render; undefined before the first one. */
+  readonly lastRenderedUrl?: string
 }
 
 export interface BrowserForgeAppStartOptions {
@@ -105,6 +107,8 @@ export default class BrowserForgeApp {
   private readonly onRender: (event: BrowserRenderEvent) => Promise<void> | void
 
   private readonly onError: (event: BrowserErrorEvent) => Promise<void> | void
+
+  private lastRenderedUrl: string | undefined
 
   private nextDispatchId = 0
 
@@ -475,15 +479,27 @@ export default class BrowserForgeApp {
       throw new Error('Render outcome produced no output - renderer not bound')
     }
 
-    await this.commitView(() => this.onRender({ html: output, container: this.container }), {
-      navigationUrl,
-      request,
-      isCurrent,
-    })
+    await this.commitView(
+      async () => {
+        await this.onRender({ html: output, container: this.container })
+
+        if (isCurrent()) {
+          this.lastRenderedUrl = navigationUrl.toRelativeUrl()
+        }
+      },
+      {
+        navigationUrl,
+        request,
+        isCurrent,
+      },
+    )
   }
 
   private async commitError(error: ForgeError, context?: ViewCommitContext): Promise<void> {
-    await this.commitView(() => this.onError({ error, container: this.container }), context)
+    await this.commitView(
+      () => this.onError({ error, container: this.container, lastRenderedUrl: this.lastRenderedUrl }),
+      context,
+    )
   }
 
   private async commitView(commit: () => Promise<void> | void, context?: ViewCommitContext): Promise<void> {

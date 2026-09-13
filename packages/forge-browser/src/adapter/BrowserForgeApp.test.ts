@@ -36,7 +36,7 @@ describe('BrowserForgeApp', () => {
   let host: Mocked<BrowserHost>
   let container: BrowserForgeAppOptions['container']
   let renderingEngine: BrowserRenderingEngine
-  let onRender: (event: BrowserRenderEvent) => void
+  let onRender: (event: BrowserRenderEvent) => Promise<void> | void
   let onError: (event: BrowserErrorEvent) => void
 
   beforeEach(() => {
@@ -421,6 +421,7 @@ describe('BrowserForgeApp', () => {
       expect(onError).toHaveBeenCalledWith({
         error: expect.objectContaining({ message: expect.stringContaining('No mounted route matches') }),
         container,
+        lastRenderedUrl: undefined,
       })
     })
 
@@ -439,6 +440,7 @@ describe('BrowserForgeApp', () => {
       expect(onError).toHaveBeenCalledWith({
         error: expect.objectContaining({ message: 'render commit failed' }),
         container,
+        lastRenderedUrl: undefined,
       })
       expect(container.innerHTML).toBe('error:render commit failed')
     })
@@ -459,6 +461,92 @@ describe('BrowserForgeApp', () => {
 
       // Assert
       await expect(start).rejects.toThrow('error handler failed')
+    })
+  })
+
+  describe('onError()', () => {
+    it('should retain the last rendered URL when successive navigations fail', async () => {
+      // Arrange
+      const forge = createForge()
+      const app = new BrowserForgeApp(forge, { renderingEngine, container, host, onRender, onError })
+
+      await app.start({ fallbackPath: '/demo/start?case=123#details' })
+      vi.spyOn(forge, 'execute').mockRejectedValue(new Error('Access denied'))
+
+      // Act
+      await app.navigate('/demo/done')
+      await app.navigate('/demo/done?retry=true')
+
+      // Assert
+      expect(onError).toHaveBeenCalledTimes(2)
+      expect(onError).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          lastRenderedUrl: '/demo/start?case=123#details',
+        }),
+      )
+      expect(onError).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          lastRenderedUrl: '/demo/start?case=123#details',
+        }),
+      )
+    })
+
+    it('should expose the redirect destination when a later render fails', async () => {
+      // Arrange
+      const app = createApp()
+
+      await app.start({ fallbackPath: '/demo/start' })
+      await emit({ kind: 'submit', url: '/demo/start', body: {} })
+      await vi.waitFor(() => expect(container.innerHTML).toBe('page:Done'))
+      vi.mocked(onRender).mockImplementationOnce(() => {
+        throw new Error('Render failed')
+      })
+
+      // Act
+      await app.navigate('/demo/start')
+
+      // Assert
+      expect(onError).toHaveBeenCalledWith(expect.objectContaining({ lastRenderedUrl: '/demo/done' }))
+    })
+
+    it('should keep the previous URL when an asynchronous render rejects', async () => {
+      // Arrange
+      const app = createApp()
+
+      await app.start({ fallbackPath: '/demo/start' })
+      vi.mocked(onRender).mockRejectedValueOnce(new Error('Render failed'))
+
+      // Act
+      await app.navigate('/demo/done')
+
+      // Assert
+      expect(onError).toHaveBeenCalledWith(expect.objectContaining({ lastRenderedUrl: '/demo/start' }))
+    })
+
+    it('should not record an obsolete render when a newer navigation fails', async () => {
+      // Arrange
+      const forge = createForge()
+      const app = new BrowserForgeApp(forge, { renderingEngine, container, host, onRender, onError })
+      const renderGate = Promise.withResolvers<void>()
+
+      await app.start({ fallbackPath: '/demo/start' })
+      vi.mocked(onRender).mockImplementationOnce(async () => renderGate.promise)
+
+      // Act
+      const olderNavigation = app.navigate('/demo/done')
+
+      await vi.waitFor(() => expect(onRender).toHaveBeenCalledTimes(2))
+      vi.spyOn(forge, 'execute').mockRejectedValueOnce(new Error('Access denied'))
+
+      const newerNavigation = app.navigate('/demo/start?denied=true')
+
+      renderGate.resolve()
+      await Promise.all([olderNavigation, newerNavigation])
+
+      // Assert
+      expect(onError).toHaveBeenCalledWith(expect.objectContaining({ lastRenderedUrl: '/demo/start' }))
     })
   })
 
