@@ -28,19 +28,13 @@ case overview.
 
 Here's the page we're building toward:
 
-```text
-Change case address
-
-Postcode
-[ SW1H 9AJ             ]
-
-[ Find address ]
-
-Select an address
-[ 1 Example Street    ▾ ]
-
-[ Continue ]
-```
+:::preview
+---
+slot: address-lookup-initial
+title: Before lookup
+caption: The postcode lookup and address selection share one page.
+---
+:::
 
 Let's start with a postcode field, a few placeholder addresses, and the two buttons.
 Add this step to the case journey at `/cases/:caseId`, alongside its existing overview:
@@ -99,7 +93,7 @@ We'll use `Post('action')` to choose the submit hook that handles it.
 The lookup needs a postcode, but it doesn't need a selected address yet. Let's give
 postcode validation its own group while keeping it in the normal page checks too.
 
-Add these imports, then replace the postcode field:
+Replace the postcode field:
 
 ```typescript [[2, 11, "formatters: [Transformer.String.Trim()]"], [3, 15, "groups: ['default', 'lookup']"]]
 import {
@@ -223,6 +217,14 @@ so the postcode remains available without saving it between requests.
 Try “Find address” with an empty postcode. The page shows “Enter a postcode” without
 calling the service. Now use a postcode your service returns addresses for and try again.
 The URL stays the same, and the select contains the returned choices.
+
+:::preview
+---
+slot: address-lookup-results
+title: Address results
+caption: After finding addresses, the user can choose one before continuing.
+---
+:::
 
 A lookup with no matches shows “No addresses found. Try another postcode.” The user can
 change the postcode and run the lookup again.

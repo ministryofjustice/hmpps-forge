@@ -87,7 +87,7 @@ in sequence, where each step's output becomes the next step's input.
 string from a template and expression arguments.
 
 **Scoped references** read values that only exist inside a particular context. `Self()`
-reads the current field's answer inside validation, `Item()` reads the current item inside
+reads the current field's answer inside validation, `Loop.Item()` reads the current item inside
 an iterator, and `Loop` reads the current loop state.
 
 ### The property gives an expression its meaning
@@ -120,7 +120,7 @@ is a first-class result.
 
 ### Scoped references are validated at startup
 
-Forge rejects a `Self()` reference used outside a field block, or an `Item()` reference
+Forge rejects a `Self()` reference used outside a field block, or a `Loop.Item()` reference
 used outside an iterator, before any request runs. A scoped reference outside its context
 is a definition error, not a runtime surprise.
 

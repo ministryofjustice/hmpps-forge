@@ -202,7 +202,7 @@ The most common use - check that a field has a value:
 ```typescript
 GovUKTextInput({
   code: 'email',
-  label: { text: 'Email address' },
+  label: 'Email address',
   validWhen: [
     validation({
       condition: Self().match(Condition.IsRequired()),
@@ -297,7 +297,7 @@ GovUKTextInput({
 Each submit hook validates its own group:
 
 ```typescript
-onSubmit: [
+onSubmission: [
   submit({
     when: Post('action').match(Condition.Equals('find')),
     validate: { groups: ['find-postcode'] },

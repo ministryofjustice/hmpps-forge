@@ -140,7 +140,7 @@ with `Object.freeze` and indexes them by ID and type.
 Semantic analysis then runs a fixed set of rules over the tree. These rules check placement
 and registry constraints that Zod schemas cannot express:
 
-- `Item()` references must appear inside an `Iterator`.
+- `Loop.Item()` references must appear inside an `Iterator`.
 - `Answer()` references must not appear inside access hooks, because answers are not
   prepared at that point.
 - Effect functions must appear only inside hooks.

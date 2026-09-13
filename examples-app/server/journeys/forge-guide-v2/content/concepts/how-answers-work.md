@@ -27,6 +27,7 @@ related:
   concept:
     [
       clearing-answers-that-no-longer-apply,
+      how-answer-mutations-work,
       how-blocks-resolution-and-rendering-connect,
       how-expressions-work,
     ]
@@ -185,17 +186,20 @@ When Forge changes an answer, it records a mutation. Each mutation is tagged wit
 that identifies which phase wrote it: `access`, `default`, `post`, `processed`,
 `dependentWhen`, `cleardown`, or `submit`.
 
-"The answer" is the value of the latest mutation, but Forge preserves the full history and
-reads it at runtime.
+"The answer" is the value of the latest mutation, but the history also preserves earlier
+writes within the current request.
 
-For example, after a failed `POST` validation, Forge re-renders the page. Rendering finds
-the last `post` mutation and shows the raw value the user submitted, not a formatted or
-parsed version. This is why a trimmed email address still shows as the user typed it until
-they submit again.
+For example, when a `POST` renders the page, field resolution can use the last `post`
+mutation instead of the formatted value. This preserves the submitted text when only
+formatter mutations follow it. Later clearing or submit-hook writes take precedence, so
+the field reflects those changes instead.
 
 The history also helps during debugging. Two requests can end with the same current value
 for different reasons: one because the user submitted the value, another because Forge
 seeded a default. The mutation source tells you which happened.
+
+[How answer mutations work](./how-answer-mutations-work) explains how these recorded writes
+relate to the current value, field display, and changes persisted by the application.
 
 :::deep-dive
 ---

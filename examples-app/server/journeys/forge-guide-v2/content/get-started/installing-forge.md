@@ -5,14 +5,14 @@ section: get-started
 path: get-started/installing-forge
 nav: Installation
 order: 10
-description: Install the Forge package, create an instance, and register components and journeys
-teaches: [installation, Forge, registerGlobalComponents, registerPackage]
+description: Install the Forge package, create an instance, and register journey packages
+teaches: [installation, Forge, component-self-registration, registerPackage]
 prerequisites: []
 ---
 
 # Installing Forge
 
-This page walks through installing the Forge package, creating an instance, and registering the component libraries and journey packages your application needs. By the end you'll have a Forge instance ready to be connected to a web framework.
+This page walks through installing the Forge package, creating an instance, and registering the journey packages your application needs. By the end you'll have a Forge instance ready to be connected to a web framework.
 
 ## What you need
 
@@ -36,7 +36,7 @@ Forge ships its own TypeScript types, so there's no separate `@types` package to
 
 ## Create a Forge instance
 
-The entry point is a Forge instance. This is where you register component libraries and journey packages. Forge itself is framework-agnostic; connecting it to a web framework happens separately through an adapter.
+The entry point is a Forge instance. This is where you register journey packages. Forge itself is framework-agnostic; connecting it to a web framework happens separately through an adapter.
 
 ```typescript
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
@@ -44,32 +44,35 @@ import { Forge } from '@ministryofjustice/hmpps-forge/core'
 const forge = new Forge({ logger })
 ```
 
-## Register component libraries
+## Use components in your journey
 
-Forge needs to know about the component libraries your journeys will use. Register them after creating the instance:
+Import the component builders your journey needs and call them in its step definitions:
 
 ```typescript
-import { govukComponents } from '@ministryofjustice/hmpps-forge/govuk-components'
-import { mojComponents } from '@ministryofjustice/hmpps-forge/moj-components'
+import { GovUKTextInput } from '@ministryofjustice/hmpps-forge/govuk-components'
 
-forge.registerGlobalComponents(govukComponents)
-forge.registerGlobalComponents(mojComponents)
+const fullName = GovUKTextInput({
+  code: 'fullName',
+  label: 'Full name',
+})
 ```
 
-This makes components like `GovUKTextInput`, `GovUKRadioInput`, and `GovUKButton` available in your journey definitions. You can register as many libraries as you need, including your own.
+Add the resulting block to a step's `blocks` array. Components self-register when
+called in a journey, and package creation collects their entries automatically.
+The same applies to MOJ components and your own component builders; there is no
+separate component-library registration call.
 
 ## Register journey packages
 
-A package bundles a journey with the function registries and components it needs. You create one with `createForgePackage`:
+A package bundles a journey with the functions and components it uses. Create one
+with `createForgePackage`, which collects the entries called in the journey:
 
 ```typescript
 import { createForgePackage } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { myJourney } from './journey'
-import { myEffectRegistry } from './effects'
 
-export default createForgePackage({
+const myPackage = createForgePackage({
   journey: myJourney,
-  functions: [myEffectRegistry],
 })
 ```
 
@@ -92,4 +95,4 @@ Forge injects these dependencies into your functions at runtime. That keeps your
 
 ## What's next
 
-You now have a Forge instance with component libraries and journey packages registered. Continue to [Install frontend libraries](install-frontend-libraries) to add the template packages Forge renders with, or skip ahead to [Using Forge with Express and Nunjucks](using-forge-with-express-and-nunjucks) to wire Forge into your web application.
+You now have a Forge instance with its journey packages registered. Continue to [Install frontend libraries](install-frontend-libraries) to add the template packages Forge renders with, or skip ahead to [Using Forge with Express and Nunjucks](using-forge-with-express-and-nunjucks) to wire Forge into your web application.

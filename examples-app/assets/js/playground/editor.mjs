@@ -19,6 +19,8 @@ class PlaygroundEditor {
   frame = undefined
   frameReady = false
   busy = false
+  expanded = false
+  inertElements = []
 
   constructor(root, instanceId, config) {
     this.sources = config.files
@@ -30,6 +32,7 @@ class PlaygroundEditor {
     this.status = root.querySelector('[data-status]')
     this.runButton = root.querySelector('[data-run]')
     this.restartButton = root.querySelector('[data-restart]')
+    this.expandButton = root.querySelector('[data-expand]')
   }
 
   async start() {
@@ -66,6 +69,15 @@ class PlaygroundEditor {
       baseUrl: 'file:///',
       types: [],
       paths: {
+        '@ministryofjustice/hmpps-forge/core/authoring': [
+          'node_modules/@ministryofjustice/hmpps-forge/core/authoring/index.d.ts',
+        ],
+        '@ministryofjustice/hmpps-forge/core/components': [
+          'node_modules/@ministryofjustice/hmpps-forge/core/components/index.d.ts',
+        ],
+        '@ministryofjustice/hmpps-forge/govuk-components': [
+          'node_modules/@ministryofjustice/hmpps-forge/govuk-components/index.d.ts',
+        ],
         '@ministryofjustice/hmpps-forge/*': [
           'node_modules/@ministryofjustice/hmpps-forge/*/index.d.ts',
         ],
@@ -208,6 +220,86 @@ class PlaygroundEditor {
       tabSize: 2,
       ariaLabel: 'Example TypeScript editor',
     })
+    monaco.languages.registerCompletionItemProvider('typescript', {
+      provideCompletionItems: (model, position, _context, token) =>
+        this.provideImportCompletions(model, position, token),
+      resolveCompletionItem: item => this.resolveImportCompletion(item),
+    })
+  }
+
+  async provideImportCompletions(model, position, token) {
+    const uri = model.uri.toString()
+    const word = model.getWordUntilPosition(position)
+
+    if (!uri.startsWith(this.modelRoot) || !word.word) {
+      return { suggestions: [] }
+    }
+
+    const version = model.getVersionId()
+    const offset = model.getOffsetAt(position)
+    const getWorker = await typescript.getTypeScriptWorker()
+    const worker = await getWorker(...Array.from(this.models.values(), file => file.uri))
+    const entries = await worker.getImportCompletions(uri, offset)
+
+    if (token.isCancellationRequested || model.isDisposed() || model.getVersionId() !== version) {
+      return { suggestions: [] }
+    }
+
+    return {
+      suggestions: entries.map(entry => ({
+        label: {
+          label: entry.name,
+          description: entry.data?.fileName?.startsWith(this.modelRoot)
+            ? entry.data.fileName.slice(this.modelRoot.length)
+            : entry.source,
+        },
+        kind: monaco.languages.CompletionItemKind.Reference,
+        insertText: entry.insertText ?? entry.name,
+        sortText: entry.sortText,
+        range: entry.replacementSpan
+          ? this.completionRange(model, entry.replacementSpan)
+          : new monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn),
+        uri,
+        offset,
+        entry,
+      })),
+    }
+  }
+
+  async resolveImportCompletion(item) {
+    const model = monaco.editor.getModel(monaco.Uri.parse(item.uri))
+
+    if (!model) {
+      return item
+    }
+
+    const getWorker = await typescript.getTypeScriptWorker()
+    const worker = await getWorker(model.uri)
+    const details = await worker.getImportCompletionDetails(item.uri, item.offset, item.entry)
+
+    // Accepting a suggestion closes the widget, but Monaco still needs its pending import edits.
+    if (!details || model.isDisposed()) {
+      return item
+    }
+
+    return {
+      ...item,
+      detail: details.displayParts?.map(part => part.text).join(''),
+      documentation: { value: details.documentation?.map(part => part.text).join('') ?? '' },
+      additionalTextEdits: (details.codeActions ?? []).flatMap(action => action.changes
+        .filter(change => change.fileName === item.uri)
+        .flatMap(change => change.textChanges.map(edit => ({
+          range: this.completionRange(model, edit.span),
+          text: edit.newText,
+        })))),
+    }
+  }
+
+  completionRange(model, span) {
+    const start = model.getPositionAt(span.start)
+    const end = model.getPositionAt(span.start + span.length)
+
+    return new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column)
   }
 
   bindControls() {
@@ -225,6 +317,14 @@ class PlaygroundEditor {
     this.runButton.addEventListener('click', () => this.run())
     this.restartButton.addEventListener('click', () => this.restart())
     this.root.querySelector('[data-reset]').addEventListener('click', () => this.reset())
+    this.expandButton.disabled = false
+    this.expandButton.addEventListener('click', () => this.setExpanded(!this.expanded))
+    this.root.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !event.defaultPrevented && !dialog.open && this.expanded) {
+        event.preventDefault()
+        this.setExpanded(false)
+      }
+    })
     this.editor.addAction({
       id: 'run-example',
       label: 'Run example',
@@ -240,6 +340,48 @@ class PlaygroundEditor {
     tabs.addEventListener('scroll', () => this.updateTabScroll())
     new ResizeObserver(() => this.updateTabScroll()).observe(tabs)
     this.updateTabScroll()
+  }
+
+  setExpanded(expanded) {
+    if (expanded) {
+      this.scrollPosition = { left: window.scrollX, top: window.scrollY }
+    }
+
+    this.expanded = expanded
+    this.setGuideInert(expanded)
+    this.root.classList.toggle('playground--expanded', expanded)
+    document.documentElement.classList.toggle('playground-expanded', expanded)
+    const label = expanded ? 'Back to guide' : 'Expand playground'
+    this.expandButton.setAttribute('aria-label', label)
+    this.expandButton.setAttribute('aria-pressed', String(expanded))
+    this.expandButton.title = label
+    this.editor.layout()
+    this.expandButton.focus({ preventScroll: true })
+
+    if (!expanded) {
+      window.scrollTo({ ...this.scrollPosition, behavior: 'instant' })
+    }
+  }
+
+  setGuideInert(inert) {
+    if (!inert) {
+      this.inertElements.forEach(element => { element.inert = false })
+      this.inertElements = []
+
+      return
+    }
+
+    // Keep the iframe in place: moving it into an overlay would reload the journey.
+    let element = this.root
+    while (element.parentElement && element !== document.body) {
+      Array.from(element.parentElement.children).forEach(sibling => {
+        if (sibling instanceof HTMLElement && sibling !== element && !sibling.inert) {
+          sibling.inert = true
+          this.inertElements.push(sibling)
+        }
+      })
+      element = element.parentElement
+    }
   }
 
   updateTabScroll() {
@@ -394,6 +536,8 @@ class PlaygroundEditor {
       this.updateEditStatus()
     } else if (message?.type === 'error' && typeof message.text === 'string') {
       this.status.textContent = `Preview error: ${message.text}`
+    } else if (message?.type === 'collapse' && this.expanded) {
+      this.setExpanded(false)
     }
   }
 }

@@ -67,10 +67,7 @@ function playgroundPlugin() {
         entryPoints: {
           editor: path.join(sourceDir, 'editor.mjs'),
           preview: path.join(sourceDir, 'preview.mjs'),
-          'ts.worker': path.join(
-            cwd,
-            'node_modules/monaco-editor/esm/vs/language/typescript/ts.worker.js',
-          ),
+          'ts.worker': path.join(sourceDir, 'typescript.worker.mjs'),
           'editor.worker': path.join(
             cwd,
             'node_modules/monaco-editor/esm/vs/editor/editor.worker.js',

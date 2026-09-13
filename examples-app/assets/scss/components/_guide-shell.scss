@@ -1,4 +1,6 @@
 $guide-shell-header-height: 60px;
+$guide-shell-sidebar-width: 234px;
+$guide-shell-content-width: 730px;
 
 .guide-shell {
   display: grid;
@@ -7,11 +9,11 @@ $guide-shell-header-height: 60px;
   padding: 0 govuk-spacing(6);
 
   @include govuk-media-query($from: tablet) {
-    grid-template-columns: 234px minmax(0, 1fr);
+    grid-template-columns: $guide-shell-sidebar-width minmax(0, 1fr);
   }
 
   @include govuk-media-query($from: desktop) {
-    grid-template-columns: 234px minmax(0, 1fr) 234px;
+    grid-template-columns: $guide-shell-sidebar-width minmax(0, 1fr) $guide-shell-sidebar-width;
   }
 
   &__nav {
@@ -45,7 +47,7 @@ $guide-shell-header-height: 60px;
 
   &__main {
     width: 100%;
-    max-width: 730px;
+    max-width: $guide-shell-content-width;
     margin: 0 auto;
     padding: govuk-spacing(6) 0 govuk-spacing(9);
   }
@@ -53,11 +55,18 @@ $guide-shell-header-height: 60px;
 
 .guide-shell__main--patterns {
   max-width: none;
+
+  @include govuk-media-query($from: desktop) {
+    width: auto;
+    margin-right: 0;
+    // Match the centred article's left edge while using the space of the absent right sidebar.
+    margin-left: max(0px, calc((100% - #{$guide-shell-sidebar-width} - #{govuk-spacing(6)} - #{$guide-shell-content-width}) / 2));
+  }
 }
 
 .guide-shell--patterns {
   @include govuk-media-query($from: desktop) {
-    grid-template-columns: 234px minmax(0, 1fr);
+    grid-template-columns: $guide-shell-sidebar-width minmax(0, 1fr);
   }
 
   .guide-shell__aside {

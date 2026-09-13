@@ -78,7 +78,7 @@ Your first instinct might be `visibleWhen`, and it does hide the input. But hidi
 ```typescript [[1, 4, "visibleWhen"], [2, 5, "dependentWhen"]]
 const emailAddressField = GovUKTextInput({
   code: 'emailAddress',
-  label: { text: 'Email address' },
+  label: 'Email address',
   visibleWhen: Answer('contactMethod').match(Condition.Equals('email')),
   dependentWhen: Answer('contactMethod').match(Condition.Equals('email')),
   validWhen: [

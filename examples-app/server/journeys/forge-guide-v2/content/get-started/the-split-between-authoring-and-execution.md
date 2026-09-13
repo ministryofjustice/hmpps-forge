@@ -125,15 +125,16 @@ These run at evaluation time, not definition time. Forge resolves references and
 
 Here's what that boundary looks like:
 
-```typescript [[1, 2, "Answer('score')"], [1, 5, "value"]]
-// Definition side - a reference and an expression
-Answer('score').match(MyConditions.IsEligible(18))
+```typescript [[1, 9, "Answer('score')"], [1, 4, "value: number"]]
+import { Answer, condition } from '@ministryofjustice/hmpps-forge/core/authoring'
 
-// Function side - receives concrete values
-conditions.register('IsEligible', () => (value, minAge) => {
-  // value is a real number, already resolved from the answer
-  return value >= minAge
+const IsEligible = condition('IsEligible', {
+  factory: () => (value: number, minScore: number) => {
+    return value >= minScore
+  },
 })
+
+Answer('score').match(IsEligible(18))
 ```
 
 The <s1>reference in the definition</s1> tells Forge which answer to resolve. The <s1>function argument</s1> is where that resolved value arrives - a plain number the function can work with directly.
@@ -146,11 +147,16 @@ There's a specific error that comes from crossing this boundary, and it's worth 
 
 Here's what it looks like inside a generator:
 
-```typescript [[2, 3, "Answer('firstName')"]]
+```typescript [[2, 6, "Answer('firstName')"]]
+import { Answer, generator } from '@ministryofjustice/hmpps-forge/core/authoring'
+
 // Wrong - Answer() inside a generator
-generators.register('BuildGreeting', () => () => {
-  const name = Answer('firstName')   // a data object, not a string
-  return `Hello, ${name}`            // "Hello, [object Object]"
+const BuildGreeting = generator('BuildGreeting', {
+  factory: () => () => {
+    const name = Answer('firstName')   // a data object, not a string
+
+    return `Hello, ${name}`            // "Hello, [object Object]"
+  },
 })
 ```
 
@@ -160,9 +166,12 @@ So `name` is an object, not a string. Template literals call `.toString()` on it
 
 The fix is to pass the reference through the definition as an argument:
 
-```typescript [[3, 2, "Answer('firstName')"]]
-// The reference is in the definition, where Forge can compile it
-MyGenerators.BuildGreeting(Answer('firstName'))
+```typescript [[3, 5, "Answer('firstName')"]]
+const BuildGreeting = generator('BuildGreeting', {
+  factory: () => (name: string) => `Hello, ${name}`,
+})
+
+BuildGreeting(Answer('firstName'))
 ```
 
 This way Forge can see it and resolve it before your function runs. The <s3>reference is in the definition</s3>, and the generator receives the resolved value as an argument.

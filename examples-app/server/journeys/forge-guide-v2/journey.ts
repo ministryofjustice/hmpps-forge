@@ -6,11 +6,12 @@ import {
   access,
   redirect,
   Condition,
+  Data,
   Request,
 } from '@ministryofjustice/hmpps-forge/core/authoring'
 import { MarkdownSectionFactory } from './MarkdownSectionFactory'
 import { loadContentV2 } from './effects'
-import { contentBlock } from './contentBlock'
+import { ForgeDeveloperGuideMarkdownBlock } from '../forge-developer-guide/components/forgeDeveloperGuideMarkdown'
 
 // The content markdown is copied into dist/journeys/forge-guide-v2/content at
 // build time (see rolldown/configs.js copyPlugin, which mirrors server/**/*.md
@@ -79,7 +80,11 @@ const homeStep = step({
   reachability: { entryWhen: true },
   metadata: { hiddenFromNav: true },
   onAccess: [loadContentV2('home')],
-  blocks: [contentBlock],
+  blocks: [
+    ForgeDeveloperGuideMarkdownBlock({
+      content: Data('content'),
+    }),
+  ],
 })
 
 export const forgeGuideV2Journey = journey({

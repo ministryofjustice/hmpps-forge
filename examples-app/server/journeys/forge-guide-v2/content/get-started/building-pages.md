@@ -10,7 +10,7 @@ teaches: [journey-as-context, independent-steps, access-hooks, data-references, 
 prerequisites: [what-is-forge]
 related:
   concept: [how-journeys-and-steps-become-routes, how-forge-runs-a-request, how-expressions-work]
-  reference: [journey, step, block-and-field-props]
+  reference: [journey, step, block, field]
 ---
 
 # Building pages
@@ -99,8 +99,8 @@ const membersStep = step({
     GovUKSummaryList({
       rows: Data('team.members').each(
         Iterator.Map({
-          key: { text: Item().path('name') },
-          value: { text: Item().path('role') },
+          key: { text: Loop.Item().path('name') },
+          value: { text: Loop.Item().path('role') },
         }),
       ),
     }),
@@ -108,7 +108,7 @@ const membersStep = step({
 })
 ```
 
-`Data('team.members').each(Iterator.Map(...))` iterates over the loaded members and produces a summary row for each one. `Item()` refers to the current member in the iteration.
+`Data('team.members').each(Iterator.Map(...))` iterates over the loaded members and produces a summary row for each one. `Loop.Item()` refers to the current member in the iteration.
 
 ## Some things depend on who's visiting
 

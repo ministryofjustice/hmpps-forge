@@ -63,7 +63,7 @@ Semantic analysis checks that every part of the definition sits in a valid scope
 
 These rules catch problems that schema validation cannot express:
 
-- `Item()` references must appear inside an `Iterator` at the correct depth.
+- `Loop.Item()` references must appear inside an `Iterator` at the correct depth.
 - `Answer()` references must not appear inside access hooks, because the answer state does
   not exist during the access phase.
 - `Self()` references must appear inside a field block.

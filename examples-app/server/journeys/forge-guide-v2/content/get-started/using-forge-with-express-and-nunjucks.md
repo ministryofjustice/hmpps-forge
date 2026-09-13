@@ -7,7 +7,7 @@ nav: Installation
 order: 11
 description: Create the Express router, a page template, and wire Forge into your application
 teaches: [createExpressRouter, page-template]
-prerequisites: [Forge, registerGlobalComponents]
+prerequisites: [Forge, registerPackage]
 ---
 
 # Using Forge with Express and Nunjucks

@@ -166,6 +166,8 @@ That order matters when extending a field. Check the shape arriving at your tran
 then return the shape the next transformer or component needs. A formatter and parser
 aren't automatically paired: adding a formatter doesn't create an inverse parser.
 
+[Learn how to create a transformer for your own conversion rules.](./creating-your-own-custom-transformer)
+
 ## Check the prepared date
 
 The browser submits strings for the three <s3>date parts</s3>:
@@ -349,9 +351,11 @@ parts instead. Running the parser there would mean handing an object to a transf
 that expects a stored string. It would also lose the distinction between what somebody
 typed and the prepared answer we checked.
 
-## Check that an invalid edit stays on the page
+[Read more about how Forge keeps answers and display values separate.](../concepts/how-answers-work#formatters-and-parsers-point-in-opposite-directions)
 
-Let's return to the saved date and change it to `31 2 2026`.
+## Follow an invalid edit through the request
+
+Suppose somebody returns to the saved date and changes it to `31 2 2026`.
 
 The formatter produces `"2026-02-31"`, but the validation rule rejects it. The save
 and redirect sit inside `onValid`, so neither runs. Forge renders the page with the
@@ -361,14 +365,14 @@ That distinction matters: the answer used for validation and the value shown bac
 the inputs can differ on the same request. The user keeps the attempted edit, and the
 service keeps its last valid date.
 
-Check these cases before finishing:
+The value shown on the page depends on how the request started:
 
-| Try | Check |
+| Request | Result |
 |---|---|
-| Save `25 9 2026` | The service stores `"2026-09-25"` and the browser returns to the overview. |
-| Open the date page again | The inputs show `25`, `09`, and `2026`. |
-| Submit `31 2 2026` | The page shows an error and keeps `31`, `2`, and `2026`. The service receives no update. |
-| Leave the month empty | The page shows an error and keeps the day and year. The month stays empty. |
+| A valid submission of `25 9 2026` | The service stores `"2026-09-25"` and the browser returns to the overview. |
+| A later visit to the date page | The inputs show `25`, `09`, and `2026`. |
+| An invalid submission of `31 2 2026` | The page shows an error and keeps `31`, `2`, and `2026`. The service receives no update. |
+| A submission with an empty month | The page shows an error and keeps the day and year. The month stays empty. |
 
 When a part is missing, the date formatter cannot produce a full ISO date. Forge keeps
 the submitted object for validation, and our date rule rejects it. The failed submission
@@ -380,9 +384,7 @@ keeps the current value and lets the pipeline continue. Other errors still fail 
 That's why conversion needs a validation rule alongside it: retaining an unconvertible
 value gives us something to reject and show back to the user.
 
-[Testing a journey](./testing-a-journey) shows how to check submitted answers and
-resolved field values without driving the browser. These four cases make useful tests
-for the complete journey.
+[Learn how to test prepared answers and field values in a journey.](./testing-a-journey)
 
 ## Recap
 

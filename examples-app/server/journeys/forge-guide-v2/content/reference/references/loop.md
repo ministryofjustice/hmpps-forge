@@ -44,12 +44,10 @@ a specific method like `Loop.Item()`, `Loop.Index()`, or `Loop.First()`.
 
 ## Reference
 
-### Methods
+### References
 
-Each method returns a `ChainableRef` - the same immutable expression builder that
-[`Answer()`](./answer) returns. All the same chainable methods are available: `.path()`,
-`.pipe()`, `.match()`, `.not`, and `.each()`. See the
-[Answer() methods documentation](./answer#methods) for details.
+These methods select the current item or position within an iteration. Chain the
+methods below to navigate, transform, or test the selected value.
 
 #### `Loop.Item()`
 
@@ -68,11 +66,11 @@ Loop.Item(): ChainableScopedRef
   (a string or number) rather than an object with properties.
 - `.key()` - returns the entry key when iterating an object rather than an array.
 
-Each method returns a `ChainableRef`, so you can chain `.pipe()`, `.match()`, `.not`,
-and `.each()` from there.
+Each method returns a `ChainableRef`, so you can chain `.pipe()`, `.nullish()`, `.match()`,
+`.not`, and `.each()` from there.
 
 A bare `Loop.Item()` used as a value resolves to the whole item, just like `.value()`.
-`Item()` remains an alias. Array items can be `null` or `undefined`; they still count
+Array items can be `null` or `undefined`; they still count
 in `Loop.Length()` and retain their original positions.
 
 In a nested iteration, `Loop.Parent.Item()` reaches the enclosing iterator's item.
@@ -141,6 +139,180 @@ Each `.Parent` step moves one level outward:
 ```typescript
 Loop.Parent.Index()
 ```
+
+### Methods
+
+Keep loop references inside the iterator that supplies their item or position.
+The same chaining methods apply to references selected through `Loop.Parent`.
+
+#### `.path(key)`
+
+Navigates deeper into the referenced value.
+
+```typescript
+path(key: string): ChainableRef
+```
+
+:::param
+---
+name: key
+type: "string"
+required: true
+---
+The property to read from the resolved value. Dot notation navigates through
+nested properties. A missing intermediate value resolves to `undefined` rather
+than throwing an error.
+:::
+
+```typescript
+Loop.Item().path('name')
+```
+
+Use `.path()` after another operation when you need to read a property from its
+result.
+
+#### `.pipe(...steps)`
+
+Passes the referenced value through one or more [transformers](./transformer) in sequence.
+
+```typescript
+pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
+```
+
+:::param
+---
+name: steps
+type: "TransformerFunctionExpr[]"
+required: false
+---
+The transformers to apply, passed as separate arguments in execution order. Each
+transformer receives the previous step's output. With no arguments, the expression
+keeps its value.
+:::
+
+Pass multiple transformers to apply them in sequence:
+
+```typescript
+Loop.Item().path('name').pipe(
+  Transformer.String.Trim(),
+  Transformer.String.ToLowerCase(),
+)
+```
+
+When the value is absent, the pipeline is skipped and the expression stays absent.
+The pipeline produces a value for this expression without changing the source value.
+
+The returned expression continues the chain with `.path()`, `.pipe()`, `.nullish()`,
+`.match()`, or `.each()`. Use `.not.match()` to negate a condition on its result.
+
+#### `.nullish(fallback)`
+
+Uses a fallback when the referenced value resolves to `null` or `undefined`.
+
+```typescript
+nullish(fallback: ResolvableValue | undefined): ChainableExpr
+```
+
+:::param
+---
+name: fallback
+type: "ResolvableValue | undefined"
+required: true
+---
+The value to use when the input resolves to `null` or `undefined`. Accepts a literal,
+another reference, a generator call, or another value expression. Passing `undefined`
+leaves a missing result absent.
+:::
+
+The fallback can be a fixed value or another expression:
+
+```typescript
+Loop.Item().path('name').nullish('Not provided')
+```
+
+Forge evaluates the input once and evaluates the fallback only when the input is
+`null` or `undefined`.
+
+Empty strings, `false`, `0`, empty arrays, and empty objects keep their original value.
+The returned expression continues the chain with `.path()`, `.pipe()`, `.match()`,
+`.each()`, or another `.nullish()`. It does not change the source value.
+
+`.nullish()` does not catch errors. If the input throws, that error propagates without
+running the fallback. References in the fallback still follow their normal scope rules;
+for example, `Loop.Item()` needs an enclosing iterator.
+
+#### `.match(condition)`
+
+Tests the referenced value against a [condition](./condition). Returns an expression
+that resolves to a boolean and can be used wherever a resolvable value is accepted.
+
+```typescript
+match(condition: ConditionFunctionExpr): PredicateTestExpr
+```
+
+:::param
+---
+name: condition
+type: "ConditionFunctionExpr"
+required: true
+---
+The condition to test against the resolved value. Pass a built-in condition such as
+`Condition.IsRequired()`, or a custom condition entry. The resolved value becomes
+the condition's `value` argument.
+:::
+
+For example, test whether the value is present:
+
+```typescript
+Loop.Item().path('name').match(Condition.IsRequired())
+```
+
+Use the result in `when`, `validWhen`, `visibleWhen`, or anywhere else that a
+boolean/predicate is accepted.
+
+#### `.not`
+
+Negates the next `.match()`. This is a property, not a method - no parentheses needed.
+
+```typescript
+readonly not: ChainableNegation
+```
+
+`.not` takes no parameters.
+
+```typescript
+Loop.Item().path('name').not.match(Condition.Equals(''))
+```
+
+After `.not`, only `.match()` and another `.not` are available. You cannot `.pipe()` or
+`.path()` after negation. `.not.not` cancels itself out.
+
+#### `.each(iterator)`
+
+Iterates over the referenced value when it contains an array or collection.
+
+```typescript
+each(iterator: MapIteratorConfig | FilterIteratorConfig): ChainableIterable
+each(iterator: FindIteratorConfig): ChainableExpr
+each(iterator: SomeIteratorConfig | EveryIteratorConfig): CollectionPredicateExpr
+each(iterator: CountIteratorConfig): ChainableExpr
+```
+
+:::param
+---
+name: iterator
+type: "IteratorConfig"
+required: true
+---
+The per-item operation to perform. Create it with `Iterator.Map()`,
+`Iterator.Filter()`, `Iterator.Find()`, `Iterator.Some()`, `Iterator.Every()`, or
+`Iterator.Count()`. Item references and predicates resolve within that iteration.
+:::
+
+The iterator determines the result: an iterable (`Map` and `Filter`), a single value
+(`Find`), a predicate (`Some` and `Every`), or a chainable number (`Count`).
+
+See [`Iterator`](./iterator) for configuration and usage.
 
 ---
 
@@ -235,6 +407,24 @@ Data('groups').each(
 
 The inner `Loop.Item()` refers to the current member. `Loop.Parent.Item()` refers to
 the current group.
+
+### Use a fallback for an absent value
+
+Use `.nullish()` to supply a fallback when the reference resolves to `null` or
+`undefined`:
+
+```typescript
+Data('contacts').each(Iterator.Map(
+  Loop.Item().path('name').nullish('Unnamed contact')
+))
+```
+
+This supplies a name separately for each contact whose name is absent. The
+`Loop.Item()` reference stays inside the iterator that gives it its value.
+
+Empty strings, `false`, and `0` keep their original value. Forge evaluates the fallback
+only when the input is absent. You can also pass another reference or expression as
+the fallback.
 
 ---
 

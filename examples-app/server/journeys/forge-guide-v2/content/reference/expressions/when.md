@@ -87,8 +87,9 @@ chain acts as a boolean of that predicate.
 ### Choose between two values
 
 ```typescript
-GovUKFieldset({
-  legend: when(Answer('country').match(Condition.Equals('UK')))
+GovUKTextInput({
+  code: 'postalCode',
+  label: when(Answer('country').match(Condition.Equals('UK')))
     .then('What is your postcode?')
     .else('What is your ZIP code?'),
 })

@@ -3,7 +3,6 @@ import type { BlockDefinition, RenderedBlock } from '@ministryofjustice/hmpps-fo
 import type MarkdownIt from 'markdown-it'
 import createMarkdownIt from 'markdown-it'
 import markdownItAttrs from 'markdown-it-attrs'
-import { PlaygroundExtension } from './markdown-extensions/PlaygroundExtension'
 import { CodeBlockExtension } from './markdown-extensions/CodeBlockExtension'
 import { CodeStepExtension } from './markdown-extensions/CodeStepExtension'
 import { DeepDiveExtension } from './markdown-extensions/DeepDiveExtension'
@@ -14,6 +13,8 @@ import type { ContentChunk, ExtensionChunk } from './markdown-extensions/Markdow
 import { MermaidExtension } from './markdown-extensions/MermaidExtension'
 import { NoteExtension } from './markdown-extensions/NoteExtension'
 import { ParamExtension } from './markdown-extensions/ParamExtension'
+import { PlaygroundExtension } from './markdown-extensions/PlaygroundExtension'
+import { PreviewExtension } from './markdown-extensions/PreviewExtension'
 
 export class GuideMarkdownRenderer {
   private readonly markdownIt: MarkdownIt
@@ -53,6 +54,16 @@ export class GuideMarkdownRenderer {
     return chunks.map(chunk => this.renderChunk(chunk)).join('')
   }
 
+  getPreviewSlotNames(markdown: string): string[] {
+    return [
+      ...new Set(
+        this.parseChunks(markdown).flatMap(chunk =>
+          chunk.kind === 'extension' && chunk.containerName === 'preview' ? [chunk.attrs.slot] : [],
+        ),
+      ),
+    ]
+  }
+
   private renderChunk(chunk: ContentChunk): string {
     if (chunk.kind === 'markdown') {
       return this.markdownIt.render(chunk.content)
@@ -72,9 +83,26 @@ export class GuideMarkdownRenderer {
     const chunks: ContentChunk[] = []
     const markdownLines: string[] = []
     let index = 0
+    let codeFence: string | undefined
 
     while (index < lines.length) {
-      const extensionBlock = this.parseExtensionBlock(lines, index)
+      const fence = lines[index].match(/^ {0,3}(`{3,}|~{3,})/)
+      const insideCodeFence = Boolean(codeFence || fence)
+
+      if (insideCodeFence) {
+        if (!codeFence) {
+          codeFence = fence?.[1]
+        } else if (
+          fence &&
+          fence[1][0] === codeFence[0] &&
+          fence[1].length >= codeFence.length &&
+          lines[index].trim() === fence[1]
+        ) {
+          codeFence = undefined
+        }
+      }
+
+      const extensionBlock = insideCodeFence ? undefined : this.parseExtensionBlock(lines, index)
 
       if (extensionBlock) {
         this.appendMarkdownChunk(chunks, markdownLines)
@@ -188,10 +216,15 @@ const guideMarkdownRenderer = new GuideMarkdownRenderer([
   new NoteExtension(),
   new ParamExtension(),
   new PlaygroundExtension(),
+  new PreviewExtension(),
 ])
 
 export function renderForgeDeveloperGuideMarkdown(markdown: string): string {
   return guideMarkdownRenderer.render(markdown)
+}
+
+export function readForgeDeveloperGuidePreviewSlots(markdown: string): string[] {
+  return guideMarkdownRenderer.getPreviewSlotNames(markdown)
 }
 
 export interface ForgeDeveloperGuideMarkdownBlock {

@@ -19,6 +19,68 @@ describe('MarkdownSectionFactory', () => {
   })
 
   describe('build()', () => {
+    it.each([
+      {
+        description: 'one preview is referenced',
+        body: ':::preview\n---\nslot: address-lookup-results\n---\n:::',
+        names: ['address-lookup-results'],
+      },
+      { description: 'no previews are referenced', body: 'Plain markdown', names: [] },
+      {
+        description: 'a preview appears only in a code fence',
+        body: '```markdown\n:::preview\n---\nslot: unknown\n---\n:::\n```',
+        names: [],
+      },
+    ])('should include only requested slots when $description', async ({ body, names }) => {
+      // Arrange
+      if (!tempDir) {
+        throw new Error('Temporary directory was not created')
+      }
+
+      await writeFile(
+        join(tempDir, 'page.md'),
+        `---\ntitle: Example\nslug: arbitrary-page\n---\n${body}`,
+      )
+      const factory = new MarkdownSectionFactory(tempDir, {
+        code: 'concepts',
+        title: 'Concepts',
+        path: '/concepts',
+      })
+
+      // Act
+      const definition = factory.build()
+
+      // Assert
+      expect(definition.steps?.[0]?.blocks).toEqual([
+        expect.objectContaining({
+          slots: Object.fromEntries(names.map(name => [name, expect.any(Array)])),
+        }),
+      ])
+    })
+
+    it('should name the file and preview when a referenced preview is unknown', async () => {
+      // Arrange
+      if (!tempDir) {
+        throw new Error('Temporary directory was not created')
+      }
+
+      await writeFile(
+        join(tempDir, 'page.md'),
+        '---\ntitle: Example\nslug: arbitrary-page\n---\n:::preview\n---\nslot: missing-example\n---\n:::',
+      )
+      const factory = new MarkdownSectionFactory(tempDir, {
+        code: 'concepts',
+        title: 'Concepts',
+        path: '/concepts',
+      })
+
+      // Act
+      const build = () => factory.build()
+
+      // Assert
+      expect(build).toThrow('Unknown preview "missing-example" in "page.md"')
+    })
+
     it('should parse a multi-line array under a submap key when the bracket opens on its own line', async () => {
       // Arrange
       if (!tempDir) {

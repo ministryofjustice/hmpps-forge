@@ -10,7 +10,7 @@ teaches: [component-props, component, plain-props, component-logic, resolved-pro
 prerequisites: [creating-your-own-custom-component]
 related:
   concept: how-blocks-resolution-and-rendering-connect
-  how-to: [creating-your-own-custom-component, testing-a-component]
+  how-to: [creating-your-own-custom-component, creating-your-own-field-component]
 ---
 
 # Adding properties, logic and nested blocks to your component
@@ -214,7 +214,7 @@ the details. We could add a `changeHref` property - but the next page wants two 
 another wants a warning about visiting hours. Down that road, the card slowly grows a
 property for every block that might ever sit inside it.
 
-There's a more honest way to say what we mean: let authors put blocks in the card. Import `BlockDefinition` from `@ministryofjustice/hmpps-forge/core/components` and add an
+There's a more honest way to say what we mean: let authors put blocks in the card. Add an
 `actions` area to the props, typed as the blocks it holds:
 
 ```typescript [[5, 5, "actions?: BlockDefinition[]"]]
@@ -336,6 +336,6 @@ Let's recap the key points.
 - The template injects each child's `html` marked `| safe`, because it's markup another
   component already produced.
 
-The next job is testing the rendering behaviour you've just built. [Testing a
-component](./testing-a-component) shows how to render a component directly with evaluated
-properties and, when it needs one, a real Nunjucks environment.
+The card shows things. The next guide builds a component that asks for something instead.
+[Creating your own field component](./creating-your-own-field-component) turns custom markup
+into a field that collects an answer, keeps its value, and shows its own validation errors.

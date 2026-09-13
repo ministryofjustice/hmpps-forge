@@ -108,8 +108,8 @@ fields create answer keys that depend on item data:
 
 ```ts
 GovUKTextInput({
-  code: Format("task.%1.status", Item().path("id")),
-  label: Format("Status for %1", Item().path("name")),
+  code: Format("task.%1.status", Loop.Item().path("id")),
+  label: Format("Status for %1", Loop.Item().path("name")),
 });
 ```
 

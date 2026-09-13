@@ -179,7 +179,7 @@ function liveReloadPlugin({ port }) {
     name: 'live-reload-client',
     intro() {
       return `
-const liveReloadKey = Symbol.for('hmpps-forge.live-reload')
+const liveReloadKey = globalThis.Symbol.for('hmpps-forge.live-reload')
 
 if (!globalThis[liveReloadKey]) {
   const liveReloadUrl = new URL('http://localhost:${port}/events')

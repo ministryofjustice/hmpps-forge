@@ -6,10 +6,10 @@ path: reference/answer
 nav: Authoring API/References
 order: 51
 description: Creates a reference to an answer collected by a field
-teaches: [answer, references, expressions, pipe, match, path, absent-values]
+teaches: [answer, references, expressions, pipe, match, path, nullish, absent-values]
 prerequisites: [field, step]
 related:
-  reference: data, self, condition, transformer
+  reference: data, self, condition, transformer, iterator
   how-to: creating-your-own-custom-condition, creating-your-own-custom-transformer
 ---
 
@@ -89,25 +89,50 @@ interference.
 
 #### `.path(key)`
 
-Navigates deeper into the answer's value.
+Navigates deeper into the referenced value.
 
 ```typescript
 path(key: string): ChainableRef
 ```
 
-`Answer('address').path('postcode')` is equivalent to `Answer('address.postcode')`.
-Use `.path()` when you need to navigate after another operation, or when building a
-reference from parts.
+:::param
+---
+name: key
+type: "string"
+required: true
+---
+The property to read from the resolved value. Dot notation navigates through
+nested properties. A missing intermediate value resolves to `undefined` rather
+than throwing an error.
+:::
+
+```typescript
+Answer('address').path('postcode')
+```
+
+Use `.path()` after another operation when you need to read a property from its
+result.
 
 #### `.pipe(...steps)`
 
-Passes the answer through one or more [transformers](./transformer) in sequence.
+Passes the referenced value through one or more [transformers](./transformer) in sequence.
 
 ```typescript
 pipe(...steps: TransformerFunctionExpr[]): ChainableExpr
 ```
 
-Each transformer receives the previous step's output:
+:::param
+---
+name: steps
+type: "TransformerFunctionExpr[]"
+required: false
+---
+The transformers to apply, passed as separate arguments in execution order. Each
+transformer receives the previous step's output. With no arguments, the expression
+keeps its value.
+:::
+
+Pass multiple transformers to apply them in sequence:
 
 ```typescript
 Answer('email').pipe(
@@ -116,35 +141,89 @@ Answer('email').pipe(
 )
 ```
 
-When the answer is absent, the pipeline is skipped and the expression stays absent.
+When the value is absent, the pipeline is skipped and the expression stays absent.
+The pipeline produces a value for this expression without changing the source value.
 
-The returned expression continues the chain - you can call `.match()`, `.path()`,
-`.pipe()`, or `.not` on the result.
+The returned expression continues the chain with `.path()`, `.pipe()`, `.nullish()`,
+`.match()`, or `.each()`. Use `.not.match()` to negate a condition on its result.
+
+#### `.nullish(fallback)`
+
+Uses a fallback when the referenced value resolves to `null` or `undefined`.
+
+```typescript
+nullish(fallback: ResolvableValue | undefined): ChainableExpr
+```
+
+:::param
+---
+name: fallback
+type: "ResolvableValue | undefined"
+required: true
+---
+The value to use when the input resolves to `null` or `undefined`. Accepts a literal,
+another reference, a generator call, or another value expression. Passing `undefined`
+leaves a missing result absent.
+:::
+
+The fallback can be a fixed value or another expression:
+
+```typescript
+Answer('email').nullish('Not provided')
+```
+
+Forge evaluates the input once and evaluates the fallback only when the input is
+`null` or `undefined`.
+
+Empty strings, `false`, `0`, empty arrays, and empty objects keep their original value.
+The returned expression continues the chain with `.path()`, `.pipe()`, `.match()`,
+`.each()`, or another `.nullish()`. It does not change the source value.
+
+`.nullish()` does not catch errors. If the input throws, that error propagates without
+running the fallback. References in the fallback still follow their normal scope rules;
+for example, `Loop.Item()` needs an enclosing iterator.
 
 #### `.match(condition)`
 
-Tests the answer against a [condition](./condition). Returns a predicate rather than another chainable
-reference.
+Tests the referenced value against a [condition](./condition). Returns an expression
+that resolves to a boolean and can be used wherever a resolvable value is accepted.
 
 ```typescript
 match(condition: ConditionFunctionExpr): PredicateTestExpr
 ```
 
-The answer's resolved value is passed into the condition as its `value` argument:
+:::param
+---
+name: condition
+type: "ConditionFunctionExpr"
+required: true
+---
+The condition to test against the resolved value. Pass a built-in condition such as
+`Condition.IsRequired()`, or a custom condition entry. The resolved value becomes
+the condition's `value` argument.
+:::
+
+For example, test whether the value is present:
 
 ```typescript
-Answer('membershipNumber').match(IsValidMembershipNumber('standard'))
+Answer('email').match(Condition.IsRequired())
 ```
 
-Use the result in `when`, `validWhen`, `visibleWhen`, or anywhere else a predicate is
-accepted.
+Use the result in `when`, `validWhen`, `visibleWhen`, or anywhere else that a
+boolean/predicate is accepted.
 
 #### `.not`
 
 Negates the next `.match()`. This is a property, not a method - no parentheses needed.
 
 ```typescript
-Answer('status').not.match(Condition.Equals('closed'))
+readonly not: ChainableNegation
+```
+
+`.not` takes no parameters.
+
+```typescript
+Answer('email').not.match(Condition.Equals(''))
 ```
 
 After `.not`, only `.match()` and another `.not` are available. You cannot `.pipe()` or
@@ -152,10 +231,30 @@ After `.not`, only `.match()` and another `.not` are available. You cannot `.pip
 
 #### `.each(iterator)`
 
-Iterates over the answer when it contains an array or collection. Takes an iterator
-configuration and returns a single item (for find) or an iterable (for map and filter).
+Iterates over the referenced value when it contains an array or collection.
 
-See [`iterator`](./iterator) for configuration and usage.
+```typescript
+each(iterator: MapIteratorConfig | FilterIteratorConfig): ChainableIterable
+each(iterator: FindIteratorConfig): ChainableExpr
+each(iterator: SomeIteratorConfig | EveryIteratorConfig): CollectionPredicateExpr
+each(iterator: CountIteratorConfig): ChainableExpr
+```
+
+:::param
+---
+name: iterator
+type: "IteratorConfig"
+required: true
+---
+The per-item operation to perform. Create it with `Iterator.Map()`,
+`Iterator.Filter()`, `Iterator.Find()`, `Iterator.Some()`, `Iterator.Every()`, or
+`Iterator.Count()`. Item references and predicates resolve within that iteration.
+:::
+
+The iterator determines the result: an iterable (`Map` and `Filter`), a single value
+(`Find`), a predicate (`Some` and `Every`), or a chainable number (`Count`).
+
+See [`Iterator`](./iterator) for configuration and usage.
 
 ---
 
@@ -242,39 +341,48 @@ Pass a field block directly instead of repeating its code as a string:
 ```typescript
 const emailField = GovUKTextInput({
   code: 'email',
-  label: { text: 'Email address' },
+  label: 'Email address',
 })
 
 // In another step:
-GovUKSummaryListRow({
-  key: 'Email',
-  value: Answer(emailField),
+GovUKSummaryList({
+  rows: [
+    {
+      key: { text: 'Email' },
+      value: { text: Answer(emailField) },
+    },
+  ],
 })
 ```
 
 If the field's code changes later, the reference updates with it.
 
-### Use a fallback for an absent answer
+### Use a fallback for an absent value
 
 An absent answer resolves to `undefined`. Conditions return `false` and transformers
 return `undefined` for either `null` or `undefined`, without calling their schemas or
 evaluators.
 
-When you need a fallback, use a [conditional expression](./conditional):
+Use `.nullish()` to supply a fallback for those absent values:
 
 ```typescript
-Conditional({
-  when: Answer('nickname').match(Condition.IsRequired()),
-  then: Answer('nickname'),
-  else: Answer('firstName'),
-})
+Answer('nickname').nullish(Answer('firstName'))
 ```
 
-This resolves to the nickname when one exists, and falls back to the first name.
+This resolves to the nickname when it is present, and falls back to the first name
+otherwise. An empty string remains an empty string. Use a [conditional
+expression](./conditional) with `Condition.IsRequired()` when empty text should also
+select the fallback.
 
 ---
 
 ## Troubleshooting
+
+### JavaScript's ?? does not select the fallback
+
+`Answer('nickname') ?? 'Not provided'` tests the builder object at definition time.
+That object exists even when the answer will be absent during a request. Use
+`Answer('nickname').nullish('Not provided')` so Forge tests the resolved answer.
 
 ### The answer is always undefined
 

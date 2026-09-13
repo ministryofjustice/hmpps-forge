@@ -1,13 +1,19 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import {
+  Data,
   journey,
   step,
   type JourneyDefinition,
   type StepDefinition,
 } from '@ministryofjustice/hmpps-forge/core/authoring'
+import type { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
 import { loadContentV2 } from './effects'
-import { contentBlock } from './contentBlock'
+import {
+  ForgeDeveloperGuideMarkdownBlock,
+  readForgeDeveloperGuidePreviewSlots,
+} from '../forge-developer-guide/components/forgeDeveloperGuideMarkdown'
+import { previews } from './previews'
 
 export interface SectionConfig {
   code: string
@@ -16,6 +22,7 @@ export interface SectionConfig {
 }
 
 interface PageFrontmatter {
+  slots: Record<string, BlockDefinition[]>
   title: string
   slug: string
   order: number
@@ -60,7 +67,8 @@ export class MarkdownSectionFactory {
   }
 
   private parsePage(filePath: string, fileName: string): PageFrontmatter {
-    const attrs = this.parseFrontmatter(readFileSync(filePath, 'utf-8'), fileName)
+    const markdown = readFileSync(filePath, 'utf-8')
+    const attrs = this.parseFrontmatter(markdown, fileName)
 
     const { title } = attrs
     const { slug } = attrs
@@ -86,11 +94,31 @@ export class MarkdownSectionFactory {
     return {
       title,
       slug,
+      slots: this.resolvePreviewSlots(markdown, fileName),
       order: Number.isFinite(order) ? order : Number.MAX_SAFE_INTEGER,
       nav: typeof attrs.nav === 'string' ? attrs.nav : undefined,
       related: related && Object.keys(related).length > 0 ? related : undefined,
       next: next && Object.keys(next).length > 0 ? next : undefined,
     }
+  }
+
+  private resolvePreviewSlots(
+    markdown: string,
+    fileName: string,
+  ): Record<string, BlockDefinition[]> {
+    const previewNames = readForgeDeveloperGuidePreviewSlots(markdown)
+
+    return Object.fromEntries(
+      previewNames.map(name => {
+        const blocks = Object.hasOwn(previews, name) ? previews[name] : undefined
+
+        if (!blocks) {
+          throw new Error(`Unknown preview "${name}" in "${fileName}"`)
+        }
+
+        return [name, blocks]
+      }),
+    )
   }
 
   private toStep(page: PageFrontmatter): StepDefinition {
@@ -105,7 +133,12 @@ export class MarkdownSectionFactory {
         ...(page.next ? { next: page.next } : {}),
       },
       onAccess: [loadContentV2(page.slug, page.related, page.next)],
-      blocks: [contentBlock],
+      blocks: [
+        ForgeDeveloperGuideMarkdownBlock({
+          content: Data('content'),
+          slots: page.slots,
+        }),
+      ],
     })
   }
 

@@ -100,8 +100,9 @@ options object.
 ### Choose between two values
 
 ```typescript
-GovUKFieldset({
-  legend: Conditional({
+GovUKTextInput({
+  code: 'postalCode',
+  label: Conditional({
     when: Answer('country').match(Condition.Equals('UK')),
     then: 'What is your postcode?',
     else: 'What is your ZIP code?',

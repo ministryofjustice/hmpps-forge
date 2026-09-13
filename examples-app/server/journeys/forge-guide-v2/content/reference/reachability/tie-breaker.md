@@ -102,15 +102,20 @@ The most common pattern is an unconditional tie-breaker that gives a step a cons
 priority:
 
 ```typescript
-const confirmation = Step('confirmation', {
+const confirmation = step({
+  path: '/confirmation',
+  title: 'Confirmation',
   reachability: {
     entryWhen: Session('formSubmitted').match(Condition.Equals(true)),
     tieBreakers: [tieBreaker({ priority: 200 })],
   },
 })
 
-const overview = Step('overview', {
+const overview = step({
+  path: '/overview',
+  title: 'Overview',
   reachability: {
+    entryWhen: true,
     tieBreakers: [tieBreaker({ priority: 100 })],
   },
 })
@@ -144,13 +149,18 @@ When a journey has multiple conditional entry points, tie-breakers determine whe
 user lands on first visit:
 
 ```typescript
-const taskList = Step('task-list', {
+const taskList = step({
+  path: '/task-list',
+  title: 'Task list',
   reachability: {
+    entryWhen: true,
     tieBreakers: [tieBreaker({ priority: 100 })],
   },
 })
 
-const review = Step('review', {
+const review = step({
+  path: '/review',
+  title: 'Review',
   reachability: {
     entryWhen: Session('allTasksComplete').match(Condition.Equals(true)),
     tieBreakers: [tieBreaker({ priority: 200 })],

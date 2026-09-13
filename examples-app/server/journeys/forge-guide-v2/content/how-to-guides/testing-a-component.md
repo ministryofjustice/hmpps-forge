@@ -4,7 +4,7 @@ slug: testing-a-component
 section: how-to-guides
 path: how-to-guides/testing-a-component
 nav: Extending Forge/Components
-order: 3
+order: 4
 description: Unit-test how a component turns evaluated block properties into rendered output
 teaches: [component-testing, resolved-props, component-rendering, renderer-boundary]
 prerequisites: [block, component]

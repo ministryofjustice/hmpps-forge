@@ -16,6 +16,12 @@
           <button class="playground__link-button" type="button" data-restart disabled>Restart journey</button>
           <button class="playground__link-button" type="button" data-reset title="Restore the original example">Reset</button>
           <button class="playground__primary-button" type="button" data-run disabled title="Run example (Ctrl+Enter or ⌘+Enter)"><span class="playground__run-icon" aria-hidden="true">▸</span> Run</button>
+          <button class="playground__expand-button" type="button" data-expand disabled aria-label="Expand playground" aria-pressed="false" title="Expand playground">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+              <path class="playground__expand-icon" d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6" />
+              <path class="playground__collapse-icon" d="M3 9h6V3m6 0v6h6M9 21v-6H3m12 6v-6h6" />
+            </svg>
+          </button>
         </div>
       </div>
       <div class="playground__preview" data-preview></div>

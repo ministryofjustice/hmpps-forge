@@ -10,7 +10,7 @@ teaches: [fields-and-answers, validation, submission-hooks, conditional-navigati
 prerequisites: [building-pages]
 related:
   concept: how-forge-runs-a-request
-  reference: [journey, step, block-and-field-props, submit-hook]
+  reference: [journey, step, block, field, submit]
 ---
 
 # Building flows

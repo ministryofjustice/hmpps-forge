@@ -1,8 +1,43 @@
 import { describe, expect, it } from 'vitest'
-import { renderForgeDeveloperGuideMarkdown } from './forgeDeveloperGuideMarkdown'
+import {
+  readForgeDeveloperGuidePreviewSlots,
+  renderForgeDeveloperGuideMarkdown,
+} from './forgeDeveloperGuideMarkdown'
 
 describe('forgeDeveloperGuideMarkdown', () => {
   describe('renderForgeDeveloperGuideMarkdown()', () => {
+    it('should render both extensions when a page contains a preview and a playground', () => {
+      // Arrange
+      const markdown = `
+:::preview
+---
+slot: address-lookup-initial
+title: Before lookup
+---
+:::
+
+:::playground
+---
+title: Branching
+base: /assets/playground/branching/
+entry: journey.ts
+start: /branching/overview
+---
+journey.ts
+:::
+`
+
+      // Act
+      const result = renderForgeDeveloperGuideMarkdown(markdown)
+      const previewSlots = readForgeDeveloperGuidePreviewSlots(markdown)
+
+      // Assert
+      expect(result).toContain('data-forge-slot="address-lookup-initial"')
+      expect(result).toContain('<script type="application/json" data-playground>')
+      expect(result).not.toContain('role="alert"')
+      expect(previewSlots).toEqual(['address-lookup-initial'])
+    })
+
     it('should render plain markdown with GOV.UK classes', () => {
       // Arrange
       const markdown = 'A paragraph with [a link](https://example.com).'

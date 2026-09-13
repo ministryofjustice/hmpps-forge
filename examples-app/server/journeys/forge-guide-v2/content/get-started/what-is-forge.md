@@ -10,7 +10,7 @@ teaches: [declarative-framework, definitions, journeys, steps, blocks, request-c
 prerequisites: [the-web-in-declarative-form]
 related:
   concept: [how-forge-runs-a-request, how-blocks-resolution-and-rendering-connect, packaging-journeys-into-an-app]
-  reference: [journey, step, block-and-field-props]
+  reference: [journey, step, block, field]
 ---
 
 # What is Forge?

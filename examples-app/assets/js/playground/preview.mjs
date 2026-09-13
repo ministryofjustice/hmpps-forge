@@ -196,4 +196,9 @@ async function runExample(event) {
 }
 
 window.addEventListener('message', runExample)
+window.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !event.defaultPrevented) {
+    window.parent.postMessage({ type: 'collapse' }, parentOrigin)
+  }
+})
 window.parent.postMessage({ type: 'ready' }, parentOrigin)
