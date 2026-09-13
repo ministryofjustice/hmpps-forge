@@ -1,0 +1,15 @@
+{% if status == 403 %}
+  {% set heading = 'You do not have permission to view this page' %}
+  {% set description = 'Your current account does not have access.' %}
+{% elif status == 404 %}
+  {% set heading = 'Page not found' %}
+  {% set description = 'The page you requested could not be found.' %}
+{% else %}
+  {% set heading = 'Sorry, there is a problem' %}
+  {% set description = 'We could not display this page. Try again or return to the previous page.' %}
+{% endif %}
+<h1 class="govuk-heading-l" id="playground-error-heading" tabindex="-1">{{ heading }}</h1>
+<p class="govuk-body">{{ description }}</p>
+<p class="govuk-body">
+  <a class="govuk-link" href="{{ returnUrl }}">{% if lastRenderedUrl %}Back to the previous page{% else %}Return to the start{% endif %}</a>
+</p>

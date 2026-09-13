@@ -94,7 +94,9 @@ test.describe('Auth role journey', () => {
       await expect(preview.locator('body')).toContainText('viewer')
     })
 
-    test('should receive 403 when accessing admin panel as viewer', async ({ page }) => {
+    test('should return to the dashboard and log out when admin access is denied', async ({
+      page,
+    }) => {
       // Arrange
       await form.clickButton('Log in as Viewer')
 
@@ -106,6 +108,24 @@ test.describe('Auth role journey', () => {
       await expect(
         preview.getByRole('heading', { name: 'Admin panel', exact: true }),
       ).not.toBeVisible()
+      await form.expectHeading('You do not have permission to view this page')
+      await expect(preview.locator('#playground-error-heading')).toBeFocused()
+
+      // Act
+      await form.clickLink('Back to the previous page')
+
+      // Assert
+      await form.expectHeading('Dashboard')
+      await expect(preview.locator('body')).toContainText('Demo Viewer')
+      await expect(page.locator('.playground__status')).not.toContainText(
+        'You do not have permission',
+      )
+
+      // Act
+      await form.clickButton('Log out')
+
+      // Assert
+      await form.expectHeading('Log in')
     })
   })
 })

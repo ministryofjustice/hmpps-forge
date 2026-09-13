@@ -50,11 +50,18 @@ function playgroundPlugin() {
             { name: `govuk/${name}` },
           ),
         )
-      templates.push(
-        nunjucks.precompileString(fs.readFileSync(path.join(sourceDir, 'step.njk'), 'utf8'), {
-          name: 'playground-step.njk',
-        }),
-      )
+      const playgroundTemplates = ['step', 'error']
+
+      playgroundTemplates.forEach((name) => {
+        const file = path.join(sourceDir, `${name}.njk`)
+
+        this.addWatchFile(file)
+        templates.push(
+          nunjucks.precompileString(fs.readFileSync(file, 'utf8'), {
+            name: `playground-${name}.njk`,
+          }),
+        )
+      })
 
       const result = await build({
         entryPoints: {

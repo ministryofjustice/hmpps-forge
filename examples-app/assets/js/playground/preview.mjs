@@ -6,7 +6,7 @@ import 'virtual:playground-templates'
 import { Forge } from '@ministryofjustice/hmpps-forge/core'
 import * as authoring from '@ministryofjustice/hmpps-forge/core/authoring'
 import * as coreComponents from '@ministryofjustice/hmpps-forge/core/components'
-import * as components from '@ministryofjustice/hmpps-forge/govuk-components'
+import * as govukComponents from '@ministryofjustice/hmpps-forge/govuk-components'
 import {
   NunjucksBrowserRenderer,
   createBrowserApp,
@@ -34,34 +34,45 @@ class PlaygroundHost {
       if (!(event.target instanceof HTMLFormElement)) {
         return
       }
+
       event.preventDefault()
+
       const fields = Object.create(null)
+
       new FormData(event.target, event.submitter).forEach((value, key) => {
         fields[key] = key in fields ? [fields[key], value].flat() : value
       })
       // Match Express form parsing for composite inputs such as dateOfBirth[day].
       const body = qs.parse(fields)
+
       listener({ kind: 'submit', url: `${this.location.pathname}${this.location.search}`, body })
     }
+
     const follow = (event) => {
       const anchor = event.target.closest?.('a[href]')
       if (!anchor) {
         return
       }
+
       event.preventDefault()
+
       const href = anchor.getAttribute('href')
       if (href.startsWith('#')) {
         document.getElementById(href.slice(1))?.focus()
         return
       }
+
       const url = new URL(href, this.location)
       if (url.origin !== this.location.origin) {
         return
       }
+
       listener({ kind: 'follow', url: `${url.pathname}${url.search}${url.hash}` })
     }
+
     document.addEventListener('submit', submit)
     document.addEventListener('click', follow)
+
     return () => {
       document.removeEventListener('submit', submit)
       document.removeEventListener('click', follow)
@@ -74,7 +85,7 @@ const container = document.querySelector('main')
 const modules = new Map([
   ['@ministryofjustice/hmpps-forge/core/authoring', authoring],
   ['@ministryofjustice/hmpps-forge/core/components', coreComponents],
-  ['@ministryofjustice/hmpps-forge/govuk-components', components],
+  ['@ministryofjustice/hmpps-forge/govuk-components', govukComponents],
 ])
 
 function resolveModule(id, importer, sources) {
@@ -126,6 +137,7 @@ async function runExample(event) {
     return
   }
   const { sources, entryFile, startPath } = event.data
+
   if (
     typeof entryFile !== 'string' || !entryFile.endsWith('.ts') ||
     typeof startPath !== 'string' || !/^\/(?!\/)/.test(startPath) ||
@@ -135,27 +147,45 @@ async function runExample(event) {
   ) {
     return
   }
+
   window.removeEventListener('message', runExample)
+
   try {
     const templateEnv = new nunjucks.Environment(undefined, {
       autoescape: true,
     })
-    components.registerForgeGovUKComponentsGlobals(templateEnv)
+    govukComponents.registerForgeGovUKComponentsGlobals(templateEnv)
+
     const example = loadModule(`./${entryFile.slice(0, -3)}`, sources)
+
     const forge = new Forge().registerPackage(example.default, example.dependencies)
+
     const app = createBrowserApp(forge, {
       container,
       host: new PlaygroundHost(startPath),
       renderingEngine: new NunjucksBrowserRenderer({ templateEnv, defaultTemplate: 'playground-step' }),
       onRender: ({ html }) => {
         container.innerHTML = html
+
         document.body.classList.add('js-enabled', 'govuk-frontend-supported')
+
         container.querySelectorAll('[data-module="govuk-radios"]').forEach(element => new Radios(element))
+
         window.parent.postMessage({ type: 'rendered' }, parentOrigin)
       },
-      onError: ({ error }) =>
-        window.parent.postMessage({ type: 'error', text: error.message }, parentOrigin),
+      onError: ({ error, lastRenderedUrl }) => {
+        container.innerHTML = templateEnv.render('playground-error.njk', {
+          status: error.status ?? error.statusCode,
+          lastRenderedUrl,
+          returnUrl: lastRenderedUrl ?? startPath,
+        })
+
+        container.querySelector('#playground-error-heading').focus()
+
+        window.parent.postMessage({ type: 'error', text: error.message }, parentOrigin)
+      },
     })
+
     await app.start({ fallbackPath: startPath })
   } catch (error) {
     window.parent.postMessage(
@@ -164,5 +194,6 @@ async function runExample(event) {
     )
   }
 }
+
 window.addEventListener('message', runExample)
 window.parent.postMessage({ type: 'ready' }, parentOrigin)

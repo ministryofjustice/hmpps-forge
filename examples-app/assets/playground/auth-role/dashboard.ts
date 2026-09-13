@@ -9,7 +9,7 @@ const welcomeMessage = GovUKBody({
 })
 
 const viewerWarning = GovUKInsetText({
-  text: "You are signed in as a viewer. The admin panel will be denied with a 403 error, shown above the preview.",
+  text: "You are signed in as a viewer. The admin panel will be denied with a 403 error. You can return here from the error page.",
   visibleWhen: Session('demoUser.role').match(Condition.Equals('viewer')),
 })
 
