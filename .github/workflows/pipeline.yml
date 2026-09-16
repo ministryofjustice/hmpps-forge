@@ -2,11 +2,6 @@ name: Pipeline [test -> build -> deploy]
 
 on:
   pull_request:
-    paths:
-      - '.github/workflows/pipeline.yml'
-      - 'Makefile'
-      - 'examples-app/**'
-      - 'packages/**'
   push:
     branches:
       - 'main'
