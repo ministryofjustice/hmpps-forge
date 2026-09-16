@@ -1,6 +1,6 @@
 # HMPPS Forge
 
-[![Ministry of Justice Repository Compliance Badge](https://github-community.service.justice.gov.uk/repository-standards/api/hmpps-forge/badge)](https://github-community.service.justice.gov.uk/repository-standards/hmpps-forge)
+[![Ministry of Justice Repository Compliance Badge](https://github-community.service.justice.gov.uk/repository-standards/api/hmpps-forge/badge?refresh=20260916)](https://github-community.service.justice.gov.uk/repository-standards/hmpps-forge)
 [![npm](https://img.shields.io/npm/v/@ministryofjustice/hmpps-forge?style=for-the-badge)](https://www.npmjs.com/package/@ministryofjustice/hmpps-forge)
 [![build](https://img.shields.io/github/actions/workflow/status/ministryofjustice/hmpps-forge/pipeline.yml?style=for-the-badge&branch=main)](https://github.com/ministryofjustice/hmpps-forge/actions/workflows/pipeline.yml)
 [![licence](https://img.shields.io/npm/l/@ministryofjustice/hmpps-forge?style=for-the-badge)](LICENSE.md)
