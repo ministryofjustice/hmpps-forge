@@ -65,6 +65,7 @@
     "@ministryofjustice/hmpps-npm-script-allowlist": "0.0.6",
     "@playwright/test": "1.60.0",
     "@tsconfig/node24": "^24.0.4",
+    "@types/bunyan": "^1.8.11",
     "@types/compression": "^1.8.1",
     "@types/connect-flash": "0.0.40",
     "@types/express-session": "^1.18.2",
@@ -92,6 +93,6 @@
     "sass-embedded": "^1.100.0",
     "supertest": "^7.2.2",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.11"
   }
 }

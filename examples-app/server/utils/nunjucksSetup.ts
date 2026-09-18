@@ -64,8 +64,7 @@ export default function nunjucksSetup(app: express.Express): nunjucks.Environmen
 
     for (const item of items) {
       const groupName = (item.metadata as Record<string, unknown> | undefined)?.[key] as
-        | string
-        | undefined
+        string | undefined
       const existing = groupMap.get(groupName)
 
       if (existing) {

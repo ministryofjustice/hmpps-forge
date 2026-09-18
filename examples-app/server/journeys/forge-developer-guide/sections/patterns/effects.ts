@@ -1025,8 +1025,7 @@ export const PatternEffects = {
     () => (context: PatternEffectContext) => {
       const session = context.getSession()
       const stored = session?.patternDrafts?.['collection-validation']?.goals as
-        | typeof planGoals
-        | undefined
+        typeof planGoals | undefined
       const goals = stored ?? planGoals
 
       context.setData('goals', goals)
@@ -1041,8 +1040,7 @@ export const PatternEffects = {
     () => (context: PatternEffectContext) => {
       const session = context.getSession()
       const stored = session?.patternDrafts?.['collection-validation']?.goals as
-        | typeof planGoals
-        | undefined
+        typeof planGoals | undefined
       const goals = stored ?? planGoals
       const activeGoals = goals.filter(g => g.status === 'ACTIVE')
 
