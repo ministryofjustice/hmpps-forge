@@ -55,6 +55,9 @@ export type {
   SummaryCard,
 } from './summary-list/govukSummaryList'
 export type { TableHeadCell, TableCell, TableRow } from './table/govukTable'
+export type { GovUKRadioInputItem, GovUKRadioInputDivider } from './radio-input/govukRadioInput'
+export type { GovUKCheckboxInputItem, GovUKCheckboxInputDivider } from './checkbox-input/govukCheckboxInput'
+export type { GovUKDateInputBase } from './date-input/govukDateInputVariants'
 export type { TabPanel, TabItem } from './tabs/govukTabs'
 export type {
   TaskListStatusTag,

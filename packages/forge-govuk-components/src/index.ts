@@ -25,7 +25,6 @@ export { govukComponents } from './components/index'
 export { GovUKUtilityClasses } from './utils/govukUtilityClasses'
 export { GovUKValidations } from './utils/govukValidations'
 export { registerForgeGovUKComponentsGlobals } from './utils/registerForgeGovUKComponentsGlobals'
-export type { GovUKGridColumn } from './components'
 
 // Re-export component wrapper functions and types
 export {
@@ -62,4 +61,39 @@ export {
   GovUKTag,
   GovUKTaskList,
   GovUKWarningText,
+} from './components'
+
+// Re-export supporting types
+export type {
+  AccordionItemHeading,
+  AccordionItemSummary,
+  AccordionItemContent,
+  AccordionItem,
+  BreadcrumbItem,
+  GovUKCheckboxInputItem,
+  GovUKCheckboxInputDivider,
+  GovUKDateInputBase,
+  GovUKGridColumn,
+  PaginationLink,
+  PaginationItem,
+  GovUKRadioInputItem,
+  GovUKRadioInputDivider,
+  SelectItem,
+  SummaryListActionItem,
+  SummaryListActions,
+  SummaryListKey,
+  SummaryListValue,
+  SummaryListRow,
+  SummaryCardTitle,
+  SummaryCard,
+  TableHeadCell,
+  TableCell,
+  TableRow,
+  TabPanel,
+  TabItem,
+  TaskListStatusTag,
+  TaskListStatus,
+  TaskListTitle,
+  TaskListHint,
+  TaskListItem,
 } from './components'
