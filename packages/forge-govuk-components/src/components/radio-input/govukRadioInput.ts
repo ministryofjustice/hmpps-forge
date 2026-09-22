@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   BlockDefinition,
+  ResolvableArray,
   ResolvableBoolean,
   ResolvableString,
   EvaluatedBlock,
@@ -151,21 +152,27 @@ export interface GovUKRadioInput extends FieldBlockDefinition {
   /**
    * The radio items within the radios component.
    * Can include both radio options and dividers for visual separation.
+   * Can also be an expression for dynamic items using the Iterator pattern.
+   *
    * @example [
    *   { value: 'yes', text: 'Yes' },
    *   { value: 'no', text: 'No' },
    *   { divider: 'or' },
    *   { value: 'maybe', text: 'Not sure' }
    * ]
+   *
+   * @example
+   * // Dynamic items using Iterator
+   * Data('areas').each(Iterator.Map({ value: Item().path('value'), text: Item().path('text') }))
    */
-  items: (GovUKRadioInputItem | GovUKRadioInputDivider)[]
+  items: ResolvableArray<GovUKRadioInputItem | GovUKRadioInputDivider>
 }
 
 /**
  * Individual radio option within a radio group.
  * Represents a single selectable choice with optional conditional reveals.
  */
-interface GovUKRadioInputItem {
+export interface GovUKRadioInputItem {
   /**
    * Value for the radio input. This is submitted with the form data when selected.
    * @example 'email'
@@ -248,7 +255,7 @@ interface GovUKRadioInputItem {
  * Divider element to separate radio options visually.
  * Useful for grouping related options or providing "or" separators.
  */
-interface GovUKRadioInputDivider {
+export interface GovUKRadioInputDivider {
   /**
    * Divider text to separate radio items.
    * @example 'or'

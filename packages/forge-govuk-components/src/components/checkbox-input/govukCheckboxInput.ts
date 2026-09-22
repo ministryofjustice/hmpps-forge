@@ -187,7 +187,7 @@ export interface GovUKCheckboxInput extends FieldBlockDefinition {
  * Individual checkbox option within a checkbox group.
  * Represents a single selectable choice with optional conditional reveals and behaviors.
  */
-interface GovUKCheckboxInputItem {
+export interface GovUKCheckboxInputItem {
   /**
    * Value for the checkbox input. This is submitted with the form data when selected.
    *
@@ -299,7 +299,7 @@ interface GovUKCheckboxInputItem {
 /**
  * Divider element to separate checkbox options visually.
  */
-interface GovUKCheckboxInputDivider {
+export interface GovUKCheckboxInputDivider {
   /**
    * Divider text to separate checkbox items.
    *

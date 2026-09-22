@@ -1,5 +1,6 @@
 import {
   BlockDefinition,
+  ResolvableArray,
   ResolvableBoolean,
   ResolvableString,
   EvaluatedBlock,
@@ -93,7 +94,7 @@ export interface MOJCardGroupItem {
  */
 export interface MOJCardGroup extends BlockDefinition {
   /** Array of cards to display */
-  items: MOJCardGroupItem[]
+  items: ResolvableArray<MOJCardGroupItem>
 
   /** Number of columns: 2, 3, or 4 (default: 3) */
   columns?: 2 | 3 | 4

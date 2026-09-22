@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ResolvableArray, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -90,10 +90,10 @@ export type MultiSelectRow = MultiSelectCell[]
  */
 export interface MOJMultiSelect extends BlockDefinition {
   /** The rows within the table. Each row is an array of cells. Required. */
-  rows: MultiSelectRow[]
+  rows: ResolvableArray<MultiSelectRow>
 
   /** Table header cells. Renders a `<thead>` with a single header row. */
-  head?: MultiSelectHeadCell[]
+  head?: ResolvableArray<MultiSelectHeadCell>
 
   /** Caption text displayed above the table. Useful for accessibility. */
   caption?: ResolvableString

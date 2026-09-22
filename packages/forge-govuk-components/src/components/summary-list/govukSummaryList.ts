@@ -1,5 +1,6 @@
 import {
   BlockDefinition,
+  ResolvableArray,
   ResolvableBoolean,
   ResolvableObject,
   ResolvableString,
@@ -42,7 +43,7 @@ export interface SummaryListActionItem {
  */
 export interface SummaryListActions {
   /** The action link items to display. */
-  items?: SummaryListActionItem[]
+  items?: ResolvableArray<SummaryListActionItem>
 
   /** Additional CSS classes for the actions wrapper element. */
   classes?: ResolvableString
@@ -185,7 +186,7 @@ export interface SummaryCard {
  */
 export interface GovUKSummaryList extends BlockDefinition {
   /** The rows within the summary list. Each row contains a key-value pair. Required. */
-  rows: SummaryListRow[]
+  rows: ResolvableArray<SummaryListRow>
 
   /**
    * Optional card configuration to wrap the summary list.

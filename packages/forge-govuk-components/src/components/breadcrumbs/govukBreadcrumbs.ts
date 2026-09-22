@@ -1,4 +1,9 @@
-import { BlockDefinition, ResolvableBoolean, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import {
+  BlockDefinition,
+  ResolvableArray,
+  ResolvableBoolean,
+  ResolvableString,
+} from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -44,7 +49,7 @@ export interface BreadcrumbItem {
  */
 export interface GovUKBreadcrumbs extends BlockDefinition {
   /** The breadcrumb items to display. Required. */
-  items: BreadcrumbItem[]
+  items: ResolvableArray<BreadcrumbItem>
 
   /** When true, collapses to first and last item only on mobile. */
   collapseOnMobile?: boolean

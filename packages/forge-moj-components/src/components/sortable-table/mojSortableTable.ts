@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ResolvableArray, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -86,10 +86,10 @@ export type SortableTableRow = SortableTableCell[]
  */
 export interface MOJSortableTable extends BlockDefinition {
   /** The rows within the table. Each row is an array of cells. Required. */
-  rows: SortableTableRow[]
+  rows: ResolvableArray<SortableTableRow>
 
   /** Table header cells. Renders a `<thead>` with a single header row. */
-  head?: SortableTableHeadCell[]
+  head?: ResolvableArray<SortableTableHeadCell>
 
   /** Caption text displayed above the table. Useful for accessibility. */
   caption?: ResolvableString

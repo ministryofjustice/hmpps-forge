@@ -1,4 +1,9 @@
-import { BlockDefinition, ResolvableBoolean, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import {
+  BlockDefinition,
+  ResolvableArray,
+  ResolvableBoolean,
+  ResolvableString,
+} from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
@@ -107,7 +112,7 @@ export interface GovUKTabs extends BlockDefinition {
   title?: ResolvableString
 
   /** The individual tabs within the tabs component. Required. */
-  items: TabItem[]
+  items: ResolvableArray<TabItem>
 
   /** Additional CSS classes for the tabs element. */
   classes?: ResolvableString

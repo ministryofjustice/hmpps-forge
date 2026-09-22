@@ -97,7 +97,7 @@ export interface GovUKTable extends BlockDefinition {
   rows: ResolvableArray<TableRow>
 
   /** Table header cells. Renders a `<thead>` with a single header row. */
-  head?: TableHeadCell[]
+  head?: ResolvableArray<TableHeadCell>
 
   /** Caption text displayed above the table. Useful for accessibility. */
   caption?: ResolvableString
