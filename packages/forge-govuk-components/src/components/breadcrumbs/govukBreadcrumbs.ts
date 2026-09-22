@@ -52,7 +52,7 @@ export interface GovUKBreadcrumbs extends BlockDefinition {
   items: ResolvableArray<BreadcrumbItem>
 
   /** When true, collapses to first and last item only on mobile. */
-  collapseOnMobile?: boolean
+  collapseOnMobile?: ResolvableBoolean
 
   /** Accessibility label for the navigation landmark. Defaults to "Breadcrumb". */
   labelText?: ResolvableString

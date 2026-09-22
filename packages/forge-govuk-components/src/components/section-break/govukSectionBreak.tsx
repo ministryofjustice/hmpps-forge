@@ -1,4 +1,8 @@
-import { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
+import {
+  BlockDefinition,
+  ResolvableBoolean,
+  ResolvableString,
+} from '@ministryofjustice/hmpps-forge/core/components'
 import { jsxComponent } from '@ministryofjustice/hmpps-forge/jsx-components'
 
 type SectionBreakSize = 'xl' | 'l' | 'm'
@@ -19,10 +23,10 @@ export interface GovUKSectionBreak extends BlockDefinition {
   size?: SectionBreakSize
 
   /** Whether to show a visible horizontal rule. Defaults to false (spacing only). */
-  visible?: boolean
+  visible?: ResolvableBoolean
 
   /** Additional CSS classes to append to the section break. */
-  classes?: string
+  classes?: ResolvableString
 
   /** HTML attributes to add to the hr element. */
   attributes?: Record<string, any>

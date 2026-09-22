@@ -1,4 +1,10 @@
-import { BlockDefinition, ResolvableArray, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import {
+  BlockDefinition,
+  ResolvableArray,
+  ResolvableBoolean,
+  ResolvableNumber,
+  ResolvableString,
+} from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -18,10 +24,10 @@ export interface MultiSelectHeadCell {
   classes?: ResolvableString
 
   /** Number of columns this cell should span. */
-  colspan?: number
+  colspan?: ResolvableNumber
 
   /** Number of rows this cell should span. */
-  rowspan?: number
+  rowspan?: ResolvableNumber
 
   /** Custom HTML attributes for the header cell element. */
   attributes?: Record<string, any>
@@ -44,10 +50,10 @@ export interface MultiSelectCell {
   classes?: ResolvableString
 
   /** Number of columns this cell should span. */
-  colspan?: number
+  colspan?: ResolvableNumber
 
   /** Number of rows this cell should span. */
-  rowspan?: number
+  rowspan?: ResolvableNumber
 
   /** Custom HTML attributes for the cell element. */
   attributes?: Record<string, any>
@@ -102,7 +108,7 @@ export interface MOJMultiSelect extends BlockDefinition {
   captionClasses?: ResolvableString
 
   /** If true, the first cell in each row will be rendered as a header (`<th>`) with row scope. */
-  firstCellIsHeader?: boolean
+  firstCellIsHeader?: ResolvableBoolean
 
   /** Additional CSS classes for the table element. */
   classes?: ResolvableString

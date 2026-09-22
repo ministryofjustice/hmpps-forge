@@ -1,6 +1,7 @@
 import {
   BlockDefinition,
   ResolvableArray,
+  ResolvableNumber,
   ResolvableBoolean,
   ResolvableString,
   EvaluatedBlock,
@@ -130,7 +131,7 @@ export interface GovUKAccordion extends BlockDefinition {
   items: ResolvableArray<AccordionItem>
 
   /** Heading level for section headings, from 1 to 6. Defaults to 2. */
-  headingLevel?: number
+  headingLevel?: ResolvableNumber
 
   /**
    * Whether the expanded/collapsed state should persist across page loads.

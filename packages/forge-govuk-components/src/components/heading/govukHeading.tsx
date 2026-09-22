@@ -48,7 +48,7 @@ export interface GovUKHeading extends BlockDefinition {
   caption?: ResolvableString
 
   /** Additional CSS classes to append to the heading. */
-  classes?: string
+  classes?: ResolvableString
 
   /** HTML attributes to add to the heading element. */
   attributes?: Record<string, any>

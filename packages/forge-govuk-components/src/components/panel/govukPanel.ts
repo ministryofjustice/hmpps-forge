@@ -1,4 +1,4 @@
-import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ResolvableNumber, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 import { normaliseGovukTextHtmlContent } from '../../utils/govukParamNormalisers'
 
@@ -36,7 +36,7 @@ export interface GovUKPanel extends BlockDefinition {
    * Heading level for the panel title, from 1 to 6.
    * Defaults to 1 (h1).
    */
-  headingLevel?: number
+  headingLevel?: ResolvableNumber
 
   /**
    * Plain text content for the panel body.

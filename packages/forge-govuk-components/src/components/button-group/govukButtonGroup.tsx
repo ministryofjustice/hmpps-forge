@@ -1,4 +1,4 @@
-import { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
+import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
 import { jsxComponent, raw } from '@ministryofjustice/hmpps-forge/jsx-components'
 
 /**
@@ -20,7 +20,7 @@ export interface GovUKButtonGroup extends BlockDefinition {
   buttons: BlockDefinition[]
 
   /** Additional CSS classes to append to the button group. */
-  classes?: string
+  classes?: ResolvableString
 
   /** HTML attributes to add to the wrapper element. */
   attributes?: Record<string, any>

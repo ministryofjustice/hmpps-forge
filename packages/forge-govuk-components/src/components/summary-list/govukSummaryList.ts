@@ -1,6 +1,7 @@
 import {
   BlockDefinition,
   ResolvableArray,
+  ResolvableNumber,
   ResolvableBoolean,
   ResolvableObject,
   ResolvableString,
@@ -118,7 +119,7 @@ export interface SummaryCardTitle {
   html?: ResolvableString
 
   /** Heading level for the title, from 1 to 6. Defaults to 2. */
-  headingLevel?: number
+  headingLevel?: ResolvableNumber
 
   /** Additional CSS classes for the title wrapper. */
   classes?: ResolvableString
