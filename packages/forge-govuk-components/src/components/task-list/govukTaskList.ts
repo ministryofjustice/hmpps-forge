@@ -1,5 +1,6 @@
 import {
   BlockDefinition,
+  ResolvableArray,
   ResolvableBoolean,
   ResolvableObject,
   ResolvableString,
@@ -181,7 +182,7 @@ export interface TaskListItem {
  */
 export interface GovUKTaskList extends BlockDefinition {
   /** The items within the task list. Each item represents a single task. Required. */
-  items: TaskListItem[]
+  items: ResolvableArray<TaskListItem>
 
   /** Additional CSS classes for the task list ul element. */
   classes?: ResolvableString

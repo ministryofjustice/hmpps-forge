@@ -28,7 +28,7 @@ export interface GovUKBody extends BlockDefinition {
   size?: BodySize
 
   /** Additional CSS classes to append to the paragraph. */
-  classes?: string
+  classes?: ResolvableString
 
   /** HTML attributes to add to the paragraph element. */
   attributes?: Record<string, any>

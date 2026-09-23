@@ -1,6 +1,8 @@
 import {
   BlockDefinition,
+  ResolvableArray,
   ResolvableBoolean,
+  ResolvableObject,
   ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -11,16 +13,16 @@ import { nunjucksComponent } from '../../utils/nunjucksComponent'
  */
 export interface MOJCardGroupItemHeading {
   /** Heading text (required if html not set) */
-  text?: string
+  text?: ResolvableString
 
   /** Heading HTML content (required if text not set) */
-  html?: string
+  html?: ResolvableString
 
   /** Heading level 1-6 (default: 2) */
   level?: 1 | 2 | 3 | 4 | 5 | 6
 
   /** Additional classes for the heading element */
-  classes?: string
+  classes?: ResolvableString
 }
 
 /**
@@ -28,13 +30,13 @@ export interface MOJCardGroupItemHeading {
  */
 export interface MOJCardGroupItemDescription {
   /** Description text (required if html not set) */
-  text?: string
+  text?: ResolvableString
 
   /** Description HTML content (required if text not set) */
-  html?: string
+  html?: ResolvableString
 
   /** Additional classes for the description element */
-  classes?: string
+  classes?: ResolvableString
 }
 
 /**
@@ -47,23 +49,23 @@ export interface MOJCardGroupItem {
    * @example 'Search cases'
    * @example { text: 'Search cases', level: 3 }
    */
-  heading: string | MOJCardGroupItemHeading
+  heading: ResolvableString | ResolvableObject<MOJCardGroupItemHeading>
 
   /** Link URL for the card heading */
-  href: string
+  href: ResolvableString
 
   /**
    * Optional description - can be a simple string or object with additional options.
    * @example 'Find and manage case records'
    * @example { html: '<strong>Find</strong> records' }
    */
-  description?: string | MOJCardGroupItemDescription
+  description?: ResolvableString | ResolvableObject<MOJCardGroupItemDescription>
 
   /** Makes the entire card clickable via CSS (default: true) */
-  clickable?: boolean
+  clickable?: ResolvableBoolean
 
   /** Additional CSS classes for the card container */
-  classes?: string
+  classes?: ResolvableString
 
   /** Additional HTML attributes */
   attributes?: Record<string, string>
@@ -93,7 +95,7 @@ export interface MOJCardGroupItem {
  */
 export interface MOJCardGroup extends BlockDefinition {
   /** Array of cards to display */
-  items: MOJCardGroupItem[]
+  items: ResolvableArray<MOJCardGroupItem>
 
   /** Number of columns: 2, 3, or 4 (default: 3) */
   columns?: 2 | 3 | 4
@@ -107,17 +109,19 @@ export interface MOJCardGroup extends BlockDefinition {
 
 type EvaluatedMOJCardGroupItem = EvaluatedBlock<MOJCardGroup>['items'][number]
 
-/**
- * Normalizes a card item's heading and description to object form
- */
-function normalizeCardItem(item: EvaluatedMOJCardGroupItem): {
-  heading: MOJCardGroupItemHeading
+type NormalizedCardItem = {
+  heading: EvaluatedBlock<MOJCardGroupItemHeading>
   href: string
-  description: MOJCardGroupItemDescription | undefined
+  description: EvaluatedBlock<MOJCardGroupItemDescription> | undefined
   clickable: boolean | undefined
   classes: string | undefined
   attributes: Record<string, string> | undefined
-} {
+}
+
+/**
+ * Normalizes a card item's heading and description to object form
+ */
+function normalizeCardItem(item: EvaluatedMOJCardGroupItem): NormalizedCardItem {
   const heading = typeof item.heading === 'object' ? normalizeHeading(item.heading) : { text: item.heading }
 
   return {
@@ -134,7 +138,7 @@ function normalizeCardItem(item: EvaluatedMOJCardGroupItem): {
   }
 }
 
-function normalizeHeading(heading: EvaluatedMOJCardGroupItem['heading']): MOJCardGroupItemHeading {
+function normalizeHeading(heading: EvaluatedMOJCardGroupItem['heading']): EvaluatedBlock<MOJCardGroupItemHeading> {
   if (typeof heading === 'string') {
     return { text: heading }
   }

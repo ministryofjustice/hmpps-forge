@@ -1,6 +1,8 @@
 import {
   BlockDefinition,
   ResolvableArray,
+  ResolvableBoolean,
+  ResolvableNumber,
   ResolvableString,
   EvaluatedBlock,
 } from '@ministryofjustice/hmpps-forge/core/components'
@@ -25,10 +27,10 @@ export interface TableHeadCell {
   classes?: ResolvableString
 
   /** Number of columns this cell should span. */
-  colspan?: number
+  colspan?: ResolvableNumber
 
   /** Number of rows this cell should span. */
-  rowspan?: number
+  rowspan?: ResolvableNumber
 
   /** Custom HTML attributes for the header cell element. */
   attributes?: Record<string, any>
@@ -55,10 +57,10 @@ export interface TableCell {
   classes?: ResolvableString
 
   /** Number of columns this cell should span. */
-  colspan?: number
+  colspan?: ResolvableNumber
 
   /** Number of rows this cell should span. */
-  rowspan?: number
+  rowspan?: ResolvableNumber
 
   /** Custom HTML attributes for the cell element. */
   attributes?: Record<string, any>
@@ -97,7 +99,7 @@ export interface GovUKTable extends BlockDefinition {
   rows: ResolvableArray<TableRow>
 
   /** Table header cells. Renders a `<thead>` with a single header row. */
-  head?: TableHeadCell[]
+  head?: ResolvableArray<TableHeadCell>
 
   /** Caption text displayed above the table. Useful for accessibility. */
   caption?: ResolvableString
@@ -106,7 +108,7 @@ export interface GovUKTable extends BlockDefinition {
   captionClasses?: ResolvableString
 
   /** If true, the first cell in each row will be rendered as a header (`<th>`) with row scope. */
-  firstCellIsHeader?: boolean
+  firstCellIsHeader?: ResolvableBoolean
 
   /** Additional CSS classes for the table element. */
   classes?: ResolvableString

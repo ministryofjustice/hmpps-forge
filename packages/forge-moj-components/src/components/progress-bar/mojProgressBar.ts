@@ -1,5 +1,6 @@
 import {
   BlockDefinition,
+  ResolvableArray,
   ResolvableString,
   ResolvableBoolean,
   ResolvableObject,
@@ -117,7 +118,7 @@ export interface MOJProgressBar extends BlockDefinition {
    * ]
    * ```
    */
-  items: MOJProgressBarItem[]
+  items: ResolvableArray<MOJProgressBarItem>
 
   /**
    * Additional CSS classes for the progress bar container.
