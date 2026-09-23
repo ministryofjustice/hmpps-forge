@@ -53,6 +53,23 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.4.4
+
+Component definitions now accept Forge expressions for more GOV.UK and MOJ
+component properties ([#327]).
+
+### Improved
+
+- Collection properties accept iterator expressions, including radio and
+  breadcrumb items, tables, tabs, task lists, and MOJ component items.
+- Selected class, number, and boolean properties accept resolvable values.
+- Supporting item and configuration types are exported from the GOV.UK and MOJ
+  component package entry points.
+
+[#327]: https://github.com/ministryofjustice/hmpps-forge/pull/327
+
+---
+
 ## 0.4.3
 
 New expression helpers for defaults, collection checks, and switch-style branches.

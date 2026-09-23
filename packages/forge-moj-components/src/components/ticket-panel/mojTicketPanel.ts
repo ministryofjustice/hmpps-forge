@@ -1,5 +1,6 @@
 import {
   BlockDefinition,
+  ResolvableArray,
   ResolvableBoolean,
   ResolvableString,
   EvaluatedBlock,
@@ -101,7 +102,7 @@ export interface MOJTicketPanel extends BlockDefinition {
    *   { text: 'Additional information' }
    * ]
    */
-  items: MOJTicketPanelItem[]
+  items: ResolvableArray<MOJTicketPanelItem>
 
   /**
    * Additional CSS classes for the ticket panel container.

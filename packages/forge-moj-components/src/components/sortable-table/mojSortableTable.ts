@@ -1,4 +1,10 @@
-import { BlockDefinition, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import {
+  BlockDefinition,
+  ResolvableArray,
+  ResolvableBoolean,
+  ResolvableNumber,
+  ResolvableString,
+} from '@ministryofjustice/hmpps-forge/core/components'
 import { nunjucksComponent } from '../../utils/nunjucksComponent'
 
 /**
@@ -18,10 +24,10 @@ export interface SortableTableHeadCell {
   classes?: ResolvableString
 
   /** Number of columns this cell should span. */
-  colspan?: number
+  colspan?: ResolvableNumber
 
   /** Number of rows this cell should span. */
-  rowspan?: number
+  rowspan?: ResolvableNumber
 
   /** Custom HTML attributes for the header cell element. */
   attributes?: Record<string, any>
@@ -44,10 +50,10 @@ export interface SortableTableCell {
   classes?: ResolvableString
 
   /** Number of columns this cell should span. */
-  colspan?: number
+  colspan?: ResolvableNumber
 
   /** Number of rows this cell should span. */
-  rowspan?: number
+  rowspan?: ResolvableNumber
 
   /** Custom HTML attributes for the cell element. */
   attributes?: Record<string, any>
@@ -86,10 +92,10 @@ export type SortableTableRow = SortableTableCell[]
  */
 export interface MOJSortableTable extends BlockDefinition {
   /** The rows within the table. Each row is an array of cells. Required. */
-  rows: SortableTableRow[]
+  rows: ResolvableArray<SortableTableRow>
 
   /** Table header cells. Renders a `<thead>` with a single header row. */
-  head?: SortableTableHeadCell[]
+  head?: ResolvableArray<SortableTableHeadCell>
 
   /** Caption text displayed above the table. Useful for accessibility. */
   caption?: ResolvableString
@@ -98,7 +104,7 @@ export interface MOJSortableTable extends BlockDefinition {
   captionClasses?: ResolvableString
 
   /** If true, the first cell in each row will be rendered as a header (`<th>`) with row scope. */
-  firstCellIsHeader?: boolean
+  firstCellIsHeader?: ResolvableBoolean
 
   /** Additional CSS classes for the table element. */
   classes?: ResolvableString

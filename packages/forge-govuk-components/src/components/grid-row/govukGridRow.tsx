@@ -1,4 +1,8 @@
-import { BlockDefinition } from '@ministryofjustice/hmpps-forge/core/components'
+import {
+  BlockDefinition,
+  ResolvableArray,
+  ResolvableString,
+} from '@ministryofjustice/hmpps-forge/core/components'
 import { jsxComponent, raw } from '@ministryofjustice/hmpps-forge/jsx-components'
 
 type GridColumnWidth = 'full' | 'one-half' | 'one-third' | 'two-thirds' | 'one-quarter' | 'three-quarters' | 'one-sixth'
@@ -25,10 +29,10 @@ export interface GovUKGridColumn {
  */
 export interface GovUKGridRow extends BlockDefinition {
   /** Column definitions with width and child blocks. */
-  columns: GovUKGridColumn[]
+  columns: ResolvableArray<GovUKGridColumn>
 
   /** Additional CSS classes to append to the row. */
-  classes?: string
+  classes?: ResolvableString
 
   /** HTML attributes to add to the row element. */
   attributes?: Record<string, any>

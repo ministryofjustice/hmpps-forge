@@ -1,4 +1,9 @@
-import { BlockDefinition, ResolvableArray, ResolvableString } from '@ministryofjustice/hmpps-forge/core/components'
+import {
+  BlockDefinition,
+  ResolvableArray,
+  ResolvableBoolean,
+  ResolvableString,
+} from '@ministryofjustice/hmpps-forge/core/components'
 import { jsxComponent, raw } from '@ministryofjustice/hmpps-forge/jsx-components'
 
 type ListType = 'bullet' | 'number'
@@ -32,10 +37,10 @@ export interface GovUKList extends BlockDefinition {
   style?: ListType
 
   /** Whether to add extra spacing between list items. */
-  spaced?: boolean
+  spaced?: ResolvableBoolean
 
   /** Additional CSS classes to append to the list. */
-  classes?: string
+  classes?: ResolvableString
 
   /** HTML attributes to add to the list element. */
   attributes?: Record<string, any>
