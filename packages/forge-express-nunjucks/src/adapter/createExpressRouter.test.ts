@@ -1,9 +1,10 @@
+import express from 'express'
 import type { NextFunction, Request, Response, Router } from 'express'
 import type { Environment } from 'nunjucks'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Forge } from '@ministryofjustice/hmpps-forge/core'
 import type { ForgeRoute } from '@ministryofjustice/hmpps-forge/core/framework'
-import { createExpressRouter } from './createExpressRouter'
+import { createExpressRouter, RequestBodyType } from './createExpressRouter'
 
 interface TestRouter {
   handle(req: Request, res: Response, next: (error?: unknown) => void): void
@@ -21,6 +22,14 @@ const route: ForgeRoute = {
   basePath: '',
   methods: ['GET'],
 }
+
+const postRoute: ForgeRoute = {
+  ...route,
+  methods: ['POST'],
+}
+
+const formHeaders = { 'content-type': 'application/x-www-form-urlencoded', 'content-length': '11' }
+const jsonHeaders = { 'content-type': 'application/json', 'content-length': '15' }
 
 describe('createExpressRouter', () => {
   beforeEach(() => {
@@ -75,6 +84,80 @@ describe('createExpressRouter', () => {
       expect(next).toHaveBeenCalledWith(error)
     })
   })
+
+  describe('request body types', () => {
+    beforeEach(() => {
+      mocks.getTopology.mockReturnValue({ routes: [postRoute] })
+    })
+
+    it('should dispatch a form POST when accepted body types are left as the default', () => {
+      // Arrange
+      const router = createExpressRouter(createForge(), { nunjucksEnv: createNunjucksEnv() })
+      const req = createRequest({ method: 'POST', headers: formHeaders })
+
+      // Act
+      dispatchRouter(router, req, createResponse(), vi.fn())
+
+      // Assert
+      expect(mocks.execute).toHaveBeenCalledOnce()
+    })
+
+    it('should reject a JSON POST with 415 when accepted body types are left as the default', async () => {
+      // Arrange
+      const router = createExpressRouter(createForge(), { nunjucksEnv: createNunjucksEnv() })
+      const req = createRequest({ method: 'POST', headers: jsonHeaders })
+      const next = vi.fn()
+
+      // Act
+      await handleRouter(router, req, createResponse(), next)
+
+      // Assert
+      expect(next).toHaveBeenCalledWith(expect.objectContaining({ status: 415, statusCode: 415, expose: true }))
+      expect(mocks.execute).not.toHaveBeenCalled()
+    })
+
+    it('should dispatch a JSON POST when JSON is an accepted body type', () => {
+      // Arrange
+      const router = createExpressRouter(createForge(), {
+        nunjucksEnv: createNunjucksEnv(),
+        acceptedBodyTypes: [RequestBodyType.FORM, RequestBodyType.JSON],
+      })
+      const req = createRequest({ method: 'POST', headers: jsonHeaders })
+
+      // Act
+      dispatchRouter(router, req, createResponse(), vi.fn())
+
+      // Assert
+      expect(mocks.execute).toHaveBeenCalledOnce()
+    })
+
+    it('should dispatch a form POST when JSON is also an accepted body type', () => {
+      // Arrange
+      const router = createExpressRouter(createForge(), {
+        nunjucksEnv: createNunjucksEnv(),
+        acceptedBodyTypes: [RequestBodyType.FORM, RequestBodyType.JSON],
+      })
+      const req = createRequest({ method: 'POST', headers: formHeaders })
+
+      // Act
+      dispatchRouter(router, req, createResponse(), vi.fn())
+
+      // Assert
+      expect(mocks.execute).toHaveBeenCalledOnce()
+    })
+
+    it('should dispatch a POST when the request has no body', () => {
+      // Arrange
+      const router = createExpressRouter(createForge(), { nunjucksEnv: createNunjucksEnv() })
+      const req = createRequest({ method: 'POST', headers: {} })
+
+      // Act
+      dispatchRouter(router, req, createResponse(), vi.fn())
+
+      // Assert
+      expect(mocks.execute).toHaveBeenCalledOnce()
+    })
+  })
 })
 
 function createForge(): Forge {
@@ -91,7 +174,7 @@ function createNunjucksEnv(): Environment {
   } as unknown as Environment
 }
 
-function createRequest(): Request {
+function createRequest(overrides: Partial<Pick<Request, 'method' | 'headers'>> = {}): Request {
   return {
     method: 'GET',
     url: '/step-one',
@@ -105,6 +188,8 @@ function createRequest(): Request {
     query: {},
     body: {},
     app: { locals: {} },
+    is: express.request.is,
+    ...overrides,
   } as unknown as Request
 }
 
