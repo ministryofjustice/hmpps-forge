@@ -24,7 +24,7 @@
  * ```
  */
 
-export { createExpressRouter } from './adapter/createExpressRouter'
+export { createExpressRouter, RequestBodyType } from './adapter/createExpressRouter'
 export type { ExpressForgeRouterOptions } from './adapter/createExpressRouter'
 export { ExpressFrameworkAdapter } from './adapter/ExpressFrameworkAdapter'
 export type { ExpressForgeAdapter } from './adapter/ExpressFrameworkAdapter'
