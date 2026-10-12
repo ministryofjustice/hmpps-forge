@@ -31,20 +31,8 @@ export const REQUEST_ANSWER_PREPARATION_WORK_HANDLER: WorkHandler<
 > = {
   kind: REQUEST_ANSWER_PREPARATION_KIND,
 
-  async begin(ctx: WorkContextContract<RequestState, RequestAnswerPreparationWorkProps>) {
-    const answerPreparationContext = buildCompiledAnswerPreparationContext(
-      ctx.state.context,
-      ctx.state.dependencies.functionRegistry,
-      ctx.state.dependencies.componentRegistry,
-    )
-
-    const resolved = await ctx.props.compiled(answerPreparationContext)
-
-    if (!isWorkTaskOfKind(resolved, ANSWER_PREPARATION_KIND)) {
-      throw new ForgeInternalError('Compiled answer preparation returned an invalid work task')
-    }
-
-    return singleTaskGroup(resolved)
+  begin(ctx: WorkContextContract<RequestState, RequestAnswerPreparationWorkProps>) {
+    return runCompiledAnswerPreparation(ctx)
   },
 
   complete(
@@ -53,6 +41,29 @@ export const REQUEST_ANSWER_PREPARATION_WORK_HANDLER: WorkHandler<
   ): PhaseWorkOutput {
     return { action: 'continue' }
   },
+}
+
+/**
+ * Runs a compiled answer-preparation function and hands the work task it built
+ * back to the executor. Shared by the preparation phase and the journey-wide
+ * reconcile phase, which differ only in the compiled function they carry.
+ */
+export async function runCompiledAnswerPreparation(
+  ctx: WorkContextContract<RequestState, RequestAnswerPreparationWorkProps>,
+) {
+  const answerPreparationContext = buildCompiledAnswerPreparationContext(
+    ctx.state.context,
+    ctx.state.dependencies.functionRegistry,
+    ctx.state.dependencies.componentRegistry,
+  )
+
+  const resolved = await ctx.props.compiled(answerPreparationContext)
+
+  if (!isWorkTaskOfKind(resolved, ANSWER_PREPARATION_KIND)) {
+    throw new ForgeInternalError('Compiled answer preparation returned an invalid work task')
+  }
+
+  return singleTaskGroup(resolved)
 }
 
 export function createRequestAnswerPreparationTask(props: RequestAnswerPreparationWorkProps) {

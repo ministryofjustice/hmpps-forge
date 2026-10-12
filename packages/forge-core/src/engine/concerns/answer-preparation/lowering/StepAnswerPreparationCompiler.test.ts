@@ -20,7 +20,7 @@ import { generatedFunctionRuntimeLibrary } from '../../../chassis/compilation/lo
 import type { CompilationDependencies } from '../../../chassis/compilation/lowering/compilationDependencies.type'
 import { buildStepFieldModels } from '../../../chassis/compilation/analysis/testing-helpers/analysisContexts'
 import type { AnswerPreparationModel } from '../contracts/answerPreparationModel.type'
-import StepAnswerPreparationCompiler from './StepAnswerPreparationCompiler'
+import StepAnswerPreparationCompiler, { AnswerPreparationScope } from './StepAnswerPreparationCompiler'
 import type { CompiledAnswerPreparationFunction } from '../../../chassis/contracts/compiled/compiledFunctions.type'
 import type { CompiledAnswerPreparationContext } from '../../../chassis/contracts/compiled/compiledContexts.type'
 import type RequestState from '../../../chassis/runtime/pipeline/RequestState'
@@ -1342,6 +1342,117 @@ describe('StepAnswerPreparationCompiler', () => {
         month: '03',
         day: '31',
       })
+    })
+  })
+  describe('reconcile scope', () => {
+    function createDependentField(code: string, dependencyFlag: string): FieldBlockASTNode {
+      return createFieldBlock(code, {
+        dependentWhen: createTestPredicate(
+          createReference(['answers', dependencyFlag]),
+          createConditionFunction('isRequired'),
+        ),
+      })
+    }
+
+    it('should emit a fixed RECONCILE mode and the reconcile preparation helper', () => {
+      // Arrange
+      const block = createDependentField('email', 'showEmail')
+      const localCompiler = createSyncCompiler('isRequired')
+
+      // Act
+      const source = localCompiler.generateSource(prepModel([block]), AnswerPreparationScope.RECONCILE)
+
+      // Assert
+      expect(source).toContain('const answerPreparationMode = "RECONCILE";')
+      expect(source).toContain('const prepareFieldAnswer = _forgeHelpers.reconcileFieldAnswerGroup;')
+      expect(source).not.toContain('ctx.request.method')
+    })
+
+    it('should carry only the field code and dependentWhen in its field definitions', () => {
+      // Arrange
+      const block = createFieldBlock('name', {
+        formatters: [createTransformerFunction('trim')],
+        parsers: [createTransformerFunction('toUpperCase')],
+        defaultValue: 'Ada',
+      })
+      const localCompiler = createSyncCompiler('trim', 'toUpperCase')
+
+      // Act
+      const source = localCompiler.generateSource(prepModel([block]), AnswerPreparationScope.RECONCILE)
+
+      // Assert
+      expect(source).not.toContain('formatSubmittedValue')
+      expect(source).not.toContain('parseStoredValue')
+      expect(source).not.toContain('resolveDefaultValue')
+    })
+
+    it('should clear a stored answer when dependentWhen no longer holds', async () => {
+      // Arrange
+      const block = createDependentField('email', 'showEmail')
+      const localCompiler = createSyncCompiler('isRequired')
+      const ctx = createCtx({
+        answers: {
+          showEmail: { current: '', mutations: [] },
+          email: { current: 'test@example.com', mutations: [] },
+        },
+      })
+
+      // Act
+      const source = localCompiler.generateSource(prepModel([block]), AnswerPreparationScope.RECONCILE)
+      await runGeneratedSource(source, ctx)
+
+      // Assert
+      expect(ctx.answers.email.current).toBeUndefined()
+      expect(ctx.answers.email.mutations).toEqual([{ value: undefined, source: 'dependentWhen' }])
+    })
+
+    it('should leave a stored answer untouched when no post value is present', async () => {
+      // Arrange
+      const block = createDependentField('email', 'showEmail')
+      const localCompiler = createSyncCompiler('isRequired')
+      const ctx = createCtx({
+        post: {},
+        answers: {
+          showEmail: { current: 'yes', mutations: [] },
+          email: { current: 'test@example.com', mutations: [] },
+        },
+      })
+
+      // Act
+      const source = localCompiler.generateSource(prepModel([block]), AnswerPreparationScope.RECONCILE)
+      await runGeneratedSource(source, ctx)
+
+      // Assert
+      expect(ctx.answers.email.current).toBe('test@example.com')
+      expect(ctx.answers.email.mutations).toEqual([])
+    })
+
+    it('should record no mutation for a field that has no stored answer to clear', async () => {
+      // Arrange
+      const block = createDependentField('email', 'showEmail')
+      const localCompiler = createSyncCompiler('isRequired')
+      const ctx = createCtx({ answers: { showEmail: { current: '', mutations: [] } } })
+
+      // Act
+      const source = localCompiler.generateSource(prepModel([block]), AnswerPreparationScope.RECONCILE)
+      await runGeneratedSource(source, ctx)
+
+      // Assert
+      expect(ctx.answers.email).toBeUndefined()
+    })
+
+    it('should seed no defaultValue for a field the reconcile pass leaves active', async () => {
+      // Arrange
+      const block = createFieldBlock('name', { defaultValue: 'Ada' })
+      const localCompiler = createSyncCompiler()
+      const ctx = createCtx({ answers: {} })
+
+      // Act
+      const source = localCompiler.generateSource(prepModel([block]), AnswerPreparationScope.RECONCILE)
+      await runGeneratedSource(source, ctx)
+
+      // Assert
+      expect(ctx.answers.name).toBeUndefined()
     })
   })
 })

@@ -137,6 +137,7 @@ describe('request trace contracts', () => {
         'context-preparation',
         'access',
         'answer-preparation',
+        'answer-reconciliation',
         'validities',
         'reachability',
         'answer-cleardown',

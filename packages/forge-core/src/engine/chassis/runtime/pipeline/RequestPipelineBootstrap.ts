@@ -13,6 +13,7 @@ import { createRequestPipelineTask } from './RequestPipelineWorkHandler'
 import { createRequestContextPreparationTask } from './RequestContextPreparationWorkHandler'
 import { createRequestAccessTask } from '../../../concerns/hooks/runtime/RequestAccessWorkHandler'
 import { createRequestAnswerPreparationTask } from '../../../concerns/answer-preparation/runtime/RequestAnswerPreparationWorkHandler'
+import { createRequestAnswerReconciliationTask } from '../../../concerns/answer-preparation/runtime/RequestAnswerReconciliationWorkHandler'
 import { createReachabilityValiditiesTask } from '../../../concerns/validation/runtime/ReachabilityValiditiesWorkHandler'
 import { createRequestReachabilityTask } from '../../../concerns/reachability/runtime/RequestReachabilityWorkHandler'
 import { createRequestAnswerCleardownTask } from '../../../concerns/answer-cleardown/runtime/RequestAnswerCleardownWorkHandler'
@@ -115,6 +116,11 @@ export default class RequestPipelineBootstrap {
 
     const stepNode = node as MountedStepNode
 
+    const answerReconciliation = createRequestAnswerReconciliationTask({
+      compiled: stepNode.compiledAnswerReconciliation,
+      path: node.path,
+    })
+
     const answerCleardown = createRequestAnswerCleardownTask({})
 
     const routeTree = createRequestRouteTreeTask({
@@ -141,6 +147,7 @@ export default class RequestPipelineBootstrap {
         contextPreparation,
         access,
         answerPreparation,
+        answerReconciliation,
         validities,
         reachability,
         answerCleardown,

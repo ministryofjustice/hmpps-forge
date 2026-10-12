@@ -27,6 +27,7 @@ type WorkOutputByKind = {
   readonly 'request.context-preparation': PhaseWorkOutput
   readonly 'request.access': PhaseWorkOutput
   readonly 'request.answer-preparation': PhaseWorkOutput
+  readonly 'request.answer-reconciliation': PhaseWorkOutput
   readonly 'request.validities': PhaseWorkOutput
   readonly 'request.reachability': PhaseWorkOutput
   readonly 'request.answer-cleardown': PhaseWorkOutput

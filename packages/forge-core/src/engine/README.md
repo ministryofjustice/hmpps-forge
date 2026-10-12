@@ -133,7 +133,7 @@ Read in pipeline order, they are:
 | Concern | Runtime phase | What it decides |
 |---|---|---|
 | [hooks](concerns/hooks/README.md) | `request.access`, `request.submit` | Whether authored lifecycle work halts, redirects, or branches the request |
-| [answer-preparation](concerns/answer-preparation/README.md) | `request.answer-preparation` | What the request's values become in the answer store |
+| [answer-preparation](concerns/answer-preparation/README.md) | `request.answer-preparation`, `request.answer-reconciliation` | What the request's values become in the answer store, and which answers on other steps their `dependentWhen` no longer allows |
 | [validation](concerns/validation/README.md) | `request.validities`, `request.entry-validation` | Which rules fail: reachability validity facts per step, and the current page's one displayed result |
 | [reachability](concerns/reachability/README.md) | `request.reachability` | Which steps the user can reach, and where to send them if not this one |
 | [answer-cleardown](concerns/answer-cleardown/README.md) | `request.answer-cleardown` | Which answers belong to steps no path can reach any more |

@@ -53,6 +53,35 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## Unreleased
+
+`dependentWhen` is now re-checked across the whole journey on every step
+submission.
+
+### For journey authors
+
+#### Fixes
+
+- A field whose `dependentWhen` reads an answer collected on a different step now
+  clears as soon as that answer stops satisfying the condition. Previously the
+  check only ran when the field's own step was being prepared, so the stale answer
+  survived until the user revisited that step.
+
+### For engine / internal developers
+
+#### Changes
+
+- Journeys compile a second answer-preparation artifact,
+  `compiledAnswerReconciliation`, in a new `RECONCILE` mode. It evaluates
+  `dependentWhen` for every owned step's fields and nothing else: no post read, no
+  default seeding, no formatters or parsers, and a `dependentWhen` mutation only
+  when an answer is actually stored to clear.
+- Step `POST` requests gain a `request.answer-reconciliation` phase that runs the
+  parent journey's pass directly after `request.answer-preparation`. Nested
+  sub-journeys compile and run their own pass.
+
+---
+
 ## 0.4.4
 
 Component definitions now accept Forge expressions for more GOV.UK and MOJ

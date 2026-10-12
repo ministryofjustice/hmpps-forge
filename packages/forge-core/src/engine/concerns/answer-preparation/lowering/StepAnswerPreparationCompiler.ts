@@ -28,6 +28,18 @@ import type { CompiledAnswerPreparationFunction } from '../../../chassis/contrac
 const CONTEXT = new IdentifierName('ctx')
 const HELPERS = new IdentifierName(GENERATED_FUNCTION_RUNTIME_LIBRARY_PARAM)
 
+/**
+ * Which pass the emitted source drives. `REQUEST` prepares the answers the
+ * current request carries, choosing GET or POST behaviour at runtime.
+ * `RECONCILE` re-runs `dependentWhen` over a whole journey's fields without
+ * reading the post body, so a step the request never rendered can still drop
+ * an answer that no longer applies.
+ */
+export enum AnswerPreparationScope {
+  REQUEST = 'REQUEST',
+  RECONCILE = 'RECONCILE',
+}
+
 /** Compiles GET/POST answer preparation for one generated step function. */
 export default class StepAnswerPreparationCompiler {
   private readonly expr: ExpressionDispatcher
@@ -53,16 +65,26 @@ export default class StepAnswerPreparationCompiler {
     return compileGeneratedFunction<CompiledAnswerPreparationFunction>(
       this.expr,
       ['ctx'],
-      () => this.buildSource(model),
+      () => this.buildSource(model, AnswerPreparationScope.REQUEST),
       { phase: CompilationPhase.ANSWER_PREPARATION, label: model.label },
     )
   }
 
-  generateSource(model: AnswerPreparationModel): string {
-    return renderGeneratedSource(this.expr, () => this.buildSource(model))
+  /** Compiles the journey-wide `dependentWhen` reconcile pass over the same model. */
+  compileReconciliation(model: AnswerPreparationModel): CompiledAnswerPreparationFunction {
+    return compileGeneratedFunction<CompiledAnswerPreparationFunction>(
+      this.expr,
+      ['ctx'],
+      () => this.buildSource(model, AnswerPreparationScope.RECONCILE),
+      { phase: CompilationPhase.ANSWER_PREPARATION, label: model.label },
+    )
   }
 
-  private buildSource(model: AnswerPreparationModel): CodeGenerator {
+  generateSource(model: AnswerPreparationModel, scope = AnswerPreparationScope.REQUEST): string {
+    return renderGeneratedSource(this.expr, () => this.buildSource(model, scope))
+  }
+
+  private buildSource(model: AnswerPreparationModel, scope: AnswerPreparationScope): CodeGenerator {
     const generator = CodeGenerator.forFunction(['ctx'])
 
     generator.directive('use strict')
@@ -76,11 +98,11 @@ export default class StepAnswerPreparationCompiler {
       return generator
     }
 
-    const mode = generator.const('answerPreparationMode', code`${CONTEXT}.request.method === "POST" ? "POST" : "GET"`)
+    const mode = this.compileMode(scope, generator)
     const fieldDefinitions = generator.const('fieldDefinitions', code`[]`)
 
-    this.compileFieldDefinitions(model.fields, fieldDefinitions, generator)
-    const prepareFieldAnswer = this.compileFieldPreparationSelector(mode, generator)
+    this.compileFieldDefinitions(model.fields, fieldDefinitions, scope, generator)
+    const prepareFieldAnswer = this.compileFieldPreparationSelector(scope, mode, generator)
     const fieldPreparations = this.compileFieldPreparationTasks(fieldDefinitions, mode, prepareFieldAnswer, generator)
 
     generator.return(code`${CONTEXT}.workTasks.answerPreparation(${fieldPreparations})`)
@@ -88,9 +110,18 @@ export default class StepAnswerPreparationCompiler {
     return generator
   }
 
+  private compileMode(scope: AnswerPreparationScope, generator: CodeGenerator): IdentifierName {
+    if (scope === AnswerPreparationScope.RECONCILE) {
+      return generator.const('answerPreparationMode', literal('RECONCILE'))
+    }
+
+    return generator.const('answerPreparationMode', code`${CONTEXT}.request.method === "POST" ? "POST" : "GET"`)
+  }
+
   private compileFieldDefinitions(
     fields: readonly FieldModel[],
     fieldDefinitions: IdentifierName,
+    scope: AnswerPreparationScope,
     generator: CodeGenerator,
   ): void {
     generator.comment('Field definitions')
@@ -98,7 +129,7 @@ export default class StepAnswerPreparationCompiler {
     this.templates.compileFieldOccurrences(fields, generator, {
       loopComment: 'Fields produced by an iterator',
       compileLeaf: field => {
-        this.compileFieldDefinitionEntry(field, fieldDefinitions, generator)
+        this.compileFieldDefinitionEntry(field, fieldDefinitions, scope, generator)
       },
     })
   }
@@ -106,6 +137,7 @@ export default class StepAnswerPreparationCompiler {
   private compileFieldDefinitionEntry(
     field: FieldModel,
     fieldDefinitions: IdentifierName,
+    scope: AnswerPreparationScope,
     generator: CodeGenerator,
   ): void {
     const isRegistered = field.iteratorPath.length === 0
@@ -124,13 +156,32 @@ export default class StepAnswerPreparationCompiler {
     this.expr.withSelfCodeExpression(codeExpression, () => {
       generator.statement(
         callCode(code`${fieldDefinitions}.push`, [
-          this.compileFieldDefinition(field, codeExpression ?? literal(undefined), generator),
+          this.compileFieldDefinition(field, codeExpression ?? literal(undefined), scope, generator),
         ]),
       )
     })
   }
 
-  private compileFieldDefinition(field: FieldModel, codeExpression: SafeCode, generator: CodeGenerator): CodeFragment {
+  private compileFieldDefinition(
+    field: FieldModel,
+    codeExpression: SafeCode,
+    scope: AnswerPreparationScope,
+    generator: CodeGenerator,
+  ): CodeFragment {
+    // The reconcile pass only picks the active variant, so the formatter,
+    // default, and parser callbacks would be dead weight in its source.
+    if (scope === AnswerPreparationScope.RECONCILE) {
+      const reconcileProperties: ObjectCodeProperty[] = [{ key: 'code', value: codeExpression }]
+
+      this.addOptionalDefinitionProperty(
+        reconcileProperties,
+        'evaluateDependentWhen',
+        this.compileDependentWhenCallback(field.dependentWhen, generator),
+      )
+
+      return objectCode(reconcileProperties)
+    }
+
     const definitionProperties: ObjectCodeProperty[] = [
       { key: 'code', value: codeExpression },
       { key: 'component', value: literal(field.component.variant) },
@@ -275,7 +326,17 @@ export default class StepAnswerPreparationCompiler {
     )
   }
 
-  private compileFieldPreparationSelector(mode: IdentifierName, generator: CodeGenerator): IdentifierName {
+  private compileFieldPreparationSelector(
+    scope: AnswerPreparationScope,
+    mode: IdentifierName,
+    generator: CodeGenerator,
+  ): IdentifierName {
+    if (scope === AnswerPreparationScope.RECONCILE) {
+      generator.comment('Reconcile every journey field against its dependentWhen')
+
+      return generator.const('prepareFieldAnswer', code`${HELPERS}.reconcileFieldAnswerGroup`)
+    }
+
     generator.comment('Select preparation using the request method')
 
     return generator.const(

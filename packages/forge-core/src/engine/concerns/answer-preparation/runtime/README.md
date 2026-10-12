@@ -125,6 +125,7 @@ flowchart TD
 ## Entry Points
 
 - [RequestAnswerPreparationWorkHandler.ts](RequestAnswerPreparationWorkHandler.ts) answers where the `request.answer-preparation` phase calls the compiled function.
+- [RequestAnswerReconciliationWorkHandler.ts](RequestAnswerReconciliationWorkHandler.ts) answers where the journey-wide `dependentWhen` reconcile pass runs on step `POST`.
 - [AnswerPreparationWorkHandler.ts](AnswerPreparationWorkHandler.ts) answers how field preparation tasks run as a phase.
 - [FieldAnswerPreparationWorkHandler.ts](FieldAnswerPreparationWorkHandler.ts) answers how one compiled field preparation runs.
 - [../contracts/AnswerPreparationWork.type.ts](../contracts/AnswerPreparationWork.type.ts) defines the props and result types.

@@ -67,6 +67,7 @@ export default class CodegenOrchestrator {
       compiledStaticData: this.compileStaticData(journey.staticData),
       compiledAccessLifecycle: hookCompiler.compileAccessLifecycle(journey.hooks.access),
       compiledAnswerPreparation: answerPrepCompiler.compile(journey.answerPreparation),
+      compiledAnswerReconciliation: answerPrepCompiler.compileReconciliation(journey.answerPreparation),
       compiledStepValidations: this.compileJourneyValidationIndex(journey),
     }
   }
