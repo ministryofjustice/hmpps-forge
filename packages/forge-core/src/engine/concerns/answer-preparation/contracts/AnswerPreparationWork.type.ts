@@ -1,7 +1,7 @@
 import type { AnswerMutation } from '../../../chassis/contracts/runtime/answerHistory.type'
 import type { WorkTask } from '../../../chassis/contracts/work/work.type'
 
-type AnswerPreparationMode = 'GET' | 'POST'
+type AnswerPreparationMode = 'GET' | 'POST' | 'RECONCILE'
 
 export interface AnswerPreparationFieldResult {
   readonly code: string | undefined

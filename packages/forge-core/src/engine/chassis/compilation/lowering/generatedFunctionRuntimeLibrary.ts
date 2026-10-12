@@ -62,21 +62,28 @@ interface FieldPreparationContext extends AnswerHistoryContext, ComponentInputCo
   post: Record<string, unknown>
 }
 
-/** One entry of a generated step's `fieldDefinitions` array; the callbacks carry the compiled authored expressions. */
-interface PreparedFieldDefinition {
+/**
+ * The part of a field definition the reconcile pass needs: which answer the
+ * field owns, and whether the field still applies.
+ */
+interface DependentFieldDefinition {
   code: string
+  evaluateDependentWhen?: () => unknown
+}
+
+/** One entry of a generated step's `fieldDefinitions` array; the callbacks carry the compiled authored expressions. */
+interface PreparedFieldDefinition extends DependentFieldDefinition {
   component: string
   acceptsMultipleValues: boolean
   validatesInput: boolean
   formatSubmittedValue?: (value: unknown) => unknown
-  evaluateDependentWhen?: () => unknown
   resolveDefaultValue?: () => unknown
   parseStoredValue?: (value: unknown) => unknown
 }
 
 interface PreparedFieldAnswer {
   code: string
-  mode: 'POST' | 'GET'
+  mode: 'POST' | 'GET' | 'RECONCILE'
   current: unknown
   parsed: unknown
   mutations: { value: unknown; source: string }[]
@@ -142,7 +149,9 @@ export interface GeneratedFunctionRuntimeLibrary {
   pushAnswerMutation(answerHistory: AnswerHistory, value: unknown, source: string): void
   normalizePostValue(rawValue: unknown, multiple: boolean): unknown
   checkComponentInputValue(ctx: ComponentInputContext, variant: string, value: unknown, multiple: boolean): unknown
-  groupFieldDefinitionsByCode(definitions: readonly PreparedFieldDefinition[]): PreparedFieldDefinition[][]
+  groupFieldDefinitionsByCode<TDefinition extends { code: string }>(
+    definitions: readonly TDefinition[],
+  ): TDefinition[][]
   preparePostedFieldAnswerGroup(
     ctx: FieldPreparationContext,
     fields: readonly PreparedFieldDefinition[],
@@ -150,6 +159,10 @@ export interface GeneratedFunctionRuntimeLibrary {
   prepareStoredFieldAnswerGroup(
     ctx: AnswerHistoryContext,
     fields: readonly PreparedFieldDefinition[],
+  ): Promise<PreparedFieldAnswer>
+  reconcileFieldAnswerGroup(
+    ctx: AnswerHistoryContext,
+    fields: readonly DependentFieldDefinition[],
   ): Promise<PreparedFieldAnswer>
   isTransformerTypeError(error: unknown): boolean
   resolveFieldValue(ctx: RenderFieldValueContext, blockProps: Record<string, unknown>): void
@@ -195,6 +208,7 @@ export const generatedFunctionRuntimeLibrary: GeneratedFunctionRuntimeLibrary = 
   groupFieldDefinitionsByCode,
   preparePostedFieldAnswerGroup,
   prepareStoredFieldAnswerGroup,
+  reconcileFieldAnswerGroup,
   isTransformerTypeError,
 
   resolveFieldValue(ctx, blockProps) {
@@ -375,9 +389,11 @@ function checkComponentInputValue(
  * only resolve their codes per request; entries without a resolvable code
  * each stay in their own group.
  */
-function groupFieldDefinitionsByCode(definitions: readonly PreparedFieldDefinition[]): PreparedFieldDefinition[][] {
-  const groups: PreparedFieldDefinition[][] = []
-  const groupsByCode = new Map<string, PreparedFieldDefinition[]>()
+function groupFieldDefinitionsByCode<TDefinition extends { code: string }>(
+  definitions: readonly TDefinition[],
+): TDefinition[][] {
+  const groups: TDefinition[][] = []
+  const groupsByCode = new Map<string, TDefinition[]>()
 
   definitions.forEach(definition => {
     const existingGroup = definition.code === undefined ? undefined : groupsByCode.get(definition.code)
@@ -404,9 +420,9 @@ function groupFieldDefinitionsByCode(definitions: readonly PreparedFieldDefiniti
  * declaration order whose `dependentWhen` holds (or which has none). Only the
  * owner runs preparation; inactive variants contribute nothing.
  */
-async function findActiveFieldVariant(
-  fields: readonly PreparedFieldDefinition[],
-): Promise<PreparedFieldDefinition | undefined> {
+async function findActiveFieldVariant<TDefinition extends DependentFieldDefinition>(
+  fields: readonly TDefinition[],
+): Promise<TDefinition | undefined> {
   // Sequential on purpose: first active variant in declaration order wins.
   for (const field of fields) {
     if (field.evaluateDependentWhen === undefined || (await field.evaluateDependentWhen())) {
@@ -455,6 +471,45 @@ async function prepareStoredFieldAnswerGroup(
   }
 
   return prepareStoredFieldAnswer(ctx, activeField)
+}
+
+/**
+ * The journey-wide reconcile pass. It re-runs `dependentWhen` for a field the
+ * current request never rendered, so an answer collected on one step stops
+ * applying once a later step's answer turns its condition off.
+ *
+ * Unlike POST preparation it never reads `ctx.post`: the request carries values
+ * for one step only, so an absent post value here means "not on this form",
+ * not "cleared". It also seeds no defaults and runs no formatters or parsers -
+ * the field's own step does that when the user reaches it.
+ */
+async function reconcileFieldAnswerGroup(
+  ctx: AnswerHistoryContext,
+  fields: readonly DependentFieldDefinition[],
+): Promise<PreparedFieldAnswer> {
+  const activeField = await findActiveFieldVariant(fields)
+
+  if (activeField === undefined) {
+    clearReconciledAnswer(ctx, fields[0].code)
+
+    return buildPreparedFieldAnswer(ctx, fields[0].code, 'RECONCILE')
+  }
+
+  return buildPreparedFieldAnswer(ctx, activeField.code, 'RECONCILE')
+}
+
+/**
+ * Clears a reconciled answer only when one is actually stored, so a field that
+ * has never been answered records no mutation and leaves the trace quiet.
+ */
+function clearReconciledAnswer(ctx: AnswerHistoryContext, code: string): void {
+  const answerHistory = ctx.answers[code]
+
+  if (answerHistory === undefined || answerHistory.current === undefined) {
+    return
+  }
+
+  pushAnswerMutation(answerHistory, undefined, 'dependentWhen')
 }
 
 async function preparePostedFieldAnswer(
@@ -520,7 +575,7 @@ async function prepareStoredFieldAnswer(
 function buildPreparedFieldAnswer(
   ctx: AnswerHistoryContext,
   fieldCode: string,
-  mode: 'POST' | 'GET',
+  mode: 'POST' | 'GET' | 'RECONCILE',
 ): PreparedFieldAnswer {
   const preparedAnswerHistory: AnswerHistory | undefined = ctx.answers[fieldCode]
 

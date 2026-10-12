@@ -117,6 +117,7 @@ export const STEP_CODEGEN_WORK_HANDLER: WorkHandler<'codegen.step', StepCodegenW
       compiledReachabilityFacts: journeyFunctions.compiledReachabilityFacts,
       compiledReachabilityState: journeyFunctions.compiledReachabilityState,
       compiledFieldInventory: journeyFunctions.compiledFieldInventory,
+      compiledAnswerReconciliation: journeyFunctions.compiledAnswerReconciliation,
       compiledStepValidations: journeyFunctions.compiledStepValidations,
       ...stepFunctions,
       ...state.packageFunctions,

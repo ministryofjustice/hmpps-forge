@@ -28,6 +28,7 @@ export interface CompiledJourneyFunctions {
   compiledStaticData: CompiledStaticDataFunction
   compiledAccessLifecycle: CompiledAccessLifecycleFunction
   compiledAnswerPreparation: CompiledAnswerPreparationFunction
+  compiledAnswerReconciliation: CompiledAnswerPreparationFunction
   compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
 }
 
@@ -50,6 +51,7 @@ export interface CompiledStep {
   compiledAccessLifecycle: CompiledAccessLifecycleFunction
   compiledSubmitHooks: CompiledSubmitHooksFunction
   compiledAnswerPreparation: CompiledAnswerPreparationFunction
+  compiledAnswerReconciliation: CompiledAnswerPreparationFunction
   compiledValidation: CompiledValidationFunction
   compiledEntryValidation: CompiledEntryValidationFunction
   compiledResolve: CompiledResolveFunction
@@ -65,6 +67,7 @@ export interface CompiledJourney {
   compiledStaticData: CompiledStaticDataFunction
   compiledAccessLifecycle: CompiledAccessLifecycleFunction
   compiledAnswerPreparation: CompiledAnswerPreparationFunction
+  compiledAnswerReconciliation: CompiledAnswerPreparationFunction
   compiledStepValidations: ReadonlyMap<NodeId, CompiledValidationFunction>
   compiledRouteMetadata: CompiledRouteMetadataFunction
 }

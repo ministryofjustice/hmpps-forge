@@ -118,7 +118,10 @@ flowchart TD
   pipeline["request.pipeline"] -->|"first-match"| contextPrep["request.context-preparation"]
   contextPrep --> access["request.access"]
   access --> answerPrep["request.answer-preparation"]
-  answerPrep --> validities["request.validities"]
+  answerPrep --> prepMethod{"Request method"}
+  prepMethod -->|"GET"| validities["request.validities"]
+  prepMethod -->|"POST"| reconcile["request.answer-reconciliation"]
+  reconcile --> validities
   validities --> reachability["request.reachability"]
   reachability --> nodeKind{"Mounted node kind"}
   nodeKind -->|"journey"| journeyRedirect["redirect to reachable step"]
@@ -142,7 +145,7 @@ Runtime executes that work against one request.
 | Concern | Compiled artifact | Runtime phase |
 |---|---|---|
 | [hooks](../../concerns/hooks/README.md) | `compiledAccessLifecycle` | `request.access` runs `access.lifecycle` |
-| [answer-preparation](../../concerns/answer-preparation/README.md) | `compiledAnswerPreparation` | `request.answer-preparation` runs `answer.preparation` |
+| [answer-preparation](../../concerns/answer-preparation/README.md) | `compiledAnswerPreparation`, `compiledAnswerReconciliation` | `request.answer-preparation` runs `answer.preparation`; on step `POST`, `request.answer-reconciliation` runs the parent journey's `dependentWhen` pass |
 | [validation](../../concerns/validation/README.md) | `compiledStepValidations` journey index, `compiledEntryValidation` | `request.validities` runs `validation.step` tasks when reachability checks are enabled; `request.entry-validation` triggers `validation.current-step` |
 | [reachability](../../concerns/reachability/README.md) | `compiledReachabilityFacts` + `compiledReachabilityState` | `request.reachability` evaluates reachability and resolves redirects |
 | [answer-cleardown](../../concerns/answer-cleardown/README.md) | `compiledFieldInventory` | `request.reachability` evaluates it on step requests; `request.answer-cleardown` clears stale answers against the projection built from it |

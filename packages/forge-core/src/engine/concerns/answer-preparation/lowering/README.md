@@ -17,6 +17,11 @@ This document does not cover validation, rendering, or answer preparation work-h
 `CodegenOrchestrator` uses the same compiler for step answer preparation and journey answer preparation.
 Journey calls pass the journey model, which aggregates the owned steps' fields in step order.
 
+`compileReconciliation()` takes the same journey model and emits the reconcile variant instead.
+Its mode is the fixed string `"RECONCILE"`, its field definitions carry only `code` and `evaluateDependentWhen`,
+and its preparation helper is `reconcileFieldAnswerGroup`.
+It is compiled once per journey as `compiledAnswerReconciliation` and mounted on every owned step.
+
 ## Work Returned
 
 The compiled function returns:
@@ -41,6 +46,9 @@ The runtime work executor runs the answer-preparation handler and field handlers
   It can set parsed state without replacing the current answer value.
 - `dependentWhen` can clear a prepared value.
   It runs after formatter processing on POST.
+- RECONCILE mode evaluates `dependentWhen` and nothing else.
+  It reads no post value, seeds no default, and runs no formatter or parser.
+  It records a `dependentWhen` mutation only when an answer is actually stored to clear.
 - Iterator template fields are compiled inline.
   The runtime does not instantiate AST nodes to prepare iterator answers.
 
@@ -48,6 +56,7 @@ The runtime work executor runs the answer-preparation handler and field handlers
 
 - To change POST behavior, start in `preparePostedFieldAnswerGroup()` in [generatedFunctionRuntimeLibrary.ts](../../../chassis/compilation/lowering/generatedFunctionRuntimeLibrary.ts).
 - To change GET/default behavior, start in `prepareStoredFieldAnswerGroup()` in the same runtime library.
+- To change reconcile behavior, start in `reconcileFieldAnswerGroup()` in the same runtime library.
 - To change formatter sequencing, start in `runPostedFieldPipeline()` there.
 - To change iterator field preparation, start in `FieldModelBuilder` for classification and `compileFieldDefinitionEntry()` for the emitted entries.
 - To inspect generated source, use `generateSource()` in the tests.

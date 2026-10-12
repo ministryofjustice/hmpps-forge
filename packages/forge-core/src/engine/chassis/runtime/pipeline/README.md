@@ -105,6 +105,7 @@ A step `POST` with a renderer becomes an ordered phase list:
   'request.context-preparation',
   'request.access',
   'request.answer-preparation',
+  'request.answer-reconciliation',
   'request.validities',
   'request.reachability',
   'request.answer-cleardown',
@@ -147,7 +148,10 @@ flowchart TD
   pipelineTask -->|"first-match phases"| contextPrep["request.context-preparation"]
   contextPrep --> access["request.access"]
   access --> answerPrep["request.answer-preparation"]
-  answerPrep --> validities["request.validities"]
+  answerPrep --> method0{"Request method"}
+  method0 -->|GET| validities["request.validities"]
+  method0 -->|POST| reconcile["request.answer-reconciliation"]
+  reconcile --> validities
   validities --> reachability["request.reachability"]
   reachability --> decision{"Journey or step?"}
   decision -->|journey| redirect["halt-redirect"]

@@ -53,6 +53,8 @@ interface MountedNodeBase {
 
 export interface MountedStepNode extends MountedNodeBase {
   readonly kind: 'step'
+  /** The parent journey's reconcile pass, run after this step's own POST preparation. */
+  readonly compiledAnswerReconciliation: CompiledAnswerPreparationFunction
   readonly compiledEntryValidation: CompiledEntryValidationFunction
   readonly compiledSubmitHooks: CompiledSubmitHooksFunction
   readonly compiledValidation: CompiledValidationFunction
@@ -151,6 +153,7 @@ export default class MountRegistry {
         compiledStaticData: compiledStep.compiledStaticData,
         compiledAccessLifecycle: compiledStep.compiledAccessLifecycle,
         compiledAnswerPreparation: compiledStep.compiledAnswerPreparation,
+        compiledAnswerReconciliation: compiledStep.compiledAnswerReconciliation,
         compiledStepValidations: compiledStep.compiledStepValidations,
         compiledRouteMetadata: compiledStep.compiledRouteMetadata,
         compiledEntryValidation: compiledStep.compiledEntryValidation,
