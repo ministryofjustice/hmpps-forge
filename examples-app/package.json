@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^4.0.1",
-    "@ministryofjustice/frontend": "9.0.0",
+    "@ministryofjustice/frontend": "11.1.0",
     "@ministryofjustice/hmpps-auth-clients": "^2.0.0",
     "@ministryofjustice/hmpps-azure-telemetry": "0.0.1-alpha.3",
     "@ministryofjustice/hmpps-forge": "file:../packages",

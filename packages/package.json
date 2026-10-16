@@ -1,6 +1,6 @@
 {
   "name": "@ministryofjustice/hmpps-forge",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "HMPPS Forge",
   "keywords": [
     "hmpps",
@@ -118,7 +118,7 @@
   "devDependencies": {
     "@boundaries/eslint-plugin": "^6.0.2",
     "@ministryofjustice/eslint-config-hmpps": "^1.0.3",
-    "@ministryofjustice/frontend": "^9.0.0",
+    "@ministryofjustice/frontend": "^11.1.0",
     "@tsconfig/node24": "^24.0.1",
     "@types/chrome": "^0.1.43",
     "@types/express": "^5.0.6",
