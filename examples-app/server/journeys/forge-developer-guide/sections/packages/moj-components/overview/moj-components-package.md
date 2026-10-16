@@ -21,6 +21,10 @@ components with patterns specific to MOJ services.
 
 ```typescript
 import {
+  MOJNotificationBadge,
+  MOJIdentityBar,
+  MOJPageHeaderActions,
+  MOJInterruptionCard,
   MOJAlert,
   MOJBadge,
   MOJBanner,
@@ -47,11 +51,11 @@ import {
 The package currently provides:
 
 - **Messages and status** - alert, badge, banner, messages, progress
-  bar, ticket panel, and timeline
+  bar, notification badge, ticket panel, interruption card, and timeline
 - **Navigation** - side navigation and sub navigation
-- **Actions and layout** - button menu, card, and card group
-- **Forms and lists** - date picker, filter, multi-select, and
-  sortable table
+- **Actions and layout** - button menu, card, card group, identity bar, and page
+  header actions
+- **Forms and lists** - date picker, filter, multi-select, and sortable table
 
 Each component accepts the same properties as the corresponding MOJ
 Design System pattern, translated into Forge's declarative block

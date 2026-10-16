@@ -16,6 +16,10 @@ import { MOJTimeline } from './timeline/mojTimeline'
 import { MOJMessages } from './messages/mojMessages'
 import { MOJMultiSelect } from './multi-select/mojMultiSelect'
 import { MOJSortableTable } from './sortable-table/mojSortableTable'
+import { MOJNotificationBadge } from './notification-badge/mojNotificationBadge'
+import { MOJIdentityBar } from './identity-bar/mojIdentityBar'
+import { MOJPageHeaderActions } from './page-header-actions/mojPageHeaderActions'
+import { MOJInterruptionCard } from './interruption-card/mojInterruptionCard'
 
 // Re-export supporting types
 export type { MOJAlertVariant, MOJAlertHeadingTag } from './alert/mojAlert'
@@ -51,6 +55,10 @@ export type { MOJMessageItem, MOJMessageType } from './messages/mojMessages'
 export type { MultiSelectHeadCell, MultiSelectCell, MultiSelectRow } from './multi-select/mojMultiSelect'
 export type { SortableTableHeadCell, SortableTableCell, SortableTableRow } from './sortable-table/mojSortableTable'
 
+export type { MOJIdentityBarTitle, MOJIdentityBarMenu } from './identity-bar/mojIdentityBar'
+export type { MOJPageHeaderActionsHeading } from './page-header-actions/mojPageHeaderActions'
+export type { MOJInterruptionCardAction } from './interruption-card/mojInterruptionCard'
+
 // Re-export the components (each const is both the block builder and the registry entry)
 export { MOJAlert } from './alert/mojAlert'
 export { MOJBadge } from './badge/mojBadge'
@@ -69,8 +77,17 @@ export { MOJMessages } from './messages/mojMessages'
 export { MOJMultiSelect } from './multi-select/mojMultiSelect'
 export { MOJSortableTable } from './sortable-table/mojSortableTable'
 
+export { MOJNotificationBadge } from './notification-badge/mojNotificationBadge'
+export { MOJIdentityBar } from './identity-bar/mojIdentityBar'
+export { MOJPageHeaderActions } from './page-header-actions/mojPageHeaderActions'
+export { MOJInterruptionCard } from './interruption-card/mojInterruptionCard'
+
 /** All MOJ component definitions */
 export const mojComponents: ComponentRegistryEntry<BlockDefinition, string>[] = [
+  MOJNotificationBadge,
+  MOJIdentityBar,
+  MOJPageHeaderActions,
+  MOJInterruptionCard,
   MOJAlert,
   MOJBadge,
   MOJBanner,

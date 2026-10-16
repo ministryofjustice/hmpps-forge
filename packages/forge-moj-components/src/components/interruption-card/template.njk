@@ -1,0 +1,4 @@
+{% from "moj/components/interruption-card/macro.njk" import interruptionCard %}
+{% call interruptionCard(params) %}
+  {{ params.html | safe if params.html else params.text }}
+{% endcall %}
