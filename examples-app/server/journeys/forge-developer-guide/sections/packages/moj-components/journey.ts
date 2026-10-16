@@ -17,6 +17,11 @@ import { subNavigationStep } from './sub-navigation/step'
 import { ticketPanelStep } from './ticket-panel/step'
 import { timelineStep } from './timeline/step'
 
+import { notificationBadgeStep } from './notification-badge/step'
+import { identityBarStep } from './identity-bar/step'
+import { pageHeaderActionsStep } from './page-header-actions/step'
+import { interruptionCardStep } from './interruption-card/step'
+
 export const mojComponentsJourney = journey({
   code: 'moj-components',
   title: 'MOJ Components',
@@ -27,6 +32,10 @@ export const mojComponentsJourney = journey({
   },
   steps: [
     mojComponentsOverviewStep,
+    notificationBadgeStep,
+    identityBarStep,
+    pageHeaderActionsStep,
+    interruptionCardStep,
     alertStep,
     badgeStep,
     bannerStep,

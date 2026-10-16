@@ -53,6 +53,35 @@ Delete empty sections. Use "No changes in this release." for sections with nothi
 
 ---
 
+## 0.4.5
+
+### Added
+
+- Added `MOJIdentityBar`, `MOJInterruptionCard`, `MOJNotificationBadge`, and
+  `MOJPageHeaderActions` to the MOJ component package, with tests and developer
+  guide documentation.
+
+### Changed
+
+- Updated `@ministryofjustice/frontend` from 9.0.0 to 11.1.0 in Forge's development
+  dependencies and the examples app.
+
+- Forge POST routes now reject a request body that is not
+  `application/x-www-form-urlencoded` with a 415, before Forge runs. Previously a
+  JSON body went straight to answer preparation. In a 100KB body, a checkbox answer
+  can hold about 50,000 invalid elements. Zod builds one issue for each of them,
+  which costs about 25MB per request ([CVE-2023-54404], with no Zod fix yet). The
+  urlencoded parser already caps form bodies at 1000 parameters and 5 levels of
+  nesting. To accept JSON again, pass
+  `acceptedBodyTypes: [RequestBodyType.FORM, RequestBodyType.JSON]` to
+  `createExpressRouter`. The app's JSON parser then owns the size and shape limits.
+  Breaking only for apps that post JSON to Forge steps ([#350])
+
+[#350]: https://github.com/ministryofjustice/hmpps-forge/pull/350
+[CVE-2023-54404]: https://www.cve.org/CVERecord?id=CVE-2023-54404
+
+---
+
 ## 0.4.4
 
 Component definitions now accept Forge expressions for more GOV.UK and MOJ

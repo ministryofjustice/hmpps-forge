@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module'
+import { fileURLToPath } from 'node:url'
 
 import type nunjucks from 'nunjucks'
 import { vi } from 'vitest'
@@ -76,7 +77,9 @@ export class MojComponentTestHelper<T extends BlockDefinition> {
     const mojPath = MojComponentTestHelper.require
       .resolve('@ministryofjustice/frontend/package.json')
       .replace('/package.json', '/')
-    const realEnv = nunjucksReal.configure([govukPath, mojPath])
+    const realEnv = nunjucksReal.configure([fileURLToPath(new URL('../', import.meta.url)), govukPath, mojPath], {
+      autoescape: true,
+    })
 
     const block: EvaluatedBlock<T> = {
       type: StructureType.BLOCK,

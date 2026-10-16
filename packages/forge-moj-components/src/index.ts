@@ -25,6 +25,10 @@ export { mojComponents } from './components/index'
 
 // Re-export wrapper functions (each also exports its interface type)
 export {
+  MOJNotificationBadge,
+  MOJIdentityBar,
+  MOJPageHeaderActions,
+  MOJInterruptionCard,
   MOJAlert,
   MOJBadge,
   MOJBanner,
@@ -45,6 +49,10 @@ export {
 
 // Re-export supporting types
 export type {
+  MOJIdentityBarTitle,
+  MOJIdentityBarMenu,
+  MOJPageHeaderActionsHeading,
+  MOJInterruptionCardAction,
   MOJAlertVariant,
   MOJAlertHeadingTag,
   MOJBadgeColour,

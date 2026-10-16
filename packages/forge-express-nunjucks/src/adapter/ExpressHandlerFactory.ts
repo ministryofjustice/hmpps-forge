@@ -34,6 +34,23 @@ export default class ExpressHandlerFactory {
     }
   }
 
+  /**
+   * Rejects a POST whose body type isn't accepted with a 415 before Forge runs, so answers only
+   * ever arrive in shapes the accepted parsers bound. `req.is()` returns null rather than false
+   * for a request with no body, which passes - there's nothing in it to parse.
+   */
+  static createBodyTypeGuard(acceptedBodyTypes: string[]): express.RequestHandler {
+    return (req, res, next) => {
+      if (req.is(acceptedBodyTypes) === false) {
+        next(this.toHttpError(415, new Error('Unsupported request body type')))
+
+        return
+      }
+
+      next()
+    }
+  }
+
   private static createResponseBindings(res: express.Response): ResponseBindings {
     return {
       setHeader(name, value) {
