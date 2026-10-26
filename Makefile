@@ -77,6 +77,7 @@ install-node-modules: ## Installs Node modules into the Docker volume.
 	@docker volume create ${PROJECT_NAME}_examples_app_node_modules > /dev/null 2>&1 || true
 	@docker run --rm \
 	  -v ./examples-app/package.json:/app/examples-app/package.json:ro \
+	  -v ./examples-app/package-lock.json:/app/examples-app/package-lock.json:ro \
 	  -v ./examples-app/.allowed-scripts.mjs:/app/examples-app/.allowed-scripts.mjs:ro \
 	  -v ./packages/package.json:/app/packages/package.json:ro \
 	  -v ./packages/dist:/app/packages/dist:ro \
@@ -84,11 +85,11 @@ install-node-modules: ## Installs Node modules into the Docker volume.
 	  -v ${PROJECT_NAME}_examples_app_node_modules:/app/examples-app/node_modules \
 	  node:24-slim \
 	  /bin/sh -c '\
-	    CURRENT_HASH=$$(cat /app/examples-app/package.json /app/packages/package.json | sha256sum | cut -d" " -f1); \
+	    CURRENT_HASH=$$(cat /app/examples-app/package.json /app/examples-app/package-lock.json /app/packages/package.json | sha256sum | cut -d" " -f1); \
 	    STORED_HASH=$$(cat /app/examples-app/node_modules/.package-hash 2>/dev/null || echo ""); \
 	    if [ "$$CURRENT_HASH" != "$$STORED_HASH" ]; then \
-	      echo "Package files changed, running npm install..."; \
-	      cd /app/examples-app && npm install --install-links --no-package-lock --cache /npm_cache --prefer-offline && \
+	      echo "Package files changed, running npm ci..."; \
+	      cd /app/examples-app && npm ci --install-links --cache /npm_cache --prefer-offline && \
 	      echo "$$CURRENT_HASH" > /app/examples-app/node_modules/.package-hash; \
 	    else \
 	      echo "node_modules is up-to-date."; \
