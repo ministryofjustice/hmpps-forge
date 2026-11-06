@@ -1,0 +1,22 @@
+[package]
+name = "forge-core"
+version = "0.1.0"
+edition = "2024"
+description = "Rust port of @ministryofjustice/hmpps-forge core: declarative server-rendered journeys."
+publish = false
+
+[dependencies]
+chrono = "0.4"
+chrono-tz = "0.10"
+fancy-regex = "0.14"
+futures = "0.3"
+indexmap = "2"
+regex = "1"
+ryu-js = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+thiserror = "2"
+url = "2"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt"] }

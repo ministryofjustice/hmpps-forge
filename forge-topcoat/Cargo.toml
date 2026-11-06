@@ -1,0 +1,18 @@
+[package]
+name = "forge-topcoat"
+version = "0.1.0"
+edition = "2024"
+description = "Topcoat adapter for forge-core: mounts Forge journeys as Topcoat routes (port of forge-express-nunjucks)."
+publish = false
+
+[dependencies]
+forge-core = { path = "../forge-core" }
+http = "1"
+# Topcoat is early-stage with frequent breaking releases: pin exactly.
+topcoat = "=0.11.0"
+
+[dev-dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }
+forge-govuk-components = { path = "../forge-govuk-components" }
+forge-runjucks = { path = "../forge-runjucks" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

@@ -1,0 +1,234 @@
+diff --color -ruN -x target -x Cargo.toml.orig -x .cargo_vcs_info.json grass_compiler-0.13.4/src/ast/css.rs grass_compiler/src/ast/css.rs
+--- grass_compiler-0.13.4/src/ast/css.rs	2006-07-24 02:21:28
++++ grass_compiler/src/ast/css.rs	2026-11-05 16:58:32
+@@ -52,17 +52,22 @@
+     }
+ 
+     pub fn is_invisible(&self) -> bool {
++        self.is_invisible_with(false)
++    }
++
++    /// dart-sass's `IsInvisibleVisitor(includeComments: compressed)`: in compressed output,
++    /// comments other than preserved `/*!` ones are invisible, so a rule holding only comments
++    /// is dropped and they never count as a rule's last child.
++    pub fn is_invisible_with(&self, compressed: bool) -> bool {
++        let all = |body: &[CssStmt]| body.iter().all(|s| s.is_invisible_with(compressed));
+         match self {
+-            CssStmt::RuleSet { selector, body, .. } => {
+-                selector.is_invisible() || body.iter().all(CssStmt::is_invisible)
+-            }
++            CssStmt::RuleSet { selector, body, .. } => selector.is_invisible() || all(body),
+             CssStmt::Style(style) => style.value.node.is_blank(),
+-            CssStmt::Media(media_rule, ..) => media_rule.body.iter().all(CssStmt::is_invisible),
+-            CssStmt::UnknownAtRule(..) | CssStmt::Import(..) | CssStmt::Comment(..) => false,
+-            CssStmt::Supports(supports_rule, ..) => {
+-                supports_rule.body.iter().all(CssStmt::is_invisible)
+-            }
+-            CssStmt::KeyframesRuleSet(kf) => kf.body.iter().all(CssStmt::is_invisible),
++            CssStmt::Media(media_rule, ..) => all(&media_rule.body),
++            CssStmt::Comment(comment, ..) => compressed && !comment.starts_with("/*!"),
++            CssStmt::UnknownAtRule(..) | CssStmt::Import(..) => false,
++            CssStmt::Supports(supports_rule, ..) => all(&supports_rule.body),
++            CssStmt::KeyframesRuleSet(kf) => all(&kf.body),
+         }
+     }
+ 
+diff --color -ruN -x target -x Cargo.toml.orig -x .cargo_vcs_info.json grass_compiler-0.13.4/src/evaluate/visitor.rs grass_compiler/src/evaluate/visitor.rs
+--- grass_compiler-0.13.4/src/evaluate/visitor.rs	2006-07-24 02:21:28
++++ grass_compiler/src/evaluate/visitor.rs	2026-11-05 16:57:02
+@@ -546,10 +546,15 @@
+         // todo: different errors based on this
+         _names_in_errors: bool,
+     ) -> SassResult<Arc<RefCell<Module>>> {
+-        let url = stylesheet.url.clone();
++        // Modules are identified by canonical URL, as in dart-sass: the same file reached through
++        // different relative paths (`a/../b/_x.scss` and `b/_x.scss`) is one module, executed once.
++        let url = self
++            .options
++            .fs
++            .canonicalize(&stylesheet.url)
++            .unwrap_or_else(|_| stylesheet.url.clone());
+ 
+-        // todo: use canonical url for modules
+-        if let Some(already_loaded) = self.modules.get(&stylesheet.url) {
++        if let Some(already_loaded) = self.modules.get(&url) {
+             let current_configuration =
+                 configuration.unwrap_or_else(|| Rc::clone(&self.configuration));
+ 
+@@ -798,7 +803,7 @@
+     /// <https://sass-lang.com/documentation/at-rules/import#finding-the-file>
+     /// <https://sass-lang.com/documentation/at-rules/import#load-paths>
+     #[allow(clippy::cognitive_complexity, clippy::redundant_clone)]
+-    pub fn find_import(&self, path: &Path) -> Option<PathBuf> {
++    pub fn find_import(&self, path: &Path, for_import: bool) -> Option<PathBuf> {
+         let path_buf = if path.is_absolute() {
+             path.into()
+         } else {
+@@ -831,21 +836,35 @@
+             || path_buf.extension() == Some(OsStr::new("css"))
+         {
+             let extension = path_buf.extension().unwrap();
+-            try_path!(path_buf.with_extension(format!(".import{}", extension.to_str().unwrap())));
++            if for_import {
++                try_path!(path_buf.with_extension(format!(".import{}", extension.to_str().unwrap())));
++            }
+             try_path!(path_buf);
+             // todo: consider load paths
+             return None;
+         }
+ 
++        // Sass appends extensions to the URL (`breakpoints.mixin` -> `breakpoints.mixin.scss`);
++        // `Path::with_extension` would replace `.mixin` instead.
++        fn append_extension(path: &Path, ext: &str) -> PathBuf {
++            let mut name = path.file_name().map(|n| n.to_os_string()).unwrap_or_default();
++            name.push(".");
++            name.push(ext);
++            path.with_file_name(name)
++        }
++
+         macro_rules! try_path_with_extensions {
+             ($path:expr) => {
+                 let path = $path;
+-                try_path!(path.with_extension("import.sass"));
+-                try_path!(path.with_extension("import.scss"));
+-                try_path!(path.with_extension("import.css"));
+-                try_path!(path.with_extension("sass"));
+-                try_path!(path.with_extension("scss"));
+-                try_path!(path.with_extension("css"));
++                // Import-only files are only candidates for `@import`, never `@use`/`@forward`.
++                if for_import {
++                    try_path!(append_extension(&path, "import.sass"));
++                    try_path!(append_extension(&path, "import.scss"));
++                    try_path!(append_extension(&path, "import.css"));
++                }
++                try_path!(append_extension(&path, "sass"));
++                try_path!(append_extension(&path, "scss"));
++                try_path!(append_extension(&path, "css"));
+             };
+         }
+ 
+@@ -884,10 +903,10 @@
+     fn import_like_node(
+         &mut self,
+         url: &str,
+-        _for_import: bool,
++        for_import: bool,
+         span: Span,
+     ) -> SassResult<StyleSheet> {
+-        if let Some(name) = self.find_import(url.as_ref()) {
++        if let Some(name) = self.find_import(url.as_ref(), for_import) {
+             let name = self.options.fs.canonicalize(&name).unwrap_or(name);
+             if let Some(style_sheet) = self.import_cache.get(&name) {
+                 return Ok(style_sheet.clone());
+@@ -1022,6 +1041,7 @@
+         let node = CssStmt::Import(import, modifiers);
+ 
+         if self.parent.is_some() && self.parent != Some(CssTree::ROOT) {
++            self.copy_parent_after_sibling();
+             self.css_tree.add_stmt(node, self.parent);
+         } else {
+             self.import_nodes.push(node);
+@@ -1498,6 +1518,7 @@
+                 false,
+             );
+ 
++            self.copy_parent_after_sibling();
+             self.css_tree.add_stmt(stmt, self.parent);
+ 
+             return Ok(None);
+@@ -1658,6 +1679,32 @@
+         self.css_tree.add_child(node, parent)
+     }
+ 
++    /// `_copyParentAfterSibling` (dart-sass 1.92+ declaration ordering): when something has
++    /// been emitted after the current parent in its own parent (a nested rule bubbled up, or a
++    /// media query), new declarations go into a copy of the parent placed after it, so CSS keeps
++    /// source order instead of hoisting them into the first block.
++    fn copy_parent_after_sibling(&mut self) {
++        let Some(parent) = self.parent.filter(|p| *p != CssTree::ROOT) else {
++            return;
++        };
++        let Some(&grandparent) = self.css_tree.child_to_parent.get(&parent) else {
++            return;
++        };
++        let last = self
++            .css_tree
++            .parent_to_child
++            .get(&grandparent)
++            .and_then(|children| children.last())
++            .copied();
++        if last == Some(parent) {
++            return;
++        }
++        let copy = self.css_tree.get(parent).as_ref().map(CssStmt::copy_without_children);
++        if let Some(copy) = copy {
++            self.parent = Some(self.css_tree.add_child(copy, grandparent));
++        }
++    }
++
+     fn with_parent<F: FnOnce(&mut Self) -> SassResult<()>, FT: Fn(&CssStmt) -> bool>(
+         &mut self,
+         parent: CssStmt,
+@@ -1958,6 +2005,7 @@
+             self.perform_interpolation(comment.text, false)?,
+             comment.span,
+         );
++        self.copy_parent_after_sibling();
+         self.css_tree.add_stmt(comment, self.parent);
+ 
+         Ok(None)
+@@ -3047,6 +3095,7 @@
+             // If the value is an empty list, preserve it, because converting it to CSS
+             // will throw an error that we want the user to see.
+             if !value.is_blank() || value.is_empty_list() {
++                self.copy_parent_after_sibling();
+                 // todo: superfluous clones?
+                 self.css_tree.add_stmt(
+                     CssStmt::Style(Style {
+diff --color -ruN -x target -x Cargo.toml.orig -x .cargo_vcs_info.json grass_compiler-0.13.4/src/lib.rs grass_compiler/src/lib.rs
+--- grass_compiler-0.13.4/src/lib.rs	2006-07-24 02:21:28
++++ grass_compiler/src/lib.rs	2026-11-05 16:58:32
+@@ -1,3 +1,4 @@
++#![allow(warnings)]
+ /*!
+ This crate provides functionality for compiling [Sass](https://sass-lang.com/) to CSS.
+ 
+@@ -202,7 +203,7 @@
+     let mut prev_was_group_end = false;
+     let mut prev_requires_semicolon = false;
+     for stmt in stmts {
+-        if stmt.is_invisible() {
++        if stmt.is_invisible_with(options.is_compressed()) {
+             continue;
+         }
+ 
+diff --color -ruN -x target -x Cargo.toml.orig -x .cargo_vcs_info.json grass_compiler-0.13.4/src/serializer.rs grass_compiler/src/serializer.rs
+--- grass_compiler-0.13.4/src/serializer.rs	2006-07-24 02:21:28
++++ grass_compiler/src/serializer.rs	2026-11-05 16:58:32
+@@ -1030,6 +1030,8 @@
+     }
+ 
+     fn write_children(&mut self, mut children: Vec<CssStmt>) -> SassResult<()> {
++        let compressed = self.options.is_compressed();
++        children.retain(|child| !child.is_invisible_with(compressed));
+         if self.options.is_compressed() {
+             self.buffer.push(b'{');
+         } else {
+@@ -1109,7 +1111,7 @@
+ 
+     /// Returns whether or not text was written
+     fn visit_stmt(&mut self, stmt: CssStmt) -> SassResult<bool> {
+-        if stmt.is_invisible() {
++        if stmt.is_invisible_with(self.options.is_compressed()) {
+             return Ok(false);
+         }
+ 
+@@ -1151,7 +1153,7 @@
+                 if !unknown_at_rule.has_body {
+                     debug_assert!(unknown_at_rule.body.is_empty());
+                     return Ok(true);
+-                } else if unknown_at_rule.body.iter().all(CssStmt::is_invisible) {
++                } else if unknown_at_rule.body.iter().all(|s| s.is_invisible_with(self.options.is_compressed())) {
+                     self.buffer.extend_from_slice(b" {}");
+                     return Ok(true);
+                 }

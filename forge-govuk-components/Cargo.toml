@@ -1,0 +1,14 @@
+[package]
+name = "forge-govuk-components"
+version = "0.1.0"
+edition = "2024"
+description = "GOV.UK Frontend components for forge-core, rendered with the upstream Nunjucks macros via Runjucks."
+publish = false
+
+[dependencies]
+forge-core = { path = "../forge-core" }
+forge-runjucks = { path = "../forge-runjucks" }
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[dev-dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }

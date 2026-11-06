@@ -1,0 +1,48 @@
+[package]
+name = "grass_compiler"
+version = "0.13.4"
+edition = "2021"
+description = "Internal implementation of the grass compiler"
+readme = "README.md"
+license = "MIT"
+categories = ["web-programming"]
+keywords = ["scss", "sass", "css", "web"]
+repository = "https://github.com/connorskees/grass"
+authors = ["Connor Skees <39542938+ConnorSkees@users.noreply.github.com>"]
+rust-version = "1.70"
+
+[lib]
+name = "grass_compiler"
+path = "src/lib.rs"
+# crate-type = ["cdylib", "rlib"]
+bench = false
+
+[package.metadata.docs.rs]
+# To build locally:
+# RUSTDOCFLAGS="--cfg doc_cfg" cargo +nightly doc --no-deps --open
+rustdoc-args = ["--cfg", "doc_cfg"]
+
+[dependencies]
+# todo: replace with std::cell::LazyCell (msrv 1.80.0)
+once_cell = "1.15.0"
+# todo: use xorshift for random numbers
+rand = { version = "0.8", optional = true }
+# todo: update to use asref<path>
+# todo: update to expose more info (for eww)
+# todo: update to use text_size::TextRange
+codemap = "0.1.3"
+wasm-bindgen = { version = "0.2.68", optional = true }
+# todo: benchmark using phf for global functions
+phf = { version = "0.11", features = ["macros"] }
+indexmap = "2"
+# todo: do we really need interning for things?
+lasso = "0.7"
+
+[features]
+default = ["random", "custom-builtin-fns"]
+# Option (enabled by default): enable the builtin functions `random([$limit])` and `unique-id()`
+random = ["rand"]
+# Option: expose JavaScript-friendly WebAssembly exports
+wasm-exports = ["wasm-bindgen"]
+# Option: expose internals necessary to implement custom builtin functions
+custom-builtin-fns = []

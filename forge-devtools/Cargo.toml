@@ -1,0 +1,22 @@
+[package]
+name = "forge-devtools"
+version = "0.1.0"
+edition = "2024"
+description = "Forge DevTools bridge (port of forge-devtools/src/server): streams request traces to the Chrome panel over a websocket."
+publish = false
+
+[dependencies]
+forge-core = { path = "../forge-core" }
+flate2 = "1"
+futures = "0.3"
+getrandom = "0.3"
+# rediss:// needs a rustls crypto provider; redis enables none.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+redis = { version = "0.32", default-features = false, features = ["tokio-comp", "tokio-rustls-comp", "connection-manager"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+tokio = { version = "1", features = ["sync", "macros", "rt", "time"] }
+# Topcoat is early-stage with frequent breaking releases: pin exactly.
+topcoat = "=0.11.0"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }

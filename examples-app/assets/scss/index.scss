@@ -6,7 +6,7 @@ $govuk-page-width: $moj-page-width;
 
 @import "govuk-frontend/dist/govuk/index";
 @import "@ministryofjustice/frontend/moj/all";
-@import "@ministryofjustice/hmpps-forge/dist/moj-components/all";
+@import "forge-moj-components";
 
 @import 'highlight.js/styles/github';
 

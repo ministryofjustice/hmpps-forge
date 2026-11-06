@@ -1,0 +1,33 @@
+{"variant":"govukHeading","props":{"text":"Page title"},"html":"<h1 class=\"govuk-heading-l\">Page title</h1>"}
+{"variant":"govukList","props":{"items":["First","Second"]},"html":"<ul class=\"govuk-list\"><li>First</li><li>Second</li></ul>"}
+{"variant":"govukButtonGroup","props":{"buttons":[{"block":{"variant":"govukButton"},"html":"<button class=\"govuk-button\">Save</button>"},{"block":{"variant":"govukButton"},"html":"<a class=\"govuk-button govuk-button--secondary\">Cancel</a>"}]},"html":"<div class=\"govuk-button-group\"><button class=\"govuk-button\">Save</button><a class=\"govuk-button govuk-button--secondary\">Cancel</a></div>"}
+{"variant":"govukSectionBreak","props":{},"html":"<hr class=\"govuk-section-break\">"}
+{"variant":"govukBody","props":{"text":"Hello world"},"html":"<p class=\"govuk-body\">Hello world</p>"}
+{"variant":"govukList","props":{"items":["First"],"style":"bullet"},"html":"<ul class=\"govuk-list govuk-list--bullet\"><li>First</li></ul>"}
+{"variant":"govukGridRow","props":{"columns":[{"width":"one-quarter","blocks":[{"block":{"variant":"govukBody"},"html":"<p>Label</p>"}]},{"width":"two-thirds","blocks":[{"block":{"variant":"govukBody"},"html":"<input>"},{"block":{"variant":"govukBody"},"html":"<p>Hint</p>"}]}]},"html":"<div class=\"govuk-grid-row\"><div class=\"govuk-grid-column-one-quarter\"><p>Label</p></div><div class=\"govuk-grid-column-two-thirds\"><input><p>Hint</p></div></div>"}
+{"variant":"govukHeading","props":{"text":"Section","size":"m"},"html":"<h2 class=\"govuk-heading-m\">Section</h2>"}
+{"variant":"govukSectionBreak","props":{"size":"xl"},"html":"<hr class=\"govuk-section-break govuk-section-break--xl\">"}
+{"variant":"govukButtonGroup","props":{"buttons":[{"block":{"variant":"govukButton"},"html":"<button data-qa=\"save\">Save & continue</button>"}]},"html":"<div class=\"govuk-button-group\"><button data-qa=\"save\">Save & continue</button></div>"}
+{"variant":"govukHeading","props":{"text":"Subsection","size":"s"},"html":"<h3 class=\"govuk-heading-s\">Subsection</h3>"}
+{"variant":"govukGridRow","props":{"columns":[]},"html":"<div class=\"govuk-grid-row\"></div>"}
+{"variant":"govukList","props":{"items":["First"],"style":"number"},"html":"<ol class=\"govuk-list govuk-list--number\"><li>First</li></ol>"}
+{"variant":"govukBody","props":{"text":"Introduction","size":"l"},"html":"<p class=\"govuk-body-l\">Introduction</p>"}
+{"variant":"govukButtonGroup","props":{"buttons":[]},"html":"<div class=\"govuk-button-group\"></div>"}
+{"variant":"govukSectionBreak","props":{"size":"l","visible":true},"html":"<hr class=\"govuk-section-break govuk-section-break--l govuk-section-break--visible\">"}
+{"variant":"govukBody","props":{"text":"Fine print","size":"s"},"html":"<p class=\"govuk-body-s\">Fine print</p>"}
+{"variant":"govukHeading","props":{"text":"Page","size":"xl"},"html":"<h1 class=\"govuk-heading-xl\">Page</h1>"}
+{"variant":"govukList","props":{"items":["First"],"style":"bullet","spaced":true},"html":"<ul class=\"govuk-list govuk-list--bullet govuk-list--spaced\"><li>First</li></ul>"}
+{"variant":"govukGridRow","props":{"columns":[],"classes":"app-row","attributes":{"data-qa":"layout"}},"html":"<div class=\"govuk-grid-row app-row\" data-qa=\"layout\"></div>"}
+{"variant":"govukButtonGroup","props":{"buttons":[],"classes":"app-actions","attributes":{"data-qa":"actions"}},"html":"<div class=\"govuk-button-group app-actions\" data-qa=\"actions\"></div>"}
+{"variant":"govukSectionBreak","props":{"classes":"app-break","attributes":{"data-qa":"divider"}},"html":"<hr class=\"govuk-section-break app-break\" data-qa=\"divider\">"}
+{"variant":"govukBody","props":{"text":"Text","classes":"app-intro"},"html":"<p class=\"govuk-body app-intro\">Text</p>"}
+{"variant":"govukList","props":{"items":[],"classes":"app-list","attributes":{"data-qa":"suggestions"}},"html":"<ul class=\"govuk-list app-list\" data-qa=\"suggestions\"></ul>"}
+{"variant":"govukGridRow","props":{"columns":[],"attributes":{"data-label":"a \"quoted\" value"}},"html":"<div class=\"govuk-grid-row\" data-label=\"a &quot;quoted&quot; value\"></div>"}
+{"variant":"govukHeading","props":{"text":"Goal","size":"m","level":4},"html":"<h4 class=\"govuk-heading-m\">Goal</h4>"}
+{"variant":"govukBody","props":{"text":"Text","attributes":{"data-qa":"intro"}},"html":"<p class=\"govuk-body\" data-qa=\"intro\">Text</p>"}
+{"variant":"govukList","props":{"items":["A plain string",{"block":{"variant":"govukBody"},"html":"<p class=\"govuk-body\">A block item</p>"},{"block":{"variant":"html"},"html":"<a href=\"/help\">A link item</a>"}]},"html":"<ul class=\"govuk-list\"><li>A plain string</li><li><p class=\"govuk-body\">A block item</p></li><li><a href=\"/help\">A link item</a></li></ul>"}
+{"variant":"govukHeading","props":{"text":"Page title","size":"xl","caption":"Section name"},"html":"<h1 class=\"govuk-heading-xl\"><span class=\"govuk-caption-xl\">Section name</span>Page title</h1>"}
+{"variant":"govukList","props":{"items":["<a href=\"/help\">Get help</a>"]},"html":"<ul class=\"govuk-list\"><li><a href=\"/help\">Get help</a></li></ul>"}
+{"variant":"govukBody","props":{"text":"Area of need: <strong>drug use</strong>"},"html":"<p class=\"govuk-body\">Area of need: <strong>drug use</strong></p>"}
+{"variant":"govukHeading","props":{"text":"Title","classes":"app-title","attributes":{"id":"main-title"}},"html":"<h1 class=\"govuk-heading-l app-title\" id=\"main-title\">Title</h1>"}
+{"variant":"govukHeading","props":{"text":"Goal: <strong>saving</strong>","caption":"<abbr title=\"Sentence Plan\">SP</abbr>"},"html":"<h1 class=\"govuk-heading-l\"><span class=\"govuk-caption-l\"><abbr title=\"Sentence Plan\">SP</abbr></span>Goal: <strong>saving</strong></h1>"}

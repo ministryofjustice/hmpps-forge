@@ -1,0 +1,45 @@
+# The Rust examples app (Forge Developer Guide) and the Redis its devtools bridge publishes
+# traces through. Driven by the Makefile (`make up`); runnable directly with
+#   docker compose up --build
+
+name: hmpps-forge-examples-app-rust
+
+services:
+  redis:
+    image: redis:8.6
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 20
+
+  ui:
+    image: ghcr.io/ministryofjustice/hmpps-forge-examples-app-rust:${APP_VERSION:-local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        BUILD_NUMBER: ${BUILD_NUMBER:-1.0.0}
+        GIT_REF: ${GIT_REF:-unknown}
+        GIT_BRANCH: ${GIT_BRANCH:-unknown}
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "/app/app", "healthcheck"]
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 20
+    environment:
+      ENVIRONMENT_NAME: ${ENVIRONMENT_NAME:-LOCAL}
+      INGRESS_URL: ${INGRESS_URL:-http://localhost:${APP_PORT:-3000}}
+      # Production mode: CSRF tokens on, devtools panels need the auth code from the app's logs.
+      # Set NODE_ENV=development to skip the devtools auth code.
+      NODE_ENV: ${NODE_ENV:-production}
+      # Devtools traces go through Redis, so a panel sees every instance's traces.
+      REDIS_ENABLED: "true"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"

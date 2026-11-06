@@ -1,0 +1,12 @@
+[package]
+name = "forge-runjucks"
+version = "0.1.0"
+edition = "2024"
+description = "Runjucks (Nunjucks-compatible) renderer for forge-core: GOV.UK / MOJ Frontend templates as-is."
+publish = false
+
+[dependencies]
+forge-core = { path = "../forge-core" }
+regex = "1"
+runjucks_core = "=0.1.9"
+serde_json = { version = "1", features = ["preserve_order"] }

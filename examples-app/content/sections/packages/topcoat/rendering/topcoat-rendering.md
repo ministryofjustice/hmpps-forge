@@ -1,0 +1,147 @@
+---
+title: Rendering
+section: packages
+path: packages/topcoat/rendering
+teaches: [template-resolution, view-locals, template-context, RunjucksRenderer]
+prerequisites: [topcoat]
+---
+
+<p class="govuk-caption-xl">Topcoat Adapter</p>
+
+# Rendering
+When a step is ready to display, the adapter resolves a Nunjucks
+template, renders each visible block to HTML, and assembles a
+template context from journey data, answers, and request state.
+This page covers each part of that process.
+
+{{slot:toc}}
+
+---
+
+## Template resolution
+
+The adapter resolves which Nunjucks template to use by checking
+three places in order:
+
+1. **The step itself** - if `view.template` is set on the step
+   definition, that template is used.
+2. **Ancestor journeys** - starting from the nearest parent and
+   walking up, the first ancestor with a `view.template` wins.
+3. **Default template** - falls back to the renderer's
+   `default_template`, which is `"form-step"` unless you change it.
+
+The `.njk` extension is appended automatically if the template
+name doesn't already end with it.
+
+```rust
+// This step uses 'review-page.njk'
+step(obj! {
+    "path": "/review",
+    "title": "Review your answers",
+    "view": obj! { "template": "review-page" },
+    // ...
+})
+// This step inherits the template from its nearest ancestor
+step(obj! {
+    "path": "/name",
+    "title": "What is your name?",
+    // no view.template - walks up to parent journey
+    // ...
+})
+```
+
+---
+
+## View locals
+
+Journeys and steps can declare `view.locals` - static values
+that are merged into the template context at render time. The
+adapter merges them in a specific order:
+
+1. Ancestors merge first, from the root journey down to the
+   immediate parent.
+2. The step's own `view.locals` merge last, overriding any
+   ancestor values with the same key.
+
+```rust
+journey(obj! {
+    "code": "my-journey",
+    "view": obj! {
+        "template": "guide-step",
+        "locals": obj! { "showBackToTop": true, "sectionTitle": "Forms" },
+    },
+    "steps": [
+        step(obj! {
+            "path": "/review",
+            "title": "Review",
+            "view": obj! {
+                "locals": obj! { "sectionTitle": "Review" },
+                // showBackToTop is inherited, sectionTitle is overridden
+            },
+        }),
+    ],
+})
+```
+
+---
+
+## Template context
+
+When the page template renders, the following variables are
+available in the Nunjucks context:
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `blocks` | `string[]` | Each visible block, already rendered to HTML. Use `{{ block \| safe }}` in your template. |
+| `step` | object | The current step's metadata (`title`, `path`, `view`, etc.). |
+| `ancestors` | object[] | The chain of parent journeys from root to immediate parent. |
+| `routeTree` | object[] | Route hierarchy with resolved paths and active state. |
+| `navigation` | object[] | The route tree reshaped into navigation items (`type`, `title`, `path`, `active`, `metadata`, `children`). |
+| `answers` | object | The user's answers for this journey. |
+| `data` | object | Data set by effects (e.g. loaded content, API responses). |
+| `fieldValidationErrors` | object[] | Field-level validation errors (after a POST). |
+| `domainValidationErrors` | object[] | Domain-level validation errors (after a POST). |
+
+### Request state in the context
+
+In addition to the variables above, the merged request state
+(`state`, per-request state, `csrfToken` and `cspNonce` - see
+[Request & State](request-state)) and merged `view.locals`
+are all spread into the template context.
+This means values like CSRF tokens, service name, or environment
+flags set in your adapter options are available directly in the
+template without any extra wiring:
+
+```njk
+{# csrfToken (the csrf option) is available directly #}
+<input type="hidden" name="_csrf" value="{{ csrfToken }}">
+
+{# view.locals.sectionTitle from the journey definition #}
+<h2>{{ sectionTitle }}</h2>
+```
+
+### Rendering blocks
+
+Blocks are rendered to HTML strings before the page template
+runs. In your template, iterate over the `blocks` array and
+output each one with the `safe` filter:
+
+```njk
+{% for block in blocks %}
+  {{ block | safe }}
+{% endfor %}
+```
+
+Only visible blocks are included - any block with
+`visibleWhen` evaluating to `false` is filtered out before
+rendering.
+
+---
+
+## Template caching
+
+Runjucks caches parsed templates internally.
+The first time a template is rendered, it is parsed from the
+template directories and stored. Subsequent renders of the same
+template reuse the compiled version. This applies to both page
+templates and component templates.

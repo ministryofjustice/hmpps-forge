@@ -1,0 +1,34 @@
+//! Ported from `examples-app/server/journeys/forge-developer-guide/sections/patterns/load-reference-data/demo/journey.ts`.
+
+#![allow(unused_imports, clippy::all)]
+
+use crate::guide::dsl::*;
+use forge_core::{Value, obj};
+use forge_core::authoring::{condition, generator, transformer};
+use forge_core::builtins::components as core_blocks;
+use forge_govuk_components::blocks as govuk;
+use forge_moj_components::blocks as moj;
+use crate::components as guide_blocks;
+use crate::guide::modules::sections::patterns::load_reference_data::demo::draw::step::draw_step;
+use crate::guide::modules::sections::patterns::load_reference_data::demo::overview::step::overview_step;
+
+pub fn load_reference_data_demo_journey() -> D {
+    journey(obj! {
+        "code": "load-reference-data-demo",
+        "title": "Load reference data on access",
+        "path": "/load-reference-data",
+        "onAccess": arr![access(obj! { "effects": arr![function("FunctionType.Effect", "DrawLotteryNumbers", vec![])] })],
+        "steps": arr![overview_step(), draw_step()],
+    })
+}
+
+/// Evaluates this module as TS does on first import (see `crate::guide::init`).
+#[doc(hidden)]
+pub fn __init() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        crate::guide::modules::sections::patterns::load_reference_data::demo::overview::step::__init();
+        crate::guide::modules::sections::patterns::load_reference_data::demo::draw::step::__init();
+        let _ = load_reference_data_demo_journey();
+    });
+}

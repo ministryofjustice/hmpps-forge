@@ -1,0 +1,1143 @@
+diff --color -ruN -x target -x Cargo.toml.orig -x .cargo_vcs_info.json runjucks_core-0.1.9/Cargo.toml runjucks_core/Cargo.toml
+--- runjucks_core-0.1.9/Cargo.toml	2026-11-06 22:42:02
++++ runjucks_core/Cargo.toml	2026-11-04 13:18:06
+@@ -224,3 +224,5 @@
+     "rt",
+     "macros",
+ ]
++
++[workspace]
+diff --color -ruN -x target -x Cargo.toml.orig -x .cargo_vcs_info.json runjucks_core-0.1.9/src/ast.rs runjucks_core/src/ast.rs
+--- runjucks_core-0.1.9/src/ast.rs	2026-11-06 22:42:02
++++ runjucks_core/src/ast.rs	2026-11-06 16:47:13
+@@ -28,6 +28,10 @@
+     pub name: String,
+     pub params: Vec<MacroParam>,
+     pub body: Vec<Node>,
++    /// For a macro imported from another template: the macros visible at that template's top
++    /// level (its own and the ones it imports), so the body can call them (Nunjucks macros close
++    /// over their defining module).
++    pub closure: Option<std::sync::Arc<std::collections::HashMap<String, MacroDef>>>,
+ }
+ 
+ /// Loop binding list after `for` (`x` or `k, v` or `a, b, c`).
+diff --color -ruN -x target -x Cargo.toml.orig -x .cargo_vcs_info.json runjucks_core-0.1.9/src/async_renderer/entry.rs runjucks_core/src/async_renderer/entry.rs
+--- runjucks_core-0.1.9/src/async_renderer/entry.rs	2026-11-06 22:42:02
++++ runjucks_core/src/async_renderer/entry.rs	2026-11-04 14:54:06
+@@ -28,7 +28,10 @@
+     root: &Node,
+     ctx_stack: &mut CtxStack,
+ ) -> Result<String> {
+-    if let Some((parent_expr, blocks)) = extract_layout_if_any(root)? {
++    if let Some((parent_expr, blocks, prelude)) = extract_layout_if_any(root)? {
++        for n in &prelude {
++            render_node_async(env, state, n, ctx_stack).await?;
++        }
+         let parent_name = crate::value::value_to_string(
+             &super::eval::eval_to_value_async(env, state, &parent_expr, ctx_stack).await?,
+         );
+diff --color -ruN -x target -x Cargo.toml.orig -x .cargo_vcs_info.json runjucks_core-0.1.9/src/async_renderer/macros.rs runjucks_core/src/async_renderer/macros.rs
+--- runjucks_core-0.1.9/src/async_renderer/macros.rs	2026-11-06 22:42:02
++++ runjucks_core/src/async_renderer/macros.rs	2026-11-04 14:54:06
+@@ -113,12 +113,25 @@
+         ctx_stack,
+     )
+     .await?;
++    let mut root_ast = parent_ast;
++    let mut pushed = 1;
++    while let Some((gp_expr, _, prelude)) = crate::renderer::extract_layout_if_any(root_ast.as_ref())? {
++        for n in &prelude {
++            super::nodes::render_node_async(env, state, n, ctx_stack).await?;
++        }
++        let gp_name = crate::value::value_to_string(&super::eval::eval_to_value_async(env, state, &gp_expr, ctx_stack).await?);
++        root_ast = env.load_and_parse_named(&gp_name, loader)?;
++        state.push_template(&gp_name)?;
++        pushed += 1;
++    }
+     let prev_chains = state.block_chains.take();
+     state.block_chains = Some(chains);
+-    let out = super::nodes::render_node_async(env, state, parent_ast.as_ref(), ctx_stack).await?;
++    let out = super::nodes::render_node_async(env, state, root_ast.as_ref(), ctx_stack).await;
+     state.block_chains = prev_chains;
+-    state.pop_template();
+-    Ok(out)
++    for _ in 0..pushed {
++        state.pop_template();
++    }
++    out
+ }
+ 
+ #[allow(clippy::too_many_arguments)]
+diff --color -ruN -x target -x Cargo.toml.orig -x .cargo_vcs_info.json runjucks_core-0.1.9/src/environment.rs runjucks_core/src/environment.rs
+--- runjucks_core-0.1.9/src/environment.rs	2026-11-06 22:42:02
++++ runjucks_core/src/environment.rs	2026-11-06 16:44:14
+@@ -282,21 +282,18 @@
+     }
+ }
+ 
+-/// Nunjucks `equalto` / `sameas` (`===`): same template variable binding is always true; two object
+-/// or array **values** from distinct bindings are never equal (reference semantics); primitives use
+-/// JSON equality. Used from templates and from `select` / `reject` (always `same_binding: false`).
++/// Nunjucks `equalto` / `sameas` (`===`): same template variable binding is always true; primitives
++/// use JSON equality. Values carry no reference identity here, so objects and arrays compare by
++/// value: an object passed through a macro argument or a loop variable is still `sameas` its source
++/// binding, as in Nunjucks (govuk-frontend's date input relies on this); only distinct objects with
++/// identical contents differ from Nunjucks. Used from templates and from `select` / `reject`
++/// (always `same_binding: false`).
+ pub(crate) fn equalto_sameas_pair(
+     left: &Value,
+     right: &Value,
+     same_template_variable: bool,
+ ) -> bool {
+-    if same_template_variable {
+-        return true;
+-    }
+-    match (left, right) {
+-        (Value::Object(_), Value::Object(_)) | (Value::Array(_), Value::Array(_)) => false,
+-        _ => left == right,
+-    }
++    same_template_variable || left == right
+ }
+ 
+ impl Default for Environment {
+diff --color -ruN -x target -x Cargo.toml.orig -x .cargo_vcs_info.json runjucks_core-0.1.9/src/filters.rs runjucks_core/src/filters.rs
+--- runjucks_core-0.1.9/src/filters.rs	2026-11-06 22:42:02
++++ runjucks_core/src/filters.rs	2026-11-04 13:15:27
+@@ -958,13 +958,14 @@
+         return f(input, args);
+     }
+     match name {
+-        "upper" => Ok(Value::String(value_to_string(input).to_uppercase())),
+-        "lower" => Ok(Value::String(value_to_string(input).to_lowercase())),
++        "upper" => Ok(keep_safeness(input, Value::String(value_to_string(input).to_uppercase()))),
++        "lower" => Ok(keep_safeness(input, Value::String(value_to_string(input).to_lowercase()))),
+         "length" => match input {
+             Value::String(s) => Ok(json!(s.chars().count())),
+             Value::Array(a) => Ok(json!(a.len())),
++            v if is_undefined_value(v) => Ok(json!(0)),
++            v if crate::value::is_marked_safe(v) => Ok(json!(crate::value::value_to_string(v).chars().count())),
+             Value::Object(o) => Ok(json!(o.len())),
+-            _ if is_undefined_value(input) => Ok(json!(0)),
+             _ => Ok(json!(0)),
+         },
+         "join" => {
+@@ -1037,13 +1038,13 @@
+         "first" => Ok(filter_first(input)),
+         "last" => Ok(filter_last(input)),
+         "reverse" => Ok(filter_reverse(input)),
+-        "trim" => Ok(filter_trim(input)),
++        "trim" => Ok(keep_safeness(input, filter_trim(input))),
+         "sum" => filter_sum(input, args),
+         "wordcount" => Ok(filter_wordcount(input)),
+         "nl2br" => Ok(filter_nl2br(input)),
+-        "indent" => Ok(filter_indent(input, args)),
+-        "title" => Ok(filter_title(input)),
+-        "truncate" => Ok(filter_truncate(input, args)),
++        "indent" => Ok(keep_safeness(input, filter_indent(input, args))),
++        "title" => Ok(keep_safeness(input, filter_title(input))),
++        "truncate" => Ok(keep_safeness(input, filter_truncate(input, args))),
+         "striptags" => Ok(filter_striptags(input, args)),
+         "urlencode" => Ok(filter_urlencode(input, args)),
+         "string" => Ok(filter_string(input)),
+@@ -1051,7 +1052,7 @@
+         "int" => Ok(filter_int(input, args)),
+         "sort" => filter_sort(input, args),
+         "dictsort" => filter_dictsort(input, args),
+-        "center" => Ok(filter_center(input, args)),
++        "center" => Ok(keep_safeness(input, filter_center(input, args))),
+         "dump" => Ok(filter_dump(input, args)),
+         "list" => filter_list(input),
+         "slice" => filter_slice_(input, args),
+@@ -1073,7 +1074,15 @@
+                 },
+             )
+         }
+-        "capitalize" => Ok(chain_capitalize_like_builtin(input)),
++        "capitalize" => Ok(keep_safeness(input, chain_capitalize_like_builtin(input))),
+         _ => Err(RunjucksError::new(format!("unknown filter `{name}`"))),
++    }
++}
++
++/// Nunjucks `copySafeness`: string filters applied to a safe value return a safe value.
++fn keep_safeness(input: &Value, out: Value) -> Value {
++    match out {
++        Value::String(s) if is_marked_safe(input) => mark_safe(s),
++        other => other,
+     }
+ }
+diff --color -ruN -x target -x Cargo.toml.orig -x .cargo_vcs_info.json runjucks_core-0.1.9/src/js_methods.rs runjucks_core/src/js_methods.rs
+--- runjucks_core-0.1.9/src/js_methods.rs	1970-01-01 01:00:00
++++ runjucks_core/src/js_methods.rs	2026-11-06 16:47:55
+@@ -0,0 +1,104 @@
++//! JavaScript methods Nunjucks templates call on values (`list.concat(x)`, `[a, b].includes(v)`).
++//!
++//! Nunjucks evaluates templates as JavaScript, so any `Array.prototype` / `String.prototype`
++//! method is callable. This covers the non-mutating ones real-world macro libraries use
++//! (govuk-frontend, MOJ frontend). Mutating methods such as `push` are intentionally absent:
++//! values here are immutable JSON, so they cannot update the binding they were called on.
++
++use crate::errors::Result;
++use crate::value::{is_marked_safe, value_to_string};
++use serde_json::Value;
++
++/// Returns `None` when `method` is not a supported method for `receiver`'s type.
++pub fn call(receiver: &Value, method: &str, args: &[Value]) -> Option<Result<Value>> {
++    match (receiver, method) {
++        (Value::Array(items), "concat") => {
++            let mut out = items.clone();
++            for a in args {
++                match a {
++                    Value::Array(more) => out.extend(more.iter().cloned()),
++                    other => out.push(other.clone()),
++                }
++            }
++            Some(Ok(Value::Array(out)))
++        }
++        (Value::Array(items), "join") => {
++            // `Array.prototype.join`: separator defaults to ","; null / undefined elements are empty.
++            let sep = match args.first() {
++                None | Some(Value::Null) => ",".to_string(),
++                Some(s) => value_to_string(s),
++            };
++            let parts: Vec<String> = items
++                .iter()
++                .map(|v| if v.is_null() { String::new() } else { value_to_string(v) })
++                .collect();
++            Some(Ok(Value::String(parts.join(&sep))))
++        }
++        (Value::Array(items), "includes") => {
++            let needle = args.first().cloned().unwrap_or(Value::Null);
++            Some(Ok(Value::Bool(items.iter().any(|v| same_value_zero(v, &needle)))))
++        }
++        (Value::Array(items), "indexOf") => {
++            let needle = args.first().cloned().unwrap_or(Value::Null);
++            let i = items.iter().position(|v| same_value_zero(v, &needle));
++            Some(Ok(Value::from(i.map_or(-1, |i| i as i64))))
++        }
++        (Value::Array(items), "slice") => {
++            let (start, end) = slice_bounds(items.len(), args);
++            Some(Ok(Value::Array(items[start..end].to_vec())))
++        }
++        (Value::String(_), _) | (Value::Object(_), _) if is_string_like(receiver) => {
++            let s = value_to_string(receiver);
++            match method {
++                "includes" => {
++                    let needle = args.first().map(value_to_string).unwrap_or_default();
++                    Some(Ok(Value::Bool(s.contains(&needle))))
++                }
++                "startsWith" => {
++                    let needle = args.first().map(value_to_string).unwrap_or_default();
++                    Some(Ok(Value::Bool(s.starts_with(&needle))))
++                }
++                "endsWith" => {
++                    let needle = args.first().map(value_to_string).unwrap_or_default();
++                    Some(Ok(Value::Bool(s.ends_with(&needle))))
++                }
++                "slice" => {
++                    let chars: Vec<char> = s.chars().collect();
++                    let (start, end) = slice_bounds(chars.len(), args);
++                    Some(Ok(Value::String(chars[start..end].iter().collect())))
++                }
++                "toUpperCase" => Some(Ok(Value::String(s.to_uppercase()))),
++                "toLowerCase" => Some(Ok(Value::String(s.to_lowercase()))),
++                "trim" => Some(Ok(Value::String(s.trim().to_string()))),
++                _ => None,
++            }
++        }
++        _ => None,
++    }
++}
++
++fn is_string_like(v: &Value) -> bool {
++    matches!(v, Value::String(_)) || is_marked_safe(v)
++}
++
++/// JS `SameValueZero` for JSON values: numbers compare numerically, everything else structurally.
++fn same_value_zero(a: &Value, b: &Value) -> bool {
++    match (a, b) {
++        (Value::Number(x), Value::Number(y)) => x.as_f64() == y.as_f64(),
++        _ => a == b,
++    }
++}
++
++/// JS `slice(start, end)` bounds with negative-index support.
++fn slice_bounds(len: usize, args: &[Value]) -> (usize, usize) {
++    let resolve = |v: Option<&Value>, default: usize| -> usize {
++        match v.and_then(Value::as_f64) {
++            None => default,
++            Some(n) if n < 0.0 => len.saturating_sub((-n) as usize),
++            Some(n) => (n as usize).min(len),
++        }
++    };
++    let start = resolve(args.first(), 0);
++    let end = resolve(args.get(1), len);
++    (start, end.max(start))
++}
+diff --color -ruN -x target -x Cargo.toml.orig -x .cargo_vcs_info.json runjucks_core-0.1.9/src/lexer.rs runjucks_core/src/lexer.rs
+--- runjucks_core-0.1.9/src/lexer.rs	2026-11-06 22:42:02
++++ runjucks_core/src/lexer.rs	2026-11-04 13:17:50
+@@ -56,7 +56,7 @@
+ 
+ #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+ enum OpenKind {
+-    Comment,
++    Comment { trim_open: bool },
+     Tag { trim_open: bool },
+     Var { trim_open: bool },
+ }
+@@ -66,14 +66,17 @@
+     let vs = &tags.variable_start;
+     let cs = &tags.comment_start;
+     let bs_trim = format!("{bs}-");
++    let cs_trim = format!("{cs}-");
+ 
+     let vs_trim = format!("{vs}-");
+ 
+     let mut best: Option<(usize, OpenKind)> = None;
+     for (i, _) in rest.char_indices() {
+         let s = &rest[i..];
+-        let candidate = if s.starts_with(cs.as_str()) {
+-            Some((i, OpenKind::Comment))
++        let candidate = if s.starts_with(cs_trim.as_str()) {
++            Some((i, OpenKind::Comment { trim_open: true }))
++        } else if s.starts_with(cs.as_str()) {
++            Some((i, OpenKind::Comment { trim_open: false }))
+         } else if s.starts_with(bs_trim.as_str()) {
+             Some((i, OpenKind::Tag { trim_open: true }))
+         } else if s.starts_with(bs.as_str()) {
+@@ -357,6 +360,10 @@
+                 "unclosed comment: expected `{ce}` after `{cs}`"
+             )));
+         };
++        // `-#}` strips whitespace from the start of the following text, like `-%}`.
++        if end_rel > cs.len() && rest[..end_rel].ends_with('-') {
++            self.strip_leading_next_text = true;
++        }
+         self.position += end_rel + ce.len();
+         Ok(())
+     }
+@@ -388,7 +395,10 @@
+         let rest = self.rest();
+         let (body, total, trim_close) = parse_tag_prefix(rest, &self.tags)?;
+         self.position += total;
+-        if trim_close {
++        // Nunjucks quirk: the `-%}` of a block-capture `{% set x -%}` does not strip the
++        // start of the captured body (govuk-frontend's pagination relies on this).
++        let is_block_set = body.trim_start().strip_prefix("set ").is_some_and(|t| !t.contains('='));
++        if trim_close && !is_block_set {
+             self.strip_leading_next_text = true;
+         } else if self.opts.trim_blocks {
+             self.trim_block_newline = true;
+@@ -461,7 +471,7 @@
+         if !self.opts.lstrip_blocks {
+             return;
+         }
+-        let is_block = matches!(kind, OpenKind::Tag { .. } | OpenKind::Comment);
++        let is_block = matches!(kind, OpenKind::Tag { .. } | OpenKind::Comment { .. });
+         if !is_block {
+             return;
+         }
+@@ -490,7 +500,7 @@
+                     self.position = self.input.len();
+                     return Ok(Some(Token::Text(text)));
+                 }
+-                Some((0, OpenKind::Comment)) => {
++                Some((0, OpenKind::Comment { .. })) => {
+                     self.skip_comment()?;
+                     continue;
+                 }
+@@ -511,7 +521,9 @@
+                     self.apply_leading_strip(&mut text);
+                     let trim_open = matches!(
+                         kind,
+-                        OpenKind::Tag { trim_open: true } | OpenKind::Var { trim_open: true }
++                        OpenKind::Tag { trim_open: true }
++                            | OpenKind::Var { trim_open: true }
++                            | OpenKind::Comment { trim_open: true }
+                     );
+                     if trim_open {
+                         text = text.trim_end().to_string();
+diff --color -ruN -x target -x Cargo.toml.orig -x .cargo_vcs_info.json runjucks_core-0.1.9/src/lib.rs runjucks_core/src/lib.rs
+--- runjucks_core-0.1.9/src/lib.rs	2026-11-06 22:42:02
++++ runjucks_core/src/lib.rs	2026-11-04 13:11:12
+@@ -31,6 +31,7 @@
+ pub mod filters;
+ pub mod globals;
+ mod js_regex;
++pub mod js_methods;
+ pub mod lexer;
+ pub mod loader;
+ pub mod parser;
+diff --color -ruN -x target -x Cargo.toml.orig -x .cargo_vcs_info.json runjucks_core-0.1.9/src/parser/expr.rs runjucks_core/src/parser/expr.rs
+--- runjucks_core-0.1.9/src/parser/expr.rs	2026-11-06 22:42:02
++++ runjucks_core/src/parser/expr.rs	2026-11-06 16:48:20
+@@ -488,6 +488,11 @@
+     let mut pairs = Vec::new();
+     loop {
+         let (r, k) = parse_inline_if(rest)?;
++        // Nunjucks treats a bare identifier key (`{ value: x }`) as the string `"value"`.
++        let k = match k {
++            Expr::Variable(name) => Expr::Literal(Value::String(name)),
++            other => other,
++        };
+         let r = trim_start(r);
+         let r = r.strip_prefix(':').ok_or_else(|| {
+             nom::Err::Failure(nom::error::Error::new(r, nom::error::ErrorKind::Tag))
+@@ -942,12 +947,29 @@
+     Ok((rest, acc))
+ }
+ 
++/// Nunjucks `parseNot`: `not` binds looser than `in`, `is` and comparisons, so `not "a" in b` is
++/// `not ("a" in b)`.
++fn parse_not(input: &str) -> IResult<&str, Expr> {
++    let t = trim_start(input);
++    if let Some(rest) = parse_keyword(t, "not") {
++        let (rest, e) = parse_not(rest)?;
++        return Ok((
++            rest,
++            Expr::Unary {
++                op: UnaryOp::Not,
++                expr: Box::new(e),
++            },
++        ));
++    }
++    parse_in(input)
++}
++
+ fn parse_and(input: &str) -> IResult<&str, Expr> {
+-    let (mut rest, mut acc) = parse_in(input)?;
++    let (mut rest, mut acc) = parse_not(input)?;
+     loop {
+         let r = trim_start(rest);
+         if let Some(r2) = parse_keyword(r, "and") {
+-            let (r3, rhs) = parse_in(r2)?;
++            let (r3, rhs) = parse_not(r2)?;
+             rest = r3;
+             acc = Expr::Binary {
+                 op: BinOp::And,
+diff --color -ruN -x target -x Cargo.toml.orig -x .cargo_vcs_info.json runjucks_core-0.1.9/src/parser/template.rs runjucks_core/src/parser/template.rs
+--- runjucks_core-0.1.9/src/parser/template.rs	2026-11-06 22:42:02
++++ runjucks_core/src/parser/template.rs	2026-11-06 16:47:13
+@@ -887,7 +887,7 @@
+     *i += 1;
+     let body = parse_until_tags(tokens, i, &["endmacro"], ctx)?;
+     expect_tag(tokens, i, &["endmacro"])?;
+-    Ok(Node::MacroDef(MacroDef { name, params, body }))
++    Ok(Node::MacroDef(MacroDef { name, params, body, closure: None }))
+ }
+ 
+ /// `{% raw %}…{% endraw %}` / `{% verbatim %}…{% endverbatim %}` — lexer emits literal [`Token::Text`]
+diff --color -ruN -x target -x Cargo.toml.orig -x .cargo_vcs_info.json runjucks_core-0.1.9/src/render_common.rs runjucks_core/src/render_common.rs
+--- runjucks_core-0.1.9/src/render_common.rs	2026-11-06 22:42:02
++++ runjucks_core/src/render_common.rs	2026-11-04 14:54:06
+@@ -19,7 +19,9 @@
+ use ahash::AHashMap;
+ 
+ /// `{% extends %}` parent expression plus block name → AST bodies.
+-pub type ExtendsLayout = (Expr, std::collections::HashMap<String, Vec<crate::ast::Node>>);
++/// `(parent expression, top-level blocks, prelude)`: the prelude is every other top-level node
++/// (sets, imports, loops...), which Nunjucks runs for its side effects before the parent renders.
++pub type ExtendsLayout = (Expr, std::collections::HashMap<String, Vec<crate::ast::Node>>, Vec<crate::ast::Node>);
+ 
+ /// Nunjucks truthiness: `null`, `false`, `0`/`NaN`, and `""` are falsy.
+ pub fn is_truthy(v: &Value) -> bool {
+@@ -81,14 +83,28 @@
+     if let (Some(x), Some(y)) = (as_number(a), as_number(b)) {
+         json_num(x + y)
+     } else {
+-        Value::String(format!(
+-            "{}{}",
+-            crate::value::value_to_string(a),
+-            crate::value::value_to_string(b)
+-        ))
++        Value::String(format!("{}{}", js_to_string(a), js_to_string(b)))
+     }
+ }
+ 
++/// JavaScript `String(v)` as used by `+` concatenation: unlike template output, `undefined`
++/// and `null` become the literal words, arrays join with commas, objects are `[object Object]`.
++fn js_to_string(v: &Value) -> String {
++    use crate::value::{is_marked_safe, is_undefined_value, value_to_string};
++    match v {
++        _ if is_undefined_value(v) => "undefined".into(),
++        _ if is_marked_safe(v) => value_to_string(v),
++        Value::Null => "null".into(),
++        Value::Array(items) => items
++            .iter()
++            .map(|i| if i.is_null() || is_undefined_value(i) { String::new() } else { js_to_string(i) })
++            .collect::<Vec<_>>()
++            .join(","),
++        Value::Object(_) => "[object Object]".into(),
++        _ => value_to_string(v),
++    }
++}
++
+ /// Converts float to int if no fractional part.
+ pub fn json_num(x: f64) -> Value {
+     if x.fract() == 0.0 && x >= i64::MIN as f64 && x <= i64::MAX as f64 {
+@@ -205,18 +221,8 @@
+     match v {
+         Value::Null => Iterable::Rows(vec![]),
+         Value::Array(a) => Iterable::Rows(a),
+-        Value::Object(o) => {
+-            let mut keys: Vec<String> = o.keys().cloned().collect();
+-            keys.sort();
+-            let pairs: Vec<(String, Value)> = keys
+-                .into_iter()
+-                .map(|k| {
+-                    let val = o.get(&k).cloned().unwrap_or(Value::Null);
+-                    (k, val)
+-                })
+-                .collect();
+-            Iterable::Pairs(pairs)
+-        }
++        // Insertion order, like JS `for..in` (needs serde_json `preserve_order`).
++        Value::Object(o) => Iterable::Pairs(o.into_iter().collect()),
+         _ => Iterable::Rows(vec![]),
+     }
+ }
+diff --color -ruN -x target -x Cargo.toml.orig -x .cargo_vcs_info.json runjucks_core-0.1.9/src/renderer.rs runjucks_core/src/renderer.rs
+--- runjucks_core-0.1.9/src/renderer.rs	2026-11-06 22:42:02
++++ runjucks_core/src/renderer.rs	2026-11-06 22:41:50
+@@ -30,6 +30,9 @@
+ #[derive(Debug, Clone)]
+ pub struct CtxStack {
+     pub(crate) frames: Vec<AHashMap<String, Arc<Value>>>,
++    /// Where each object / array binding's value came from (parallel to `frames`), so `sameas`
++    /// can tell apart objects with equal contents, as JavaScript reference identity does.
++    origins: Vec<AHashMap<String, Origin>>,
+     stack_id: u64,
+     /// Incremented on any binding change (frames, `set`, `set_local`, `loop` injection).
+     /// Used to reuse merged extension context snapshots when the stack is unchanged.
+@@ -43,6 +46,7 @@
+             root.into_iter().map(|(k, v)| (k, Arc::new(v))).collect();
+         Self {
+             frames: vec![mapped],
++            origins: vec![AHashMap::new()],
+             stack_id: NEXT_STACK_ID.fetch_add(1, Ordering::Relaxed),
+             revision: 0,
+         }
+@@ -61,12 +65,14 @@
+ 
+     pub fn push_frame(&mut self) {
+         self.frames.push(AHashMap::new());
++        self.origins.push(AHashMap::new());
+         self.bump_revision();
+     }
+ 
+     pub fn pop_frame(&mut self) {
+         if self.frames.len() > 1 {
+             self.frames.pop();
++            self.origins.pop();
+             self.bump_revision();
+         }
+     }
+@@ -112,6 +118,60 @@
+         }
+     }
+ 
++    /// Records (or clears) the origin of the binding `name` currently resolves to.
++    pub(crate) fn set_origin(&mut self, name: &str, origin: Option<Origin>) {
++        let Some(idx) = self.frames.iter().rposition(|f| f.contains_key(name)) else { return };
++        while self.origins.len() < self.frames.len() {
++            self.origins.push(AHashMap::new());
++        }
++        match origin {
++            Some(o) => {
++                self.origins[idx].insert(name.to_string(), o);
++            }
++            None => {
++                self.origins[idx].remove(name);
++            }
++        }
++    }
++
++    /// The origin of the binding `name`: recorded, or the context path for root-context values.
++    pub(crate) fn origin(&self, name: &str) -> Option<Origin> {
++        let idx = self.frames.iter().rposition(|f| f.contains_key(name))?;
++        match self.origins.get(idx).and_then(|o| o.get(name)) {
++            Some(o) => Some(o.clone()),
++            None if idx == 0 => Some(Origin::Root(name.to_string())),
++            None => None,
++        }
++    }
++
++    /// Outer frames first, then inner overwrites (as [`Self::flatten`]).
++    pub(crate) fn flatten_origins(&self) -> AHashMap<String, Origin> {
++        let mut m = AHashMap::new();
++        for (i, f) in self.frames.iter().enumerate() {
++            for k in f.keys() {
++                match self.origins.get(i).and_then(|o| o.get(k)) {
++                    Some(o) => {
++                        m.insert(k.clone(), o.clone());
++                    }
++                    None if i == 0 => {
++                        m.insert(k.clone(), Origin::Root(k.clone()));
++                    }
++                    None => {
++                        m.remove(k);
++                    }
++                }
++            }
++        }
++        m
++    }
++
++    /// A stack over `root` whose bindings keep the given origins (macro bodies).
++    pub(crate) fn from_root_with_origins(root: Map<String, Value>, origins: AHashMap<String, Origin>) -> Self {
++        let mut s = Self::from_root(root);
++        s.origins[0] = origins;
++        s
++    }
++
+     /// Outer frames first, then inner overwrites — snapshot for macro bodies.
+     pub fn flatten(&self) -> Map<String, Value> {
+         let cap: usize = self.frames.iter().map(|f| f.len()).sum();
+@@ -125,6 +185,79 @@
+     }
+ }
+ 
++/// Where an object or array value came from: JavaScript compares objects by reference, and
++/// template values here are copies, so `sameas` compares origins instead of contents.
++#[derive(Debug, Clone, PartialEq)]
++pub enum Origin {
++    /// A root-context variable (the caller's object).
++    Root(String),
++    /// A property or element of another origin.
++    Path(Box<Origin>, String),
++    /// A list literal: its own identity plus each element's origin.
++    List(u64, Vec<Option<Origin>>),
++    /// Anything built during rendering (literals, filter and call results).
++    Fresh(u64),
++}
++
++fn fresh_origin() -> Origin {
++    static NEXT: AtomicU64 = AtomicU64::new(1);
++    Origin::Fresh(NEXT.fetch_add(1, Ordering::Relaxed))
++}
++
++fn origin_path(base: Option<Origin>, key: String) -> Option<Origin> {
++    match base? {
++        Origin::List(_, elems) => key.parse::<usize>().ok().and_then(|i| elems.get(i).cloned().flatten()),
++        o => Some(Origin::Path(Box::new(o), key)),
++    }
++}
++
++fn is_reference_value(v: &Value) -> bool {
++    matches!(v, Value::Object(_) | Value::Array(_)) && !crate::value::is_marked_safe(v) && !is_undefined_value(v)
++}
++
++/// The origin of the value `e` evaluates to (`None` when it cannot be tracked).
++fn origin_of(env: &Environment, state: &mut RenderState<'_>, e: &Expr, stack: &mut CtxStack) -> Result<Option<Origin>> {
++    Ok(match e {
++        Expr::Variable(n) => stack.origin(n),
++        Expr::GetAttr { base, attr } => origin_path(origin_of(env, state, base, stack)?, attr.clone()),
++        Expr::GetItem { base, index } if !matches!(index.as_ref(), Expr::Slice { .. }) => {
++            let key = crate::value::value_to_string(&eval_to_value(env, state, index, stack)?);
++            origin_path(origin_of(env, state, base, stack)?, key)
++        }
++        Expr::List(items) => {
++            let mut elems = Vec::with_capacity(items.len());
++            for item in items {
++                elems.push(origin_of(env, state, item, stack)?);
++            }
++            let Origin::Fresh(id) = fresh_origin() else { unreachable!() };
++            Some(Origin::List(id, elems))
++        }
++        Expr::Filter { name, input, args } if (name == "default" || name == "d") && !args.is_empty() => {
++            let value = eval_to_value(env, state, input, stack)?;
++            let arg_vals: Vec<Value> = args.iter().map(|a| eval_to_value(env, state, a, stack)).collect::<Result<_>>()?;
++            let use_or = arg_vals.get(1).and_then(|v| v.as_bool()).unwrap_or(false);
++            let falsy = is_undefined_value(&value)
++                || (use_or
++                    && (value.is_null()
++                        || matches!(value, Value::Bool(false))
++                        || matches!(&value, Value::String(s) if s.is_empty())
++                        || value.as_f64().is_some_and(|x| x == 0.0)));
++            if falsy { origin_of(env, state, &args[0], stack)? } else { origin_of(env, state, input, stack)? }
++        }
++        Expr::InlineIf { cond, then_expr, else_expr } => {
++            if is_truthy(&eval_to_value(env, state, cond, stack)?) {
++                origin_of(env, state, then_expr, stack)?
++            } else {
++                match else_expr {
++                    Some(e) => origin_of(env, state, e, stack)?,
++                    None => None,
++                }
++            }
++        }
++        _ => Some(fresh_origin()),
++    })
++}
++
+ /// One active `{% call %}`: body to render for `caller()` / `caller(args…)`, plus optional formal parameters.
+ #[derive(Clone)]
+ pub struct CallerFrame {
+@@ -137,6 +270,11 @@
+     pub loader: Option<&'a (dyn TemplateLoader + Send + Sync)>,
+     pub stack: Vec<String>,
+     pub macro_scopes: Vec<HashMap<String, MacroDef>>,
++    /// Closures of the imported macros currently executing (innermost last): a macro body sees its
++    /// defining template's macros first.
++    pub macro_closures: Vec<std::sync::Arc<HashMap<String, MacroDef>>>,
++    /// Origins of the positional arguments of the macro call about to run (see [`Origin`]).
++    pub pending_arg_origins: Vec<Option<Origin>>,
+     /// `{% import "x" as ns %}` — macros callable as `ns.macro_name()`.
+     pub macro_namespaces: HashMap<String, HashMap<String, MacroDef>>,
+     /// Top-level `{% set %}` exports from each `import … as ns` namespace (`ns.name`): single- and
+@@ -173,6 +311,8 @@
+             loader,
+             stack: Vec::new(),
+             macro_scopes: Vec::new(),
++            macro_closures: Vec::new(),
++            pending_arg_origins: Vec::new(),
+             macro_namespaces: HashMap::new(),
+             macro_namespace_values: HashMap::new(),
+             block_chains: None,
+@@ -208,6 +348,9 @@
+     }
+ 
+     pub fn lookup_macro(&self, name: &str) -> Option<&MacroDef> {
++        if let Some(m) = self.macro_closures.last().and_then(|c| c.get(name)) {
++            return Some(m);
++        }
+         for scope in self.macro_scopes.iter().rev() {
+             if let Some(m) = scope.get(name) {
+                 return Some(m);
+@@ -252,7 +395,10 @@
+     root: &Node,
+     ctx_stack: &mut CtxStack,
+ ) -> Result<String> {
+-    if let Some((parent_expr, blocks)) = extract_layout_if_any(root)? {
++    if let Some((parent_expr, blocks, prelude)) = extract_layout_if_any(root)? {
++        for n in &prelude {
++            render_node(env, state, n, ctx_stack)?;
++        }
+         let parent_name =
+             crate::value::value_to_string(&eval_to_value(env, state, &parent_expr, ctx_stack)?);
+         render_extends(env, state, &parent_name, blocks, ctx_stack)
+@@ -265,33 +411,27 @@
+     let Node::Root(children) = root else {
+         return Ok(None);
+     };
+-    let mut idx = 0usize;
+-    while idx < children.len() {
+-        match &children[idx] {
+-            Node::Text(s) if s.trim().is_empty() => idx += 1,
+-            Node::Extends { parent } => {
+-                let parent = parent.clone();
+-                let mut blocks = HashMap::new();
+-                for n in children.iter().skip(idx + 1) {
+-                    match n {
+-                        Node::Block { name, body } => {
+-                            blocks.insert(name.clone(), body.clone());
+-                        }
+-                        Node::Text(s) if s.chars().all(|c| c.is_whitespace()) => {}
+-                        Node::MacroDef(_) => {}
+-                        _ => {
+-                            return Err(RunjucksError::new(
+-                                "invalid content in template with `extends` (only `block` allowed)",
+-                            ));
+-                        }
+-                    }
+-                }
+-                return Ok(Some((parent, blocks)));
+-            }
+-            _ => return Ok(None),
++    // Nunjucks: a template with `{% extends %}` anywhere at its top level renders its parent.
++    // Everything else at the top level still runs (for `set`, `import`, loops...), but its
++    // output is discarded.
++    let Some(parent) = children.iter().find_map(|n| match n {
++        Node::Extends { parent } => Some(parent.clone()),
++        _ => None,
++    }) else {
++        return Ok(None);
++    };
++    let mut blocks = HashMap::new();
++    let mut prelude = Vec::new();
++    collect_nested_blocks(children, &mut blocks);
++    for n in children {
++        match n {
++            Node::Block { .. } => {}
++            Node::Extends { .. } | Node::MacroDef(_) => {}
++            Node::Text(_) => {}
++            other => prelude.push(other.clone()),
+         }
+     }
+-    Ok(None)
++    Ok(Some((parent, blocks, prelude)))
+ }
+ 
+ pub(crate) fn collect_blocks_in_root(root: &Node) -> HashMap<String, Vec<Node>> {
+@@ -299,12 +439,47 @@
+         return HashMap::new();
+     };
+     let mut m = HashMap::new();
+-    for n in children {
+-        if let Node::Block { name, body } = n {
+-            m.insert(name.clone(), body.clone());
++    collect_nested_blocks(children, &mut m);
++    m
++}
++
++/// Nunjucks registers every `{% block %}` in a template (`findAll(nodes.Block)`), including
++/// blocks nested in other blocks or in tags, so a child can override (and `super()`) a nested
++/// block such as GOV.UK's `govukFooter` inside `footer`. Macro bodies are their own scope.
++pub(crate) fn collect_nested_blocks(nodes: &[Node], out: &mut HashMap<String, Vec<Node>>) {
++    for n in nodes {
++        match n {
++            Node::Block { name, body } => {
++                out.entry(name.clone()).or_insert_with(|| body.clone());
++                collect_nested_blocks(body, out);
++            }
++            Node::If { branches } | Node::IfAsync { branches } => {
++                for b in branches {
++                    collect_nested_blocks(&b.body, out);
++                }
++            }
++            Node::For { body, else_body, .. }
++            | Node::AsyncEach { body, else_body, .. }
++            | Node::AsyncAll { body, else_body, .. } => {
++                collect_nested_blocks(body, out);
++                if let Some(e) = else_body {
++                    collect_nested_blocks(e, out);
++                }
++            }
++            Node::Switch { cases, default_body, .. } => {
++                for c in cases {
++                    collect_nested_blocks(&c.body, out);
++                }
++                if let Some(d) = default_body {
++                    collect_nested_blocks(d, out);
++                }
++            }
++            Node::Set { body: Some(body), .. }
++            | Node::FilterBlock { body, .. }
++            | Node::CallBlock { body, .. } => collect_nested_blocks(body, out),
++            _ => {}
+         }
+     }
+-    m
+ }
+ 
+ pub(crate) fn extends_parent_expr(root: &Node) -> Option<&Expr> {
+@@ -407,12 +582,27 @@
+         state,
+         ctx_stack,
+     )?;
++    // Walk up to the root layout, running each intermediate layout's prelude on the way, and
++    // render the root with the full block chains.
++    let mut root_ast = parent_ast;
++    let mut pushed = 1;
++    while let Some((gp_expr, _, prelude)) = extract_layout_if_any(root_ast.as_ref())? {
++        for n in &prelude {
++            render_node(env, state, n, ctx_stack)?;
++        }
++        let gp_name = crate::value::value_to_string(&eval_to_value(env, state, &gp_expr, ctx_stack)?);
++        root_ast = env.load_and_parse_named(&gp_name, loader)?;
++        state.push_template(&gp_name)?;
++        pushed += 1;
++    }
+     let prev_chains = state.block_chains.take();
+     state.block_chains = Some(chains);
+-    let out = render_with_state(env, state, parent_ast.as_ref(), ctx_stack)?;
++    let out = render_with_state(env, state, root_ast.as_ref(), ctx_stack);
+     state.block_chains = prev_chains;
+-    state.pop_template();
+-    Ok(out)
++    for _ in 0..pushed {
++        state.pop_template();
++    }
++    out
+ }
+ 
+ fn render_with_state(
+@@ -438,6 +628,45 @@
+     m
+ }
+ 
++/// The macros a loaded template exports, each closing over the macros visible at that template's
++/// top level: its own `{% macro %}`s plus those it brings in with literal `{% from … import … %}`.
++pub(crate) fn module_macros(
++    env: &Environment,
++    state: &mut RenderState<'_>,
++    root: &Node,
++    loader: &(dyn TemplateLoader + Send + Sync),
++) -> Result<HashMap<String, MacroDef>> {
++    let own = collect_top_level_macros(root);
++    let mut scope: HashMap<String, MacroDef> = HashMap::new();
++    if let Node::Root(children) = root {
++        for n in children {
++            let Node::FromImport { template, names, .. } = n else { continue };
++            let Expr::Literal(Value::String(path)) = template else { continue };
++            state.push_template(path)?;
++            let nested = env.load_and_parse_named(path, loader)?;
++            let nested_defs = module_macros(env, state, nested.as_ref(), loader);
++            state.pop_template();
++            let nested_defs = nested_defs?;
++            for (export_name, alias) in names {
++                if let Some(def) = nested_defs.get(export_name) {
++                    scope.insert(alias.as_ref().unwrap_or(export_name).clone(), def.clone());
++                }
++            }
++        }
++    }
++    for (name, def) in &own {
++        scope.insert(name.clone(), def.clone());
++    }
++    let closure = std::sync::Arc::new(scope);
++    Ok(own
++        .into_iter()
++        .map(|(name, mut def)| {
++            def.closure = Some(closure.clone());
++            (name, def)
++        })
++        .collect())
++}
++
+ /// Top-level `{% set … %}` forms that participate in `{% import %}` / `{% from %}` exports (same
+ /// order as source; mirrors [`Node::Set`] rendering for multi-target and block capture).
+ pub(crate) enum TopLevelSetExport {
+@@ -629,13 +858,16 @@
+         } => {
+             if let Some(expr) = value {
+                 let v = eval_to_value(env, state, expr, stack)?;
++                let origin = if is_reference_value(&v) { origin_of(env, state, expr, stack)? } else { None };
+                 for t in targets {
+                     stack.set(t, v.clone());
++                    stack.set_origin(t, origin.clone());
+                 }
+             } else if let Some(nodes) = body {
+                 let s = render_children(env, state, nodes, stack)?;
+                 if let Some(t) = targets.first() {
+                     stack.set(t, Value::String(s));
++                    stack.set_origin(t, None);
+                 }
+             }
+             Ok(String::new())
+@@ -679,7 +911,7 @@
+             let imported = env.load_and_parse_named(&name, loader)?;
+             state.push_template(&name)?;
+             scan_literal_import_graph(env, state, imported.as_ref(), loader)?;
+-            let defs = collect_top_level_macros(imported.as_ref());
++            let defs = module_macros(env, state, imported.as_ref(), loader)?;
+             let exported_sets =
+                 eval_exported_top_level_sets(env, state, imported.as_ref(), stack, *with_context)?;
+             state.pop_template();
+@@ -701,7 +933,7 @@
+             let imported = env.load_and_parse_named(&name, loader)?;
+             state.push_template(&name)?;
+             scan_literal_import_graph(env, state, imported.as_ref(), loader)?;
+-            let defs = collect_top_level_macros(imported.as_ref());
++            let defs = module_macros(env, state, imported.as_ref(), loader)?;
+             let exported_sets =
+                 eval_exported_top_level_sets(env, state, imported.as_ref(), stack, *with_context)?;
+             state.pop_template();
+@@ -926,6 +1158,9 @@
+     stack: &mut CtxStack,
+ ) -> Result<String> {
+     let v = eval_to_value(env, state, iter_expr, stack)?;
++    let collection_origin = if is_reference_value(&v) { origin_of(env, state, iter_expr, stack)? } else { None };
++    // Iterating `undefined` yields nothing (it is an internal marker object, not a mapping).
++    let v = if is_undefined_value(&v) { Value::Null } else { v };
+     let it = iterable_from_value(v);
+     if iterable_empty(&it) {
+         return if let Some(eb) = else_body {
+@@ -944,7 +1179,9 @@
+             acc.reserve(len.saturating_mul(16));
+             for (i, item) in items.into_iter().enumerate() {
+                 inject_loop(stack, i, len);
++                let origin = if is_reference_value(&item) { origin_path(collection_origin.clone(), i.to_string()) } else { None };
+                 stack.set_local(x, item);
++                stack.set_origin(x, origin);
+                 acc.push_str(&render_children(env, state, body, stack)?);
+             }
+         }
+@@ -971,8 +1208,10 @@
+             acc.reserve(len.saturating_mul(16));
+             for (i, (k, v)) in pairs.into_iter().enumerate() {
+                 inject_loop(stack, i, len);
++                let origin = if is_reference_value(&v) { origin_path(collection_origin.clone(), k.clone()) } else { None };
+                 stack.set_local(&names[0], Value::String(k));
+                 stack.set_local(&names[1], v);
++                stack.set_origin(&names[1], origin);
+                 acc.push_str(&render_children(env, state, body, stack)?);
+             }
+         }
+@@ -1201,8 +1440,9 @@
+                             let n = match input_v.as_ref() {
+                                 Value::String(s) => s.chars().count(),
+                                 Value::Array(a) => a.len(),
+-                                Value::Object(o) => o.len(),
+                                 v if is_undefined_value(v) => 0,
++                                v if crate::value::is_marked_safe(v) => crate::value::value_to_string(v).chars().count(),
++                                Value::Object(o) => o.len(),
+                                 _ => 0,
+                             };
+                             return Ok(n.to_string());
+@@ -1329,6 +1569,8 @@
+     module_closure: Option<&HashMap<String, Value>>,
+ ) -> Result<String> {
+     let mut inner = outer.flatten();
++    let mut origins = outer.flatten_origins();
++    let arg_origins = std::mem::take(&mut state.pending_arg_origins);
+     if let Some(mc) = module_closure {
+         for (k, v) in mc {
+             inner.insert(k.clone(), v.clone());
+@@ -1342,9 +1584,15 @@
+         };
+         inner.insert(p.name.clone(), val);
+     }
++    for p in &m.params {
++        origins.remove(&p.name);
++    }
+     for (i, p) in m.params.iter().enumerate() {
+         if let Some(v) = positional.get(i) {
+             inner.insert(p.name.clone(), v.clone());
++            if let Some(Some(o)) = arg_origins.get(i) {
++                origins.insert(p.name.clone(), o.clone());
++            }
+         }
+     }
+     for (k, v) in kwargs {
+@@ -1352,8 +1600,14 @@
+             inner.insert(k.clone(), v.clone());
+         }
+     }
+-    let mut stack = CtxStack::from_root(inner);
+-    render_children(env, state, &m.body, &mut stack)
++    let mut stack = CtxStack::from_root_with_origins(inner, origins);
++    let Some(closure) = &m.closure else {
++        return render_children(env, state, &m.body, &mut stack);
++    };
++    state.macro_closures.push(closure.clone());
++    let out = render_children(env, state, &m.body, &mut stack);
++    state.macro_closures.pop();
++    out
+ }
+ 
+ /// Renders the `{% call %}` body for `caller()` / `caller(args…)` (Nunjucks `Caller` node).
+@@ -1554,6 +1808,15 @@
+                             }
+                         }
+                     }
++                    if is_reference_value(v.as_ref()) && is_reference_value(&arg_vals[0]) {
++                        let v_owned = v.into_owned();
++                        let lo = origin_of(env, state, left, stack)?;
++                        let ro = origin_of(env, state, &arg_exprs[0], stack)?;
++                        return Ok(Value::Bool(match (lo, ro) {
++                            (Some(a), Some(b)) => a == b,
++                            _ => v_owned == arg_vals[0],
++                        }));
++                    }
+                 }
+                 Ok(Value::Bool(env.apply_is_test(
+                     test_name,
+@@ -1600,7 +1863,8 @@
+             } else if let Some(els) = else_expr {
+                 eval_to_value(env, state, els, stack)
+             } else {
+-                Ok(Value::Null)
++                // Nunjucks compiles `a if b` to `b ? a : ""`.
++                Ok(Value::String(String::new()))
+             }
+         }
+         Expr::GetAttr { base, attr } => {
+@@ -1628,13 +1892,7 @@
+                         if is_undefined_value(cur.as_ref()) || cur.as_ref().is_null() {
+                             return Ok(undefined_value());
+                         }
+-                        match cur.as_ref() {
+-                            Value::Object(o) => {
+-                                cur =
+-                                    Cow::Owned(o.get(*a).cloned().unwrap_or_else(undefined_value));
+-                            }
+-                            _ => return Ok(undefined_value()),
+-                        }
++                        cur = Cow::Owned(value_attr(cur.as_ref(), a));
+                     }
+                     return Ok(cur.into_owned());
+                 }
+@@ -1643,10 +1901,7 @@
+             if is_undefined_value(&b) || b.is_null() {
+                 return Ok(undefined_value());
+             }
+-            match b {
+-                Value::Object(o) => Ok(o.get(attr).cloned().unwrap_or_else(undefined_value)),
+-                _ => Ok(undefined_value()),
+-            }
++            Ok(value_attr(&b, attr))
+         }
+         Expr::GetItem { base, index } => match index.as_ref() {
+             Expr::Slice {
+@@ -1816,6 +2071,11 @@
+                     return Ok(mark_safe(s));
+                 }
+                 if let Some(mdef) = state.lookup_macro(name).cloned() {
++                    let mut arg_origins = Vec::with_capacity(args.len());
++                    for (a, v) in args.iter().zip(&arg_vals) {
++                        arg_origins.push(if is_reference_value(v) { origin_of(env, state, a, stack)? } else { None });
++                    }
++                    state.pending_arg_origins = arg_origins;
+                     let s = render_macro_body(env, state, &mdef, &arg_vals, &kw_vals, stack, None)?;
+                     return Ok(mark_safe(s));
+                 }
+@@ -1857,6 +2117,25 @@
+                     }
+                 }
+             }
++            if let Expr::GetAttr { base, attr } = callee.as_ref() {
++                if kw_vals.is_empty() {
++                    let b = eval_to_value(env, state, base, stack)?;
++                    // `list.push(x)` on a template variable mutates that binding, as the JS array
++                    // reference does in Nunjucks; it returns the new length.
++                    if attr == "push" {
++                        if let (Expr::Variable(name), Value::Array(items)) = (base.as_ref(), &b) {
++                            let mut items = items.clone();
++                            items.extend(arg_vals.iter().cloned());
++                            let len = items.len();
++                            stack.set(name, Value::Array(items));
++                            return Ok(Value::from(len));
++                        }
++                    }
++                    if let Some(r) = crate::js_methods::call(&b, attr, &arg_vals) {
++                        return r;
++                    }
++                }
++            }
+             Err(RunjucksError::new(
+                 "only template macros, built-in globals (`range`, `cycler`, `joiner`), registered global callables, or `super`/`caller` are supported for `()` expressions",
+             ))
+@@ -1889,8 +2168,9 @@
+                             return Ok(match input_v.as_ref() {
+                                 Value::String(s) => json!(s.chars().count()),
+                                 Value::Array(a) => json!(a.len()),
+-                                Value::Object(o) => json!(o.len()),
+                                 v if is_undefined_value(v) => json!(0),
++                                v if crate::value::is_marked_safe(v) => json!(crate::value::value_to_string(v).chars().count()),
++                                Value::Object(o) => json!(o.len()),
+                                 _ => json!(0),
+                             });
+                         }
+@@ -1959,5 +2239,21 @@
+             m.insert("flags".to_string(), Value::String(flags.clone()));
+             Ok(Value::Object(m))
+         }
++    }
++}
++
++/// JS-style attribute lookup: object keys, `SafeString.val`, and `.length` on arrays/strings.
++fn value_attr(v: &Value, attr: &str) -> Value {
++    match v {
++        Value::Object(o) if crate::value::is_marked_safe(v) => match attr {
++            "val" => o.get(crate::value::RJ_SAFE).cloned().unwrap_or_else(undefined_value),
++            "length" => json!(crate::value::value_to_string(v).chars().count()),
++            _ => undefined_value(),
++        },
++        _ if is_undefined_value(v) => undefined_value(),
++        Value::Object(o) => o.get(attr).cloned().unwrap_or_else(undefined_value),
++        Value::Array(a) if attr == "length" => json!(a.len()),
++        Value::String(s) if attr == "length" => json!(s.chars().count()),
++        _ => undefined_value(),
+     }
+ }

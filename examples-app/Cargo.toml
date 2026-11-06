@@ -1,0 +1,28 @@
+[package]
+name = "forge-examples-app"
+version = "0.1.0"
+edition = "2024"
+description = "The Forge Developer Guide (examples-app), served by forge-topcoat"
+
+[dependencies]
+forge-core = { path = "../forge-core" }
+forge-runjucks = { path = "../forge-runjucks" }
+forge-govuk-components = { path = "../forge-govuk-components" }
+forge-moj-components = { path = "../forge-moj-components" }
+forge-topcoat = { path = "../forge-topcoat" }
+forge-devtools = { path = "../forge-devtools" }
+serde_json = { version = "1", features = ["preserve_order"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "io-util", "time"] }
+indexmap = "2"
+pulldown-cmark = { version = "0.13", default-features = false }
+regex = "1"
+fancy-regex = "0.14"
+serde = { version = "1", features = ["derive"] }
+rust-stemmers = "1"
+grass = "0.13"
+http = "1"
+runjucks_core = "=0.1.9"
+topcoat = "=0.11.0"
+
+[dev-dependencies]
+uuid = { version = "1.29.0", features = ["v4"] }
