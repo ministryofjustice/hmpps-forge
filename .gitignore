@@ -131,9 +131,13 @@ integration_tests/screenshots/
 # LocalStack volume data
 volume/
 
-# Temporary build artifact for Docker (TODO: remove once hmpps-forge is published)
-forge-package/
-
 # Rollup transpiles .ts config to .js during build
 packages/rollup.config.js
 packages/*.md
+
+# Rust related
+target/
+vendor/runjucks_core/target/
+template-parity/report/
+template-parity/dump.*.html
+template-parity/corpus/corpus.json

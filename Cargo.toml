@@ -1,0 +1,23 @@
+[workspace]
+resolver = "3"
+members = ["template-parity", "forge-core", "forge-runjucks", "forge-govuk-components", "forge-moj-components", "forge-topcoat", "forge-devtools", "examples-app"]
+exclude = ["vendor"]
+
+# Vendored Runjucks with Nunjucks-parity fixes found by template-parity (to be upstreamed).
+[patch.crates-io]
+runjucks_core = { path = "vendor/runjucks_core" }
+grass_compiler = { path = "vendor/grass_compiler" }
+
+# The examples app compiles its stylesheet with grass at startup; unoptimised it takes ~40s.
+[profile.dev.package.grass_compiler]
+opt-level = 3
+
+# The highlight.js port runs on fancy-regex; unoptimised, guide pages render several times slower.
+[profile.dev.package.fancy-regex]
+opt-level = 3
+
+[profile.dev.package.regex-automata]
+opt-level = 3
+
+[profile.dev.package.regex-syntax]
+opt-level = 3

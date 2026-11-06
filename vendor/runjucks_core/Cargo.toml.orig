@@ -1,0 +1,42 @@
+[package]
+name = "runjucks_core"
+version = "0.1.9"
+edition = "2021"
+description = "Pure Rust Nunjucks-compatible template engine core (Runjucks)"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/Nikolay-Pomytkin/runjucks"
+documentation = "https://docs.rs/runjucks_core"
+keywords = ["nunjucks", "template", "jinja", "templating"]
+categories = ["template-engine"]
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+ahash = "0.8"
+nom = "8.0.0"
+rand = { version = "0.8", features = ["small_rng"] }
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[features]
+default = []
+async = []
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "macros"] }
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "render_hotspots"
+harness = false
+
+[[bench]]
+name = "parse_hotspots"
+harness = false
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

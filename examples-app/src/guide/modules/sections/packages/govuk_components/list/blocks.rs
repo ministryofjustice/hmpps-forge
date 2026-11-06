@@ -1,0 +1,74 @@
+//! Ported from `examples-app/server/journeys/forge-developer-guide/sections/packages/govuk-components/list/blocks.ts`.
+
+#![allow(unused_imports, clippy::all)]
+
+use crate::guide::dsl::*;
+use forge_core::{Value, obj};
+use forge_core::authoring::{condition, generator, transformer};
+use forge_core::builtins::components as core_blocks;
+use forge_govuk_components::blocks as govuk;
+use forge_moj_components::blocks as moj;
+use crate::components as guide_blocks;
+use crate::guide::support::govuk_markdown_block;
+use crate::guide::support::table_of_contents;
+
+#[allow(unused_variables)]
+fn live_display(blocks: D) -> D {
+    component(&core_blocks::TEMPLATE_WRAPPER, obj! {
+        "template": "{{slot:content}}",
+        "classes": "live-example",
+        "slots": obj! { "content": blocks.clone() },
+    })
+}
+
+fn basic_example() -> D {
+    component(&govuk::LIST, obj! { "items": arr!["Design", "Build", "Test", "Deploy"], "style": "bullet" })
+}
+
+fn bullet_example() -> D {
+    component(&govuk::LIST, obj! { "items": arr!["Design", "Build", "Test"], "style": "bullet" })
+}
+
+fn numbered_example() -> D {
+    component(&govuk::LIST, obj! {
+        "items": arr!["Check eligibility", "Gather documents", "Submit application"],
+        "style": "number",
+    })
+}
+
+fn block_items_example() -> D {
+    component(&govuk::LIST, obj! {
+        "items": arr![
+            "A plain string item",
+            component(&govuk::BODY, obj! { "text": "A paragraph item" }),
+            component(&core_blocks::HTML, obj! { "tag": "a", "attributes": obj! { "href": "/help" }, "content": "A link item" }),
+        ],
+        "style": "bullet",
+    })
+}
+
+pub fn content() -> D {
+    govuk_markdown_block(obj! {
+        "content": data("content"),
+        "slots": obj! {
+            "toc": arr![table_of_contents(obj! { "headings": data("headings") })],
+            "basic-example": arr![live_display(arr![basic_example()])],
+            "bullet-example": arr![live_display(arr![bullet_example()])],
+            "numbered-example": arr![live_display(arr![numbered_example()])],
+            "block-items-example": arr![live_display(arr![block_items_example()])],
+        },
+    })
+}
+
+/// Evaluates this module as TS does on first import (see `crate::guide::init`).
+#[doc(hidden)]
+pub fn __init() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        let _ = basic_example();
+        let _ = bullet_example();
+        let _ = numbered_example();
+        let _ = block_items_example();
+        let _ = content();
+    });
+}

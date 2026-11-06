@@ -1,0 +1,994 @@
+{"name":"IsRequired","type":"FunctionType.Condition","args":["hello"],"ok":true}
+{"name":"String.MatchesRegex","type":"FunctionType.Condition","args":["hello","h.*o"],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["SW1A 1AA"],"ok":true}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["test@example.com"],"ok":true}
+{"name":"Array.IsArray","type":"FunctionType.Condition","args":[[]],"ok":true}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["1234567"],"ok":true}
+{"name":"Number.Add","type":"FunctionType.Transformer","args":[5,3],"ok":8}
+{"name":"Number.IsNumber","type":"FunctionType.Condition","args":[0],"ok":true}
+{"name":"IsRequired","type":"FunctionType.Condition","args":["0"],"ok":true}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[{}],"ok":true}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[{"day":"5","month":"3","year":"2024"},{"year":"year","month":"month","day":"day"}],"ok":"2024-03-05"}
+{"name":"Array.Length","type":"FunctionType.Transformer","args":[[1,2,3,4]],"ok":4}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[1],"ok":true}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[{"month":"12","year":"2027"},{"month":"month","year":"year"}],"ok":"2027-12"}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["user.name@example.com"],"ok":true}
+{"name":"Array.IsArray","type":"FunctionType.Condition","args":[["foo","bar","baz"]],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["SW1A1AA"],"ok":true}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["123-456-7890"],"ok":true}
+{"name":"Date.IsValid","type":"FunctionType.Condition","args":["2025-09-05"],"ok":true}
+{"name":"Number.Add","type":"FunctionType.Transformer","args":[-5,-3],"ok":-8}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[{"a":1}],"ok":true}
+{"name":"String.MatchesRegex","type":"FunctionType.Condition","args":["test@example.com",".*@.*\\.com"],"ok":true}
+{"name":"Number.IsNumber","type":"FunctionType.Condition","args":[42],"ok":true}
+{"name":"Number.IsNumber","type":"FunctionType.Condition","args":[-5],"ok":true}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[0],"ok":true}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["user+tag@example.co.uk"],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["EC1A 1BB"],"ok":true}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[{"month":"7","day":"15"},{"month":"month","day":"day"}],"ok":"--07-15"}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["(123) 456-7890"],"ok":true}
+{"name":"Array.Length","type":"FunctionType.Transformer","args":[[]],"ok":0}
+{"name":"String.MatchesRegex","type":"FunctionType.Condition","args":["123","^\\d+$"],"ok":true}
+{"name":"Date.IsValid","type":"FunctionType.Condition","args":["2024-12-31"],"ok":true}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[{"nested":{"value":true}}],"ok":true}
+{"name":"Array.IsArray","type":"FunctionType.Condition","args":["foo"],"ok":false}
+{"name":"Number.Add","type":"FunctionType.Transformer","args":[5,-3],"ok":2}
+{"name":"Array.IsArray","type":"FunctionType.Condition","args":[123],"ok":false}
+{"name":"String.MatchesRegex","type":"FunctionType.Condition","args":["hello","^world$"],"ok":false}
+{"name":"Number.IsNumber","type":"FunctionType.Condition","args":[3.14],"ok":true}
+{"name":"String.Trim","type":"FunctionType.Transformer","args":["  hello world  "],"ok":"hello world"}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[true],"ok":true}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[{"year":"2024"},{"year":"year"}],"ok":"2024"}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["+1 234 567 8900"],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["EC1A1BB"],"ok":true}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["user_name@example-domain.com"],"ok":true}
+{"name":"Number.Add","type":"FunctionType.Transformer","args":[2.5,1.3],"ok":3.8}
+{"name":"Date.IsValid","type":"FunctionType.Condition","args":["2000-02-29"],"ok":true}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[{}],"ok":true}
+{"name":"Array.Length","type":"FunctionType.Transformer","args":[[1,"hello",true,null]],"ok":4}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["W1A 0AX"],"ok":true}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[{"birth":{"year":"1990","month":"05","day":"15"}},{"year":"birth.year","month":"birth.month","day":"birth.day"}],"ok":"1990-05-15"}
+{"name":"Array.Length","type":"FunctionType.Transformer","args":["hello"],"error":{"name":"TypeError","message":"Array.Length: value failed schema validation — [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected array, received string\"\n  }\n]"}}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[null],"ok":false}
+{"name":"Number.Add","type":"FunctionType.Transformer","args":["5",3],"error":{"name":"TypeError","message":"Number.Add: value failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]"}}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["123@example.com"],"ok":true}
+{"name":"Number.IsNumber","type":"FunctionType.Condition","args":[{"$number":"Infinity"}],"ok":true}
+{"name":"String.Trim","type":"FunctionType.Transformer","args":["hello"],"ok":"hello"}
+{"name":"Number.IsNumber","type":"FunctionType.Condition","args":[{"$number":"-Infinity"}],"ok":true}
+{"name":"String.Trim","type":"FunctionType.Transformer","args":[""],"ok":""}
+{"name":"Number.Subtract","type":"FunctionType.Transformer","args":[10,3],"ok":7}
+{"name":"Array.First","type":"FunctionType.Transformer","args":[[1,2,3]],"ok":1}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["a@b.co"],"ok":true}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[{"jour":"28","mois":"2","annee":"2024"},{"day":"jour","month":"mois","year":"annee"}],"ok":"2024-02-28"}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["W1A0AX"],"ok":true}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[[]],"ok":false}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["test.email@subdomain.example.com"],"ok":true}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[[1,2,3]],"ok":false}
+{"name":"Number.Subtract","type":"FunctionType.Transformer","args":[-5,-3],"ok":-2}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["M1 1AE"],"ok":true}
+{"name":"String.Trim","type":"FunctionType.Transformer","args":["   "],"ok":""}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[{"month":"13"},{"month":"month"}],"error":{"name":"TypeError","message":"Transformer.Object.ToISO: Month must be between 1 and 12, got \"13\""}}
+{"name":"Array.First","type":"FunctionType.Transformer","args":[[]],"ok":{"$undefined":true}}
+{"name":"Number.IsNumber","type":"FunctionType.Condition","args":[{"$number":"NaN"}],"ok":false}
+{"name":"Date.IsValid","type":"FunctionType.Condition","args":["2023-02-28"],"ok":true}
+{"name":"Array.IsArray","type":"FunctionType.Condition","args":[null],"ok":false}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["+44 20 7123 4567"],"ok":true}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["user%test@example.com"],"ok":true}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[{"month":"13"},{"month":"month"}],"error":{"name":"TypeError","message":"Transformer.Object.ToISO: Month must be between 1 and 12, got \"13\""}}
+{"name":"Number.IsNumber","type":"FunctionType.Condition","args":["42"],"ok":false}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["M11AE"],"ok":true}
+{"name":"Number.Subtract","type":"FunctionType.Transformer","args":[5.7,2.2],"ok":3.5}
+{"name":"String.Trim","type":"FunctionType.Transformer","args":["  hello   world  "],"ok":"hello   world"}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[[{"a":1}]],"ok":false}
+{"name":"Array.First","type":"FunctionType.Transformer","args":[["hello"]],"ok":"hello"}
+{"name":"Array.IsArray","type":"FunctionType.Condition","args":[{"$undefined":true}],"ok":false}
+{"name":"Date.IsValid","type":"FunctionType.Condition","args":["1999-01-01"],"ok":true}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["020 7123 4567"],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["B33 8TH"],"ok":true}
+{"name":"Number.IsNumber","type":"FunctionType.Condition","args":[""],"ok":false}
+{"name":"String.Trim","type":"FunctionType.Transformer","args":[123],"error":{"name":"TypeError","message":"String.Trim: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["user@example.verylongtld"],"ok":true}
+{"name":"Number.Subtract","type":"FunctionType.Transformer","args":["10",3],"error":{"name":"TypeError","message":"Number.Subtract: value failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]"}}
+{"name":"Date.IsValid","type":"FunctionType.Condition","args":["2025-02-30"],"ok":false}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[{"day":"32"},{"day":"day"}],"error":{"name":"TypeError","message":"Transformer.Object.ToISO: Day must be between 1 and 31, got \"32\""}}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["123.456.7890"],"ok":true}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":["string"],"ok":false}
+{"name":"Array.IsArray","type":"FunctionType.Condition","args":[{}],"ok":false}
+{"name":"Array.First","type":"FunctionType.Transformer","args":["hello"],"error":{"name":"TypeError","message":"Array.First: value failed schema validation — [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected array, received string\"\n  }\n]"}}
+{"name":"String.ToUpperCase","type":"FunctionType.Transformer","args":["hello world"],"ok":"HELLO WORLD"}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["+1-234-567-8900"],"ok":true}
+{"name":"Array.Last","type":"FunctionType.Transformer","args":[[1,2,3]],"ok":3}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["B338TH"],"ok":true}
+{"name":"Date.IsValid","type":"FunctionType.Condition","args":["2023-02-29"],"ok":false}
+{"name":"Array.IsIn","type":"FunctionType.Condition","args":["apple",["apple","banana","orange"]],"ok":true}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[123],"ok":false}
+{"name":"Number.IsNumber","type":"FunctionType.Condition","args":[null],"ok":false}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["name@company.engineering"],"ok":true}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[{"day":"32"},{"day":"day"}],"error":{"name":"TypeError","message":"Transformer.Object.ToISO: Day must be between 1 and 31, got \"32\""}}
+{"name":"Number.Multiply","type":"FunctionType.Transformer","args":[4,3],"ok":12}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[false],"ok":true}
+{"name":"String.MatchesRegex","type":"FunctionType.Condition","args":["abc","^\\d+$"],"ok":false}
+{"name":"Array.Last","type":"FunctionType.Transformer","args":[[]],"ok":{"$undefined":true}}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[true],"ok":false}
+{"name":"String.ToUpperCase","type":"FunctionType.Transformer","args":["HELLO WORLD"],"ok":"HELLO WORLD"}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[{"year":"abc"},{"year":"year"}],"error":{"name":"TypeError","message":"Transformer.Object.ToISO: Invalid year value \"abc\""}}
+{"name":"Number.IsNumber","type":"FunctionType.Condition","args":[{"$undefined":true}],"ok":false}
+{"name":"Number.Multiply","type":"FunctionType.Transformer","args":[5,0],"ok":0}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["notanemail"],"ok":false}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["CR2 6XH"],"ok":true}
+{"name":"Array.IsIn","type":"FunctionType.Condition","args":[1,[1,2,3]],"ok":true}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["12345678901234567890"],"ok":true}
+{"name":"Date.IsValid","type":"FunctionType.Condition","args":["2025-04-31"],"ok":false}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[false],"ok":false}
+{"name":"Number.Multiply","type":"FunctionType.Transformer","args":[-4,-3],"ok":12}
+{"name":"Array.IsIn","type":"FunctionType.Condition","args":[true,[false,true]],"ok":true}
+{"name":"Number.IsNumber","type":"FunctionType.Condition","args":[true],"ok":false}
+{"name":"String.ToUpperCase","type":"FunctionType.Transformer","args":["HeLLo WoRLd"],"ok":"HELLO WORLD"}
+{"name":"Array.Last","type":"FunctionType.Transformer","args":[["hello"]],"ok":"hello"}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["@example.com"],"ok":false}
+{"name":"String.MatchesRegex","type":"FunctionType.Condition","args":["test","[["],"error":{"name":"Error","message":"Condition.String.MatchesRegex: Invalid regex pattern \"[[\""}}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["123456"],"ok":false}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[{"year":"abc"},{"year":"year"}],"error":{"name":"TypeError","message":"Transformer.Object.ToISO: Invalid year value \"abc\""}}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[{}],"ok":true}
+{"name":"Date.IsValid","type":"FunctionType.Condition","args":["2025-13-01"],"ok":false}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["CR26XH"],"ok":true}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[["item"]],"ok":true}
+{"name":"Number.Multiply","type":"FunctionType.Transformer","args":[2.5,4],"ok":10}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["user@"],"ok":false}
+{"name":"Number.IsNumber","type":"FunctionType.Condition","args":[{}],"ok":false}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["DN55 1PT"],"ok":true}
+{"name":"Date.IsValid","type":"FunctionType.Condition","args":["2025-00-01"],"ok":false}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["123456789012345678901"],"ok":false}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[{"month":"3","year":"2024"},{"year":"year","month":"month"}],"ok":"2024-03"}
+{"name":"String.HasMinLength","type":"FunctionType.Condition","args":["hello",3],"ok":true}
+{"name":"String.ToUpperCase","type":"FunctionType.Transformer","args":[""],"ok":""}
+{"name":"Array.Last","type":"FunctionType.Transformer","args":["hello"],"error":{"name":"TypeError","message":"Array.Last: value failed schema validation — [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected array, received string\"\n  }\n]"}}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[{"$undefined":true}],"ok":false}
+{"name":"Array.IsIn","type":"FunctionType.Condition","args":["grape",["apple","banana","orange"]],"ok":false}
+{"name":"String.HasMinLength","type":"FunctionType.Condition","args":["hello",5],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["DN551PT"],"ok":true}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["phone"],"ok":false}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[{"$date":"2026-11-04T14:09:27.144Z"}],"ok":true}
+{"name":"Array.IsIn","type":"FunctionType.Condition","args":[4,[1,2,3]],"ok":false}
+{"name":"Array.Reverse","type":"FunctionType.Transformer","args":[[1,2,3]],"ok":[3,2,1]}
+{"name":"String.ToUpperCase","type":"FunctionType.Transformer","args":["hello123!@#"],"ok":"HELLO123!@#"}
+{"name":"Number.IsNumber","type":"FunctionType.Condition","args":[[]],"ok":false}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[null,{"year":"year"}],"error":{"name":"TypeError","message":"Object.ToISO: value failed schema validation — [\n  {\n    \"code\": \"custom\",\n    \"path\": [],\n    \"message\": \"Invalid input\"\n  }\n]"}}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[{"$date":"2026-11-04T14:09:27.144Z"}],"ok":true}
+{"name":"Date.IsValid","type":"FunctionType.Condition","args":["2025-01-00"],"ok":false}
+{"name":"Number.Multiply","type":"FunctionType.Transformer","args":["4",3],"error":{"name":"TypeError","message":"Number.Multiply: value failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]"}}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["user..name@example.com"],"ok":false}
+{"name":"String.HasMinLength","type":"FunctionType.Condition","args":["",0],"ok":true}
+{"name":"Date.IsValid","type":"FunctionType.Condition","args":["2025-01-32"],"ok":false}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[{}],"ok":true}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["123@456"],"ok":false}
+{"name":"Array.Reverse","type":"FunctionType.Transformer","args":[[]],"ok":[]}
+{"name":"Number.IsInteger","type":"FunctionType.Condition","args":[0],"ok":true}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":["not-object",{"year":"year"}],"error":{"name":"TypeError","message":"Object.ToISO: value failed schema validation — [\n  {\n    \"code\": \"custom\",\n    \"path\": [],\n    \"message\": \"Invalid input\"\n  }\n]"}}
+{"name":"String.ToUpperCase","type":"FunctionType.Transformer","args":[123],"error":{"name":"TypeError","message":"String.ToUpperCase: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[null],"ok":false}
+{"name":"Number.Divide","type":"FunctionType.Transformer","args":[15,3],"ok":5}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["sw1a 1aa"],"ok":true}
+{"name":"Array.IsIn","type":"FunctionType.Condition","args":["1",[1,2,3]],"ok":false}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[{"$undefined":true}],"ok":false}
+{"name":"Array.Reverse","type":"FunctionType.Transformer","args":[[1,2,3]],"ok":[3,2,1]}
+{"name":"Array.Reverse","type":"FunctionType.Transformer","args":[["hello"]],"ok":["hello"]}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[""],"ok":false}
+{"name":"IsRequired","type":"FunctionType.Condition","args":["   "],"ok":false}
+{"name":"Array.Reverse","type":"FunctionType.Transformer","args":["hello"],"error":{"name":"TypeError","message":"Array.Reverse: value failed schema validation — [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected array, received string\"\n  }\n]"}}
+{"name":"IsRequired","type":"FunctionType.Condition","args":["\t"],"ok":false}
+{"name":"Array.Join","type":"FunctionType.Transformer","args":[[1,2,3]],"ok":"1,2,3"}
+{"name":"Array.Join","type":"FunctionType.Transformer","args":[[1,2,3],", "],"ok":"1, 2, 3"}
+{"name":"IsRequired","type":"FunctionType.Condition","args":["\n"],"ok":false}
+{"name":"IsRequired","type":"FunctionType.Condition","args":["  \t  \n  "],"ok":false}
+{"name":"Array.Join","type":"FunctionType.Transformer","args":[[]],"ok":""}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["user@example"],"ok":false}
+{"name":"String.HasMinLength","type":"FunctionType.Condition","args":["hi",3],"ok":false}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["Sw1A 1Aa"],"ok":true}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[{"year":"2024"},null],"error":{"name":"TypeError","message":"Object.ToISO: arguments failed schema validation — [\n  {\n    \"expected\": \"object\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      0\n    ],\n    \"message\": \"Invalid input: expected object, received null\"\n  }\n]"}}
+{"name":"Date.IsValid","type":"FunctionType.Condition","args":["2024-1-1"],"ok":false}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":[""],"ok":false}
+{"name":"String.ToLowerCase","type":"FunctionType.Transformer","args":["HELLO WORLD"],"ok":"hello world"}
+{"name":"Number.Divide","type":"FunctionType.Transformer","args":[7.5,2.5],"ok":3}
+{"name":"Array.IsIn","type":"FunctionType.Condition","args":[false,[true]],"ok":false}
+{"name":"Number.IsInteger","type":"FunctionType.Condition","args":[42],"ok":true}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[{}],"ok":true}
+{"name":"String.HasMinLength","type":"FunctionType.Condition","args":["",1],"ok":false}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["user name@example.com"],"ok":false}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["user@.com"],"ok":false}
+{"name":"Number.IsInteger","type":"FunctionType.Condition","args":[-5],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["SW1A 1AA"],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["sw1a1aa"],"ok":true}
+{"name":"Number.Divide","type":"FunctionType.Transformer","args":[10,0],"error":{"name":"Error","message":"Division by zero is not allowed in Transformer.Number.Divide"}}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["N1 1AA"],"ok":true}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["++123456789"],"ok":false}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["N11 1AA"],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["NW1 1AA"],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["NW11 1AA"],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["N1W 1AA"],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["NW1W 1AA"],"ok":true}
+{"name":"String.HasMaxLength","type":"FunctionType.Condition","args":["hello",10],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["1234567"],"ok":false}
+{"name":"Array.Join","type":"FunctionType.Transformer","args":[["hello"]],"ok":"hello"}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[[]],"ok":false}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":[""],"ok":false}
+{"name":"String.ToLowerCase","type":"FunctionType.Transformer","args":["hello world"],"ok":"hello world"}
+{"name":"IsRequired","type":"FunctionType.Condition","args":["a"],"ok":true}
+{"name":"Array.Join","type":"FunctionType.Transformer","args":[[1,"hello",true]," | "],"ok":"1 | hello | true"}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["ABC 123"],"ok":false}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":[".user@example.com"],"ok":false}
+{"name":"String.ToLowerCase","type":"FunctionType.Transformer","args":["HeLLo WoRLd"],"ok":"hello world"}
+{"name":"Number.IsInteger","type":"FunctionType.Condition","args":[1000000],"ok":true}
+{"name":"String.ToLowerCase","type":"FunctionType.Transformer","args":[""],"ok":""}
+{"name":"Number.Divide","type":"FunctionType.Transformer","args":["15",3],"error":{"name":"TypeError","message":"Number.Divide: value failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]"}}
+{"name":"Array.IsIn","type":"FunctionType.Condition","args":["anything",[]],"ok":false}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[{"other":"value"},{"year":"missing"}],"error":{"name":"TypeError","message":"Transformer.Object.ToISO: No valid date components found in object"}}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[{"$regexp":"/regex/"}],"ok":true}
+{"name":"Date.IsValid","type":"FunctionType.Condition","args":["24-01-01"],"ok":false}
+{"name":"String.ToLowerCase","type":"FunctionType.Transformer","args":[123],"error":{"name":"TypeError","message":"String.ToLowerCase: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"Number.Abs","type":"FunctionType.Transformer","args":[5],"ok":5}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["123#456#7890"],"ok":false}
+{"name":"Date.IsValid","type":"FunctionType.Condition","args":["2024/01/01"],"ok":false}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[{"other":"value"},{"year":"missing"}],"error":{"name":"TypeError","message":"Transformer.Object.ToISO: No valid date components found in object"}}
+{"name":"Object.FromISO","type":"FunctionType.Transformer","args":["2024-03-15",{"year":"year","month":"month","day":"day"}],"ok":{"year":"2024","month":"03","day":"15"}}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["+1 (555) 123-4567"],"ok":true}
+{"name":"Date.IsValid","type":"FunctionType.Condition","args":["invalid"],"ok":false}
+{"name":"String.HasMaxLength","type":"FunctionType.Condition","args":["hello",5],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["SW1A"],"ok":false}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[" a "],"ok":true}
+{"name":"Array.Join","type":"FunctionType.Transformer","args":["hello"],"error":{"name":"TypeError","message":"Array.Join: value failed schema validation — [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected array, received string\"\n  }\n]"}}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["user.@example.com"],"ok":false}
+{"name":"Array.IsIn","type":"FunctionType.Condition","args":["1",[1]],"ok":false}
+{"name":"Number.Abs","type":"FunctionType.Transformer","args":[-5],"ok":5}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[{"$unsupported":"function"}],"ok":false}
+{"name":"String.ToTitleCase","type":"FunctionType.Transformer","args":["hello world"],"ok":"Hello World"}
+{"name":"Number.IsInteger","type":"FunctionType.Condition","args":[3.14],"ok":false}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["+44 20 7946 0958"],"ok":true}
+{"name":"Date.IsValidYear","type":"FunctionType.Condition","args":["2024-01-01"],"ok":true}
+{"name":"Object.FromISO","type":"FunctionType.Transformer","args":["2025-03",{"year":"year","month":"month"}],"ok":{"year":"2025","month":"03"}}
+{"name":"String.HasMaxLength","type":"FunctionType.Condition","args":["",0],"ok":true}
+{"name":"String.HasMaxLength","type":"FunctionType.Condition","args":["hello",3],"ok":false}
+{"name":"String.HasMaxLength","type":"FunctionType.Condition","args":["x",0],"ok":false}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["SW1A 1"],"ok":false}
+{"name":"IsRequired","type":"FunctionType.Condition","args":["   text   "],"ok":true}
+{"name":"String.HasExactLength","type":"FunctionType.Condition","args":["hello",5],"ok":true}
+{"name":"Number.IsInteger","type":"FunctionType.Condition","args":[0.5],"ok":false}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["SW1A 1A"],"ok":false}
+{"name":"String.HasExactLength","type":"FunctionType.Condition","args":["",0],"ok":true}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[[null]],"ok":true}
+{"name":"Number.IsInteger","type":"FunctionType.Condition","args":[-2.7],"ok":false}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["SW1A 1AAA"],"ok":false}
+{"name":"String.HasExactLength","type":"FunctionType.Condition","args":["ab",2],"ok":true}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[[{"$undefined":true}]],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["SW 1A 1AA"],"ok":false}
+{"name":"String.HasExactLength","type":"FunctionType.Condition","args":["hello",4],"ok":false}
+{"name":"Number.IsInteger","type":"FunctionType.Condition","args":[{"$number":"NaN"}],"ok":false}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[[""]],"ok":true}
+{"name":"Number.IsInteger","type":"FunctionType.Condition","args":[{"$number":"Infinity"}],"ok":false}
+{"name":"String.HasExactLength","type":"FunctionType.Condition","args":["hello",6],"ok":false}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[[1,2,3]],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["SW1 A1AA"],"ok":false}
+{"name":"String.HasExactLength","type":"FunctionType.Condition","args":["",1],"ok":false}
+{"name":"Number.IsInteger","type":"FunctionType.Condition","args":[{"$number":"-Infinity"}],"ok":false}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["notapostcode"],"ok":false}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[{"$number":"NaN"}],"ok":true}
+{"name":"Array.Slice","type":"FunctionType.Transformer","args":[[1,2,3,4,5],1,4],"ok":[2,3,4]}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["user@example..com"],"ok":false}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["+33 1 42 86 82 00"],"ok":true}
+{"name":"Object.FromISO","type":"FunctionType.Transformer","args":["12-25",{"month":"month","day":"day"}],"ok":{"month":"12","day":"25"}}
+{"name":"Date.IsValidYear","type":"FunctionType.Condition","args":["1000-12-31"],"ok":true}
+{"name":"String.ToTitleCase","type":"FunctionType.Transformer","args":["hello"],"ok":"Hello"}
+{"name":"Number.Abs","type":"FunctionType.Transformer","args":[0],"ok":0}
+{"name":"Object.IsObject","type":"FunctionType.Condition","args":[{"$unsupported":"function"}],"ok":false}
+{"name":"Array.IsIn","type":"FunctionType.Condition","args":[1,["1"]],"ok":false}
+{"name":"Array.Slice","type":"FunctionType.Transformer","args":[[1,2,3,4,5],2],"ok":[3,4,5]}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":[""],"ok":false}
+{"name":"String.HasMaxWords","type":"FunctionType.Condition","args":["hello world",2],"ok":true}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[{"$number":"Infinity"}],"ok":true}
+{"name":"Number.IsInteger","type":"FunctionType.Condition","args":["42"],"ok":false}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["123 456"],"ok":false}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["user@example.c"],"ok":false}
+{"name":"Array.Slice","type":"FunctionType.Transformer","args":[[1,2,3,4,5],-2],"ok":[4,5]}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[{"$number":"-Infinity"}],"ok":true}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["a@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!"],"ok":false}
+{"name":"Number.IsInteger","type":"FunctionType.Condition","args":[""],"ok":false}
+{"name":"String.HasMaxWords","type":"FunctionType.Condition","args":["hello world",3],"ok":true}
+{"name":"Array.Slice","type":"FunctionType.Transformer","args":[[],0,2],"ok":[]}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["SW1A 111"],"ok":false}
+{"name":"Number.IsInteger","type":"FunctionType.Condition","args":[null],"ok":false}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["SW1A AAA"],"ok":false}
+{"name":"Array.Slice","type":"FunctionType.Transformer","args":["hello",1,3],"error":{"name":"TypeError","message":"Array.Slice: value failed schema validation — [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected array, received string\"\n  }\n]"}}
+{"name":"String.HasMaxWords","type":"FunctionType.Condition","args":["one",1],"ok":true}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[{}],"ok":true}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@sub.example.co.uk"],"ok":true}
+{"name":"Phone.IsValidPhoneNumber","type":"FunctionType.Condition","args":["+49 30 12345678"],"ok":true}
+{"name":"Date.IsValidYear","type":"FunctionType.Condition","args":["9999-01-01"],"ok":true}
+{"name":"Object.FromISO","type":"FunctionType.Transformer","args":["--12-25",{"month":"month","day":"day"}],"ok":{"month":"12","day":"25"}}
+{"name":"IsRequired","type":"FunctionType.Condition","args":[{}],"ok":true}
+{"name":"Array.Concat","type":"FunctionType.Transformer","args":[[1,2],[3,4]],"ok":[1,2,3,4]}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["SW1A  1AA"],"ok":false}
+{"name":"Number.IsInteger","type":"FunctionType.Condition","args":[{"$undefined":true}],"ok":false}
+{"name":"String.HasMaxWords","type":"FunctionType.Condition","args":["",0],"ok":true}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@example.com"],"ok":false}
+{"name":"String.ToTitleCase","type":"FunctionType.Transformer","args":["hELLo WoRLD"],"ok":"Hello World"}
+{"name":"Number.Abs","type":"FunctionType.Transformer","args":[-3.7],"ok":3.7}
+{"name":"Array.IsIn","type":"FunctionType.Condition","args":[0,[false]],"ok":false}
+{"name":"Object.HasProperty","type":"FunctionType.Condition","args":[{"name":"John"},"name"],"ok":true}
+{"name":"Object.FromISO","type":"FunctionType.Transformer","args":["2024",{"year":"year"}],"ok":{"year":"2024"}}
+{"name":"Date.IsValidYear","type":"FunctionType.Condition","args":["2000-02-29"],"ok":true}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["07123456789"],"ok":true}
+{"name":"String.HasMaxWords","type":"FunctionType.Condition","args":["",1],"ok":true}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["TEST@EXAMPLE.COM"],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":[" SW1A 1AA"],"ok":false}
+{"name":"Array.Concat","type":"FunctionType.Transformer","args":[[1],[2,3],[4,5]],"ok":[1,2,3,4,5]}
+{"name":"Equals","type":"FunctionType.Condition","args":["hello","hello"],"ok":true}
+{"name":"Number.GreaterThan","type":"FunctionType.Condition","args":[10,5],"ok":true}
+{"name":"Object.FromISO","type":"FunctionType.Transformer","args":[{"day":"31","month":"03","year":"1980"},{"year":"year","month":"month","day":"day"}],"ok":{"day":"31","month":"03","year":"1980"}}
+{"name":"Date.IsValidYear","type":"FunctionType.Condition","args":["0999-01-01"],"ok":false}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["07123 456789"],"ok":true}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["07123 456 789"],"ok":true}
+{"name":"Date.IsValidYear","type":"FunctionType.Condition","args":["999-01-01"],"ok":false}
+{"name":"Object.FromISO","type":"FunctionType.Transformer","args":["2024-02-28",{"day":"jour","month":"mois","year":"annee"}],"ok":{"annee":"2024","mois":"02","jour":"28"}}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["+447123456789"],"ok":true}
+{"name":"Object.FromISO","type":"FunctionType.Transformer","args":[{"$undefined":true},{"year":"year","month":"month","day":"day"}],"ok":{"$undefined":true}}
+{"name":"Date.IsValidYear","type":"FunctionType.Condition","args":["24-01-01"],"ok":false}
+{"name":"Date.IsValidYear","type":"FunctionType.Condition","args":["2024-1-1"],"ok":false}
+{"name":"Object.FromISO","type":"FunctionType.Transformer","args":["",{"year":"year","month":"month","day":"day"}],"ok":{}}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["+44 7123 456789"],"ok":true}
+{"name":"Object.HasProperty","type":"FunctionType.Condition","args":[{"age":0},"age"],"ok":true}
+{"name":"Number.Abs","type":"FunctionType.Transformer","args":["-5"],"error":{"name":"TypeError","message":"Number.Abs: value failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]"}}
+{"name":"Array.IsIn","type":"FunctionType.Condition","args":[false,[0]],"ok":false}
+{"name":"String.ToTitleCase","type":"FunctionType.Transformer","args":["don't worry"],"ok":"Don't Worry"}
+{"name":"Date.IsValidYear","type":"FunctionType.Condition","args":["invalid"],"ok":false}
+{"name":"Object.FromISO","type":"FunctionType.Transformer","args":[null,{"year":"year","month":"month","day":"day"}],"ok":{}}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["+44 7123 456 789"],"ok":true}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["Test@Example.Com"],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["SW1A 1AA "],"ok":false}
+{"name":"Equals","type":"FunctionType.Condition","args":[123,123],"ok":true}
+{"name":"Array.Concat","type":"FunctionType.Transformer","args":[[1,2],[]],"ok":[1,2]}
+{"name":"Number.GreaterThan","type":"FunctionType.Condition","args":[0,-1],"ok":true}
+{"name":"String.HasMaxWords","type":"FunctionType.Condition","args":["  ",0],"ok":true}
+{"name":"Array.IsIn","type":"FunctionType.Condition","args":[null,[{"$undefined":true}]],"ok":false}
+{"name":"String.ToTitleCase","type":"FunctionType.Transformer","args":[""],"ok":""}
+{"name":"Object.HasProperty","type":"FunctionType.Condition","args":[{"active":false},"active"],"ok":true}
+{"name":"Number.Round","type":"FunctionType.Transformer","args":[4.4],"ok":4}
+{"name":"Object.HasProperty","type":"FunctionType.Condition","args":[{"empty":""},"empty"],"ok":true}
+{"name":"Array.IsIn","type":"FunctionType.Condition","args":[{"$id":1,"a":1},[{"$ref":1},{"b":2}]],"ok":true}
+{"name":"Number.Round","type":"FunctionType.Transformer","args":[4.7],"ok":5}
+{"name":"String.ToTitleCase","type":"FunctionType.Transformer","args":[123],"error":{"name":"TypeError","message":"String.ToTitleCase: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"Array.IsIn","type":"FunctionType.Condition","args":[{"$id":1,"$array":[1,2]},[{"$ref":1},[3,4]]],"ok":true}
+{"name":"Object.HasProperty","type":"FunctionType.Condition","args":[{"nil":null},"nil"],"ok":true}
+{"name":"String.Capitalize","type":"FunctionType.Transformer","args":["hello world"],"ok":"Hello world"}
+{"name":"Number.Round","type":"FunctionType.Transformer","args":[-4.7],"ok":-5}
+{"name":"Array.IsIn","type":"FunctionType.Condition","args":[{"a":1},[{"a":1}]],"ok":false}
+{"name":"Object.HasProperty","type":"FunctionType.Condition","args":[{},"name"],"ok":false}
+{"name":"String.Capitalize","type":"FunctionType.Transformer","args":["h"],"ok":"H"}
+{"name":"Number.Round","type":"FunctionType.Transformer","args":[5],"ok":5}
+{"name":"Array.IsIn","type":"FunctionType.Condition","args":[[1,2],[[1,2]]],"ok":false}
+{"name":"Object.HasProperty","type":"FunctionType.Condition","args":[{"name":"John"},"age"],"ok":false}
+{"name":"Number.Round","type":"FunctionType.Transformer","args":["4.7"],"error":{"name":"TypeError","message":"Number.Round: value failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]"}}
+{"name":"String.Capitalize","type":"FunctionType.Transformer","args":["Hello world"],"ok":"Hello world"}
+{"name":"String.Capitalize","type":"FunctionType.Transformer","args":[""],"ok":""}
+{"name":"Array.Contains","type":"FunctionType.Condition","args":[["apple","banana"],"apple"],"ok":true}
+{"name":"Number.Floor","type":"FunctionType.Transformer","args":[4.7],"ok":4}
+{"name":"Object.HasProperty","type":"FunctionType.Condition","args":[{"user":{"address":{"city":"London"}}},"user"],"ok":true}
+{"name":"Number.Floor","type":"FunctionType.Transformer","args":[-4.2],"ok":-5}
+{"name":"Object.HasProperty","type":"FunctionType.Condition","args":[{"user":{"address":{"city":"London"}}},"user.address"],"ok":true}
+{"name":"Array.Contains","type":"FunctionType.Condition","args":[[1,2,3],2],"ok":true}
+{"name":"String.Capitalize","type":"FunctionType.Transformer","args":[123],"error":{"name":"TypeError","message":"String.Capitalize: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["(07123) 456789"],"ok":true}
+{"name":"Object.FromISO","type":"FunctionType.Transformer","args":["not-a-date",{"year":"year","month":"month","day":"day"}],"ok":{}}
+{"name":"Date.IsValidMonth","type":"FunctionType.Condition","args":["1990-01-01"],"ok":true}
+{"name":"Object.HasProperty","type":"FunctionType.Condition","args":[{"user":{"address":{"city":"London"}}},"user.address.city"],"ok":true}
+{"name":"Number.Floor","type":"FunctionType.Transformer","args":[5],"ok":5}
+{"name":"Array.Contains","type":"FunctionType.Condition","args":[[true,false],false],"ok":true}
+{"name":"String.Possessive","type":"FunctionType.Transformer","args":["John"],"ok":"John's"}
+{"name":"Date.IsValidMonth","type":"FunctionType.Condition","args":["1990-02-29"],"ok":true}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["(07123) 456 789"],"ok":true}
+{"name":"Date.IsValidMonth","type":"FunctionType.Condition","args":["1990-09-05"],"ok":true}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["07987654321"],"ok":true}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["+447987654321"],"ok":true}
+{"name":"Date.IsValidMonth","type":"FunctionType.Condition","args":["2021-00-01"],"ok":false}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["tEsT@eXaMpLe.CoM"],"ok":true}
+{"name":"Equals","type":"FunctionType.Condition","args":[true,true],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["SW1A-1AA"],"ok":false}
+{"name":"Number.GreaterThan","type":"FunctionType.Condition","args":[1.5,1.4],"ok":true}
+{"name":"String.HasMaxWords","type":"FunctionType.Condition","args":["hello world test",2],"ok":false}
+{"name":"Array.Concat","type":"FunctionType.Transformer","args":[[1,2],"hello"],"error":{"name":"TypeError","message":"Array.Concat: arguments failed schema validation — [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      0\n    ],\n    \"message\": \"Invalid input: expected array, received string\"\n  }\n]"}}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["08123456789"],"ok":false}
+{"name":"Date.IsValidMonth","type":"FunctionType.Condition","args":["2021-13-01"],"ok":false}
+{"name":"Date.IsValidMonth","type":"FunctionType.Condition","args":["2024-1-01"],"ok":false}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["06123456789"],"ok":false}
+{"name":"Object.FromISO","type":"FunctionType.Transformer","args":["2024/03/15",{"year":"year","month":"month","day":"day"}],"ok":{}}
+{"name":"Object.HasProperty","type":"FunctionType.Condition","args":[{"user":{"address":{"city":"London"}}},"user.address.postcode"],"ok":false}
+{"name":"Number.Floor","type":"FunctionType.Transformer","args":["4.7"],"error":{"name":"TypeError","message":"Number.Floor: value failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]"}}
+{"name":"String.Possessive","type":"FunctionType.Transformer","args":["James"],"ok":"James'"}
+{"name":"Array.Contains","type":"FunctionType.Condition","args":[["apple","banana"],"orange"],"ok":false}
+{"name":"String.HasMaxWords","type":"FunctionType.Condition","args":["one",0],"ok":false}
+{"name":"Equals","type":"FunctionType.Condition","args":[false,false],"ok":true}
+{"name":"Equals","type":"FunctionType.Condition","args":[null,null],"ok":true}
+{"name":"String.HasMaxWords","type":"FunctionType.Condition","args":["hello   world",2],"ok":true}
+{"name":"Equals","type":"FunctionType.Condition","args":[{"$undefined":true},null],"ok":false}
+{"name":"String.HasMaxWords","type":"FunctionType.Condition","args":["  hello  world  ",2],"ok":true}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["a@b.io"],"ok":true}
+{"name":"Address.IsValidPostcode","type":"FunctionType.Condition","args":["SW1A.1AA"],"ok":false}
+{"name":"Number.GreaterThan","type":"FunctionType.Condition","args":[5,5],"ok":false}
+{"name":"Array.Concat","type":"FunctionType.Transformer","args":["hello",[1,2]],"error":{"name":"TypeError","message":"Array.Concat: value failed schema validation — [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected array, received string\"\n  }\n]"}}
+{"name":"Number.GreaterThan","type":"FunctionType.Condition","args":[0,0],"ok":false}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["test@sub.domain.example.com"],"ok":true}
+{"name":"Array.Unique","type":"FunctionType.Transformer","args":[[1,2,2,3,1]],"ok":[1,2,3]}
+{"name":"Array.Unique","type":"FunctionType.Transformer","args":[[1,2,3]],"ok":[1,2,3]}
+{"name":"Email.IsValidEmail","type":"FunctionType.Condition","args":["1234567890@example.com"],"ok":true}
+{"name":"Number.GreaterThan","type":"FunctionType.Condition","args":[3,5],"ok":false}
+{"name":"Array.Unique","type":"FunctionType.Transformer","args":[[]],"ok":[]}
+{"name":"Number.GreaterThan","type":"FunctionType.Condition","args":[-1,0],"ok":false}
+{"name":"Array.Unique","type":"FunctionType.Transformer","args":[[1,"1",1,"hello","hello"]],"ok":[1,"1","hello"]}
+{"name":"Number.GreaterThan","type":"FunctionType.Condition","args":[{"$number":"Infinity"},1000],"ok":false}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["02012345678"],"ok":false}
+{"name":"Date.IsValidMonth","type":"FunctionType.Condition","args":["invalid"],"ok":false}
+{"name":"Number.GreaterThan","type":"FunctionType.Condition","args":[{"$number":"-Infinity"},0],"ok":false}
+{"name":"Array.Unique","type":"FunctionType.Transformer","args":["hello"],"error":{"name":"TypeError","message":"Array.Unique: value failed schema validation — [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected array, received string\"\n  }\n]"}}
+{"name":"Object.HasProperty","type":"FunctionType.Condition","args":[{"user":{"address":{"city":"London"}}},"user.name"],"ok":false}
+{"name":"Array.Contains","type":"FunctionType.Condition","args":[[1,2,3],4],"ok":false}
+{"name":"Number.Ceil","type":"FunctionType.Transformer","args":[4.2],"ok":5}
+{"name":"String.Possessive","type":"FunctionType.Transformer","args":["JAMES"],"ok":"JAMES'"}
+{"name":"Array.Sort","type":"FunctionType.Transformer","args":[[3,1,4,2]],"ok":[1,2,3,4]}
+{"name":"Object.ToISO","type":"FunctionType.Transformer","args":[{"day":"5","month":"3","year":"2024"},{"year":"year","month":"month","day":"day"}],"ok":"2024-03-05"}
+{"name":"Array.Sort","type":"FunctionType.Transformer","args":[["banana","apple","cherry"]],"ok":["apple","banana","cherry"]}
+{"name":"Object.FromISO","type":"FunctionType.Transformer","args":["2024-03-05",{"year":"year","month":"month","day":"day"}],"ok":{"year":"2024","month":"03","day":"05"}}
+{"name":"Array.Sort","type":"FunctionType.Transformer","args":[[3,"apple",1,"banana"]],"ok":[1,3,"apple","banana"]}
+{"name":"Equals","type":"FunctionType.Condition","args":["hello","world"],"ok":false}
+{"name":"String.HasMaxWords","type":"FunctionType.Condition","args":["one  two  three  four",4],"ok":true}
+{"name":"String.HasMaxWords","type":"FunctionType.Condition","args":["one  two  three  four",3],"ok":false}
+{"name":"Equals","type":"FunctionType.Condition","args":[123,456],"ok":false}
+{"name":"Array.Sort","type":"FunctionType.Transformer","args":[[3,1,4,2]],"ok":[1,2,3,4]}
+{"name":"String.LettersOnly","type":"FunctionType.Condition","args":["hello"],"ok":true}
+{"name":"Array.Sort","type":"FunctionType.Transformer","args":[[]],"ok":[]}
+{"name":"Equals","type":"FunctionType.Condition","args":[true,false],"ok":false}
+{"name":"Number.Ceil","type":"FunctionType.Transformer","args":[-4.7],"ok":-4}
+{"name":"Array.Contains","type":"FunctionType.Condition","args":[[true],false],"ok":false}
+{"name":"String.Possessive","type":"FunctionType.Transformer","args":["J"],"ok":"J's"}
+{"name":"Object.HasProperty","type":"FunctionType.Condition","args":[{"user":null},"user.name"],"ok":false}
+{"name":"Number.GreaterThan","type":"FunctionType.Condition","args":[0,{"$number":"-Infinity"}],"error":{"name":"TypeError","message":"Number.GreaterThan: arguments failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      0\n    ],\n    \"message\": \"Invalid input: expected number, received number\"\n  }\n]"}}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["+44 20 1234 5678"],"ok":false}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["2024-01-15"],"ok":true}
+{"name":"Equals","type":"FunctionType.Condition","args":[null,false],"ok":false}
+{"name":"String.LettersOnly","type":"FunctionType.Condition","args":["HelloWorld"],"ok":true}
+{"name":"Array.Sort","type":"FunctionType.Transformer","args":["hello"],"error":{"name":"TypeError","message":"Array.Sort: value failed schema validation — [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected array, received string\"\n  }\n]"}}
+{"name":"Date.Format","type":"FunctionType.Transformer","args":[{"$date":"2024-03-15T00:00:00.000Z"},"DD/MM/YYYY"],"ok":"15/03/2024"}
+{"name":"Number.GreaterThanOrEqual","type":"FunctionType.Condition","args":[10,5],"ok":true}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["2024-04-30"],"ok":true}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["0712345678"],"ok":false}
+{"name":"String.LettersOnly","type":"FunctionType.Condition","args":["ABC"],"ok":true}
+{"name":"Date.Format","type":"FunctionType.Transformer","args":[{"$date":"2024-03-15T00:00:00.000Z"},"YYYY-MM-DD"],"ok":"2024-03-15"}
+{"name":"Array.Filter","type":"FunctionType.Transformer","args":[[1,2,2,3],2],"ok":[2,2]}
+{"name":"Equals","type":"FunctionType.Condition","args":[0,false],"ok":false}
+{"name":"String.LettersOnly","type":"FunctionType.Condition","args":["xyz"],"ok":true}
+{"name":"Array.Filter","type":"FunctionType.Transformer","args":[[1,2,3],4],"ok":[]}
+{"name":"Equals","type":"FunctionType.Condition","args":["",false],"ok":false}
+{"name":"Date.Format","type":"FunctionType.Transformer","args":[{"$date":"2024-03-15T14:30:45.000Z"},"DD/MM/YYYY HH:mm:ss"],"ok":"15/03/2024 14:30:45"}
+{"name":"Equals","type":"FunctionType.Condition","args":["0",0],"ok":false}
+{"name":"Date.Format","type":"FunctionType.Transformer","args":[{"$date":"2024-03-05T09:05:03.000Z"},"D/M/YYYY H:m:s"],"ok":"5/3/2024 9:5:3"}
+{"name":"String.LettersOnly","type":"FunctionType.Condition","args":["hello123"],"ok":false}
+{"name":"Array.Filter","type":"FunctionType.Transformer","args":[["apple","banana","apple"],"apple"],"ok":["apple","apple"]}
+{"name":"Array.Filter","type":"FunctionType.Transformer","args":[[],1],"ok":[]}
+{"name":"Equals","type":"FunctionType.Condition","args":[{"$id":1,"a":1},{"$ref":1}],"ok":true}
+{"name":"String.LettersOnly","type":"FunctionType.Condition","args":["hello world"],"ok":false}
+{"name":"Date.Format","type":"FunctionType.Transformer","args":["not a date","DD/MM/YYYY"],"error":{"name":"TypeError","message":"Date.Format: value failed schema validation — [\n  {\n    \"code\": \"custom\",\n    \"path\": [],\n    \"message\": \"Invalid input\"\n  }\n]"}}
+{"name":"String.LettersOnly","type":"FunctionType.Condition","args":["hello!"],"ok":false}
+{"name":"Equals","type":"FunctionType.Condition","args":[{"a":1},{"a":1}],"ok":false}
+{"name":"Date.AddDays","type":"FunctionType.Transformer","args":[{"$date":"2024-03-15T00:00:00.000Z"},7],"ok":{"$date":"2024-03-22T00:00:00.000Z"}}
+{"name":"Array.Filter","type":"FunctionType.Transformer","args":["hello","e"],"error":{"name":"TypeError","message":"Array.Filter: value failed schema validation — [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected array, received string\"\n  }\n]"}}
+{"name":"String.LettersOnly","type":"FunctionType.Condition","args":[""],"ok":false}
+{"name":"Array.Map","type":"FunctionType.Transformer","args":[[{"name":"John"},{"name":"Jane"}],"name"],"ok":["John","Jane"]}
+{"name":"Equals","type":"FunctionType.Condition","args":[{"$id":1,"$array":[1,2,3]},{"$ref":1}],"ok":true}
+{"name":"Date.AddDays","type":"FunctionType.Transformer","args":[{"$date":"2024-03-30T00:00:00.000Z"},5],"ok":{"$date":"2024-04-03T23:00:00.000Z"}}
+{"name":"String.Possessive","type":"FunctionType.Transformer","args":["S"],"ok":"S'"}
+{"name":"Object.PropertyIsEmpty","type":"FunctionType.Condition","args":[{"value":null},"value"],"ok":true}
+{"name":"Number.Ceil","type":"FunctionType.Transformer","args":[5],"ok":5}
+{"name":"isYes","type":"FunctionType.Condition","args":["yes"],"ok":true}
+{"name":"Array.Contains","type":"FunctionType.Condition","args":[[],"anything"],"ok":false}
+{"name":"String.LettersOnly","type":"FunctionType.Condition","args":["123"],"ok":false}
+{"name":"Array.Map","type":"FunctionType.Transformer","args":[[[1,2],[3,4]],0],"ok":[1,3]}
+{"name":"Equals","type":"FunctionType.Condition","args":[[1,2,3],[1,2,3]],"ok":false}
+{"name":"Date.AddDays","type":"FunctionType.Transformer","args":[{"$date":"2024-03-15T00:00:00.000Z"},-10],"ok":{"$date":"2024-03-05T00:00:00.000Z"}}
+{"name":"Number.GreaterThanOrEqual","type":"FunctionType.Condition","args":[1.6,1.5],"ok":true}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["2024-06-15"],"ok":true}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["071234567890"],"ok":false}
+{"name":"Array.Contains","type":"FunctionType.Condition","args":[[1,2,3],"2"],"ok":false}
+{"name":"isYes","type":"FunctionType.Condition","args":["no"],"ok":false}
+{"name":"String.Possessive","type":"FunctionType.Transformer","args":[""],"ok":""}
+{"name":"Number.Ceil","type":"FunctionType.Transformer","args":["4.2"],"error":{"name":"TypeError","message":"Number.Ceil: value failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]"}}
+{"name":"Object.PropertyIsEmpty","type":"FunctionType.Condition","args":[{"value":{"$undefined":true}},"value"],"ok":true}
+{"name":"Number.GreaterThanOrEqual","type":"FunctionType.Condition","args":[5,5],"ok":true}
+{"name":"Object.PropertyIsEmpty","type":"FunctionType.Condition","args":[{},"value"],"ok":true}
+{"name":"String.Possessive","type":"FunctionType.Transformer","args":["Chris"],"ok":"Chris'"}
+{"name":"Array.Contains","type":"FunctionType.Condition","args":[["1","2","3"],2],"ok":false}
+{"name":"Number.ToFixed","type":"FunctionType.Transformer","args":[3.14159,2],"ok":3.14}
+{"name":"shout","type":"FunctionType.Transformer","args":["hi"],"ok":"hi!"}
+{"name":"Number.GreaterThanOrEqual","type":"FunctionType.Condition","args":[0,0],"ok":true}
+{"name":"Array.Contains","type":"FunctionType.Condition","args":[[0],false],"ok":false}
+{"name":"constant","type":"FunctionType.Generator","args":[],"ok":42}
+{"name":"String.Possessive","type":"FunctionType.Transformer","args":["Tom"],"ok":"Tom's"}
+{"name":"Number.ToFixed","type":"FunctionType.Transformer","args":[3.7,0],"ok":4}
+{"name":"Object.PropertyIsEmpty","type":"FunctionType.Condition","args":[{"value":""},"value"],"ok":true}
+{"name":"Array.Contains","type":"FunctionType.Condition","args":[[false],0],"ok":false}
+{"name":"Object.PropertyIsEmpty","type":"FunctionType.Condition","args":[{"value":"   "},"value"],"ok":true}
+{"name":"Number.ToFixed","type":"FunctionType.Transformer","args":[3,2],"ok":3}
+{"name":"String.Possessive","type":"FunctionType.Transformer","args":[123],"error":{"name":"TypeError","message":"String.Possessive: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"prefixed","type":"FunctionType.Generator","args":[],"ok":"test-value"}
+{"name":"Number.GreaterThanOrEqual","type":"FunctionType.Condition","args":[-10,-10],"ok":true}
+{"name":"Object.PropertyIsEmpty","type":"FunctionType.Condition","args":[{"value":"\t"},"value"],"ok":true}
+{"name":"Number.ToFixed","type":"FunctionType.Transformer","args":["3.14",2],"error":{"name":"TypeError","message":"Number.ToFixed: value failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]"}}
+{"name":"String.Substring","type":"FunctionType.Transformer","args":["hello world",0,5],"ok":"hello"}
+{"name":"atMost","type":"FunctionType.Condition","args":[5,"not-a-number"],"error":{"name":"TypeError","message":"atMost: arguments failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      0\n    ],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]"}}
+{"name":"Number.GreaterThanOrEqual","type":"FunctionType.Condition","args":[3,5],"ok":false}
+{"name":"Array.Contains","type":"FunctionType.Condition","args":[[{"$id":1,"a":1},{"b":2}],{"$ref":1}],"ok":true}
+{"name":"Object.PropertyIsEmpty","type":"FunctionType.Condition","args":[{"value":"\n"},"value"],"ok":true}
+{"name":"Number.GreaterThanOrEqual","type":"FunctionType.Condition","args":[-1,0],"ok":false}
+{"name":"Number.Max","type":"FunctionType.Transformer","args":[5,10],"ok":10}
+{"name":"isYes","type":"FunctionType.Condition","args":[{"$undefined":true}],"ok":false}
+{"name":"String.Substring","type":"FunctionType.Transformer","args":["hello world",6],"ok":"world"}
+{"name":"Array.Contains","type":"FunctionType.Condition","args":[[{"$id":1,"$array":[1,2]},[3,4]],{"$ref":1}],"ok":true}
+{"name":"Array.Contains","type":"FunctionType.Condition","args":[[{"a":1}],{"a":1}],"ok":false}
+{"name":"shout","type":"FunctionType.Transformer","args":[{"$undefined":true}],"ok":{"$undefined":true}}
+{"name":"Number.Max","type":"FunctionType.Transformer","args":[15,10],"ok":15}
+{"name":"Number.LessThan","type":"FunctionType.Condition","args":[3,5],"ok":true}
+{"name":"Object.PropertyIsEmpty","type":"FunctionType.Condition","args":[{"value":"  \t\n  "},"value"],"ok":true}
+{"name":"String.Substring","type":"FunctionType.Transformer","args":["hello",10],"ok":""}
+{"name":"Number.Max","type":"FunctionType.Transformer","args":[5,5],"ok":5}
+{"name":"needsString","type":"FunctionType.Condition","args":[123],"ok":false}
+{"name":"Object.PropertyIsEmpty","type":"FunctionType.Condition","args":[{"value":"text"},"value"],"ok":false}
+{"name":"String.Substring","type":"FunctionType.Transformer","args":["hello",-2,3],"ok":"hel"}
+{"name":"Array.Contains","type":"FunctionType.Condition","args":[[[1,2]],[1,2]],"ok":false}
+{"name":"Number.LessThan","type":"FunctionType.Condition","args":[-1,0],"ok":true}
+{"name":"Object.PropertyIsEmpty","type":"FunctionType.Condition","args":[{"value":0},"value"],"ok":false}
+{"name":"String.Substring","type":"FunctionType.Transformer","args":[123,0,1],"error":{"name":"TypeError","message":"String.Substring: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"Number.LessThan","type":"FunctionType.Condition","args":[1.4,1.5],"ok":true}
+{"name":"Number.Max","type":"FunctionType.Transformer","args":[-5,-10],"ok":-5}
+{"name":"upper","type":"FunctionType.Transformer","args":[123],"error":{"name":"TypeError","message":"upper: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[["apple","banana"],["orange","apple"]],"ok":true}
+{"name":"Object.PropertyIsEmpty","type":"FunctionType.Condition","args":[{"value":false},"value"],"ok":false}
+{"name":"Number.LessThan","type":"FunctionType.Condition","args":[5,5],"ok":false}
+{"name":"String.Replace","type":"FunctionType.Transformer","args":["hello world hello","hello","hi"],"ok":"hi world hi"}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[[1,2,3],[3,4,5]],"ok":true}
+{"name":"broken","type":"FunctionType.Condition","args":["x"],"error":{"name":"TypeError","message":"broken: return value failed schema validation — [\n  {\n    \"expected\": \"boolean\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected boolean, received string\"\n  }\n]"}}
+{"name":"Number.Max","type":"FunctionType.Transformer","args":["5",10],"error":{"name":"TypeError","message":"Number.Max: value failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]"}}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[["a","b","c"],["x","y","z","a"]],"ok":true}
+{"name":"Number.Min","type":"FunctionType.Transformer","args":[5,10],"ok":5}
+{"name":"Object.PropertyIsEmpty","type":"FunctionType.Condition","args":[{"value":[]},"value"],"ok":false}
+{"name":"asyncDouble","type":"FunctionType.Transformer","args":[5],"ok":10}
+{"name":"Number.LessThan","type":"FunctionType.Condition","args":[0,0],"ok":false}
+{"name":"String.Replace","type":"FunctionType.Transformer","args":["Hello world hello","hello","hi"],"ok":"Hello world hi"}
+{"name":"Object.PropertyIsEmpty","type":"FunctionType.Condition","args":[{"value":{}},"value"],"ok":false}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[[true,false],[false]],"ok":true}
+{"name":"String.Replace","type":"FunctionType.Transformer","args":["hello world","hello ",""],"ok":"world"}
+{"name":"asyncBad","type":"FunctionType.Transformer","args":[1],"error":{"name":"TypeError","message":"asyncBad: return value failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]"}}
+{"name":"Number.Min","type":"FunctionType.Transformer","args":[15,10],"ok":10}
+{"name":"Number.LessThan","type":"FunctionType.Condition","args":[10,5],"ok":false}
+{"name":"Object.PropertyIsEmpty","type":"FunctionType.Condition","args":[{"user":{"name":"John","email":"","address":null}},"user.name"],"ok":false}
+{"name":"isYes","type":"FunctionType.Condition","args":["yes"],"ok":true}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[["apple","banana"],["orange","grape"]],"ok":false}
+{"name":"Number.LessThan","type":"FunctionType.Condition","args":[0,-1],"ok":false}
+{"name":"Number.Min","type":"FunctionType.Transformer","args":[5,5],"ok":5}
+{"name":"String.Replace","type":"FunctionType.Transformer","args":["hello world","xyz","abc"],"ok":"hello world"}
+{"name":"Array.Map","type":"FunctionType.Transformer","args":[[{"name":"John"},{}],"name"],"ok":["John",{"$undefined":true}]}
+{"name":"String.DigitsOnly","type":"FunctionType.Condition","args":["123"],"ok":true}
+{"name":"Date.SubtractDays","type":"FunctionType.Transformer","args":[{"$date":"2024-03-15T00:00:00.000Z"},7],"ok":{"$date":"2024-03-08T00:00:00.000Z"}}
+{"name":"Equals","type":"FunctionType.Condition","args":[{"$number":"NaN"},{"$number":"NaN"}],"ok":false}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["2024-12-31"],"ok":true}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["7123456789"],"ok":false}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["447123456789"],"ok":false}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["2024-02-30"],"ok":false}
+{"name":"Object.PropertyIsEmpty","type":"FunctionType.Condition","args":[{"user":{"name":"John","email":"","address":null}},"user.email"],"ok":true}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[[1,2,3],[4,5,6]],"ok":false}
+{"name":"Number.Min","type":"FunctionType.Transformer","args":[-5,-10],"ok":-10}
+{"name":"shout","type":"FunctionType.Transformer","args":["hi"],"ok":"hi!"}
+{"name":"String.Replace","type":"FunctionType.Transformer","args":[123,"a","b"],"error":{"name":"TypeError","message":"String.Replace: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"Number.LessThan","type":"FunctionType.Condition","args":[{"$number":"-Infinity"},0],"ok":false}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[["a","b"],["x","y","z"]],"ok":false}
+{"name":"Object.PropertyIsEmpty","type":"FunctionType.Condition","args":[{"user":{"name":"John","email":"","address":null}},"user.address"],"ok":true}
+{"name":"String.PadStart","type":"FunctionType.Transformer","args":["5",3],"ok":"  5"}
+{"name":"Number.Min","type":"FunctionType.Transformer","args":["5",10],"error":{"name":"TypeError","message":"Number.Min: value failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]"}}
+{"name":"Number.LessThan","type":"FunctionType.Condition","args":[0,{"$number":"Infinity"}],"error":{"name":"TypeError","message":"Number.LessThan: arguments failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      0\n    ],\n    \"message\": \"Invalid input: expected number, received number\"\n  }\n]"}}
+{"name":"Equals","type":"FunctionType.Condition","args":[{"$number":"Infinity"},{"$number":"Infinity"}],"ok":true}
+{"name":"String.DigitsOnly","type":"FunctionType.Condition","args":["0"],"ok":true}
+{"name":"Array.Map","type":"FunctionType.Transformer","args":[[],"name"],"ok":[]}
+{"name":"Date.AddMonths","type":"FunctionType.Transformer","args":[{"$date":"2024-03-15T00:00:00.000Z"},3],"ok":{"$date":"2024-06-14T23:00:00.000Z"}}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":[""],"ok":false}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["2023-02-29"],"ok":false}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[[true],[false]],"ok":false}
+{"name":"Object.PropertyIsEmpty","type":"FunctionType.Condition","args":[{"user":{"name":"John","email":"","address":null}},"user.phone"],"ok":true}
+{"name":"Number.Power","type":"FunctionType.Transformer","args":[2,3],"ok":8}
+{"name":"String.PadStart","type":"FunctionType.Transformer","args":["5",3,"0"],"ok":"005"}
+{"name":"Number.LessThan","type":"FunctionType.Condition","args":[{"$number":"Infinity"},{"$number":"Infinity"}],"error":{"name":"TypeError","message":"Number.LessThan: arguments failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      0\n    ],\n    \"message\": \"Invalid input: expected number, received number\"\n  }\n]"}}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["notaphonenumber"],"ok":false}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["2024-04-31"],"ok":false}
+{"name":"String.DigitsOnly","type":"FunctionType.Condition","args":["999999"],"ok":true}
+{"name":"Date.AddMonths","type":"FunctionType.Transformer","args":[{"$date":"2024-11-15T00:00:00.000Z"},3],"ok":{"$date":"2025-02-15T00:00:00.000Z"}}
+{"name":"Array.Map","type":"FunctionType.Transformer","args":[[1,2,3],"name"],"ok":[{"$undefined":true},{"$undefined":true},{"$undefined":true}]}
+{"name":"Equals","type":"FunctionType.Condition","args":[{"$number":"-Infinity"},{"$number":"-Infinity"}],"ok":true}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[[],["anything"]],"ok":false}
+{"name":"Number.LessThanOrEqual","type":"FunctionType.Condition","args":[3,5],"ok":true}
+{"name":"String.PadStart","type":"FunctionType.Transformer","args":["hello",3],"ok":"hello"}
+{"name":"Number.Power","type":"FunctionType.Transformer","args":[5,0],"ok":1}
+{"name":"Object.PropertyHasValue","type":"FunctionType.Condition","args":[{"value":"text"},"value"],"ok":true}
+{"name":"Equals","type":"FunctionType.Condition","args":[{"$number":"Infinity"},{"$number":"-Infinity"}],"ok":false}
+{"name":"Array.Map","type":"FunctionType.Transformer","args":["hello","name"],"error":{"name":"TypeError","message":"Array.Map: value failed schema validation — [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected array, received string\"\n  }\n]"}}
+{"name":"Date.AddYears","type":"FunctionType.Transformer","args":[{"$date":"2024-03-15T00:00:00.000Z"},5],"ok":{"$date":"2029-03-15T00:00:00.000Z"}}
+{"name":"String.DigitsOnly","type":"FunctionType.Condition","args":["123abc"],"ok":false}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["2025-06-31"],"ok":false}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["07123456789"],"ok":true}
+{"name":"Number.LessThanOrEqual","type":"FunctionType.Condition","args":[-10,-5],"ok":true}
+{"name":"Object.PropertyHasValue","type":"FunctionType.Condition","args":[{"value":0},"value"],"ok":true}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[[],[]],"ok":true}
+{"name":"Number.Power","type":"FunctionType.Transformer","args":[2,-2],"ok":0.25}
+{"name":"String.PadStart","type":"FunctionType.Transformer","args":["",3,"x"],"ok":"xxx"}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["2025-01-32"],"ok":false}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["07423456789"],"ok":true}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["07523456789"],"ok":true}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["2024-01-00"],"ok":false}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["07623456789"],"ok":true}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["2024-13-15"],"ok":false}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["07723456789"],"ok":true}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["2024-00-15"],"ok":false}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["07823456789"],"ok":true}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["2024-1-1"],"ok":false}
+{"name":"Object.PropertyHasValue","type":"FunctionType.Condition","args":[{"value":false},"value"],"ok":true}
+{"name":"Number.LessThanOrEqual","type":"FunctionType.Condition","args":[5,5],"ok":true}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[[1,2],["1","2"]],"ok":false}
+{"name":"Number.Power","type":"FunctionType.Transformer","args":["2",3],"error":{"name":"TypeError","message":"Number.Power: value failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]"}}
+{"name":"String.PadStart","type":"FunctionType.Transformer","args":[123,5],"error":{"name":"TypeError","message":"String.PadStart: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["07923456789"],"ok":true}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["24-01-01"],"ok":false}
+{"name":"Equals","type":"FunctionType.Condition","args":[0,0],"ok":true}
+{"name":"Date.AddYears","type":"FunctionType.Transformer","args":[{"$date":"2024-03-15T00:00:00.000Z"},-18],"ok":{"$date":"2006-03-15T00:00:00.000Z"}}
+{"name":"Array.Flatten","type":"FunctionType.Transformer","args":[[[1,2],[3,4]]],"ok":[1,2,3,4]}
+{"name":"String.DigitsOnly","type":"FunctionType.Condition","args":["12.34"],"ok":false}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["2024/01/01"],"ok":false}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["07123456789"],"ok":true}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["07123 456789"],"ok":true}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["invalid"],"ok":false}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["07123 456 789"],"ok":true}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["2000-02-29"],"ok":true}
+{"name":"Phone.IsValidUKMobile","type":"FunctionType.Condition","args":["07123  456  789"],"ok":false}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["2004-02-29"],"ok":true}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["1900-02-29"],"ok":false}
+{"name":"Date.IsValidDay","type":"FunctionType.Condition","args":["2001-02-29"],"ok":false}
+{"name":"Number.LessThanOrEqual","type":"FunctionType.Condition","args":[0,0],"ok":true}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[["1","2"],[1,2]],"ok":false}
+{"name":"Object.PropertyHasValue","type":"FunctionType.Condition","args":[{"value":[]},"value"],"ok":true}
+{"name":"String.PadEnd","type":"FunctionType.Transformer","args":["5",3],"ok":"5  "}
+{"name":"Number.Sqrt","type":"FunctionType.Transformer","args":[16],"ok":4}
+{"name":"Date.IsBefore","type":"FunctionType.Condition","args":["2024-01-01","2024-01-02"],"ok":true}
+{"name":"Date.IsBefore","type":"FunctionType.Condition","args":["2023-12-31","2024-01-01"],"ok":true}
+{"name":"String.DigitsOnly","type":"FunctionType.Condition","args":["12 34"],"ok":false}
+{"name":"Equals","type":"FunctionType.Condition","args":[0,0],"ok":true}
+{"name":"Date.StartOfDay","type":"FunctionType.Transformer","args":[{"$date":"2024-03-15T14:30:45.123Z"}],"ok":{"$date":"2024-03-15T00:00:00.000Z"}}
+{"name":"Array.Flatten","type":"FunctionType.Transformer","args":[[1,[2,3],4]],"ok":[1,2,3,4]}
+{"name":"Date.IsBefore","type":"FunctionType.Condition","args":["2024-01-15","2024-02-01"],"ok":true}
+{"name":"Date.IsBefore","type":"FunctionType.Condition","args":["2020-01-01","2024-01-01"],"ok":true}
+{"name":"Date.IsBefore","type":"FunctionType.Condition","args":["2024-01-01","2024-01-01"],"ok":false}
+{"name":"Date.IsBefore","type":"FunctionType.Condition","args":["2024-12-31","2024-12-31"],"ok":false}
+{"name":"Date.IsBefore","type":"FunctionType.Condition","args":["2024-01-02","2024-01-01"],"ok":false}
+{"name":"Date.IsBefore","type":"FunctionType.Condition","args":["2024-01-01","2023-12-31"],"ok":false}
+{"name":"Object.PropertyHasValue","type":"FunctionType.Condition","args":[{"value":{}},"value"],"ok":true}
+{"name":"Number.Sqrt","type":"FunctionType.Transformer","args":[0],"ok":0}
+{"name":"String.PadEnd","type":"FunctionType.Transformer","args":["5",3,"0"],"ok":"500"}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[[0],[false]],"ok":false}
+{"name":"Number.LessThanOrEqual","type":"FunctionType.Condition","args":[-7,-7],"ok":true}
+{"name":"String.DigitsOnly","type":"FunctionType.Condition","args":[""],"ok":false}
+{"name":"Array.Flatten","type":"FunctionType.Transformer","args":[[[[1,2]],[3,4]]],"ok":[[1,2],3,4]}
+{"name":"Equals","type":"FunctionType.Condition","args":["123",123],"ok":false}
+{"name":"Date.EndOfDay","type":"FunctionType.Transformer","args":[{"$date":"2024-03-15T14:30:45.000Z"}],"ok":{"$date":"2024-03-15T23:59:59.999Z"}}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[[false],[0]],"ok":false}
+{"name":"String.PadEnd","type":"FunctionType.Transformer","args":["hello",3],"ok":"hello"}
+{"name":"Number.LessThanOrEqual","type":"FunctionType.Condition","args":[10,5],"ok":false}
+{"name":"Object.PropertyHasValue","type":"FunctionType.Condition","args":[{"value":null},"value"],"ok":false}
+{"name":"Number.Sqrt","type":"FunctionType.Transformer","args":[2.25],"ok":1.5}
+{"name":"Equals","type":"FunctionType.Condition","args":[true,1],"ok":false}
+{"name":"Array.Flatten","type":"FunctionType.Transformer","args":[[]],"ok":[]}
+{"name":"Date.ToISOString","type":"FunctionType.Transformer","args":[{"$date":"2024-03-15T14:30:45.123Z"}],"ok":"2024-03-15T14:30:45.123Z"}
+{"name":"String.DigitsOnly","type":"FunctionType.Condition","args":["-123"],"ok":false}
+{"name":"Equals","type":"FunctionType.Condition","args":[false,0],"ok":false}
+{"name":"String.LettersWithCommonPunctuation","type":"FunctionType.Condition","args":["Hello, World!"],"ok":true}
+{"name":"Array.Flatten","type":"FunctionType.Transformer","args":["hello"],"error":{"name":"TypeError","message":"Array.Flatten: value failed schema validation — [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected array, received string\"\n  }\n]"}}
+{"name":"String.PadEnd","type":"FunctionType.Transformer","args":["",3,"x"],"ok":"xxx"}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[[{"$id":1,"a":1},"test"],[{"$ref":1},{"a":1}]],"ok":true}
+{"name":"Number.LessThanOrEqual","type":"FunctionType.Condition","args":[0,-1],"ok":false}
+{"name":"Object.PropertyHasValue","type":"FunctionType.Condition","args":[{"value":{"$undefined":true}},"value"],"ok":false}
+{"name":"Number.Sqrt","type":"FunctionType.Transformer","args":[-4],"error":{"name":"Error","message":"Cannot calculate square root of negative number in Transformer.Number.Sqrt"}}
+{"name":"Equals","type":"FunctionType.Condition","args":[null,0],"ok":false}
+{"name":"String.LettersWithCommonPunctuation","type":"FunctionType.Condition","args":["It's a test."],"ok":true}
+{"name":"Date.ToLocaleString","type":"FunctionType.Transformer","args":[{"$date":"2024-03-15T14:30:45.000Z"}],"ok":"3/15/2024, 2:30:45 PM"}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[[{"a":1},"test"],[{"a":1}]],"ok":false}
+{"name":"Object.PropertyHasValue","type":"FunctionType.Condition","args":[{},"value"],"ok":false}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[[{"$id":1,"$array":[1,2]},"test"],[{"$ref":1},[1,2]]],"ok":true}
+{"name":"Object.PropertyHasValue","type":"FunctionType.Condition","args":[{"value":""},"value"],"ok":false}
+{"name":"Array.ContainsAny","type":"FunctionType.Condition","args":[[[1,2],"test"],[[1,2]]],"ok":false}
+{"name":"Object.PropertyHasValue","type":"FunctionType.Condition","args":[{"value":"   "},"value"],"ok":false}
+{"name":"Object.PropertyHasValue","type":"FunctionType.Condition","args":[{"value":"\t\n"},"value"],"ok":false}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[["apple","banana"],["apple","banana","orange"]],"ok":true}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[[1,2],[1,2,3,4]],"ok":true}
+{"name":"Object.PropertyHasValue","type":"FunctionType.Condition","args":[{"user":{"name":"John","email":"","address":{"city":"London","postcode":null}}},"user.name"],"ok":true}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[["a"],["a","b","c"]],"ok":true}
+{"name":"Object.PropertyHasValue","type":"FunctionType.Condition","args":[{"user":{"name":"John","email":"","address":{"city":"London","postcode":null}}},"user.email"],"ok":false}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[[true],[true,false]],"ok":true}
+{"name":"Object.PropertyHasValue","type":"FunctionType.Condition","args":[{"user":{"name":"John","email":"","address":{"city":"London","postcode":null}}},"user.address.city"],"ok":true}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[[],["anything"]],"ok":true}
+{"name":"Object.PropertyHasValue","type":"FunctionType.Condition","args":[{"user":{"name":"John","email":"","address":{"city":"London","postcode":null}}},"user.address.postcode"],"ok":false}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[["apple","banana"],["banana","apple"]],"ok":true}
+{"name":"Object.PropertyHasValue","type":"FunctionType.Condition","args":[{"user":{"name":"John","email":"","address":{"city":"London","postcode":null}}},"user.phone"],"ok":false}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[[1,2,3],[3,1,2]],"ok":true}
+{"name":"Date.IsBefore","type":"FunctionType.Condition","args":["2024-02-01","2024-01-15"],"ok":false}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[["a","b","c"],["c","a","b"]],"ok":true}
+{"name":"String.LettersWithCommonPunctuation","type":"FunctionType.Condition","args":["Question?"],"ok":true}
+{"name":"Number.Sqrt","type":"FunctionType.Transformer","args":["16"],"error":{"name":"TypeError","message":"Number.Sqrt: value failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]"}}
+{"name":"String.PadEnd","type":"FunctionType.Transformer","args":[123,5],"error":{"name":"TypeError","message":"String.PadEnd: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"Date.ToLocaleString","type":"FunctionType.Transformer","args":[{"$date":"2024-03-15T14:30:45.000Z"},"en-US"],"ok":"3/15/2024, 2:30:45 PM"}
+{"name":"Equals","type":"FunctionType.Condition","args":[{"$undefined":true},null],"ok":false}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[5,1,10],"ok":true}
+{"name":"Date.IsBefore","type":"FunctionType.Condition","args":["invalid-date","2024-01-01"],"error":{"name":"Error","message":"Condition.Date.IsBefore: Invalid date string \"invalid-date\""}}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[["apple","grape"],["apple","banana"]],"ok":false}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[[1,2,5],[1,2,3,4]],"ok":false}
+{"name":"Date.IsBefore","type":"FunctionType.Condition","args":["2024-13-01","2024-01-01"],"error":{"name":"Error","message":"Condition.Date.IsBefore: Invalid date string \"2024-13-01\""}}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[["a","x"],["a","b","c"]],"ok":false}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[[],[]],"ok":true}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[[],["anything"]],"ok":true}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[["anything"],[]],"ok":false}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[["apple","apple"],["apple","banana"]],"ok":true}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[[1,1,2],[1,2,3]],"ok":true}
+{"name":"Equals","type":"FunctionType.Condition","args":[[],0],"ok":false}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[1,1,10],"ok":true}
+{"name":"Date.AddDays","type":"FunctionType.Transformer","args":[{"$date":"2024-03-15T00:00:00.000Z"},7],"ok":{"$date":"2024-03-22T00:00:00.000Z"}}
+{"name":"String.LettersWithCommonPunctuation","type":"FunctionType.Condition","args":["(parentheses)"],"ok":true}
+{"name":"Number.Clamp","type":"FunctionType.Transformer","args":[15,5,10],"ok":10}
+{"name":"FormatString","type":"FunctionType.Generator","args":["Hello %1, welcome to %2","Ada","Forge"],"ok":"Hello Ada, welcome to Forge"}
+{"name":"String.ToInt","type":"FunctionType.Transformer","args":["123"],"ok":123}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[["a","a","b"],["a","b"]],"ok":true}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[[1,2],["1","2",3]],"ok":false}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[["1","2"],[1,2,3]],"ok":false}
+{"name":"Date.IsBefore","type":"FunctionType.Condition","args":["2024-01-01","invalid-date"],"error":{"name":"Error","message":"Condition.Date.IsBefore: Invalid comparison date string \"invalid-date\""}}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[[0],[false,1]],"ok":false}
+{"name":"Equals","type":"FunctionType.Condition","args":[{},"[object Object]"],"ok":false}
+{"name":"FormatString","type":"FunctionType.Generator","args":["%1 %2 %10","one","two"],"ok":"one two %10"}
+{"name":"String.LettersWithCommonPunctuation","type":"FunctionType.Condition","args":["dash-test"],"ok":true}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[10,1,10],"ok":true}
+{"name":"Number.Clamp","type":"FunctionType.Transformer","args":[3,5,10],"ok":5}
+{"name":"Date.AddMonths","type":"FunctionType.Transformer","args":[{"$date":"2024-03-15T00:00:00.000Z"},3],"ok":{"$date":"2024-06-14T23:00:00.000Z"}}
+{"name":"String.ToInt","type":"FunctionType.Transformer","args":["123.45"],"ok":123}
+{"name":"String.LettersWithCommonPunctuation","type":"FunctionType.Condition","args":["\"quoted\""],"ok":true}
+{"name":"String.ToInt","type":"FunctionType.Transformer","args":["-456"],"ok":-456}
+{"name":"Number.Clamp","type":"FunctionType.Transformer","args":[7,5,10],"ok":7}
+{"name":"Equals","type":"FunctionType.Condition","args":[{"$unsupported":"function"},{"$unsupported":"function"}],"ok":true}
+{"name":"FormatString","type":"FunctionType.Generator","args":["Goals (%1)",{"$undefined":true}],"ok":"Goals ()"}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[0,-5,5],"ok":true}
+{"name":"Date.IsBefore","type":"FunctionType.Condition","args":["2024-01-01","2024-13-01"],"error":{"name":"Error","message":"Condition.Date.IsBefore: Invalid comparison date string \"2024-13-01\""}}
+{"name":"Date.IsAfter","type":"FunctionType.Condition","args":["2024-01-02","2024-01-01"],"ok":true}
+{"name":"Date.IsAfter","type":"FunctionType.Condition","args":["2024-01-01","2023-12-31"],"ok":true}
+{"name":"Date.IsAfter","type":"FunctionType.Condition","args":["2024-02-01","2024-01-15"],"ok":true}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[[false],[0,1]],"ok":false}
+{"name":"Date.IsAfter","type":"FunctionType.Condition","args":["2024-01-01","2020-01-01"],"ok":true}
+{"name":"Date.IsAfter","type":"FunctionType.Condition","args":["2024-01-01","2024-01-01"],"ok":false}
+{"name":"Date.IsAfter","type":"FunctionType.Condition","args":["2024-12-31","2024-12-31"],"ok":false}
+{"name":"String.LettersWithCommonPunctuation","type":"FunctionType.Condition","args":["hello123"],"ok":false}
+{"name":"Number.Clamp","type":"FunctionType.Transformer","args":[5,5,10],"ok":5}
+{"name":"String.ToInt","type":"FunctionType.Transformer","args":["-456.789"],"ok":-456}
+{"name":"FormatString","type":"FunctionType.Generator","args":["%1 %2","$&","%1"],"ok":"$& %1"}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[0,1,10],"ok":false}
+{"name":"Equals","type":"FunctionType.Condition","args":[{"$unsupported":"function"},{"$unsupported":"function"}],"ok":false}
+{"name":"Number.Clamp","type":"FunctionType.Transformer","args":[10,5,10],"ok":10}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[11,1,10],"ok":false}
+{"name":"String.LettersWithCommonPunctuation","type":"FunctionType.Condition","args":["test@email"],"ok":false}
+{"name":"String.LettersWithCommonPunctuation","type":"FunctionType.Condition","args":["price$10"],"ok":false}
+{"name":"Number.Clamp","type":"FunctionType.Transformer","args":["7",5,10],"error":{"name":"TypeError","message":"Number.Clamp: value failed schema validation — [\n  {\n    \"expected\": \"number\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected number, received string\"\n  }\n]"}}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[-6,-5,5],"ok":false}
+{"name":"String.LettersWithCommonPunctuation","type":"FunctionType.Condition","args":[""],"ok":false}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[5.5,5,6],"ok":true}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[5,5,6],"ok":true}
+{"name":"String.LettersWithSpaceDashApostrophe","type":"FunctionType.Condition","args":["Hello World"],"ok":true}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[6,5,6],"ok":true}
+{"name":"String.LettersWithSpaceDashApostrophe","type":"FunctionType.Condition","args":["O'Connor"],"ok":true}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[4.9,5,6],"ok":false}
+{"name":"String.LettersWithSpaceDashApostrophe","type":"FunctionType.Condition","args":["Mary-Jane"],"ok":true}
+{"name":"String.LettersWithSpaceDashApostrophe","type":"FunctionType.Condition","args":["Smith"],"ok":true}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[6.1,5,6],"ok":false}
+{"name":"String.LettersWithSpaceDashApostrophe","type":"FunctionType.Condition","args":["Hello!"],"ok":false}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[-5,-10,-1],"ok":true}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[-10,-10,-1],"ok":true}
+{"name":"String.LettersWithSpaceDashApostrophe","type":"FunctionType.Condition","args":["test123"],"ok":false}
+{"name":"String.LettersWithSpaceDashApostrophe","type":"FunctionType.Condition","args":["name@email"],"ok":false}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[-1,-10,-1],"ok":true}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[[null],[{"$undefined":true},"test"]],"ok":false}
+{"name":"String.LettersWithSpaceDashApostrophe","type":"FunctionType.Condition","args":[""],"ok":false}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[0,-10,-1],"ok":false}
+{"name":"String.LettersWithSpaceDashApostrophe","type":"FunctionType.Condition","args":["test."],"ok":false}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[5,5,5],"ok":true}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[4,5,5],"ok":false}
+{"name":"String.LettersAndDigitsOnly","type":"FunctionType.Condition","args":["Hello123"],"ok":true}
+{"name":"String.LettersAndDigitsOnly","type":"FunctionType.Condition","args":["ABC123"],"ok":true}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[6,5,5],"ok":false}
+{"name":"String.LettersAndDigitsOnly","type":"FunctionType.Condition","args":["test"],"ok":true}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[5,10,1],"ok":false}
+{"name":"String.ToInt","type":"FunctionType.Transformer","args":["  123  "],"ok":123}
+{"name":"Equals","type":"FunctionType.Condition","args":[{"$id":1,"$date":"2023-01-01T00:00:00.000Z"},{"$ref":1}],"ok":true}
+{"name":"FormatString","type":"FunctionType.Generator","args":[123],"error":{"name":"TypeError","message":"FormatString: arguments failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      0\n    ],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"String.LettersAndDigitsOnly","type":"FunctionType.Condition","args":["999"],"ok":true}
+{"name":"Number.Between","type":"FunctionType.Condition","args":[5,10,5],"ok":false}
+{"name":"Date.IsAfter","type":"FunctionType.Condition","args":["2024-01-01","2024-01-02"],"ok":false}
+{"name":"String.LettersAndDigitsOnly","type":"FunctionType.Condition","args":["hello world"],"ok":false}
+{"name":"String.LettersAndDigitsOnly","type":"FunctionType.Condition","args":["test-123"],"ok":false}
+{"name":"String.LettersAndDigitsOnly","type":"FunctionType.Condition","args":["hello!"],"ok":false}
+{"name":"String.LettersAndDigitsOnly","type":"FunctionType.Condition","args":[""],"ok":false}
+{"name":"String.AlphanumericWithCommonPunctuation","type":"FunctionType.Condition","args":["Hello123!"],"ok":true}
+{"name":"String.AlphanumericWithCommonPunctuation","type":"FunctionType.Condition","args":["Test, 123."],"ok":true}
+{"name":"String.AlphanumericWithCommonPunctuation","type":"FunctionType.Condition","args":["It's 2024"],"ok":true}
+{"name":"String.AlphanumericWithCommonPunctuation","type":"FunctionType.Condition","args":["(123) test"],"ok":true}
+{"name":"String.AlphanumericWithCommonPunctuation","type":"FunctionType.Condition","args":["dash-123"],"ok":true}
+{"name":"String.AlphanumericWithCommonPunctuation","type":"FunctionType.Condition","args":["test@email"],"ok":false}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[[{"$id":1,"a":1}],[{"$ref":1},{"a":1}]],"ok":true}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[[{"a":1}],[{"a":1}]],"ok":false}
+{"name":"String.AlphanumericWithCommonPunctuation","type":"FunctionType.Condition","args":["price$10"],"ok":false}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[[{"$id":1,"$array":[1,2]}],[{"$ref":1},[1,2]]],"ok":true}
+{"name":"String.AlphanumericWithCommonPunctuation","type":"FunctionType.Condition","args":["test#hash"],"ok":false}
+{"name":"Date.Now","type":"FunctionType.Generator","args":[],"ok":{"$date":"2026-11-04T14:09:30.900Z"}}
+{"name":"Array.ContainsAll","type":"FunctionType.Condition","args":[[[1,2]],[[1,2]]],"ok":false}
+{"name":"Date.Today","type":"FunctionType.Generator","args":[],"ok":{"$date":"2026-11-04T00:00:00.000Z"}}
+{"name":"String.AlphanumericWithCommonPunctuation","type":"FunctionType.Condition","args":[""],"ok":false}
+{"name":"String.AlphanumericWithAllSafeSymbols","type":"FunctionType.Condition","args":["Hello@123"],"ok":true}
+{"name":"Equals","type":"FunctionType.Condition","args":[{"$date":"2023-01-01T00:00:00.000Z"},{"$date":"2023-01-01T00:00:00.000Z"}],"ok":false}
+{"name":"String.ToInt","type":"FunctionType.Transformer","args":[""],"error":{"name":"TypeError","message":"Transformer.String.ToInt: \"\" is not a valid number"}}
+{"name":"String.ToInt","type":"FunctionType.Transformer","args":[""],"error":{"name":"TypeError","message":"Transformer.String.ToInt: \"\" is not a valid number"}}
+{"name":"String.AlphanumericWithAllSafeSymbols","type":"FunctionType.Condition","args":["Test#$%"],"ok":true}
+{"name":"String.ToInt","type":"FunctionType.Transformer","args":["   "],"error":{"name":"TypeError","message":"Transformer.String.ToInt: \"   \" is not a valid number"}}
+{"name":"String.AlphanumericWithAllSafeSymbols","type":"FunctionType.Condition","args":["email@test"],"ok":true}
+{"name":"String.AlphanumericWithAllSafeSymbols","type":"FunctionType.Condition","args":["100% success!"],"ok":true}
+{"name":"String.ToInt","type":"FunctionType.Transformer","args":["not a number"],"error":{"name":"TypeError","message":"Transformer.String.ToInt: \"not a number\" is not a valid number"}}
+{"name":"String.ToInt","type":"FunctionType.Transformer","args":["123abc"],"error":{"name":"TypeError","message":"Transformer.String.ToInt: \"123abc\" is not a valid number"}}
+{"name":"String.AlphanumericWithAllSafeSymbols","type":"FunctionType.Condition","args":["(test) & *stars*"],"ok":true}
+{"name":"String.AlphanumericWithAllSafeSymbols","type":"FunctionType.Condition","args":["price: $10.99"],"ok":true}
+{"name":"String.ToInt","type":"FunctionType.Transformer","args":["Infinity"],"error":{"name":"TypeError","message":"Transformer.String.ToInt: \"Infinity\" is not a valid number"}}
+{"name":"String.ToInt","type":"FunctionType.Transformer","args":[123],"error":{"name":"TypeError","message":"String.ToInt: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"String.AlphanumericWithAllSafeSymbols","type":"FunctionType.Condition","args":["test<script>"],"ok":false}
+{"name":"String.ToFloat","type":"FunctionType.Transformer","args":["123.45"],"ok":123.45}
+{"name":"String.AlphanumericWithAllSafeSymbols","type":"FunctionType.Condition","args":["test\\escape"],"ok":false}
+{"name":"Date.IsAfter","type":"FunctionType.Condition","args":["2023-12-31","2024-01-01"],"ok":false}
+{"name":"String.AlphanumericWithAllSafeSymbols","type":"FunctionType.Condition","args":["test/slash"],"ok":false}
+{"name":"String.ToFloat","type":"FunctionType.Transformer","args":["123"],"ok":123}
+{"name":"String.AlphanumericWithAllSafeSymbols","type":"FunctionType.Condition","args":[""],"ok":false}
+{"name":"String.ToFloat","type":"FunctionType.Transformer","args":["-456.789"],"ok":-456.789}
+{"name":"String.StartsWith","type":"FunctionType.Condition","args":["hello world","hello"],"ok":true}
+{"name":"String.ToFloat","type":"FunctionType.Transformer","args":["1.23e5"],"ok":123000}
+{"name":"String.StartsWith","type":"FunctionType.Condition","args":["hello","h"],"ok":true}
+{"name":"String.ToFloat","type":"FunctionType.Transformer","args":["  3.14159  "],"ok":3.14159}
+{"name":"Date.IsAfter","type":"FunctionType.Condition","args":["2024-01-15","2024-02-01"],"ok":false}
+{"name":"String.StartsWith","type":"FunctionType.Condition","args":["hello","hello"],"ok":true}
+{"name":"String.ToFloat","type":"FunctionType.Transformer","args":[""],"error":{"name":"TypeError","message":"Transformer.String.ToFloat: \"\" is not a valid number"}}
+{"name":"String.ToFloat","type":"FunctionType.Transformer","args":[""],"error":{"name":"TypeError","message":"Transformer.String.ToFloat: \"\" is not a valid number"}}
+{"name":"String.StartsWith","type":"FunctionType.Condition","args":["hello",""],"ok":true}
+{"name":"String.ToFloat","type":"FunctionType.Transformer","args":["   "],"error":{"name":"TypeError","message":"Transformer.String.ToFloat: \"   \" is not a valid number"}}
+{"name":"String.StartsWith","type":"FunctionType.Condition","args":["hello world","world"],"ok":false}
+{"name":"Date.IsAfter","type":"FunctionType.Condition","args":["invalid-date","2024-01-01"],"error":{"name":"Error","message":"Condition.Date.IsAfter: Invalid date string \"invalid-date\""}}
+{"name":"String.StartsWith","type":"FunctionType.Condition","args":["hello","Hello"],"ok":false}
+{"name":"String.ToFloat","type":"FunctionType.Transformer","args":["0.000001"],"ok":1e-6}
+{"name":"String.StartsWith","type":"FunctionType.Condition","args":["","h"],"ok":false}
+{"name":"String.ToFloat","type":"FunctionType.Transformer","args":["not a number"],"error":{"name":"TypeError","message":"Transformer.String.ToFloat: \"not a number\" is not a valid number"}}
+{"name":"String.ToFloat","type":"FunctionType.Transformer","args":["123.45abc"],"error":{"name":"TypeError","message":"Transformer.String.ToFloat: \"123.45abc\" is not a valid number"}}
+{"name":"String.EndsWith","type":"FunctionType.Condition","args":["hello world","world"],"ok":true}
+{"name":"String.EndsWith","type":"FunctionType.Condition","args":["hello","o"],"ok":true}
+{"name":"String.ToFloat","type":"FunctionType.Transformer","args":["Infinity"],"error":{"name":"TypeError","message":"Transformer.String.ToFloat: \"Infinity\" is not a valid number"}}
+{"name":"String.ToFloat","type":"FunctionType.Transformer","args":[123.45],"error":{"name":"TypeError","message":"String.ToFloat: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"String.EndsWith","type":"FunctionType.Condition","args":["hello","hello"],"ok":true}
+{"name":"Date.IsAfter","type":"FunctionType.Condition","args":["2024-01-01","invalid-date"],"error":{"name":"Error","message":"Condition.Date.IsAfter: Invalid comparison date string \"invalid-date\""}}
+{"name":"String.EndsWith","type":"FunctionType.Condition","args":["hello",""],"ok":true}
+{"name":"String.ToArray","type":"FunctionType.Transformer","args":["hello"],"ok":["h","e","l","l","o"]}
+{"name":"String.EndsWith","type":"FunctionType.Condition","args":["hello world","hello"],"ok":false}
+{"name":"String.ToArray","type":"FunctionType.Transformer","args":["hello,world,test",","],"ok":["hello","world","test"]}
+{"name":"String.EndsWith","type":"FunctionType.Condition","args":["hello","Hello"],"ok":false}
+{"name":"String.ToArray","type":"FunctionType.Transformer","args":["hello world test"," "],"ok":["hello","world","test"]}
+{"name":"String.EndsWith","type":"FunctionType.Condition","args":["","o"],"ok":false}
+{"name":"String.ToArray","type":"FunctionType.Transformer","args":["a-b-c-d","-"],"ok":["a","b","c","d"]}
+{"name":"String.ToArray","type":"FunctionType.Transformer","args":[""],"ok":[]}
+{"name":"String.Contains","type":"FunctionType.Condition","args":["hello world","lo wo"],"ok":true}
+{"name":"String.Contains","type":"FunctionType.Condition","args":["hello","ell"],"ok":true}
+{"name":"String.ToArray","type":"FunctionType.Transformer","args":["",","],"ok":[""]}
+{"name":"String.Contains","type":"FunctionType.Condition","args":["hello","hello"],"ok":true}
+{"name":"String.ToArray","type":"FunctionType.Transformer","args":["hello",","],"ok":["hello"]}
+{"name":"Date.IsFutureDate","type":"FunctionType.Condition","args":["2026-11-05"],"ok":true}
+{"name":"Date.IsFutureDate","type":"FunctionType.Condition","args":["2026-11-11"],"ok":true}
+{"name":"Date.IsFutureDate","type":"FunctionType.Condition","args":["2999-12-31"],"ok":true}
+{"name":"Date.IsFutureDate","type":"FunctionType.Condition","args":["2026-11-03"],"ok":false}
+{"name":"Date.IsFutureDate","type":"FunctionType.Condition","args":["2020-01-01"],"ok":false}
+{"name":"Date.IsFutureDate","type":"FunctionType.Condition","args":["1999-12-31"],"ok":false}
+{"name":"Date.IsFutureDate","type":"FunctionType.Condition","args":["2026-11-04"],"ok":false}
+{"name":"Date.IsFutureDate","type":"FunctionType.Condition","args":["invalid-date"],"error":{"name":"Error","message":"Condition.Date.IsFutureDate: Invalid date string \"invalid-date\""}}
+{"name":"Date.IsFutureDate","type":"FunctionType.Condition","args":["2024-13-01"],"error":{"name":"Error","message":"Condition.Date.IsFutureDate: Invalid date string \"2024-13-01\""}}
+{"name":"String.ToArray","type":"FunctionType.Transformer","args":["hello::world::test","::"],"ok":["hello","world","test"]}
+{"name":"String.Contains","type":"FunctionType.Condition","args":["hello",""],"ok":true}
+{"name":"Date.IsToday","type":"FunctionType.Condition","args":["2026-11-04"],"ok":true}
+{"name":"Date.IsToday","type":"FunctionType.Condition","args":["2026-11-03"],"ok":false}
+{"name":"String.ToArray","type":"FunctionType.Transformer","args":["a,,b",","],"ok":["a","","b"]}
+{"name":"String.Contains","type":"FunctionType.Condition","args":["hello","h"],"ok":true}
+{"name":"Date.IsToday","type":"FunctionType.Condition","args":["2020-01-01"],"ok":false}
+{"name":"Date.IsToday","type":"FunctionType.Condition","args":["1999-12-31"],"ok":false}
+{"name":"Date.IsToday","type":"FunctionType.Condition","args":["2026-11-05"],"ok":false}
+{"name":"String.ToArray","type":"FunctionType.Transformer","args":[123],"error":{"name":"TypeError","message":"String.ToArray: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"String.Contains","type":"FunctionType.Condition","args":["hello","o"],"ok":true}
+{"name":"String.Contains","type":"FunctionType.Condition","args":["hello world","xyz"],"ok":false}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["15/03/2024"],"ok":{"$date":"2024-03-15T00:00:00.000Z"}}
+{"name":"String.Contains","type":"FunctionType.Condition","args":["hello","Hello"],"ok":false}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["15-03-2024"],"ok":{"$date":"2024-03-15T00:00:00.000Z"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["5/3/2024"],"ok":{"$date":"2024-03-05T00:00:00.000Z"}}
+{"name":"String.Contains","type":"FunctionType.Condition","args":["","a"],"ok":false}
+{"name":"Date.IsToday","type":"FunctionType.Condition","args":["2026-11-11"],"ok":false}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["31/12/2024"],"ok":{"$date":"2024-12-31T00:00:00.000Z"}}
+{"name":"Date.IsToday","type":"FunctionType.Condition","args":["2999-12-31"],"ok":false}
+{"name":"Date.IsToday","type":"FunctionType.Condition","args":["invalid-date"],"error":{"name":"Error","message":"Condition.Date.IsToday: Invalid date string \"invalid-date\""}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["29/02/2024"],"ok":{"$date":"2024-02-29T00:00:00.000Z"}}
+{"name":"Date.IsToday","type":"FunctionType.Condition","args":["2024-13-01"],"error":{"name":"Error","message":"Condition.Date.IsToday: Invalid date string \"2024-13-01\""}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["  15/03/2024  "],"ok":{"$date":"2024-03-15T00:00:00.000Z"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":[""],"error":{"name":"TypeError","message":"Transformer.String.ToDate: \"\" is not a valid date"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":[""],"error":{"name":"TypeError","message":"Transformer.String.ToDate: \"\" is not a valid date"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["   "],"error":{"name":"TypeError","message":"Transformer.String.ToDate: \"   \" is not a valid date"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["2024-03-15"],"ok":{"$date":"2024-03-15T00:00:00.000Z"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["2024-03-15T14:30:00Z"],"ok":{"$date":"2024-03-15T14:30:00.000Z"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["2026-04-27T23:05:36.647Z"],"ok":{"$date":"2026-04-27T23:05:36.647Z"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["2026-02-30"],"error":{"name":"TypeError","message":"Transformer.String.ToDate: \"2026-02-30\" is not a valid date"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["2026-02-30T12:00:00Z"],"error":{"name":"TypeError","message":"Transformer.String.ToDate: \"2026-02-30T12:00:00Z\" is not a valid date"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["2024-04-31"],"error":{"name":"TypeError","message":"Transformer.String.ToDate: \"2024-04-31\" is not a valid date"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["2023-02-29"],"error":{"name":"TypeError","message":"Transformer.String.ToDate: \"2023-02-29\" is not a valid date"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["03/15/2024"],"error":{"name":"TypeError","message":"Transformer.String.ToDate: \"03/15/2024\" is not a valid date"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["not a date"],"error":{"name":"TypeError","message":"Transformer.String.ToDate: \"not a date\" is not a valid date (expected DD/MM/YYYY or YYYY-MM-DD)"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["32/03/2024"],"error":{"name":"TypeError","message":"Transformer.String.ToDate: \"32/03/2024\" is not a valid date"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["15/13/2024"],"error":{"name":"TypeError","message":"Transformer.String.ToDate: \"15/13/2024\" is not a valid date"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["29/02/2023"],"error":{"name":"TypeError","message":"Transformer.String.ToDate: \"29/02/2023\" is not a valid date"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["2024/03/15"],"error":{"name":"TypeError","message":"Transformer.String.ToDate: \"2024/03/15\" is not a valid date (expected DD/MM/YYYY or YYYY-MM-DD)"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":["15/03"],"error":{"name":"TypeError","message":"Transformer.String.ToDate: \"15/03\" is not a valid date (expected DD/MM/YYYY or YYYY-MM-DD)"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":[123],"error":{"name":"TypeError","message":"String.ToDate: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":[null],"error":{"name":"TypeError","message":"String.ToDate: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received null\"\n  }\n]"}}
+{"name":"String.ToDate","type":"FunctionType.Transformer","args":[{"$undefined":true}],"ok":{"$undefined":true}}
+{"name":"String.FormatDate","type":"FunctionType.Transformer","args":["2024-03-15"],"ok":"15 March 2024"}
+{"name":"String.FormatDate","type":"FunctionType.Transformer","args":["2026-04-27T23:30:00.000Z"],"ok":"28 April 2026"}
+{"name":"String.FormatDate","type":"FunctionType.Transformer","args":["15/03/2024",{"dateStyle":"long"}],"ok":"15 March 2024"}
+{"name":"String.FormatDate","type":"FunctionType.Transformer","args":["2024-03-15",{"locale":"en-US","dateStyle":"long"}],"ok":"March 15, 2024"}
+{"name":"String.FormatDate","type":"FunctionType.Transformer","args":["2024-03-15",{"day":"2-digit","month":"2-digit","year":"numeric"}],"ok":"15/03/2024"}
+{"name":"String.FormatDate","type":"FunctionType.Transformer","args":["not a date"],"error":{"name":"TypeError","message":"Transformer.String.FormatDate: \"not a date\" is not a valid date (expected DD/MM/YYYY or YYYY-MM-DD)"}}
+{"name":"String.FormatDate","type":"FunctionType.Transformer","args":["not a date"],"error":{"name":"TypeError","message":"Transformer.String.FormatDate: \"not a date\" is not a valid date (expected DD/MM/YYYY or YYYY-MM-DD)"}}
+{"name":"String.FormatDate","type":"FunctionType.Transformer","args":[123],"error":{"name":"TypeError","message":"String.FormatDate: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"String.FormatDate","type":"FunctionType.Transformer","args":["2024-03-15"],"ok":"15 March 2024"}
+{"name":"String.FormatDate","type":"FunctionType.Transformer","args":["15/03/2024",{"dateStyle":"long"}],"ok":"15 March 2024"}
+{"name":"String.FormatDate","type":"FunctionType.Transformer","args":["2024-03-15",{"locale":"en-US","dateStyle":"long"}],"ok":"March 15, 2024"}
+{"name":"String.FormatDate","type":"FunctionType.Transformer","args":["2026-04-27T23:05:36.647Z"],"ok":"28 April 2026"}
+{"name":"String.FormatDate","type":"FunctionType.Transformer","args":["2024-03-15",{"day":"2-digit","month":"2-digit","year":"numeric"}],"ok":"15/03/2024"}
+{"name":"String.FormatDate","type":"FunctionType.Transformer","args":["not a date"],"error":{"name":"TypeError","message":"Transformer.String.FormatDate: \"not a date\" is not a valid date (expected DD/MM/YYYY or YYYY-MM-DD)"}}
+{"name":"String.FormatDate","type":"FunctionType.Transformer","args":[123],"error":{"name":"TypeError","message":"String.FormatDate: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":["15/03/2024"],"ok":"2024-03-15"}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":["5/3/2024"],"ok":"2024-03-05"}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":["1/1/2024"],"ok":"2024-01-01"}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":["15-03-2024"],"ok":"2024-03-15"}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":["  15/03/2024  "],"ok":"2024-03-15"}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":["31/12/2024"],"ok":"2024-12-31"}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":["29/02/2024"],"ok":"2024-02-29"}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":[""],"error":{"name":"TypeError","message":"Transformer.String.ToISODate: \"\" is not a valid date"}}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":[""],"error":{"name":"TypeError","message":"Transformer.String.ToISODate: \"\" is not a valid date"}}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":["   "],"error":{"name":"TypeError","message":"Transformer.String.ToISODate: \"   \" is not a valid date"}}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":["2024-03-15"],"error":{"name":"TypeError","message":"Transformer.String.ToISODate: \"2024-03-15\" is not a valid UK date (expected DD/MM/YYYY)"}}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":["2024-03-15"],"error":{"name":"TypeError","message":"Transformer.String.ToISODate: \"2024-03-15\" is not a valid UK date (expected DD/MM/YYYY)"}}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":["32/03/2024"],"error":{"name":"TypeError","message":"Transformer.String.ToISODate: \"32/03/2024\" is not a valid date"}}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":["15/13/2024"],"error":{"name":"TypeError","message":"Transformer.String.ToISODate: \"15/13/2024\" is not a valid date"}}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":["29/02/2023"],"error":{"name":"TypeError","message":"Transformer.String.ToISODate: \"29/02/2023\" is not a valid date"}}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":["2024/03/15"],"error":{"name":"TypeError","message":"Transformer.String.ToISODate: \"2024/03/15\" is not a valid UK date (expected DD/MM/YYYY)"}}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":["15/03"],"error":{"name":"TypeError","message":"Transformer.String.ToISODate: \"15/03\" is not a valid UK date (expected DD/MM/YYYY)"}}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":[123],"error":{"name":"TypeError","message":"String.ToISODate: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":[null],"error":{"name":"TypeError","message":"String.ToISODate: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received null\"\n  }\n]"}}
+{"name":"String.ToISODate","type":"FunctionType.Transformer","args":[{"$undefined":true}],"ok":{"$undefined":true}}
+{"name":"String.ToTimestampDate","type":"FunctionType.Transformer","args":["1710460800000"],"ok":{"$date":"2024-03-15T00:00:00.000Z"}}
+{"name":"String.ToTimestampDate","type":"FunctionType.Transformer","args":["not-a-timestamp"],"error":{"name":"TypeError","message":"Transformer.String.ToTimestampDate: \"not-a-timestamp\" is not a timestamp"}}
+{"name":"String.ToTimestampDate","type":"FunctionType.Transformer","args":["not-a-timestamp"],"error":{"name":"TypeError","message":"Transformer.String.ToTimestampDate: \"not-a-timestamp\" is not a timestamp"}}
+{"name":"String.EscapeHtml","type":"FunctionType.Transformer","args":["<script>alert(1)</script>"],"ok":"&lt;script&gt;alert(1)&lt;/script&gt;"}
+{"name":"String.EscapeHtml","type":"FunctionType.Transformer","args":["\"><img src=x onerror=alert(1)>"],"ok":"&quot;&gt;&lt;img src=x onerror=alert(1)&gt;"}
+{"name":"String.EscapeHtml","type":"FunctionType.Transformer","args":["it's a test"],"ok":"it&#39;s a test"}
+{"name":"String.EscapeHtml","type":"FunctionType.Transformer","args":["foo & bar"],"ok":"foo &amp; bar"}
+{"name":"String.EscapeHtml","type":"FunctionType.Transformer","args":["Buy milk"],"ok":"Buy milk"}
+{"name":"String.EscapeHtml","type":"FunctionType.Transformer","args":[""],"ok":""}
+{"name":"String.EscapeHtml","type":"FunctionType.Transformer","args":[123],"error":{"name":"TypeError","message":"String.EscapeHtml: value failed schema validation — [\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected string, received number\"\n  }\n]"}}

@@ -1,0 +1,590 @@
+{
+  "alert": {
+    "default": {
+      "variant": "information",
+      "title": "Info",
+      "text": "Your case has been updated <now> & saved"
+    },
+    "html-dismissible": {
+      "variant": "success",
+      "title": "Done",
+      "showTitleAsHeading": true,
+      "html": "<p class=\"govuk-body\">Saved</p>",
+      "dismissible": true,
+      "attributes": {
+        "data-test": "x"
+      }
+    },
+    "minimal": {}
+  },
+  "badge": {
+    "default": {
+      "text": "Urgent"
+    },
+    "html": {
+      "html": "<b>New</b>",
+      "classes": "moj-badge--red",
+      "label": "status"
+    }
+  },
+  "banner": {
+    "default": {
+      "text": "Hello & welcome"
+    },
+    "success": {
+      "type": "success",
+      "html": "<p>Done</p>",
+      "iconFallbackText": "Success"
+    }
+  },
+  "button-menu": {
+    "default": {
+      "button": {
+        "text": "Actions"
+      },
+      "items": [
+        {
+          "text": "Edit",
+          "href": "/edit"
+        },
+        {
+          "text": "Delete",
+          "classes": "govuk-button--warning",
+          "attributes": {
+            "data-x": "1"
+          }
+        }
+      ]
+    },
+    "aligned-disabled": {
+      "alignMenu": "right",
+      "button": {
+        "text": "More",
+        "classes": "govuk-button--secondary"
+      },
+      "items": [
+        {
+          "text": "Archive",
+          "disabled": true
+        },
+        {
+          "html": "<span>Copy</span>",
+          "name": "copy",
+          "value": "1",
+          "type": "submit"
+        }
+      ]
+    }
+  },
+  "cookie-banner": {
+    "default": {
+      "show": true,
+      "heading": {
+        "text": "Cookies on this service"
+      },
+      "items": [
+        {
+          "text": "We use some essential cookies."
+        }
+      ]
+    }
+  },
+  "currency-input": {
+    "default": {
+      "id": "amount",
+      "name": "amount",
+      "label": {
+        "text": "Amount"
+      }
+    },
+    "error": {
+      "id": "amount",
+      "name": "amount",
+      "value": "12.50",
+      "label": {
+        "text": "Amount",
+        "isPageHeading": true
+      },
+      "hint": {
+        "text": "In pounds"
+      },
+      "errorMessage": {
+        "text": "Enter an amount"
+      },
+      "formGroup": {
+        "classes": "x"
+      },
+      "currencyLabel": {
+        "text": "€"
+      }
+    }
+  },
+  "date-picker": {
+    "default": {
+      "id": "date",
+      "name": "date",
+      "label": {
+        "text": "Date"
+      }
+    },
+    "configured": {
+      "id": "date",
+      "name": "date",
+      "label": {
+        "text": "Date"
+      },
+      "hint": {
+        "text": "e.g. 17/5/2024"
+      },
+      "minDate": "01/01/2024",
+      "maxDate": "31/12/2024",
+      "excludedDays": "sunday saturday",
+      "leadingZeros": true,
+      "weekStartDay": "sunday",
+      "value": "17/05/2024",
+      "errorMessage": {
+        "text": "Bad date"
+      }
+    }
+  },
+  "filter": {
+    "default": {
+      "heading": {
+        "text": "Filter"
+      },
+      "submit": {
+        "text": "Apply"
+      },
+      "optionsHtml": "<p>options</p>"
+    },
+    "selected": {
+      "heading": {
+        "text": "Filter"
+      },
+      "selectedFilters": {
+        "heading": {
+          "text": "Selected"
+        },
+        "clearLink": {
+          "text": "Clear",
+          "href": "/"
+        },
+        "categories": [
+          {
+            "heading": {
+              "text": "Colour"
+            },
+            "items": [
+              {
+                "href": "/?c=",
+                "text": "Red"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "header": {
+    "default": {
+      "organisationLabel": {
+        "text": "Ministry of Justice",
+        "href": "/"
+      },
+      "serviceLabel": {
+        "text": "Forge",
+        "href": "/forge"
+      }
+    },
+    "navigation": {
+      "organisationLabel": {
+        "text": "MoJ"
+      },
+      "navigation": {
+        "label": "Account",
+        "items": [
+          {
+            "text": "Sign out",
+            "href": "/sign-out"
+          },
+          {
+            "text": "Profile",
+            "href": "/me",
+            "active": true
+          }
+        ]
+      }
+    }
+  },
+  "identity-bar": {
+    "default": {
+      "title": {
+        "text": "Jane Doe"
+      }
+    },
+    "menus": {
+      "title": {
+        "html": "<strong>Jane</strong>"
+      },
+      "menus": [
+        {
+          "items": [
+            {
+              "text": "Edit",
+              "href": "/e"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "interruption-card": {
+    "default": {
+      "heading": "Before you continue",
+      "primaryAction": {
+        "text": "Continue",
+        "href": "/next"
+      },
+      "__caller": "<p class=\"govuk-body\">Body & <em>more</em></p>"
+    },
+    "both": {
+      "heading": "Careful",
+      "primaryAction": {
+        "text": "Yes",
+        "href": "/y",
+        "attributes": {
+          "data-a": "1"
+        }
+      },
+      "secondaryAction": {
+        "text": "No",
+        "href": "/n",
+        "style": "link"
+      },
+      "__caller": "<p class=\"govuk-body\">Body & <em>more</em></p>"
+    }
+  },
+  "messages": {
+    "default": {
+      "id": "m",
+      "label": "Conversation",
+      "items": [
+        {
+          "id": "1",
+          "text": "Hi <there>",
+          "sender": "Jane",
+          "timestamp": "2024-05-17T10:00:00.000Z",
+          "type": "received"
+        },
+        {
+          "id": "2",
+          "html": "<p>Hello</p>",
+          "sender": "Bob",
+          "timestamp": "2024-05-17T11:30:00.000Z",
+          "type": "sent"
+        }
+      ]
+    }
+  },
+  "multi-file-upload": {
+    "default": {
+      "uploadHtml": "<input type=\"file\">",
+      "uploadedFiles": {
+        "heading": {
+          "text": "Files added"
+        },
+        "items": [
+          {
+            "key": {
+              "html": "a.pdf"
+            },
+            "value": {
+              "html": "uploaded"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "notification-badge": {
+    "default": {
+      "text": "3"
+    },
+    "hidden": {
+      "text": "9",
+      "visuallyHiddenText": "unread",
+      "classes": "x",
+      "attributes": {
+        "id": "nb"
+      }
+    }
+  },
+  "organisation-switcher": {
+    "default": {
+      "text": "HMP Leeds",
+      "link": {
+        "text": "Change",
+        "href": "/switch"
+      }
+    }
+  },
+  "page-header-actions": {
+    "default": {
+      "heading": {
+        "text": "Cases"
+      },
+      "items": [
+        {
+          "text": "Add case"
+        },
+        {
+          "text": "Export",
+          "classes": "govuk-button--secondary"
+        }
+      ]
+    },
+    "level": {
+      "heading": {
+        "html": "<span>Cases</span>",
+        "level": 2,
+        "classes": "govuk-heading-l"
+      }
+    }
+  },
+  "pagination": {
+    "default": {
+      "items": [
+        {
+          "text": "1",
+          "href": "/?p=1",
+          "selected": true
+        },
+        {
+          "text": "2",
+          "href": "/?p=2"
+        },
+        {
+          "type": "dots"
+        },
+        {
+          "text": "9",
+          "href": "/?p=9"
+        }
+      ],
+      "previous": {
+        "text": "Previous",
+        "href": "/?p=0"
+      },
+      "next": {
+        "text": "Next",
+        "href": "/?p=2"
+      },
+      "results": {
+        "from": 1,
+        "to": 10,
+        "count": 90
+      }
+    }
+  },
+  "primary-navigation": {
+    "default": {
+      "label": "Primary",
+      "items": [
+        {
+          "text": "Home",
+          "href": "/",
+          "active": true
+        },
+        {
+          "text": "Cases",
+          "href": "/cases"
+        }
+      ]
+    }
+  },
+  "progress-bar": {
+    "default": {
+      "label": "Progress",
+      "items": [
+        {
+          "label": {
+            "text": "Start"
+          },
+          "complete": true
+        },
+        {
+          "label": {
+            "text": "Middle"
+          },
+          "active": true
+        },
+        {
+          "label": {
+            "html": "<b>End</b>"
+          }
+        }
+      ]
+    }
+  },
+  "search": {
+    "default": {
+      "action": "/search",
+      "method": "get",
+      "input": {
+        "id": "q",
+        "name": "q"
+      },
+      "label": {
+        "text": "Search cases"
+      },
+      "hint": {
+        "text": "Name or ID"
+      },
+      "button": {
+        "text": "Search"
+      }
+    }
+  },
+  "side-navigation": {
+    "items": {
+      "label": "Side",
+      "items": [
+        {
+          "text": "One",
+          "href": "/1",
+          "active": true
+        },
+        {
+          "html": "<i>Two</i>",
+          "href": "/2"
+        }
+      ]
+    },
+    "sections": {
+      "sections": [
+        {
+          "heading": {
+            "text": "Group A"
+          },
+          "items": [
+            {
+              "text": "One",
+              "href": "/1"
+            }
+          ]
+        },
+        {
+          "heading": {
+            "html": "<b>Group B</b>",
+            "headingLevel": 3
+          },
+          "items": [
+            {
+              "text": "Two",
+              "href": "/2",
+              "active": true
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "sub-navigation": {
+    "default": {
+      "label": "Sub",
+      "items": [
+        {
+          "text": "Overview",
+          "href": "#o",
+          "active": true
+        },
+        {
+          "text": "Details",
+          "href": "#d",
+          "attributes": {
+            "data-x": "y"
+          }
+        }
+      ]
+    }
+  },
+  "task-list": {
+    "default": {
+      "sections": [
+        {
+          "heading": {
+            "text": "Prepare"
+          },
+          "items": [
+            {
+              "text": "Read guidance",
+              "href": "/g",
+              "complete": true
+            },
+            {
+              "text": "Fill form",
+              "href": "/f"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "ticket-panel": {
+    "default": {
+      "items": [
+        {
+          "text": "Ticket 1"
+        },
+        {
+          "html": "<p>Ticket 2</p>",
+          "classes": "moj-ticket-panel__content--blue"
+        }
+      ]
+    }
+  },
+  "timeline": {
+    "default": {
+      "items": [
+        {
+          "label": {
+            "text": "Created"
+          },
+          "text": "Case created",
+          "datetime": {
+            "timestamp": "2024-05-17T10:00:00.000Z",
+            "type": "datetime"
+          },
+          "byline": {
+            "text": "Jane"
+          }
+        },
+        {
+          "label": {
+            "html": "<b>Closed</b>"
+          },
+          "html": "<p>Done</p>",
+          "datetime": {
+            "timestamp": "2024-06-01T09:15:00.000Z",
+            "type": "shortdate"
+          }
+        }
+      ]
+    },
+    "heading-level": {
+      "headingLevel": 3,
+      "items": [
+        {
+          "label": {
+            "text": "Only"
+          },
+          "text": "x",
+          "datetime": {
+            "timestamp": "2024-05-17T10:00:00.000Z",
+            "format": "D MMMM YYYY"
+          }
+        }
+      ]
+    }
+  }
+}

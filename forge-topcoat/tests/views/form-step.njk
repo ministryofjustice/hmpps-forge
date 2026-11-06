@@ -1,0 +1,3 @@
+<title>{{ step.title }}</title>
+{% for error in getErrorSummaryList() %}<p class="error">{{ error.text }}</p>{% endfor %}
+<form method="post">{% for block in blocks %}{{ block | safe }}{% endfor %}</form>
