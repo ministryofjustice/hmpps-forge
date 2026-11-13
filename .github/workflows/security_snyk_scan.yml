@@ -20,7 +20,8 @@ jobs:
       subproject: 'hmpps-forge-examples-app'
       slack_include_summary: true
     secrets:
-      HMPPS_SNYK_API_KEY: ${{ secrets.HMPPS_SNYK_API_KEY }}
+      HMPPS_SNYK_CLIENT_SECRET: ${{ secrets.HMPPS_SNYK_CLIENT_SECRET }}
+      HMPPS_SNYK_CLIENT_ID: ${{ secrets.HMPPS_SNYK_CLIENT_ID }}
       HMPPS_SRE_SLACK_BOT_TOKEN: ${{ secrets.HMPPS_SRE_SLACK_BOT_TOKEN }}
 
   security-snyk-check-fs:
@@ -37,5 +38,6 @@ jobs:
       location: 'packages'
       slack_include_summary: true
     secrets:
-      HMPPS_SNYK_API_KEY: ${{ secrets.HMPPS_SNYK_API_KEY }}
+      HMPPS_SNYK_CLIENT_SECRET: ${{ secrets.HMPPS_SNYK_CLIENT_SECRET }}
+      HMPPS_SNYK_CLIENT_ID: ${{ secrets.HMPPS_SNYK_CLIENT_ID }}
       HMPPS_SRE_SLACK_BOT_TOKEN: ${{ secrets.HMPPS_SRE_SLACK_BOT_TOKEN }}
