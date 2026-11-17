@@ -116,7 +116,7 @@
     "typecheck": "tsgo --noEmit"
   },
   "devDependencies": {
-    "@boundaries/eslint-plugin": "^6.0.2",
+    "@boundaries/eslint-plugin": "^7.3.0",
     "@ministryofjustice/eslint-config-hmpps": "^1.0.3",
     "@ministryofjustice/frontend": "^11.1.0",
     "@tsconfig/node24": "^24.0.1",
